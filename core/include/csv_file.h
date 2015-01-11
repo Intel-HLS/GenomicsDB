@@ -40,6 +40,7 @@
 #include <vector>
 #include <inttypes.h>
 #include <tile.h>
+#include <limits>
 
 /** The maximum digits of a number appended to a CSV line. */
 #define CSV_MAX_DIGITS 50
@@ -49,6 +50,16 @@
  * Unless otherwise defined, this default size is used. 
  */
 #define CSV_SEGMENT_SIZE 10000000
+/** Missing int. */
+#define CSV_NULL_INT std::numeric_limits<int>::max()
+/** Missing int64_t. */
+#define CSV_NULL_INT64_T std::numeric_limits<int64_t>::max()
+/** Missing uint64_t. */
+#define CSV_NULL_UINT64_T std::numeric_limits<uint64_t>::max()
+/** Missing float. */
+#define CSV_NULL_FLOAT std::numeric_limits<float>::max()
+/** Missing double. */
+#define CSV_NULL_DOUBLE std::numeric_limits<double>::max()
 
 class Tile;
 

@@ -111,6 +111,43 @@ void Loader::load(const std::string& filename,
   storage_manager_.close_array(ad);
 }
 
+void Loader::load_CSV_gVCF(const std::string& filename) const {
+  // Create gVCF array schema
+  ArraySchema* array_schema = create_gVCF_array_schema();
+
+  // Open array in CREATE mode
+  StorageManager::ArrayDescriptor* ad = 
+      storage_manager_.open_array(*array_schema);
+
+  // Prepare filenames
+  std::string to_be_sorted_filename = filename;
+  if(to_be_sorted_filename[0] == '~') 
+    to_be_sorted_filename = std::string(getenv("HOME")) +
+        to_be_sorted_filename.substr(1, workspace_.size()-1);
+  assert(check_on_load(to_be_sorted_filename));
+  std::string sorted_filename = workspace_ + "/sorted_" +
+                                array_schema->array_name() + ".csv";
+
+  // Sort CSV
+  sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema);
+
+  // Make tiles
+  try {
+    make_tiles_irregular_CSV_gVCF(sorted_filename, ad, *array_schema);
+  } catch(LoaderException& le) {
+    remove(sorted_filename.c_str());
+    storage_manager_.delete_array(array_schema->array_name());
+    throw LoaderException("[Loader] Cannot load CSV file '" + filename + 
+                          "'.\n " + le.what());
+  } 
+
+  // Clean up and close array 
+  remove(sorted_filename.c_str());
+  storage_manager_.close_array(ad);
+  delete array_schema;
+}
+
+
 /******************************************************
 ******************* PRIVATE METHODS *******************
 ******************************************************/
@@ -130,6 +167,220 @@ void Loader::append_cell(const ArraySchema& array_schema,
       throw LoaderException("Cannot read attribute value from CSV file.");
 }
 
+void Loader::append_cell_gVCF(const ArraySchema& array_schema, 
+                              CSVLine* csv_line, Tile** tiles) const {
+  // For easy reference
+  unsigned int attribute_num = array_schema.attribute_num();
+
+  // Bitmap that indicates the NULL attribute values
+  int NULL_bitmap = 0;  
+ 
+  // Variables for retrieving the CSV values
+  int int_v;
+  int64_t int64_t_v;
+  float float_v;
+  std::string string_v;
+
+  // Offsets
+  int64_t REF_offset = tiles[1]->cell_num(); 
+  int64_t ALT_offset = tiles[2]->cell_num(); 
+  int64_t FILTER_ID_offset = tiles[4]->cell_num(); 
+  int64_t AD_offset = tiles[19]->cell_num(); 
+  int64_t PL_offset = tiles[20]->cell_num(); 
+  
+  // ALT_num and FILTER_num variables
+  int ALT_num;
+  int FILTER_num;
+
+  // Append coordinates first
+  if(!(*csv_line >> *tiles[attribute_num]))
+    throw LoaderException("Cannot read coordinates from CSV file.");
+
+  // END -- Attribute 0
+  if(!(*csv_line >> *tiles[0]))
+    throw LoaderException("Cannot read END value from CSV file.");
+
+  // REF -- Attribute 1
+  if(!(*csv_line >> string_v))
+    throw LoaderException("Cannot read REF value from CSV file.");
+  for(int i=0; i<string_v.size(); i++)
+    *tiles[1] << string_v[i];
+  *tiles[1] << '\0';
+
+  // ALT -- Attribute 2
+  if(!(*csv_line >> ALT_num))
+    throw LoaderException("Cannot read ALT_num value from CSV file.");
+  for(int j=0; j<ALT_num; j++) {
+    if(!(*csv_line >> string_v))
+      throw LoaderException("Cannot read ALT value from CSV file.");
+    for(int i=0; i<string_v.size(); i++)
+      *tiles[2] << string_v[i];
+    if(j < ALT_num-1) // Do not store '\0' after last allele '&' for <NON_REF>
+      *tiles[2] << '\0';
+    else
+      assert(string_v == "&");
+  }
+  
+  // QUAL -- Attribute 3
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read QUAL value from CSV file.");
+  *tiles[3] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // FILTER_ID -- Attribute 4
+  if(!(*csv_line >> FILTER_num))
+    throw LoaderException("Cannot read FILTER_num value from CSV file.");
+  *tiles[4] << FILTER_num;  
+  for(int j=0; j<FILTER_num; j++) {
+    if(!(*csv_line >> *tiles[4]))
+      throw LoaderException("Cannot read FILTER_ID value from CSV file.");
+  }
+
+  // BaseQRankSum -- Attribute 5
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read BaseQRankSum value from CSV file.");
+  *tiles[5] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // ClippingRankSum -- Attribute 6
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read ClippingSum value from CSV file.");
+  *tiles[6] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // MQRankSum -- Attribute 7
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read MQRankSum value from CSV file.");
+  *tiles[7] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // ReadPosRankSum -- Attribute 8
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read ReadPosRankSum value from CSV file.");
+  *tiles[8] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // DP -- Attribute 9
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read DP value from CSV file.");
+  *tiles[9] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // MQ -- Attribute 10
+  if(!(*csv_line >> float_v))
+    throw LoaderException("Cannot read MQ value from CSV file.");
+  *tiles[10] << float_v;
+  if(float_v == CSV_NULL_FLOAT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // MQ0 -- Attribute 11
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read MQ0 value from CSV file.");
+  *tiles[11] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // DP_FMT -- Attribute 12
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read DP_FMT value from CSV file.");
+  *tiles[12] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // MIN_DP -- Attribute 13
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read MIN_DP value from CSV file.");
+  *tiles[13] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // GQ -- Attribute 14
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read GQ value from CSV file.");
+  *tiles[14] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // SB_1 -- Attribute 15
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read SB_1 value from CSV file.");
+  *tiles[15] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // SB_2 -- Attribute 16
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read SB_2 value from CSV file.");
+  *tiles[16] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // SB_3 -- Attribute 17
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read SB_3 value from CSV file.");
+  *tiles[17] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1; 
+
+  // SB_4 -- Attribute 18
+  if(!(*csv_line >> int_v))
+    throw LoaderException("Cannot read SB_4 value from CSV file.");
+  *tiles[18] << int_v;
+  if(int_v == CSV_NULL_INT)
+    NULL_bitmap += 1;
+  NULL_bitmap << 1;
+
+  // AD -- Attribute 19
+  for(int i=0; i<ALT_num+1; i++) {
+    if(!(*csv_line >> int_v))
+      throw LoaderException("Cannot read AD value from CSV file.");
+    *tiles[19] << int_v;
+  }
+  if(int_v == CSV_NULL_INT) // We assume that if one AD value is NULL, all are
+    NULL_bitmap += 1;
+  NULL_bitmap << 1;
+  
+  // PL -- Attribute 20
+  for(int i=0; i<(ALT_num+1)*(ALT_num+2)/2; i++) {
+    if(!(*csv_line >> int_v))
+      throw LoaderException("Cannot read PL value from CSV file.");
+    *tiles[20] << int_v;
+  }
+  if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
+    NULL_bitmap += 1;
+  NULL_bitmap << 1;
+
+  // NULL -- Attribute 21
+  *tiles[21] << NULL_bitmap;
+
+  // OFFSETS -- Attribute 22
+  *tiles[22] << REF_offset;
+  *tiles[22] << ALT_offset;
+  *tiles[22] << FILTER_ID_offset;
+  *tiles[22] << AD_offset;
+  *tiles[22] << PL_offset;
+}
+
 bool Loader::check_on_load(const std::string& filename) const {
   int fd = open(filename.c_str(), O_RDONLY);
   if(fd == -1)
@@ -138,6 +389,81 @@ bool Loader::check_on_load(const std::string& filename) const {
   close(fd);
 
   return true;
+}
+
+ArraySchema* Loader::create_gVCF_array_schema() const {
+  // Set dimension names
+  std::vector<std::string> dim_names;
+  dim_names.push_back("SampleID"); 
+  dim_names.push_back("POS"); 
+  
+  // Set dimension domains
+  std::vector<std::pair<double,double> > dim_domains;
+  dim_domains.push_back(std::pair<double,double>(0, 2500));
+  dim_domains.push_back(std::pair<double,double>(0, 6000000000));
+
+  // Set attribute names
+  std::vector<std::string> attribute_names;
+  attribute_names.push_back("END"); 
+  attribute_names.push_back("REF"); 
+  attribute_names.push_back("ALT"); 
+  attribute_names.push_back("QUAL"); 
+  attribute_names.push_back("FILTER_ID"); 
+  attribute_names.push_back("BaseQRankSum"); 
+  attribute_names.push_back("ClippingRankSum"); 
+  attribute_names.push_back("MQRankSum"); 
+  attribute_names.push_back("ReadPosRankSum"); 
+  attribute_names.push_back("DP"); 
+  attribute_names.push_back("MQ"); 
+  attribute_names.push_back("MQ0"); 
+  attribute_names.push_back("DP_FMT"); 
+  attribute_names.push_back("MIN_DP"); 
+  attribute_names.push_back("GQ"); 
+  attribute_names.push_back("SB_1"); 
+  attribute_names.push_back("SB_2"); 
+  attribute_names.push_back("SB_3"); 
+  attribute_names.push_back("SB_4"); 
+  attribute_names.push_back("AD"); 
+  attribute_names.push_back("PL"); 
+  attribute_names.push_back("NULL"); 
+  attribute_names.push_back("OFFSETS"); 
+ 
+  // Set attribute types. 
+  // The first types are for the attributes, whereas the very last type is 
+  // for all the dimensions collectively. 
+  std::vector<const std::type_info*> types;
+  types.push_back(&typeid(int64_t));  // END
+  types.push_back(&typeid(char));     // REF 
+  types.push_back(&typeid(char));     // ALT
+  types.push_back(&typeid(float));    // QUAL
+  types.push_back(&typeid(int));      // FILTER_ID
+  types.push_back(&typeid(float));    // BaseQRankSum
+  types.push_back(&typeid(float));    // ClippingRankSum
+  types.push_back(&typeid(float));    // MQRankSum
+  types.push_back(&typeid(float));    // ReadPosRankSum
+  types.push_back(&typeid(int));      // DP
+  types.push_back(&typeid(float));    // MQ
+  types.push_back(&typeid(int));      // MQ0
+  types.push_back(&typeid(int));      // DP_FMT
+  types.push_back(&typeid(int));      // MIN_DP
+  types.push_back(&typeid(int));      // GQ
+  types.push_back(&typeid(int));      // SB_1
+  types.push_back(&typeid(int));      // SB_2
+  types.push_back(&typeid(int));      // SB_3
+  types.push_back(&typeid(int));      // SB_4
+  types.push_back(&typeid(int));      // AD
+  types.push_back(&typeid(int));      // PL
+  types.push_back(&typeid(int));      // NULL
+  types.push_back(&typeid(int64_t));  // OFFSETS 
+  types.push_back(&typeid(int64_t));  // Coordinates (SampleID, POS)
+
+  // Set order and capacity
+  ArraySchema::Order order = ArraySchema::COLUMN_MAJOR;
+  uint64_t capacity = 1000;
+
+  // Return schema with regular tiles
+  return new ArraySchema("GEN", attribute_names, dim_names, dim_domains, 
+                         types, order, capacity);
 }
 
 void Loader::create_workspace() const {
@@ -229,6 +555,46 @@ void Loader::make_tiles_irregular(const std::string& filename,
     try {
       // Every CSV line is a logical cell
       append_cell(array_schema, &csv_line, tiles);     
+    } catch(LoaderException& le) {
+      delete [] tiles;
+      throw LoaderException("[Make tiles] " + le.what()); 
+    }
+    cell_num++;
+  }
+
+  // Store the lastly created tiles
+  store_tiles(ad, tiles);
+
+  delete [] tiles; 
+}
+
+void Loader::make_tiles_irregular_CSV_gVCF(
+    const std::string& filename,
+    const StorageManager::ArrayDescriptor* ad, 
+    const ArraySchema& array_schema) const {
+  // For easy reference
+  ArraySchema::Order order = array_schema.order();
+  uint64_t capacity = array_schema.capacity();
+ 
+  // Initialization 
+  CSVFile csv_file(filename, CSVFile::READ);
+  CSVLine csv_line;
+  Tile** tiles = new Tile*[array_schema.attribute_num() + 1]; 
+  uint64_t tile_id = 0;
+  uint64_t cell_num = 0;
+
+  new_tiles(array_schema, tile_id, tiles);
+
+  while(csv_file >> csv_line) {
+    if(cell_num == capacity) {
+      store_tiles(ad, tiles);
+      new_tiles(array_schema, ++tile_id, tiles);
+      cell_num = 0;
+    }
+   
+    try {
+      // Every CSV line is a logical cell
+      append_cell_gVCF(array_schema, &csv_line, tiles);     
     } catch(LoaderException& le) {
       delete [] tiles;
       throw LoaderException("[Make tiles] " + le.what()); 
