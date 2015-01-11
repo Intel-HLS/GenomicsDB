@@ -239,7 +239,7 @@ bool CSVLine::operator>>(int& value) {
   if(pos_ == values_.size()) {
     return false;
   } else {
-    if(values_[pos_] == "#") // Value missing
+    if(values_[pos_] == CSV_NULL_VALUE) // Value missing
       value = CSV_NULL_INT;
     else 
       sscanf(values_[pos_].c_str(), "%d", &value);
@@ -253,7 +253,7 @@ bool CSVLine::operator>>(int64_t& value) {
   if(pos_ == values_.size()) {
     return false;
   } else { 
-    if(values_[pos_] == "#") // Value missing
+    if(values_[pos_] == CSV_NULL_VALUE) // Value missing
       value = CSV_NULL_INT64_T;
     else 
       sscanf(values_[pos_].c_str(), "%lld", &value);
@@ -267,7 +267,7 @@ bool CSVLine::operator>>(uint64_t& value) {
   if(pos_ == values_.size()) {
     return false;
   } else { 
-    if(values_[pos_] == "#") // Value missing
+    if(values_[pos_] == CSV_NULL_VALUE) // Value missing
       value = CSV_NULL_UINT64_T;
     else 
       sscanf(values_[pos_].c_str(), "%llu", &value);
@@ -281,7 +281,7 @@ bool CSVLine::operator>>(float& value) {
   if(pos_ == values_.size()) {
     return false;
   } else { 
-    if(values_[pos_] == "#") // Value missing
+    if(values_[pos_] == CSV_NULL_VALUE) // Value missing
       value = CSV_NULL_FLOAT;
     else 
       sscanf(values_[pos_].c_str(), "%f", &value);
@@ -295,7 +295,7 @@ bool CSVLine::operator>>(double& value) {
   if(pos_ == values_.size()) {
     return false;
   } else { 
-    if(values_[pos_] == "#") // Value missing
+    if(values_[pos_] == CSV_NULL_VALUE) // Value missing
       value = CSV_NULL_DOUBLE;
     else 
       sscanf(values_[pos_].c_str(), "%lf", &value);

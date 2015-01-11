@@ -90,6 +90,18 @@ void QueryProcessor::export_to_CSV(const StorageManager::ArrayDescriptor* ad,
   delete [] cell_its;
 }
 
+
+/*
+void QueryProcessor::join(const StorageManager::ArrayDescriptor* ad,
+                              const Tile::Range& range,
+                              const std::string& result_array_name) const { 
+  if(ad->array_schema().has_regular_tiles())
+    subarray_regular(ad, range, result_array_name);
+  else 
+    subarray_irregular(ad, range, result_array_name);
+}
+*/
+
 void QueryProcessor::subarray(const StorageManager::ArrayDescriptor* ad,
                               const Tile::Range& range,
                               const std::string& result_array_name) const { 

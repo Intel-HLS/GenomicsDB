@@ -60,6 +60,8 @@
 #define CSV_NULL_FLOAT std::numeric_limits<float>::max()
 /** Missing double. */
 #define CSV_NULL_DOUBLE std::numeric_limits<double>::max()
+/** The symbol indicating a missing (NULL) value. */
+#define CSV_NULL_VALUE "$"
 
 class Tile;
 
@@ -67,7 +69,7 @@ class Tile;
  * This class implements a CSV line, which is comprised of text segments
  * (values) separated by a comma character (','). A CSV line is the atomic
  * unit of storage in a CSVFile object. Note that a line that starts with
- * '#' is a comment line. 
+ * '#' is a comment line. A CSV_NULL_VALUE indicates a missing (NULL) value.
  */
 class CSVLine {
  public:
