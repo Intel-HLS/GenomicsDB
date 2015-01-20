@@ -362,12 +362,77 @@ class StorageManager {
     /** The storage manager object that created the iterator. */ 
     StorageManager* storage_manager_;
   };
+  /** This class implements a constant reverse tile iterator. */
+  class const_reverse_iterator {
+   public:
+    /** Iterator constuctor. */
+    const_reverse_iterator();
+    /** Iterator constuctor. */
+    const_reverse_iterator(
+        StorageManager* storage_manager,
+        const ArrayDescriptor* array_descriptor, 
+        unsigned int attribute_id,
+        uint64_t rank); 
+    /** Assignment operator. */
+    void operator=(const const_reverse_iterator& rhs);
+    /** Addition-assignment operator. */
+    void operator+=(int64_t step);
+    /** Pre-increment operator. */
+    const_reverse_iterator operator++();
+    /** Post-increment operator. */
+    const_reverse_iterator operator++(int junk);
+    /** 
+     * Returns true if the iterator is equal to that in the
+     * right hand side (rhs) of the operator. 
+     */
+    bool operator==(const const_reverse_iterator& rhs) const;
+    /** 
+     * Returns true if the iterator is equal to that in the
+     * right hand side (rhs) of the operator. 
+     */
+    bool operator!=(const const_reverse_iterator& rhs) const;
+    /** Returns the tile pointed by the iterator. */
+    const Tile& operator*() const; 
+    /** Returns the array schema associated with this tile. */
+    const ArraySchema& array_schema() const;
+    /** Returns the bounding coordinates of the tile. */
+    BoundingCoordinatesPair bounding_coordinates() const;
+    /** Returns the MBR of the tile. */
+    MBR mbr() const;
+    /** Returns the rank. */
+    uint64_t rank() const { return rank_; };
+    /** Returns the id of the tile. */
+    uint64_t tile_id() const;
+
+   private:
+    /** The array descriptor corresponding to this iterator. */
+    const ArrayDescriptor* array_descriptor_;
+    /** The attribute id corresponding to this iterator. */
+    unsigned int attribute_id_;
+    /** The rank of the current tile in the book-keeping structures. */
+    int64_t rank_;
+    /** The storage manager object that created the iterator. */ 
+    StorageManager* storage_manager_;
+  };
   /** Begin tile iterator. */
   const_iterator begin(const ArrayDescriptor* array_descriptor, 
                        unsigned int attribute_id);
   /** End tile iterator. */
   const_iterator end(const ArrayDescriptor* array_descriptor,
                      unsigned int attribute_id);
+  /** Begin reverse tile iterator. */
+  const_reverse_iterator rbegin(const ArrayDescriptor* array_descriptor, 
+                        unsigned int attribute_id);
+  /** 
+   * Begin reverse tile iterator, starting from the rank of the tile
+   * that will initiate the left sweep for joint genotyping.
+   */
+  const_reverse_iterator rbegin(const ArrayDescriptor* array_descriptor, 
+                                unsigned int attribute_id,
+                                uint64_t rank);
+  /** End reverse tile iterator. */
+  const_reverse_iterator rend(const ArrayDescriptor* array_descriptor,
+                              unsigned int attribute_id);
   /** 
    * Returns the begin iterator to the StorageManager::MBRList that 
    * contains the MBRs of the intput array. 
@@ -389,6 +454,17 @@ class StorageManager {
   void get_overlapping_tile_ids(
       const ArrayDescriptor* array_descriptor, const Tile::Range& range, 
       std::vector<std::pair<uint64_t, bool> >* overlapping_tile_ids) const;
+  /**
+   * Returns the rank of the tile the left sweep will start from for joint 
+   * genotyping. Recall that a gVCF array (which requires the joint genotyping
+   * operation) is loaded in a COLUMN_MAJOR order of its cells. As such, the
+   * MBRs of its tiles are sorted in ascending order of their high column
+   * (second coordinate) value. The returned rank is of the tile with the
+   * largest id, whose MBR either intersects col, or that lies before col.
+   * Returns -1 if no row contains genotyping information.
+   */
+  uint64_t get_left_sweep_start_rank(const ArrayDescriptor* ad, 
+                                    uint64_t col) const;
 
  private: 
   // PRIVATE ATTRIBUTES
@@ -531,6 +607,16 @@ class StorageManager {
       ArrayInfo& array_info, unsigned int attribute_id, 
       uint64_t file_offset, uint64_t segment_size, 
       char *segment) const;
+  /** 
+   * Reverse version of StorageManager::get_tile_by_rank. Sepecifcally, the 
+   * file segments are retrieved from the disk such that the requested tile
+   * is the last tile in the segment (this is in contrast to the normal
+   * version where a segment is retrieved from the file such that the 
+   * requested tile is the first tile in the segment.
+   */
+  const Tile* reverse_get_tile_by_rank(ArrayInfo& array_info, 
+                                       unsigned int attribute_id, 
+                                       uint64_t rank) const;
   /** Simply sets the workspace. */
   void set_workspace(const std::string& path);
   /** 

@@ -56,6 +56,35 @@ class QueryProcessor {
    */
   typedef std::vector<double> MBR; 
 
+  /**
+   * This class stores and processes information about a single column
+   * of the gVCF array. A column corresponds to a unique position in
+   * the genome. It holds the REF, ALT and PL values of every row (i.e.,
+   * individual) in the array. If a REF value is equal to "$"
+   * for a row, then it means that this row is NULL (i.e., it contains 
+   * no useful info for joint genotyping). 
+   */
+  class GTColumn {
+   public:
+     // CONSTRUCTORS AND DESTRUCTORS
+     /** Simple constructor. */
+     GTColumn(int64_t col, uint64_t row_num);
+     ~GTColumn() {}
+ 
+     // OPERATIONS
+     // TODO: Implement function for deriving the final ALT and PL vailues
+     // TODO: Implement the genotyping function
+
+    /** Holds the (seqeuence of) ALT values for each row. */
+    std::vector<std::vector<std::string> > ALT_;
+    /** The id of the column. */
+    int64_t col_;
+    /** Holds the REF values for each row. */
+    std::vector<std::string> REF_;
+    /** Holds the (seqeuence of) PL values for each row. */
+    std::vector<std::vector<int> > PL_;
+  };	
+
   // CONSTRUCTORS AND DESTRUCTORS
   /** 
    * Simple constructor. The workspace is where the query processor will create 
@@ -73,6 +102,9 @@ class QueryProcessor {
    */
   void export_to_CSV(const StorageManager::ArrayDescriptor* array_descriptor,
                      const std::string& filename) const;
+  /** Returns the genotyping info for column col from the input array. */
+  GTColumn* gt_get_column(
+      const StorageManager::ArrayDescriptor* ad, uint64_t col) const;
   /** 
    * Joins the two input arrays (say, A and B). The result contains a cell only
    * if both the corresponding cells in A and B are non-empty. The input arrays
@@ -107,12 +139,26 @@ class QueryProcessor {
   void advance_cell_its(unsigned int attribute_num,
                         Tile::const_iterator* cell_its,
                         int64_t step) const; 
+  /** Advances all the reverse cell iterators by 1. */
+  void advance_cell_its(unsigned int attribute_num,
+                        Tile::const_reverse_iterator* cell_its) const; 
+  /** Advances only the attribute reverse cell iterators by step. */
+  void advance_cell_its(unsigned int attribute_num,
+                        Tile::const_reverse_iterator* cell_its,
+                        int64_t step) const; 
   /** Advances all the tile iterators by 1. */
   void advance_tile_its(unsigned int attribute_num,
                         StorageManager::const_iterator* tile_its) const; 
   /** Advances only the attribute tile iterators by step. */
   void advance_tile_its(unsigned int attribute_num,
                         StorageManager::const_iterator* tile_its,
+                        int64_t step) const; 
+  /** Advances all the reverse tile iterators by 1. */
+  void advance_tile_its(unsigned int attribute_num,
+                        StorageManager::const_reverse_iterator* tile_its) const; 
+  /** Advances only the attribute reverse tile iterators by step. */
+  void advance_tile_its(unsigned int attribute_num,
+                        StorageManager::const_reverse_iterator* tile_its,
                         int64_t step) const; 
   /** 
    * Appends a logical cell of an array (comprised of attribute values and 
@@ -147,6 +193,19 @@ class QueryProcessor {
    */
   void get_tiles(const StorageManager::ArrayDescriptor* array_descriptor,
                  uint64_t tile_id, const Tile** tiles) const;
+  /** Fills a row of the input genotyping column with the proper info. */
+  void gt_fill_row(
+      GTColumn* gt_column, int64_t row, int64_t pos,
+      const StorageManager::const_reverse_iterator* tile_its) const;
+  /** 
+   * Initializes tile iterators for joint genotyping for column col. 
+   * Returns the number of attributes used in joint genotyping.
+   */
+  unsigned int gt_initialize_tile_its(
+      const StorageManager::ArrayDescriptor* ad,
+      StorageManager::const_reverse_iterator*& tile_its,
+      StorageManager::const_reverse_iterator& tile_it_end,
+      uint64_t col) const;
   /** Initializes cell iterators. */
   void initialize_cell_its(const Tile** tiles,
                            unsigned int attribute_num,
@@ -157,6 +216,18 @@ class QueryProcessor {
                            unsigned int attribute_num,
                            Tile::const_iterator* cell_its, 
                            Tile::const_iterator& cell_it_end) const; 
+  /** Initializes cell iterators. */
+  void initialize_cell_its(
+      const StorageManager::const_reverse_iterator* tile_its,
+      unsigned int attribute_num,
+      Tile::const_iterator* cell_its, 
+      Tile::const_iterator& cell_it_end) const; 
+  /** Initializes reverse cell iterators. */
+  void initialize_cell_its(
+      const StorageManager::const_reverse_iterator* tile_its,
+      unsigned int attribute_num,
+      Tile::const_reverse_iterator* cell_its, 
+      Tile::const_reverse_iterator& cell_it_end) const; 
   /** Initializes tile iterators. */
   void initialize_tile_its(const StorageManager::ArrayDescriptor* ad,
                            StorageManager::const_iterator* tile_its,

@@ -307,6 +307,230 @@ bool Tile::const_iterator::cell_inside_range(const Tile::Range& range) const {
   return tile_->cell_inside_range(pos_, range); 
 }
 
+// -------------------------- //
+// const_reverse_iterator_ret //
+// -------------------------- //
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator char () {
+  assert(pos_ > 0);
+  return tile_->cell_char(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator int () {
+  assert(pos_ > 0);
+  return tile_->cell_int(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator int64_t () {
+  assert(pos_ > 0);
+  return tile_->cell_int64_t(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator float () {
+  assert(pos_ > 0);
+  return tile_->cell_float(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator double () {
+  assert(pos_ > 0);
+  return tile_->cell_double(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::
+                      operator std::vector<int> () {
+  assert(pos_ > 0);
+  return tile_->cell_v_int(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::
+                      operator std::vector<int64_t> () {
+  assert(pos_ > 0);
+  return tile_->cell_v_int64_t(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::
+                      operator std::vector<float> () {
+  assert(pos_ > 0);
+  return tile_->cell_v_float(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::
+                      operator std::vector<double> () {
+  assert(pos_ > 0);
+  return tile_->cell_v_double(pos_);
+}
+
+template<>
+Tile::const_reverse_iterator::const_reverse_iterator_ret::operator CSVLine () {
+  assert(pos_ > 0);
+
+  CSVLine csv_line;
+
+  if(tile_->tile_type() == ATTRIBUTE) {
+    if(*tile_->cell_type() == typeid(char))
+      csv_line = tile_->cell_char(pos_);
+    else if(*tile_->cell_type() == typeid(int))
+      csv_line = tile_->cell_int(pos_);
+    else if(*tile_->cell_type() == typeid(int64_t))
+      csv_line = tile_->cell_int64_t(pos_);
+    else if(*tile_->cell_type() == typeid(float))
+      csv_line = tile_->cell_float(pos_);
+    else if(*tile_->cell_type() == typeid(double))
+      csv_line = tile_->cell_double(pos_);
+  } else {
+    if(*tile_->cell_type() == typeid(int))
+      csv_line = tile_->cell_v_int(pos_);
+    else if(*tile_->cell_type() == typeid(int64_t))
+      csv_line = tile_->cell_v_int64_t(pos_);
+    else if(*tile_->cell_type() == typeid(float))
+      csv_line = tile_->cell_v_float(pos_);
+    else if(*tile_->cell_type() == typeid(double))
+      csv_line = tile_->cell_v_double(pos_);
+  }
+
+  return csv_line;
+}
+
+// ---------------------- //
+// const_reverse_iterator //
+// ---------------------- //
+
+Tile::const_reverse_iterator::const_reverse_iterator() 
+    : tile_(NULL), pos_(0) {
+}
+
+Tile::const_reverse_iterator::const_reverse_iterator(
+    const Tile* tile, uint64_t pos)
+    : tile_(tile), pos_(pos) {
+}
+
+void Tile::const_reverse_iterator::operator=(
+    const const_reverse_iterator& rhs) {
+  pos_ = rhs.pos_;
+  tile_ = rhs.tile_;
+}
+
+void Tile::const_reverse_iterator::operator+(int64_t step) {
+  const_reverse_iterator it = *this;
+  it.pos_ -= step;
+}
+
+void Tile::const_reverse_iterator::operator+=(int64_t step) {
+  pos_ -= step;
+}
+
+Tile::const_reverse_iterator Tile::const_reverse_iterator::operator++() {
+  --pos_;
+  return *this;
+}
+
+Tile::const_reverse_iterator Tile::const_reverse_iterator::operator++(
+    int junk) {
+  const_reverse_iterator it = *this;
+  pos_--;
+  return it;
+}
+
+bool Tile::const_reverse_iterator::operator==(
+    const const_reverse_iterator& rhs) const {
+  // --- If both operands correspond to the same tile
+  if(tile_ == rhs.tile_)
+    return pos_ == rhs.pos_;
+
+  // --- The operands correspond to different tiles - check their cell values
+  // Currently works only with tiles of the same type. If the tiles are
+  // coordinate tiles, they must have the same number of dimensions
+  assert(tile_->tile_type() == rhs.tile_->tile_type());
+  assert(*(tile_->cell_type()) == *(rhs.tile_->cell_type()));
+  assert(tile_->tile_type() == ATTRIBUTE || 
+         tile_->dim_num() == rhs.tile_->dim_num());
+
+  // For easy reference
+  const std::type_info* cell_type = tile_->cell_type();
+  TileType tile_type = tile_->tile_type();
+
+  // Attribute tiles
+  if(tile_type == ATTRIBUTE) {
+    if(*cell_type == typeid(char))
+      return static_cast<const AttributeTile<char>*>(tile_)->cell(pos_) ==
+             static_cast<const AttributeTile<char>*>(rhs.tile_)->cell(rhs.pos_);
+    else if(*cell_type == typeid(int))
+      return static_cast<const AttributeTile<int>*>(tile_)->cell(pos_) ==
+             static_cast<const AttributeTile<int>*>(rhs.tile_)->cell(rhs.pos_);
+    else if(*cell_type == typeid(int64_t))
+      return static_cast<const AttributeTile<int64_t>*>(tile_)->cell(pos_) ==
+             static_cast<const AttributeTile<int64_t>*>
+                 (rhs.tile_)->cell(rhs.pos_);
+    else if(*cell_type == typeid(float))
+      return static_cast<const AttributeTile<float>*>(tile_)->cell(pos_) ==
+             static_cast<const AttributeTile<float>*>
+                 (rhs.tile_)->cell(rhs.pos_);
+    else if(*cell_type == typeid(double))
+      return static_cast<const AttributeTile<double>*>(tile_)->cell(pos_) ==
+             static_cast<const AttributeTile<double>*>
+                 (rhs.tile_)->cell(rhs.pos_);
+  // Coordinate tiles
+  } else { // (tile_type == COORDINATE)
+    if(*cell_type == typeid(int)) {
+      const std::vector<int>& coord_lhs = 
+          static_cast<const CoordinateTile<int>*>(tile_)->cell(pos_);
+      const std::vector<int>& coord_rhs = 
+          static_cast<const CoordinateTile<int>*>(rhs.tile_)->cell(rhs.pos_);
+      return std::equal(coord_lhs.begin(), coord_lhs.end(), coord_rhs.begin());
+    } else if(*cell_type == typeid(int64_t)) {
+      const std::vector<int64_t>& coord_lhs = 
+          static_cast<const CoordinateTile<int64_t>*>(tile_)->cell(pos_);
+      const std::vector<int64_t>& coord_rhs = 
+          static_cast<const CoordinateTile<int64_t>*> 
+              (rhs.tile_)->cell(rhs.pos_);
+      return std::equal(coord_lhs.begin(), coord_lhs.end(), coord_rhs.begin());
+    } else if(*cell_type == typeid(float)) {
+      const std::vector<float>& coord_lhs = 
+          static_cast<const CoordinateTile<float>*>(tile_)->cell(pos_);
+      const std::vector<float>& coord_rhs = 
+          static_cast<const CoordinateTile<float>*>(rhs.tile_)->cell(rhs.pos_);
+      return std::equal(coord_lhs.begin(), coord_lhs.end(), coord_rhs.begin());
+    } else if(*cell_type == typeid(double)) {
+      const std::vector<double>& coord_lhs = 
+          static_cast<const CoordinateTile<double>*>(tile_)->cell(pos_);
+      const std::vector<double>& coord_rhs = 
+          static_cast<const CoordinateTile<double>*>(rhs.tile_)->cell(rhs.pos_);
+      return std::equal(coord_lhs.begin(), coord_lhs.end(), coord_rhs.begin());
+    }
+  }
+}
+
+bool Tile::const_reverse_iterator::operator!=(
+    const const_reverse_iterator& rhs) const {
+  return !(*this == rhs);
+}
+
+void Tile::const_reverse_iterator::operator>>(CSVLine& csv_line) const {
+  tile_->append_cell_to_csv_line(pos_, csv_line);
+}
+
+Tile::const_reverse_iterator Tile::rbegin() const {
+  return const_reverse_iterator(this, cell_num_-1);
+}
+
+Tile::const_reverse_iterator Tile::rend() const {
+  return const_reverse_iterator(this, -1);
+}
+
+bool Tile::const_reverse_iterator::cell_inside_range(
+    const Tile::Range& range) const {
+  return tile_->cell_inside_range(pos_, range); 
+}
+
 /******************************************************
 ******************* PRIVATE METHODS *******************
 ******************************************************/

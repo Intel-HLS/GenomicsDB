@@ -38,6 +38,30 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <assert.h>
+#include <math.h>
+
+/* ------------------- Genotyping functions ------------------ */
+
+/******************************************************
+********************* CONSTRUCTORS ********************
+******************************************************/
+
+QueryProcessor::GTColumn::GTColumn(int64_t col, uint64_t row_num) {
+  ALT_.resize(row_num);
+  col_ = col;
+  REF_.resize(row_num);
+  PL_.resize(row_num);
+}
+
+/******************************************************
+*********************** OPERATIONS ********************
+******************************************************/
+
+// TODO: Implement function for deriving the final ALT and PL values
+
+// TODO: Implement the genotyping function
+
+/* ----------------- QueryProcessor functions ---------------- */
 
 /******************************************************
 ********************* CONSTRUCTORS ********************
@@ -88,6 +112,62 @@ void QueryProcessor::export_to_CSV(const StorageManager::ArrayDescriptor* ad,
   // Clean up 
   delete [] tile_its;
   delete [] cell_its;
+}
+
+QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
+    const StorageManager::ArrayDescriptor* ad, uint64_t col) const {
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  const std::vector<std::pair<double, double> >& dim_domains =
+      array_schema.dim_domains();
+  uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
+  unsigned int attribute_num = array_schema.attribute_num();
+
+  // Check that column falls into the domain of the second dimension
+  assert(col >= dim_domains[1].first && col <= dim_domains[1].second);
+
+  // Indicates how many rows have been filled.
+  uint64_t filled_rows = 0;
+
+  // Initialize reverse tile iterators for 
+  // END, REF, ALT, PL, NULL, OFFSETS, coordinates
+  // The reverse tile iterator will start with the tiles
+  // of the various attributes that have the largest
+  // id that either intersect with col, or precede col.
+  StorageManager::const_reverse_iterator* tile_its;
+  StorageManager::const_reverse_iterator tile_it_end;  
+  unsigned int gt_attribute_num = 
+      gt_initialize_tile_its(ad, tile_its, tile_it_end, col);
+
+  // Create and initialize GenotypingColumn members
+  QueryProcessor::GTColumn* gt_column = new GTColumn(col, row_num);
+
+  // Create cell iterators
+  Tile::const_reverse_iterator cell_it, cell_it_end;
+
+  // Fill the genotyping column
+  while(tile_its[gt_attribute_num] != tile_it_end && filled_rows < row_num) {
+    // Initialize cell iterators for the coordinates
+    cell_it = (*tile_its[gt_attribute_num]).rbegin();
+    cell_it_end = (*tile_its[gt_attribute_num]).rend();
+    while(cell_it != cell_it_end && filled_rows < row_num) {
+      std::vector<int64_t> next_coord = *cell_it;
+      // If next cell is not on the right of col, and corresponds to 
+      // uninvestigated row
+      if(next_coord[1] <= col && gt_column->REF_[next_coord[0]] != "$") {
+        gt_fill_row(gt_column, next_coord[0], cell_it.pos(), tile_its);
+        ++filled_rows;
+      }
+      ++cell_it;
+    }
+    advance_tile_its(gt_attribute_num, tile_its);
+  }
+
+  assert(filled_rows == row_num);
+
+  delete [] tile_its;
+
+  return gt_column;
 }
 
 void QueryProcessor::join(const StorageManager::ArrayDescriptor* ad_A, 
@@ -145,6 +225,21 @@ void QueryProcessor::advance_cell_its(unsigned int attribute_num,
 }
 
 inline
+void QueryProcessor::advance_cell_its(
+    unsigned int attribute_num, Tile::const_reverse_iterator* cell_its) const {
+  for(unsigned int i=0; i<=attribute_num; i++) 
+      ++cell_its[i];
+}
+
+inline
+void QueryProcessor::advance_cell_its(unsigned int attribute_num,
+                                      Tile::const_reverse_iterator* cell_its,
+                                      int64_t step) const {
+  for(unsigned int i=0; i<attribute_num; i++) 
+    cell_its[i] += step;
+}
+
+inline
 void QueryProcessor::advance_tile_its(
     unsigned int attribute_num, 
     StorageManager::const_iterator* tile_its) const {
@@ -156,6 +251,23 @@ inline
 void QueryProcessor::advance_tile_its(
     unsigned int attribute_num, 
     StorageManager::const_iterator* tile_its, 
+    int64_t step) const {
+  for(unsigned int i=0; i<attribute_num; i++) 
+    tile_its[i] += step;
+}
+
+inline
+void QueryProcessor::advance_tile_its(
+    unsigned int attribute_num, 
+    StorageManager::const_reverse_iterator* tile_its) const {
+  for(unsigned int i=0; i<=attribute_num; i++) 
+    ++tile_its[i];
+}
+
+inline
+void QueryProcessor::advance_tile_its(
+    unsigned int attribute_num, 
+    StorageManager::const_reverse_iterator* tile_its, 
     int64_t step) const {
   for(unsigned int i=0; i<attribute_num; i++) 
     tile_its[i] += step;
@@ -224,6 +336,105 @@ bool QueryProcessor::path_exists(const std::string& path) const {
   return S_ISDIR(st.st_mode);
 }
 
+void QueryProcessor::gt_fill_row(
+    GTColumn* gt_column, int64_t row, int64_t pos,
+    const StorageManager::const_reverse_iterator* tile_its) const {
+  // First check if the row is NULL
+  int64_t END_v = 
+      static_cast<const AttributeTile<int64_t>& >(*tile_its[0]).cell(pos);
+  if(END_v < gt_column->col_) {
+    gt_column->REF_[row] = "$";
+    return;
+  }
+
+  // Retrieve the offsets
+  const AttributeTile<int64_t>& OFFSETS_tile = 
+      static_cast<const AttributeTile<int64_t>& >(*tile_its[5]);
+  int64_t REF_offset = OFFSETS_tile.cell(pos*5);
+  int64_t ALT_offset = OFFSETS_tile.cell(pos*5+1);
+  int64_t PL_offset = OFFSETS_tile.cell(pos*5+4);
+
+  // Retrieve the NULL bitmap
+  const AttributeTile<int>& NULL_tile = 
+      static_cast<const AttributeTile<int>& >(*tile_its[4]);
+  int NULL_bitmap = NULL_tile.cell(pos);
+
+  char c;
+  int i;
+
+  // Fill the REF
+  const AttributeTile<char>& REF_tile = 
+      static_cast<const AttributeTile<char>& >(*tile_its[1]);
+  std::string REF_s = "";
+  i = 0;
+  while((c = REF_tile.cell(REF_offset+i)) != '\0') { 
+    REF_s.push_back(c);
+    ++i;
+  }
+  gt_column->REF_[row] = REF_s;
+
+  // Fill the ALT values
+  const AttributeTile<char>& ALT_tile = 
+      static_cast<const AttributeTile<char>& >(*tile_its[2]);
+  i = 0;
+  std::string ALT_s = "";
+  while((c = ALT_tile.cell(ALT_offset+i)) != '&') {
+    if(c == '\0') {
+      gt_column->ALT_[row].push_back(ALT_s);
+      ALT_s = "";
+    } else {
+      ALT_s.push_back(c);
+    }
+    i++;
+  }
+  assert(ALT_s == "");
+  gt_column->ALT_[row].push_back("&");
+   
+  // Fill the PL values
+  if(NULL_bitmap & 1 == 0) { // If the PL values are not NULL
+    const AttributeTile<int>& PL_tile = 
+        static_cast<const AttributeTile<int>& >(*tile_its[3]);
+    int ALT_num = gt_column->ALT_[row].size(); 
+    int PL_num = (ALT_num+1)*(ALT_num+2)/2;
+    for(int i=0; i<PL_num; i++) 
+      gt_column->PL_[row].push_back(PL_tile.cell(PL_offset+i));
+  }
+}
+
+inline
+unsigned int QueryProcessor::gt_initialize_tile_its(
+    const StorageManager::ArrayDescriptor* ad,
+    StorageManager::const_reverse_iterator*& tile_its, 
+    StorageManager::const_reverse_iterator& tile_it_end,
+    uint64_t col) const {
+  // For easy reference
+  unsigned int attribute_num = ad->array_schema().attribute_num();
+
+  // Create reverse iterators
+  tile_its = new StorageManager::const_reverse_iterator[7];
+  // Find the rank of the tile the left sweep starts from.
+  uint64_t start_rank = storage_manager_.get_left_sweep_start_rank(ad, col);
+
+  // END
+  tile_its[0] = storage_manager_.rbegin(ad, 0, start_rank);
+  // REF
+  tile_its[1] = storage_manager_.rbegin(ad, 1, start_rank);
+  // ALT
+  tile_its[2] = storage_manager_.rbegin(ad, 2, start_rank);
+  // PL
+  tile_its[3] = storage_manager_.rbegin(ad, 20, start_rank);
+  // NULL
+  tile_its[4] = storage_manager_.rbegin(ad, 21, start_rank);
+  // OFFSETS
+  tile_its[5] = storage_manager_.rbegin(ad, 22, start_rank);
+  // coordinates
+  tile_its[6] = storage_manager_.rbegin(ad, attribute_num, start_rank);
+  tile_it_end = storage_manager_.rend(ad, attribute_num);
+
+  // The number of attributes is 6, and the coordinates is the extra one
+  return 6;
+}
+
 inline
 void QueryProcessor::initialize_cell_its(
     const Tile** tiles, unsigned int attribute_num,
@@ -240,6 +451,28 @@ void QueryProcessor::initialize_cell_its(
   for(unsigned int i=0; i<=attribute_num; i++)
     cell_its[i] = (*tile_its[i]).begin();
   cell_it_end = (*tile_its[attribute_num]).end();
+}
+
+inline
+void QueryProcessor::initialize_cell_its(
+    const StorageManager::const_reverse_iterator* tile_its, 
+    unsigned int attribute_num,
+    Tile::const_iterator* cell_its, 
+    Tile::const_iterator& cell_it_end) const {
+  for(unsigned int i=0; i<=attribute_num; i++)
+    cell_its[i] = (*tile_its[i]).begin();
+  cell_it_end = (*tile_its[attribute_num]).end();
+}
+
+inline
+void QueryProcessor::initialize_cell_its(
+    const StorageManager::const_reverse_iterator* tile_its, 
+    unsigned int attribute_num,
+    Tile::const_reverse_iterator* cell_its, 
+    Tile::const_reverse_iterator& cell_it_end) const {
+  for(unsigned int i=0; i<=attribute_num; i++)
+    cell_its[i] = (*tile_its[i]).rbegin();
+  cell_it_end = (*tile_its[attribute_num]).rend();
 }
 
 inline

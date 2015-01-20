@@ -226,9 +226,12 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   // QUAL -- Attribute 3
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read QUAL value from CSV file.");
-  *tiles[3] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[3] << 0;
+  } else {  
+    *tiles[3] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // FILTER_ID -- Attribute 4
@@ -243,120 +246,165 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   // BaseQRankSum -- Attribute 5
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read BaseQRankSum value from CSV file.");
-  *tiles[5] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[5] << 0;
+  } else {
+    *tiles[5] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // ClippingRankSum -- Attribute 6
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read ClippingSum value from CSV file.");
-  *tiles[6] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[6] << 0;
+  } else {
+    *tiles[6] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // MQRankSum -- Attribute 7
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read MQRankSum value from CSV file.");
-  *tiles[7] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[7] << 0;
+  } else {
+    *tiles[7] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // ReadPosRankSum -- Attribute 8
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read ReadPosRankSum value from CSV file.");
-  *tiles[8] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[8] << 0;
+  } else {
+    *tiles[8] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // DP -- Attribute 9
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read DP value from CSV file.");
-  *tiles[9] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[9] << 0;
+  } else {
+    *tiles[9] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // MQ -- Attribute 10
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read MQ value from CSV file.");
-  *tiles[10] << float_v;
-  if(float_v == CSV_NULL_FLOAT)
+  if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
+    *tiles[10] << 0;
+  } else {
+    *tiles[10] << float_v;
+  }
   NULL_bitmap << 1; 
 
   // MQ0 -- Attribute 11
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read MQ0 value from CSV file.");
-  *tiles[11] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[11] << 0;
+  } else {
+    *tiles[11] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // DP_FMT -- Attribute 12
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read DP_FMT value from CSV file.");
-  *tiles[12] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[12] << 0;
+  } else {
+    *tiles[12] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // MIN_DP -- Attribute 13
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read MIN_DP value from CSV file.");
-  *tiles[13] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[13] << 0;
+  } else {
+    *tiles[13] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // GQ -- Attribute 14
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read GQ value from CSV file.");
-  *tiles[14] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[14] << 0;
+  } else {
+    *tiles[14] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // SB_1 -- Attribute 15
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_1 value from CSV file.");
-  *tiles[15] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[15] << 0;
+  } else {
+    *tiles[15] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // SB_2 -- Attribute 16
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_2 value from CSV file.");
-  *tiles[16] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[16] << 0;
+  } else {
+    *tiles[16] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // SB_3 -- Attribute 17
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_3 value from CSV file.");
-  *tiles[17] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[17] << 0;
+  } else {
+    *tiles[17] << int_v;
+  }
   NULL_bitmap << 1; 
 
   // SB_4 -- Attribute 18
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_4 value from CSV file.");
-  *tiles[18] << int_v;
-  if(int_v == CSV_NULL_INT)
+  if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
+    *tiles[18] << 0;
+  } else {
+    *tiles[18] << int_v;
+  }
   NULL_bitmap << 1;
 
   // AD -- Attribute 19
   for(int i=0; i<ALT_num+1; i++) {
     if(!(*csv_line >> int_v))
       throw LoaderException("Cannot read AD value from CSV file.");
-    *tiles[19] << int_v;
+    if(int_v == CSV_NULL_INT)
+      *tiles[19] << 0;
+    else 
+      *tiles[19] << int_v;
   }
   if(int_v == CSV_NULL_INT) // We assume that if one AD value is NULL, all are
     NULL_bitmap += 1;
@@ -366,11 +414,13 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   for(int i=0; i<(ALT_num+1)*(ALT_num+2)/2; i++) {
     if(!(*csv_line >> int_v))
       throw LoaderException("Cannot read PL value from CSV file.");
-    *tiles[20] << int_v;
+    if(int_v == CSV_NULL_INT)
+      *tiles[20] << 0;
+    else 
+      *tiles[20] << int_v;
   }
   if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
     NULL_bitmap += 1;
-  NULL_bitmap << 1;
 
   // NULL -- Attribute 21
   *tiles[21] << NULL_bitmap;

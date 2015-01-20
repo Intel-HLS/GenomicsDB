@@ -253,6 +253,127 @@ class Tile {
    * cell of the tile. 
    */
   const_iterator end() const;
+  
+  /** 
+   * This class implements a constant reverse cell iterator. It is extremely
+   * similar to Tile::const_iterator. 
+   */
+  class const_reverse_iterator {
+   public:
+    // TYPE DEFINITIONS
+    /** 
+     * This class essentially implements a trick for 
+     * Tile::const_reverse_iterator::operator*(). If we made that operator 
+     * templated, we would not be able to resolve the return type upon its call. 
+     * Therefore, we create this class and implement a conversion operator. 
+     * When an object of this class is assigned to a variable, its conversion 
+     * operator is triggered while properly resolving the return type. Since 
+     * the return type is resolved, we can do whatever we would do if we had 
+     * templated Tile::const_reverse_iterator::operator*().
+     */
+    class const_reverse_iterator_ret {
+     public:
+      /** 
+       * Constructor that takes as input the tile for which the 
+       * Tile::const_reverse_iterator::const_reverse_iterator_ret object was 
+       * created, and the the cell position in the tile. 
+       */
+      const_reverse_iterator_ret(const Tile* tile, uint64_t pos) 
+          : tile_(tile), pos_(pos) {}
+      /** 
+       * Conversion operator. Called when an object of this class
+       * is assigned to a variable.
+       */
+      template<class T>
+      operator T();
+     private:
+      /** 
+       * The current cell position carried through the Tile::const_iterator 
+       * object that creates the 
+       * Tile::const_iterator::const_reverse_iterator_ret object.
+       */
+      uint64_t pos_;
+      /** 
+       * The tile pointer carried through the Tile::const_iterator object
+       * that creates the 
+       * Tile::const_revrse_iterator::const_reverse_iterator_ret object.
+       */
+      const Tile* tile_;
+    };
+
+    // CONSTRUCTORS & DESTRUCTORS
+    /** Empty iterator constuctor. */
+    const_reverse_iterator();
+    /** 
+     * Iterator constuctor that takes as input the tile for which the 
+     * Tile::const_reverse_iterator object was created, and the current cell 
+     * position in the tile. 
+     */
+    const_reverse_iterator(const Tile* tile, uint64_t pos);
+    
+    // ACCESSORS
+    /** Returns the current position of the cell iterator. */
+    uint64_t pos() const { return pos_; }
+    /** Returns the tile the cell iterator belongs to. */
+    const Tile* tile() const { return tile_; }
+
+    // OPERATORS
+    /** Assignment operator. */
+    void operator=(const const_reverse_iterator& rhs);
+    /** Addition operator. */
+    void operator+(int64_t step);
+    /** Addition-assignment operator. */
+    void operator+=(int64_t step);
+    /** Pre-increment operator. */
+    const_reverse_iterator operator++();
+    /** Post-increment operator. */
+    const_reverse_iterator operator++(int junk);
+    /**
+     * We distinguish two cases: (i) If the both operands belong to the same
+     * tile, it returns true if their pos_ values are the same. (ii) Otherwise,
+     * it returns true if their pointed cell values are equal.
+     */
+    bool operator==(const const_reverse_iterator& rhs) const;
+    /**
+     * We distinguish two cases: (i) If the both operands belong to the same
+     * tile, it returns true if their pos_ values are not the same. 
+     * (ii) Otherwise, it returns true if their pointed cell values are not 
+     * equal.
+     */
+    bool operator!=(const const_reverse_iterator& rhs) const;
+    /** 
+     * Returns a Tile::const_reverse_iterator::const_reverse_iterator_ret 
+     * object. Practically, it returns the cell value currently pointed by 
+     * the iterator. The only limitation is that the result of this operator
+     * should be assigned to a variable, in order for the return type to be 
+     * properly resolved (e.g., double v = *cell_it, for cell iterator cell_it).
+     */
+    const_reverse_iterator_ret operator*() const 
+        { return const_reverse_iterator_ret(tile_, pos_); } 
+    /** Appends the current attribute value or cell to the input CSV line. */
+    void operator>>(CSVLine& csv_line) const;
+
+    // MISC
+    /** 
+     * Returns true if the current coordinates pointed by the iterator fall 
+     * inside the input range. It applies only to CoordinateTile objects.
+     */
+    bool cell_inside_range(const Tile::Range& range) const;
+
+   private:
+    /** The current position of the iterator in the payload vector. */
+    int64_t pos_;  
+    /** The tile object the iterator is created for. */
+    const Tile* tile_;
+  };
+  /** Returns a cell iterator pointing to the last cell of the tile. */
+  const_reverse_iterator rbegin() const;
+  /**
+   * Returns a cell iterator pointing to one position before the first
+   * cell of the tile. 
+   */
+  const_reverse_iterator rend() const;
+
 
   // MISC
   /** 

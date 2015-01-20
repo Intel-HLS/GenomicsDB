@@ -193,10 +193,10 @@ class Loader {
    * 21. PL(int): (ALT_num+1)*(ALT_num+2)/2 values per cell.
    *
    * 22. NULL(int): Stores bitmaps where each bit corresponds to an attribute
-   * and 1 indicates that this attribute is NULL (i.e., missing). From RIGHT
-   * to LEFT, the bits correspond to: QUAL, BaseQRankSum, ClippingRankSum, 
+   * and 1 indicates that this attribute is NULL (i.e., missing). 
+   * The bits correspond to: QUAL, BaseQRankSum, ClippingRankSum, 
    * MQRankSum, ReadPosRankSum, DP, MQ, MQ0, DP_FMT, MIN_DP, GQ, SB_1, SB_2,
-   * SB_3, SB_4, AD, PL.
+   * SB_3, SB_4, AD, PL, from LEFT to RIGHT, where PL is the rightmost bit.
    *
    * 23. OFFSETS(int64_t): We store in this order the offset of this cell in 
    * (i)   the REF tile,

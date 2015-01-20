@@ -247,10 +247,11 @@ Tile* StorageManager::new_tile(const ArraySchema& array_schema,
   return tile; 
 }
 
-
 /******************************************************
 ******************** TILE ITERATORS *******************
 ******************************************************/
+
+/* ----------------- const_iterator ---------------- */
 
 StorageManager::const_iterator::const_iterator() 
     : storage_manager_(NULL), array_descriptor_(NULL) {
@@ -336,7 +337,6 @@ bool StorageManager::const_iterator::operator<(const const_iterator& it_R) const
     return false;
 }
 
-
 const ArraySchema& StorageManager::const_iterator::array_schema() const {
   return array_descriptor_->array_schema();
 }
@@ -419,6 +419,150 @@ StorageManager::MBRs::const_iterator StorageManager::MBR_end(
   return array_info.mbrs_.end(); 
 }
 
+/* ----------------- const_reverse_iterator ---------------- */
+
+StorageManager::const_reverse_iterator::const_reverse_iterator() 
+    : storage_manager_(NULL), array_descriptor_(NULL) {
+}
+
+StorageManager::const_reverse_iterator::const_reverse_iterator(
+    StorageManager* storage_manager,
+    const ArrayDescriptor* array_descriptor,
+    unsigned int attribute_id,
+    uint64_t rank)
+    : storage_manager_(storage_manager), array_descriptor_(array_descriptor), 
+      attribute_id_(attribute_id), rank_(rank) {
+}
+
+void StorageManager::const_reverse_iterator::operator=(
+    const StorageManager::const_reverse_iterator& rhs) {
+  array_descriptor_ = rhs.array_descriptor_;
+  attribute_id_ = rhs.attribute_id_;
+  storage_manager_ = rhs.storage_manager_;
+  rank_ = rhs.rank_;
+}
+
+void StorageManager::const_reverse_iterator::operator+=(int64_t step) {
+  rank_ -= step;
+}
+
+StorageManager::const_reverse_iterator 
+StorageManager::const_reverse_iterator::operator++() {
+  --rank_;
+  return *this;
+}
+
+StorageManager::const_reverse_iterator 
+StorageManager::const_reverse_iterator::operator++(
+    int junk) {
+  const_reverse_iterator it = *this;
+  --rank_;
+  return it;
+}
+
+bool StorageManager::const_reverse_iterator::operator==(
+    const StorageManager::const_reverse_iterator& rhs) const {
+  return (rank_ == rhs.rank_ && attribute_id_ == rhs.attribute_id_ &&
+          array_descriptor_ == rhs.array_descriptor_ &&
+          storage_manager_ == rhs.storage_manager_); 
+}
+
+bool StorageManager::const_reverse_iterator::operator!=(
+    const StorageManager::const_reverse_iterator& rhs) const {
+  return (!(rank_ == rhs.rank_ && attribute_id_ == rhs.attribute_id_ &&
+          array_descriptor_ == rhs.array_descriptor_ &&
+          storage_manager_ == rhs.storage_manager_)); 
+}
+
+const Tile& StorageManager::const_reverse_iterator::operator*() const {
+  assert(rank_ < array_descriptor_->array_info_->tile_ids_.size());
+  assert(storage_manager_->check_on_get_tile(*array_descriptor_, 
+             attribute_id_, array_descriptor_->array_info_->tile_ids_[rank_]));
+  
+  // For easy reference
+  ArrayInfo& array_info = *(array_descriptor_->array_info_);
+
+  return *storage_manager_->reverse_get_tile_by_rank(array_info, 
+                                                     attribute_id_, rank_);
+}
+
+const ArraySchema& 
+StorageManager::const_reverse_iterator::array_schema() const {
+  return array_descriptor_->array_schema();
+}
+
+StorageManager::BoundingCoordinatesPair StorageManager::const_reverse_iterator::
+    bounding_coordinates() const {
+  return array_descriptor_->array_info()->bounding_coordinates_[rank_];
+}
+
+StorageManager::MBR StorageManager::const_reverse_iterator::mbr() const {
+  return array_descriptor_->array_info()->mbrs_[rank_];
+}
+
+uint64_t StorageManager::const_reverse_iterator::tile_id() const {
+  return array_descriptor_->array_info()->tile_ids_[rank_];
+}
+
+StorageManager::const_reverse_iterator StorageManager::rbegin(
+    const ArrayDescriptor* array_descriptor,
+    unsigned int attribute_id) {
+  // Check array descriptor
+  assert(check_array_descriptor(*array_descriptor)); 
+
+  // For easy reference
+  const ArrayInfo& array_info = *(array_descriptor->array_info_);
+  uint64_t tile_num = array_info.tile_ids_.size();
+
+  // The array should be open in READ mode
+  assert(array_info.array_mode_ == READ);
+
+  // Check attribute id
+  assert(attribute_id <= array_info.array_schema_.attribute_num());
+
+  return const_reverse_iterator(this, array_descriptor, 
+                                attribute_id, tile_num-1);
+}
+
+StorageManager::const_reverse_iterator StorageManager::rbegin(
+    const ArrayDescriptor* ad,
+    unsigned int attribute_id,
+    uint64_t rank) {
+  // Check array descriptoe
+  assert(check_array_descriptor(*ad)); 
+
+  // For easy reference
+  const ArrayInfo& array_info = *(ad->array_info_);
+  uint64_t tile_num = array_info.tile_ids_.size();
+
+  // The array should be open in READ mode
+  assert(array_info.array_mode_ == READ);
+
+  // Check attribute id and rank
+  assert(attribute_id <= array_info.array_schema_.attribute_num());
+  assert(rank < tile_num);
+
+  return const_reverse_iterator(this, ad, attribute_id, rank);
+}
+
+StorageManager::const_reverse_iterator StorageManager::rend(
+    const ArrayDescriptor* array_descriptor,
+    unsigned int attribute_id) {
+  // Check array descriptor
+  assert(check_array_descriptor(*array_descriptor));
+ 
+  // For easy reference
+  const ArrayInfo& array_info = *(array_descriptor->array_info_);
+
+  // The array should be open in READ mode
+  assert(array_info.array_mode_ == READ);
+
+  // Check attribute id
+  assert(attribute_id <= array_info.array_schema_.attribute_num());
+
+  return const_reverse_iterator(this, array_descriptor, attribute_id, -1);
+}
+
 /******************************************************
 *********************** MISC **************************
 ******************************************************/
@@ -484,6 +628,50 @@ void StorageManager::get_overlapping_tile_ids(
 
   delete [] partial;
   delete [] full;
+}
+
+uint64_t StorageManager::get_left_sweep_start_rank(
+    const ArrayDescriptor* ad, uint64_t col) const {
+  // For easy reference
+  const ArrayInfo& array_info = *(ad->array_info_);
+  const MBRs& mbrs = array_info.mbrs_;
+  const ArraySchema& array_schema = array_info.array_schema_;
+  unsigned int dim_num = array_schema.dim_num();
+  const uint64_t tile_num = mbrs.size();
+
+  // Perform binary search over the MBRs and check the second
+  // dimension (column in gVCF array), i.e., elements 2 and 3
+  // in each MBR.
+  uint64_t min = 0;
+  uint64_t max = tile_num-1;
+  uint64_t mid;
+  bool intersection_found = false;
+  while(min <= max) {
+    mid = min + ((max - min) / 2);
+    if(col >= mbrs[mid][2] && col <= mbrs[mid][3]){ 
+      intersection_found = true;
+      break;
+    } else if(col < mbrs[mid][2]) {
+      assert(mid != 0); // No row contains genotyping information
+      max = mid - 1;
+    } else { // (col > mbrs[mid][3])
+      assert(col > mbrs[mid][3]);
+      min = mid + 1;
+    }
+  }
+
+  // --- Intersection found
+  // Find the rank of the intersecting tile with the largest id
+  // (ids are sorted in ascending order)
+  if(intersection_found) {
+    while(++mid < tile_num && col >= mbrs[mid][2] && col <= mbrs[mid][3]);
+    return --mid;
+  // --- Intersection not found
+  // Return the rank of the first tile (with the largest id) that precedes col
+  } else {
+    assert(min == tile_num || (col > mbrs[max][3] && col < mbrs[min][2]));
+    return max;
+  }
 }
 
 /******************************************************
@@ -1337,6 +1525,50 @@ void StorageManager::prepare_segment(
         file_offset + segment_offset);
     segment_offset += tile_size;
   }
+}
+
+const Tile* StorageManager::reverse_get_tile_by_rank(
+    ArrayInfo& array_info, 
+    unsigned int attribute_id,
+    uint64_t rank) const {
+  // For easy reference
+  const std::string& array_name = array_info.array_schema_.array_name();
+  const std::string& attribute_name = 
+      array_info.array_schema_.attribute_name(attribute_id);
+  const OffsetList& offsets = array_info.offsets_[attribute_id];
+  const uint64_t tile_num = offsets.size();
+  const uint64_t& rank_low = array_info.rank_ranges_[attribute_id].first;
+  const uint64_t& rank_high = array_info.rank_ranges_[attribute_id].second;
+
+  // Fetch from the disk if the tile is not in main memory
+  if(array_info.tiles_[attribute_id].size() == 0 ||
+     (rank < rank_low || rank > rank_high)) { 
+    // Find start_rank, i.e., where the load will start from
+    std::string filename = workspace_ + "/" + array_name + "/" + attribute_name + 
+                           SM_TILE_DATA_FILE_SUFFIX;
+    int fd = open(filename.c_str(), O_RDONLY);
+    assert(fd != -1);
+    struct stat st;
+    fstat(fd, &st);
+    uint64_t start_rank = rank;
+    uint64_t buffer_size = 0;
+    do  { 
+      if(start_rank == tile_num-1)
+        buffer_size += st.st_size - offsets[rank];
+      else
+        buffer_size += offsets[rank+1] - offsets[rank];
+      start_rank--;
+    } while(start_rank >= 0 && buffer_size < segment_size_);
+    close(fd);
+    // Load the tiles from disk
+    // Note: The following updates rank_low and rank_high
+    load_tiles_from_disk(array_info, attribute_id, start_rank+1);
+  }
+
+  assert(rank >= rank_low && rank <= rank_high);
+  assert(rank - rank_low <= array_info.tiles_[attribute_id].size());
+
+  return array_info.tiles_[attribute_id][rank-rank_low];
 }
 
 inline
