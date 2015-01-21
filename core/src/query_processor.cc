@@ -154,7 +154,7 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
       std::vector<int64_t> next_coord = *cell_it;
       // If next cell is not on the right of col, and corresponds to 
       // uninvestigated row
-      if(next_coord[1] <= col && gt_column->REF_[next_coord[0]] != "$") {
+      if(next_coord[1] <= col && gt_column->REF_[next_coord[0]] == "") {
         gt_fill_row(gt_column, next_coord[0], cell_it.pos(), tile_its);
         ++filled_rows;
       }
