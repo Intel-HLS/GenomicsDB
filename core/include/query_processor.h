@@ -39,6 +39,7 @@
 #include "csv_file.h"
 #include "storage_manager.h"
 
+extern std::string g_non_reference_allele;
 /** 
  * This class implements the query processor module, which is responsible
  * for processing the various queries. 
@@ -314,5 +315,7 @@ class QueryProcessorException {
   /** The exception message. */
   std::string msg_;
 };
+
+void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column);
 
 #endif

@@ -5,6 +5,13 @@
 # --- Compiler --- #
 CXX = g++
 
+CPPFLAGS=-std=c++11
+LINKFLAGS=
+ifdef DEBUG
+  CPPFLAGS+= -g -gdwarf-2 -g3
+  LINKFLAGS+=-g -gdwarf-2 -g3
+endif
+
 # --- Directories --- #
 CORE_INCLUDE_DIR = core/include
 CORE_SRC_DIR = core/src
@@ -68,8 +75,8 @@ clean: clean_core clean_example clean_gtest clean_test
 
 $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 	@test -d $(CORE_OBJ_DIR) || mkdir -p $(CORE_OBJ_DIR)
-	$(CXX) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -87,8 +94,8 @@ clean_core:
 
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 	@test -d $(EXAMPLE_OBJ_DIR) || mkdir -p $(EXAMPLE_OBJ_DIR)
-	$(CXX) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -102,36 +109,49 @@ $(EXAMPLE_BIN_DIR)/example_array_schema: $(EXAMPLE_OBJ_DIR)/example_array_schema
  $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/hilbert_curve.o \
  $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/csv_file.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 $(EXAMPLE_BIN_DIR)/example_csv_file: $(EXAMPLE_OBJ_DIR)/example_csv_file.o \
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/tile.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 $(EXAMPLE_BIN_DIR)/example_loader: $(EXAMPLE_OBJ_DIR)/example_loader.o \
  $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/hilbert_curve.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
+
+$(EXAMPLE_BIN_DIR)/gt_example_loader: $(EXAMPLE_OBJ_DIR)/gt_example_loader.o $(CORE_OBJ_DIR)/command_line.o \
+ $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
+ $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/hilbert_curve.o
+	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 $(EXAMPLE_BIN_DIR)/example_query_processor: $(EXAMPLE_OBJ_DIR)/example_query_processor.o \
- $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
+ $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
  $(CORE_OBJ_DIR)/hilbert_curve.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
+
+$(EXAMPLE_BIN_DIR)/gt_example_query_processor: $(EXAMPLE_OBJ_DIR)/gt_example_query_processor.o \
+ $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
+ $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
+ $(CORE_OBJ_DIR)/hilbert_curve.o $(CORE_OBJ_DIR)/command_line.o
+	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 $(EXAMPLE_BIN_DIR)/example_storage_manager: $(EXAMPLE_OBJ_DIR)/example_storage_manager.o \
  $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/hilbert_curve.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 $(EXAMPLE_BIN_DIR)/example_tile: $(EXAMPLE_OBJ_DIR)/example_tile.o \
  $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/csv_file.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 
 
 ###############

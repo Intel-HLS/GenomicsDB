@@ -111,9 +111,9 @@ void Loader::load(const std::string& filename,
   storage_manager_.close_array(ad);
 }
 
-void Loader::load_CSV_gVCF(const std::string& filename) const {
+void Loader::load_CSV_gVCF(const std::string& filename, const uint64_t num_samples) const {
   // Create gVCF array schema
-  ArraySchema* array_schema = create_gVCF_array_schema();
+  ArraySchema* array_schema = create_gVCF_array_schema(num_samples);
 
   // Open array in CREATE mode
   StorageManager::ArrayDescriptor* ad = 
@@ -443,7 +443,7 @@ bool Loader::check_on_load(const std::string& filename) const {
   return true;
 }
 
-ArraySchema* Loader::create_gVCF_array_schema() const {
+ArraySchema* Loader::create_gVCF_array_schema(const uint64_t num_samples) const {
   // Set dimension names
   std::vector<std::string> dim_names;
   dim_names.push_back("SampleID"); 
@@ -451,7 +451,7 @@ ArraySchema* Loader::create_gVCF_array_schema() const {
   
   // Set dimension domains
   std::vector<std::pair<double,double> > dim_domains;
-  dim_domains.push_back(std::pair<double,double>(0, 2500));
+  dim_domains.push_back(std::pair<double,double>(0, num_samples));
   dim_domains.push_back(std::pair<double,double>(0, 6000000000));
 
   // Set attribute names

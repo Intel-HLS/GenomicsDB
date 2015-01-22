@@ -822,9 +822,10 @@ bool StorageManager::check_on_open_array(const std::string& array_name,
 
   std::string dir_name = workspace_ + "/" + array_name;
   struct stat st;
-  stat(dir_name.c_str(), &st);
+  int return_val = stat(dir_name.c_str(), &st);
   // If the array is opened in CREATE mode, the array directory must not exist
-  if(array_mode == CREATE && S_ISDIR(st.st_mode))
+  //NOTE: if the directory does not exist, then return_val != 0 and the value of st_mode is undefined
+  if(array_mode == CREATE && return_val == 0 && S_ISDIR(st.st_mode))
     return false;
   // If the array is opened in READ mode, the array directory must exist
   if(array_mode == READ && !S_ISDIR(st.st_mode))
