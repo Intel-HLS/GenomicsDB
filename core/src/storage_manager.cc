@@ -171,6 +171,8 @@ void StorageManager::append_tile(const Tile* tile,
     return;
   }
 
+  //Karthik: assertion failure here - on the last attribute_id
+  //Last iteration of Loader::store_tiles (line 789)
   assert(check_on_append_tile(*array_descriptor, attribute_id, tile));
 
   // For easy reference
@@ -754,6 +756,9 @@ bool StorageManager::check_on_append_tile(
     const MBR& mbr = tile->mbr();
     const std::vector<std::pair<double, double> >& dim_domains = 
         array_schema.dim_domains();
+    //Karthik: returns false when i=0 for last attribute
+    //Values: dim_domains[i].first = 0, dim_domains[i].second = 1
+    //mbr[2*i] == mbr[2*i+1] = 2
     for(unsigned int i=0; i<dim_num; i++)
       if(mbr[2*i] < dim_domains[i].first || mbr[2*i] > dim_domains[i].second ||
          mbr[2*i+1] < dim_domains[i].first || mbr[2*i+1] > dim_domains[i].second)
