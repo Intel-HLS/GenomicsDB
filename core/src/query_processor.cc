@@ -89,16 +89,18 @@ void merge_reference_allele(const std::vector<std::string>& reference_vector, st
       longer_ref = const_cast<std::string*>(&curr_ref);
       shorter_ref = &merged_reference_allele;
     }
+#ifdef DEBUG
     //sanity check only - the shorter ref must be a prefix of the longer ref (since they begin at the same location)
     if(longer_ref->find(*shorter_ref) != 0)
     {
       throw std::invalid_argument(std::string{"When combining variants at a given position, the shorter reference allele should be a prefix of the longer reference allele: \'"} + *shorter_ref + " , " + *longer_ref);
     }
+#endif
     if(is_curr_ref_longer)
     {
       if(curr_ref_length >= merged_reference_allele.capacity())
 	merged_reference_allele.reserve(2*curr_ref_length+1);	//why 2, why not?
-      //append reamining chars to merged reference
+      //append remaining chars to merged reference
       merged_reference_allele.append(curr_ref, merged_ref_length, curr_ref_length - merged_ref_length);
       merged_ref_length = curr_ref_length;
       longer_ref = &merged_reference_allele;
@@ -123,7 +125,7 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
     CombineAllelesLUT& alleles_LUT) {
   // marking non_reference_allele as already seen will ensure it's not included in the middle
   auto seen_alleles = std::unordered_map<std::string, int>{{g_non_reference_allele,-1}};
-  auto merged_alleles = std::vector<std::string>{};
+  auto merged_alt_alleles = std::vector<std::string>{};
   auto merged_reference_length = merged_reference_allele.length();
   //invalidate all existing mappings in the LUT
   alleles_LUT.reset_luts();
@@ -150,7 +152,7 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
       auto input_allele_idx = 1u;	//why 1, ref is index 0, alt begins at 1
       //copy of allele if needed
       std::string copy_allele;
-      for (auto& allele : curr_allele_vector)
+      for (const auto& allele : curr_allele_vector)
       {
         if(IS_NON_REF_ALLELE(allele))
           input_non_reference_allele_idx[input_sample_idx] = input_allele_idx;
@@ -171,9 +173,9 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
             alleles_LUT.resize_luts_if_needed(merged_allele_idx + 1); 
             alleles_LUT.add_input_merged_idx_pair(input_sample_idx, input_allele_idx, merged_allele_idx);
             if(is_suffix_needed)
-              merged_alleles.push_back(std::move(*allele_ptr)); //allele_ptr points to a copy - use move
+              merged_alt_alleles.push_back(std::move(*allele_ptr)); //allele_ptr points to a copy - use move
             else
-              merged_alleles.push_back(*allele_ptr);	//allele_ptr points to curr_allele_vector[input_allele_idx] - copy to vector
+              merged_alt_alleles.push_back(*allele_ptr);	//allele_ptr points to curr_allele_vector[input_allele_idx] - copy to vector
             ++merged_allele_idx;
           }
           else
@@ -185,8 +187,8 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
     ++input_sample_idx;
   }
   // always want non_reference_allele to be last
-  merged_alleles.push_back(g_non_reference_allele);
-  auto non_reference_allele_idx = merged_alleles.size(); //why not -1, include reference allele also
+  merged_alt_alleles.push_back(g_non_reference_allele);
+  auto non_reference_allele_idx = merged_alt_alleles.size(); //why not -1, include reference allele also
   //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
   alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1); 
   //Add mappings for non_ref allele
@@ -200,7 +202,7 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
     }
     ++input_sample_idx;
   }
-  return merged_alleles;
+  return merged_alt_alleles;
 }
 
 /*
@@ -208,28 +210,27 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
   @param pls - vector of PL values for a given sample as stored in TileDB
   @param input_sample_idx 
   @param alleles_LUT LUT mapping alleles from input to merged alleles list
-  @param merged_alleles - merged alleles list
+  @param num_merged_alleles  
   @param remapped_pls - matrix of PLs, each row corresponds to a single genotype, each column corresponds to a sample
   @num_unknown_values - keeps track of how many samples had unknown values for a given genotype
  */
 void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
-    const CombineAllelesLUT& alleles_LUT, const std::vector<std::string>& merged_alleles,
+    const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles,
     std::vector<std::vector<int>>& remapped_pls,
-    std::vector<uint32_t>& num_unknown_values) {
+    std::vector<uint64_t>& num_unknown_values) {
   //index of NON_REF in merged variant
-  const auto merged_non_reference_allele_idx = static_cast<int>(merged_alleles.size()-1);
+  const auto merged_non_reference_allele_idx = static_cast<int>(num_merged_alleles-1);
   //index of NON_REF in input sample
   const auto input_non_reference_allele_idx = alleles_LUT.get_input_idx_for_merged(input_sample_idx, merged_non_reference_allele_idx);
 
-  const auto num_merged_alleles = merged_alleles.size();
-  for (auto allele_j = 0u; allele_j < merged_alleles.size(); ++allele_j) {
+  for (auto allele_j = 0u; allele_j < num_merged_alleles; ++allele_j) {
     auto input_j_allele = alleles_LUT.get_input_idx_for_merged(input_sample_idx, allele_j);
     if (CombineAllelesLUT::is_missing_value(input_j_allele))	//no mapping found for current allele in input gvcf
     {
       if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
       {
 	//fill in missing values for all genotypes with allele_j as one component
-	for(auto allele_k = allele_j; allele_k < merged_alleles.size(); ++allele_k)
+	for(auto allele_k = allele_j; allele_k < num_merged_alleles;++allele_k)
         {
           auto gt_idx = bcf_alleles2gt(allele_j, allele_k);
 	  remapped_pls[gt_idx][input_sample_idx] = bcf_int32_missing;
@@ -240,7 +241,7 @@ void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
       else //input contains NON_REF allele, use its idx
 	input_j_allele = input_non_reference_allele_idx;
     }
-    for (auto allele_k = allele_j; allele_k < merged_alleles.size(); ++allele_k) {
+    for (auto allele_k = allele_j; allele_k < num_merged_alleles; ++allele_k) {
       auto gt_idx = bcf_alleles2gt(allele_j, allele_k);
       auto input_k_allele = alleles_LUT.get_input_idx_for_merged(input_sample_idx, allele_k);
       if (CombineAllelesLUT::is_missing_value(input_k_allele))	//no mapping found for current allele in input gvcf
@@ -268,22 +269,23 @@ void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column)
 
   //initialize to number of samples
   CombineAllelesLUT alleles_LUT { static_cast<unsigned>(gt_column->REF_.size()) };
-  auto& merged_alleles = merge_alt_alleles(gt_column->REF_, gt_column->ALT_, merged_reference_allele, alleles_LUT);
+  auto& merged_alt_alleles = merge_alt_alleles(gt_column->REF_, gt_column->ALT_, merged_reference_allele, alleles_LUT);
 
   //Allocate space for remapped PL
   auto num_samples = gt_column->REF_.size();
-  auto num_merged_alleles = merged_alleles.size();
+  auto num_merged_alleles = merged_alt_alleles.size() + 1u;
   auto num_gts = (num_merged_alleles*(num_merged_alleles+1))/2;
   std::vector<std::vector<int>> remapped_PLs = std::vector<std::vector<int>>(num_gts, std::vector<int>(num_samples, bcf_int32_missing));
-  std::vector<uint32_t> num_unknown_values = std::vector<uint32_t>(num_gts, 0u);
+  std::vector<uint64_t> num_unknown_values = std::vector<uint64_t>(num_gts, 0ull);
 
   //Remap PL
   auto input_sample_idx = 0u;
   for(const auto& input_pl_vector : gt_column->PL_)
   {
-    remap_pl(input_pl_vector, input_sample_idx,
-        alleles_LUT, merged_alleles,
-        remapped_PLs,  num_unknown_values);
+    if(!CHECK_MISSING_SAMPLE_GIVEN_REF(gt_column->REF_[input_sample_idx]))
+      remap_pl(input_pl_vector, input_sample_idx,
+          alleles_LUT, num_merged_alleles,
+          remapped_PLs,  num_unknown_values);
     ++input_sample_idx;
   }
   auto median = 0;
@@ -626,9 +628,9 @@ void QueryProcessor::gt_fill_row(
   }
   assert(ALT_s == "");
   gt_column->ALT_[row].push_back("&");
-   
+
   // Fill the PL values
-  if(NULL_bitmap & 1 == 0) { // If the PL values are not NULL
+  if((NULL_bitmap & 1) == 0) { // If the PL values are
     const AttributeTile<int>& PL_tile = 
         static_cast<const AttributeTile<int>& >(*tile_its[3]);
     int ALT_num = gt_column->ALT_[row].size(); 

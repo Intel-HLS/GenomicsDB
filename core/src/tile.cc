@@ -351,7 +351,7 @@ Tile::const_reverse_iterator::const_reverse_iterator_ret::
 template<>
 Tile::const_reverse_iterator::const_reverse_iterator_ret::
                       operator std::vector<int64_t> () {
-  assert(pos_ > 0);
+  assert(pos_ >= 0);
   return tile_->cell_v_int64_t(pos_);
 }
 

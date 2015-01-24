@@ -37,25 +37,23 @@
 #include <iostream>
 #include "command_line.h"
 int main(int argc, char** argv) {
-  char* workspace = 0;
-  char* csv_filename = 0;
-  uint64_t num_samples = 0ull;
-  parse_command_line(argc, argv, workspace, csv_filename, num_samples);
-  if(workspace == 0 || csv_filename == 0 || num_samples == 0ull)
+  CommandLineOpts cl; 
+  parse_command_line(argc, argv, cl);
+  if(cl.m_workspace == 0 || cl.m_csv_filename == 0 || cl.m_num_samples == 0ull || cl.m_array_name == 0)
   {
-    std::cerr << "Missing workspace|csv_filename|num_samples\n";
+    std::cerr << "Missing workspace|csv_filename|num_samples|array_name\n";
     exit(-1);
   }
   try {
     // Create storage manager
     // The input is the path to its workspace (the path must exist).
-    StorageManager sm(workspace);
+    StorageManager sm(cl.m_workspace);
 
     // Create loader
     // The first input is the path to its workspace (the path must exist).
-    Loader ld(workspace, sm);
+    Loader ld(cl.m_workspace, sm);
 
-    ld.load_CSV_gVCF(csv_filename, num_samples);
+    ld.load_CSV_gVCF(cl.m_csv_filename, cl.m_num_samples-1);    //argument is max_sample_idx
   } catch(LoaderException& le) {
     std::cout << le.what() << "\n";
   }

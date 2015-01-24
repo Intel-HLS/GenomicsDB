@@ -1556,7 +1556,7 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     assert(fd != -1);
     struct stat st;
     fstat(fd, &st);
-    uint64_t start_rank = rank;
+    int64_t start_rank = rank;
     uint64_t buffer_size = 0;
     do  { 
       if(start_rank == tile_num-1)

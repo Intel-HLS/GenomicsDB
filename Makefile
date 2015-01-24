@@ -51,7 +51,7 @@ TEST_OBJ := $(patsubst $(TEST_SRC_DIR)/%.cc, $(TEST_OBJ_DIR)/%.o, $(TEST_SRC))
 
 .PHONY: core example gtest test doc doc_doxygen clean_core clean_example clean_gtest clean_test clean
 
-all: core example gtest test doc
+all: core example gtest test 
 
 core: $(CORE_OBJ)
 

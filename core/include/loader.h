@@ -205,7 +205,7 @@ class Loader {
    * (iv)  the AD tile,
    * (v)   the PL tile.
    */
-  void load_CSV_gVCF(const std::string& filename, const uint64_t num_samples) const; 
+  void load_CSV_gVCF(const std::string& filename, const uint64_t max_sample_idx) const; 
 
  private:
   // PRIVATE ATTRIBUTES
@@ -236,7 +236,7 @@ class Loader {
    * Creates an array schema conforming to the gVCF info 
    * (see Loader::load_CSV_gVCF). 
    */
-  ArraySchema* create_gVCF_array_schema(const uint64_t num_samples) const;
+  ArraySchema* create_gVCF_array_schema(const uint64_t max_sample_idx) const;
   /** Creates the workspace folder. */
   void create_workspace() const;
   /**
