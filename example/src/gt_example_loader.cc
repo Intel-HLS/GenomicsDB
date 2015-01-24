@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     // The first input is the path to its workspace (the path must exist).
     Loader ld(cl.m_workspace, sm);
 
-    ld.load_CSV_gVCF(cl.m_csv_filename, cl.m_num_samples-1);    //argument is max_sample_idx
+    ld.load_CSV_gVCF(cl.m_csv_filename, cl.m_array_name, cl.m_num_samples-1);    //argument is max_sample_idx
   } catch(LoaderException& le) {
     std::cout << le.what() << "\n";
   }

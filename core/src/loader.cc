@@ -111,9 +111,9 @@ void Loader::load(const std::string& filename,
   storage_manager_.close_array(ad);
 }
 
-void Loader::load_CSV_gVCF(const std::string& filename, const uint64_t max_sample_idx) const {
+void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx) const {
   // Create gVCF array schema
-  ArraySchema* array_schema = create_gVCF_array_schema(max_sample_idx);
+  ArraySchema* array_schema = create_gVCF_array_schema(array_name, max_sample_idx);
 
   // Open array in CREATE mode
   StorageManager::ArrayDescriptor* ad = 
@@ -443,7 +443,7 @@ bool Loader::check_on_load(const std::string& filename) const {
   return true;
 }
 
-ArraySchema* Loader::create_gVCF_array_schema(const uint64_t max_sample_idx) const {
+ArraySchema* Loader::create_gVCF_array_schema(const char* array_name, const uint64_t max_sample_idx) const {
   // Set dimension names
   std::vector<std::string> dim_names;
   dim_names.push_back("SampleID"); 
@@ -514,7 +514,7 @@ ArraySchema* Loader::create_gVCF_array_schema(const uint64_t max_sample_idx) con
   uint64_t capacity = 1000;
 
   // Return schema with regular tiles
-  return new ArraySchema("GEN", attribute_names, dim_names, dim_domains, 
+  return new ArraySchema(array_name, attribute_names, dim_names, dim_domains, 
                          types, order, capacity);
 }
 
