@@ -41,6 +41,7 @@
 #include <ostream>
 
 extern std::string g_non_reference_allele;
+
 /** 
  * This class implements the query processor module, which is responsible
  * for processing the various queries. 
@@ -318,5 +319,6 @@ class QueryProcessorException {
 };
 
 void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column, std::ostream& output);
+typedef void (*scan_operator_type)(const QueryProcessor::GTColumn*, void* data);
 
 #endif

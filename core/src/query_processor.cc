@@ -377,6 +377,50 @@ void QueryProcessor::export_to_CSV(const StorageManager::ArrayDescriptor* ad,
   delete [] cell_its;
 }
 
+void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, scan_operator_type function)
+{
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  const std::vector<std::pair<double, double> >& dim_domains =
+      array_schema.dim_domains();
+  uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
+  unsigned int attribute_num = array_schema.attribute_num();
+  
+  StorageManager::const_iterator* tile_its = new StorageManager::const_reverse_iterator[7];
+  // END
+  tile_its[0] = storage_manager_.begin(ad, 0);
+  // REF
+  tile_its[1] = storage_manager_.begin(ad, 1);
+  // ALT
+  tile_its[2] = storage_manager_.begin(ad, 2);
+  // PL
+  tile_its[3] = storage_manager_.begin(ad, 20);
+  // NULL
+  tile_its[4] = storage_manager_.begin(ad, 21);
+  // OFFSETS
+  tile_its[5] = storage_manager_.begin(ad, 22);
+  // coordinates
+  tile_its[6] = storage_manager_.begin(ad, attribute_num);
+  
+  StorageManager::const_iterator tile_it_end = storage_manager_.end(ad, attribute_num);
+
+  for(;tile_its[6] != tile_it_end;advance_tile_its(7, tile_its))
+  {
+    // Initialize cell iterators for the coordinates
+    Tile::const_reverse_iterator cell_it cell_it = (*tile_its[gt_attribute_num]).begin();
+    Tile::const_reverse_iterator cell_it cell_it_end = (*tile_its[7]).end();
+    for(;cell_it != cell_it_end;++cell_it) {
+      std::vector<int64_t> next_coord = *cell_it;
+      // If next cell is not on the right of col, and corresponds to 
+      // uninvestigated row
+      if(next_coord[1] <= col && CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(gt_column->REF_[next_coord[0]])) {
+        gt_fill_row(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its);
+        ++filled_rows;
+      }
+    }
+  }
+}
+
 QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
     const StorageManager::ArrayDescriptor* ad, uint64_t col) const {
   // For easy reference
