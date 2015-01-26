@@ -478,6 +478,7 @@ bool StorageManager::const_reverse_iterator::operator!=(
 
 const Tile& StorageManager::const_reverse_iterator::operator*() const {
   assert(rank_ < array_descriptor_->array_info_->tile_ids_.size());
+  assert(rank_ >= 0);
   assert(storage_manager_->check_on_get_tile(*array_descriptor_, 
              attribute_id_, array_descriptor_->array_info_->tile_ids_[rank_]));
   
@@ -1374,6 +1375,12 @@ std::pair<uint64_t, uint64_t> StorageManager::load_payloads_into_buffer(
     tiles_in_buffer++;
   }
 
+  // TODO: for debugging only - remove
+  std::cout << "[load_payloads_into_buffer]: tiles_in buffer = " 
+            << tiles_in_buffer << "\n";
+  std::cout << "[load_payloads_into_buffer]: buffer_size = " 
+            << buffer_size << "\n";
+
   assert(buffer_size != 0);
   assert(offsets[start_rank] + buffer_size <= st.st_size);
 
@@ -1558,14 +1565,23 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     fstat(fd, &st);
     int64_t start_rank = rank;
     uint64_t buffer_size = 0;
+    int64_t tiles_to_be_retrieved = 0; // TODO: for debugging only - remove
     do  { 
       if(start_rank == tile_num-1)
         buffer_size += st.st_size - offsets[start_rank];
       else
         buffer_size += offsets[start_rank+1] - offsets[start_rank];
       start_rank--;
+      tiles_to_be_retrieved++; // TODO: for debugging only - remove
     } while(start_rank >= 0 && buffer_size < segment_size_);
     close(fd);
+
+    // TODO: for debugging only - remove
+    std::cout << "[reverse_get_tile_by_rank]: tiles_to_be_retrieved = " 
+              << tiles_to_be_retrieved << "\n";
+    std::cout << "[reverse_get_tile_by_rank]: buffer_size = " 
+              << buffer_size << "\n";
+
     // Load the tiles from disk
     // Note: The following updates rank_low and rank_high
     load_tiles_from_disk(array_info, attribute_id, start_rank+1);
