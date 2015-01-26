@@ -4,12 +4,24 @@
 
 # --- Compiler --- #
 CXX = g++
-
 CPPFLAGS=-std=c++11
+LDFLAGS=
+
+#HTSDIR=../../htslib
+
+ifdef HTSDIR
+  CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
+  LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
+endif
+
 LINKFLAGS=
 ifdef DEBUG
   CPPFLAGS+= -g -gdwarf-2 -g3
   LINKFLAGS+=-g -gdwarf-2 -g3
+endif
+ifdef SPEED
+  CPPFLAGS+=-O3 -DNDEBUG
+  LINKFLAGS+=-O3
 endif
 
 # --- Directories --- #
@@ -52,6 +64,10 @@ TEST_OBJ := $(patsubst $(TEST_SRC_DIR)/%.cc, $(TEST_OBJ_DIR)/%.o, $(TEST_SRC))
 .PHONY: core example gtest test doc doc_doxygen clean_core clean_example clean_gtest clean_test clean
 
 all: core example gtest test 
+
+ifdef HTSDIR
+include $(HTSDIR)/htslib.mk
+endif
 
 core: $(CORE_OBJ)
 
@@ -133,7 +149,7 @@ $(EXAMPLE_BIN_DIR)/example_query_processor: $(EXAMPLE_OBJ_DIR)/example_query_pro
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
  $(CORE_OBJ_DIR)/hilbert_curve.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^ $(LDFLAGS)
 
 $(EXAMPLE_BIN_DIR)/gt_example_query_processor: $(EXAMPLE_OBJ_DIR)/gt_example_query_processor.o \
  $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\

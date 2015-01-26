@@ -520,10 +520,10 @@ ArraySchema* Loader::create_gVCF_array_schema(const char* array_name, const uint
 
 void Loader::create_workspace() const {
   struct stat st;
-  stat(workspace_.c_str(), &st);
+  int return_value = stat(workspace_.c_str(), &st);
 
   // If the workspace does not exist, create it
-  if(!S_ISDIR(st.st_mode)) { 
+  if(return_value != 0 || !S_ISDIR(st.st_mode)) { 
     int dir_flag = mkdir(workspace_.c_str(), S_IRWXU);
     assert(dir_flag == 0);
   }

@@ -409,7 +409,7 @@ Tile::const_reverse_iterator::const_reverse_iterator()
 }
 
 Tile::const_reverse_iterator::const_reverse_iterator(
-    const Tile* tile, uint64_t pos)
+    const Tile* tile, int64_t pos)
     : tile_(tile), pos_(pos) {
 }
 

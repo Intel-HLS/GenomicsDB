@@ -1,6 +1,7 @@
 #ifndef PARSE_COMMAND_LINE_H
 #define PARSE_COMMAND_LINE_H
 
+#include<fstream>
 class CommandLineOpts
 {
   public:
@@ -15,6 +16,8 @@ class CommandLineOpts
     char* m_workspace;
     char* m_csv_filename;
     char* m_array_name;
+    std::ofstream m_output_fstream;
+    std::ifstream m_positions_list;
     uint64_t m_num_samples;
     uint64_t m_position;
 };

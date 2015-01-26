@@ -278,7 +278,7 @@ class Tile {
        * Tile::const_reverse_iterator::const_reverse_iterator_ret object was 
        * created, and the the cell position in the tile. 
        */
-      const_reverse_iterator_ret(const Tile* tile, uint64_t pos) 
+      const_reverse_iterator_ret(const Tile* tile, int64_t pos) 
           : tile_(tile), pos_(pos) {}
       /** 
        * Conversion operator. Called when an object of this class
@@ -292,7 +292,7 @@ class Tile {
        * object that creates the 
        * Tile::const_iterator::const_reverse_iterator_ret object.
        */
-      uint64_t pos_;
+      int64_t pos_;
       /** 
        * The tile pointer carried through the Tile::const_iterator object
        * that creates the 
@@ -309,11 +309,11 @@ class Tile {
      * Tile::const_reverse_iterator object was created, and the current cell 
      * position in the tile. 
      */
-    const_reverse_iterator(const Tile* tile, uint64_t pos);
+    const_reverse_iterator(const Tile* tile, int64_t pos);
     
     // ACCESSORS
     /** Returns the current position of the cell iterator. */
-    uint64_t pos() const { return pos_; }
+    int64_t pos() const { return pos_; }
     /** Returns the tile the cell iterator belongs to. */
     const Tile* tile() const { return tile_; }
 

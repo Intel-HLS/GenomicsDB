@@ -43,7 +43,12 @@
 #include<algorithm>
 #include<unordered_map>
 #include "lut.h"
+
+#ifndef HTSDIR
 #include "vcf.h"
+#else
+#include "htslib/vcf.h"
+#endif
 
 /* ------------------- Genotyping functions ------------------ */
 
@@ -61,8 +66,10 @@ QueryProcessor::GTColumn::GTColumn(int64_t col, uint64_t row_num) {
 /******************************************************
 *********************** OPERATIONS ********************
 ******************************************************/
+
 std::string g_non_reference_allele = "<NON_REF>";
-#define CHECK_MISSING_SAMPLE_GIVEN_REF(REF) ((REF)[0] == '$')
+#define CHECK_MISSING_SAMPLE_GIVEN_REF(REF) (((REF).size() == 0) || ((REF)[0] == '$'))
+#define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0)
 #define IS_NON_REF_ALLELE(allele) ((allele)[0] == '&')
 // TODO: Implement function for deriving the final ALT and PL values
 /*
@@ -105,6 +112,9 @@ void merge_reference_allele(const std::vector<std::string>& reference_vector, st
       merged_ref_length = curr_ref_length;
       longer_ref = &merged_reference_allele;
     }
+    else
+      if(merged_reference_allele == "N" && curr_ref != "N")
+        merged_reference_allele = curr_ref;
   }
 }
 
@@ -212,12 +222,12 @@ const std::vector<std::string> merge_alt_alleles(const std::vector<std::string>&
   @param alleles_LUT LUT mapping alleles from input to merged alleles list
   @param num_merged_alleles  
   @param remapped_pls - matrix of PLs, each row corresponds to a single genotype, each column corresponds to a sample
-  @num_unknown_values - keeps track of how many samples had unknown values for a given genotype
+  @num_missing_samples - keeps track of how many samples had unknown values for a given genotype
  */
 void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
     const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles,
     std::vector<std::vector<int>>& remapped_pls,
-    std::vector<uint64_t>& num_unknown_values) {
+    std::vector<uint64_t>& num_missing_samples) {
   //index of NON_REF in merged variant
   const auto merged_non_reference_allele_idx = static_cast<int>(num_merged_alleles-1);
   //index of NON_REF in input sample
@@ -234,7 +244,7 @@ void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
         {
           auto gt_idx = bcf_alleles2gt(allele_j, allele_k);
 	  remapped_pls[gt_idx][input_sample_idx] = bcf_int32_missing;
-          ++num_unknown_values[gt_idx];
+          ++(num_missing_samples[gt_idx]);
         }
 	continue;	//skip to next value of allele_j
       }
@@ -249,7 +259,7 @@ void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
 	if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
 	{
 	  remapped_pls[gt_idx][input_sample_idx] = bcf_int32_missing; //put missing value
-          ++num_unknown_values[gt_idx];
+          ++(num_missing_samples[gt_idx]);
 	  continue;	//skip to next value of allele_k
 	}
 	else //input has NON_REF, use its idx
@@ -261,7 +271,7 @@ void remap_pl(const std::vector<int32_t>& pls, const uint32_t input_sample_idx,
 }
 
 // TODO: Implement the genotyping function
-void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column)
+void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column, std::ostream& output)
 {
   std::string merged_reference_allele;
   merged_reference_allele.reserve(10);
@@ -276,7 +286,7 @@ void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column)
   auto num_merged_alleles = merged_alt_alleles.size() + 1u;
   auto num_gts = (num_merged_alleles*(num_merged_alleles+1))/2;
   std::vector<std::vector<int>> remapped_PLs = std::vector<std::vector<int>>(num_gts, std::vector<int>(num_samples, bcf_int32_missing));
-  std::vector<uint64_t> num_unknown_values = std::vector<uint64_t>(num_gts, 0ull);
+  std::vector<uint64_t> num_missing_samples = std::vector<uint64_t>(num_gts, 0ull);
 
   //Remap PL
   auto input_sample_idx = 0u;
@@ -285,19 +295,33 @@ void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column)
     if(!CHECK_MISSING_SAMPLE_GIVEN_REF(gt_column->REF_[input_sample_idx]))
       remap_pl(input_pl_vector, input_sample_idx,
           alleles_LUT, num_merged_alleles,
-          remapped_PLs,  num_unknown_values);
+          remapped_PLs,  num_missing_samples);
+    else
+      for(auto i=0u;i<num_gts;++i)
+        ++(num_missing_samples[i]);
     ++input_sample_idx;
   }
-  auto median = 0;
+  //Compute medians
+  std::vector<int> median_vector;
+  median_vector.resize(num_gts);
   for(auto i=0u;i<num_gts;++i)
-    if(num_unknown_values[i] == num_gts)
-      median = bcf_int32_missing;
+    if(num_missing_samples[i] == num_gts)
+      median_vector[i] = bcf_int32_missing;
     else
     {
       auto& curr_PL_vector = remapped_PLs[i];
-      auto dec_order_median_idx = (num_gts - num_unknown_values[i])/2;
+      auto dec_order_median_idx = (num_samples - num_missing_samples[i])/2;
       std::nth_element(curr_PL_vector.begin(), curr_PL_vector.begin() + dec_order_median_idx, curr_PL_vector.end(), std::greater<int>());
+      median_vector[i] = curr_PL_vector[dec_order_median_idx];
     }
+  output << gt_column->col_ << ",";
+  output << merged_reference_allele;
+  for(const auto& curr_alt_allele : merged_alt_alleles)
+    output << "," << curr_alt_allele;
+  for(auto value : median_vector)
+    output << "," << value;
+  output << "\n";
+  return;
 }
 
 /* ----------------- QueryProcessor functions ---------------- */
@@ -393,8 +417,8 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
       std::vector<int64_t> next_coord = *cell_it;
       // If next cell is not on the right of col, and corresponds to 
       // uninvestigated row
-      if(next_coord[1] <= col && gt_column->REF_[next_coord[0]] == "") {
-        gt_fill_row(gt_column, next_coord[0], cell_it.pos(), tile_its);
+      if(next_coord[1] <= col && CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(gt_column->REF_[next_coord[0]])) {
+        gt_fill_row(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its);
         ++filled_rows;
       }
       ++cell_it;
@@ -402,7 +426,8 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
     advance_tile_its(gt_attribute_num, tile_its);
   }
 
-  assert(filled_rows == row_num);
+  //No need for this assertion
+  //assert(filled_rows == row_num);
 
   delete [] tile_its;
 
@@ -576,7 +601,7 @@ bool QueryProcessor::path_exists(const std::string& path) const {
 }
 
 void QueryProcessor::gt_fill_row(
-    GTColumn* gt_column, int64_t row, int64_t pos,
+    GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
     const StorageManager::const_reverse_iterator* tile_its) const {
   // First check if the row is NULL
   int64_t END_v = 
@@ -602,15 +627,22 @@ void QueryProcessor::gt_fill_row(
   int i;
 
   // Fill the REF
-  const AttributeTile<char>& REF_tile = 
+  //If the queried column is identical to the cell's column, then the REF value stored is correct
+  //Else, the cell stores an interval and the REF value is set to "N" which means could be anything
+  if(column == gt_column->col_)
+  {
+    const AttributeTile<char>& REF_tile = 
       static_cast<const AttributeTile<char>& >(*tile_its[1]);
-  std::string REF_s = "";
-  i = 0;
-  while((c = REF_tile.cell(REF_offset+i)) != '\0') { 
-    REF_s.push_back(c);
-    ++i;
+    std::string REF_s = "";
+    i = 0;
+    while((c = REF_tile.cell(REF_offset+i)) != '\0') { 
+      REF_s.push_back(c);
+      ++i;
+    }
+    gt_column->REF_[row] = REF_s;
   }
-  gt_column->REF_[row] = REF_s;
+  else
+    gt_column->REF_[row] = "N";
 
   // Fill the ALT values
   const AttributeTile<char>& ALT_tile = 

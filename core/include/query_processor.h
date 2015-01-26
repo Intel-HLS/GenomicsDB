@@ -38,6 +38,7 @@
 #include "array_schema.h"
 #include "csv_file.h"
 #include "storage_manager.h"
+#include <ostream>
 
 extern std::string g_non_reference_allele;
 /** 
@@ -196,7 +197,7 @@ class QueryProcessor {
                  uint64_t tile_id, const Tile** tiles) const;
   /** Fills a row of the input genotyping column with the proper info. */
   void gt_fill_row(
-      GTColumn* gt_column, int64_t row, int64_t pos,
+      GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
       const StorageManager::const_reverse_iterator* tile_its) const;
   /** 
    * Initializes tile iterators for joint genotyping for column col. 
@@ -316,6 +317,6 @@ class QueryProcessorException {
   std::string msg_;
 };
 
-void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column);
+void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column, std::ostream& output);
 
 #endif

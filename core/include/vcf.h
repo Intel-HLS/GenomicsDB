@@ -34,6 +34,8 @@ DEALINGS IN THE SOFTWARE.  */
 #ifndef HTSLIB_VCF_H
 #define HTSLIB_VCF_H
 
+#ifndef HTSDIR
+
 #define bcf_int32_missing    INT32_MIN
 #define bcf_str_missing      0x07
 extern uint32_t bcf_float_vector_end;
@@ -60,5 +62,7 @@ static inline int bcf_float_is_vector_end(float f)
 }
 
 #define bcf_alleles2gt(a,b) ((a)>(b)?((a)*((a)+1)/2+(b)):((b)*((b)+1)/2+(a)))
+
+#endif
 
 #endif
