@@ -1560,9 +1560,9 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     uint64_t buffer_size = 0;
     do  { 
       if(start_rank == tile_num-1)
-        buffer_size += st.st_size - offsets[rank];
+        buffer_size += st.st_size - offsets[start_rank];
       else
-        buffer_size += offsets[rank+1] - offsets[rank];
+        buffer_size += offsets[start_rank+1] - offsets[start_rank];
       start_rank--;
     } while(start_rank >= 0 && buffer_size < segment_size_);
     close(fd);
