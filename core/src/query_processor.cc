@@ -69,7 +69,7 @@ QueryProcessor::GTColumn::GTColumn(int64_t col, uint64_t row_num) {
 
 std::string g_non_reference_allele = "<NON_REF>";
 #define CHECK_MISSING_SAMPLE_GIVEN_REF(REF) (((REF).size() == 0) || ((REF)[0] == '$'))
-#define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0)
+#define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0 || ((REF) == ""))
 #define IS_NON_REF_ALLELE(allele) ((allele)[0] == '&')
 // TODO: Implement function for deriving the final ALT and PL values
 /*
@@ -377,6 +377,7 @@ void QueryProcessor::export_to_CSV(const StorageManager::ArrayDescriptor* ad,
   delete [] cell_its;
 }
 
+#if 0
 void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, scan_operator_type function)
 {
   // For easy reference
@@ -420,6 +421,7 @@ void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad,
     }
   }
 }
+#endif
 
 QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
     const StorageManager::ArrayDescriptor* ad, uint64_t col) const {
