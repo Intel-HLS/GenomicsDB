@@ -232,7 +232,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {  
     *tiles[3] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // FILTER_ID -- Attribute 4
   if(!(*csv_line >> FILTER_num))
@@ -252,7 +252,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[5] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // ClippingRankSum -- Attribute 6
   if(!(*csv_line >> float_v))
@@ -263,7 +263,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[6] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // MQRankSum -- Attribute 7
   if(!(*csv_line >> float_v))
@@ -274,7 +274,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[7] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // ReadPosRankSum -- Attribute 8
   if(!(*csv_line >> float_v))
@@ -285,7 +285,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[8] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // DP -- Attribute 9
   if(!(*csv_line >> int_v))
@@ -296,7 +296,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[9] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // MQ -- Attribute 10
   if(!(*csv_line >> float_v))
@@ -307,7 +307,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[10] << float_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // MQ0 -- Attribute 11
   if(!(*csv_line >> int_v))
@@ -318,7 +318,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[11] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // DP_FMT -- Attribute 12
   if(!(*csv_line >> int_v))
@@ -329,7 +329,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[12] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // MIN_DP -- Attribute 13
   if(!(*csv_line >> int_v))
@@ -340,7 +340,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[13] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // GQ -- Attribute 14
   if(!(*csv_line >> int_v))
@@ -351,7 +351,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[14] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // SB_1 -- Attribute 15
   if(!(*csv_line >> int_v))
@@ -362,7 +362,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[15] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // SB_2 -- Attribute 16
   if(!(*csv_line >> int_v))
@@ -373,7 +373,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[16] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // SB_3 -- Attribute 17
   if(!(*csv_line >> int_v))
@@ -384,7 +384,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[17] << int_v;
   }
-  NULL_bitmap << 1; 
+  NULL_bitmap = NULL_bitmap << 1; 
 
   // SB_4 -- Attribute 18
   if(!(*csv_line >> int_v))
@@ -395,7 +395,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[18] << int_v;
   }
-  NULL_bitmap << 1;
+  NULL_bitmap = NULL_bitmap << 1;
 
   // AD -- Attribute 19
   for(int i=0; i<ALT_num+1; i++) {
@@ -408,7 +408,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   }
   if(int_v == CSV_NULL_INT) // We assume that if one AD value is NULL, all are
     NULL_bitmap += 1;
-  NULL_bitmap << 1;
+  NULL_bitmap = NULL_bitmap << 1;
   
   // PL -- Attribute 20
   for(int i=0; i<(ALT_num+1)*(ALT_num+2)/2; i++) {

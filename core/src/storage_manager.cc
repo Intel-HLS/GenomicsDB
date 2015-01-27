@@ -1367,25 +1367,14 @@ std::pair<uint64_t, uint64_t> StorageManager::load_payloads_into_buffer(
 
   // Calculate buffer size (smallest size larger than or equal to segment_size_)
   while(rank < tile_num && buffer_size < segment_size_) {
-    if(rank == tile_num-1)
+    if(rank == tile_num-1) {
       buffer_size += st.st_size - offsets[rank];
-    else
+    } else {
       buffer_size += offsets[rank+1] - offsets[rank];
+    }
     rank++;
     tiles_in_buffer++;
   }
-
-  // TODO: for debugging only - remove
-  std::cout << "[load_payloads_into_buffer]: attribute_id = "
-      << attribute_id << "\n";
-  std::cout << "[load_payloads_into_buffer]: start_rank = "
-    << start_rank << "\n";
-  std::cout << "[load_payloads_into_buffer]: tiles_in buffer = " 
-            << tiles_in_buffer << "\n";
-  std::cout << "[load_payloads_into_buffer]: buffer_size = " 
-            << buffer_size << "\n";
-  std::cout << "[load_payloads_into_buffer]: tile_num = "
-    << tile_num << "\n";
 
   assert(buffer_size != 0);
   assert(offsets[start_rank] + buffer_size <= st.st_size);
@@ -1562,7 +1551,8 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
   // Fetch from the disk if the tile is not in main memory
   if(array_info.tiles_[attribute_id].size() == 0 ||
      (rank < rank_low || rank > rank_high)) { 
-    // Find start_rank, i.e., where the load will start from
+    // Find start_rank, i.e., where the load will start from, and number
+    // of tiles to load
     std::string filename = workspace_ + "/" + array_name + "/" + attribute_name + 
                            SM_TILE_DATA_FILE_SUFFIX;
     int fd = open(filename.c_str(), O_RDONLY);
@@ -1571,31 +1561,40 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     fstat(fd, &st);
     int64_t start_rank = rank;
     uint64_t buffer_size = 0;
-    int64_t tiles_to_be_retrieved = 0; // TODO: for debugging only - remove
-    do  { 
-      if(start_rank == tile_num-1)
+    int64_t tiles_in_buffer = 0;
+    while(start_rank >= 0 && buffer_size < segment_size_) {
+      if(start_rank == tile_num-1) {
         buffer_size += st.st_size - offsets[start_rank];
-      else
+      } else {
         buffer_size += offsets[start_rank+1] - offsets[start_rank];
-      start_rank--;
-      tiles_to_be_retrieved++; // TODO: for debugging only - remove
-    } while(start_rank >= 0 && buffer_size < segment_size_);
-    close(fd);
-
+      }
+      --start_rank;
+      ++tiles_in_buffer;
+    }
     ++start_rank;
-    // TODO: for debugging only - remove
-    std::cout << "[reverse_get_tile_by_rank]: attribute_id = "
-      << attribute_id << "\n";
-    std::cout << "[reverse_get_tile_by_rank]: start_rank = "
-      << start_rank << "\n";
-    std::cout << "[reverse_get_tile_by_rank]: tiles_to_be_retrieved = " 
-              << tiles_to_be_retrieved << "\n";
-    std::cout << "[reverse_get_tile_by_rank]: buffer_size = " 
-              << buffer_size << "\n";
 
-    // Load the tiles from disk
-    // Note: The following updates rank_low and rank_high
-    load_tiles_from_disk(array_info, attribute_id, start_rank);
+    // Load the tile payloads from the disk into a buffer
+    char* buffer;
+    buffer = new char[buffer_size];
+    lseek(fd, offsets[start_rank], SEEK_SET);
+    read(fd, buffer, buffer_size); 
+
+    // Delete previous tiles from main memory
+    delete_tiles(array_info, attribute_id);
+  
+    // Create the tiles from the payloads in the buffer and load them
+    // into the tile book-keeping structure
+    load_tiles_from_buffer(array_info, attribute_id, start_rank, 
+                           buffer, buffer_size, tiles_in_buffer);         
+ 
+    // Update rank range in main memory
+    array_info.rank_ranges_[attribute_id].first = start_rank;
+    array_info.rank_ranges_[attribute_id].second = 
+        start_rank + tiles_in_buffer - 1;
+
+    // Clean up
+    delete [] buffer;
+    close(fd);
   }
 
   assert(rank >= rank_low && rank <= rank_high);
