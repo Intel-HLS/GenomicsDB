@@ -370,7 +370,7 @@ class Tile {
    * AttributeTile.
    * Inapplicable to CoordinateTile objects.
    */
-  virtual const char& cell_char(uint64_t pos_) const =0;
+  virtual char cell_char(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -378,7 +378,7 @@ class Tile {
    * AttributeTile.
    * Inapplicable to CoordinateTile objects.
    */
-  virtual const int& cell_int(uint64_t pos_) const =0;
+  virtual int cell_int(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -386,7 +386,7 @@ class Tile {
    * AttributeTile.
    * Inapplicable to CoordinateTile objects.
    */
-  virtual const int64_t& cell_int64_t(uint64_t pos_) const =0;
+  virtual int64_t cell_int64_t(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -394,7 +394,7 @@ class Tile {
    * AttributeTile.
    * Inapplicable to CoordinateTile objects.
    */
-  virtual const float& cell_float(uint64_t pos_) const =0;
+  virtual float cell_float(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -402,7 +402,7 @@ class Tile {
    * AttributeTile.
    * Inapplicable to CoordinateTile objects.
    */
-  virtual const double& cell_double(uint64_t pos_) const =0;
+  virtual double cell_double(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -410,7 +410,7 @@ class Tile {
    * CoordinateTile.
    * Inapplicable to AttributeTile objects.
    */
-  virtual const std::vector<int>& cell_v_int(uint64_t pos_) const =0;
+  virtual std::vector<int> cell_v_int(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -418,7 +418,7 @@ class Tile {
    * CoordinateTile.
    * Inapplicable to AttributeTile objects.
    */
-  virtual const std::vector<int64_t>& cell_v_int64_t(uint64_t pos_) const =0;
+  virtual std::vector<int64_t> cell_v_int64_t(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -426,7 +426,7 @@ class Tile {
    * CoordinateTile.
    * Inapplicable to AttributeTile objects.
    */
-  virtual const std::vector<float>& cell_v_float(uint64_t pos_) const =0;
+  virtual std::vector<float> cell_v_float(uint64_t pos_) const =0;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
@@ -434,7 +434,7 @@ class Tile {
    * CoordinateTile.
    * Inapplicable to AttributeTile objects.
    */
-  virtual const std::vector<double>& cell_v_double(uint64_t pos_) const =0;
+  virtual std::vector<double> cell_v_double(uint64_t pos_) const =0;
 };
 
 /**
@@ -549,51 +549,51 @@ class AttributeTile : public Tile {
    * to essentially call AttributeTile::cell when Tile* points to an 
    * AttributeTile.
    */
-  virtual const char& cell_char(uint64_t pos_) const;
+  virtual char cell_char(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call AttributeTile::cell when Tile* points to an 
    * AttributeTile.
    */
-  virtual const int& cell_int(uint64_t pos_) const;
+  virtual int cell_int(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call AttributeTile::cell when Tile* points to an 
    * AttributeTile.
    */
-  virtual const int64_t& cell_int64_t(uint64_t pos_) const;
+  virtual int64_t cell_int64_t(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call AttributeTile::cell when Tile* points to an 
    * AttributeTile.
    */
-  virtual const float& cell_float(uint64_t pos_) const;
+  virtual float cell_float(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call AttributeTile::cell when Tile* points to an 
    * AttributeTile.
    */
-  virtual const double& cell_double(uint64_t pos_) const;
+  virtual double cell_double(uint64_t pos_) const;
   /** 
    * Inapplicable to attribute tiles. Attribute tiles do not have vector cells.
    */
-  virtual const std::vector<int>& cell_v_int(uint64_t pos_) const;
+  virtual std::vector<int> cell_v_int(uint64_t pos_) const;
   /** 
    * Inapplicable to attribute tiles. Attribute tiles do not have vector cells.
    */
-  virtual const std::vector<int64_t>& cell_v_int64_t(uint64_t pos_) const;
+  virtual std::vector<int64_t> cell_v_int64_t(uint64_t pos_) const;
   /** 
    * Inapplicable to attribute tiles. Attribute tiles do not have vector cells.
    */
-  virtual const std::vector<float>& cell_v_float(uint64_t pos_) const;
+  virtual std::vector<float> cell_v_float(uint64_t pos_) const;
   /** 
    * Inapplicable to attribute tiles. Attribute tiles do not have vector cells.
    */
-  virtual const std::vector<double>& cell_v_double(uint64_t pos_) const;
+  virtual std::vector<double> cell_v_double(uint64_t pos_) const;
   /** Inapplicable to attribute tiles. Attribute tiles do not have dimensions. */
   virtual unsigned int dim_num() const; 
   /** Inapplicable to attribute tiles. Attribute tiles do not have MBRs. */
@@ -740,51 +740,51 @@ class CoordinateTile : public Tile {
   /** 
    * Inapplicable to coordinate tiles. Coordinate tiles have vector cells.
    */
-  virtual const char& cell_char(uint64_t pos_) const;
+  virtual char cell_char(uint64_t pos_) const;
   /** 
    * Inapplicable to coordinate tiles. Coordinate tiles have vector cells.
    */
-  virtual const int& cell_int(uint64_t pos_) const;
+  virtual int cell_int(uint64_t pos_) const;
   /** 
    * Inapplicable to coordinate tiles. Coordinate tiles have vector cells.
    */
-  virtual const int64_t& cell_int64_t(uint64_t pos_) const;
+  virtual int64_t cell_int64_t(uint64_t pos_) const;
   /** 
    * Inapplicable to coordinate tiles. Coordinate tiles have vector cells.
    */
-  virtual const float& cell_float(uint64_t pos_) const;
+  virtual float cell_float(uint64_t pos_) const;
   /** 
    * Inapplicable to coordinate tiles. Coordinate tiles have vector cells.
    */
-  virtual const double& cell_double(uint64_t pos_) const;
+  virtual double cell_double(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call CoordinateTile::cell when Tile* points to an 
    * CoordinateTile.
    */
-  virtual const std::vector<int>& cell_v_int(uint64_t pos_) const;
+  virtual std::vector<int> cell_v_int(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call CoordinateTile::cell when Tile* points to an 
    * CoordinateTile.
    */
-  virtual const std::vector<int64_t>& cell_v_int64_t(uint64_t pos_) const;
+  virtual std::vector<int64_t> cell_v_int64_t(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call CoordinateTile::cell when Tile* points to an 
    * CoordinateTile.
    */
-  virtual const std::vector<float>& cell_v_float(uint64_t pos_) const;
+  virtual std::vector<float> cell_v_float(uint64_t pos_) const;
   /** 
    * Template-based dispatch of Tile::const_iterator::operator*() to virtual 
    * function dispatch. This allows Tile::const_iterator::operator*() 
    * to essentially call CoordinateTile::cell when Tile* points to an 
    * CoordinateTile.
    */
-  virtual const std::vector<double>& cell_v_double(uint64_t pos_) const;
+  virtual std::vector<double> cell_v_double(uint64_t pos_) const;
   /** Updates the tile MBR bounds. */
   void update_mbr(const std::vector<T>& coordinates);  
 };

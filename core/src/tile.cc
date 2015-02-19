@@ -523,150 +523,50 @@ std::pair<std::vector<double>, std::vector<double> >
   assert(0); // Inapplicable
 }
 
-template<> 
-const char& AttributeTile<char>::cell_char(uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const char& AttributeTile<int>::cell_char(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const char& AttributeTile<int64_t>::cell_char(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const char& AttributeTile<float>::cell_char(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const char& AttributeTile<double>::cell_char(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int& AttributeTile<char>::cell_int(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int& AttributeTile<int>::cell_int(uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const int& AttributeTile<int64_t>::cell_int(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int& AttributeTile<float>::cell_int(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int& AttributeTile<double>::cell_int(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int64_t& AttributeTile<char>::cell_int64_t(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int64_t& AttributeTile<int>::cell_int64_t(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int64_t& AttributeTile<int64_t>::cell_int64_t(uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const int64_t& AttributeTile<float>::cell_int64_t(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const int64_t& AttributeTile<double>::cell_int64_t(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const float& AttributeTile<char>::cell_float(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const float& AttributeTile<int>::cell_float(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const float& AttributeTile<int64_t>::cell_float(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const float& AttributeTile<float>::cell_float(uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const float& AttributeTile<double>::cell_float(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const double& AttributeTile<char>::cell_double(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const double& AttributeTile<int>::cell_double(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const double& AttributeTile<int64_t>::cell_double(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const double& AttributeTile<float>::cell_double(uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const double& AttributeTile<double>::cell_double(uint64_t pos) const { 
-  return cell(pos);
+template<class T> 
+char AttributeTile<T>::cell_char(uint64_t pos) const { 
+  return static_cast<T>(cell(pos));
 }
 
 template<class T> 
-const std::vector<int>& AttributeTile<T>::cell_v_int(uint64_t pos) const { 
+int AttributeTile<T>::cell_int(uint64_t pos) const { 
+  return static_cast<T>(cell(pos));
+}
+
+template<class T> 
+int64_t AttributeTile<T>::cell_int64_t(uint64_t pos) const { 
+  return static_cast<T>(cell(pos));
+}
+
+template<class T> 
+float AttributeTile<T>::cell_float(uint64_t pos) const { 
+  return static_cast<T>(cell(pos));
+}
+
+template<class T> 
+double AttributeTile<T>::cell_double(uint64_t pos) const { 
+  return static_cast<T>(cell(pos));
+}
+
+template<class T> 
+std::vector<int> AttributeTile<T>::cell_v_int(uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const std::vector<int64_t>& AttributeTile<T>::cell_v_int64_t(
+std::vector<int64_t> AttributeTile<T>::cell_v_int64_t(
     uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const std::vector<float>& AttributeTile<T>::cell_v_float(
+std::vector<float> AttributeTile<T>::cell_v_float(
     uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const std::vector<double>& AttributeTile<T>::cell_v_double(
+std::vector<double> AttributeTile<T>::cell_v_double(
     uint64_t pos) const { 
   assert(0); // Inapplicable
 }
@@ -893,124 +793,56 @@ void CoordinateTile<T>::append_cell(const std::vector<double>& coordinates) {
 }
 
 template<class T> 
-const char& CoordinateTile<T>::cell_char(uint64_t pos) const { 
+char CoordinateTile<T>::cell_char(uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const int& CoordinateTile<T>::cell_int(uint64_t pos) const { 
+int CoordinateTile<T>::cell_int(uint64_t pos) const { 
   assert(0); // inapplicable
 }
 
 template<class T> 
-const int64_t& CoordinateTile<T>::cell_int64_t(uint64_t pos) const { 
+int64_t CoordinateTile<T>::cell_int64_t(uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const float& CoordinateTile<T>::cell_float(uint64_t pos) const { 
+float CoordinateTile<T>::cell_float(uint64_t pos) const { 
   assert(0); // Inapplicable
 }
 
 template<class T> 
-const double& CoordinateTile<T>::cell_double(uint64_t pos) const { 
+double CoordinateTile<T>::cell_double(uint64_t pos) const { 
   assert(0); // Type mismatch
 }
 
-template<> 
-const std::vector<int>& CoordinateTile<int>::cell_v_int(
-    uint64_t pos) const { 
-  return cell(pos);
+template<class T> 
+std::vector<int> CoordinateTile<T>::cell_v_int(
+    uint64_t pos) const {
+  std::vector<int> coord(cell(pos).begin(), cell(pos).end()); 
+  return coord;
 }
 
-template<> 
-const std::vector<int>& CoordinateTile<int64_t>::cell_v_int(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
+template<class T> 
+std::vector<int64_t> CoordinateTile<T>::cell_v_int64_t(
+    uint64_t pos) const {
+  std::vector<int64_t> coord(cell(pos).begin(), cell(pos).end()); 
+  return coord;
 }
 
-template<> 
-const std::vector<int>& CoordinateTile<float>::cell_v_int(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
+template<class T> 
+std::vector<float> CoordinateTile<T>::cell_v_float(
+    uint64_t pos) const {
+  std::vector<float> coord(cell(pos).begin(), cell(pos).end()); 
+  return coord;
 }
 
-template<> 
-const std::vector<int>& CoordinateTile<double>::cell_v_int(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<int64_t>& CoordinateTile<int>::cell_v_int64_t(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<int64_t>& CoordinateTile<int64_t>::cell_v_int64_t(
-    uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const std::vector<int64_t>& CoordinateTile<float>::cell_v_int64_t(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<int64_t>& CoordinateTile<double>::cell_v_int64_t(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<float>& CoordinateTile<int>::cell_v_float(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<float>& CoordinateTile<int64_t>::cell_v_float(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<float>& CoordinateTile<float>::cell_v_float(
-    uint64_t pos) const { 
-  return cell(pos);
-}
-
-template<> 
-const std::vector<float>& CoordinateTile<double>::cell_v_float(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<double>& CoordinateTile<int>::cell_v_double(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<double>& CoordinateTile<int64_t>::cell_v_double(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<double>& CoordinateTile<float>::cell_v_double(
-    uint64_t pos) const { 
-  assert(0); // Type mismatch
-}
-
-template<> 
-const std::vector<double>& CoordinateTile<double>::cell_v_double(
-    uint64_t pos) const { 
-  return cell(pos);
+template<class T> 
+std::vector<double> CoordinateTile<T>::cell_v_double(
+    uint64_t pos) const {
+  std::vector<double> coord(cell(pos).begin(), cell(pos).end()); 
+  return coord;
 }
 
 template<class T> 

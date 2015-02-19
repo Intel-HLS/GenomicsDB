@@ -38,6 +38,10 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <assert.h>
+#include <algorithm>
+#include <parallel/algorithm>
+#include <functional>
+#include <math.h>
 
 /******************************************************
 ********************* CONSTRUCTORS ********************
@@ -90,6 +94,15 @@ void QueryProcessor::export_to_CSV(const StorageManager::ArrayDescriptor* ad,
   delete [] cell_its;
 }
 
+void QueryProcessor::filter(const StorageManager::ArrayDescriptor* ad,
+                            const ExpressionTree* expression,
+                            const std::string& result_array_name) const {
+  if(ad->array_schema().has_regular_tiles())
+    filter_regular(ad, expression, result_array_name);
+  else 
+    filter_irregular(ad, expression, result_array_name);
+} 
+
 void QueryProcessor::join(const StorageManager::ArrayDescriptor* ad_A, 
                           const StorageManager::ArrayDescriptor* ad_B,
                           const std::string& result_array_name) const {
@@ -116,6 +129,17 @@ void QueryProcessor::join(const StorageManager::ArrayDescriptor* ad_A,
     join_irregular(ad_A, ad_B, array_schema_C);
 } 
 
+void QueryProcessor::nearest_neighbors(
+    const StorageManager::ArrayDescriptor* ad,
+    const std::vector<double>& q,
+    uint64_t k,
+    const std::string& result_array_name) const { 
+  if(ad->array_schema().has_regular_tiles())
+    nearest_neighbors_regular(ad, q, k, result_array_name);
+  else 
+    nearest_neighbors_irregular(ad, q, k, result_array_name);
+}
+
 void QueryProcessor::subarray(const StorageManager::ArrayDescriptor* ad,
                               const Tile::Range& range,
                               const std::string& result_array_name) const { 
@@ -137,11 +161,28 @@ void QueryProcessor::advance_cell_its(unsigned int attribute_num,
 }
 
 inline
+void QueryProcessor::advance_cell_its(
+    Tile::const_iterator* cell_its,
+    const std::vector<unsigned int>& attribute_ids) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++) 
+    ++cell_its[attribute_ids[i]];
+}
+
+inline
 void QueryProcessor::advance_cell_its(unsigned int attribute_num,
                                       Tile::const_iterator* cell_its,
                                       int64_t step) const {
   for(unsigned int i=0; i<attribute_num; i++) 
     cell_its[i] += step;
+}
+
+inline
+void QueryProcessor::advance_cell_its(
+    Tile::const_iterator* cell_its,
+    const std::vector<unsigned int>& attribute_ids,
+    int64_t step) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++) 
+    cell_its[attribute_ids[i]] += step;
 }
 
 inline
@@ -159,6 +200,23 @@ void QueryProcessor::advance_tile_its(
     int64_t step) const {
   for(unsigned int i=0; i<attribute_num; i++) 
     tile_its[i] += step;
+}
+
+inline
+void QueryProcessor::advance_tile_its(
+    StorageManager::const_iterator* tile_its,
+    const std::vector<unsigned int>& attribute_ids) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++) 
+    ++tile_its[attribute_ids[i]];
+}
+
+inline
+void QueryProcessor::advance_tile_its(
+    StorageManager::const_iterator* tile_its, 
+    const std::vector<unsigned int>& attribute_ids,
+    int64_t step) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++) 
+    tile_its[attribute_ids[i]] += step;
 }
 
 inline
@@ -181,6 +239,22 @@ void QueryProcessor::append_cell(const Tile::const_iterator* cell_its_A,
     *tiles_C[attribute_num_A+i] << cell_its_B[i]; 
 }
 
+bool QueryProcessor::cell_satisfies_expression(
+    const ArraySchema& array_schema,
+    const Tile::const_iterator* cell_its,
+    const std::vector<unsigned int>& attribute_ids,
+    const ExpressionTree* expression) const {
+  // Get the values of the attributes involved in the expression
+  std::map<std::string, double> var_values;
+  for(unsigned int i=0; i<attribute_ids.size(); ++i) {
+    var_values[array_schema.attribute_name(attribute_ids[i])] = 
+        *cell_its[attribute_ids[i]];
+  }
+
+  // Evaluate the expression
+  return expression->evaluate(var_values);
+}
+
 inline
 CSVLine QueryProcessor::cell_to_csv_line(const Tile::const_iterator* cell_its,
                                          unsigned int attribute_num) const {
@@ -195,6 +269,87 @@ CSVLine QueryProcessor::cell_to_csv_line(const Tile::const_iterator* cell_its,
   return csv_line;
 }
 
+std::vector<QueryProcessor::DistRank> QueryProcessor::compute_sorted_dist_ranks(
+    const StorageManager::ArrayDescriptor* ad,
+    const std::vector<double>& q) const {
+  // Initializations
+  // We store pairs of the form (dist, rank)
+  std::vector<DistRank> dist_ranks;
+  double dist;
+  uint64_t rank;
+
+  // Retrieve MBR iterators from storage manager
+  StorageManager::MBRs::const_iterator mbr_it = 
+      storage_manager_.MBR_begin(ad);
+  StorageManager::MBRs::const_iterator mbr_it_end = 
+      storage_manager_.MBR_end(ad);
+
+  for(rank=0; mbr_it != mbr_it_end; ++mbr_it, ++rank) {
+    dist = point_to_mbr_distance(q, *mbr_it);
+    dist_ranks.push_back(DistRank(dist, rank));
+  }
+ 
+  // Sort ranks on distance and return them
+  __gnu_parallel::sort(dist_ranks.begin(), dist_ranks.end());
+  return dist_ranks;
+}
+
+std::priority_queue<QueryProcessor::RankPosCoord> 
+QueryProcessor::compute_sorted_kNN_coords(
+    const StorageManager::ArrayDescriptor* ad,
+    const std::vector<double>& q,
+    uint64_t k,
+    const std::vector<DistRank>& sorted_dist_ranks) const {
+  std::priority_queue<DistRankPosCoord> kNN_coords;
+  // For easy reference
+  unsigned int attribute_num = ad->array_schema().attribute_num();
+
+  const Tile* tile;
+  Tile::const_iterator cell_it, cell_it_end;
+
+  // Find the k nearest neighbor coordinates
+  uint64_t rank;
+  double dist;
+  std::vector<double> coord;
+  uint64_t tile_num = sorted_dist_ranks.size();
+  // Iterate over the (coordinate) tiles, sorted on their distance to q
+  for(uint64_t i=0; i<tile_num; ++i) {
+    // Stopping condition
+    if(kNN_coords.size() == k && 
+       sorted_dist_ranks[i].first > kNN_coords.top().first)
+      break;
+
+    // Get new coordinate tile and initalize cell iterators
+    rank = sorted_dist_ranks[i].second;
+    tile = storage_manager_.get_tile_by_rank(ad, attribute_num, rank); 
+    cell_it = tile->begin();
+    cell_it_end = tile->end();
+
+    // Scan all (coordinate) cells
+    for(uint64_t pos=0; cell_it != cell_it_end; ++cell_it, ++pos) {
+      // Find new kNNs
+      coord = *cell_it;
+      if(kNN_coords.size() < k || 
+         (dist = point_to_point_distance(q, coord)) < kNN_coords.top().first) {
+        kNN_coords.push(DistRankPosCoord(dist, 
+                                         RankPosCoord(rank, 
+                                                      PosCoord(pos, coord))));
+        if(kNN_coords.size() > k)
+          kNN_coords.pop();
+      }
+    }
+  }
+
+  // Make a new priority queue (rank, (pos, coord)), sorted on rank, pos
+  std::priority_queue<RankPosCoord> resorted_kNN_coords;
+  while(kNN_coords.size() > 0) {
+    resorted_kNN_coords.push(kNN_coords.top().second);
+    kNN_coords.pop();
+  }
+
+  return resorted_kNN_coords;
+}
+
 void QueryProcessor::create_workspace() const {
   struct stat st;
   stat(workspace_.c_str(), &st);
@@ -204,6 +359,258 @@ void QueryProcessor::create_workspace() const {
     int dir_flag = mkdir(workspace_.c_str(), S_IRWXU);
     assert(dir_flag == 0);
   }
+}
+
+void QueryProcessor::filter_irregular(
+    const StorageManager::ArrayDescriptor* ad,
+    const ExpressionTree* expression,
+    const std::string& result_array_name) const {
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  const unsigned int attribute_num = array_schema.attribute_num();
+  uint64_t capacity = array_schema.capacity();
+  
+  // Prepare result array
+  ArraySchema result_array_schema = array_schema.clone(result_array_name);
+  const StorageManager::ArrayDescriptor* result_ad = 
+      storage_manager_.open_array(result_array_schema);
+
+  // Create tiles 
+  Tile** result_tiles = new Tile*[attribute_num+1];
+
+  // Create and initialize tile iterators
+  StorageManager::const_iterator *tile_its = 
+      new StorageManager::const_iterator[attribute_num+1];
+  StorageManager::const_iterator tile_it_end;
+
+  // Create cell iterators
+  Tile::const_iterator* cell_its = 
+      new Tile::const_iterator[attribute_num+1];
+  Tile::const_iterator cell_it_end;
+
+  // Get the attribute names participating as variables in the expression
+  const std::set<std::string>& expr_attribute_names = expression->vars();
+
+  // Get the ids of the attribute names involved in the expression
+  std::vector<unsigned int> expr_attribute_ids;
+  std::set<std::string>::const_iterator expr_attr_it = 
+      expr_attribute_names.begin();
+  std::set<std::string>::const_iterator expr_attr_it_end = 
+      expr_attribute_names.end();
+  for(; expr_attr_it != expr_attr_it_end; ++expr_attr_it) 
+    expr_attribute_ids.push_back(array_schema.attribute_id(*expr_attr_it));
+  std::sort(expr_attribute_ids.begin(), expr_attribute_ids.end());
+  unsigned int expr_attribute_num = expr_attribute_ids.size();
+
+  // Find the ids of the attributes NOT involved in the expression
+  std::vector<unsigned int> non_expr_attribute_ids;
+  for(unsigned int j=0; j<expr_attribute_ids[0]; j++)
+    non_expr_attribute_ids.push_back(j);
+  for(unsigned int i=1; i<expr_attribute_num; ++i) {
+    for(unsigned int j=expr_attribute_ids[i-1]+1; j<expr_attribute_ids[i]; ++j)
+      non_expr_attribute_ids.push_back(j);
+  }
+  for(unsigned int j=expr_attribute_ids[expr_attribute_num-1] + 1; 
+      j<attribute_num; ++j)
+    non_expr_attribute_ids.push_back(j);
+
+  // Initialize tile iterators
+  unsigned int end_attribute_id = expr_attribute_ids[0];
+  initialize_tile_its(ad, tile_its, tile_it_end, end_attribute_id);
+  
+  // Auxiliary variable storing the number of skipped tiles when filtering.
+  // It is used to advance only the iterators of the attributes involved
+  // in the expression when a tile is finished/skipped, and then efficiently 
+  // advance the iterators of the rest of the attributes only when a cell 
+  // satisfies the expression.
+  int64_t skipped_tiles = 0;
+    
+  // Auxiliary variable storing the number of skipped cells when filtering.
+  // It is used to advance only the iterators involved in the expression when 
+  // a cell is skipped, and then efficiently advance the iterators for the 
+  // rest of the attributes when a cell satisfies the expression.
+  uint64_t skipped_cells;
+
+  // Create result tiles
+  uint64_t tile_id = 0;
+  new_tiles(result_array_schema, tile_id, result_tiles); 
+
+  // Iterate over all tiles
+  while(tile_its[end_attribute_id] != tile_it_end) {
+    // Initialize cell its for the attributes involved in the expression
+    initialize_cell_its(tile_its, cell_its, cell_it_end, expr_attribute_ids);
+    skipped_cells = 0;
+    bool non_expr_cell_its_initialized = false;
+
+    // Iterate over all cells of each tile
+    while(cell_its[end_attribute_id] != cell_it_end) {
+      if(cell_satisfies_expression(array_schema, cell_its, 
+                                   expr_attribute_ids, expression)) {
+        if(skipped_tiles) {
+          advance_tile_its(tile_its, non_expr_attribute_ids, skipped_tiles);
+          tile_its[attribute_num] += skipped_tiles;
+          skipped_tiles = 0;
+        }
+        if(!non_expr_cell_its_initialized) {
+          initialize_cell_its(tile_its, cell_its, non_expr_attribute_ids);
+          cell_its[attribute_num] = (*tile_its[attribute_num]).begin();
+          non_expr_cell_its_initialized = true;
+        }
+        if(skipped_cells) {
+          advance_cell_its(cell_its, non_expr_attribute_ids, skipped_cells);
+          cell_its[attribute_num] += skipped_cells;
+          skipped_cells = 0;
+        }
+        if(result_tiles[attribute_num]->cell_num() == capacity) {
+          store_tiles(result_ad, result_tiles);
+          new_tiles(result_array_schema, ++tile_id, result_tiles); 
+        }
+        append_cell(cell_its, result_tiles, attribute_num);
+        advance_cell_its(attribute_num, cell_its);
+      } else {
+        advance_cell_its(cell_its, expr_attribute_ids);
+        ++skipped_cells;
+      }
+    }
+ 
+    // Advance tile iterators 
+    advance_tile_its(tile_its, expr_attribute_ids);
+    ++skipped_tiles;
+  }
+ 
+  // Send the lastly created tiles to storage manager
+  store_tiles(result_ad, result_tiles);
+
+  // Close result array 
+  storage_manager_.close_array(result_ad);
+
+  // Clean up
+  delete [] result_tiles;
+  delete [] tile_its;
+  delete [] cell_its;
+}
+
+void QueryProcessor::filter_regular(
+    const StorageManager::ArrayDescriptor* ad,
+    const ExpressionTree* expression,
+    const std::string& result_array_name) const {
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  const unsigned int attribute_num = array_schema.attribute_num();
+  
+  // Prepare result array
+  ArraySchema result_array_schema = array_schema.clone(result_array_name);
+  const StorageManager::ArrayDescriptor* result_ad = 
+      storage_manager_.open_array(result_array_schema);
+
+  // Create tiles 
+  Tile** result_tiles = new Tile*[attribute_num+1];
+
+  // Create and initialize tile iterators
+  StorageManager::const_iterator *tile_its = 
+      new StorageManager::const_iterator[attribute_num+1];
+  StorageManager::const_iterator tile_it_end;
+
+  // Create cell iterators
+  Tile::const_iterator* cell_its = 
+      new Tile::const_iterator[attribute_num+1];
+  Tile::const_iterator cell_it_end;
+
+  // Get the attribute names participating as variables in the expression
+  const std::set<std::string>& expr_attribute_names = expression->vars();
+
+  // Get the ids of the attribute names involved in the expression
+  std::vector<unsigned int> expr_attribute_ids;
+  std::set<std::string>::const_iterator expr_attr_it = 
+      expr_attribute_names.begin();
+  std::set<std::string>::const_iterator expr_attr_it_end = 
+      expr_attribute_names.end();
+  for(; expr_attr_it != expr_attr_it_end; ++expr_attr_it) 
+    expr_attribute_ids.push_back(array_schema.attribute_id(*expr_attr_it));
+  std::sort(expr_attribute_ids.begin(), expr_attribute_ids.end());
+  unsigned int expr_attribute_num = expr_attribute_ids.size();
+
+  // Find the ids of the attributes NOT involved in the expression
+  std::vector<unsigned int> non_expr_attribute_ids;
+  for(unsigned int j=0; j<expr_attribute_ids[0]; j++)
+    non_expr_attribute_ids.push_back(j);
+  for(unsigned int i=1; i<expr_attribute_num; ++i) {
+    for(unsigned int j=expr_attribute_ids[i-1]+1; j<expr_attribute_ids[i]; ++j)
+      non_expr_attribute_ids.push_back(j);
+  }
+  for(unsigned int j=expr_attribute_ids[expr_attribute_num-1] + 1; 
+      j<attribute_num; ++j)
+    non_expr_attribute_ids.push_back(j);
+
+  // Initialize tile iterators
+  unsigned int end_attribute_id = expr_attribute_ids[0];
+  initialize_tile_its(ad, tile_its, tile_it_end, end_attribute_id);
+  
+  // Auxiliary variable storing the number of skipped tiles when filtering.
+  // It is used to advance only the iterators of the attributes involved
+  // in the expression when a tile is finished/skipped, and then efficiently 
+  // advance the iterators of the rest of the attributes only when a cell 
+  // satisfies the expression.
+  int64_t skipped_tiles = 0;
+    
+  // Auxiliary variable storing the number of skipped cells when filtering.
+  // It is used to advance only the iterators involved in the expression when 
+  // a cell is skipped, and then efficiently advance the iterators for the 
+  // rest of the attributes when a cell satisfies the expression.
+  uint64_t skipped_cells;
+
+  // Iterate over all tiles
+  while(tile_its[end_attribute_id] != tile_it_end) {
+    // Create new result tiles
+    new_tiles(result_array_schema, tile_its[end_attribute_id].tile_id(), 
+              result_tiles);
+    // Initialize cell its for the attributes involved in the expression
+    initialize_cell_its(tile_its, cell_its, cell_it_end, expr_attribute_ids);
+    skipped_cells = 0;
+    bool non_expr_cell_its_initialized = false;
+
+    // Iterate over all cells of each tile
+    while(cell_its[end_attribute_id] != cell_it_end) {
+      if(cell_satisfies_expression(array_schema, cell_its, 
+                                   expr_attribute_ids, expression)) {
+        if(skipped_tiles) {
+          advance_tile_its(tile_its, non_expr_attribute_ids, skipped_tiles);
+          tile_its[attribute_num] += skipped_tiles;
+          skipped_tiles = 0;
+        }
+        if(!non_expr_cell_its_initialized) {
+          initialize_cell_its(tile_its, cell_its, non_expr_attribute_ids);
+          cell_its[attribute_num] = (*tile_its[attribute_num]).begin();
+          non_expr_cell_its_initialized = false;
+        }
+        if(skipped_cells) {
+          advance_cell_its(cell_its, non_expr_attribute_ids, skipped_cells);
+          cell_its[attribute_num] += skipped_cells;
+          skipped_cells = 0;
+        }
+        append_cell(cell_its, result_tiles, attribute_num);
+        advance_cell_its(attribute_num, cell_its);
+      } else {
+        advance_cell_its(cell_its, expr_attribute_ids);
+        ++skipped_cells;
+      }
+    }
+    
+    // Send the lastly created tiles to storage manager
+    store_tiles(result_ad, result_tiles);
+    
+    // Advance tile iterators 
+    advance_tile_its(tile_its, expr_attribute_ids);
+    ++skipped_tiles;
+  }
+ 
+  // Close result array 
+  storage_manager_.close_array(result_ad);
+
+  // Clean up
+  delete [] result_tiles;
+  delete [] tile_its;
+  delete [] cell_its;
 }
 
 inline
@@ -222,6 +629,39 @@ bool QueryProcessor::path_exists(const std::string& path) const {
   struct stat st;
   stat(path.c_str(), &st);
   return S_ISDIR(st.st_mode);
+}
+
+double QueryProcessor::point_to_mbr_distance(
+    const std::vector<double>& q, const std::vector<double>& mbr) const {
+  // Check dimensionality
+  assert(mbr.size() == 2*q.size());
+
+  unsigned int dim_num = q.size();
+  double width, centroid, dq;
+  double dist = 0;
+  for(unsigned int i=0; i<dim_num; ++i) {
+    width = mbr[2*i+1] - mbr[2*i];
+    centroid = mbr[2*i] + width/2;
+    dq = std::max(abs(q[i]-centroid) - width/2, 0.0);
+    dist += dq * dq; 
+  }
+
+  return sqrt(dist);
+}
+
+double QueryProcessor::point_to_point_distance(
+    const std::vector<double>& q, const std::vector<double>& p) const {
+  // Check dimensionality
+  assert(q.size() == p.size());
+
+  unsigned int dim_num = q.size();
+  double dist = 0, diff;
+  for(unsigned int i=0; i<dim_num; ++i) {
+    diff = q[i] - p[i];
+    dist += diff * diff; 
+  }
+
+  return sqrt(dist);
 }
 
 inline
@@ -252,6 +692,25 @@ void QueryProcessor::initialize_cell_its(
 
 inline
 void QueryProcessor::initialize_cell_its(
+    const StorageManager::const_iterator* tile_its, 
+    Tile::const_iterator* cell_its, Tile::const_iterator& cell_it_end,
+    const std::vector<unsigned int>& attribute_ids) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++)
+    cell_its[attribute_ids[i]] = (*tile_its[attribute_ids[i]]).begin();
+  cell_it_end = (*tile_its[attribute_ids[0]]).end();
+}
+
+inline
+void QueryProcessor::initialize_cell_its(
+    const StorageManager::const_iterator* tile_its, 
+    Tile::const_iterator* cell_its, 
+    const std::vector<unsigned int>& attribute_ids) const {
+  for(unsigned int i=0; i<attribute_ids.size(); i++)
+    cell_its[attribute_ids[i]] = (*tile_its[attribute_ids[i]]).begin();
+}
+
+inline
+void QueryProcessor::initialize_cell_its(
     const StorageManager::const_iterator* tile_its, unsigned int attribute_num,
     Tile::const_iterator* cell_its) const {
   for(unsigned int i=0; i<attribute_num; i++)
@@ -269,6 +728,20 @@ void QueryProcessor::initialize_tile_its(
   for(unsigned int i=0; i<=attribute_num; i++)
     tile_its[i] = storage_manager_.begin(ad, i);
   tile_it_end = storage_manager_.end(ad, attribute_num);
+}
+
+inline
+void QueryProcessor::initialize_tile_its(
+    const StorageManager::ArrayDescriptor* ad,
+    StorageManager::const_iterator* tile_its, 
+    StorageManager::const_iterator& tile_it_end,
+    unsigned int end_attribute_id) const {
+  // For easy reference
+  unsigned int attribute_num = ad->array_schema().attribute_num();
+
+  for(unsigned int i=0; i<=attribute_num; i++)
+    tile_its[i] = storage_manager_.begin(ad, i);
+  tile_it_end = storage_manager_.end(ad, end_attribute_id);
 }
 
 void QueryProcessor::join_irregular(const StorageManager::ArrayDescriptor* ad_A, 
@@ -319,6 +792,10 @@ void QueryProcessor::join_irregular(const StorageManager::ArrayDescriptor* ad_A,
   bool attribute_cell_its_initialized_A = false;
   bool attribute_cell_its_initialized_B = false;
 
+  // To capture the edge case where the first tiles from A and B may join
+  bool coordinate_cell_its_initialized_A = false;
+  bool coordinate_cell_its_initialized_B = false;
+
   // Initialize tiles with id 0 for C (result array)
   new_tiles(array_schema_C, 0, tiles_C); 
 
@@ -326,14 +803,19 @@ void QueryProcessor::join_irregular(const StorageManager::ArrayDescriptor* ad_A,
   while(tile_its_A[attribute_num_A] != tile_it_end_A &&
         tile_its_B[attribute_num_B] != tile_it_end_B) {
     // Potential join result generation
-    if(may_join(tile_its_A[attribute_num_A], tile_its_B[attribute_num_B])) {
+    if(may_join(tile_its_A[attribute_num_A], tile_its_B[attribute_num_B])) { 
       // Update iterators in A
       if(skipped_tiles_A) {
         advance_tile_its(attribute_num_A, tile_its_A, skipped_tiles_A);
         skipped_tiles_A = 0;
         cell_its_A[attribute_num_A] = (*tile_its_A[attribute_num_A]).begin();
         cell_it_end_A = (*tile_its_A[attribute_num_A]).end();
+        coordinate_cell_its_initialized_A = true;
         attribute_cell_its_initialized_A = false;
+      } else if(!coordinate_cell_its_initialized_A) {
+        cell_its_A[attribute_num_A] = (*tile_its_A[attribute_num_A]).begin();
+        cell_it_end_A = (*tile_its_A[attribute_num_A]).end();
+        coordinate_cell_its_initialized_A = true;
       }
       // Update iterators in B
       if(skipped_tiles_B) {
@@ -341,7 +823,12 @@ void QueryProcessor::join_irregular(const StorageManager::ArrayDescriptor* ad_A,
         skipped_tiles_B = 0;
         cell_its_B[attribute_num_B] = (*tile_its_B[attribute_num_B]).begin();
         cell_it_end_B = (*tile_its_B[attribute_num_B]).end();
+        coordinate_cell_its_initialized_B = true;
         attribute_cell_its_initialized_B = false;
+      } else if(!coordinate_cell_its_initialized_B) {
+        cell_its_B[attribute_num_B] = (*tile_its_B[attribute_num_B]).begin();
+        cell_it_end_B = (*tile_its_B[attribute_num_B]).end();
+        coordinate_cell_its_initialized_B = true;
       }
       // Join the tiles
       join_tiles_irregular(attribute_num_A, tile_its_A, 
@@ -427,11 +914,6 @@ void QueryProcessor::join_regular(const StorageManager::ArrayDescriptor* ad_A,
   int64_t skipped_tiles_A = 0;
   int64_t skipped_tiles_B = 0;
 
-  // Note that attribute cell iterators are initialized and advanced only
-  // after the first join result is discovered. 
-  bool attribute_cell_its_initialized_A = false;
-  bool attribute_cell_its_initialized_B = false;
-
   // Join algorithm
   while(tile_its_A[attribute_num_A] != tile_it_end_A &&
         tile_its_B[attribute_num_B] != tile_it_end_B) {
@@ -440,51 +922,49 @@ void QueryProcessor::join_regular(const StorageManager::ArrayDescriptor* ad_A,
 
     // Potential join result generation
     if(tile_id_A == tile_id_B) {
-      // Update iterators in A
+      // Update tile iterators in A
       if(skipped_tiles_A) {
         advance_tile_its(attribute_num_A, tile_its_A, skipped_tiles_A);
         skipped_tiles_A = 0;
-        cell_its_A[attribute_num_A] = (*tile_its_A[attribute_num_A]).begin();
-        cell_it_end_A = (*tile_its_A[attribute_num_A]).end();
-        attribute_cell_its_initialized_A = false;
       }
-      // Update iterators in B
+      // Initialize cell iterators for A
+      cell_its_A[attribute_num_A] = (*tile_its_A[attribute_num_A]).begin();
+      cell_it_end_A = (*tile_its_A[attribute_num_A]).end();
+      // Update tile iterators in B
       if(skipped_tiles_B) {
         advance_tile_its(attribute_num_B, tile_its_B, skipped_tiles_B);
         skipped_tiles_B = 0;
-        cell_its_B[attribute_num_B] = (*tile_its_B[attribute_num_B]).begin();
-        cell_it_end_B = (*tile_its_B[attribute_num_B]).end();
-        attribute_cell_its_initialized_B = false;
       }
-
+      // Initialize cell iterators for B
+      cell_its_B[attribute_num_B] = (*tile_its_B[attribute_num_B]).begin();
+      cell_it_end_B = (*tile_its_B[attribute_num_B]).end();
+ 
       // Initialize tiles for C (result array)
       new_tiles(array_schema_C, tile_id_A, tiles_C);
+
       // Join the tiles
       join_tiles_regular(attribute_num_A, tile_its_A, cell_its_A, cell_it_end_A,
                          attribute_num_B, tile_its_B, cell_its_B, cell_it_end_B,
-                         ad_C, tiles_C,
-                         attribute_cell_its_initialized_A, 
-                         attribute_cell_its_initialized_B);
+                         ad_C, tiles_C);
+
       // Send the created tiles to storage manager
       store_tiles(ad_C, tiles_C);
-    }
 
+      // Advance both tile iterators
+      ++tile_its_A[attribute_num_A];
+      ++skipped_tiles_A;
+      ++tile_its_B[attribute_num_B];
+      ++skipped_tiles_B;
     // Tile precedence in the case of regular tiles is simply determined
     // by the order of the tile ids.
-    if(tile_id_A < tile_id_B) {
+    } else if(tile_id_A < tile_id_B) {
       ++tile_its_A[attribute_num_A];
       ++skipped_tiles_A;
-    } else if(tile_id_A > tile_id_B) {
-      ++tile_its_B[attribute_num_B];
-      ++skipped_tiles_B;
-    } else { // tile_id_A == tile_id_B, advance both
-      ++tile_its_A[attribute_num_A];
-      ++skipped_tiles_A;
+    } else { // tile_id_A > tile_id_B
       ++tile_its_B[attribute_num_B];
       ++skipped_tiles_B;
     }
-  }
-  
+  } 
   // Close result array
   storage_manager_.close_array(ad_C);
 
@@ -519,8 +999,18 @@ void QueryProcessor::join_tiles_irregular(
   // It is used to advance only the coordinates iterator when a cell is
   // finished/skipped, and then efficiently advance the attribute iterators only 
   // when a cell joins.
-  int64_t skipped_cells_A = 0;
-  int64_t skipped_cells_B = 0;
+  int64_t skipped_cells_A;
+  int64_t skipped_cells_B;
+
+  if(!attribute_cell_its_initialized_A) 
+    skipped_cells_A = cell_its_A[attribute_num_A].pos();
+  else
+    skipped_cells_A = cell_its_A[attribute_num_A].pos() - cell_its_A[0].pos();
+
+  if(!attribute_cell_its_initialized_B) 
+    skipped_cells_B = cell_its_B[attribute_num_B].pos();
+  else
+    skipped_cells_B = cell_its_B[attribute_num_B].pos() - cell_its_B[0].pos();
 
   while(cell_its_A[attribute_num_A] != cell_it_end_A &&
         cell_its_B[attribute_num_B] != cell_it_end_B) {
@@ -577,9 +1067,7 @@ void QueryProcessor::join_tiles_regular(
     const StorageManager::const_iterator* tile_its_B, 
     Tile::const_iterator* cell_its_B,
     Tile::const_iterator& cell_it_end_B,
-    const StorageManager::ArrayDescriptor* ad_C, Tile** tiles_C,
-    bool& attribute_cell_its_initialized_A,
-    bool& attribute_cell_its_initialized_B) const {
+    const StorageManager::ArrayDescriptor* ad_C, Tile** tiles_C) const {
   // For easy reference
   const ArraySchema& array_schema_C = ad_C->array_schema();
   unsigned int attribute_num_C = array_schema_C.attribute_num();
@@ -590,6 +1078,11 @@ void QueryProcessor::join_tiles_regular(
   // when a cell joins.
   int64_t skipped_cells_A = 0;
   int64_t skipped_cells_B = 0;
+  
+  // Note that attribute cell iterators are initialized and advanced only
+  // after the first join result is discovered. 
+  bool attribute_cell_its_initialized_A = false;
+  bool attribute_cell_its_initialized_B = false;
 
   while(cell_its_A[attribute_num_A] != cell_it_end_A &&
         cell_its_B[attribute_num_B] != cell_it_end_B) {
@@ -654,6 +1147,174 @@ bool QueryProcessor::may_join(
 
   return true;
 }
+
+// NOTE: It is assumed that k is small enough for O(k) coordinates to fit
+// in main memory. 
+void QueryProcessor::nearest_neighbors_irregular(
+    const StorageManager::ArrayDescriptor* ad,
+    const std::vector<double>& q,
+    uint64_t k,
+    const std::string& result_array_name) const {
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  unsigned int attribute_num = array_schema.attribute_num();
+  uint64_t capacity = array_schema.capacity();
+
+  // Create tiles 
+  const Tile** tiles = new const Tile*[attribute_num];
+  Tile** result_tiles = new Tile*[attribute_num+1];
+
+  // Create cell iterators
+  Tile::const_iterator* cell_its = 
+      new Tile::const_iterator[attribute_num];
+  Tile::const_iterator cell_it_end;
+
+  // Prepare result array
+  ArraySchema result_array_schema = array_schema.clone(result_array_name);
+  const StorageManager::ArrayDescriptor* result_ad = 
+      storage_manager_.open_array(result_array_schema);
+
+  // Get pairs (dist, rank), sorted on dist
+  // rank is a tile rank and dist is its distance to q
+  std::vector<DistRank> sorted_dist_ranks = compute_sorted_dist_ranks(ad, q);
+
+  // Compute sorted kNN coordinates of the form (rank, (pos, coord))
+  // coord is the cell coordinates, rank is the rank of the tile the
+  // cell belongs to, and pos is the position of the cell in the tile
+  std::priority_queue<RankPosCoord> sorted_kNN_coords = 
+      compute_sorted_kNN_coords(ad, q, k, sorted_dist_ranks); 
+    
+  // Prepare new result tiles
+  uint64_t tile_id = 0; 
+  new_tiles(result_array_schema, tile_id, result_tiles); 
+
+  // Retrieve and store the actual k nearest neighbors
+  int64_t current_rank = -1;
+  uint64_t pos, rank;
+  while(sorted_kNN_coords.size() > 0) {
+    // For easy reference
+    rank = sorted_kNN_coords.top().first; 
+    pos = sorted_kNN_coords.top().second.first; 
+    const std::vector<double>& coord = sorted_kNN_coords.top().second.second;
+
+    // Retrieve tiles
+    if(rank != current_rank) {
+      current_rank = rank;
+      for(unsigned int i=0; i<attribute_num; i++) 
+        tiles[i] = storage_manager_.get_tile_by_rank(ad, i, rank);
+    }
+   
+    // Store result tile if full
+    if(result_tiles[attribute_num]->cell_num() == capacity) {
+      store_tiles(result_ad, result_tiles);
+      new_tiles(result_array_schema, ++tile_id, result_tiles); 
+    } 
+ 
+    // Append cell
+    *result_tiles[attribute_num] << coord;
+    for(unsigned int i=0; i<attribute_num; i++) {
+      cell_its[i] = tiles[i]->begin() + pos;
+      *result_tiles[i] << cell_its[i];
+    }
+   
+    // Pop the top of the priority queue 
+    sorted_kNN_coords.pop();
+  }
+  
+  // Send the lastly created tiles to storage manager
+  store_tiles(result_ad, result_tiles);
+
+  // Close result array
+  storage_manager_.close_array(result_ad);
+
+  // Clean up 
+  delete [] tiles;
+  delete [] result_tiles;
+  delete [] cell_its;
+} 
+
+// NOTE: It is assumed that k is small enough for O(k) coordinates to fit
+// in main memory. 
+void QueryProcessor::nearest_neighbors_regular(
+    const StorageManager::ArrayDescriptor* ad,
+    const std::vector<double>& q,
+    uint64_t k,
+    const std::string& result_array_name) const {
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  unsigned int attribute_num = array_schema.attribute_num();
+
+  // Create tiles 
+  const Tile** tiles = new const Tile*[attribute_num];
+  Tile** result_tiles = new Tile*[attribute_num+1];
+
+  // Create cell iterators
+  Tile::const_iterator* cell_its = 
+      new Tile::const_iterator[attribute_num];
+  Tile::const_iterator cell_it_end;
+
+  // Prepare result array
+  ArraySchema result_array_schema = array_schema.clone(result_array_name);
+  const StorageManager::ArrayDescriptor* result_ad = 
+      storage_manager_.open_array(result_array_schema);
+
+  // Get pairs (dist, rank), sorted on dist
+  // rank is a tile rank and dist is its distance to q
+  std::vector<DistRank> sorted_dist_ranks = compute_sorted_dist_ranks(ad, q);
+
+  // Compute sorted kNN coordinates of the form (rank, (pos, coord))
+  // coord is the cell coordinates, rank is the rank of the tile the
+  // cell belongs to, and pos is the position of the cell in the tile
+  std::priority_queue<RankPosCoord> sorted_kNN_coords = 
+      compute_sorted_kNN_coords(ad, q, k, sorted_dist_ranks); 
+    
+  // Retrieve and store the actual k nearest neighbors
+  int64_t current_rank = -1;
+  uint64_t pos, rank, tile_id;
+  while(sorted_kNN_coords.size() > 0) {
+    // For easy reference
+    rank = sorted_kNN_coords.top().first; 
+    pos = sorted_kNN_coords.top().second.first; 
+    const std::vector<double>& coord = sorted_kNN_coords.top().second.second;
+
+    // Retrieve tiles and create new result tiles
+    if(rank != current_rank) {
+      // Store previous result tiles
+      if(current_rank != -1)
+        store_tiles(result_ad, result_tiles);
+
+      current_rank = rank;
+      
+      // Retrieve tiles
+      for(unsigned int i=0; i<attribute_num; i++) 
+        tiles[i] = storage_manager_.get_tile_by_rank(ad, i, rank);
+  
+      // Prepare new result tiles
+      new_tiles(result_array_schema, tiles[0]->tile_id(), result_tiles); 
+    }
+   
+    // Append cell
+    *result_tiles[attribute_num] << coord;
+    for(unsigned int i=0; i<attribute_num; i++) {
+      cell_its[i] = tiles[i]->begin() + pos;
+      *result_tiles[i] << cell_its[i];
+    }
+   
+    // Pop the top of the priority queue 
+    sorted_kNN_coords.pop();
+  }
+    
+  // Send the lastly created tiles to storage manager
+  store_tiles(result_ad, result_tiles);
+  
+  // Close result array
+  storage_manager_.close_array(result_ad);
+
+  // Clean up 
+  delete [] tiles;
+  delete [] result_tiles;
+  delete [] cell_its;
+} 
 
 inline
 void QueryProcessor::new_tiles(const ArraySchema& array_schema, 
