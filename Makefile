@@ -23,6 +23,9 @@ ifdef SPEED
   CPPFLAGS+=-O3 -DNDEBUG
   LINKFLAGS+=-O3
 endif
+ifdef DO_PROFILING
+  CPPFLAGS+=-DDO_PROFILING
+endif
 
 # --- Directories --- #
 CORE_INCLUDE_DIR = core/include
@@ -155,6 +158,10 @@ $(EXAMPLE_BIN_DIR)/gt_example_query_processor: $(EXAMPLE_OBJ_DIR)/gt_example_que
  $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
  $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
  $(CORE_OBJ_DIR)/hilbert_curve.o $(CORE_OBJ_DIR)/command_line.o
+	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
+
+$(EXAMPLE_BIN_DIR)/gt_verifier: $(EXAMPLE_OBJ_DIR)/gt_verifier.o $(CORE_OBJ_DIR)/lut.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
 	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
 

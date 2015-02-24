@@ -111,7 +111,7 @@ void Loader::load(const std::string& filename,
   storage_manager_.close_array(ad);
 }
 
-void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx) const {
+void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted) const {
   // Create gVCF array schema
   ArraySchema* array_schema = create_gVCF_array_schema(array_name, max_sample_idx);
 
@@ -129,20 +129,25 @@ void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, 
                                 array_schema->array_name() + ".csv";
 
   // Sort CSV
-  sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema);
+  if(is_input_sorted)
+    sorted_filename = to_be_sorted_filename;
+  else
+    sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema);
 
   // Make tiles
   try {
     make_tiles_irregular_CSV_gVCF(sorted_filename, ad, *array_schema);
   } catch(LoaderException& le) {
-    remove(sorted_filename.c_str());
+    if(!is_input_sorted)
+      remove(sorted_filename.c_str());
     storage_manager_.delete_array(array_schema->array_name());
     throw LoaderException("[Loader] Cannot load CSV file '" + filename + 
                           "'.\n " + le.what());
   } 
 
   // Clean up and close array 
-  remove(sorted_filename.c_str());
+  if(!is_input_sorted)
+    remove(sorted_filename.c_str());
   storage_manager_.close_array(ad);
   delete array_schema;
 }
@@ -740,7 +745,7 @@ void Loader::sort_csv_file(const std::string& to_be_sorted_filename,
   char sub_cmd[50];
   std::string cmd;
 
-  cmd = "sort -t, ";
+  cmd = "sort -T /mnt/app_hdd/scratch/karthikg/tmp -t, ";
   
   // For easy reference
   unsigned int dim_num = array_schema.dim_num();

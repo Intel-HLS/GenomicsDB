@@ -205,7 +205,7 @@ class Loader {
    * (iv)  the AD tile,
    * (v)   the PL tile.
    */
-  void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx) const; 
+  void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted) const; 
 
  private:
   // PRIVATE ATTRIBUTES

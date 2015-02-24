@@ -39,9 +39,39 @@
 #include "csv_file.h"
 #include "storage_manager.h"
 #include <ostream>
+#include <queue>
+#include <unordered_map>
 
 extern std::string g_non_reference_allele;
+class PQStruct
+{
+  public:
+    PQStruct()    { m_needs_to_be_processed = false; }
+    bool m_needs_to_be_processed;
+    int64_t m_end_point;
+    int64_t m_sample_idx;
+    int64_t m_array_column;
+    uint64_t m_cell_pos;
+    uint64_t m_tile_idx;
+};
+struct CmpPQStruct
+{
+  bool operator()(const PQStruct* x, const PQStruct* y) { return x->m_end_point > y->m_end_point; }
+};
 
+typedef std::priority_queue<PQStruct*, std::vector<PQStruct*>, CmpPQStruct> gVCF_PQ;
+
+class GTTileIteratorsTracker
+{
+  public:
+    GTTileIteratorsTracker(unsigned num_attributes)
+    {
+      m_iter_vector.resize(num_attributes);
+      m_reference_counter = 0ull;
+    }
+    uint64_t m_reference_counter;
+    std::vector<StorageManager::const_iterator> m_iter_vector;
+};
 /** 
  * This class implements the query processor module, which is responsible
  * for processing the various queries. 
@@ -86,7 +116,33 @@ class QueryProcessor {
     std::vector<std::string> REF_;
     /** Holds the (seqeuence of) PL values for each row. */
     std::vector<std::vector<int> > PL_;
+    void reset();
   };	
+
+  class GTProfileStats {
+    public:
+      GTProfileStats()
+      {
+        m_sum_num_cells_touched = 0;
+        m_sum_num_tiles_touched = 0;
+	m_sum_num_cells_last_iter = 0;
+	m_sum_num_cells_first_sample = 0;
+        m_sum_sq_num_cells_touched = 0;
+        m_sum_sq_num_tiles_touched = 0;      
+	m_sum_sq_num_cells_last_iter = 0;
+	m_sum_sq_num_cells_first_sample = 0;
+	m_num_samples = 0;
+      }
+      uint64_t m_sum_num_cells_touched;
+      uint64_t m_sum_num_tiles_touched;
+      uint64_t m_sum_num_cells_last_iter;
+      uint64_t m_sum_num_cells_first_sample;
+      uint64_t m_sum_sq_num_cells_touched;
+      uint64_t m_sum_sq_num_tiles_touched;
+      uint64_t m_sum_sq_num_cells_last_iter;
+      uint64_t m_sum_sq_num_cells_first_sample;
+      uint64_t m_num_samples;
+  };
 
   // CONSTRUCTORS AND DESTRUCTORS
   /** 
@@ -107,7 +163,8 @@ class QueryProcessor {
                      const std::string& filename) const;
   /** Returns the genotyping info for column col from the input array. */
   GTColumn* gt_get_column(
-      const StorageManager::ArrayDescriptor* ad, uint64_t col) const;
+      const StorageManager::ArrayDescriptor* ad, uint64_t col, GTProfileStats* stats=0) const;
+  void scan_and_operate(const StorageManager::ArrayDescriptor* ad, std::ostream& output_stream);
   /** 
    * Joins the two input arrays (say, A and B). The result contains a cell only
    * if both the corresponding cells in A and B are non-empty. The input arrays
@@ -197,9 +254,14 @@ class QueryProcessor {
   void get_tiles(const StorageManager::ArrayDescriptor* array_descriptor,
                  uint64_t tile_id, const Tile** tiles) const;
   /** Fills a row of the input genotyping column with the proper info. */
+  template<class ITER>
   void gt_fill_row(
       GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
-      const StorageManager::const_reverse_iterator* tile_its) const;
+      const ITER* tile_its) const;
+  /** Called by scan_and_operate to handle all ranges for given set of cells */
+  void handle_gvcf_ranges(gVCF_PQ& end_pq, std::vector<PQStruct>& PQ_end_vec, GTColumn* gt_column,
+      std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
+      int64_t current_start_position, int64_t next_start_position, bool is_last_call);
   /** 
    * Initializes tile iterators for joint genotyping for column col. 
    * Returns the number of attributes used in joint genotyping.
@@ -320,5 +382,6 @@ class QueryProcessorException {
 
 void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column, std::ostream& output);
 typedef void (*scan_operator_type)(const QueryProcessor::GTColumn*, void* data);
+
 
 #endif
