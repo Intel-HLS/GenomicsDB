@@ -32,6 +32,7 @@
  */
 
 #include "storage_manager.h"
+#include "gt_common.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -42,6 +43,16 @@
 #include <assert.h>
 #include <typeinfo>
 #include <iostream>
+
+#ifdef DO_PROFILING
+uint64_t g_num_disk_loads = 0;
+uint64_t g_num_cached_loads = 0;
+uint64_t g_coords_num_disk_loads = 0;
+uint64_t g_coords_num_cached_loads = 0;
+uint64_t g_total_num_tiles_loaded = 0;
+uint64_t g_num_tiles_loaded[GVCF_COORDINATES_IDX+1];
+uint64_t g_num_segments_loaded[GVCF_COORDINATES_IDX+1];
+#endif
 
 /******************************************************
 ************ STATIC VARIABLE DEFINITIONS **************
@@ -58,6 +69,13 @@ StorageManager::StorageManager(
     : segment_size_(segment_size){
   set_workspace(path);
   create_workspace();
+#ifdef DO_PROFILING
+  for(auto i=0u;i<GVCF_COORDINATES_IDX+1;++i)
+  {
+    g_num_tiles_loaded[i] = 0;
+    g_num_segments_loaded[i] = 0;
+  }
+#endif
 }
 
 StorageManager::~StorageManager() {
@@ -1384,6 +1402,14 @@ std::pair<uint64_t, uint64_t> StorageManager::load_payloads_into_buffer(
   lseek(fd, offsets[start_rank], SEEK_SET);
   read(fd, buffer, buffer_size); 
   close(fd);
+#ifdef DO_PROFILING
+  g_num_tiles_loaded[attribute_id] += tiles_in_buffer;
+  ++g_num_segments_loaded[attribute_id];
+  g_total_num_tiles_loaded += tiles_in_buffer;
+  ++g_num_disk_loads;
+  if(attribute_id == m_coords_attribute_idx)
+    ++g_coords_num_disk_loads;
+#endif
 
   return std::pair<uint64_t, uint64_t>(buffer_size, tiles_in_buffer);
 }
@@ -1578,7 +1604,14 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     buffer = new char[buffer_size];
     lseek(fd, offsets[start_rank], SEEK_SET);
     read(fd, buffer, buffer_size); 
-
+#ifdef DO_PROFILING
+    g_num_tiles_loaded[attribute_id] += tiles_in_buffer;
+    ++g_num_segments_loaded[attribute_id];
+    g_total_num_tiles_loaded += tiles_in_buffer;
+    ++g_num_disk_loads;
+    if(attribute_id == m_coords_attribute_idx)
+      ++g_coords_num_disk_loads;
+#endif
     // Delete previous tiles from main memory
     delete_tiles(array_info, attribute_id);
   
@@ -1596,6 +1629,14 @@ const Tile* StorageManager::reverse_get_tile_by_rank(
     delete [] buffer;
     close(fd);
   }
+#ifdef DO_PROFILING
+  else
+  {
+    ++g_num_cached_loads;
+    if(attribute_id == m_coords_attribute_idx)
+      ++g_coords_num_cached_loads;
+  }
+#endif
 
   assert(rank >= rank_low && rank <= rank_high);
   assert(rank - rank_low <= array_info.tiles_[attribute_id].size());

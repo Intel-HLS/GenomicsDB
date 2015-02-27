@@ -465,7 +465,9 @@ class StorageManager {
    */
   uint64_t get_left_sweep_start_rank(const ArrayDescriptor* ad, 
                                     uint64_t col) const;
-
+#ifdef DO_PROFILING
+  unsigned m_coords_attribute_idx;
+#endif
  private: 
   // PRIVATE ATTRIBUTES
   /** Used in ArrayInfo and ArrayDescriptor for debugging purposes. */

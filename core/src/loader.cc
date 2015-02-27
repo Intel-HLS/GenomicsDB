@@ -32,6 +32,7 @@
  */
 
 #include "loader.h"
+#include "gt_common.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -189,11 +190,11 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   std::string string_v;
 
   // Offsets
-  int64_t REF_offset = tiles[1]->cell_num(); 
-  int64_t ALT_offset = tiles[2]->cell_num(); 
-  int64_t FILTER_ID_offset = tiles[4]->cell_num(); 
-  int64_t AD_offset = tiles[19]->cell_num(); 
-  int64_t PL_offset = tiles[20]->cell_num(); 
+  int64_t REF_offset = tiles[GVCF_REF_IDX]->cell_num(); 
+  int64_t ALT_offset = tiles[GVCF_ALT_IDX]->cell_num(); 
+  int64_t FILTER_ID_offset = tiles[GVCF_FILTER_IDX]->cell_num(); 
+  int64_t AD_offset = tiles[GVCF_AD_IDX]->cell_num(); 
+  int64_t PL_offset = tiles[GVCF_PL_IDX]->cell_num(); 
   
   // ALT_num and FILTER_num variables
   int ALT_num;
@@ -204,238 +205,238 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
     throw LoaderException("Cannot read coordinates from CSV file.");
 
   // END -- Attribute 0
-  if(!(*csv_line >> *tiles[0]))
+  if(!(*csv_line >> *tiles[GVCF_END_IDX]))
     throw LoaderException("Cannot read END value from CSV file.");
 
-  // REF -- Attribute 1
+  // REF -- Attribute GVCF_REF_IDX
   if(!(*csv_line >> string_v))
     throw LoaderException("Cannot read REF value from CSV file.");
   for(int i=0; i<string_v.size(); i++)
-    *tiles[1] << string_v[i];
-  *tiles[1] << '\0';
+    *tiles[GVCF_REF_IDX] << string_v[i];
+  *tiles[GVCF_REF_IDX] << '\0';
 
-  // ALT -- Attribute 2
+  // ALT -- Attribute GVCF_ALT_IDX
   if(!(*csv_line >> ALT_num))
     throw LoaderException("Cannot read ALT_num value from CSV file.");
   for(int j=0; j<ALT_num; j++) {
     if(!(*csv_line >> string_v))
       throw LoaderException("Cannot read ALT value from CSV file.");
     for(int i=0; i<string_v.size(); i++)
-      *tiles[2] << string_v[i];
+      *tiles[GVCF_ALT_IDX] << string_v[i];
     if(j < ALT_num-1) // Do not store '\0' after last allele '&' for <NON_REF>
-      *tiles[2] << '\0';
+      *tiles[GVCF_ALT_IDX] << '\0';
     else
       assert(string_v == "&");
   }
   
-  // QUAL -- Attribute 3
+  // QUAL -- Attribute GVCF_QUAL_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read QUAL value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[3] << 0;
+    *tiles[GVCF_QUAL_IDX] << 0;
   } else {  
-    *tiles[3] << float_v;
+    *tiles[GVCF_QUAL_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // FILTER_ID -- Attribute 4
+  // FILTER_ID -- Attribute GVCF_FILTER_IDX
   if(!(*csv_line >> FILTER_num))
     throw LoaderException("Cannot read FILTER_num value from CSV file.");
-  *tiles[4] << FILTER_num;  
+  *tiles[GVCF_FILTER_IDX] << FILTER_num;  
   for(int j=0; j<FILTER_num; j++) {
-    if(!(*csv_line >> *tiles[4]))
+    if(!(*csv_line >> *tiles[GVCF_FILTER_IDX]))
       throw LoaderException("Cannot read FILTER_ID value from CSV file.");
   }
 
-  // BaseQRankSum -- Attribute 5
+  // BaseQRankSum -- Attribute GVCF_BASEQRANKSUM_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read BaseQRankSum value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[5] << 0;
+    *tiles[GVCF_BASEQRANKSUM_IDX] << 0;
   } else {
-    *tiles[5] << float_v;
+    *tiles[GVCF_BASEQRANKSUM_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // ClippingRankSum -- Attribute 6
+  // ClippingRankSum -- Attribute GVCF_CLIPPINGRANKSUM_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read ClippingSum value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[6] << 0;
+    *tiles[GVCF_CLIPPINGRANKSUM_IDX] << 0;
   } else {
-    *tiles[6] << float_v;
+    *tiles[GVCF_CLIPPINGRANKSUM_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // MQRankSum -- Attribute 7
+  // MQRankSum -- Attribute GVCF_MQRANKSUM_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read MQRankSum value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[7] << 0;
+    *tiles[GVCF_MQRANKSUM_IDX] << 0;
   } else {
-    *tiles[7] << float_v;
+    *tiles[GVCF_MQRANKSUM_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // ReadPosRankSum -- Attribute 8
+  // ReadPosRankSum -- Attribute GVCF_READPOSRANKSUM_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read ReadPosRankSum value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[8] << 0;
+    *tiles[GVCF_READPOSRANKSUM_IDX] << 0;
   } else {
-    *tiles[8] << float_v;
+    *tiles[GVCF_READPOSRANKSUM_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // DP -- Attribute 9
+  // DP -- Attribute GVCF_DP_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read DP value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[9] << 0;
+    *tiles[GVCF_DP_IDX] << 0;
   } else {
-    *tiles[9] << int_v;
+    *tiles[GVCF_DP_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // MQ -- Attribute 10
+  // MQ -- Attribute GVCF_MQ_IDX
   if(!(*csv_line >> float_v))
     throw LoaderException("Cannot read MQ value from CSV file.");
   if(float_v == CSV_NULL_FLOAT) {
     NULL_bitmap += 1;
-    *tiles[10] << 0;
+    *tiles[GVCF_MQ_IDX] << 0;
   } else {
-    *tiles[10] << float_v;
+    *tiles[GVCF_MQ_IDX] << float_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // MQ0 -- Attribute 11
+  // MQ0 -- Attribute GVCF_MQ0_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read MQ0 value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[11] << 0;
+    *tiles[GVCF_MQ0_IDX] << 0;
   } else {
-    *tiles[11] << int_v;
+    *tiles[GVCF_MQ0_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // DP_FMT -- Attribute 12
+  // DP_FMT -- Attribute GVCF_DP_FMT_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read DP_FMT value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[12] << 0;
+    *tiles[GVCF_DP_FMT_IDX] << 0;
   } else {
-    *tiles[12] << int_v;
+    *tiles[GVCF_DP_FMT_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // MIN_DP -- Attribute 13
+  // MIN_DP -- Attribute GVCF_MIN_DP_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read MIN_DP value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[13] << 0;
+    *tiles[GVCF_MIN_DP_IDX] << 0;
   } else {
-    *tiles[13] << int_v;
+    *tiles[GVCF_MIN_DP_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // GQ -- Attribute 14
+  // GQ -- Attribute GVCF_GQ_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read GQ value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[14] << 0;
+    *tiles[GVCF_GQ_IDX] << 0;
   } else {
-    *tiles[14] << int_v;
+    *tiles[GVCF_GQ_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // SB_1 -- Attribute 15
+  // SB_1 -- Attribute GVCF_SB_1_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_1 value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[15] << 0;
+    *tiles[GVCF_SB_1_IDX] << 0;
   } else {
-    *tiles[15] << int_v;
+    *tiles[GVCF_SB_1_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // SB_2 -- Attribute 16
+  // SB_2 -- Attribute GVCF_SB_2_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_2 value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[16] << 0;
+    *tiles[GVCF_SB_2_IDX] << 0;
   } else {
-    *tiles[16] << int_v;
+    *tiles[GVCF_SB_2_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // SB_3 -- Attribute 17
+  // SB_3 -- Attribute GVCF_SB_3_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_3 value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[17] << 0;
+    *tiles[GVCF_SB_3_IDX] << 0;
   } else {
-    *tiles[17] << int_v;
+    *tiles[GVCF_SB_3_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1; 
 
-  // SB_4 -- Attribute 18
+  // SB_4 -- Attribute GVCF_SB_4_IDX
   if(!(*csv_line >> int_v))
     throw LoaderException("Cannot read SB_4 value from CSV file.");
   if(int_v == CSV_NULL_INT) {
     NULL_bitmap += 1;
-    *tiles[18] << 0;
+    *tiles[GVCF_SB_4_IDX] << 0;
   } else {
-    *tiles[18] << int_v;
+    *tiles[GVCF_SB_4_IDX] << int_v;
   }
   NULL_bitmap = NULL_bitmap << 1;
 
-  // AD -- Attribute 19
+  // AD -- Attribute GVCF_AD_IDX
   for(int i=0; i<ALT_num+1; i++) {
     if(!(*csv_line >> int_v))
       throw LoaderException("Cannot read AD value from CSV file.");
     if(int_v == CSV_NULL_INT)
-      *tiles[19] << 0;
+      *tiles[GVCF_AD_IDX] << 0;
     else 
-      *tiles[19] << int_v;
+      *tiles[GVCF_AD_IDX] << int_v;
   }
   if(int_v == CSV_NULL_INT) // We assume that if one AD value is NULL, all are
     NULL_bitmap += 1;
   NULL_bitmap = NULL_bitmap << 1;
   
-  // PL -- Attribute 20
+  // PL -- Attribute GVCF_PL_IDX
   for(int i=0; i<(ALT_num+1)*(ALT_num+2)/2; i++) {
     if(!(*csv_line >> int_v))
       throw LoaderException("Cannot read PL value from CSV file.");
     if(int_v == CSV_NULL_INT)
-      *tiles[20] << 0;
+      *tiles[GVCF_PL_IDX] << 0;
     else 
-      *tiles[20] << int_v;
+      *tiles[GVCF_PL_IDX] << int_v;
   }
   if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
     NULL_bitmap += 1;
 
-  // NULL -- Attribute 21
-  *tiles[21] << NULL_bitmap;
+  // NULL -- Attribute GVCF_NULL_IDX
+  *tiles[GVCF_NULL_IDX] << NULL_bitmap;
 
-  // OFFSETS -- Attribute 22
-  *tiles[22] << REF_offset;
-  *tiles[22] << ALT_offset;
-  *tiles[22] << FILTER_ID_offset;
-  *tiles[22] << AD_offset;
-  *tiles[22] << PL_offset;
+  // OFFSETS -- Attribute GVCF_OFFSETS_IDX
+  *tiles[GVCF_OFFSETS_IDX] << REF_offset;
+  *tiles[GVCF_OFFSETS_IDX] << ALT_offset;
+  *tiles[GVCF_OFFSETS_IDX] << FILTER_ID_offset;
+  *tiles[GVCF_OFFSETS_IDX] << AD_offset;
+  *tiles[GVCF_OFFSETS_IDX] << PL_offset;
 }
 
 bool Loader::check_on_load(const std::string& filename) const {

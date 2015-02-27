@@ -124,20 +124,24 @@ class QueryProcessor {
       GTProfileStats()
       {
         m_sum_num_cells_touched = 0;
-        m_sum_num_tiles_touched = 0;
+        m_sum_num_deref_tile_iters = 0;
+	m_sum_num_tiles_touched = 0;
 	m_sum_num_cells_last_iter = 0;
 	m_sum_num_cells_first_sample = 0;
         m_sum_sq_num_cells_touched = 0;
-        m_sum_sq_num_tiles_touched = 0;      
+        m_sum_sq_num_deref_tile_iters = 0;      
+	m_sum_sq_num_tiles_touched = 0;
 	m_sum_sq_num_cells_last_iter = 0;
 	m_sum_sq_num_cells_first_sample = 0;
 	m_num_samples = 0;
       }
       uint64_t m_sum_num_cells_touched;
+      uint64_t m_sum_num_deref_tile_iters;
       uint64_t m_sum_num_tiles_touched;
       uint64_t m_sum_num_cells_last_iter;
       uint64_t m_sum_num_cells_first_sample;
       uint64_t m_sum_sq_num_cells_touched;
+      uint64_t m_sum_sq_num_deref_tile_iters;
       uint64_t m_sum_sq_num_tiles_touched;
       uint64_t m_sum_sq_num_cells_last_iter;
       uint64_t m_sum_sq_num_cells_first_sample;
@@ -165,6 +169,7 @@ class QueryProcessor {
   GTColumn* gt_get_column(
       const StorageManager::ArrayDescriptor* ad, uint64_t col, GTProfileStats* stats=0) const;
   void scan_and_operate(const StorageManager::ArrayDescriptor* ad, std::ostream& output_stream);
+  void iterate_over_all_cells(const StorageManager::ArrayDescriptor* ad);
   /** 
    * Joins the two input arrays (say, A and B). The result contains a cell only
    * if both the corresponding cells in A and B are non-empty. The input arrays
@@ -257,7 +262,7 @@ class QueryProcessor {
   template<class ITER>
   void gt_fill_row(
       GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
-      const ITER* tile_its) const;
+      const ITER* tile_its, uint64_t* num_deref_tile_iters) const;
   /** Called by scan_and_operate to handle all ranges for given set of cells */
   void handle_gvcf_ranges(gVCF_PQ& end_pq, std::vector<PQStruct>& PQ_end_vec, GTColumn* gt_column,
       std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,

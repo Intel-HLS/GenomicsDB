@@ -32,6 +32,7 @@
  */
   
 #include "query_processor.h"
+#include "gt_common.h"
 #include <stdio.h>
 #include <typeinfo>
 #include <stdlib.h>
@@ -398,6 +399,7 @@ void QueryProcessor::handle_gvcf_ranges(gVCF_PQ& end_pq, std::vector<PQStruct>& 
       std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call)
 {
+  uint64_t num_deref_tile_iters = 0;
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
     int64_t top_end_pq = end_pq.top()->m_end_point;
@@ -413,7 +415,7 @@ void QueryProcessor::handle_gvcf_ranges(gVCF_PQ& end_pq, std::vector<PQStruct>& 
 	auto find_iter = tile_idx_2_iters.find(curr_struct.m_tile_idx);
 	assert(find_iter != tile_idx_2_iters.end());
         gt_fill_row<StorageManager::const_iterator>(gt_column, i, curr_struct.m_array_column, curr_struct.m_cell_pos, 
-	    &((*find_iter).second.m_iter_vector[0]));
+	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters);
       }
     }
     do_dummy_genotyping(gt_column, output_stream);
@@ -432,6 +434,47 @@ void QueryProcessor::handle_gvcf_ranges(gVCF_PQ& end_pq, std::vector<PQStruct>& 
   }
 }
 
+void QueryProcessor::iterate_over_all_cells(const StorageManager::ArrayDescriptor* ad)
+{
+  // For easy reference
+  const ArraySchema& array_schema = ad->array_schema();
+  const std::vector<std::pair<double, double> >& dim_domains =
+      array_schema.dim_domains();
+  uint64_t total_num_samples = dim_domains[0].second - dim_domains[0].first + 1;
+  
+  unsigned num_queried_attributes = GT_COORDINATES_IDX + 1;
+  StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
+  std::unordered_map<uint64_t, GTTileIteratorsTracker> tile_idx_2_iters;
+  // END
+  tile_its[GT_END_IDX] = storage_manager_.begin(ad, GVCF_END_IDX);
+  // REF
+  tile_its[GT_REF_IDX] = storage_manager_.begin(ad, GVCF_REF_IDX);
+  // ALT
+  tile_its[GT_ALT_IDX] = storage_manager_.begin(ad, GVCF_ALT_IDX);
+  // PL
+  tile_its[GT_PL_IDX] = storage_manager_.begin(ad, GVCF_PL_IDX);
+  // NULL
+  tile_its[GT_NULL_IDX] = storage_manager_.begin(ad, GVCF_NULL_IDX);
+  // OFFSETS
+  tile_its[GT_OFFSETS_IDX] = storage_manager_.begin(ad, GVCF_OFFSETS_IDX);
+  // coordinates
+  tile_its[GT_COORDINATES_IDX] = storage_manager_.begin(ad, GVCF_COORDINATES_IDX);
+  
+  StorageManager::const_iterator tile_it_end = storage_manager_.end(ad, GVCF_COORDINATES_IDX);
+  QueryProcessor::GTColumn* gt_column = new GTColumn(0, total_num_samples);
+  uint64_t num_deref_tile_iters = 0; 
+  for(;tile_its[num_queried_attributes-1] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))
+  {
+    Tile::const_iterator cell_it = (*tile_its[num_queried_attributes-1]).begin();
+    Tile::const_iterator cell_it_end = (*tile_its[num_queried_attributes-1]).end();
+    std::vector<int64_t> next_coord = *cell_it;
+    gt_column->reset();
+    gt_column->col_ = next_coord[1];
+    gt_fill_row<StorageManager::const_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its,
+	&num_deref_tile_iters);
+  }
+}
+
 void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, std::ostream& output_stream)
 {
   // For easy reference
@@ -439,27 +482,26 @@ void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad,
   const std::vector<std::pair<double, double> >& dim_domains =
       array_schema.dim_domains();
   uint64_t total_num_samples = dim_domains[0].second - dim_domains[0].first + 1;
-  unsigned int attribute_num = array_schema.attribute_num();
   
-  unsigned num_queried_attributes = 7;
+  unsigned num_queried_attributes = GT_COORDINATES_IDX + 1;
   StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
   std::unordered_map<uint64_t, GTTileIteratorsTracker> tile_idx_2_iters;
   // END
-  tile_its[0] = storage_manager_.begin(ad, 0);
+  tile_its[GT_END_IDX] = storage_manager_.begin(ad, GVCF_END_IDX);
   // REF
-  tile_its[1] = storage_manager_.begin(ad, 1);
+  tile_its[GT_REF_IDX] = storage_manager_.begin(ad, GVCF_REF_IDX);
   // ALT
-  tile_its[2] = storage_manager_.begin(ad, 2);
+  tile_its[GT_ALT_IDX] = storage_manager_.begin(ad, GVCF_ALT_IDX);
   // PL
-  tile_its[3] = storage_manager_.begin(ad, 20);
+  tile_its[GT_PL_IDX] = storage_manager_.begin(ad, GVCF_PL_IDX);
   // NULL
-  tile_its[4] = storage_manager_.begin(ad, 21);
+  tile_its[GT_NULL_IDX] = storage_manager_.begin(ad, GVCF_NULL_IDX);
   // OFFSETS
-  tile_its[5] = storage_manager_.begin(ad, 22);
+  tile_its[GT_OFFSETS_IDX] = storage_manager_.begin(ad, GVCF_OFFSETS_IDX);
   // coordinates
-  tile_its[6] = storage_manager_.begin(ad, attribute_num);
+  tile_its[GT_COORDINATES_IDX] = storage_manager_.begin(ad, GVCF_COORDINATES_IDX);
   
-  StorageManager::const_iterator tile_it_end = storage_manager_.end(ad, attribute_num);
+  StorageManager::const_iterator tile_it_end = storage_manager_.end(ad, GVCF_COORDINATES_IDX);
   
   QueryProcessor::GTColumn* gt_column = new GTColumn(0, total_num_samples);
 
@@ -512,14 +554,14 @@ void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad,
       //Store array column idx corresponding to this cell
       curr_struct.m_array_column = current_start_position;
       //Get END corresponding to this cell
-      curr_struct.m_end_point = static_cast<const AttributeTile<int64_t>& >(*tile_its[0]).cell(cell_it.pos());
+      curr_struct.m_end_point = static_cast<const AttributeTile<int64_t>& >(*tile_its[GT_END_IDX]).cell(cell_it.pos());
       assert(curr_struct.m_end_point >= current_start_position);
       //Store tile idx
       curr_struct.m_tile_idx = tile_idx;
       ++(current_iterator_tracker.m_reference_counter);
       //Store position of cell wrt tile
       curr_struct.m_cell_pos = cell_it.pos();
-      assert(cell_it.pos() < (*tile_its[0]).cell_num());
+      assert(cell_it.pos() < (*tile_its[GT_COORDINATES_IDX]).cell_num());
       curr_struct.m_needs_to_be_processed = true;
       end_pq.push(&(PQ_end_vec[sample_idx]));
       assert(end_pq.size() <= total_num_samples);
@@ -573,6 +615,7 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
 
   // Create cell iterators
   Tile::const_reverse_iterator cell_it, cell_it_end;
+  uint64_t num_deref_tile_iters = 0;
 #ifdef DO_PROFILING
   uint64_t num_cells_touched = 0;
   uint64_t num_tiles_touched = 0;
@@ -583,6 +626,10 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
     // Initialize cell iterators for the coordinates
     cell_it = (*tile_its[gt_attribute_num]).rbegin();
     cell_it_end = (*tile_its[gt_attribute_num]).rend();
+#ifdef DO_PROFILING
+    num_deref_tile_iters += 2;	//why 2, cell_it and cell_it_end
+    ++num_tiles_touched;
+#endif
     while(cell_it != cell_it_end && filled_rows < row_num) {
       std::vector<int64_t> next_coord = *cell_it;
 #ifdef DO_PROFILING
@@ -591,7 +638,7 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
       // If next cell is not on the right of col, and corresponds to 
       // uninvestigated row
       if(next_coord[1] <= col && CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(gt_column->REF_[next_coord[0]])) {
-        gt_fill_row<StorageManager::const_reverse_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its);
+        gt_fill_row<StorageManager::const_reverse_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its, &num_deref_tile_iters);
         ++filled_rows;
 #ifdef DO_PROFILING
 	if(first_sample)
@@ -612,9 +659,6 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
       ++cell_it;
     }
     advance_tile_its(gt_attribute_num, tile_its);
-#ifdef DO_PROFILING
-    ++num_tiles_touched;
-#endif
   }
 
   //No need for this assertion
@@ -629,6 +673,8 @@ QueryProcessor::GTColumn* QueryProcessor::gt_get_column(
     stats->m_sum_sq_num_cells_last_iter += (num_cells_touched*num_cells_touched);
     num_cells_touched = 0;
   }
+  stats->m_sum_num_deref_tile_iters += num_deref_tile_iters;
+  stats->m_sum_sq_num_deref_tile_iters += (num_deref_tile_iters*num_deref_tile_iters);
   stats->m_sum_num_tiles_touched += num_tiles_touched;
   stats->m_sum_sq_num_tiles_touched += (num_tiles_touched*num_tiles_touched);
 #endif
@@ -805,10 +851,13 @@ bool QueryProcessor::path_exists(const std::string& path) const {
 template<class ITER>
 void QueryProcessor::gt_fill_row(
     GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
-    const ITER* tile_its) const {
+    const ITER* tile_its, uint64_t* num_deref_tile_iters) const {
   // First check if the row is NULL
   int64_t END_v = 
-      static_cast<const AttributeTile<int64_t>& >(*tile_its[0]).cell(pos);
+      static_cast<const AttributeTile<int64_t>& >(*tile_its[GT_END_IDX]).cell(pos);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
   if(END_v < gt_column->col_) {
     gt_column->REF_[row] = "$";
     return;
@@ -816,14 +865,20 @@ void QueryProcessor::gt_fill_row(
 
   // Retrieve the offsets
   const AttributeTile<int64_t>& OFFSETS_tile = 
-      static_cast<const AttributeTile<int64_t>& >(*tile_its[5]);
+      static_cast<const AttributeTile<int64_t>& >(*tile_its[GT_OFFSETS_IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
   int64_t REF_offset = OFFSETS_tile.cell(pos*5);
   int64_t ALT_offset = OFFSETS_tile.cell(pos*5+1);
   int64_t PL_offset = OFFSETS_tile.cell(pos*5+4);
 
   // Retrieve the NULL bitmap
   const AttributeTile<int>& NULL_tile = 
-      static_cast<const AttributeTile<int>& >(*tile_its[4]);
+      static_cast<const AttributeTile<int>& >(*tile_its[GT_NULL_IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
   int NULL_bitmap = NULL_tile.cell(pos);
 
   char c;
@@ -835,7 +890,10 @@ void QueryProcessor::gt_fill_row(
   if(column == gt_column->col_)
   {
     const AttributeTile<char>& REF_tile = 
-      static_cast<const AttributeTile<char>& >(*tile_its[1]);
+      static_cast<const AttributeTile<char>& >(*tile_its[GT_REF_IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
     std::string REF_s = "";
     i = 0;
     while((c = REF_tile.cell(REF_offset+i)) != '\0') { 
@@ -849,7 +907,10 @@ void QueryProcessor::gt_fill_row(
 
   // Fill the ALT values
   const AttributeTile<char>& ALT_tile = 
-      static_cast<const AttributeTile<char>& >(*tile_its[2]);
+      static_cast<const AttributeTile<char>& >(*tile_its[GT_ALT_IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
   i = 0;
   std::string ALT_s = "";
   while((c = ALT_tile.cell(ALT_offset+i)) != '&') {
@@ -867,7 +928,10 @@ void QueryProcessor::gt_fill_row(
   // Fill the PL values
   if((NULL_bitmap & 1) == 0) { // If the PL values are
     const AttributeTile<int>& PL_tile = 
-        static_cast<const AttributeTile<int>& >(*tile_its[3]);
+        static_cast<const AttributeTile<int>& >(*tile_its[GT_PL_IDX]);
+#ifdef DO_PROFILING
+    ++(*num_deref_tile_iters);
+#endif
     int ALT_num = gt_column->ALT_[row].size(); 
     int PL_num = (ALT_num+1)*(ALT_num+2)/2;
     for(int i=0; i<PL_num; i++) 
@@ -890,23 +954,23 @@ unsigned int QueryProcessor::gt_initialize_tile_its(
   uint64_t start_rank = storage_manager_.get_left_sweep_start_rank(ad, col);
 
   // END
-  tile_its[0] = storage_manager_.rbegin(ad, 0, start_rank);
+  tile_its[GT_END_IDX] = storage_manager_.rbegin(ad, GVCF_END_IDX, start_rank);
   // REF
-  tile_its[1] = storage_manager_.rbegin(ad, 1, start_rank);
+  tile_its[GT_REF_IDX] = storage_manager_.rbegin(ad, GVCF_REF_IDX, start_rank);
   // ALT
-  tile_its[2] = storage_manager_.rbegin(ad, 2, start_rank);
+  tile_its[GT_ALT_IDX] = storage_manager_.rbegin(ad, GVCF_ALT_IDX, start_rank);
   // PL
-  tile_its[3] = storage_manager_.rbegin(ad, 20, start_rank);
+  tile_its[GT_PL_IDX] = storage_manager_.rbegin(ad, GVCF_PL_IDX, start_rank);
   // NULL
-  tile_its[4] = storage_manager_.rbegin(ad, 21, start_rank);
+  tile_its[GT_NULL_IDX] = storage_manager_.rbegin(ad, GVCF_NULL_IDX, start_rank);
   // OFFSETS
-  tile_its[5] = storage_manager_.rbegin(ad, 22, start_rank);
+  tile_its[GT_OFFSETS_IDX] = storage_manager_.rbegin(ad, GVCF_OFFSETS_IDX, start_rank);
   // coordinates
-  tile_its[6] = storage_manager_.rbegin(ad, attribute_num, start_rank);
+  tile_its[GT_COORDINATES_IDX] = storage_manager_.rbegin(ad, GVCF_COORDINATES_IDX, start_rank);
   tile_it_end = storage_manager_.rend(ad, attribute_num);
 
   // The number of attributes is 6, and the coordinates is the extra one
-  return 6;
+  return GT_COORDINATES_IDX;
 }
 
 inline
