@@ -14,6 +14,11 @@ ifdef HTSDIR
   LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
+ifdef LIBRARY
+  CPPFLAGS += -fPIC
+  SOFLAGS=-shared -fPIC -Wl,-soname,
+endif
+
 LINKFLAGS=
 ifdef DEBUG
   CPPFLAGS+= -g -gdwarf-2 -g3
@@ -34,6 +39,7 @@ CORE_INCLUDE_DIR = core/include
 CORE_SRC_DIR = core/src
 CORE_OBJ_DIR = core/obj
 CORE_BIN_DIR = core/bin
+EXAMPLE_INCLUDE_DIR = example/include
 EXAMPLE_SRC_DIR = example/src
 EXAMPLE_OBJ_DIR = example/obj
 EXAMPLE_BIN_DIR = example/bin
@@ -54,6 +60,7 @@ CORE_INCLUDE_PATHS = -I$(CORE_INCLUDE_DIR)
 CORE_INCLUDE := $(wildcard $(CORE_INCLUDE_DIR)/*.h)
 CORE_SRC := $(wildcard $(CORE_SRC_DIR)/*.cc)
 CORE_OBJ := $(patsubst $(CORE_SRC_DIR)/%.cc, $(CORE_OBJ_DIR)/%.o, $(CORE_SRC))
+EXAMPLE_INCLUDE := $(wildcard $(EXAMPLE_INCLUDE_DIR)/*.h)
 EXAMPLE_SRC := $(wildcard $(EXAMPLE_SRC_DIR)/*.cc)
 EXAMPLE_OBJ := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_OBJ_DIR)/%.o, $(EXAMPLE_SRC))
 EXAMPLE_BIN := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_BIN_DIR)/%, $(EXAMPLE_SRC))
@@ -86,6 +93,9 @@ doc: doxyfile.inc
 
 clean: clean_core clean_example clean_gtest clean_test
 
+clean_lib:
+	rm -f $(EXAMPLE_OBJ_DIR)/libtiledb.o $(EXAMPLE_BIN_DIR)/libtiledb*
+
 ###############
 # Core TileDB #
 ###############
@@ -115,8 +125,8 @@ clean_core:
 
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 	@test -d $(EXAMPLE_OBJ_DIR) || mkdir -p $(EXAMPLE_OBJ_DIR)
-	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -184,6 +194,16 @@ $(EXAMPLE_BIN_DIR)/example_tile: $(EXAMPLE_OBJ_DIR)/example_tile.o \
  $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/csv_file.o
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
 	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
+
+$(EXAMPLE_BIN_DIR)/libtiledb: $(EXAMPLE_OBJ_DIR)/libtiledb.o \
+ $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
+ $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
+ $(CORE_OBJ_DIR)/hilbert_curve.o 
+	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) -o $@ $^
+	$(CXX) $(INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) $(SOFLAGS)libtiledb.so -o $@.so $^
+	
+# $(CXX) $(INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) -Wl,-rpath,$(EXAMPLE_BIN_DIR) $(SOFLAGS)$@.so -o $@.so $^
 
 
 ###############
