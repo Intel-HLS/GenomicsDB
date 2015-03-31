@@ -24,3 +24,4 @@ class Factory {
 extern "C" QueryProcessor::GTColumn *db_query_column(std::string workspace, 
                                                   std::string array_name, 
                                                   uint64_t pos); 
+extern "C" void print_GT_Column(QueryProcessor::GTColumn *gtc);
