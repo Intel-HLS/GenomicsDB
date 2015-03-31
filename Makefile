@@ -14,6 +14,9 @@ ifdef HTSDIR
   LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
+CPPFLAGS += -fPIC
+SOFLAGS=-shared -Wl,-soname,
+
 LINKFLAGS=
 ifdef DEBUG
   CPPFLAGS+= -g -gdwarf-2 -g3
@@ -23,17 +26,24 @@ ifdef SPEED
   CPPFLAGS+=-O3 -DNDEBUG
   LINKFLAGS+=-O3
 endif
+
 ifdef DO_PROFILING
   GPERFTOOLSDIR=/home/karthikg/softwares/gperftools-2.2/install/
   CPPFLAGS+=-DDO_PROFILING --no-inline -I$(GPERFTOOLSDIR)/include
   LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 
+
 # --- Directories --- #
 CORE_INCLUDE_DIR = core/include
 CORE_SRC_DIR = core/src
 CORE_OBJ_DIR = core/obj
 CORE_BIN_DIR = core/bin
+VARIANT_INCLUDE_DIR = variant/include
+VARIANT_SRC_DIR = variant/src
+VARIANT_OBJ_DIR = variant/obj
+VARIANT_BIN_DIR = variant/bin
+EXAMPLE_INCLUDE_DIR = example/include
 EXAMPLE_SRC_DIR = example/src
 EXAMPLE_OBJ_DIR = example/obj
 EXAMPLE_BIN_DIR = example/bin
@@ -47,13 +57,20 @@ TEST_OBJ_DIR = test/obj
 TEST_BIN_DIR = test/bin
 DOC_DIR = doc
 
+STATIC_LINK_CORE_LIBRARY=-Wl,-Bstatic -L$(CORE_BIN_DIR)/ -lcore -Wl,-Bdynamic
+STATIC_LINK_VARIANT_LIBRARY=-Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant -Wl,-Bdynamic
+
 # --- Paths --- #
-CORE_INCLUDE_PATHS = -I$(CORE_INCLUDE_DIR)
+INCLUDE_PATHS = -I$(CORE_INCLUDE_DIR) -I$(VARIANT_INCLUDE_DIR)
 
 # --- Files --- #
 CORE_INCLUDE := $(wildcard $(CORE_INCLUDE_DIR)/*.h)
 CORE_SRC := $(wildcard $(CORE_SRC_DIR)/*.cc)
 CORE_OBJ := $(patsubst $(CORE_SRC_DIR)/%.cc, $(CORE_OBJ_DIR)/%.o, $(CORE_SRC))
+VARIANT_INCLUDE := $(wildcard $(VARIANT_INCLUDE_DIR)/*.h)
+VARIANT_SRC := $(wildcard $(VARIANT_SRC_DIR)/*.cc)
+VARIANT_OBJ := $(patsubst $(VARIANT_SRC_DIR)/%.cc, $(VARIANT_OBJ_DIR)/%.o, $(VARIANT_SRC))
+EXAMPLE_INCLUDE := $(wildcard $(EXAMPLE_INCLUDE_DIR)/*.h)
 EXAMPLE_SRC := $(wildcard $(EXAMPLE_SRC_DIR)/*.cc)
 EXAMPLE_OBJ := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_OBJ_DIR)/%.o, $(EXAMPLE_SRC))
 EXAMPLE_BIN := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_BIN_DIR)/%, $(EXAMPLE_SRC))
@@ -68,13 +85,15 @@ TEST_OBJ := $(patsubst $(TEST_SRC_DIR)/%.cc, $(TEST_OBJ_DIR)/%.o, $(TEST_SRC))
 
 .PHONY: core example gtest test doc doc_doxygen clean_core clean_example clean_gtest clean_test clean
 
-all: core example gtest test 
+all: core variant example gtest test 
 
 ifdef HTSDIR
 include $(HTSDIR)/htslib.mk
 endif
 
-core: $(CORE_OBJ)
+core: $(CORE_OBJ) $(CORE_BIN_DIR)/libcore.a
+
+variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.so $(VARIANT_BIN_DIR)/libtiledb_variant.a
 
 example: $(EXAMPLE_BIN)
 
@@ -84,7 +103,10 @@ test: $(TEST_OBJ)
 
 doc: doxyfile.inc
 
-clean: clean_core clean_example clean_gtest clean_test
+clean: clean_core clean_variant clean_example clean_gtest clean_test
+
+clean_lib:
+	rm -f $(CORE_BIN_DIR)/* $(VARIANT_BIN_DIR)/*
 
 ###############
 # Core TileDB #
@@ -96,14 +118,45 @@ clean: clean_core clean_example clean_gtest clean_test
 
 $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 	@test -d $(CORE_OBJ_DIR) || mkdir -p $(CORE_OBJ_DIR)
-	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	$(CXX) $(CPPFLAGS) $(INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
+$(CORE_BIN_DIR)/libcore.a: $(CORE_OBJ)
+	@test -d $(CORE_BIN_DIR) || mkdir -p $(CORE_BIN_DIR)
+	ar rcs $@ $^
+
 clean_core:
 	rm -f $(CORE_OBJ_DIR)/* $(CORE_BIN_DIR)/* 
+
+###############
+# Variant specific part of TileDB #
+###############
+
+# --- Compilation and dependency genration --- #
+
+-include $(VARIANT_OBJ:.o=.d)
+
+$(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
+	@test -d $(VARIANT_OBJ_DIR) || mkdir -p $(VARIANT_OBJ_DIR)
+	$(CXX) $(CPPFLAGS) $(INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(INCLUDE_PATHS) $< > $(@:.o=.d)
+	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
+	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
+	@rm -f $(@:.o=.d.tmp)
+
+$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
+	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
+	ar rcs $@ $^
+
+$(VARIANT_BIN_DIR)/libtiledb_variant.so: $(CORE_OBJ) $(VARIANT_OBJ)
+	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
+	$(CXX) $(SOFLAGS)libtiledb.so -o $@ $^
+
+clean_variant:
+	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
 
 ############
 # Examples #
@@ -115,76 +168,19 @@ clean_core:
 
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 	@test -d $(EXAMPLE_OBJ_DIR) || mkdir -p $(EXAMPLE_OBJ_DIR)
-	$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	$(CXX) $(CPPFLAGS) $(INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) -c $< -o $@
+	@$(CXX) -MM $(CPPFLAGS) $(INCLUDE_PATHS) -I $(EXAMPLE_INCLUDE_DIR) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
+#Linking
+$(EXAMPLE_BIN_DIR)/%: $(EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
+	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+	$(CXX) $(LINKFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
+
 clean_example:
 	rm -f $(EXAMPLE_OBJ_DIR)/* $(EXAMPLE_BIN_DIR)/* 
-
-# --- Linking --- #
-
-$(EXAMPLE_BIN_DIR)/example_array_schema: $(EXAMPLE_OBJ_DIR)/example_array_schema.o \
- $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/hilbert_curve.o \
- $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/csv_file.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/example_csv_file: $(EXAMPLE_OBJ_DIR)/example_csv_file.o \
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/tile.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/example_loader: $(EXAMPLE_OBJ_DIR)/example_loader.o \
- $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/hilbert_curve.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/gt_example_loader: $(EXAMPLE_OBJ_DIR)/gt_example_loader.o $(CORE_OBJ_DIR)/command_line.o \
- $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/hilbert_curve.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/example_query_processor: $(EXAMPLE_OBJ_DIR)/example_query_processor.o \
- $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
- $(CORE_OBJ_DIR)/hilbert_curve.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^ $(LDFLAGS)
-
-$(EXAMPLE_BIN_DIR)/gt_example_query_processor: $(EXAMPLE_OBJ_DIR)/gt_example_query_processor.o \
- $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
- $(CORE_OBJ_DIR)/hilbert_curve.o $(CORE_OBJ_DIR)/command_line.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^ $(LDFLAGS)
-
-$(EXAMPLE_BIN_DIR)/gt_profile_query_processor: $(EXAMPLE_OBJ_DIR)/gt_profile_query_processor.o \
- $(CORE_OBJ_DIR)/query_processor.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o $(CORE_OBJ_DIR)/lut.o\
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/loader.o $(CORE_OBJ_DIR)/storage_manager.o   \
- $(CORE_OBJ_DIR)/hilbert_curve.o $(CORE_OBJ_DIR)/command_line.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^ $(LDFLAGS)
-
-$(EXAMPLE_BIN_DIR)/gt_verifier: $(EXAMPLE_OBJ_DIR)/gt_verifier.o $(CORE_OBJ_DIR)/lut.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/example_storage_manager: $(EXAMPLE_OBJ_DIR)/example_storage_manager.o \
- $(CORE_OBJ_DIR)/storage_manager.o $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/array_schema.o \
- $(CORE_OBJ_DIR)/csv_file.o $(CORE_OBJ_DIR)/hilbert_curve.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
-$(EXAMPLE_BIN_DIR)/example_tile: $(EXAMPLE_OBJ_DIR)/example_tile.o \
- $(CORE_OBJ_DIR)/tile.o $(CORE_OBJ_DIR)/csv_file.o
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(INCLUDE_PATHS) -o $@ $^
-
 
 ###############
 # Google test #

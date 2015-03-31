@@ -1,5 +1,7 @@
 *.swp
 *.o
+*.a
+*.so
 *.d
 doc/
 source/bin/
