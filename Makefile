@@ -153,7 +153,7 @@ $(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
 
 $(VARIANT_BIN_DIR)/libtiledb_variant.so: $(CORE_OBJ) $(VARIANT_OBJ)
 	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
-	$(CXX) $(SOFLAGS)libtiledb.so -o $@ $^
+	$(CXX) $(SOFLAGS)libtiledb_variant.so -o $@ $^
 
 clean_variant:
 	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
