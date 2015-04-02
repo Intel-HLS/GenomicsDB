@@ -1,9 +1,9 @@
-#include "query_processor.h"
+#include "query_variants.h"
 
 class Factory {
   private:
     StorageManager *sm;
-    QueryProcessor *qp;
+    VariantQueryProcessor *qp;
     StorageManager::ArrayDescriptor *ad;
 
     // path to TileDb workspace
@@ -13,15 +13,15 @@ class Factory {
 
   public:
     //Stats struct
-    QueryProcessor::GTProfileStats stats;
+    GTProfileStats stats;
 
     // Get functions that do lazy initialization of the Tile DB Objects
     StorageManager *getStorageManager(std::string workspace);
-    QueryProcessor *getQueryProcessor(std::string workspace);
+    VariantQueryProcessor *getVariantQueryProcessor(std::string workspace);
     StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
 };
 
-extern "C" QueryProcessor::GTColumn *db_query_column(std::string workspace, 
+extern "C" GTColumn *db_query_column(std::string workspace, 
                                                   std::string array_name, 
                                                   uint64_t pos); 
-extern "C" void print_GT_Column(QueryProcessor::GTColumn *gtc);
+extern "C" void print_GT_Column(GTColumn *gtc);

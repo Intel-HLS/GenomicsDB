@@ -5,7 +5,8 @@
 
 enum ArgsIdxEnum
 {
-  ARGS_IDX_IS_PRESORTED=1000
+  ARGS_IDX_IS_PRESORTED=1000,
+  ARGS_IDX_TEMPORARY_DIRECTORY
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
@@ -21,6 +22,7 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
     {"scan",0,0,'S'},
     {"workspace",1,0,'w'},
     {"presorted", 0, 0, ARGS_IDX_IS_PRESORTED},
+    {"temp-dir", 1, 0, ARGS_IDX_TEMPORARY_DIRECTORY},
     {0,0,0,0}
   };
   int c = 0;
@@ -57,6 +59,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
       case ARGS_IDX_IS_PRESORTED:
 	cl.m_is_input_csv_sorted = true;
 	break;
+      case ARGS_IDX_TEMPORARY_DIRECTORY:
+        cl.m_temporary_directory = optarg;
+        break;
       default:
         std::cerr << "Unknown argument "<<argv<<"\n";
         exit(-1);

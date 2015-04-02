@@ -1,17 +1,17 @@
 #include <iostream>
 #include "command_line.h"
 #include "loader.h"
-#include "query_processor.h"
 #include<math.h>
-#include "gt_common.h"
+#include "query_variants.h"
+#include "variant_operations.h"
 
-void GenotypeColumn(QueryProcessor& qp, QueryProcessor::GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
+void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
     uint64_t column, std::ostream& output_stream)
 {
   /*Get one column from array*/ 
-  QueryProcessor::GTColumn* gt_column = qp.gt_get_column(ad_gVCF, column, stats);
+  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, column, stats);
   //Do dummy genotyping operation
-  do_dummy_genotyping(gt_column, output_stream);
+  VariantOperations::do_dummy_genotyping(gt_column, output_stream);
   delete gt_column;
 }
 
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
   // Create query processor
   // The first input is the path to its workspace (the path must exist).
-  QueryProcessor qp(cl.m_workspace, sm);
+  VariantQueryProcessor qp(cl.m_workspace, sm);
 
   // Open arrays in READ mode
   const StorageManager::ArrayDescriptor* ad_gVCF = 

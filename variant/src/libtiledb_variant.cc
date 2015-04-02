@@ -14,11 +14,11 @@ StorageManager *Factory::getStorageManager(std::string workspace) {
   return sm;
 }
 
-QueryProcessor *Factory::getQueryProcessor(std::string workspace) {
+VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
       // Create query processor
       // The first input is the path to its workspace (the path must exist).
-      qp = new QueryProcessor(workspace, *getStorageManager(workspace));
+      qp = new VariantQueryProcessor(workspace, *getStorageManager(workspace));
       this->workspace = workspace;
   }
   return qp;
@@ -33,7 +33,7 @@ StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_n
   return ad;
 }
 
-void print_GT_Column(QueryProcessor::GTColumn *gtc) {
+void print_GT_Column(GTColumn *gtc) {
     std::cout << "SAMP \tALT \tREF \tPL" << std::endl;  
     for( int i = 0; i < gtc->ALT_.size(); ++i ) {
         std::cout << i << "\t";
@@ -52,13 +52,13 @@ void print_GT_Column(QueryProcessor::GTColumn *gtc) {
     }
 }
 
-extern "C" QueryProcessor::GTColumn *db_query_column(std::string workspace, 
+extern "C" GTColumn *db_query_column(std::string workspace, 
                                                   std::string array_name, 
                                                   uint64_t pos) {
-    QueryProcessor *qp = f.getQueryProcessor(workspace);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace);
     StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
 
-    QueryProcessor::GTColumn *gtc = qp->gt_get_column(ad, pos, &f.stats);
+    GTColumn *gtc = qp->gt_get_column(ad, pos, &f.stats);
 
     return gtc;
 }

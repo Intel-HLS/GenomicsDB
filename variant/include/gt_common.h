@@ -1,6 +1,19 @@
 #ifndef GT_COMMON_H
 #define GT_COMMON_H
 
+#include <stdio.h>
+#include <typeinfo>
+#include <stdlib.h>
+#include <iostream>
+#include <sys/stat.h>
+#include <assert.h>
+#include <math.h>
+#include <queue>
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
+#include <string>
+
 enum GVCFAttributesEnum
 {
   GVCF_END_IDX=0,
@@ -49,5 +62,17 @@ extern uint64_t g_total_num_tiles_loaded;
 extern uint64_t g_num_tiles_loaded[GVCF_COORDINATES_IDX+1];
 extern uint64_t g_num_segments_loaded[GVCF_COORDINATES_IDX+1];
 #endif
+
+#ifndef HTSDIR
+#include "vcf.h"
+#else
+#include "htslib/vcf.h"
+#endif
+
+#define CHECK_MISSING_SAMPLE_GIVEN_REF(REF) (((REF).size() == 0) || ((REF)[0] == '$'))
+#define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0 || ((REF) == ""))
+#define CHECK_IN_THE_MIDDLE_REF(REF) ((REF)[0] == 'N')
+#define IS_NON_REF_ALLELE(allele) ((allele)[0] == '&')
+
 
 #endif

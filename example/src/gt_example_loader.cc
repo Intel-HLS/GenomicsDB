@@ -28,12 +28,12 @@
  *
  * @section DESCRIPTION
  *
- * This file demonstrates the usage of Loader objects. The loader takes as
+ * This file demonstrates the usage of VariantLoader objects. The loader takes as
  * input a CSV file with raw array data, and creates an array in the
  * native (binary) TileDB format based on the array schema.
  */
 
-#include "loader.h"
+#include "load_variants.h"
 #include <iostream>
 #include "command_line.h"
 int main(int argc, char** argv) {
@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
 
     // Create loader
     // The first input is the path to its workspace (the path must exist).
-    Loader ld(cl.m_workspace, sm);
+    VariantLoader ld(cl.m_workspace, sm);
 
-    ld.load_CSV_gVCF(cl.m_csv_filename, cl.m_array_name, cl.m_num_samples-1, cl.m_is_input_csv_sorted);    //argument is max_sample_idx
+    ld.load_CSV_gVCF(cl.m_csv_filename, cl.m_array_name, cl.m_num_samples-1, cl.m_is_input_csv_sorted, cl.m_temporary_directory);    //argument is max_sample_idx
   } catch(LoaderException& le) {
     std::cout << le.what() << "\n";
   }
