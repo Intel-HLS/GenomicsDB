@@ -34,20 +34,26 @@ StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_n
 }
 
 void print_GT_Column(QueryProcessor::GTColumn *gtc) {
-    std::cout << "SAMP \tALT \tREF \tPL" << std::endl;  
+    std::cout << "SAMP \tALT \tREF \tPL \tAF \tAN \tAC" << std::endl;  
     for( int i = 0; i < gtc->ALT_.size(); ++i ) {
         std::cout << i << "\t";
+        // Print REF
+        std::cout << gtc->REF_[i] << "\t";
         // Print ALT
         for( std::string s : gtc->ALT_[i] ) {
             std::cout << s << ",";
         }
         std::cout << "\t";
-        // Print REF
-        std::cout << gtc->REF_[i] << "\t";
         // Print PL
         for( int j : gtc->PL_[i] ) {
             std::cout << j << ",";
         }
+        // Print AF
+        std::cout << "\t" << gtc->AF_[i];
+        // Print AN
+        std::cout << "\t" << gtc->AN_[i];
+        // Print AC
+        std::cout << "\t" << gtc->AC_[i];
         std::cout << std::endl;
     }
 }
