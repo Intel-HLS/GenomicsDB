@@ -205,7 +205,7 @@ class Loader {
    * (iv)  the AD tile,
    * (v)   the PL tile.
    */
-  void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted) const; 
+  void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted, const std::string& temp_space = std::string()) const; 
 
  private:
   // PRIVATE ATTRIBUTES
@@ -274,7 +274,8 @@ class Loader {
   /**  Sorts the csv file depending on the type of tiles and order. */
   void sort_csv_file(const std::string& to_be_sorted_filename,
                      const std::string& sorted_filename,
-                     const ArraySchema& array_schema) const;
+                     const ArraySchema& array_schema,
+                     const std::string& temp_space = std::string() ) const;
   /** Sends the tiles to the storage manager. */
   void store_tiles(const StorageManager::ArrayDescriptor* ad,
                    Tile** tiles) const;

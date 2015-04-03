@@ -19,13 +19,14 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
     {"position",1,0,'p'},
     {"position-list",1,0,'P'},
     {"scan",0,0,'S'},
+    {"temp-space",1,0,'T'},
     {"workspace",1,0,'w'},
     {"presorted", 0, 0, ARGS_IDX_IS_PRESORTED},
     {0,0,0,0}
   };
   int c = 0;
   char* val;
-  while ((c = getopt_long(argc, argv, "A:f:N:o:p:P:Sw:",loptions,NULL)) >= 0) {
+  while ((c = getopt_long(argc, argv, "A:f:N:o:p:P:Sw:T:",loptions,NULL)) >= 0) {
     switch(c)
     {
       case 'w':
@@ -53,6 +54,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
         break;
       case 'S':
         cl.m_do_scan = true;
+        break;
+      case 'T':
+        cl.m_temp_space = optarg;
         break;
       case ARGS_IDX_IS_PRESORTED:
 	cl.m_is_input_csv_sorted = true;

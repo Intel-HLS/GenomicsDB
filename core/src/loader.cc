@@ -112,7 +112,7 @@ void Loader::load(const std::string& filename,
   storage_manager_.close_array(ad);
 }
 
-void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted) const {
+void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted, const std::string& temp_space) const {
   // Create gVCF array schema
   ArraySchema* array_schema = create_gVCF_array_schema(array_name, max_sample_idx);
 
@@ -133,7 +133,7 @@ void Loader::load_CSV_gVCF(const std::string& filename, const char* array_name, 
   if(is_input_sorted)
     sorted_filename = to_be_sorted_filename;
   else
-    sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema);
+    sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema, temp_space);
 
   // Make tiles
   try {
@@ -427,6 +427,51 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   }
   if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
     NULL_bitmap += 1;
+  NULL_bitmap = NULL_bitmap << 1;
+
+  // AF -- Attribute GVCF_AF_IDX
+  if(!(*csv_line >> float_v))
+    // throw LoaderException("Cannot read AF value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign float_v to CSV_NULL_FLOAT and fall through rest of the logic
+    float_v = CSV_NULL_FLOAT;
+  if(float_v == CSV_NULL_FLOAT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AF_IDX] << 0;
+  } else {  
+    *tiles[GVCF_AF_IDX] << float_v;
+  }
+  NULL_bitmap = NULL_bitmap << 1; 
+
+  // AN -- Attribute GVCF_AN_IDX
+  if(!(*csv_line >> int_v))
+    // throw LoaderException("Cannot read AN value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AN_IDX] << 0;
+  } else {
+    *tiles[GVCF_AN_IDX] << int_v;
+  }
+  NULL_bitmap = NULL_bitmap << 1;
+
+  // AC -- Attribute GVCF_AC_IDX
+  if(!(*csv_line >> int_v))
+    // throw LoaderException("Cannot read AC value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AC_IDX] << 0;
+  } else {
+    *tiles[GVCF_AC_IDX] << int_v;
+  }
 
   // NULL -- Attribute GVCF_NULL_IDX
   *tiles[GVCF_NULL_IDX] << NULL_bitmap;
@@ -483,6 +528,9 @@ ArraySchema* Loader::create_gVCF_array_schema(const char* array_name, const uint
   attribute_names.push_back("SB_4"); 
   attribute_names.push_back("AD"); 
   attribute_names.push_back("PL"); 
+  attribute_names.push_back("AF"); 
+  attribute_names.push_back("AN"); 
+  attribute_names.push_back("AC"); 
   attribute_names.push_back("NULL"); 
   attribute_names.push_back("OFFSETS"); 
  
@@ -511,6 +559,9 @@ ArraySchema* Loader::create_gVCF_array_schema(const char* array_name, const uint
   types.push_back(&typeid(int));      // SB_4
   types.push_back(&typeid(int));      // AD
   types.push_back(&typeid(int));      // PL
+  types.push_back(&typeid(float));    // AF
+  types.push_back(&typeid(int));      // AN
+  types.push_back(&typeid(int));      // AC
   types.push_back(&typeid(int));      // NULL
   types.push_back(&typeid(int64_t));  // OFFSETS 
   types.push_back(&typeid(int64_t));  // Coordinates (SampleID, POS)
@@ -741,12 +792,17 @@ void Loader::set_workspace(const std::string& path) {
 
 void Loader::sort_csv_file(const std::string& to_be_sorted_filename, 
                            const std::string& sorted_filename,    
-                           const ArraySchema& array_schema) const {
+                           const ArraySchema& array_schema,
+                           const std::string& temp_space) const {
   // Prepare Linux sort command
   char sub_cmd[50];
   std::string cmd;
 
-  cmd = "sort -T /mnt/app_hdd/scratch/karthikg/tmp -t, ";
+  cmd = "sort -t, ";
+
+  if( !temp_space.empty() ) {
+      cmd += "-T " + temp_space + " ";
+  }
   
   // For easy reference
   unsigned int dim_num = array_schema.dim_num();

@@ -62,6 +62,9 @@ QueryProcessor::GTColumn::GTColumn(int64_t col, uint64_t row_num) {
   col_ = col;
   REF_.resize(row_num);
   PL_.resize(row_num);
+  AF_.resize(row_num);
+  AN_.resize(row_num);
+  AC_.resize(row_num);
 }
 
 void QueryProcessor::GTColumn::reset()
@@ -71,6 +74,9 @@ void QueryProcessor::GTColumn::reset()
     REF_[i].clear();
     ALT_[i].clear();
     PL_[i].clear();
+    AF_.clear();
+    AN_.clear();
+    AC_.clear();
   }
 }
 
@@ -342,6 +348,35 @@ void do_dummy_genotyping(const QueryProcessor::GTColumn* gt_column, std::ostream
   return;
 }
 
+// Helper function to fill the attribute given the tile pointer,
+// position, and index
+template<class ITER>
+void fill_cell_attribute(const int64_t& pos, const ITER* tile_its, 
+                        uint64_t* num_deref_tile_iters,
+                        const GTAttributeIdx IDX, int *p_int_v) {
+  // Retrieve the tile corresponding to the IDX 
+  const AttributeTile<int>& m_attribute_tile = 
+      static_cast<const AttributeTile<int>& >(*tile_its[IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
+  *p_int_v = m_attribute_tile.cell(pos);
+}
+
+// Override of the function above for float type
+template<class ITER>
+void fill_cell_attribute(int64_t pos, const ITER* tile_its, 
+                        uint64_t* num_deref_tile_iters,
+                        GTAttributeIdx IDX, float *p_float_v) {
+  // Retrieve the tile corresponding to the IDX 
+  const AttributeTile<float>& m_tile = 
+      static_cast<const AttributeTile<float>& >(*tile_its[IDX]);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
+  *p_float_v = m_tile.cell(pos);
+}
+
 /* ----------------- QueryProcessor functions ---------------- */
 
 /******************************************************
@@ -494,6 +529,12 @@ void QueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad,
   tile_its[GT_ALT_IDX] = storage_manager_.begin(ad, GVCF_ALT_IDX);
   // PL
   tile_its[GT_PL_IDX] = storage_manager_.begin(ad, GVCF_PL_IDX);
+  // AF
+  tile_its[GT_AF_IDX] = storage_manager_.begin(ad, GVCF_AF_IDX);
+  // AN
+  tile_its[GT_AN_IDX] = storage_manager_.begin(ad, GVCF_AN_IDX);
+  // AC
+  tile_its[GT_AC_IDX] = storage_manager_.begin(ad, GVCF_AC_IDX);
   // NULL
   tile_its[GT_NULL_IDX] = storage_manager_.begin(ad, GVCF_NULL_IDX);
   // OFFSETS
@@ -926,7 +967,8 @@ void QueryProcessor::gt_fill_row(
   gt_column->ALT_[row].push_back("&");
 
   // Fill the PL values
-  if((NULL_bitmap & 1) == 0) { // If the PL values are
+  // NULL IDX is the last IDX after all the attributes so shifting from that offset
+  if(((NULL_bitmap >> ((GVCF_NULL_IDX - 1) - GVCF_PL_IDX))  & 1) == 0) { // If the PL values are
     const AttributeTile<int>& PL_tile = 
         static_cast<const AttributeTile<int>& >(*tile_its[GT_PL_IDX]);
 #ifdef DO_PROFILING
@@ -937,6 +979,11 @@ void QueryProcessor::gt_fill_row(
     for(int i=0; i<PL_num; i++) 
       gt_column->PL_[row].push_back(PL_tile.cell(PL_offset+i));
   }
+
+  // Fill AF, AN, and AC
+  fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AF_IDX, &(gt_column->AF_[row]));
+  fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AN_IDX, &(gt_column->AN_[row]));
+  fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AC_IDX, &(gt_column->AC_[row]));
 }
 
 inline
@@ -949,7 +996,7 @@ unsigned int QueryProcessor::gt_initialize_tile_its(
   unsigned int attribute_num = ad->array_schema().attribute_num();
 
   // Create reverse iterators
-  tile_its = new StorageManager::const_reverse_iterator[7];
+  tile_its = new StorageManager::const_reverse_iterator[GT_IDX_COUNT];
   // Find the rank of the tile the left sweep starts from.
   uint64_t start_rank = storage_manager_.get_left_sweep_start_rank(ad, col);
 
@@ -961,6 +1008,12 @@ unsigned int QueryProcessor::gt_initialize_tile_its(
   tile_its[GT_ALT_IDX] = storage_manager_.rbegin(ad, GVCF_ALT_IDX, start_rank);
   // PL
   tile_its[GT_PL_IDX] = storage_manager_.rbegin(ad, GVCF_PL_IDX, start_rank);
+  // AF
+  tile_its[GT_AF_IDX] = storage_manager_.rbegin(ad, GVCF_AF_IDX, start_rank);
+  // AN
+  tile_its[GT_AN_IDX] = storage_manager_.rbegin(ad, GVCF_AN_IDX, start_rank);
+  // AC
+  tile_its[GT_AC_IDX] = storage_manager_.rbegin(ad, GVCF_AC_IDX, start_rank);
   // NULL
   tile_its[GT_NULL_IDX] = storage_manager_.rbegin(ad, GVCF_NULL_IDX, start_rank);
   // OFFSETS

@@ -116,6 +116,12 @@ class QueryProcessor {
     std::vector<std::string> REF_;
     /** Holds the (seqeuence of) PL values for each row. */
     std::vector<std::vector<int> > PL_;
+    /** Holds the (seqeuence of) AF values for each row. */
+    std::vector<float> AF_;
+    /** Holds the (seqeuence of) AN values for each row. */
+    std::vector<int> AN_;
+    /** Holds the (seqeuence of) AC values for each row. */
+    std::vector<int> AC_;
     void reset();
   };	
 
