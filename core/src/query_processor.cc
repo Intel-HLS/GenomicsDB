@@ -967,7 +967,8 @@ void QueryProcessor::gt_fill_row(
   gt_column->ALT_[row].push_back("&");
 
   // Fill the PL values
-  if((NULL_bitmap & 1) == 0) { // If the PL values are
+  // NULL IDX is the last IDX after all the attributes so shifting from that offset
+  if(((NULL_bitmap >> ((GVCF_NULL_IDX - 1) - GVCF_PL_IDX))  & 1) == 0) { // If the PL values are
     const AttributeTile<int>& PL_tile = 
         static_cast<const AttributeTile<int>& >(*tile_its[GT_PL_IDX]);
 #ifdef DO_PROFILING

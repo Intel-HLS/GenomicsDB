@@ -427,6 +427,7 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   }
   if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
     NULL_bitmap += 1;
+  NULL_bitmap = NULL_bitmap << 1;
 
   // AF -- Attribute GVCF_AF_IDX
   if(!(*csv_line >> float_v))
@@ -471,7 +472,6 @@ void Loader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[GVCF_AC_IDX] << int_v;
   }
-  NULL_bitmap = NULL_bitmap << 1;
 
   // NULL -- Attribute GVCF_NULL_IDX
   *tiles[GVCF_NULL_IDX] << NULL_bitmap;
