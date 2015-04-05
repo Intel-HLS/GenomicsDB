@@ -44,6 +44,7 @@
 #include <iostream>
 
 #ifdef DO_PROFILING
+#include "profiling.h"
 uint64_t g_num_disk_loads = 0;
 uint64_t g_num_cached_loads = 0;
 uint64_t g_coords_num_disk_loads = 0;
