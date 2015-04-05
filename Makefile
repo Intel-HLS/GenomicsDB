@@ -83,7 +83,7 @@ TEST_OBJ := $(patsubst $(TEST_SRC_DIR)/%.cc, $(TEST_OBJ_DIR)/%.o, $(TEST_SRC))
 # General Targets #
 ###################
 
-.PHONY: core example gtest test doc doc_doxygen clean_core clean_example clean_gtest clean_test clean
+.PHONY: core variant example gtest test doc doc_doxygen clean_core clean_variant clean_example clean_gtest clean_test clean
 
 all: core variant example gtest test 
 
@@ -95,7 +95,7 @@ core: $(CORE_OBJ) $(CORE_BIN_DIR)/libcore.a
 
 variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.so $(VARIANT_BIN_DIR)/libtiledb_variant.a
 
-example: $(EXAMPLE_BIN)
+example: $(EXAMPLE_BIN) $(EXAMPLE_OBJ)
 
 gtest: $(GTEST_OBJ_DIR)/gtest-all.o
 
@@ -104,9 +104,6 @@ test: $(TEST_OBJ)
 doc: doxyfile.inc
 
 clean: clean_core clean_variant clean_example clean_gtest clean_test
-
-clean_lib:
-	rm -f $(CORE_BIN_DIR)/* $(VARIANT_BIN_DIR)/*
 
 ###############
 # Core TileDB #

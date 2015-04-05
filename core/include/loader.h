@@ -98,10 +98,6 @@ class Loader {
   void make_tiles_regular(const std::string& filename,
                           const StorageManager::ArrayDescriptor* ad,
                           const ArraySchema& array_schema) const; 
-  /** Returns true if the input path is an existing directory. */
-  bool path_exists(const std::string& path) const;
-  /** Simply sets the workspace. */
-  void set_workspace(const std::string& path);
  protected:
   /* Return storage manager*/
   StorageManager& get_storage_manager() const { return storage_manager_; }
@@ -113,6 +109,10 @@ class Loader {
    */
   void new_tiles(const ArraySchema& array_schema, 
                  uint64_t tile_id, Tile** tiles) const;
+  /** Returns true if the input path is an existing directory. */
+  bool path_exists(const std::string& path) const;
+  /** Simply sets the workspace. */
+  void set_workspace(const std::string& path);
   /** Sends the tiles to the storage manager. */
   void store_tiles(const StorageManager::ArrayDescriptor* ad,
                    Tile** tiles) const;

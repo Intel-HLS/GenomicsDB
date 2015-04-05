@@ -1,6 +1,39 @@
 #include "load_variants.h"
 
-void VariantLoader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted, const std::string tmp_dir) const {
+VariantLoader::VariantLoader(const std::string& workspace, StorageManager& storage_manager)
+: Loader(workspace, storage_manager)
+{ 
+  //Last attribute, keep incrementing
+  GVCF_COORDINATES_IDX = 0u;
+  GVCF_END_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_REF_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_ALT_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_QUAL_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_FILTER_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_BASEQRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_CLIPPINGRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_READPOSRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_DP_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQ_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQ0_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_DP_FMT_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MIN_DP_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_GQ_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_1_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_2_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_3_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_4_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_AD_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_PL_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_AF_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_AN_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_AC_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_NULL_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_OFFSETS_IDX = GVCF_COORDINATES_IDX++;
+}
+
+void VariantLoader::load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted, const std::string temp_space) const {
   // Create gVCF array schema
   ArraySchema* array_schema = create_gVCF_array_schema(array_name, max_sample_idx);
 
@@ -21,7 +54,7 @@ void VariantLoader::load_CSV_gVCF(const std::string& filename, const char* array
   if(is_input_sorted)
     sorted_filename = to_be_sorted_filename;
   else
-    sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema, tmp_dir);
+    sort_csv_file(to_be_sorted_filename, sorted_filename, *array_schema, temp_space);
 
   // Make tiles
   try {
@@ -293,7 +326,52 @@ void VariantLoader::append_cell_gVCF(const ArraySchema& array_schema,
   }
   if(int_v == CSV_NULL_INT) // We assume that if one PL value is NULL, all are
     NULL_bitmap += 1;
+  NULL_bitmap = NULL_bitmap << 1;
 
+  // AF -- Attribute GVCF_AF_IDX
+  if(!(*csv_line >> float_v))
+    // throw LoaderException("Cannot read AF value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign float_v to CSV_NULL_FLOAT and fall through rest of the logic
+    float_v = CSV_NULL_FLOAT;
+  if(float_v == CSV_NULL_FLOAT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AF_IDX] << 0;
+  } else {  
+    *tiles[GVCF_AF_IDX] << float_v;
+  }
+  NULL_bitmap = NULL_bitmap << 1; 
+
+  // AN -- Attribute GVCF_AN_IDX
+  if(!(*csv_line >> int_v))
+    // throw LoaderException("Cannot read AN value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AN_IDX] << 0;
+  } else {
+    *tiles[GVCF_AN_IDX] << int_v;
+  }
+  NULL_bitmap = NULL_bitmap << 1;
+
+  // AC -- Attribute GVCF_AC_IDX
+  if(!(*csv_line >> int_v))
+    // throw LoaderException("Cannot read AC value from CSV file.");
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_AC_IDX] << 0;
+  } else {
+    *tiles[GVCF_AC_IDX] << int_v;
+  }
+  
   // NULL -- Attribute GVCF_NULL_IDX
   *tiles[GVCF_NULL_IDX] << NULL_bitmap;
 
@@ -339,6 +417,9 @@ ArraySchema* VariantLoader::create_gVCF_array_schema(const char* array_name, con
   attribute_names.push_back("SB_4"); 
   attribute_names.push_back("AD"); 
   attribute_names.push_back("PL"); 
+  attribute_names.push_back("AF"); 
+  attribute_names.push_back("AN"); 
+  attribute_names.push_back("AC"); 
   attribute_names.push_back("NULL"); 
   attribute_names.push_back("OFFSETS"); 
  
@@ -367,6 +448,9 @@ ArraySchema* VariantLoader::create_gVCF_array_schema(const char* array_name, con
   types.push_back(&typeid(int));      // SB_4
   types.push_back(&typeid(int));      // AD
   types.push_back(&typeid(int));      // PL
+  types.push_back(&typeid(float));    // AF
+  types.push_back(&typeid(int));      // AN
+  types.push_back(&typeid(int));      // AC
   types.push_back(&typeid(int));      // NULL
   types.push_back(&typeid(int64_t));  // OFFSETS 
   types.push_back(&typeid(int64_t));  // Coordinates (SampleID, POS)

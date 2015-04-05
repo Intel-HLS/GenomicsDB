@@ -1,6 +1,69 @@
 #include "query_variants.h"
 #include "variant_operations.h"
 
+void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescriptor* ad)
+{
+  const auto& schema = ad->array_schema();
+  //Initialize to V1 schema by default
+  m_GT_schema_version = GT_SCHEMA_V1;
+  m_PL_NULL_bitidx = 0u; 
+  //Check if any attributes in V2 schema
+  const auto v2_fields = std::unordered_set<std::string>{ "AN", "AF", "AC" };
+  for(auto i=0u;i<schema.attribute_num();++i)
+    if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
+    {
+      m_GT_schema_version = GT_SCHEMA_V2;
+      m_PL_NULL_bitidx = ((GVCF_NULL_IDX - 1) - GVCF_PL_IDX);
+      break;
+    }
+  //Last queried attribute, keep incrementing
+  GT_IDX_COUNT = 0u;
+  GT_END_IDX = GT_IDX_COUNT++;
+  GT_REF_IDX = GT_IDX_COUNT++;
+  GT_ALT_IDX = GT_IDX_COUNT++;
+  GT_PL_IDX = GT_IDX_COUNT++;
+  if(m_GT_schema_version >= GT_SCHEMA_V2)
+  {
+    GT_AF_IDX = GT_IDX_COUNT++;
+    GT_AN_IDX = GT_IDX_COUNT++;
+    GT_AC_IDX = GT_IDX_COUNT++;
+  }
+  GT_NULL_IDX = GT_IDX_COUNT++;
+  GT_OFFSETS_IDX = GT_IDX_COUNT++;
+  GT_COORDINATES_IDX = GT_IDX_COUNT++;
+  //Last attribute, keep incrementing
+  GVCF_COORDINATES_IDX = 0u;
+  GVCF_END_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_REF_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_ALT_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_QUAL_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_FILTER_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_BASEQRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_CLIPPINGRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_READPOSRANKSUM_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_DP_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQ_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MQ0_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_DP_FMT_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_MIN_DP_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_GQ_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_1_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_2_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_3_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_SB_4_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_AD_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_PL_IDX = GVCF_COORDINATES_IDX++;
+  if(m_GT_schema_version >= GT_SCHEMA_V2)
+  {
+    GVCF_AF_IDX = GVCF_COORDINATES_IDX++;
+    GVCF_AN_IDX = GVCF_COORDINATES_IDX++;
+    GVCF_AC_IDX = GVCF_COORDINATES_IDX++;
+  }
+  GVCF_NULL_IDX = GVCF_COORDINATES_IDX++;
+  GVCF_OFFSETS_IDX = GVCF_COORDINATES_IDX++;
+}
+
 void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec, GTColumn* gt_column,
       std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call)
@@ -366,7 +429,8 @@ void VariantQueryProcessor::gt_fill_row(
   gt_column->ALT_[row].push_back("&");
 
   // Fill the PL values
-  if((NULL_bitmap & 1) == 0) { // If the PL values are
+  // NULL IDX is the last IDX after all the attributes so shifting from that offset
+  if(((NULL_bitmap >> m_PL_NULL_bitidx)  & 1) == 0) { // If the PL values are
     const AttributeTile<int>& PL_tile = 
         static_cast<const AttributeTile<int>& >(*tile_its[GT_PL_IDX]);
 #ifdef DO_PROFILING
@@ -376,6 +440,14 @@ void VariantQueryProcessor::gt_fill_row(
     int PL_num = (ALT_num+1)*(ALT_num+2)/2;
     for(int i=0; i<PL_num; i++) 
       gt_column->PL_[row].push_back(PL_tile.cell(PL_offset+i));
+  }
+
+  if(m_GT_schema_version >= GT_SCHEMA_V2)
+  {
+    // Fill AF, AN, and AC
+    fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AF_IDX, &(gt_column->AF_[row]));
+    fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AN_IDX, &(gt_column->AN_[row]));
+    fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AC_IDX, &(gt_column->AC_[row]));
   }
 }
 
@@ -389,7 +461,7 @@ unsigned int VariantQueryProcessor::gt_initialize_tile_its(
   unsigned int attribute_num = ad->array_schema().attribute_num();
 
   // Create reverse iterators
-  tile_its = new StorageManager::const_reverse_iterator[7];
+  tile_its = new StorageManager::const_reverse_iterator[GT_IDX_COUNT];
   // Find the rank of the tile the left sweep starts from.
   uint64_t start_rank = get_storage_manager().get_left_sweep_start_rank(ad, col);
 
@@ -401,6 +473,15 @@ unsigned int VariantQueryProcessor::gt_initialize_tile_its(
   tile_its[GT_ALT_IDX] = get_storage_manager().rbegin(ad, GVCF_ALT_IDX, start_rank);
   // PL
   tile_its[GT_PL_IDX] = get_storage_manager().rbegin(ad, GVCF_PL_IDX, start_rank);
+  if(m_GT_schema_version >= GT_SCHEMA_V2)
+  {
+    // AF
+    tile_its[GT_AF_IDX] = get_storage_manager().rbegin(ad, GVCF_AF_IDX, start_rank);
+    // AN
+    tile_its[GT_AN_IDX] = get_storage_manager().rbegin(ad, GVCF_AN_IDX, start_rank);
+    // AC
+    tile_its[GT_AC_IDX] = get_storage_manager().rbegin(ad, GVCF_AC_IDX, start_rank);
+  }
   // NULL
   tile_its[GT_NULL_IDX] = get_storage_manager().rbegin(ad, GVCF_NULL_IDX, start_rank);
   // OFFSETS
@@ -412,3 +493,33 @@ unsigned int VariantQueryProcessor::gt_initialize_tile_its(
   // The number of attributes is 6, and the coordinates is the extra one
   return GT_COORDINATES_IDX;
 }
+
+// Helper function to fill the attribute given the tile pointer,
+// position, and index
+template<class ITER>
+void VariantQueryProcessor::fill_cell_attribute(const int64_t& pos, const ITER* tile_its, 
+        uint64_t* num_deref_tile_iters,
+        const unsigned IDX, int *p_int_v) const {
+    // Retrieve the tile corresponding to the IDX 
+    const AttributeTile<int>& m_attribute_tile =
+        static_cast<const AttributeTile<int>& >(*tile_its[IDX]);
+#ifdef DO_PROFILING
+    ++(*num_deref_tile_iters);
+#endif
+    *p_int_v = m_attribute_tile.cell(pos);
+}
+
+// Override of the function above for float type
+template<class ITER>
+void VariantQueryProcessor::fill_cell_attribute(int64_t pos, const ITER* tile_its, 
+        uint64_t* num_deref_tile_iters,
+        unsigned IDX, float *p_float_v) const {
+    // Retrieve the tile corresponding to the IDX 
+    const AttributeTile<float>& m_tile = 
+        static_cast<const AttributeTile<float>& >(*tile_its[IDX]);
+#ifdef DO_PROFILING
+    ++(*num_deref_tile_iters);
+#endif
+    *p_float_v = m_tile.cell(pos);
+}
+

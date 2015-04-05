@@ -32,7 +32,6 @@
  */
 
 #include "loader.h"
-#include "gt_common.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -318,23 +317,25 @@ void Loader::set_workspace(const std::string& path) {
 }
 
 void Loader::sort_csv_file(const std::string& to_be_sorted_filename, 
-                           const std::string& sorted_filename,
+                           const std::string& sorted_filename,    
                            const ArraySchema& array_schema,
-                           const std::string tmp_dir_arg) const {
+                           const std::string temp_space) const {
   // Prepare Linux sort command
   char sub_cmd[50];
   std::string cmd;
 
+  cmd = "sort -t, ";
   std::string tmp_dir = "/tmp";
-  if(tmp_dir_arg != "")
+  if( !temp_space.empty() )
   {
+      //Check if dir exists
       struct stat dir_stat;
-      int ret_value = stat(tmp_dir_arg.c_str(), &dir_stat);
-      if(ret_value >=0 && S_ISDIR(dir_stat.st_mode))
-          tmp_dir = tmp_dir_arg;
+      int ret_value = stat(temp_space.c_str(), &dir_stat);
+      //Not a valid dir, use /tmp
+      if(ret_value < 0 || !S_ISDIR(dir_stat.st_mode))
+          tmp_dir = "/tmp";
   }
-
-  cmd = "sort -T "+tmp_dir+" -t, ";
+  cmd += "-T " + tmp_dir + " ";
   
   // For easy reference
   unsigned int dim_num = array_schema.dim_num();

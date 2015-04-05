@@ -17,7 +17,7 @@ class Factory {
 
     // Get functions that do lazy initialization of the Tile DB Objects
     StorageManager *getStorageManager(std::string workspace);
-    VariantQueryProcessor *getVariantQueryProcessor(std::string workspace);
+    VariantQueryProcessor *getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad);
     StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
 };
 

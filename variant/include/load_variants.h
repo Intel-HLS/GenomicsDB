@@ -12,10 +12,7 @@ class VariantLoader : public Loader
      * Simple constructor. The workspace is where the loader will create its
      * data. The storage manager is the module the loader interefaces with.
      */
-    VariantLoader(const std::string& workspace, StorageManager& storage_manager)
-      : Loader(workspace, storage_manager)
-    { ; }
-
+    VariantLoader(const std::string& workspace, StorageManager& storage_manager);
     /**
      * Loads a CSV-gVCF file into an array. Note that a CSV-gVCF file is a CSV
      * file derived from a gVCF file. Each row in the CSV-gVCF file has the 
@@ -156,8 +153,8 @@ class VariantLoader : public Loader
      * (iv)  the AD tile,
      * (v)   the PL tile.
      */
-   void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx, const bool is_input_sorted,
-       const std::string tmp_dir="") const; 
+   void load_CSV_gVCF(const std::string& filename, const char* array_name, const uint64_t max_sample_idx,
+           const bool is_input_sorted, const std::string tmp_dir="") const; 
   private:
      /** 
       * Treats the CSV line as a logical cell encompassing coordinates and
@@ -179,6 +176,36 @@ class VariantLoader : public Loader
      void make_tiles_irregular_CSV_gVCF(const std::string& filename,
          const StorageManager::ArrayDescriptor* ad,
          const ArraySchema& array_schema) const;
+     /**
+      * Field attribute idx in schema
+      */
+     unsigned GVCF_END_IDX;
+     unsigned GVCF_REF_IDX;
+     unsigned GVCF_ALT_IDX;
+     unsigned GVCF_QUAL_IDX;
+     unsigned GVCF_FILTER_IDX;
+     unsigned GVCF_BASEQRANKSUM_IDX;
+     unsigned GVCF_CLIPPINGRANKSUM_IDX;
+     unsigned GVCF_MQRANKSUM_IDX;
+     unsigned GVCF_READPOSRANKSUM_IDX;
+     unsigned GVCF_DP_IDX;
+     unsigned GVCF_MQ_IDX;
+     unsigned GVCF_MQ0_IDX;
+     unsigned GVCF_DP_FMT_IDX;
+     unsigned GVCF_MIN_DP_IDX;
+     unsigned GVCF_GQ_IDX;
+     unsigned GVCF_SB_1_IDX;
+     unsigned GVCF_SB_2_IDX;
+     unsigned GVCF_SB_3_IDX;
+     unsigned GVCF_SB_4_IDX;
+     unsigned GVCF_AD_IDX;
+     unsigned GVCF_PL_IDX;
+     unsigned GVCF_AF_IDX;
+     unsigned GVCF_AN_IDX;
+     unsigned GVCF_AC_IDX;
+     unsigned GVCF_NULL_IDX;
+     unsigned GVCF_OFFSETS_IDX;
+     unsigned GVCF_COORDINATES_IDX;
 };
 
 #endif

@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   {
     // Create query processor
     // The first input is the path to its workspace (the path must exist).
-    VariantQueryProcessor qp(cl.m_workspace, sm);
+    VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
     qp.scan_and_operate(ad_gVCF, output_stream);
   }
   else
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     const StorageManager::ArrayDescriptor* ad_gVCF_opt = sm_opt.open_array(cl.m_array_name);
     // Create query processor
     // The first input is the path to its workspace (the path must exist).
-    VariantQueryProcessor qp(cl.m_workspace, sm_opt);
+    VariantQueryProcessor qp(cl.m_workspace, sm_opt, ad_gVCF_opt);
     //Stats struct
     GTProfileStats stats;
     if(cl.m_positions_list.is_open())
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
       uint64_t num_queries = 0;
 #ifdef DO_PROFILING
       ProfilerStart("gprofile.log");
-      sm_opt.m_coords_attribute_idx = GVCF_COORDINATES_IDX;
+      sm_opt.m_coords_attribute_idx = qp.GVCF_COORDINATES_IDX;
 #endif
       while(1)
       {
