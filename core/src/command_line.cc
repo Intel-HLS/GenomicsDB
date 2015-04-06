@@ -5,7 +5,7 @@
 
 enum ArgsIdxEnum
 {
-  ARGS_IDX_IS_PRESORTED=1000
+  ARGS_IDX_IS_PRESORTED=1000,
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl)

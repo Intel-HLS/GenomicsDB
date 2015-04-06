@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     
     for( uint64_t i = start; i <= end; ++i ) {
         std::cout << "Position " << i << std::endl;
-        QueryProcessor::GTColumn *gtc = db_query_column(argv[1], argv[2], i); 
+        GTColumn *gtc = db_query_column(argv[1], argv[2], i); 
         print_GT_Column(gtc);
         std::cout << std::endl;
     }

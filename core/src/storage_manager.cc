@@ -32,7 +32,6 @@
  */
 
 #include "storage_manager.h"
-#include "gt_common.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -45,13 +44,14 @@
 #include <iostream>
 
 #ifdef DO_PROFILING
+#include "profiling.h"
 uint64_t g_num_disk_loads = 0;
 uint64_t g_num_cached_loads = 0;
 uint64_t g_coords_num_disk_loads = 0;
 uint64_t g_coords_num_cached_loads = 0;
 uint64_t g_total_num_tiles_loaded = 0;
-uint64_t g_num_tiles_loaded[GVCF_COORDINATES_IDX+1];
-uint64_t g_num_segments_loaded[GVCF_COORDINATES_IDX+1];
+std::vector<uint64_t> g_num_tiles_loaded;
+std::vector<uint64_t> g_num_segments_loaded;
 #endif
 
 /******************************************************
@@ -69,18 +69,10 @@ StorageManager::StorageManager(
     : segment_size_(segment_size){
   set_workspace(path);
   create_workspace();
-#ifdef DO_PROFILING
-  for(auto i=0u;i<GVCF_COORDINATES_IDX+1;++i)
-  {
-    g_num_tiles_loaded[i] = 0;
-    g_num_segments_loaded[i] = 0;
-  }
-#endif
 }
 
 StorageManager::~StorageManager() {
   OpenArrays::iterator array_it;
-
   // Close all open arrays
   while( (array_it = open_arrays_.begin()) != open_arrays_.end() ) {
     flush_array_info(array_it->second); 
@@ -150,8 +142,18 @@ StorageManager::ArrayDescriptor* StorageManager::open_array(
     load_MBRs(array_info);  
     load_offsets(array_info);
   }
-  
-  return new ArrayDescriptor(&array_info); 
+  ArrayDescriptor* ad = new ArrayDescriptor(&array_info);
+#ifdef DO_PROFILING
+  unsigned num_elements = ad->array_schema().attribute_num() + 1;      //+1 for coords
+  g_num_tiles_loaded.resize(num_elements);
+  g_num_segments_loaded.resize(num_elements);
+  for(auto i=0u;i<num_elements;++i)
+  {
+    g_num_tiles_loaded[i] = 0;
+    g_num_segments_loaded[i] = 0;
+  }
+#endif
+  return ad; 
 }
 
 // Opens an array in CREATE mode
