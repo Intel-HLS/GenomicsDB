@@ -11,7 +11,25 @@ class Factory {
     // Name of the array in the workspace
     std::string array_name;
 
+    // Flag to know if the QueryProcessor object needs to be reset
+    bool reset_qp;
+
   public:
+    Factory() {
+        sm = NULL;
+        qp = NULL;
+        ad = NULL;
+        workspace = "";
+        array_name = "";
+        reset_qp = true;
+    }
+
+    ~Factory() {
+        if( sm != NULL ) {
+            delete sm;
+        }
+    }
+
     //Stats struct
     GTProfileStats stats;
 

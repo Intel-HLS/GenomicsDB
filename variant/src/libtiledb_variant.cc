@@ -6,20 +6,26 @@ Factory f;
 
 StorageManager *Factory::getStorageManager(std::string workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
+      if( sm != NULL ) {
+          delete sm;
+      }
       // Create storage manager
       // The input is the path to its workspace (the path must exist).
       sm = new StorageManager(workspace);
       this->workspace = workspace;
+      // Set reset_qp flag since the sm object has changed
+      reset_qp = true;
   }
   return sm;
 }
 
 VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad) {
-  if( workspace.compare(this->workspace) != 0 ) {
+  if( reset_qp || workspace.compare(this->workspace) != 0 ) {
       // Create query processor
       // The first input is the path to its workspace (the path must exist).
       qp = new VariantQueryProcessor(workspace, *getStorageManager(workspace), ad);
       this->workspace = workspace;
+      reset_qp = false;
   }
   return qp;
 }
@@ -61,6 +67,9 @@ void print_GT_Column(GTColumn *gtc) {
 extern "C" GTColumn *db_query_column(std::string workspace, 
                                                   std::string array_name, 
                                                   uint64_t pos) {
+    // Init Storage Manager object in the Factory class as 
+    // both ArrayDescriptor and Query Processor use it 
+    StorageManager *sm = f.getStorageManager(workspace);
     StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
 
