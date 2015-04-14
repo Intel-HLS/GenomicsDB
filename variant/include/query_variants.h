@@ -1,10 +1,47 @@
 #ifndef QUERY_VARIANTS_H
 #define QUERY_VARIANTS_H
 
+#include "query_processor.h"
 #include "gt_common.h"
 #include "variant.h"
-#include "query_processor.h"
+#include "variant_query_config.h"
 
+enum GTSchemaVersionEnum
+{
+    GT_SCHEMA_V0=0,
+    GT_SCHEMA_V1
+};
+
+//Bit positions in the NULL bitmap of all known field enums
+//Note: this MAY not be the real positions in a given array schema, the real positions
+//are initialized in the query_variants.cc::initialize_version() functions. This enum 
+//simply lists the bitidx in the latest version of the Loader (or the latest version of
+//the variant schema)
+//Should be in the reverse order of fields as used in load_variants.cc
+enum KnownFieldsNULLBitidxEnum
+{
+  GVCF_AC_NULL_BITIDX=0,
+  GVCF_AN_NULL_BITIDX,
+  GVCF_AF_NULL_BITIDX,
+  GVCF_PL_NULL_BITIDX,
+  GVCF_AD_NULL_BITIDX,
+  GVCF_SB_4_NULL_BITIDX,
+  GVCF_SB_3_NULL_BITIDX,
+  GVCF_SB_2_NULL_BITIDX,
+  GVCF_SB_1_NULL_BITIDX,
+  GVCF_GQ_NULL_BITIDX,
+  GVCF_MIN_DP_NULL_BITIDX,
+  GVCF_DP_FMT_NULL_BITIDX,
+  GVCF_MQ0_NULL_BITIDX,
+  GVCF_MQ_NULL_BITIDX,
+  GVCF_DP_NULL_BITIDX,
+  GVCF_READPOSRANKSUM_NULL_BITIDX,
+  GVCF_MQRANKSUM_NULL_BITIDX,
+  GVCF_CLIPPINGRANKSUM_NULL_BITIDX,
+  GVCF_BASEQRANKSUM_NULL_BITIDX,
+  GVCF_QUAL_NULL_BITIDX,
+  GVCF_NUM_NULL_BITS_USED
+};
 /* Structure to store profiling information */
 class GTProfileStats {
   public:
@@ -64,57 +101,76 @@ class VariantQueryProcessor : public QueryProcessor {
      * with.
      */
     VariantQueryProcessor(const std::string& workspace, StorageManager& storage_manager,
-        const StorageManager::ArrayDescriptor* ad)
-      : QueryProcessor(workspace, storage_manager)
-    {
-      initialize_version(ad);
-    }
-    void initialize_version(const StorageManager::ArrayDescriptor* ad);
+        const StorageManager::ArrayDescriptor* ad);
+    void clear();
+    /**
+     * When querying, setup bookkeeping structures first 
+     */
+    void do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
+        VariantQueryConfig& query_config);
     /** Returns the genotyping info for column col from the input array. */
     GTColumn* gt_get_column(
-        const StorageManager::ArrayDescriptor* ad, uint64_t col, GTProfileStats* stats=0) const;
-    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, std::ostream& output_stream);
-    void iterate_over_all_cells(const StorageManager::ArrayDescriptor* ad);
-    /**
-     * Field attribute idx in schema
+        const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, GTProfileStats* stats=0) const;
+    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream) const;
+    void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
+    /*
+     * Function that, given an enum value from KnownVariantFieldsEnum
+     * returns true if the current schema supports that field, false otherwise
      */
-    unsigned GVCF_END_IDX;
-    unsigned GVCF_REF_IDX;
-    unsigned GVCF_ALT_IDX;
-    unsigned GVCF_QUAL_IDX;
-    unsigned GVCF_FILTER_IDX;
-    unsigned GVCF_BASEQRANKSUM_IDX;
-    unsigned GVCF_CLIPPINGRANKSUM_IDX;
-    unsigned GVCF_MQRANKSUM_IDX;
-    unsigned GVCF_READPOSRANKSUM_IDX;
-    unsigned GVCF_DP_IDX;
-    unsigned GVCF_MQ_IDX;
-    unsigned GVCF_MQ0_IDX;
-    unsigned GVCF_DP_FMT_IDX;
-    unsigned GVCF_MIN_DP_IDX;
-    unsigned GVCF_GQ_IDX;
-    unsigned GVCF_SB_1_IDX;
-    unsigned GVCF_SB_2_IDX;
-    unsigned GVCF_SB_3_IDX;
-    unsigned GVCF_SB_4_IDX;
-    unsigned GVCF_AD_IDX;
-    unsigned GVCF_PL_IDX;
-    unsigned GVCF_AF_IDX;
-    unsigned GVCF_AN_IDX;
-    unsigned GVCF_AC_IDX;
-    unsigned GVCF_NULL_IDX;
-    unsigned GVCF_OFFSETS_IDX;
-    unsigned GVCF_COORDINATES_IDX;
-
+    inline bool is_NULL_bitidx_defined_for_known_field_enum(unsigned enumIdx) const
+    {
+      assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
+      return (m_NULL_bit_enum_idx_vec[enumIdx] != UNDEFINED_ATTRIBUTE_IDX_VALUE);
+    }
+    inline unsigned get_NULL_bitidx_for_known_field_enum(unsigned enumIdx) const
+    {
+        assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
+        return (m_NULL_bit_enum_idx_vec[enumIdx]);
+    }
+    /*
+     * Function that, given an enum value from KnownVariantFieldsEnum
+     * returns true if the field requires the OFFSETS field 
+     */
+    inline bool uses_OFFSETS_field(unsigned enumIdx)
+    {
+      assert(enumIdx < m_known_field_enum_uses_offset.size()); 
+      return m_known_field_enum_uses_offset[enumIdx];
+    }
+    /*
+     * Function that, given an enum value from KnownVariantFieldsEnum
+     * returns the schema idx for the given array 
+     */
+    inline unsigned get_schema_idx_for_known_field_enum(unsigned enumIdx)
+    {
+      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+      return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
+    }
   private:
+    /*initialize all known info about variants*/
+    void initialize_known(const StorageManager::ArrayDescriptor* ad);
+    /*Initialize schema version v1 info*/
+    void initialize_v0(const StorageManager::ArrayDescriptor* ad);
+    /*Check and initialize schema version v2 info*/
+    void initialize_v1(const StorageManager::ArrayDescriptor* ad);
+    /*Initialize versioning information based on schema*/
+    void initialize_version(const StorageManager::ArrayDescriptor* ad);
+    /**
+     * Function invalidating enum to NULL bitidx
+     */
+    void invalidate_NULL_bitidx(unsigned enumIdx)
+    {
+      assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
+      m_NULL_bit_enum_idx_vec[enumIdx] = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+    }
     /** Called by scan_and_operate to handle all ranges for given set of cells */
-    void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec, GTColumn* gt_column,
+    void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
+            const VariantQueryConfig& queryConfig, GTColumn* gt_column,
         std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
-        int64_t current_start_position, int64_t next_start_position, bool is_last_call);
+        int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
     /** Fills a row of the input genotyping column with the proper info. */
     template<class ITER>
     void gt_fill_row(
-        GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
+        GTColumn* gt_column, int64_t row, int64_t column, int64_t pos, const VariantQueryConfig& query_config,
         const ITER* tile_its, uint64_t* num_deref_tile_iters) const;
     /** 
      * Initializes tile iterators for joint genotyping for column col. 
@@ -122,9 +178,9 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     unsigned int gt_initialize_tile_its(
         const StorageManager::ArrayDescriptor* ad,
+        const VariantQueryConfig& query_config, const unsigned col_range_idx,
         StorageManager::const_reverse_iterator*& tile_its,
-        StorageManager::const_reverse_iterator& tile_it_end,
-        uint64_t col) const;
+        StorageManager::const_reverse_iterator& tile_it_end ) const;
     /**
      * Helper function to fill the attribute given the tile pointer,
      * position, and index
@@ -144,21 +200,29 @@ class VariantQueryProcessor : public QueryProcessor {
      * Variables to store versioning information about array schema
      */
     unsigned m_GT_schema_version;
-    unsigned m_PL_NULL_bitidx;
     /**
-     * Queried attributes order
+     * Map the known field enum to cell attribute idx for the given schema
      */
-    unsigned  GT_END_IDX;
-    unsigned  GT_REF_IDX;
-    unsigned  GT_ALT_IDX;
-    unsigned  GT_PL_IDX;
-    unsigned  GT_AF_IDX;
-    unsigned  GT_AN_IDX;
-    unsigned  GT_AC_IDX;
-    unsigned  GT_NULL_IDX;
-    unsigned  GT_OFFSETS_IDX;
-    unsigned  GT_COORDINATES_IDX;
-    unsigned  GT_IDX_COUNT;
+    SchemaIdxToKnownVariantFieldsEnumLUT m_schema_idx_to_known_variant_field_enum_LUT;
+    /**
+     * NULL bit idx for each known vairant field
+     */
+    std::vector<unsigned> m_NULL_bit_enum_idx_vec;
+    /**
+     * Bool vector that stores whether a particular field uses the OFFSETS field or not
+     */
+    std::vector<bool> m_known_field_enum_uses_offset;
+    /*
+     * Static members that track information known about variant data
+     */
+    //All known field names specific to variant data
+    static std::vector<std::string> m_known_variant_field_names;
+    //Mapping from field name to enum idx
+    static std::unordered_map<std::string, unsigned> m_known_variant_field_name_to_enum;
+    //Flag to check whether static members are initialized
+    static bool m_are_static_members_initialized;
+    //Function that initializes static members
+    static void initialize_static_members();
 };
 
 

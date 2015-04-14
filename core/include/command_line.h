@@ -14,7 +14,7 @@ class CommandLineOpts
       m_array_name = 0;
       m_num_samples = 0ull;
       m_position = 0ull;
-      m_temp_space = 0;
+      m_temp_space = { '\0' };
     }
     bool m_do_scan;
     bool m_is_input_csv_sorted;

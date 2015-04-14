@@ -8,8 +8,13 @@
 void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
     uint64_t column, std::ostream& output_stream)
 {
+  VariantQueryConfig query_config;
+  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+  //Add interval to query - begin, end
+  query_config.add_column_range_to_query(column, column);
+  qp.do_query_bookkeeping(ad_gVCF, query_config);
   /*Get one column from array*/ 
-  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, column, stats);
+  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, query_config, stats);
   //Do dummy genotyping operation
   VariantOperations::do_dummy_genotyping(gt_column, output_stream);
   delete gt_column;
@@ -32,17 +37,21 @@ int main(int argc, char** argv) {
   // Create query processor
   // The first input is the path to its workspace (the path must exist).
   VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
-
-  qp.iterate_over_all_cells(ad_gVCF);
+  //Setup query config
+  VariantQueryConfig query_config;
+  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+  qp.do_query_bookkeeping(ad_gVCF, query_config);
+  //Iterate over all tiles
+  qp.iterate_over_all_tiles(ad_gVCF, query_config);
 #ifdef DO_PROFILING
   printf("COORDS,END,REF,ALT,PL,OFFSETS,NULL\n");
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_COORDINATES_IDX])/g_num_segments_loaded[qp.GVCF_COORDINATES_IDX]);
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_END_IDX])/g_num_segments_loaded[qp.GVCF_END_IDX]);
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_REF_IDX])/g_num_segments_loaded[qp.GVCF_REF_IDX]);
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_ALT_IDX])/g_num_segments_loaded[qp.GVCF_ALT_IDX]);
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_PL_IDX])/g_num_segments_loaded[qp.GVCF_PL_IDX]);
-  printf("%.2lf,",((double)g_num_tiles_loaded[qp.GVCF_OFFSETS_IDX])/g_num_segments_loaded[qp.GVCF_OFFSETS_IDX]);
-  printf("%.2lf\n",((double)g_num_tiles_loaded[qp.GVCF_NULL_IDX])/g_num_segments_loaded[qp.GVCF_NULL_IDX]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX)]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_END_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_END_IDX)]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_REF_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_REF_IDX)]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX)]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_PL_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_PL_IDX)]);
+  printf("%.2lf,",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_OFFSETS_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_OFFSETS_IDX)]);
+  printf("%.2lf\n",((double)g_num_tiles_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_NULL_IDX)])/g_num_segments_loaded[qp.get_schema_idx_for_known_field_enum(GVCF_NULL_IDX)]);
 #endif
   sm.close_array(ad_gVCF);
   

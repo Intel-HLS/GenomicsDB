@@ -280,4 +280,79 @@ class MergedAllelesIdxLUT
 /*NOTE: Needs explicit instantiation in .cpp file to use this type alias*/
 using CombineAllelesLUT = MergedAllelesIdxLUT<true,true>;
 
+//Not a full LUT, each matrix is actually just a vector (single row matrix)
+class QueryIdxToKnownVariantFieldsEnumLUT : public LUTBase<true, true>
+{
+  public:
+    QueryIdxToKnownVariantFieldsEnumLUT()
+      : LUTBase<true, true>(1u, 100u)
+    {
+      m_LUT_size = 100u;
+    }
+    inline void resize_luts_if_needed(unsigned numQueriedAttributes, unsigned numKnownVariantFields)
+    {
+      unsigned maxValue = std::max(numKnownVariantFields, numQueriedAttributes);
+      if(maxValue > m_LUT_size)
+      {
+        LUTBase<true, true>::resize_luts_if_needed(1u, maxValue); 
+        m_LUT_size = maxValue;
+      }
+    }
+    void add_query_idx_known_field_enum_mapping(unsigned queryIdx, unsigned knownFieldEnum)
+    {
+      add_input_merged_idx_pair(0u, queryIdx, knownFieldEnum);
+    }
+    unsigned get_known_field_enum_for_query_idx(unsigned queryIdx) const
+    {
+      return static_cast<unsigned>(get_merged_idx_for_input(0u, queryIdx));
+    }
+    unsigned get_query_idx_for_known_field_enum(unsigned knownFieldEnum) const
+    {
+      return static_cast<unsigned>(get_input_idx_for_merged(0u, knownFieldEnum));
+    }
+    bool is_defined_value(unsigned val) const
+    {
+      return !is_missing_value(static_cast<int>(val));
+    }
+  private:
+    unsigned m_LUT_size;
+};
+
+//Not a full LUT, each matrix is actually just a vector (single row matrix)
+class SchemaIdxToKnownVariantFieldsEnumLUT : public LUTBase<true, true>
+{
+  public:
+    SchemaIdxToKnownVariantFieldsEnumLUT()
+      : LUTBase<true, true>(1u, 100u)
+    {
+      m_LUT_size = 100u;
+    }
+    inline void resize_luts_if_needed(unsigned numSchemaAttributes, unsigned numKnownVariantFields)
+    {
+      unsigned maxValue = std::max(numKnownVariantFields, numSchemaAttributes);
+      if(maxValue > m_LUT_size)
+      {
+        LUTBase<true, true>::resize_luts_if_needed(1u, maxValue); 
+        m_LUT_size = maxValue;
+      }
+    }
+    void add_schema_idx_known_field_mapping(unsigned schemaIdx, unsigned knownFieldEnum)
+    {
+      add_input_merged_idx_pair(0u, schemaIdx, knownFieldEnum);
+    }
+    unsigned get_known_field_enum_for_schema_idx(unsigned schemaIdx) const
+    {
+      return static_cast<unsigned>(get_merged_idx_for_input(0u, schemaIdx));
+    }
+    unsigned get_schema_idx_for_known_field_enum(unsigned knownFieldEnum) const
+    {
+      return static_cast<unsigned>(get_input_idx_for_merged(0u, knownFieldEnum));
+    }
+    bool is_defined_value(unsigned val) const
+    {
+      return !is_missing_value(static_cast<int>(val));
+    }
+  private:
+    unsigned m_LUT_size;
+};
 #endif

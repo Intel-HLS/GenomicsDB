@@ -16,12 +16,6 @@
 #include <string>
 #include "profiling.h"
 
-enum GTSchemaVersionEnum
-{
-    GT_SCHEMA_V1=0,
-    GT_SCHEMA_V2
-};
-
 #ifndef HTSDIR
 #include "vcf.h"
 #else
@@ -33,5 +27,37 @@ enum GTSchemaVersionEnum
 #define CHECK_IN_THE_MIDDLE_REF(REF) ((REF)[0] == 'N')
 #define IS_NON_REF_ALLELE(allele) ((allele)[0] == '&')
 
+//Should be identical to the vector m_known_variant_field_names, see file query_variants.cc
+enum KnownVariantFieldsEnum
+{
+  GVCF_END_IDX = 0,
+  GVCF_REF_IDX,
+  GVCF_ALT_IDX,
+  GVCF_QUAL_IDX,
+  GVCF_FILTER_IDX,
+  GVCF_BASEQRANKSUM_IDX,
+  GVCF_CLIPPINGRANKSUM_IDX,
+  GVCF_MQRANKSUM_IDX,
+  GVCF_READPOSRANKSUM_IDX,
+  GVCF_DP_IDX,
+  GVCF_MQ_IDX,
+  GVCF_MQ0_IDX,
+  GVCF_DP_FMT_IDX,
+  GVCF_MIN_DP_IDX,
+  GVCF_GQ_IDX,
+  GVCF_SB_1_IDX,
+  GVCF_SB_2_IDX,
+  GVCF_SB_3_IDX,
+  GVCF_SB_4_IDX,
+  GVCF_AD_IDX,
+  GVCF_PL_IDX,
+  GVCF_AF_IDX,
+  GVCF_AN_IDX,
+  GVCF_AC_IDX,
+  GVCF_NULL_IDX,
+  GVCF_OFFSETS_IDX,
+  GVCF_COORDINATES_IDX,
+  GVCF_NUM_KNOWN_FIELDS
+};
 
 #endif

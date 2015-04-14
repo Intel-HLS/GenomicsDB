@@ -72,8 +72,13 @@ extern "C" GTColumn *db_query_column(std::string workspace,
     StorageManager *sm = f.getStorageManager(workspace);
     StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
-
-    GTColumn *gtc = qp->gt_get_column(ad, pos, &f.stats);
+    //Use VariantQueryConfig to setup query info
+    VariantQueryConfig query_config;
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC"});
+    //Add interval to query - begin, end
+    query_config.add_column_range_to_query(pos, pos);
+    qp->do_query_bookkeeping(ad, query_config);
+    GTColumn *gtc = qp->gt_get_column(ad, query_config, &f.stats);
 
     return gtc;
 }

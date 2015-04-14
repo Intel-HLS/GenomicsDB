@@ -12,8 +12,13 @@
 void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
     uint64_t column, std::ostream& output_stream)
 {
-  /*Get one column from array*/ 
-  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, column, stats);
+  VariantQueryConfig query_config;
+  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+  //Add interval to query - begin, end
+  query_config.add_column_range_to_query(column, column);
+  qp.do_query_bookkeeping(ad_gVCF, query_config);
+  /*Get one column from array*/
+  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, query_config, stats);
   //Do dummy genotyping operation
   VariantOperations::do_dummy_genotyping(gt_column, output_stream);
   delete gt_column;
@@ -41,7 +46,12 @@ int main(int argc, char** argv) {
     // Create query processor
     // The first input is the path to its workspace (the path must exist).
     VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
-    qp.scan_and_operate(ad_gVCF, output_stream);
+    //Setup query
+    VariantQueryConfig query_config;
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+    qp.do_query_bookkeeping(ad_gVCF, query_config);
+    //Do scan and operate
+    qp.scan_and_operate(ad_gVCF, query_config, output_stream);
   }
   else
   {
@@ -71,7 +81,7 @@ int main(int argc, char** argv) {
       uint64_t num_queries = 0;
 #ifdef DO_PROFILING
       ProfilerStart("gprofile.log");
-      sm_opt.m_coords_attribute_idx = qp.GVCF_COORDINATES_IDX;
+      sm_opt.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
 #endif
       while(1)
       {
