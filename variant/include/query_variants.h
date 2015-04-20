@@ -5,6 +5,7 @@
 #include "gt_common.h"
 #include "variant.h"
 #include "variant_query_config.h"
+#include "variant_query_field_data.h"
 
 enum GTSchemaVersionEnum
 {
@@ -115,17 +116,17 @@ class VariantQueryProcessor : public QueryProcessor {
     void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum
-     * returns true if the current schema supports that field, false otherwise
+     * returns true if the field requires NULL bitidx field to be used 
      */
     inline bool is_NULL_bitidx_defined_for_known_field_enum(unsigned enumIdx) const
     {
-      assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
-      return (m_NULL_bit_enum_idx_vec[enumIdx] != UNDEFINED_ATTRIBUTE_IDX_VALUE);
+      assert(enumIdx < m_known_field_enum_to_info.size());
+      return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
     }
     inline unsigned get_NULL_bitidx_for_known_field_enum(unsigned enumIdx) const
     {
-        assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
-        return (m_NULL_bit_enum_idx_vec[enumIdx]);
+        assert(enumIdx < m_known_field_enum_to_info.size());
+        return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx);
     }
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum
@@ -133,8 +134,8 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     inline bool uses_OFFSETS_field(unsigned enumIdx)
     {
-      assert(enumIdx < m_known_field_enum_uses_offset.size()); 
-      return m_known_field_enum_uses_offset[enumIdx];
+      assert(enumIdx < m_known_field_enum_to_info.size()); 
+      return (m_known_field_enum_to_info[enumIdx].m_OFFSETS_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
     }
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum
@@ -159,9 +160,13 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void invalidate_NULL_bitidx(unsigned enumIdx)
     {
-      assert(enumIdx < m_NULL_bit_enum_idx_vec.size());
-      m_NULL_bit_enum_idx_vec[enumIdx] = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      assert(enumIdx < m_known_field_enum_to_info.size());
+      m_known_field_enum_to_info[enumIdx].m_NULL_bitidx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
     }
+    /**
+     * Initialized field length info
+     */
+    void initialize_length_descriptor_and_fetch(unsigned idx);
     /** Called by scan_and_operate to handle all ranges for given set of cells */
     void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
             const VariantQueryConfig& queryConfig, GTColumn* gt_column,
@@ -205,13 +210,9 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     SchemaIdxToKnownVariantFieldsEnumLUT m_schema_idx_to_known_variant_field_enum_LUT;
     /**
-     * NULL bit idx for each known vairant field
+     * Vector that stores information about the known fields - NULL bitidx, OFFSETS bitidx, length etc
      */
-    std::vector<unsigned> m_NULL_bit_enum_idx_vec;
-    /**
-     * Bool vector that stores whether a particular field uses the OFFSETS field or not
-     */
-    std::vector<bool> m_known_field_enum_uses_offset;
+    std::vector<VariantQueryFieldInfo> m_known_field_enum_to_info;
     /*
      * Static members that track information known about variant data
      */

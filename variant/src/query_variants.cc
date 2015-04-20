@@ -47,26 +47,32 @@ void VariantQueryProcessor::initialize_static_members()
 void VariantQueryProcessor::initialize_known(const StorageManager::ArrayDescriptor* ad)
 {
   //Initialize NULL bit idx for all known variant fields
-  m_NULL_bit_enum_idx_vec[GVCF_AC_IDX] =                        GVCF_AC_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_AN_IDX] =                        GVCF_AN_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_AF_IDX] =                        GVCF_AF_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_PL_IDX] =                        GVCF_PL_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_AD_IDX] =                        GVCF_AD_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_SB_4_IDX] =                      GVCF_SB_4_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_SB_3_IDX] =                      GVCF_SB_3_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_SB_2_IDX] =                      GVCF_SB_2_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_SB_1_IDX] =                      GVCF_SB_1_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_GQ_IDX] =                        GVCF_GQ_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_MIN_DP_IDX] =                    GVCF_MIN_DP_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_DP_FMT_IDX] =                    GVCF_DP_FMT_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_MQ0_IDX] =                       GVCF_MQ0_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_MQ_IDX] =                        GVCF_MQ_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_DP_IDX] =                        GVCF_DP_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_READPOSRANKSUM_IDX] =            GVCF_READPOSRANKSUM_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_MQRANKSUM_IDX] =                 GVCF_MQRANKSUM_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_CLIPPINGRANKSUM_IDX] =           GVCF_CLIPPINGRANKSUM_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_BASEQRANKSUM_IDX] =              GVCF_BASEQRANKSUM_NULL_BITIDX;
-  m_NULL_bit_enum_idx_vec[GVCF_QUAL_IDX] =                      GVCF_QUAL_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_AC_IDX].m_NULL_bitidx =                        GVCF_AC_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_AN_IDX].m_NULL_bitidx =                        GVCF_AN_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_AF_IDX].m_NULL_bitidx =                        GVCF_AF_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_PL_IDX].m_NULL_bitidx =                        GVCF_PL_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_AD_IDX].m_NULL_bitidx =                        GVCF_AD_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_SB_4_IDX].m_NULL_bitidx =                      GVCF_SB_4_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_SB_3_IDX].m_NULL_bitidx =                      GVCF_SB_3_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_SB_2_IDX].m_NULL_bitidx =                      GVCF_SB_2_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_SB_1_IDX].m_NULL_bitidx =                      GVCF_SB_1_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_GQ_IDX].m_NULL_bitidx =                        GVCF_GQ_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_MIN_DP_IDX].m_NULL_bitidx =                    GVCF_MIN_DP_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_DP_FMT_IDX].m_NULL_bitidx =                    GVCF_DP_FMT_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_MQ0_IDX].m_NULL_bitidx =                       GVCF_MQ0_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_MQ_IDX].m_NULL_bitidx =                        GVCF_MQ_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_DP_IDX].m_NULL_bitidx =                        GVCF_DP_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_READPOSRANKSUM_IDX].m_NULL_bitidx =            GVCF_READPOSRANKSUM_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_MQRANKSUM_IDX].m_NULL_bitidx =                 GVCF_MQRANKSUM_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_CLIPPINGRANKSUM_IDX].m_NULL_bitidx =           GVCF_CLIPPINGRANKSUM_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_BASEQRANKSUM_IDX].m_NULL_bitidx =              GVCF_BASEQRANKSUM_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_QUAL_IDX].m_NULL_bitidx =                      GVCF_QUAL_NULL_BITIDX;
+  //Initialize OFFSETS idx for known fields
+  m_known_field_enum_to_info[GVCF_REF_IDX].m_OFFSETS_idx =  GVCF_REF_OFFSET_IDX;
+  m_known_field_enum_to_info[GVCF_ALT_IDX].m_OFFSETS_idx =  GVCF_ALT_OFFSET_IDX;
+  m_known_field_enum_to_info[GVCF_FILTER_IDX].m_OFFSETS_idx =  GVCF_FILTER_OFFSET_IDX;
+  m_known_field_enum_to_info[GVCF_AD_IDX].m_OFFSETS_idx =  GVCF_AD_OFFSET_IDX;
+  m_known_field_enum_to_info[GVCF_PL_IDX].m_OFFSETS_idx =  GVCF_PL_OFFSET_IDX;
   //Initialize schema idx <--> known_field_enum mapping
   //+1 for the coordinates
   const auto& schema = ad->array_schema();
@@ -78,12 +84,6 @@ void VariantQueryProcessor::initialize_known(const StorageManager::ArrayDescript
       m_schema_idx_to_known_variant_field_enum_LUT.add_schema_idx_known_field_mapping(i, (*iter).second);
   }
   m_schema_idx_to_known_variant_field_enum_LUT.add_schema_idx_known_field_mapping(schema.attribute_num(), GVCF_COORDINATES_IDX); 
-  //Initialize which fields use OFFSETS
-  m_known_field_enum_uses_offset[GVCF_REF_IDX] = true;
-  m_known_field_enum_uses_offset[GVCF_ALT_IDX] = true;
-  m_known_field_enum_uses_offset[GVCF_FILTER_IDX] = true;
-  m_known_field_enum_uses_offset[GVCF_PL_IDX] = true;
-  m_known_field_enum_uses_offset[GVCF_AD_IDX] = true;
 }
 
 void VariantQueryProcessor::initialize_v0(const StorageManager::ArrayDescriptor* ad)
@@ -96,8 +96,8 @@ void VariantQueryProcessor::initialize_v0(const StorageManager::ArrayDescriptor*
   {
     if(is_NULL_bitidx_defined_for_known_field_enum(i))
     {
-      assert(m_NULL_bit_enum_idx_vec[i] >= GVCF_PL_NULL_BITIDX);
-      m_NULL_bit_enum_idx_vec[i] -= GVCF_PL_NULL_BITIDX;
+      assert(m_known_field_enum_to_info[i].m_NULL_bitidx >= GVCF_PL_NULL_BITIDX);
+      m_known_field_enum_to_info[i].m_NULL_bitidx -= GVCF_PL_NULL_BITIDX;
     }
   }
   m_GT_schema_version = GT_SCHEMA_V0;
@@ -116,16 +116,41 @@ void VariantQueryProcessor::initialize_v1(const StorageManager::ArrayDescriptor*
       for(auto i=0u;i<=GVCF_PL_IDX;++i)
       {
         if((is_NULL_bitidx_defined_for_known_field_enum(i)))
-          m_NULL_bit_enum_idx_vec[i] +=  diff;
+          m_known_field_enum_to_info[i].m_NULL_bitidx +=  diff;
       }
       diff = (GVCF_AF_NULL_BITIDX - GVCF_AC_NULL_BITIDX);
       //validate null bit idx for AF, AC, AN
       for(unsigned i=GVCF_AF_IDX;i<=GVCF_AC_IDX;++i)
-        m_NULL_bit_enum_idx_vec[i] =  diff - (i - GVCF_AF_IDX);
+        m_known_field_enum_to_info[i].m_NULL_bitidx =  diff - (i - GVCF_AF_IDX);
       //set schema version
       m_GT_schema_version = GT_SCHEMA_V1;
       break;
     }
+}
+
+void VariantQueryProcessor::initialize_length_descriptor_and_fetch(unsigned idx)
+{
+  switch(idx)
+  {
+    case GVCF_REF_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      break;
+    case GVCF_ALT_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      break;
+    case GVCF_FILTER_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      break;
+    case GVCF_AD_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_R;
+      break;
+    case GVCF_PL_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_G;
+      break;
+    default:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
+      break;
+  }
 }
 
 void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescriptor* ad)
@@ -143,14 +168,17 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
   if(!VariantQueryProcessor::m_are_static_members_initialized)
     VariantQueryProcessor::initialize_static_members();
   clear();
-  //Invalidate m_NULL_bit_enum_idx_vec 
-  m_NULL_bit_enum_idx_vec.resize(GVCF_NUM_KNOWN_FIELDS);
-  for(auto i=0u;i<m_NULL_bit_enum_idx_vec.size();++i)
+  //Initialization
+  m_known_field_enum_to_info.resize(GVCF_NUM_KNOWN_FIELDS);
+  for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
+  {
+    //Invalidate m_known_field_enum_to_info 
     invalidate_NULL_bitidx(i);
-  //set all fields NOT to use offset
-  m_known_field_enum_uses_offset.resize(GVCF_NUM_KNOWN_FIELDS);
-  for(auto i=0u;i<m_known_field_enum_uses_offset.size();++i)
-    m_known_field_enum_uses_offset[i] = false;
+    //set all fields NOT to use offset
+    m_known_field_enum_to_info[i].m_OFFSETS_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+    //set length descriptors and fetch functions
+    initialize_length_descriptor_and_fetch(i);
+  }
   //Initialize versioning information
   initialize_version(ad);
 }
@@ -675,7 +703,7 @@ void VariantQueryProcessor::fill_cell_attribute(int64_t pos, const ITER* tile_it
 
 void VariantQueryProcessor::clear()
 {
-  m_NULL_bit_enum_idx_vec.clear();
-  m_known_field_enum_uses_offset.clear();
+  m_known_field_enum_to_info.clear();
+  m_known_field_enum_to_info.clear();
   m_schema_idx_to_known_variant_field_enum_LUT.reset_luts();
 }

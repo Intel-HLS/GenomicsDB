@@ -60,4 +60,14 @@ enum KnownVariantFieldsEnum
   GVCF_NUM_KNOWN_FIELDS
 };
 
+enum KnownVariantFieldOffsetsEnum
+{
+  GVCF_REF_OFFSET_IDX=0,
+  GVCF_ALT_OFFSET_IDX,
+  GVCF_FILTER_OFFSET_IDX,
+  GVCF_AD_OFFSET_IDX,
+  GVCF_PL_OFFSET_IDX,
+  GVCF_NUM_KNOWN_OFFSETS
+};
+
 #endif
