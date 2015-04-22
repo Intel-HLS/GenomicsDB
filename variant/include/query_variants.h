@@ -115,7 +115,7 @@ class VariantQueryProcessor : public QueryProcessor {
     template<class ITER>
     void gt_fill_row(
         GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
-        const ITER* tile_its, uint64_t* num_deref_tile_iters) const;
+        const ITER* tile_its, uint64_t* num_deref_tile_iters, bool load_v2_attributes=true) const;
     /** 
      * Initializes tile iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.

@@ -84,7 +84,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
 	auto find_iter = tile_idx_2_iters.find(curr_struct.m_tile_idx);
 	assert(find_iter != tile_idx_2_iters.end());
         gt_fill_row<StorageManager::const_iterator>(gt_column, i, curr_struct.m_array_column, curr_struct.m_cell_pos, 
-	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters);
+	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters, false);
       }
     }
     VariantOperations::do_dummy_genotyping(gt_column, output_stream);
@@ -140,7 +140,7 @@ void VariantQueryProcessor::iterate_over_all_cells(const StorageManager::ArrayDe
     gt_column->reset();
     gt_column->col_ = next_coord[1];
     gt_fill_row<StorageManager::const_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its,
-	&num_deref_tile_iters);
+	&num_deref_tile_iters, false);
   }
 }
 
@@ -307,7 +307,8 @@ GTColumn* VariantQueryProcessor::gt_get_column(
       // If next cell is not on the right of col, and corresponds to 
       // uninvestigated row
       if(next_coord[1] <= col && CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(gt_column->REF_[next_coord[0]])) {
-        gt_fill_row<StorageManager::const_reverse_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its, &num_deref_tile_iters);
+        gt_fill_row<StorageManager::const_reverse_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), tile_its, &num_deref_tile_iters,
+                true);
         ++filled_rows;
 #ifdef DO_PROFILING
 	if(first_sample)
@@ -354,7 +355,7 @@ GTColumn* VariantQueryProcessor::gt_get_column(
 template<class ITER>
 void VariantQueryProcessor::gt_fill_row(
     GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
-    const ITER* tile_its, uint64_t* num_deref_tile_iters) const {
+    const ITER* tile_its, uint64_t* num_deref_tile_iters, bool load_v2_attributes) const {
   // First check if the row is NULL
   int64_t END_v = 
       static_cast<const AttributeTile<int64_t>& >(*tile_its[GT_END_IDX]).cell(pos);
@@ -442,7 +443,7 @@ void VariantQueryProcessor::gt_fill_row(
       gt_column->PL_[row].push_back(PL_tile.cell(PL_offset+i));
   }
 
-  if(m_GT_schema_version >= GT_SCHEMA_V2)
+  if(m_GT_schema_version >= GT_SCHEMA_V2 && load_v2_attributes)
   {
     // Fill AF, AN, and AC
     fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, GT_AF_IDX, &(gt_column->AF_[row]));
