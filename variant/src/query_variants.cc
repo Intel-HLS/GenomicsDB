@@ -36,11 +36,31 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
     "COORDINATES"
 };
 unordered_map<string, unsigned> VariantQueryProcessor::m_known_variant_field_name_to_enum;
+unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator;
+
 //Initialize static members function
 void VariantQueryProcessor::initialize_static_members()
 {
   for(auto i=0u;i<VariantQueryProcessor::m_known_variant_field_names.size();++i)
     VariantQueryProcessor::m_known_variant_field_name_to_enum[VariantQueryProcessor::m_known_variant_field_names[i]] = i;
+  VariantQueryProcessor::m_type_index_to_creator.clear();
+  //Map type_index to creator functions
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(unsigned))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<unsigned>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int64_t))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int64_t>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint64_t))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint64_t>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(float))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<float>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(double))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<double>>());
+  //Char becomes string instead of vector<char>
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(char))] = 
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>());
+  //Set initialized flag
   VariantQueryProcessor::m_are_static_members_initialized = true;
 }
 
@@ -73,6 +93,8 @@ void VariantQueryProcessor::initialize_known(const StorageManager::ArrayDescript
   m_known_field_enum_to_info[GVCF_FILTER_IDX].m_OFFSETS_idx =  GVCF_FILTER_OFFSET_IDX;
   m_known_field_enum_to_info[GVCF_AD_IDX].m_OFFSETS_idx =  GVCF_AD_OFFSET_IDX;
   m_known_field_enum_to_info[GVCF_PL_IDX].m_OFFSETS_idx =  GVCF_PL_OFFSET_IDX;
+  //Could change based on version as well
+  m_num_elements_per_offset_cell = GVCF_NUM_KNOWN_OFFSET_ELEMENTS_PER_CELL;
   //Initialize schema idx <--> known_field_enum mapping
   //+1 for the coordinates
   const auto& schema = ad->array_schema();
@@ -128,7 +150,7 @@ void VariantQueryProcessor::initialize_v1(const StorageManager::ArrayDescriptor*
     }
 }
 
-void VariantQueryProcessor::initialize_length_descriptor_and_fetch(unsigned idx)
+void VariantQueryProcessor::initialize_length_descriptor(unsigned idx)
 {
   switch(idx)
   {
@@ -137,6 +159,7 @@ void VariantQueryProcessor::initialize_length_descriptor_and_fetch(unsigned idx)
       break;
     case GVCF_ALT_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      m_known_field_enum_to_info[idx].m_field_creator = std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldALTData>());
       break;
     case GVCF_FILTER_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
@@ -147,8 +170,13 @@ void VariantQueryProcessor::initialize_length_descriptor_and_fetch(unsigned idx)
     case GVCF_PL_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_G;
       break;
+    case GVCF_OFFSETS_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
+      m_known_field_enum_to_info[idx].m_num_elements = m_num_elements_per_offset_cell;
+      break;
     default:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
+      m_known_field_enum_to_info[idx].m_num_elements = 1u;
       break;
   }
 }
@@ -159,6 +187,26 @@ void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescri
   //Initialize to v0 schema by default
   initialize_v0(ad);
   initialize_v1(ad);
+}
+
+void VariantQueryProcessor::register_field_creators(const StorageManager::ArrayDescriptor* ad)
+{
+  const auto& schema = ad->array_schema();
+  m_field_factory.resize(schema.attribute_num());
+  for(auto i=0u;i<schema.attribute_num();++i)
+  {
+    const type_info* curr_type_info = (schema.type(i));
+    type_index t = type_index(*curr_type_info);
+    auto iter = VariantQueryProcessor::m_type_index_to_creator.find(t);
+    if(iter == VariantQueryProcessor::m_type_index_to_creator.end())
+      throw UnknownAttributeTypeException("Unknown type of queried attribute "+std::string(curr_type_info->name()));
+    //For known fields, check for special creators
+    unsigned enumIdx = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(i);
+    if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(enumIdx) && requires_special_creator(enumIdx))
+      m_field_factory.Register(i, m_known_field_enum_to_info[enumIdx].m_field_creator);
+    else
+      m_field_factory.Register(i, (*iter).second);
+  }
 }
 
 VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, StorageManager& storage_manager,
@@ -176,11 +224,14 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
     invalidate_NULL_bitidx(i);
     //set all fields NOT to use offset
     m_known_field_enum_to_info[i].m_OFFSETS_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
-    //set length descriptors and fetch functions
-    initialize_length_descriptor_and_fetch(i);
   }
   //Initialize versioning information
   initialize_version(ad);
+  //set length descriptors and creator objects for special attributes
+  for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
+    initialize_length_descriptor(i);
+  //Register creators in factory
+  register_field_creators(ad);
 }
 
 void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
@@ -388,6 +439,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_OFFSETS_IDX);
   unsigned NULL_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_NULL_IDX);
+  unsigned ALT_schema_idx =
+    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
   for(auto i=0u;i<num_queried_attributes;++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
@@ -408,6 +461,15 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
       {
         assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(NULL_schema_idx));
         query_config.add_attribute_to_query("NULL", NULL_schema_idx);
+      }
+      //Does the length of the field depend on the number of alleles
+      if(is_length_allele_dependent(known_variant_field_enum))
+      {
+        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
+        query_config.add_attribute_to_query("ALT", ALT_schema_idx);
+        //ALT uses OFFSETS
+        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(OFFSETS_schema_idx));
+        query_config.add_attribute_to_query("OFFSETS", OFFSETS_schema_idx);
       }
     }
   }

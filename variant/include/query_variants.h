@@ -3,9 +3,8 @@
 
 #include "query_processor.h"
 #include "gt_common.h"
-#include "variant.h"
 #include "variant_query_config.h"
-#include "variant_query_field_data.h"
+#include "variant.h"
 
 enum GTSchemaVersionEnum
 {
@@ -43,6 +42,36 @@ enum KnownFieldsNULLBitidxEnum
   GVCF_QUAL_NULL_BITIDX,
   GVCF_NUM_NULL_BITS_USED
 };
+//Stores index in OFFSETS field for each field
+enum KnownVariantFieldOffsetsEnum
+{
+  GVCF_REF_OFFSET_IDX=0,
+  GVCF_ALT_OFFSET_IDX,
+  GVCF_FILTER_OFFSET_IDX,
+  GVCF_AD_OFFSET_IDX,
+  GVCF_PL_OFFSET_IDX,
+  GVCF_NUM_KNOWN_OFFSET_ELEMENTS_PER_CELL
+};
+/*
+ * Class that stores info about the some of the known fields
+ */
+class KnownFieldInfo
+{
+  public:
+    KnownFieldInfo()
+    {
+      m_NULL_bitidx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_OFFSETS_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+    }
+    unsigned m_NULL_bitidx;
+    unsigned m_OFFSETS_idx;
+    unsigned m_length_descriptor;
+    unsigned m_num_elements;
+    std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
+};
+
 /* Structure to store profiling information */
 class GTProfileStats {
   public:
@@ -123,6 +152,12 @@ class VariantQueryProcessor : public QueryProcessor {
       assert(enumIdx < m_known_field_enum_to_info.size());
       return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
     }
+    inline bool is_length_allele_dependent(unsigned enumIdx) const
+    {
+      assert(enumIdx < m_known_field_enum_to_info.size());
+      unsigned length_descriptor = m_known_field_enum_to_info[enumIdx].m_length_descriptor;
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
     inline unsigned get_NULL_bitidx_for_known_field_enum(unsigned enumIdx) const
     {
         assert(enumIdx < m_known_field_enum_to_info.size());
@@ -146,6 +181,14 @@ class VariantQueryProcessor : public QueryProcessor {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
     }
+    /*
+     * Check whether the known field requires a special creator
+     */
+    inline bool requires_special_creator(unsigned enumIdx)
+    {
+      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+      return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
+    }
   private:
     /*initialize all known info about variants*/
     void initialize_known(const StorageManager::ArrayDescriptor* ad);
@@ -155,6 +198,8 @@ class VariantQueryProcessor : public QueryProcessor {
     void initialize_v1(const StorageManager::ArrayDescriptor* ad);
     /*Initialize versioning information based on schema*/
     void initialize_version(const StorageManager::ArrayDescriptor* ad);
+    /*Register field creator pointers with the factory object*/
+    void register_field_creators(const StorageManager::ArrayDescriptor* ad);
     /**
      * Function invalidating enum to NULL bitidx
      */
@@ -166,7 +211,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /**
      * Initialized field length info
      */
-    void initialize_length_descriptor_and_fetch(unsigned idx);
+    void initialize_length_descriptor(unsigned idx);
     /** Called by scan_and_operate to handle all ranges for given set of cells */
     void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
             const VariantQueryConfig& queryConfig, GTColumn* gt_column,
@@ -212,7 +257,15 @@ class VariantQueryProcessor : public QueryProcessor {
     /**
      * Vector that stores information about the known fields - NULL bitidx, OFFSETS bitidx, length etc
      */
-    std::vector<VariantQueryFieldInfo> m_known_field_enum_to_info;
+    std::vector<KnownFieldInfo> m_known_field_enum_to_info;
+    /**
+     * Number of elements per cell in the OFFSETS field - could change with different schema versions
+     */
+    unsigned m_num_elements_per_offset_cell;
+    /**
+     * Factory object that creates variant fields as and when needed
+     */
+    VariantFieldFactory m_field_factory;
     /*
      * Static members that track information known about variant data
      */
@@ -220,6 +273,8 @@ class VariantQueryProcessor : public QueryProcessor {
     static std::vector<std::string> m_known_variant_field_names;
     //Mapping from field name to enum idx
     static std::unordered_map<std::string, unsigned> m_known_variant_field_name_to_enum;
+    //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
+    static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized
     static bool m_are_static_members_initialized;
     //Function that initializes static members

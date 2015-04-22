@@ -25,7 +25,16 @@
 #define CHECK_MISSING_SAMPLE_GIVEN_REF(REF) (((REF).size() == 0) || ((REF)[0] == '$'))
 #define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0 || ((REF) == ""))
 #define CHECK_IN_THE_MIDDLE_REF(REF) ((REF)[0] == 'N')
-#define IS_NON_REF_ALLELE(allele) ((allele)[0] == '&')
+
+inline bool IS_NON_REF_ALLELE(const std::string& allele)
+{
+  return allele.length() > 0 && ((allele)[0] == '&');
+}
+
+inline bool IS_NON_REF_ALLELE(const char allele_char)
+{
+  return allele_char == '&';
+}
 
 //Should be identical to the vector m_known_variant_field_names, see file query_variants.cc
 enum KnownVariantFieldsEnum
@@ -58,16 +67,6 @@ enum KnownVariantFieldsEnum
   GVCF_OFFSETS_IDX,
   GVCF_COORDINATES_IDX,
   GVCF_NUM_KNOWN_FIELDS
-};
-
-enum KnownVariantFieldOffsetsEnum
-{
-  GVCF_REF_OFFSET_IDX=0,
-  GVCF_ALT_OFFSET_IDX,
-  GVCF_FILTER_OFFSET_IDX,
-  GVCF_AD_OFFSET_IDX,
-  GVCF_PL_OFFSET_IDX,
-  GVCF_NUM_KNOWN_OFFSETS
 };
 
 #endif

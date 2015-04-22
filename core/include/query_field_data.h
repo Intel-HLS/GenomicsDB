@@ -6,6 +6,19 @@
 #include <assert.h>
 #include <memory>
 #include "array_schema.h"
+#include <typeindex>
+#include <unordered_map>
+
+class UnknownAttributeTypeException {
+  public:
+    UnknownAttributeTypeException(const std::string m="Unknown type of queried attribute") : msg_(m) { ; }
+    ~UnknownAttributeTypeException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const std::string& what() const { return msg_; }
+  private:
+    std::string msg_;
+};
 
 class QueryFieldData
 {
@@ -48,10 +61,14 @@ class QueryFieldData
     /**
      * Set field info
      */
-    inline void set_field_info(unsigned schema_idx, const std::type_info* element_type)
+    inline void set_field_info(const std::type_index& element_type)
     {
-      m_schema_idx = schema_idx;
       m_element_type = element_type;
+      const auto iter = QueryFieldData::m_type_to_size.find(element_type);
+      if(iter == QueryFieldData::m_type_to_size.end())
+        throw UnknownAttributeTypeException("Unknown type of queried attribute "+std::string(element_type.name()));
+      else
+        m_element_size = (*iter).second;
     }
     /**
      * Allocate memory using Allocator
@@ -98,10 +115,13 @@ class QueryFieldData
      * false if the ptr simply points to a region of memory which is managed elsewhere
      */
     bool m_is_data_ptr_allocated;
-    unsigned m_schema_idx;      //attribute idx in the array
-    const std::type_info* m_element_type;
-    unsigned m_element_size;    //sizeof(float/int etc)
+    std::type_index m_element_type;
+    size_t m_element_size;    //sizeof(float/int etc)
     uint64_t m_num_elements;    //all data is a vector - single elements = vector of size 1
+    /*
+     * Static member that maps std::type_index to size
+     */
+    static std::unordered_map<std::type_index, size_t> m_type_to_size;
 };
 
 #endif

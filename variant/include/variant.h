@@ -1,7 +1,9 @@
 #ifndef VARIANT_H
 #define VARIANT_H
 
+#include <assert.h>
 #include "gt_common.h"
+#include "variant_field_data.h"
 
 /*a string to store <NON_REF> string (read-only)*/
 extern std::string g_non_reference_allele;
