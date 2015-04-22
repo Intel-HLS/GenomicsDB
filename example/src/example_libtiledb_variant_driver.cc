@@ -24,6 +24,8 @@ int main(int argc, char *argv[]) {
         GTColumn *gtc = db_query_column(argv[1], argv[2], i); 
         print_GT_Column(gtc);
         std::cout << std::endl;
+        delete gtc;
     }
+    db_cleanup(argv[1], argv[2]);
 }
 

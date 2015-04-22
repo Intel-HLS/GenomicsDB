@@ -43,3 +43,5 @@ extern "C" GTColumn *db_query_column(std::string workspace,
                                                   std::string array_name, 
                                                   uint64_t pos); 
 extern "C" void print_GT_Column(GTColumn *gtc);
+
+extern "C" void db_cleanup(std::string workspace, std::string array_name);
