@@ -122,11 +122,9 @@ void VariantLoader::append_cell_gVCF(const ArraySchema& array_schema,
       throw LoaderException("Cannot read ALT value from CSV file.");
     for(int i=0; i<string_v.size(); i++)
       *tiles[GVCF_ALT_IDX] << string_v[i];
-    if(j < ALT_num-1) // Do not store '\0' after last allele '&' for <NON_REF>
-      *tiles[GVCF_ALT_IDX] << '\0';
-    else
-      assert(string_v == "&");
+    *tiles[GVCF_ALT_IDX] << '\0';
   }
+  *tiles[GVCF_ALT_IDX] << '\0'; //Always add extra '\0' at the end of the ALT list
   
   // QUAL -- Attribute GVCF_QUAL_IDX
   if(!(*csv_line >> float_v))

@@ -13,7 +13,6 @@ void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescri
     if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
     {
       m_GT_schema_version = GT_SCHEMA_V2;
-      m_PL_NULL_bitidx = ((GVCF_NULL_IDX - 1) - GVCF_PL_IDX);
       break;
     }
   //Last queried attribute, keep incrementing
@@ -62,6 +61,9 @@ void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescri
   }
   GVCF_NULL_IDX = GVCF_COORDINATES_IDX++;
   GVCF_OFFSETS_IDX = GVCF_COORDINATES_IDX++;
+  //Change bitidx in NULL field for PL
+  if(m_GT_schema_version >= GT_SCHEMA_V2)
+    m_PL_NULL_bitidx = ((GVCF_NULL_IDX - 1) - GVCF_PL_IDX);
 }
 
 void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec, GTColumn* gt_column,
@@ -417,17 +419,25 @@ void VariantQueryProcessor::gt_fill_row(
 #endif
   i = 0;
   std::string ALT_s = "";
-  while((c = ALT_tile.cell(ALT_offset+i)) != '&') {
+  while(1) {    //exit if empty ALT_s string or '&' seen
+    c = ALT_tile.cell(ALT_offset+i);
     if(c == '\0') {
+      if(ALT_s.length() == 0u) //end of ALT list, last string is empty
+        break;
       gt_column->ALT_[row].push_back(ALT_s);
       ALT_s = "";
     } else {
-      ALT_s.push_back(c);
+      if(c == '&')
+      {
+        gt_column->ALT_[row].push_back("&");
+        break;
+      }
+      else
+        ALT_s.push_back(c);
     }
     i++;
   }
   assert(ALT_s == "");
-  gt_column->ALT_[row].push_back("&");
 
   // Fill the PL values
   // NULL IDX is the last IDX after all the attributes so shifting from that offset

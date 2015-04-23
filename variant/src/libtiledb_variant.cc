@@ -78,3 +78,10 @@ extern "C" GTColumn *db_query_column(std::string workspace,
     return gtc;
 }
 
+extern "C" void db_cleanup(std::string workspace, std::string array_name)
+{
+    StorageManager* sm = f.getStorageManager(workspace);
+    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
+    delete f.getVariantQueryProcessor(workspace, ad);
+    sm->close_array(f.getArrayDescriptor(array_name));
+}
