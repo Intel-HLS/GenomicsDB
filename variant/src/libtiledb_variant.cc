@@ -64,22 +64,21 @@ void print_GT_Column(GTColumn *gtc) {
     }
 }
 
-extern "C" GTColumn *db_query_column(std::string workspace, 
-                                                  std::string array_name, 
-                                                  uint64_t pos) {
+extern "C" void db_query_column(std::string workspace, std::string array_name, 
+        uint64_t query_interval_idx, Variant& variant, VariantQueryConfig& query_config) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     StorageManager *sm = f.getStorageManager(workspace);
     StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
-    //Use VariantQueryConfig to setup query info
-    VariantQueryConfig query_config;
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC"});
-    //Add interval to query - begin, end
-    query_config.add_column_range_to_query(pos, pos);
-    qp->do_query_bookkeeping(ad, query_config);
-    GTColumn *gtc = qp->gt_get_column(ad, query_config, &f.stats);
-
-    return gtc;
+    //Do book-keeping, if not already done
+    if(!query_config.is_bookkeeping_done())
+    {
+      qp->do_query_bookkeeping(ad, query_config);
+      variant = std::move(Variant(&query_config));
+      variant.resize_based_on_query();
+    }
+    qp->gt_get_column(ad, query_config, query_interval_idx, variant, &f.stats);
+    variant.print(std::cout);
 }
 

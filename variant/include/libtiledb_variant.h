@@ -39,7 +39,7 @@ class Factory {
     StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
 };
 
-extern "C" GTColumn *db_query_column(std::string workspace, 
+extern "C" void db_query_column(std::string workspace, 
                                                   std::string array_name, 
-                                                  uint64_t pos); 
+                                                  uint64_t query_interval_idx, Variant& v, VariantQueryConfig& config); 
 extern "C" void print_GT_Column(GTColumn *gtc);

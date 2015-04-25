@@ -8,8 +8,6 @@
 
 #define UNDEFINED_ATTRIBUTE_IDX_VALUE 0xFFFFFFFFu
 
-typedef std::pair<int64_t, int64_t> ColumnRange;
-bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);
 /**
  * Class to store the query request information
  */
@@ -29,26 +27,6 @@ class QueryConfig
      * Function used by query processor to add extra attributes to query 
      */
     void add_attribute_to_query(const std::string& name, unsigned schema_idx);
-    /*
-     * Function that specifies which rows to query
-     */
-    void set_rows_to_query(const std::vector<int64_t>& rowIdx);
-    /*
-     * Function that specifies which column ranges to query
-     */
-    void add_column_range_to_query(const int64_t colBegin, const int64_t colEnd);
-    /**
-     * Returns number of ranges queried
-     */
-    inline unsigned get_num_column_ranges() const
-    {
-      return  m_query_column_ranges.size();
-    }
-    inline ColumnRange get_column_range(unsigned idx) const
-    {
-      assert(idx < m_query_column_ranges.size());
-      return m_query_column_ranges[idx];
-    }
     /**
      * Check whether attribute is defined
      */
@@ -99,15 +77,10 @@ class QueryConfig
      * Get number of attributes in query
      */
     inline unsigned get_num_queried_attributes() const { return m_query_attributes_names.size(); }
-  private:
+  protected:
     std::vector<std::string> m_query_attributes_names;
     std::vector<unsigned>  m_query_attributes_schema_idxs;
     std::unordered_map<std::string, unsigned> m_query_attribute_name_to_query_idx;
-    /*Rows to query*/
-    bool m_query_all_rows;
-    std::vector<int64_t> m_query_rows;
-    /*Column ranges to query*/
-    std::vector<ColumnRange> m_query_column_ranges;
 };
 
 class UnknownQueryAttributeException {

@@ -15,10 +15,11 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
   VariantQueryConfig query_config;
   query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
   //Add interval to query - begin, end
-  query_config.add_column_range_to_query(column, column);
+  query_config.add_column_interval_to_query(column, column);
   qp.do_query_bookkeeping(ad_gVCF, query_config);
   /*Get one column from array*/
-  GTColumn* gt_column = qp.gt_get_column(ad_gVCF, query_config, stats);
+  GTColumn* gt_column = 0;
+  //qp.gt_get_column(ad_gVCF, query_config, stats);
   //Do dummy genotyping operation
   VariantOperations::do_dummy_genotyping(gt_column, output_stream);
   delete gt_column;

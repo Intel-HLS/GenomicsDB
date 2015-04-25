@@ -19,10 +19,18 @@ int main(int argc, char *argv[]) {
     uint64_t start = std::stoull(std::string(argv[3]));
     uint64_t end = std::stoull(std::string(argv[4]));
     
+    //Use VariantQueryConfig to setup query info
+    VariantQueryConfig query_config;
+    //query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC"});
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+    //Add interval to query - begin, end
+    for( uint64_t i = start; i <= end; ++i )
+        query_config.add_column_interval_to_query(i, i);        //currently, only single position queries supported
+    
+    Variant variant;
     for( uint64_t i = start; i <= end; ++i ) {
         std::cout << "Position " << i << std::endl;
-        GTColumn *gtc = db_query_column(argv[1], argv[2], i); 
-        print_GT_Column(gtc);
+        db_query_column(argv[1], argv[2], i-start, variant, query_config); 
         std::cout << std::endl;
     }
 }

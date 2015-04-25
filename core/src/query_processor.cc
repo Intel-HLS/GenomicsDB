@@ -128,7 +128,7 @@ void QueryProcessor::subarray(const StorageManager::ArrayDescriptor* ad,
     subarray_irregular(ad, range, result_array_name);
 }
 
-void QueryProcessor::obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig)
+void QueryProcessor::obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig) const
 {
   const auto& schema = array_descriptor->array_schema();
   for(auto i=0u;i<schema.attribute_num();++i)

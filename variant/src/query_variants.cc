@@ -59,7 +59,7 @@ void VariantQueryProcessor::initialize_static_members()
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<double>>());
   //Char becomes string instead of vector<char>
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(char))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>());
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string, const AttributeTile<char>>>());
   //Set initialized flag
   VariantQueryProcessor::m_are_static_members_initialized = true;
 }
@@ -163,6 +163,7 @@ void VariantQueryProcessor::initialize_length_descriptor(unsigned idx)
       break;
     case GVCF_FILTER_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      //TODO: How to get this?
       break;
     case GVCF_AD_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_R;
@@ -199,7 +200,7 @@ void VariantQueryProcessor::register_field_creators(const StorageManager::ArrayD
     type_index t = type_index(*curr_type_info);
     auto iter = VariantQueryProcessor::m_type_index_to_creator.find(t);
     if(iter == VariantQueryProcessor::m_type_index_to_creator.end())
-      throw UnknownAttributeTypeException("Unknown type of queried attribute "+std::string(curr_type_info->name()));
+      throw UnknownAttributeTypeException("Unknown type of schema attribute "+std::string(curr_type_info->name()));
     //For known fields, check for special creators
     unsigned enumIdx = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(i);
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(enumIdx) && requires_special_creator(enumIdx))
@@ -216,8 +217,9 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
   if(!VariantQueryProcessor::m_are_static_members_initialized)
     VariantQueryProcessor::initialize_static_members();
   clear();
-  //Initialization
+  //Mapping from known_field enum
   m_known_field_enum_to_info.resize(GVCF_NUM_KNOWN_FIELDS);
+  //Invalidate everything
   for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
   {
     //Invalidate m_known_field_enum_to_info 
@@ -239,6 +241,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
       std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
 {
+#if 0
   uint64_t num_deref_tile_iters = 0;
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
@@ -272,10 +275,12 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
     }
     current_start_position = min_end_point + 1;   //next start position, after the end
   }
+#endif
 }
 
 void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const
 {
+#if 0
   // For easy reference
   const ArraySchema& array_schema = ad->array_schema();
   const std::vector<std::pair<double, double> >& dim_domains =
@@ -308,11 +313,13 @@ void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDe
     gt_fill_row<StorageManager::const_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), query_config, tile_its,
 	&num_deref_tile_iters);
   }
+#endif
 }
 
 void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
     std::ostream& output_stream) const
 {
+#if 0
   assert(query_config.is_bookkeeping_done());
   // For easy reference
   const ArraySchema& array_schema = ad->array_schema();
@@ -417,10 +424,11 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       current_start_position, 0, true);
   delete[] tile_its;
   delete gt_column;
+#endif
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
-    VariantQueryConfig& query_config)
+    VariantQueryConfig& query_config) const
 {
   QueryProcessor::obtain_TileDB_attribute_idxs(array_descriptor, query_config);
   //Add COORDS as a query attribute by default
@@ -451,7 +459,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_variant_field_enum))
     {
       //Does the field require OFFSETS?
-      if(uses_OFFSETS_field(known_variant_field_enum))
+      if(uses_OFFSETS_field_for_known_field_enum(known_variant_field_enum))
       {
         assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(OFFSETS_schema_idx));
         query_config.add_attribute_to_query("OFFSETS", OFFSETS_schema_idx);
@@ -473,6 +481,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
       }
     }
   }
+  //Re-order query fields so that special fields are first
+  query_config.reorder_query_fields();
   //Set enum within query
   query_config.resize_LUT(GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
@@ -487,46 +497,62 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
       assert(VariantQueryProcessor::m_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
     }
   }
-  query_config.set_done_bookkeeping(true);
-}
-
-GTColumn* VariantQueryProcessor::gt_get_column(
-    const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
-    GTProfileStats* stats) const {
-  // For easy reference
-  const ArraySchema& array_schema = ad->array_schema();
+  //Set number of rows in the array
+  const ArraySchema& array_schema = array_descriptor->array_schema();
   const std::vector<std::pair<double, double> >& dim_domains =
       array_schema.dim_domains();
   uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
-  unsigned int attribute_num = array_schema.attribute_num();
+  query_config.set_num_rows_in_array(row_num);
+  query_config.setup_array_row_idx_to_query_row_idx_map();
+  //Bounds checking for query
+  for(auto i=0u;i<query_config.get_num_column_intervals();++i)
+  {
+    const auto& col_range = query_config.get_column_interval(i);
+    if(col_range.first < dim_domains[1].first || col_range.first > dim_domains[1].second
+        || col_range.second < dim_domains[1].first || col_range.second > dim_domains[1].second)
+      throw OutOfBoundsQueryException("Query interval "+std::to_string(i)+" : "+std::to_string(col_range.first)+", "
+          +std::to_string(col_range.second)+" is out of bounds");
+  }
+  //If specific rows requested
+  if(!query_config.query_all_rows())
+    for(uint64_t i=0ull;i<query_config.get_num_rows_to_query();++i)
+    {
+      auto row_idx = query_config.get_rows_to_query()[i];
+      if(row_idx < dim_domains[0].first || row_idx > dim_domains[0].second)
+        throw OutOfBoundsQueryException("Queried row index "+std::to_string(row_idx)+" is out of bounds");
+    }
+  //Done with bookkeeping
+  query_config.set_done_bookkeeping(true);
+}
 
-  assert(query_config.get_num_column_ranges() > 0);
+void VariantQueryProcessor::gt_get_column(
+    const StorageManager::ArrayDescriptor* ad,
+    const VariantQueryConfig& query_config, unsigned column_interval_idx,
+    Variant& variant, GTProfileStats* stats) const {
+
+  //New interval starts
+  variant.reset_for_new_interval();
+
+  assert(query_config.get_num_column_intervals() > 0 && column_interval_idx < query_config.get_num_column_intervals());
   assert(query_config.is_bookkeeping_done() && "Before calling gt_get_column(), do_query_bookkeeping() function must be called");
-  unsigned column_range_idx = 0u;
-  uint64_t col = query_config.get_column_range(column_range_idx).first;
-
-  // Check that column falls into the domain of the second dimension
-  assert(col >= dim_domains[1].first && col <= dim_domains[1].second);
-
-  // Indicates how many rows have been filled.
-  uint64_t filled_rows = 0;
-
+  assert(query_config.get_first_normal_field_query_idx() >= 2u); //COORDINATES, END are required by default
+  
+  variant.set_column_interval(query_config.get_column_interval(column_interval_idx).first,
+          query_config.get_column_interval(column_interval_idx).second);
+  //TODO: Still single position query
+  uint64_t col = query_config.get_column_interval(column_interval_idx).first;
   // Initialize reverse tile iterators for 
-  // END, REF, ALT, PL, NULL, OFFSETS, coordinates
+  // queried fields 
   // The reverse tile iterator will start with the tiles
   // of the various attributes that have the largest
   // id that either intersect with col, or precede col.
   StorageManager::const_reverse_iterator* tile_its;
   StorageManager::const_reverse_iterator tile_it_end;  
   unsigned int gt_attribute_num = 
-      gt_initialize_tile_its(ad, query_config, column_range_idx, tile_its, tile_it_end);
+      gt_initialize_tile_its(ad, query_config, column_interval_idx, tile_its, tile_it_end);
   //Get query idx for COORDS
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
   unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
-
-  // Create and initialize GenotypingColumn members
-  GTColumn* gt_column = new GTColumn(col, row_num);
-
   // Create cell iterators
   Tile::const_reverse_iterator cell_it, cell_it_end;
   uint64_t num_deref_tile_iters = 0;
@@ -535,8 +561,10 @@ GTColumn* VariantQueryProcessor::gt_get_column(
   uint64_t num_tiles_touched = 0;
   bool first_sample = true;
 #endif
+  // Indicates how many rows have been filled.
+  uint64_t filled_rows = 0;
   // Fill the genotyping column
-  while(tile_its[COORDS_query_idx] != tile_it_end && filled_rows < row_num) {
+  while(tile_its[COORDS_query_idx] != tile_it_end && filled_rows < query_config.get_num_rows_to_query()) {
     // Initialize cell iterators for the coordinates
     cell_it = (*tile_its[COORDS_query_idx]).rbegin();
     cell_it_end = (*tile_its[COORDS_query_idx]).rend();
@@ -544,15 +572,18 @@ GTColumn* VariantQueryProcessor::gt_get_column(
     num_deref_tile_iters += 2;	//why 2, cell_it and cell_it_end
     ++num_tiles_touched;
 #endif
-    while(cell_it != cell_it_end && filled_rows < row_num) {
+    while(cell_it != cell_it_end && filled_rows < query_config.get_num_rows_to_query()) {
       std::vector<int64_t> next_coord = *cell_it;
 #ifdef DO_PROFILING
       ++num_cells_touched;
 #endif
-      // If next cell is not on the right of col, and corresponds to 
-      // uninvestigated row
-      if(next_coord[1] <= col && CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(gt_column->REF_[next_coord[0]])) {
-        gt_fill_row<StorageManager::const_reverse_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), query_config,
+      // If next cell is not on the right of col, and 
+      // The rowIdx is being queried and
+      // The row/call is uninitialized (uninvestigated) in the Variant
+      if(next_coord[1] <= col && query_config.is_queried_array_row_idx(next_coord[0]) &&
+          !(variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0])).is_initialized())
+        ) {
+        gt_fill_row<StorageManager::const_reverse_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(), query_config,
             tile_its, &num_deref_tile_iters);
         ++filled_rows;
 #ifdef DO_PROFILING
@@ -576,9 +607,6 @@ GTColumn* VariantQueryProcessor::gt_get_column(
     advance_tile_its(gt_attribute_num, tile_its);
   }
 
-  //No need for this assertion
-  //assert(filled_rows == row_num);
-
   delete [] tile_its;
 
 #ifdef DO_PROFILING
@@ -593,137 +621,153 @@ GTColumn* VariantQueryProcessor::gt_get_column(
   stats->m_sum_num_tiles_touched += num_tiles_touched;
   stats->m_sum_sq_num_tiles_touched += (num_tiles_touched*num_tiles_touched);
 #endif
+}
 
-  return gt_column;
+unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned known_field_enum,
+    unsigned num_ALT_alleles) const
+{
+  assert(known_field_enum < m_known_field_enum_to_info.size());
+  unsigned length = 0u;
+  unsigned num_alleles = num_ALT_alleles + 1;
+  switch(m_known_field_enum_to_info[known_field_enum].m_length_descriptor)
+  {
+    case BCF_VL_FIXED:
+      length = m_known_field_enum_to_info[known_field_enum].m_num_elements;
+      break;
+    case BCF_VL_VAR:
+      length = 1u;      //function that reads from tile will know what to do
+      break;
+    case BCF_VL_A:
+      length = num_ALT_alleles;
+      break;
+    case BCF_VL_R:
+      length = num_alleles;
+      break;
+    case BCF_VL_G:
+      length = (num_alleles*(num_alleles+1))/2;
+      break;
+    default:
+      cerr << "Unknown length descriptor "<<m_known_field_enum_to_info[known_field_enum].m_length_descriptor<<" - ignoring\n";
+      break;
+  }
+  return length;
+}
+
+void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
+    const Tile& tile, int64_t pos,
+    const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
+    unsigned schema_idx
+    ) const
+{
+  field_ptr = std::move(m_field_factory.Create(schema_idx)); 
+  unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
+  uint64_t num_elements = 0ull;
+  //Default value of offset == offset of cell in co-ordinates tile
+  uint64_t field_offset = pos;
+  //For known fields, check NULL, OFFSETS, length descriptors
+  if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
+  {
+    //NULL bit
+    if(is_NULL_bitidx_defined_for_known_field_enum(known_field_enum))
+    {
+      auto NULL_bitidx = get_NULL_bitidx_for_known_field_enum(known_field_enum);
+      if((NULL_bitmap >> NULL_bitidx) & 1) //is null, nothing to do
+        return;
+    }
+    num_elements = get_num_elements_for_known_field_enum(known_field_enum, num_ALT_alleles);
+    //Uses OFFSETS
+    if(uses_OFFSETS_field_for_known_field_enum(known_field_enum))
+    {
+      assert(OFFSETS_tile);
+      auto OFFSETS_idx = get_OFFSETS_idx_for_known_field_enum(known_field_enum);
+      uint64_t OFFSETS_cell = pos*m_num_elements_per_offset_cell + OFFSETS_idx;
+      field_offset = OFFSETS_tile->cell(OFFSETS_cell);
+    }
+  }
+  field_ptr->copy_data_from_tile(tile, field_offset, num_elements);
+#ifdef DO_PROFILING
+  ++(*num_deref_tile_iters);
+#endif
 }
 
 template<class ITER>
 void VariantQueryProcessor::gt_fill_row(
-    GTColumn* gt_column, int64_t row, int64_t column, int64_t pos,
+    Variant& variant, int64_t row, int64_t column, int64_t pos,
     const VariantQueryConfig& query_config,
     const ITER* tile_its, uint64_t* num_deref_tile_iters) const {
-  // First check if the row is NULL
+  //Current row should be part of query
+  assert(query_config.is_queried_array_row_idx(row));
+  VariantCall& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(row));
+  //Curr call will be initialized, one way or the other
+  curr_call.mark_initialized(true);
+  // First check if the row contains valid data, i.e., check whether the interval intersects with the current queried interval
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   int64_t END_v = 
       static_cast<const AttributeTile<int64_t>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX)]).cell(pos);
 #ifdef DO_PROFILING
   ++(*num_deref_tile_iters);
 #endif
-  if(END_v < gt_column->col_) {
-    gt_column->REF_[row] = "$";
-    return;
+  if(END_v < variant.get_column_begin()) {
+    curr_call.mark_valid(false);  //The interval in this cell stops before the current variant's start column
+    return;                     //Implies, this row has no valid data for this query range. Mark Call as invalid
   }
+  curr_call.mark_valid(true);   //contains valid data for this query
 
-  // Retrieve the offsets
-  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX));
-  const AttributeTile<int64_t>& OFFSETS_tile = 
-      static_cast<const AttributeTile<int64_t>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX)]);
-#ifdef DO_PROFILING
-  ++(*num_deref_tile_iters);
-#endif
-  int64_t REF_offset = OFFSETS_tile.cell(pos*5);
-  int64_t ALT_offset = OFFSETS_tile.cell(pos*5+1);
-  int64_t PL_offset = OFFSETS_tile.cell(pos*5+4);
-
-  // Retrieve the NULL bitmap
-  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_NULL_IDX));
-  const AttributeTile<int>& NULL_tile = 
-      static_cast<const AttributeTile<int>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_NULL_IDX)]);
-#ifdef DO_PROFILING
-  ++(*num_deref_tile_iters);
-#endif
-  int NULL_bitmap = NULL_tile.cell(pos);
-
-  char c;
-  int i;
-
-  // Fill the REF
-  //If the queried column is identical to the cell's column, then the REF value stored is correct
-  //Else, the cell stores an interval and the REF value is set to "N" which means could be anything
-  if(column == gt_column->col_)
+  //Coordinates and END should be the first 2 queried attributes - see reorder_query_fields()
+  assert(query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX) < 2u);
+  assert(query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX) < 2u);
+  assert(query_config.get_first_normal_field_query_idx() >= 2u);
+  //Variables to store special fields
+  //OFFSETS - if OFFSETS is part of query, return Tile* else NULL
+  const AttributeTile<int64_t>* OFFSETS_tile = query_config.is_defined_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX) ?
+    static_cast<const AttributeTile<int64_t>* >(
+          &(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX)])) : 0;
+  // NULL bitmap, if needed
+  int NULL_bitmap = 0;
+  //Num alternate alleles
+  unsigned num_ALT_alleles = 0u;
+  //Load other special fields - OFFSETS, NULL, ALT etc
+  //NOTE, none of the special fields should use NULL bitmap
+  for(auto i=2u;i<query_config.get_first_normal_field_query_idx();++i)
   {
-    assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX));
-    const AttributeTile<char>& REF_tile = 
-      static_cast<const AttributeTile<char>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX)]);
-#ifdef DO_PROFILING
-  ++(*num_deref_tile_iters);
-#endif
-    std::string REF_s = "";
-    i = 0;
-    while((c = REF_tile.cell(REF_offset+i)) != '\0') { 
-      REF_s.push_back(c);
-      ++i;
-    }
-    gt_column->REF_[row] = REF_s;
+    //Read from Tile
+    fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
+        OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
+        query_config.get_schema_idx_for_query_idx(i)
+        );
   }
-  else
-    gt_column->REF_[row] = "N";
+  //Initialize NULL_bitmap, if needed
+  const auto* NULL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_NULL_IDX); 
+  NULL_bitmap = NULL_field_ptr->get()[0];        //NULL_field data is vector<int>
 
-  // Fill the ALT values
-  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX));
-  const AttributeTile<char>& ALT_tile = 
-      static_cast<const AttributeTile<char>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX)]);
-#ifdef DO_PROFILING
-  ++(*num_deref_tile_iters);
-#endif
-  i = 0;
-  std::string ALT_s = "";
-  while((c = ALT_tile.cell(ALT_offset+i)) != '&') {
-    if(c == '\0') {
-      gt_column->ALT_[row].push_back(ALT_s);
-      ALT_s = "";
-    } else {
-      ALT_s.push_back(c);
-    }
-    i++;
-  }
-  assert(ALT_s == "");
-  gt_column->ALT_[row].push_back("&");
+  //Initialize ALT field, if needed
+  const auto* ALT_field_ptr = get_known_field_if_queried<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX); 
+  num_ALT_alleles = ALT_field_ptr->get().size();   //ALT field data is vector<string>
 
-  // Fill the PL values
-  // NULL IDX is the last IDX after all the attributes so shifting from that offset
-  assert(is_NULL_bitidx_defined_for_known_field_enum(GVCF_PL_IDX));
-  unsigned NULL_PL_bitidx = get_NULL_bitidx_for_known_field_enum(GVCF_PL_IDX);
-  if(((NULL_bitmap >> NULL_PL_bitidx)  & 1) == 0) { // If the PL values are
-    assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_PL_IDX));
-    const AttributeTile<int>& PL_tile = 
-        static_cast<const AttributeTile<int>& >(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX)]);
-#ifdef DO_PROFILING
-    ++(*num_deref_tile_iters);
-#endif
-    int ALT_num = gt_column->ALT_[row].size(); 
-    int PL_num = (ALT_num+1)*(ALT_num+2)/2;
-    for(int i=0; i<PL_num; i++) 
-      gt_column->PL_[row].push_back(PL_tile.cell(PL_offset+i));
-  }
-
-  if(m_GT_schema_version >= GT_SCHEMA_V1)
+  //Go over all normal query fields and fetch data
+  for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i)
   {
-    // Fill AF, AN, and AC
-    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_AF_IDX))
-      fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, query_config.get_query_idx_for_known_field_enum(GVCF_AF_IDX),
-          &(gt_column->AF_[row]));
-    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_AN_IDX))
-      fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, query_config.get_query_idx_for_known_field_enum(GVCF_AN_IDX),
-          &(gt_column->AN_[row]));
-    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_AC_IDX))
-      fill_cell_attribute<ITER>(pos, tile_its, num_deref_tile_iters, query_config.get_query_idx_for_known_field_enum(GVCF_AC_IDX),
-          &(gt_column->AC_[row]));
+    //Read from Tile
+    fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
+        OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
+        query_config.get_schema_idx_for_query_idx(i)
+        );     
   }
 }
 
 inline
 unsigned int VariantQueryProcessor::gt_initialize_tile_its(
     const StorageManager::ArrayDescriptor* ad,
-    const VariantQueryConfig& query_config, const unsigned col_range_idx,
+    const VariantQueryConfig& query_config, const unsigned column_interval_idx,
     StorageManager::const_reverse_iterator*& tile_its, 
     StorageManager::const_reverse_iterator& tile_it_end) const {
   //Num attributes in query
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   // Create reverse iterators
   tile_its = new StorageManager::const_reverse_iterator[num_queried_attributes];
+  //TODO: still assumes single position query
   // Find the rank of the tile the left sweep starts from.
-  auto start_rank = get_storage_manager().get_left_sweep_start_rank(ad, query_config.get_column_range(col_range_idx).first);
+  auto start_rank = get_storage_manager().get_left_sweep_start_rank(ad, query_config.get_column_interval(column_interval_idx).first);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
@@ -734,38 +778,9 @@ unsigned int VariantQueryProcessor::gt_initialize_tile_its(
   return num_queried_attributes - 1;
 }
 
-// Helper function to fill the attribute given the tile pointer,
-// position, and index
-template<class ITER>
-void VariantQueryProcessor::fill_cell_attribute(const int64_t& pos, const ITER* tile_its, 
-        uint64_t* num_deref_tile_iters,
-        const unsigned IDX, int *p_int_v) const {
-    // Retrieve the tile corresponding to the IDX 
-    const AttributeTile<int>& m_attribute_tile =
-        static_cast<const AttributeTile<int>& >(*tile_its[IDX]);
-#ifdef DO_PROFILING
-    ++(*num_deref_tile_iters);
-#endif
-    *p_int_v = m_attribute_tile.cell(pos);
-}
-
-// Override of the function above for float type
-template<class ITER>
-void VariantQueryProcessor::fill_cell_attribute(int64_t pos, const ITER* tile_its, 
-        uint64_t* num_deref_tile_iters,
-        unsigned IDX, float *p_float_v) const {
-    // Retrieve the tile corresponding to the IDX 
-    const AttributeTile<float>& m_tile = 
-        static_cast<const AttributeTile<float>& >(*tile_its[IDX]);
-#ifdef DO_PROFILING
-    ++(*num_deref_tile_iters);
-#endif
-    *p_float_v = m_tile.cell(pos);
-}
-
 void VariantQueryProcessor::clear()
 {
   m_known_field_enum_to_info.clear();
-  m_known_field_enum_to_info.clear();
   m_schema_idx_to_known_variant_field_enum_LUT.reset_luts();
+  m_field_factory.clear();
 }

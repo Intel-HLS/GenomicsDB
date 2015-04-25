@@ -96,7 +96,7 @@ class QueryProcessor {
   /**
    * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
    */
-  void obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig);
+  void obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig) const;
 
  private:
   // PRIVATE ATTRIBUTES

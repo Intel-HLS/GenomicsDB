@@ -137,46 +137,66 @@ class VariantQueryProcessor : public QueryProcessor {
      * When querying, setup bookkeeping structures first 
      */
     void do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
-        VariantQueryConfig& query_config);
-    /** Returns the genotyping info for column col from the input array. */
-    GTColumn* gt_get_column(
-        const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, GTProfileStats* stats=0) const;
+        VariantQueryConfig& query_config) const;
+    /** Fills genotyping info for column col from the input array. */
+    void gt_get_column(
+        const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
+        Variant& variant, GTProfileStats* stats=0) const;
     void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream) const;
     void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
     /*
-     * Function that, given an enum value from KnownVariantFieldsEnum
-     * returns true if the field requires NULL bitidx field to be used 
+     * Function that, given an enum value from KnownVariantFieldsEnum,
+     * checks if the field requires NULL bitidx field to be used 
      */
     inline bool is_NULL_bitidx_defined_for_known_field_enum(unsigned enumIdx) const
     {
       assert(enumIdx < m_known_field_enum_to_info.size());
       return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
     }
-    inline bool is_length_allele_dependent(unsigned enumIdx) const
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size());
-      unsigned length_descriptor = m_known_field_enum_to_info[enumIdx].m_length_descriptor;
-      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
-    }
+    /*
+     * Client code MUST check is_NULL_bitidx_defined_for_known_field_enum() before using the
+     * value returned by this function
+     */
     inline unsigned get_NULL_bitidx_for_known_field_enum(unsigned enumIdx) const
     {
         assert(enumIdx < m_known_field_enum_to_info.size());
         return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx);
     }
     /*
+     * Functions that determine number of elements for known fields
+     */
+    inline bool is_length_allele_dependent(unsigned enumIdx) const
+    {
+      assert(enumIdx < m_known_field_enum_to_info.size());
+      unsigned length_descriptor = m_known_field_enum_to_info[enumIdx].m_length_descriptor;
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
+    unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles) const;
+    /*
      * Function that, given an enum value from KnownVariantFieldsEnum
      * returns true if the field requires the OFFSETS field 
      */
-    inline bool uses_OFFSETS_field(unsigned enumIdx)
+    inline bool uses_OFFSETS_field_for_known_field_enum(unsigned enumIdx) const
     {
       assert(enumIdx < m_known_field_enum_to_info.size()); 
       return (m_known_field_enum_to_info[enumIdx].m_OFFSETS_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
     }
     /*
+     * Client code MUST check uses_OFFSETS_field_for_known_field_enum() before using the
+     * value returned by this function
+     */
+    inline unsigned get_OFFSETS_idx_for_known_field_enum(unsigned enumIdx) const
+    {
+      assert(enumIdx < m_known_field_enum_to_info.size()); 
+      return (m_known_field_enum_to_info[enumIdx].m_OFFSETS_idx);
+    }
+    /*
      * Function that, given an enum value from KnownVariantFieldsEnum
      * returns the schema idx for the given array 
+     * NOTE: returned value may be invalid, client code MUST check validity using
+     * m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value()
      */
-    inline unsigned get_schema_idx_for_known_field_enum(unsigned enumIdx)
+    inline unsigned get_schema_idx_for_known_field_enum(unsigned enumIdx) const
     {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
@@ -184,7 +204,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /*
      * Check whether the known field requires a special creator
      */
-    inline bool requires_special_creator(unsigned enumIdx)
+    inline bool requires_special_creator(unsigned enumIdx) const
     {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
@@ -220,7 +240,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /** Fills a row of the input genotyping column with the proper info. */
     template<class ITER>
     void gt_fill_row(
-        GTColumn* gt_column, int64_t row, int64_t column, int64_t pos, const VariantQueryConfig& query_config,
+        Variant& variant, int64_t row, int64_t column, int64_t pos, const VariantQueryConfig& query_config,
         const ITER* tile_its, uint64_t* num_deref_tile_iters) const;
     /** 
      * Initializes tile iterators for joint genotyping for column col. 
@@ -228,24 +248,27 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     unsigned int gt_initialize_tile_its(
         const StorageManager::ArrayDescriptor* ad,
-        const VariantQueryConfig& query_config, const unsigned col_range_idx,
+        const VariantQueryConfig& query_config, const unsigned column_interval_idx,
         StorageManager::const_reverse_iterator*& tile_its,
         StorageManager::const_reverse_iterator& tile_it_end ) const;
-    /**
-     * Helper function to fill the attribute given the tile pointer,
-     * position, and index
+    /*
+     * Fill data from tile for attribute query_idx into curr_call
+     * @param curr_call  VariantCall object in which data will be stored
+     * @param tile AttributeTile object from which data needs to be copied
+     * @param pos Cell position in the co-ordinates tile
+     * The following 3 parameters MUST be valid if the attribute being accessed needs them
+     * Else, it's ok to leave them NULL, 0 etc
+     * @param OFFSETS_tile
+     * @param NULL_bitmap
+     * @param num_ALT_alleles - number of ALT alleles
+     * @schema_idx The idx of the attribute in the schema of the current array 
      */
-    template<class ITER>
-    void fill_cell_attribute(const int64_t& pos, const ITER* tile_its, 
-            uint64_t* num_deref_tile_iters,
-            const unsigned IDX, int *p_int_v) const;
-    /**
-     * Override of the function above for float type
-     */
-    template<class ITER>
-    void fill_cell_attribute(int64_t pos, const ITER* tile_its, 
-            uint64_t* num_deref_tile_iters,
-            unsigned IDX, float *p_float_v) const;
+    void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
+        const Tile& tile, int64_t pos,
+        const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
+        const unsigned schema_idx
+        ) const;
+
     /**
      * Variables to store versioning information about array schema
      */
