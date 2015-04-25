@@ -234,7 +234,7 @@ class VariantQueryProcessor : public QueryProcessor {
     void initialize_length_descriptor(unsigned idx);
     /** Called by scan_and_operate to handle all ranges for given set of cells */
     void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
-            const VariantQueryConfig& queryConfig, GTColumn* gt_column,
+            const VariantQueryConfig& queryConfig, Variant& variant,
         std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
         int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
     /** Fills a row of the input genotyping column with the proper info. */
@@ -262,11 +262,12 @@ class VariantQueryProcessor : public QueryProcessor {
      * @param NULL_bitmap
      * @param num_ALT_alleles - number of ALT alleles
      * @schema_idx The idx of the attribute in the schema of the current array 
+     * @num_deref_tile_iters - useful only if compiled in PROFILING mode
      */
     void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
         const Tile& tile, int64_t pos,
         const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
-        const unsigned schema_idx
+        const unsigned schema_idx, uint64_t* num_deref_tile_iters=0
         ) const;
 
     /**

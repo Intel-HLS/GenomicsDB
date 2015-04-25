@@ -52,7 +52,7 @@ class PQStruct
     PQStruct()    { m_needs_to_be_processed = false; }
     bool m_needs_to_be_processed;
     int64_t m_end_point;
-    int64_t m_sample_idx;
+    int64_t m_array_row_idx;
     int64_t m_array_column;
     uint64_t m_cell_pos;
     uint64_t m_tile_idx;

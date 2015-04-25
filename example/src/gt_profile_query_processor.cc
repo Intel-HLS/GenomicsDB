@@ -5,21 +5,9 @@
 #include "query_variants.h"
 #include "variant_operations.h"
 
-void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
-    uint64_t column, std::ostream& output_stream)
-{
-  VariantQueryConfig query_config;
-  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
-  //Add interval to query - begin, end
-  query_config.add_column_interval_to_query(column, column);
-  qp.do_query_bookkeeping(ad_gVCF, query_config);
-  /*Get one column from array*/ 
-  GTColumn* gt_column = 0;
-  //qp.gt_get_column(ad_gVCF, query_config, stats);
-  //Do dummy genotyping operation
-  VariantOperations::do_dummy_genotyping(gt_column, output_stream);
-  delete gt_column;
-}
+#ifdef DO_PROFILING
+#include "gperftools/profiler.h"
+#endif
 
 int main(int argc, char** argv) {
   CommandLineOpts cl;
@@ -42,6 +30,9 @@ int main(int argc, char** argv) {
   VariantQueryConfig query_config;
   query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
   qp.do_query_bookkeeping(ad_gVCF, query_config);
+#ifdef DO_PROFILING
+  sm.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
+#endif
   //Iterate over all tiles
   qp.iterate_over_all_tiles(ad_gVCF, query_config);
 #ifdef DO_PROFILING

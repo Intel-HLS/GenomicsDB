@@ -17,12 +17,15 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
   //Add interval to query - begin, end
   query_config.add_column_interval_to_query(column, column);
   qp.do_query_bookkeeping(ad_gVCF, query_config);
+  //Variant object
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
   /*Get one column from array*/
-  GTColumn* gt_column = 0;
-  //qp.gt_get_column(ad_gVCF, query_config, stats);
+  qp.gt_get_column(ad_gVCF, query_config, 0u, variant, stats);
+#if 0
   //Do dummy genotyping operation
   VariantOperations::do_dummy_genotyping(gt_column, output_stream);
-  delete gt_column;
+#endif
 }
 
 int main(int argc, char** argv) {
@@ -36,7 +39,6 @@ int main(int argc, char** argv) {
   // Create storage manager
   // The input is the path to its workspace (the path must exist).
   StorageManager sm(cl.m_workspace);
-
   // Open arrays in READ mode
   const StorageManager::ArrayDescriptor* ad_gVCF = 
     sm.open_array(cl.m_array_name);
@@ -47,6 +49,9 @@ int main(int argc, char** argv) {
     // Create query processor
     // The first input is the path to its workspace (the path must exist).
     VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
+#ifdef DO_PROFILING
+    sm.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
+#endif
     //Setup query
     VariantQueryConfig query_config;
     query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});

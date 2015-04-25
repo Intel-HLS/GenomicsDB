@@ -237,19 +237,18 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
 }
 
 void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
-    const VariantQueryConfig& query_config, GTColumn* gt_column,
+    const VariantQueryConfig& query_config, Variant& variant,
       std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
 {
-#if 0
   uint64_t num_deref_tile_iters = 0;
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
     int64_t top_end_pq = end_pq.top()->m_end_point;
     int64_t min_end_point = (is_last_call || (top_end_pq < (next_start_position - 1))) ? top_end_pq : (next_start_position-1);
-    //Prepare gt_column
-    gt_column->col_ = current_start_position;
-    gt_column->reset();
+    //Prepare variant for new column interval
+    variant.reset_for_new_interval();
+    variant.set_column_interval(current_start_position, min_end_point);
     for(auto i=0ull;i<PQ_end_vec.size();++i)
     {
       auto& curr_struct = PQ_end_vec[i];
@@ -257,11 +256,15 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
       {
 	auto find_iter = tile_idx_2_iters.find(curr_struct.m_tile_idx);
 	assert(find_iter != tile_idx_2_iters.end());
-        gt_fill_row<StorageManager::const_iterator>(gt_column, i, curr_struct.m_array_column, curr_struct.m_cell_pos, query_config, 
+        gt_fill_row<StorageManager::const_iterator>(variant, curr_struct.m_array_row_idx, curr_struct.m_array_column, 
+            curr_struct.m_cell_pos, query_config, 
 	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters);
       }
     }
+    variant.print(std::cout);
+#if 0
     VariantOperations::do_dummy_genotyping(gt_column, output_stream);
+#endif
     //The following intervals have been completely processed
     while(!end_pq.empty() && end_pq.top()->m_end_point == min_end_point)
     {
@@ -275,18 +278,10 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
     }
     current_start_position = min_end_point + 1;   //next start position, after the end
   }
-#endif
 }
 
 void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const
 {
-#if 0
-  // For easy reference
-  const ArraySchema& array_schema = ad->array_schema();
-  const std::vector<std::pair<double, double> >& dim_domains =
-      array_schema.dim_domains();
-  uint64_t total_num_samples = dim_domains[0].second - dim_domains[0].first + 1;
-  
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
   for(auto i=0u;i<num_queried_attributes;++i)
@@ -300,35 +295,30 @@ void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDe
       m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
   //Get query idx for COORDS
   unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
-  
-  GTColumn* gt_column = new GTColumn(0, total_num_samples);
+  //Variant object 
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
   uint64_t num_deref_tile_iters = 0; 
   for(;tile_its[COORDS_query_idx] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))
   {
     Tile::const_iterator cell_it = (*tile_its[COORDS_query_idx]).begin();
     Tile::const_iterator cell_it_end = (*tile_its[COORDS_query_idx]).end();
     std::vector<int64_t> next_coord = *cell_it;
-    gt_column->reset();
-    gt_column->col_ = next_coord[1];
-    gt_fill_row<StorageManager::const_iterator>(gt_column, next_coord[0], next_coord[1], cell_it.pos(), query_config, tile_its,
+    gt_fill_row<StorageManager::const_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(), query_config, tile_its,
 	&num_deref_tile_iters);
   }
-#endif
+  delete[] tile_its;
 }
 
 void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
     std::ostream& output_stream) const
 {
-#if 0
   assert(query_config.is_bookkeeping_done());
-  // For easy reference
-  const ArraySchema& array_schema = ad->array_schema();
-  const std::vector<std::pair<double, double> >& dim_domains =
-      array_schema.dim_domains();
-  uint64_t total_num_samples = dim_domains[0].second - dim_domains[0].first + 1;
   
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
+  //While dealing with intervals, cells involved in a merge may be from different tiles
+  //This structure tracks tile_idx to tile iterators
   std::unordered_map<uint64_t, GTTileIteratorsTracker> tile_idx_2_iters;
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
@@ -340,18 +330,20 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
   StorageManager::const_iterator tile_it_end = get_storage_manager().end(ad,
       m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
   //Get query idx for COORDS and END
+  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
   unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
+  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   unsigned END_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX);
-
-  GTColumn* gt_column = new GTColumn(0, total_num_samples);
-
+  //Variant object
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
   //Priority queue of END positions
   VariantIntervalPQ end_pq;
   //Vector of PQStruct - pre-allocate to eliminate allocations inside the while loop
   //Elements of the priority queue end_pq are pointers to elements of this vector
-  auto PQ_end_vec = std::vector<PQStruct>(total_num_samples, PQStruct{});
+  auto PQ_end_vec = std::vector<PQStruct>(query_config.get_num_rows_to_query(), PQStruct{});
   for(auto i=0ull;i<PQ_end_vec.size();++i)
-    PQ_end_vec[i].m_sample_idx = i;
+    PQ_end_vec[i].m_array_row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
   //Current gVCF position being operated on
   int64_t current_start_position = -1ll;
   //Get first valid position in the array
@@ -384,14 +376,15 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       {
         next_start_position = next_coord[1];
         assert(next_coord[1] > current_start_position);
-        handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, gt_column, tile_idx_2_iters, output_stream,
+        handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, variant, tile_idx_2_iters, output_stream,
             current_start_position, next_start_position, false);
         assert(end_pq.empty() || end_pq.top()->m_end_point >= next_start_position);  //invariant
         current_start_position = next_start_position;
       }
       //Accumulate cells with position == current_start_position
       uint64_t sample_idx = next_coord[0];
-      auto& curr_struct = PQ_end_vec[sample_idx];
+      uint64_t query_row_idx = query_config.get_query_row_idx_for_array_row_idx(sample_idx);
+      auto& curr_struct = PQ_end_vec[query_row_idx];
       //Store array column idx corresponding to this cell
       curr_struct.m_array_column = current_start_position;
       //Get END corresponding to this cell
@@ -404,9 +397,10 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       curr_struct.m_cell_pos = cell_it.pos();
       assert(cell_it.pos() < (*tile_its[COORDS_query_idx]).cell_num());
       curr_struct.m_needs_to_be_processed = true;
-      end_pq.push(&(PQ_end_vec[sample_idx]));
-      assert(end_pq.size() <= total_num_samples);
+      end_pq.push(&(PQ_end_vec[query_row_idx]));
+      assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
+    //Remove elements from tile idx 2 iter mapper which will no longer be used
     for(auto map_iter = tile_idx_2_iters.begin(), map_end = tile_idx_2_iters.end();map_iter != map_end;)
     {
       if(map_iter->second.m_reference_counter == 0ull)
@@ -420,11 +414,10 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
     }
     ++tile_idx;
   }
-  handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, gt_column, tile_idx_2_iters, output_stream,
+  //handle last interval
+  handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, variant, tile_idx_2_iters, output_stream,
       current_start_position, 0, true);
   delete[] tile_its;
-  delete gt_column;
-#endif
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
@@ -656,7 +649,7 @@ unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned k
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
     const Tile& tile, int64_t pos,
     const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
-    unsigned schema_idx
+    unsigned schema_idx, uint64_t* num_deref_tile_iters
     ) const
 {
   field_ptr = std::move(m_field_factory.Create(schema_idx)); 
@@ -733,7 +726,7 @@ void VariantQueryProcessor::gt_fill_row(
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
         OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
-        query_config.get_schema_idx_for_query_idx(i)
+        query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );
   }
   //Initialize NULL_bitmap, if needed
@@ -750,7 +743,7 @@ void VariantQueryProcessor::gt_fill_row(
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
         OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
-        query_config.get_schema_idx_for_query_idx(i)
+        query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );     
   }
 }
