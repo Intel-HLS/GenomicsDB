@@ -33,5 +33,6 @@ int main(int argc, char *argv[]) {
         db_query_column(argv[1], argv[2], i-start, variant, query_config); 
         std::cout << std::endl;
     }
+    db_cleanup(argv[1], argv[2]);
 }
 

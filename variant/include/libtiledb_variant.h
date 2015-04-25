@@ -43,3 +43,5 @@ extern "C" void db_query_column(std::string workspace,
                                                   std::string array_name, 
                                                   uint64_t query_interval_idx, Variant& v, VariantQueryConfig& config); 
 extern "C" void print_GT_Column(GTColumn *gtc);
+
+extern "C" void db_cleanup(std::string workspace, std::string array_name);
