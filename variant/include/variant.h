@@ -91,21 +91,7 @@ class VariantCall
       m_is_initialized = false;
       m_row_idx = rowIdx;
       clear();
-    }
-    void move_in(VariantCall& other)
-    {
-      m_is_valid = other.is_valid();
-      m_is_initialized = other.is_initialized();
-      m_row_idx = other.get_row_idx();
-      clear();
-      m_fields.resize(other.get_all_fields().size());
-      unsigned idx = 0u;
-      for(auto& other_field : other.get_all_fields())
-      {
-        set_field(idx, other_field);
-        ++idx;
-      }
-    }
+    } 
     /**
      * Default move constructor is good enough 
      */
@@ -114,6 +100,18 @@ class VariantCall
      * Member element contains unique_ptr, cannot copy from const VariantCall&
      */
     VariantCall(const VariantCall& other) = delete;
+    VariantCall(VariantCall& other) = delete;
+    /*
+     * Assignment with move semantics is fine, copy assignment not allowed
+     */
+    VariantCall& operator=(VariantCall&& other)
+    {
+      move_in(other);
+      return *this;
+    }
+    /*
+    * Free allocated memory
+    */ 
     void clear()  {  m_fields.clear(); }        //also frees memory associated with m_fields elements (unique_ptr)
     /*
      * Same query_config, but new interval is starting. Reset what needs to be reset
@@ -179,6 +177,23 @@ class VariantCall
     /** print **/
     void print(std::ostream& stream, const VariantQueryConfig* query_config=0) const;
   private:
+    /*
+     * Performs move from other object
+     */
+    void move_in(VariantCall& other)
+    {
+      m_is_valid = other.is_valid();
+      m_is_initialized = other.is_initialized();
+      m_row_idx = other.get_row_idx();
+      clear();
+      m_fields.resize(other.get_all_fields().size());
+      unsigned idx = 0u;
+      for(auto& other_field : other.get_all_fields())
+      {
+        set_field(idx, other_field);
+        ++idx;
+      }
+    }
     //Could be initialized, but invalid (no data for this column interval)
     bool m_is_valid;
     //If false, not initialized (not yet considered in query)
@@ -226,28 +241,19 @@ class Variant
      * Members of m_calls contains unique_ptr, cannot copy from const VariantCall&
      */
     Variant(const Variant& other) = delete;
+    Variant(Variant& other) = delete;
     /*
      * Default move constructor is fine
      */
     Variant(Variant&& other) = default;
     /*
-     * Move assignment operator
+     * Move assignment operator is fine, no copy assignment allowed
      */
     Variant& operator=(Variant&& other)
     {
-      move_in(std::move(other));
+      move_in(other);
       return *this;
-    }
-    //Function that moves from other to self
-    void move_in(Variant&& other)
-    {
-      m_query_config = other.m_query_config;
-      m_col_begin = other.m_col_begin;
-      m_col_end = other.m_col_end;
-      clear();
-      for(auto i=0ull;i<m_calls.size();++i)
-        m_calls.emplace_back(std::move(other.get_call(i)));
-    }
+    } 
     /*
      * Memory de-allocation
      */
@@ -331,6 +337,17 @@ class Variant
     /** print **/
     void print(std::ostream& stream) const;
   private:
+    //Function that moves from other to self
+    void move_in(Variant& other)
+    {
+      m_query_config = other.m_query_config;
+      m_col_begin = other.m_col_begin;
+      m_col_end = other.m_col_end;
+      //De-allocates existing data
+      clear();
+      for(auto i=0ull;i<m_calls.size();++i)
+        m_calls.emplace_back(std::move(other.get_call(i)));
+    }
     std::vector<VariantCall> m_calls;
     const VariantQueryConfig* m_query_config;
     uint64_t m_col_begin;
