@@ -39,31 +39,6 @@ StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_n
   return ad;
 }
 
-void print_GT_Column(GTColumn *gtc) {
-    std::cout << "SAMP \tALT \tREF \tPL \tAF \tAN \tAC" << std::endl;  
-    for( int i = 0; i < gtc->ALT_.size(); ++i ) {
-        std::cout << i << "\t";
-        // Print REF
-        std::cout << gtc->REF_[i] << "\t";
-        // Print ALT
-        for( std::string s : gtc->ALT_[i] ) {
-            std::cout << s << ",";
-        }
-        std::cout << "\t";
-        // Print PL
-        for( int j : gtc->PL_[i] ) {
-            std::cout << j << ",";
-        }
-        // Print AF
-        std::cout << "\t" << gtc->AF_[i];
-        // Print AN
-        std::cout << "\t" << gtc->AN_[i];
-        // Print AC
-        std::cout << "\t" << gtc->AC_[i];
-        std::cout << std::endl;
-    }
-}
-
 extern "C" void db_query_column(std::string workspace, std::string array_name, 
         uint64_t query_interval_idx, Variant& variant, VariantQueryConfig& query_config) {
     // Init Storage Manager object in the Factory class as 

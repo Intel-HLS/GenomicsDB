@@ -9,42 +9,6 @@
 /*a string to store <NON_REF> string (read-only)*/
 extern std::string g_non_reference_allele;
 
-/**
- * This class stores and processes information about a single column
- * of the gVCF array. A column corresponds to a unique position in
- * the genome. It holds the REF, ALT and PL values of every row (i.e.,
- * individual) in the array. If a REF value is equal to "$"
- * for a row, then it means that this row is NULL (i.e., it contains 
- * no useful info for joint genotyping). 
- */
-class GTColumn {
-  public:
-    // CONSTRUCTORS AND DESTRUCTORS
-    /** Simple constructor. */
-    GTColumn(int64_t col, uint64_t row_num);
-    ~GTColumn() {}
-
-    // OPERATIONS
-    // TODO: Implement function for deriving the final ALT and PL vailues
-    // TODO: Implement the genotyping function
-
-    /** Holds the (seqeuence of) ALT values for each row. */
-    std::vector<std::vector<std::string> > ALT_;
-    /** The id of the column. */
-    int64_t col_;
-    /** Holds the REF values for each row. */
-    std::vector<std::string> REF_;
-    /** Holds the (seqeuence of) PL values for each row. */
-    std::vector<std::vector<int> > PL_;
-    /** Holds the (seqeuence of) AF values for each row. */
-    std::vector<float> AF_;
-    /** Holds the (seqeuence of) AN values for each row. */
-    std::vector<int> AN_;
-    /** Holds the (seqeuence of) AC values for each row. */
-    std::vector<int> AC_;
-    void reset();
-};	
-
 //Structure stored as part of a priority queue (min-heap) to align genomic intervals
 class PQStruct
 {
