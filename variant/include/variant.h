@@ -228,7 +228,11 @@ class Variant
         ValidVariantCallIter(std::vector<VariantCall>::const_iterator x, std::vector<VariantCall>::const_iterator end, 
             uint64_t call_idx_in_variant) 
           : m_iter_position(x), m_end(end), m_call_idx_in_variant(call_idx_in_variant)
-        { }
+        { 
+          //If iter points to invalid Call, move forward
+          if(m_iter_position != m_end && !((*m_iter_position).is_valid()))
+            operator++();
+        }
         bool operator!=(const ValidVariantCallIter& other) const { return m_iter_position != other.m_iter_position; }
         const VariantCall& operator*() const { return *m_iter_position; }
         const ValidVariantCallIter& operator++()

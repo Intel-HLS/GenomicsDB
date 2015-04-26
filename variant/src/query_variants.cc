@@ -301,6 +301,7 @@ void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDe
     Tile::const_iterator cell_it = (*tile_its[COORDS_query_idx]).begin();
     Tile::const_iterator cell_it_end = (*tile_its[COORDS_query_idx]).end();
     std::vector<int64_t> next_coord = *cell_it;
+    variant.set_column_interval(next_coord[1], next_coord[1]);
     gt_fill_row<StorageManager::const_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(), query_config, tile_its,
 	&num_deref_tile_iters);
   }
@@ -649,7 +650,8 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
     unsigned schema_idx, uint64_t* num_deref_tile_iters
     ) const
 {
-  field_ptr = std::move(m_field_factory.Create(schema_idx)); 
+  if(field_ptr.get() == nullptr)       //Allocate only if null
+    field_ptr = std::move(m_field_factory.Create(schema_idx)); 
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   uint64_t num_elements = 0ull;
   //Default value of offset == offset of cell in co-ordinates tile
@@ -742,6 +744,13 @@ void VariantQueryProcessor::gt_fill_row(
         OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );     
+  }
+  VariantFieldString* REF_field_ptr =
+    get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX);
+  if(REF_field_ptr)
+  {
+    if(column < variant.get_column_begin())
+      REF_field_ptr->get() = "N";
   }
 }
 

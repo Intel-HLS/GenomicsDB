@@ -35,8 +35,8 @@ void VariantCall::reset_for_new_interval()
 {
   m_is_initialized = false;
   m_is_valid = false;
-  for(auto& ptr : m_fields)
-    ptr.reset(nullptr);
+  //for(auto& ptr : m_fields)
+  //ptr.reset(nullptr);
 }
 
 void Variant::print(std::ostream& fptr) const

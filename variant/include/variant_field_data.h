@@ -32,8 +32,10 @@ class VariantFieldData : public VariantFieldBase
     virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
     {
       const AttributeTileTy& tile = static_cast<const AttributeTileTy&>(base_tile);
-      tile.copy_payload(&m_data, element_idx, 1u);
+      m_data = tile.cell(element_idx);
+      /*tile.copy_payload(&m_data, element_idx, 1u);*/
     }
+    virtual DataType& get() { return m_data; }
     virtual const DataType& get() const { return m_data; }
   private:
     DataType m_data;
@@ -61,6 +63,7 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
       auto string_length = strnlen(payload_ptr, tile.cell_num()-element_idx); //do not run off beyond end of tile
       m_data = std::move(std::string(tile.get_payload_ptr(element_idx), string_length));
     }
+    virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << m_data; }
   private:
@@ -86,6 +89,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       m_data.resize(num_elements);
       tile.copy_payload(&(m_data[0]), element_idx, num_elements);
     }
+    virtual std::vector<DataType>& get()  { return m_data; }
     virtual const std::vector<DataType>& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const
     {
@@ -115,7 +119,7 @@ class VariantFieldALTData : public VariantFieldBase
     }
     virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
     {
-      m_data.clear();
+      auto insert_idx = 0u;
       const AttributeTile<char>& tile = static_cast<const AttributeTile<char>&>(base_tile);
       assert(element_idx < tile.cell_num());
       uint64_t offset_idx = element_idx;
@@ -135,20 +139,24 @@ class VariantFieldALTData : public VariantFieldBase
           break;
         else
         {
+          if(insert_idx >= m_data.size())
+            m_data.resize(2u*insert_idx+1u);
           char first_char = last_string[0];
           /** Exit if empty string or last element is NON_REF **/
           if(IS_NON_REF_ALLELE(first_char))
           {
-            m_data.push_back(TILEDB_NON_REF_VARIANT_REPRESENTATION);
+            m_data[insert_idx++] = TILEDB_NON_REF_VARIANT_REPRESENTATION;
             break;
           }
           else
-            m_data.push_back(std::move(last_string));
+            m_data[insert_idx++] = std::move(last_string);
           /* DO NOT USE last_string beyond this point*/
           offset_idx += string_length + 1u; //the +1 is for going beyond the end '\0' 
         }
       }
+      m_data.resize(insert_idx);
     }
+    virtual std::vector<std::string>& get() { return m_data; }
     virtual const std::vector<std::string>& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const
     {
