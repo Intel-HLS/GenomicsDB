@@ -165,6 +165,11 @@ class VariantCall
       assert(idx < m_fields.size());
       return m_fields[idx];
     }
+    inline const std::unique_ptr<VariantFieldBase>& get_field(unsigned idx) const
+    {
+      assert(idx < m_fields.size());
+      return m_fields[idx];
+    }
     template<class VariantFieldTy>
     inline VariantFieldTy* get_field(unsigned idx)
     {
@@ -173,6 +178,15 @@ class VariantCall
       //Either the pointer is NULL itself, else make sure the correct subclass is produced
       assert(raw_ptr == 0 || dynamic_cast<VariantFieldTy*>(raw_ptr));
       return static_cast<VariantFieldTy*>(raw_ptr);
+    }
+    template<class VariantFieldTy>
+    inline const VariantFieldTy* get_field(unsigned idx) const
+    {
+      const std::unique_ptr<VariantFieldBase>& smart_ptr = get_field(idx);
+      const auto* raw_ptr = smart_ptr.get();
+      //Either the pointer is NULL itself, else make sure the correct subclass is produced
+      assert(raw_ptr == 0 || dynamic_cast<const VariantFieldTy*>(raw_ptr));
+      return static_cast<const VariantFieldTy*>(raw_ptr);
     }
     /** print **/
     void print(std::ostream& stream, const VariantQueryConfig* query_config=0) const;
@@ -207,6 +221,30 @@ class VariantCall
  */
 class Variant
 {
+  public:
+    class ValidVariantCallIter
+    {
+      public:
+        ValidVariantCallIter(std::vector<VariantCall>::const_iterator x, std::vector<VariantCall>::const_iterator end, 
+            uint64_t call_idx_in_variant) 
+          : m_iter_position(x), m_end(end), m_call_idx_in_variant(call_idx_in_variant)
+        { }
+        bool operator!=(const ValidVariantCallIter& other) const { return m_iter_position != other.m_iter_position; }
+        const VariantCall& operator*() const { return *m_iter_position; }
+        const ValidVariantCallIter& operator++()
+        {
+          ++m_iter_position;
+          ++m_call_idx_in_variant;
+          //Increment till end or next valid record
+          for(;m_iter_position != m_end && !((*m_iter_position).is_valid());++m_iter_position,++m_call_idx_in_variant);
+          return *this;
+        }
+        uint64_t get_call_idx_in_variant() const { return m_call_idx_in_variant; }
+      private:
+        std::vector<VariantCall>::const_iterator m_iter_position;
+        std::vector<VariantCall>::const_iterator m_end;
+        uint64_t m_call_idx_in_variant;
+    };
   public:
     /*
      * Simple constructor
@@ -309,7 +347,7 @@ class Variant
       for(uint64_t i=0ull;i<num_calls;++i)
         m_calls[i].resize(num_query_call_fields);
     }
-    inline uint64_t get_num_calls() { return m_calls.size(); }
+    inline uint64_t get_num_calls() const { return m_calls.size(); }
     /**
      * Return VariantCall at index call_idx
      */
@@ -318,6 +356,9 @@ class Variant
       assert(call_idx < m_calls.size());
       return m_calls[call_idx];
     }
+    /*const iterators for iterating over valid calls*/
+    ValidVariantCallIter begin() const { return ValidVariantCallIter(m_calls.begin(), m_calls.end(), 0ull); }
+    ValidVariantCallIter end() const { return ValidVariantCallIter(m_calls.end(), m_calls.end(), m_calls.size()); }
     /*
      * Set call field idx call_field_idx for call call_idx
      */
@@ -334,6 +375,8 @@ class Variant
       assert(call_idx < m_calls.size());
       return m_calls[call_idx].get_field(call_field_idx);
     }
+    /* Return query config */
+    const VariantQueryConfig* get_query_config() const { return m_query_config; }
     /** print **/
     void print(std::ostream& stream) const;
   private:
@@ -360,13 +403,13 @@ class Variant
  * By default, do nothing
  */
 template<bool do_assert>
-inline void assert_not_null(void* ptr)
+inline void assert_not_null(const void* ptr)
 { }
 
 /*Specialization, actually checks*/
 /*Only in DEBUG compile mode*/
 template<>
-inline void assert_not_null<true>(void* ptr)
+inline void assert_not_null<true>(const void* ptr)
 {
   assert(ptr);
 }
@@ -389,5 +432,23 @@ VariantFieldTy* get_known_field_if_queried(VariantCall& curr_call, const Variant
     return nullptr;
 }
 
+template<class VariantFieldTy, bool do_assert>
+VariantFieldTy* get_known_field(VariantCall& curr_call, const VariantQueryConfig& query_config,
+    unsigned known_field_enum)
+{
+  auto* field_ptr = curr_call.get_field<VariantFieldTy>
+    (query_config.get_query_idx_for_known_field_enum(known_field_enum));
+  assert_not_null<do_assert>(static_cast<void*>(field_ptr));
+  return field_ptr;
+}
 
+template<class VariantFieldTy, bool do_assert>
+const VariantFieldTy* get_known_field(const VariantCall& curr_call, const VariantQueryConfig& query_config,
+    unsigned known_field_enum)
+{
+  auto* field_ptr = curr_call.get_field<VariantFieldTy>
+    (query_config.get_query_idx_for_known_field_enum(known_field_enum));
+  assert_not_null<do_assert>(static_cast<const void*>(field_ptr));
+  return field_ptr;
+}
 #endif

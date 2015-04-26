@@ -66,6 +66,8 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
   private:
     std::string m_data;
 };
+//Assigne name for type
+typedef VariantFieldData<std::string, const AttributeTile<char>> VariantFieldString;
 /*
  * Sub-class that holds vector data of basic types - int,float etc
  */

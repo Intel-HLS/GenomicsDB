@@ -261,10 +261,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::v
 	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters);
       }
     }
-    variant.print(std::cout);
-#if 0
-    VariantOperations::do_dummy_genotyping(gt_column, output_stream);
-#endif
+    VariantOperations::do_dummy_genotyping(variant, output_stream);
     //The following intervals have been completely processed
     while(!end_pq.empty() && end_pq.top()->m_end_point == min_end_point)
     {
