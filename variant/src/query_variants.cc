@@ -646,7 +646,7 @@ unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned k
 
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
     const Tile& tile, int64_t pos,
-    const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
+    const vector<int64_t>* OFFSETS_values, const int NULL_bitmap, const unsigned num_ALT_alleles,
     unsigned schema_idx, uint64_t* num_deref_tile_iters
     ) const
 {
@@ -655,7 +655,8 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   uint64_t num_elements = 0ull;
   //Default value of offset == offset of cell in co-ordinates tile
-  uint64_t field_offset = pos;
+  //Except for OFFSETS field
+  uint64_t field_offset = (known_field_enum == GVCF_OFFSETS_IDX) ? m_num_elements_per_offset_cell*pos : pos;
   //For known fields, check NULL, OFFSETS, length descriptors
   if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
   {
@@ -670,10 +671,10 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
     //Uses OFFSETS
     if(uses_OFFSETS_field_for_known_field_enum(known_field_enum))
     {
-      assert(OFFSETS_tile);
+      assert(OFFSETS_values);
       auto OFFSETS_idx = get_OFFSETS_idx_for_known_field_enum(known_field_enum);
-      uint64_t OFFSETS_cell = pos*m_num_elements_per_offset_cell + OFFSETS_idx;
-      field_offset = OFFSETS_tile->cell(OFFSETS_cell);
+      assert(OFFSETS_idx < OFFSETS_values->size());
+      field_offset = OFFSETS_values->operator[](OFFSETS_idx);
     }
   }
   field_ptr->copy_data_from_tile(tile, field_offset, num_elements);
@@ -709,29 +710,44 @@ void VariantQueryProcessor::gt_fill_row(
   assert(query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX) < 2u);
   assert(query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX) < 2u);
   assert(query_config.get_first_normal_field_query_idx() >= 2u);
+  assert(query_config.get_first_normal_field_query_idx() != UNDEFINED_ATTRIBUTE_IDX_VALUE);
+  assert(query_config.get_after_OFFSETS_field_query_idx() >= 2u);
+  assert(query_config.get_after_OFFSETS_field_query_idx() != UNDEFINED_ATTRIBUTE_IDX_VALUE);
   //Variables to store special fields
-  //OFFSETS - if OFFSETS is part of query, return Tile* else NULL
-  const AttributeTile<int64_t>* OFFSETS_tile = query_config.is_defined_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX) ?
-    static_cast<const AttributeTile<int64_t>* >(
-          &(*tile_its[query_config.get_query_idx_for_known_field_enum(GVCF_OFFSETS_IDX)])) : 0;
+  //OFFSETS values - initialized later
+  const vector<int64_t>* OFFSETS_values = 0;
   // NULL bitmap, if needed
   int NULL_bitmap = 0;
   //Num alternate alleles
   unsigned num_ALT_alleles = 0u;
-  //Load other special fields - OFFSETS, NULL, ALT etc
-  //NOTE, none of the special fields should use NULL bitmap
-  for(auto i=2u;i<query_config.get_first_normal_field_query_idx();++i)
+  //Load special fields up to and including OFFSETS
+  //NOTE, none of the special fields should use NULL bitmap or OFFSETS field
+  for(auto i=2u;i<query_config.get_after_OFFSETS_field_query_idx();++i)
   {
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
-        OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );
   }
   //Initialize NULL_bitmap, if needed
-  const auto* NULL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_NULL_IDX); 
-  NULL_bitmap = NULL_field_ptr->get()[0];        //NULL_field data is vector<int>
-
+  const auto* NULL_field_ptr =
+    get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_NULL_IDX); 
+  if(NULL_field_ptr)
+    NULL_bitmap = NULL_field_ptr->get()[0];        //NULL_field data is vector<int>
+  const auto* OFFSETS_field_ptr =
+    get_known_field_if_queried<VariantFieldPrimitiveVectorData<int64_t>, true>(curr_call, query_config, GVCF_OFFSETS_IDX); 
+  if(OFFSETS_field_ptr)
+    OFFSETS_values = &(OFFSETS_field_ptr->get());
+  for(auto i=query_config.get_after_OFFSETS_field_query_idx();
+      i<query_config.get_first_normal_field_query_idx();++i)
+  {
+    //Read from Tile
+    fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
+        query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
+        );
+  }
   //Initialize ALT field, if needed
   const auto* ALT_field_ptr = get_known_field_if_queried<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX); 
   num_ALT_alleles = ALT_field_ptr->get().size();   //ALT field data is vector<string>
@@ -741,7 +757,7 @@ void VariantQueryProcessor::gt_fill_row(
   {
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
-        OFFSETS_tile, NULL_bitmap, num_ALT_alleles,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );     
   }

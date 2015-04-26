@@ -258,15 +258,15 @@ class VariantQueryProcessor : public QueryProcessor {
      * @param pos Cell position in the co-ordinates tile
      * The following 3 parameters MUST be valid if the attribute being accessed needs them
      * Else, it's ok to leave them NULL, 0 etc
-     * @param OFFSETS_tile
-     * @param NULL_bitmap
-     * @param num_ALT_alleles - number of ALT alleles
+     * @param OFFSETS_values- can be nullptr, if the current field does not use OFFSETS
+     * @param NULL_bitmap - can be 0, if the current field does not use NULL field
+     * @param num_ALT_alleles - number of ALT alleles:can be 0, if the current field does not use this info
      * @schema_idx The idx of the attribute in the schema of the current array 
      * @num_deref_tile_iters - useful only if compiled in PROFILING mode
      */
     void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
         const Tile& tile, int64_t pos,
-        const AttributeTile<int64_t>* OFFSETS_tile, const int NULL_bitmap, const unsigned num_ALT_alleles,
+        const std::vector<int64_t>* OFFSETS_values, const int NULL_bitmap, const unsigned num_ALT_alleles,
         const unsigned schema_idx, uint64_t* num_deref_tile_iters=0
         ) const;
 

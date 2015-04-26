@@ -33,6 +33,7 @@ class VariantQueryConfig : public QueryConfig
       m_query_all_rows = true;
       m_num_rows_in_array = UNDEFINED_NUM_ROWS_VALUE;
       m_first_normal_field_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_after_OFFSETS_field_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
     }
     void clear()
     {
@@ -46,6 +47,7 @@ class VariantQueryConfig : public QueryConfig
      */
     void reorder_query_fields();
     unsigned get_first_normal_field_query_idx() const { return m_first_normal_field_query_idx; }
+    unsigned get_after_OFFSETS_field_query_idx() const { return m_after_OFFSETS_field_query_idx; }
     //Query idx <--> known fields mapping
     void resize_LUT(unsigned num_known_fields)
     { m_query_idx_known_variant_field_enum_LUT.resize_luts_if_needed(get_num_queried_attributes(), num_known_fields); }
@@ -151,6 +153,8 @@ class VariantQueryConfig : public QueryConfig
     bool m_done_bookkeeping;
     //Idx in m_query_attributes_names with the first common attribute - see reorder_query_fields();
     unsigned m_first_normal_field_query_idx;
+    //Idx in m_query_attributes_names after OFFSETS field
+    unsigned m_after_OFFSETS_field_query_idx;
     //Mapping between queried idx and known fields enum
     QueryIdxToKnownVariantFieldsEnumLUT m_query_idx_known_variant_field_enum_LUT;
     /*Rows to query*/
