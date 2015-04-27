@@ -121,10 +121,19 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
         VariantQueryConfig& query_config) const;
+    /*
+     * Equivalent of gt_get_column, but for interval
+     */
+    void gt_get_column_interval(
+        const StorageManager::ArrayDescriptor* ad,
+        const VariantQueryConfig& query_config, unsigned column_interval_idx,
+        std::vector<Variant>& variants, GTProfileStats* stats) const;
     /** Fills genotyping info for column col from the input array. */
+    //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
+    //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
     void gt_get_column(
         const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
-        Variant& variant, GTProfileStats* stats=0) const;
+        Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
     void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream) const;
     void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
     /*

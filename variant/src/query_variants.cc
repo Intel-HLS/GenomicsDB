@@ -4,6 +4,46 @@
 
 using namespace std;
 
+//Utility functions
+//Search for cell with given search value
+/*
+ * Given a column idx and the co-ordinate tile, returns the iterator in the tile pointing
+ * to the first cell with the next valid column (>column)
+ */
+Tile::const_iterator get_first_cell_after(const Tile& tile, uint64_t column)
+{
+  uint64_t search_value = column+1;
+  //Invariant: low always points to cell with value < search_value, high to cell with value>=search_value
+  //Hence, low and high initially "point" outside the tile
+  int64_t low = -1ll;
+  int64_t high = tile.cell_num();
+  int64_t mid = 0;
+  while(high > low + 1)
+  {
+    mid = (high + low)/2;
+    auto mid_value = static_cast<const CoordinateTile<int64_t>&>(tile).cell(mid)[1];
+    if(mid_value >= search_value)
+      high = mid;
+    else
+      low = mid;
+#ifdef DEBUG
+    //Check invariant
+    if(high < tile.cell_num())    //not end of tile
+    {
+      auto value = static_cast<const CoordinateTile<int64_t>&>(tile).cell(high)[1];
+      assert(value >= search_value);
+      if(high > 0)
+      {
+        //previous cell should be less than search position
+        auto value = static_cast<const CoordinateTile<int64_t>&>(tile).cell(high-1)[1];
+        assert(value < search_value);
+      }
+    }
+#endif
+  }
+  return Tile::const_iterator(&tile, high);
+}
+
 //Static members
 bool VariantQueryProcessor::m_are_static_members_initialized = false;
 vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<string>{
@@ -236,6 +276,26 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
   register_field_creators(ad);
 }
 
+void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
+{
+  //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
+  if(curr_call.get_column_begin() < current_start_position) 
+  {
+    auto* REF_ptr = get_known_field<VariantFieldString,true>
+      (curr_call, query_config, GVCF_REF_IDX);
+    REF_ptr->get() = "N";
+#if 0
+    VariantFieldString* REF_field_ptr =
+      get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX);
+    if(REF_field_ptr)
+    {
+      if(column < variant.get_column_begin())
+        REF_field_ptr->get() = "N";
+    }
+#endif
+  }
+}
+
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     std::ostream& output_stream,
@@ -253,12 +313,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
       {
         auto& curr_call = *iter;
         assert(curr_call.get_column_begin() <= current_start_position);
-        if(curr_call.get_column_begin() < current_start_position) 
-        {
-          auto* REF_ptr = get_known_field<VariantFieldString,true>
-            (curr_call, query_config, GVCF_REF_IDX);
-          REF_ptr->get() = "N";
-        }
+        modify_reference_if_in_middle(curr_call, query_config, current_start_position);
       }
     VariantOperations::do_dummy_genotyping(variant, output_stream);
     //The following intervals have been completely processed
@@ -482,10 +537,90 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
   query_config.set_done_bookkeeping(true);
 }
 
+void VariantQueryProcessor::gt_get_column_interval(
+    const StorageManager::ArrayDescriptor* ad,
+    const VariantQueryConfig& query_config, unsigned column_interval_idx,
+    vector<Variant>& variants, GTProfileStats* stats) const {
+  uint64_t num_deref_tile_iters = 0ull;
+  //Will be used to produce Variants with one CallSet
+  VariantQueryConfig subset_query_config(query_config);
+  vector<int64_t> subset_rows = vector<int64_t>(1u, 0);
+  subset_query_config.update_rows_to_query(subset_rows);  //only 1 row, row 0
+  //If the queried interval is [100:200], then the first part of the function gets a Variant object
+  //containing Calls that intersect with 100. Some of them could start before 100 and extend beyond. This
+  //information is recorded in the Call
+  Variant interval_begin_variant(&query_config);
+  interval_begin_variant.resize_based_on_query();
+  //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
+  //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
+  vector<uint64_t> query_row_idx_in_order = vector<uint64_t>(query_config.get_num_rows_to_query(), UNDEFINED_NUM_ROWS_VALUE);
+  gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
+  //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
+  //into multiple Variants, each containing a single call
+  interval_begin_variant.move_calls_to_separate_variants(variants, query_row_idx_in_order);
+  //If this is not a single position query, need to fetch more cells
+  if(query_config.get_column_end(column_interval_idx) >
+      query_config.get_column_begin(column_interval_idx))
+  {
+    //Get the tile with highest rank that intersects with start of the query interval. All cells prior to this tile
+    //have been handled by gt_get_column
+    auto start_rank = get_storage_manager().get_left_sweep_start_rank(ad, 
+        query_config.get_column_begin(column_interval_idx));
+    unsigned num_queried_attributes = query_config.get_num_queried_attributes();
+    //Initialize forward tile iterators at start rank
+    StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
+    for(auto i=0u;i<num_queried_attributes;++i)
+    {
+      assert(query_config.is_schema_idx_defined_for_query_idx(i));
+      auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
+      tile_its[i] = get_storage_manager().begin(ad, schema_idx, start_rank);
+    }
+    //Get tile end iter for COORDS
+    StorageManager::const_iterator tile_it_end = get_storage_manager().end(ad,
+        m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
+    //Get query idx for COORDS
+    unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
+    uint64_t num_deref_tile_iters = 0; 
+    bool first_tile = true;
+    bool break_out = false;
+    for(;tile_its[COORDS_query_idx] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))
+    {
+      // Initialize cell iterators for the coordinates
+      //For the first tile, start at cell after the interval begin position, since gt_get_column would have
+      //handled everything <= begin
+      Tile::const_iterator cell_it = first_tile ? 
+        get_first_cell_after((*tile_its[COORDS_query_idx]), query_config.get_column_begin(column_interval_idx))
+        : (*tile_its[COORDS_query_idx]).begin();
+      Tile::const_iterator cell_it_end = (*tile_its[COORDS_query_idx]).end();
+      for(;cell_it != cell_it_end;++cell_it) {
+        std::vector<int64_t> next_coord = *cell_it;
+        if(next_coord[1] > query_config.get_column_end(column_interval_idx))    //end of query interval
+        {
+          break_out = true;
+          break;
+        }
+        //Create Variant with single Call (subset_query_config contains one row)
+        subset_rows[0] = next_coord[0];
+        subset_query_config.update_rows_to_query(subset_rows);
+        variants.emplace_back(Variant(&subset_query_config));
+        auto& curr_variant = variants[variants.size()-1];
+        curr_variant.set_column_interval(next_coord[1], next_coord[1]);
+        curr_variant.resize_based_on_query();
+        gt_fill_row<StorageManager::const_iterator>(curr_variant, next_coord[0], next_coord[1], cell_it.pos(), 
+            subset_query_config, tile_its, &num_deref_tile_iters);
+      }
+      first_tile = false;
+      if(break_out)
+        break;
+    }
+    delete[] tile_its;
+  }
+}
+
 void VariantQueryProcessor::gt_get_column(
     const StorageManager::ArrayDescriptor* ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    Variant& variant, GTProfileStats* stats) const {
+    Variant& variant, GTProfileStats* stats, std::vector<uint64_t>* query_row_idx_in_order) const {
 
   //New interval starts
   variant.reset_for_new_interval();
@@ -520,6 +655,7 @@ void VariantQueryProcessor::gt_get_column(
 #endif
   // Indicates how many rows have been filled.
   uint64_t filled_rows = 0;
+  uint64_t num_valid_rows = 0;
   // Fill the genotyping column
   while(tile_its[COORDS_query_idx] != tile_it_end && filled_rows < query_config.get_num_rows_to_query()) {
     // Initialize cell iterators for the coordinates
@@ -537,27 +673,36 @@ void VariantQueryProcessor::gt_get_column(
       // If next cell is not on the right of col, and 
       // The rowIdx is being queried and
       // The row/call is uninitialized (uninvestigated) in the Variant
-      if(next_coord[1] <= col && query_config.is_queried_array_row_idx(next_coord[0]) &&
-          !(variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0])).is_initialized())
-        ) {
-        gt_fill_row<StorageManager::const_reverse_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(), query_config,
-            tile_its, &num_deref_tile_iters);
-        ++filled_rows;
+      if(next_coord[1] <= col && query_config.is_queried_array_row_idx(next_coord[0]))
+      { 
+        auto curr_query_row_idx = query_config.get_query_row_idx_for_array_row_idx(next_coord[0]);
+        auto& curr_call = variant.get_call(curr_query_row_idx);
+        if(!(curr_call.is_initialized()))
+        {
+          gt_fill_row<StorageManager::const_reverse_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(),
+              query_config, tile_its, &num_deref_tile_iters);
+          ++filled_rows;
+          if(curr_call.is_valid() && query_row_idx_in_order)
+          {
+            assert(num_valid_rows < query_row_idx_in_order->size());
+            (*query_row_idx_in_order)[num_valid_rows++] = curr_query_row_idx;
+          }
 #ifdef DO_PROFILING
-	if(first_sample)
-	{
-	  stats->m_sum_num_cells_first_sample += num_cells_touched;
-	  stats->m_sum_sq_num_cells_first_sample += (num_cells_touched*num_cells_touched);
-	  first_sample = false;
-	}
-	else
-	{
-	  ++(stats->m_num_samples);
-	  stats->m_sum_num_cells_touched += num_cells_touched;
-	  stats->m_sum_sq_num_cells_touched += (num_cells_touched*num_cells_touched);
-	}
-	num_cells_touched = 0;
+          if(first_sample)
+          {
+            stats->m_sum_num_cells_first_sample += num_cells_touched;
+            stats->m_sum_sq_num_cells_first_sample += (num_cells_touched*num_cells_touched);
+            first_sample = false;
+          }
+          else
+          {
+            ++(stats->m_num_samples);
+            stats->m_sum_num_cells_touched += num_cells_touched;
+            stats->m_sum_sq_num_cells_touched += (num_cells_touched*num_cells_touched);
+          }
+          num_cells_touched = 0;
 #endif
+        }
       }
       ++cell_it;
     }
@@ -565,6 +710,8 @@ void VariantQueryProcessor::gt_get_column(
   }
 
   delete [] tile_its;
+  if(query_row_idx_in_order)
+    query_row_idx_in_order->resize(num_valid_rows);
 
 #ifdef DO_PROFILING
   if(num_cells_touched > 0)	//last iteration till invalid
@@ -727,13 +874,6 @@ void VariantQueryProcessor::gt_fill_row(
         OFFSETS_values, NULL_bitmap, num_ALT_alleles,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );     
-  }
-  VariantFieldString* REF_field_ptr =
-    get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX);
-  if(REF_field_ptr)
-  {
-    if(column < variant.get_column_begin())
-      REF_field_ptr->get() = "N";
   }
 }
 

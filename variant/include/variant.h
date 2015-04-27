@@ -293,6 +293,15 @@ class Variant
         m_calls[i].set_row_idx(row_idx);
       }
     }
+    /*
+     * Resize call vector
+     */
+    void resize(uint64_t num_calls, unsigned num_query_call_fields)
+    {
+      m_calls.resize(num_calls);
+      for(uint64_t i=0ull;i<num_calls;++i)
+        m_calls[i].resize(num_query_call_fields);
+    }
     /**
      * Append call to m_calls
      * @param call Only rvalues allowed as move done 
@@ -308,15 +317,6 @@ class Variant
     {
       m_calls.emplace_back(VariantCall(rowIdx));
     }
-    /*
-     * Resize call vector
-     */
-    void resize(uint64_t num_calls, unsigned num_query_call_fields)
-    {
-      m_calls.resize(num_calls);
-      for(uint64_t i=0ull;i<num_calls;++i)
-        m_calls[i].resize(num_query_call_fields);
-    }
     inline uint64_t get_num_calls() const { return m_calls.size(); }
     /**
      * Return VariantCall at index call_idx
@@ -327,6 +327,11 @@ class Variant
       return m_calls[call_idx];
     }
     inline std::vector<VariantCall>& get_calls() { return m_calls; }
+    /*
+     * If this Variant object has N valid VariantCall objects, then create
+     * N variants each with a single valid VariantCall
+     */
+    void move_calls_to_separate_variants(std::vector<Variant>& variants, std::vector<uint64_t>& query_row_idx_in_order);
     /*Non-const iterators for iterating over valid calls*/
     valid_calls_iterator begin() { return valid_calls_iterator(m_calls.begin(), m_calls.end(), 0ull); }
     valid_calls_iterator end() { return valid_calls_iterator(m_calls.end(), m_calls.end(), m_calls.size()); }
@@ -352,7 +357,7 @@ class Variant
     /* Return query config */
     const VariantQueryConfig* get_query_config() const { return m_query_config; }
     /** print **/
-    void print(std::ostream& stream) const;
+    void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0) const;
   private:
     //Function that moves from other to self
     void move_in(Variant& other)

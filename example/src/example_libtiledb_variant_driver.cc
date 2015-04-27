@@ -18,19 +18,34 @@ int main(int argc, char *argv[]) {
 
     uint64_t start = std::stoull(std::string(argv[3]));
     uint64_t end = std::stoull(std::string(argv[4]));
+
+    bool single_position_queries = false;
+    if(argc >= 6 && std::string(argv[5])=="--single-positions")
+        single_position_queries = true;
     
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
     query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC"});
-    //Add interval to query - begin, end
-    for( uint64_t i = start; i <= end; ++i )
-        query_config.add_column_interval_to_query(i, i);        //currently, only single position queries supported
+    if(end > start && single_position_queries)
+        //Add interval to query - begin, end
+        for( uint64_t i = start; i <= end; ++i )
+            query_config.add_column_interval_to_query(i, i);        //single position queries
+    else
+        query_config.add_column_interval_to_query(start, end);
     
-    Variant variant;
-    for( uint64_t i = start; i <= end; ++i ) {
-        std::cout << "Position " << i << std::endl;
-        db_query_column(argv[1], argv[2], i-start, variant, query_config); 
-        std::cout << std::endl;
+    if(end  == start || single_position_queries)
+    {
+        Variant variant;
+        for( uint64_t i = start; i <= end; ++i ) {
+            std::cout << "Position " << i << std::endl;
+            db_query_column(argv[1], argv[2], i-start, variant, query_config); 
+            std::cout << std::endl;
+        }
+    }
+    else
+    {
+        std::vector<Variant> variants;
+        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
     }
     db_cleanup(argv[1], argv[2]);
 }

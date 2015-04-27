@@ -57,6 +57,20 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
     variant.print(std::cout);
 }
 
+extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
+        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config) {
+    // Init Storage Manager object in the Factory class as 
+    // both ArrayDescriptor and Query Processor use it 
+    StorageManager *sm = f.getStorageManager(workspace);
+    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
+    //Do book-keeping, if not already done
+    if(!query_config.is_bookkeeping_done())
+        qp->do_query_bookkeeping(ad, query_config);
+    qp->gt_get_column_interval(ad, query_config, query_interval_idx, variants, &f.stats);
+    for(const auto& variant : variants)
+        variant.print(std::cout, &query_config);
+}
 extern "C" void db_cleanup(std::string workspace, std::string array_name)
 {
     StorageManager* sm = f.getStorageManager(workspace);

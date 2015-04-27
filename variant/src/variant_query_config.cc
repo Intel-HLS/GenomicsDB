@@ -38,6 +38,33 @@ void VariantQueryConfig::setup_array_row_idx_to_query_row_idx_map()
   }
 }
 
+void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
+{
+  assert(is_bookkeeping_done());
+  //invalidate old queried rows, if a subset of rows were being queried earlier
+  if(!m_query_all_rows)
+  {
+    for(auto i=0ull;i<get_num_rows_to_query();++i)
+    {
+      assert(get_array_row_idx_for_query_row_idx(i) >=0 && get_array_row_idx_for_query_row_idx(i) < m_array_row_idx_to_query_row_idx.size());
+      m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)] = UNDEFINED_NUM_ROWS_VALUE;
+    }
+    set_rows_to_query(rows);
+  }
+  else
+  {
+    set_rows_to_query(rows);
+    setup_array_row_idx_to_query_row_idx_map();
+  }
+  //setup mapping for newly querid rows
+  for(auto i=0ull;i<m_query_rows.size();++i)
+  {
+    if(m_query_rows[i] < 0 || m_query_rows[i] >= get_num_rows_in_array())
+      throw OutOfBoundsQueryException("Queried row index "+std::to_string(m_query_rows[i])+" is out of bounds");
+    m_array_row_idx_to_query_row_idx[m_query_rows[i]] = i;
+  }
+}
+
 void VariantQueryConfig::reorder_query_fields()
 {
   auto special_field_names = vector<string>{ "COORDINATES", "END", "NULL", "OFFSETS", "ALT" };

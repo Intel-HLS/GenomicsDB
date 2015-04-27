@@ -85,6 +85,11 @@ class VariantQueryConfig : public QueryConfig
      * Initialize map between array row to query row
      */
     void setup_array_row_idx_to_query_row_idx_map();
+    /*
+     * Function that specifies which rows to query and also updates 
+     * m_array_row_idx_to_query_row_idx
+     */
+    void update_rows_to_query(const std::vector<int64_t>& rowIdx);
     /**
      * Rows to query
      */
@@ -148,6 +153,8 @@ class VariantQueryConfig : public QueryConfig
       assert(idx < m_query_column_intervals.size());
       return m_query_column_intervals[idx];
     }
+    inline uint64_t get_column_begin(unsigned idx) const { return get_column_interval(idx).first; }
+    inline uint64_t get_column_end(unsigned idx) const { return get_column_interval(idx).second; }
   private:
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;

@@ -378,7 +378,8 @@ uint64_t StorageManager::const_iterator::tile_id() const {
 
 StorageManager::const_iterator StorageManager::begin(
     const ArrayDescriptor* array_descriptor,
-    unsigned int attribute_id) {
+    unsigned int attribute_id, 
+    uint64_t start_rank) {
   // Check array descriptor
   assert(check_array_descriptor(*array_descriptor)); 
 
@@ -391,7 +392,13 @@ StorageManager::const_iterator StorageManager::begin(
   // Check attribute id
   assert(attribute_id <= array_info.array_schema_.attribute_num());
 
-  return const_iterator(this, array_descriptor, attribute_id, 0);
+  return const_iterator(this, array_descriptor, attribute_id, start_rank);
+}
+
+StorageManager::const_iterator StorageManager::begin(
+    const ArrayDescriptor* array_descriptor,
+    unsigned int attribute_id) {
+  return begin(array_descriptor, attribute_id, 0ull);
 }
 
 StorageManager::const_iterator StorageManager::end(

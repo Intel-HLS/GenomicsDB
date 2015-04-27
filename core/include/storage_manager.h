@@ -417,6 +417,10 @@ class StorageManager {
   /** Begin tile iterator. */
   const_iterator begin(const ArrayDescriptor* array_descriptor, 
                        unsigned int attribute_id);
+  /** Begin tile iterator starting from rank of the tile. */
+  const_iterator begin(const ArrayDescriptor* array_descriptor, 
+                       unsigned int attribute_id,
+                       uint64_t rank);
   /** End tile iterator. */
   const_iterator end(const ArrayDescriptor* array_descriptor,
                      unsigned int attribute_id);
