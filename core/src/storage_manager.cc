@@ -557,7 +557,7 @@ StorageManager::const_reverse_iterator StorageManager::rbegin(
 StorageManager::const_reverse_iterator StorageManager::rbegin(
     const ArrayDescriptor* ad,
     unsigned int attribute_id,
-    uint64_t rank) {
+    int64_t rank) {
   // Check array descriptoe
   assert(check_array_descriptor(*ad)); 
 
@@ -570,7 +570,7 @@ StorageManager::const_reverse_iterator StorageManager::rbegin(
 
   // Check attribute id and rank
   assert(attribute_id <= array_info.array_schema_.attribute_num());
-  assert(rank < tile_num);
+  assert(rank < static_cast<int64_t>(tile_num));        //rank could be -1
 
   return const_reverse_iterator(this, ad, attribute_id, rank);
 }
@@ -660,7 +660,7 @@ void StorageManager::get_overlapping_tile_ids(
   delete [] full;
 }
 
-uint64_t StorageManager::get_left_sweep_start_rank(
+int64_t StorageManager::get_left_sweep_start_rank(
     const ArrayDescriptor* ad, uint64_t col) const {
   // For easy reference
   const ArrayInfo& array_info = *(ad->array_info_);
@@ -669,6 +669,11 @@ uint64_t StorageManager::get_left_sweep_start_rank(
   unsigned int dim_num = array_schema.dim_num();
   const uint64_t tile_num = mbrs.size();
 
+  //Corner case - check whether the queried col is less than the MBR of the first tile
+  //If yes, return -1 as the rank. When rbegin() is called with this rank, effectively it
+  //returns rend
+  if(col < mbrs[0][2])
+    return -1;
   // Perform binary search over the MBRs and check the second
   // dimension (column in gVCF array), i.e., elements 2 and 3
   // in each MBR.
