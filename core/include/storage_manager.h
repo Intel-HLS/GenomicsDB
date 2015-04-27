@@ -429,7 +429,7 @@ class StorageManager {
    */
   const_reverse_iterator rbegin(const ArrayDescriptor* array_descriptor, 
                                 unsigned int attribute_id,
-                                uint64_t rank);
+                                int64_t rank);
   /** End reverse tile iterator. */
   const_reverse_iterator rend(const ArrayDescriptor* array_descriptor,
                               unsigned int attribute_id);
@@ -463,7 +463,7 @@ class StorageManager {
    * largest id, whose MBR either intersects col, or that lies before col.
    * Returns -1 if no row contains genotyping information.
    */
-  uint64_t get_left_sweep_start_rank(const ArrayDescriptor* ad, 
+  int64_t get_left_sweep_start_rank(const ArrayDescriptor* ad, 
                                     uint64_t col) const;
 #ifdef DO_PROFILING
   unsigned m_coords_attribute_idx;
