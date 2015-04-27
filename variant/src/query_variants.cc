@@ -474,7 +474,7 @@ unsigned int VariantQueryProcessor::gt_initialize_tile_its(
   // Create reverse iterators
   tile_its = new StorageManager::const_reverse_iterator[GT_IDX_COUNT];
   // Find the rank of the tile the left sweep starts from.
-  uint64_t start_rank = get_storage_manager().get_left_sweep_start_rank(ad, col);
+  auto start_rank = get_storage_manager().get_left_sweep_start_rank(ad, col);
 
   // END
   tile_its[GT_END_IDX] = get_storage_manager().rbegin(ad, GVCF_END_IDX, start_rank);
