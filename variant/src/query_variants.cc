@@ -638,15 +638,22 @@ void VariantQueryProcessor::gt_get_column_interval(
           break_out = true;
           break;
         }
-        //Create Variant with single Call (subset_query_config contains one row)
-        subset_rows[0] = next_coord[0];
-        subset_query_config.update_rows_to_query(subset_rows);
-        variants.emplace_back(Variant(&subset_query_config));
-        auto& curr_variant = variants[variants.size()-1];
-        curr_variant.set_column_interval(next_coord[1], next_coord[1]);
-        curr_variant.resize_based_on_query();
-        gt_fill_row<StorageManager::const_iterator>(curr_variant, next_coord[0], next_coord[1], cell_it.pos(), 
-            subset_query_config, tile_its, &num_deref_tile_iters);
+        if(query_config.is_queried_array_row_idx(next_coord[0]))       //If row is part of query, process cell
+        {
+          //Create Variant with single Call (subset_query_config contains one row)
+          subset_rows[0] = next_coord[0];
+          subset_query_config.update_rows_to_query(subset_rows);
+          variants.emplace_back(Variant(&subset_query_config));
+          auto& curr_variant = variants[variants.size()-1];
+          curr_variant.set_column_interval(next_coord[1], next_coord[1]);
+          curr_variant.resize_based_on_query();
+          gt_fill_row<StorageManager::const_iterator>(curr_variant, next_coord[0], next_coord[1], cell_it.pos(), 
+              subset_query_config, tile_its, &num_deref_tile_iters);
+          //Set correct end for the variant 
+          assert(curr_variant.get_num_calls() == 1u);      //exactly 1 call
+          curr_variant.set_column_interval(curr_variant.get_column_begin(),
+              curr_variant.get_call(0).get_column_end());
+        }
       }
       first_tile = false;
       if(break_out)
