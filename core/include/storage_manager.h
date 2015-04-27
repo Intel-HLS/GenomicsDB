@@ -469,6 +469,13 @@ class StorageManager {
    */
   int64_t get_left_sweep_start_rank(const ArrayDescriptor* ad, 
                                     uint64_t col) const;
+  /*
+   * Assuming the array is sorted in COLUMN_MAJOR order, this function
+   * returns the rank of the first tile which intersects with the queried 
+   * col value or is to the right of the col value
+   * Returns num_tiles if no valid tile exists
+   */
+  int64_t get_right_sweep_start_rank(const ArrayDescriptor* ad, uint64_t col) const;
 #ifdef DO_PROFILING
   unsigned m_coords_attribute_idx;
 #endif

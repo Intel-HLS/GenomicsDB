@@ -134,7 +134,8 @@ class VariantQueryProcessor : public QueryProcessor {
     void gt_get_column(
         const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
-    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream) const;
+    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream,
+        unsigned column_interval_idx=0u) const;
     void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum,

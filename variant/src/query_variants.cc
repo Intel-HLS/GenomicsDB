@@ -284,15 +284,6 @@ void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryCon
     auto* REF_ptr = get_known_field<VariantFieldString,true>
       (curr_call, query_config, GVCF_REF_IDX);
     REF_ptr->get() = "N";
-#if 0
-    VariantFieldString* REF_field_ptr =
-      get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX);
-    if(REF_field_ptr)
-    {
-      if(column < variant.get_column_begin())
-        REF_field_ptr->get() = "N";
-    }
-#endif
   }
 }
 
@@ -359,56 +350,101 @@ void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDe
 }
 
 void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
-    std::ostream& output_stream) const
+    std::ostream& output_stream, unsigned column_interval_idx) const
 {
   assert(query_config.is_bookkeeping_done());
-  
+  //Priority queue of VariantCalls ordered by END positions
+  VariantCallEndPQ end_pq;
+  //Rank of tile from which scan should start
+  int64_t start_rank = 0;
+  //Current gVCF position being operated on
+  int64_t current_start_position = -1ll;
+  //Variant object
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
+  //Scan only queried interval, not whole array
+  if(query_config.get_num_column_intervals() > 0)
+  {
+    //If the queried interval is [100:200], then the first part of this function gets a Variant object
+    //containing Calls that intersect with 100. Some of them could start before 100 and extend beyond. This
+    //information is recorded in the Call
+    //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
+    //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
+    //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
+    //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
+    gt_get_column(ad, query_config, column_interval_idx, variant, nullptr);
+    //Insert valid calls produced by gt_get_column into the priority queue
+    for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
+    {
+      auto& curr_call = *iter;
+      end_pq.push(&curr_call);
+      assert(end_pq.size() <= query_config.get_num_rows_to_query());
+    }
+    //Valid calls were found, start position == query colum interval begin
+    if(end_pq.size() > 0)
+      current_start_position = query_config.get_column_begin(column_interval_idx);
+    //For forward scan, get the tile with lowest rank that contains a column > query_column. All cells with column == query_column
+    //(or intersecting with query_column) will be handled by gt_get_column(). Hence, must start from next column
+    start_rank = get_storage_manager().get_right_sweep_start_rank(ad, query_config.get_column_begin(column_interval_idx)+1);
+  }
+  //Forward scan iterators
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
     auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
-    tile_its[i] = get_storage_manager().begin(ad, schema_idx);
+    tile_its[i] = get_storage_manager().begin(ad, schema_idx, start_rank);
   }
   //Get tile end iter for COORDS
   StorageManager::const_iterator tile_it_end = get_storage_manager().end(ad,
       m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
-  //Get query idx for COORDS and END
+  //Get query idx for COORDS 
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX));
   unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
-  assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
-  unsigned END_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX);
-  //Priority queue of VariantCalls ordered by END positions
-  VariantCallEndPQ end_pq;
-  //Current gVCF position being operated on
-  int64_t current_start_position = -1ll;
-  //Get first valid position in the array
+  //Iterator that points to the first cell to be accessed in the forward scan
+  Tile::const_iterator first_cell_it;
+  //Get first position in the array from which forward scan should start 
   if(tile_its[COORDS_query_idx] != tile_it_end)
   {
-    Tile::const_iterator cell_it = (*(tile_its[COORDS_query_idx])).begin();
+    //If a specific interval is being queried, then the first cell that should be accessed is the one
+    //whose column is > queried column interval begin, since gt_get_column() would take care of all cells 
+    //with column == queried column interval begin (or intersecting with)
+    first_cell_it = (query_config.get_num_column_intervals() > 0) ? 
+      get_first_cell_after((*tile_its[COORDS_query_idx]), query_config.get_column_begin(column_interval_idx))
+      : (*(tile_its[COORDS_query_idx])).begin();
     Tile::const_iterator cell_it_end = (*(tile_its[COORDS_query_idx])).end();
-    if(cell_it != cell_it_end)
+    //Initialize current_start_position only if gt_get_column() could not find any valid Calls intersecting
+    //with queried column interval begin
+    if(first_cell_it != cell_it_end && current_start_position < 0)
     {
-      std::vector<int64_t> current_coord = *cell_it;
+      std::vector<int64_t> current_coord = *first_cell_it;
       current_start_position = current_coord[1];
     }
   }
-  //Variant object
-  Variant variant(&query_config);
-  variant.resize_based_on_query();
+  //Set current column for variant (end is un-important as Calls are used to track end of intervals)
   variant.set_column_interval(current_start_position, current_start_position);
   //Next co-ordinate to consider
   int64_t next_start_position = -1ll;
   uint64_t tile_idx = 0ull;
   uint64_t num_deref_tile_iters = 0ull; //profiling
+  bool first_tile = true;
+  bool break_out = false;
   for(;tile_its[COORDS_query_idx] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))  //why -1, advance uses i<=N for loop
   {
     // Initialize cell iterators for the coordinates
-    Tile::const_iterator cell_it = (*tile_its[COORDS_query_idx]).begin();
+    //For the first tile, start at cell after the interval begin position, since gt_get_column would have
+    //handled everything <= begin
+    Tile::const_iterator cell_it = first_tile ? first_cell_it : (*tile_its[COORDS_query_idx]).begin();
     Tile::const_iterator cell_it_end = (*tile_its[COORDS_query_idx]).end();
     for(;cell_it != cell_it_end;++cell_it) {
       std::vector<int64_t> next_coord = *cell_it;
+      //If only interval requested and end of interval crossed, exit
+      if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+      {
+        break_out = true;
+        break;
+      }
       if(next_coord[1] != current_start_position) //have found cell with next gVCF position, handle accumulated values
       {
         next_start_position = next_coord[1];
@@ -433,6 +469,9 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       }
     }
     ++tile_idx;
+    first_tile = false;
+    if(break_out)
+      break;
   }
   //handle last interval
   handle_gvcf_ranges(end_pq, query_config, variant, output_stream, current_start_position, 0, true);
@@ -562,10 +601,10 @@ void VariantQueryProcessor::gt_get_column_interval(
   if(query_config.get_column_end(column_interval_idx) >
       query_config.get_column_begin(column_interval_idx))
   {
-    //Get the tile with highest rank that intersects with start of the query interval. All cells prior to this tile
-    //have been handled by gt_get_column
-    auto start_rank = get_storage_manager().get_left_sweep_start_rank(ad, 
-        query_config.get_column_begin(column_interval_idx));
+    //Get the tile with lowest rank that contains a column > query_column. All cells with column == query_column
+    //(or intersecting) would have been handled by gt_get_column(). Hence, must start from next column
+    auto start_rank = get_storage_manager().get_right_sweep_start_rank(ad, 
+        query_config.get_column_begin(column_interval_idx)+1);
     unsigned num_queried_attributes = query_config.get_num_queried_attributes();
     //Initialize forward tile iterators at start rank
     StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];

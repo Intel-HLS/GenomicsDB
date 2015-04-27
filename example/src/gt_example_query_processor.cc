@@ -55,9 +55,11 @@ int main(int argc, char** argv) {
     //Setup query
     VariantQueryConfig query_config;
     query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+    if(cl.m_position > 0)
+      query_config.add_column_interval_to_query(cl.m_position, 6000000000ull);  //end is 6B - large value
     qp.do_query_bookkeeping(ad_gVCF, query_config);
     //Do scan and operate
-    qp.scan_and_operate(ad_gVCF, query_config, output_stream);
+    qp.scan_and_operate(ad_gVCF, query_config, output_stream, 0u);
   }
   else
   {
