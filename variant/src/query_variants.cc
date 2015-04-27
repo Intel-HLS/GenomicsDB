@@ -249,17 +249,15 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     variant.set_column_interval(current_start_position, min_end_point);
     //Set REF to N if the call interval is split in the middle
     if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX))
-      for(VariantCall& curr_call : variant.get_calls())
+      for(Variant::valid_calls_iterator iter=variant.begin();iter!=variant.end();++iter)
       {
-        if(curr_call.is_valid())
+        auto& curr_call = *iter;
+        assert(curr_call.get_column_begin() <= current_start_position);
+        if(curr_call.get_column_begin() < current_start_position) 
         {
-          assert(curr_call.get_column_begin() <= current_start_position);
-          if(curr_call.get_column_begin() < current_start_position) 
-          {
-            auto* REF_ptr = get_known_field<VariantFieldString,true>
-              (curr_call, query_config, GVCF_REF_IDX);
-            REF_ptr->get() = "N";
-          }
+          auto* REF_ptr = get_known_field<VariantFieldString,true>
+            (curr_call, query_config, GVCF_REF_IDX);
+          REF_ptr->get() = "N";
         }
       }
     VariantOperations::do_dummy_genotyping(variant, output_stream);

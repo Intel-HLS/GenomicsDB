@@ -185,10 +185,11 @@ class VariantCall
 class Variant
 {
   public:
+    template<class VariantCallTy, class IteratorTy>
     class ValidVariantCallIter
     {
       public:
-        ValidVariantCallIter(std::vector<VariantCall>::const_iterator x, std::vector<VariantCall>::const_iterator end, 
+        ValidVariantCallIter(IteratorTy x, IteratorTy end, 
             uint64_t call_idx_in_variant) 
           : m_iter_position(x), m_end(end), m_call_idx_in_variant(call_idx_in_variant)
         { 
@@ -197,7 +198,7 @@ class Variant
             operator++();
         }
         bool operator!=(const ValidVariantCallIter& other) const { return m_iter_position != other.m_iter_position; }
-        const VariantCall& operator*() const { return *m_iter_position; }
+        VariantCallTy& operator*() const { return *m_iter_position; }
         const ValidVariantCallIter& operator++()
         {
           ++m_iter_position;
@@ -206,12 +207,14 @@ class Variant
           for(;m_iter_position != m_end && !((*m_iter_position).is_valid());++m_iter_position,++m_call_idx_in_variant);
           return *this;
         }
-        uint64_t get_call_idx_in_variant() const { return m_call_idx_in_variant; }
+        uint64_t get_call_idx_in_variant() const { return m_call_idx_in_variant; } 
       private:
-        std::vector<VariantCall>::const_iterator m_iter_position;
-        std::vector<VariantCall>::const_iterator m_end;
+        IteratorTy m_iter_position;
+        IteratorTy m_end;
         uint64_t m_call_idx_in_variant;
     };
+    using const_valid_calls_iterator = ValidVariantCallIter<const VariantCall, std::vector<VariantCall>::const_iterator>;
+    using valid_calls_iterator = ValidVariantCallIter<VariantCall, std::vector<VariantCall>::iterator>;
   public:
     /*
      * Simple constructor
@@ -324,9 +327,12 @@ class Variant
       return m_calls[call_idx];
     }
     inline std::vector<VariantCall>& get_calls() { return m_calls; }
+    /*Non-const iterators for iterating over valid calls*/
+    valid_calls_iterator begin() { return valid_calls_iterator(m_calls.begin(), m_calls.end(), 0ull); }
+    valid_calls_iterator end() { return valid_calls_iterator(m_calls.end(), m_calls.end(), m_calls.size()); }
     /*const iterators for iterating over valid calls*/
-    ValidVariantCallIter begin() const { return ValidVariantCallIter(m_calls.begin(), m_calls.end(), 0ull); }
-    ValidVariantCallIter end() const { return ValidVariantCallIter(m_calls.end(), m_calls.end(), m_calls.size()); }
+    const_valid_calls_iterator begin() const { return const_valid_calls_iterator(m_calls.begin(), m_calls.end(), 0ull); }
+    const_valid_calls_iterator end() const { return const_valid_calls_iterator(m_calls.end(), m_calls.end(), m_calls.size()); }
     /*
      * Set call field idx call_field_idx for call call_idx
      */
