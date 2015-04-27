@@ -236,41 +236,38 @@ VariantQueryProcessor::VariantQueryProcessor(const std::string& workspace, Stora
   register_field_creators(ad);
 }
 
-void VariantQueryProcessor::handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
+void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
-      std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
+    std::ostream& output_stream,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
 {
-  uint64_t num_deref_tile_iters = 0;
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
-    int64_t top_end_pq = end_pq.top()->m_end_point;
+    int64_t top_end_pq = end_pq.top()->get_column_end();
     int64_t min_end_point = (is_last_call || (top_end_pq < (next_start_position - 1))) ? top_end_pq : (next_start_position-1);
-    //Prepare variant for new column interval
-    variant.reset_for_new_interval();
+    //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
-    for(auto i=0ull;i<PQ_end_vec.size();++i)
-    {
-      auto& curr_struct = PQ_end_vec[i];
-      if(curr_struct.m_needs_to_be_processed)
+    //Set REF to N if the call interval is split in the middle
+    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX))
+      for(VariantCall& curr_call : variant.get_calls())
       {
-	auto find_iter = tile_idx_2_iters.find(curr_struct.m_tile_idx);
-	assert(find_iter != tile_idx_2_iters.end());
-        gt_fill_row<StorageManager::const_iterator>(variant, curr_struct.m_array_row_idx, curr_struct.m_array_column, 
-            curr_struct.m_cell_pos, query_config, 
-	    &((*find_iter).second.m_iter_vector[0]), &num_deref_tile_iters);
+        if(curr_call.is_valid())
+        {
+          assert(curr_call.get_column_begin() <= current_start_position);
+          if(curr_call.get_column_begin() < current_start_position) 
+          {
+            auto* REF_ptr = get_known_field<VariantFieldString,true>
+              (curr_call, query_config, GVCF_REF_IDX);
+            REF_ptr->get() = "N";
+          }
+        }
       }
-    }
     VariantOperations::do_dummy_genotyping(variant, output_stream);
     //The following intervals have been completely processed
-    while(!end_pq.empty() && end_pq.top()->m_end_point == min_end_point)
+    while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
     {
       auto top_element = end_pq.top();
-      top_element->m_needs_to_be_processed = false;
-      auto find_iter = tile_idx_2_iters.find(top_element->m_tile_idx);
-      assert(find_iter != tile_idx_2_iters.end());
-      GTTileIteratorsTracker& current_iterator_tracker = find_iter->second;
-      --(current_iterator_tracker.m_reference_counter);
+      top_element->mark_valid(false);
       end_pq.pop();
     }
     current_start_position = min_end_point + 1;   //next start position, after the end
@@ -315,9 +312,6 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
   
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   StorageManager::const_iterator* tile_its = new StorageManager::const_iterator[num_queried_attributes];
-  //While dealing with intervals, cells involved in a merge may be from different tiles
-  //This structure tracks tile_idx to tile iterators
-  std::unordered_map<uint64_t, GTTileIteratorsTracker> tile_idx_2_iters;
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
@@ -332,16 +326,8 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
   unsigned COORDS_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   unsigned END_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX);
-  //Variant object
-  Variant variant(&query_config);
-  variant.resize_based_on_query();
-  //Priority queue of END positions
-  VariantIntervalPQ end_pq;
-  //Vector of PQStruct - pre-allocate to eliminate allocations inside the while loop
-  //Elements of the priority queue end_pq are pointers to elements of this vector
-  auto PQ_end_vec = std::vector<PQStruct>(query_config.get_num_rows_to_query(), PQStruct{});
-  for(auto i=0ull;i<PQ_end_vec.size();++i)
-    PQ_end_vec[i].m_array_row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
+  //Priority queue of VariantCalls ordered by END positions
+  VariantCallEndPQ end_pq;
   //Current gVCF position being operated on
   int64_t current_start_position = -1ll;
   //Get first valid position in the array
@@ -355,16 +341,16 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       current_start_position = current_coord[1];
     }
   }
+  //Variant object
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
+  variant.set_column_interval(current_start_position, current_start_position);
+  //Next co-ordinate to consider
   int64_t next_start_position = -1ll;
   uint64_t tile_idx = 0ull;
+  uint64_t num_deref_tile_iters = 0ull; //profiling
   for(;tile_its[COORDS_query_idx] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))  //why -1, advance uses i<=N for loop
   {
-    //Setup map for tile id to iterator
-    //FIXME: possible use of boost::pool for reducing overhead of small allocs
-    auto insert_iter = tile_idx_2_iters.emplace(std::pair<uint64_t, GTTileIteratorsTracker>(tile_idx, GTTileIteratorsTracker(num_queried_attributes)));
-    GTTileIteratorsTracker& current_iterator_tracker = insert_iter.first->second;
-    for(auto i=0u;i<num_queried_attributes;++i)
-      current_iterator_tracker.m_iter_vector[i] = tile_its[i];
     // Initialize cell iterators for the coordinates
     Tile::const_iterator cell_it = (*tile_its[COORDS_query_idx]).begin();
     Tile::const_iterator cell_it_end = (*tile_its[COORDS_query_idx]).end();
@@ -374,47 +360,29 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       {
         next_start_position = next_coord[1];
         assert(next_coord[1] > current_start_position);
-        handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, variant, tile_idx_2_iters, output_stream,
-            current_start_position, next_start_position, false);
-        assert(end_pq.empty() || end_pq.top()->m_end_point >= next_start_position);  //invariant
+        handle_gvcf_ranges(end_pq, query_config, variant, output_stream, current_start_position,
+            next_start_position, false);
+        assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
+        //Set new start for next interval
         current_start_position = next_start_position;
+        variant.set_column_interval(current_start_position, current_start_position);
+        //Do not reset variant as some of the Calls that are long intervals might still be valid 
       }
       //Accumulate cells with position == current_start_position
-      uint64_t sample_idx = next_coord[0];
-      uint64_t query_row_idx = query_config.get_query_row_idx_for_array_row_idx(sample_idx);
-      auto& curr_struct = PQ_end_vec[query_row_idx];
-      //Store array column idx corresponding to this cell
-      curr_struct.m_array_column = current_start_position;
-      //Get END corresponding to this cell
-      curr_struct.m_end_point = static_cast<const AttributeTile<int64_t>& >(*tile_its[END_query_idx]).cell(cell_it.pos());
-      assert(curr_struct.m_end_point >= current_start_position);
-      //Store tile idx
-      curr_struct.m_tile_idx = tile_idx;
-      ++(current_iterator_tracker.m_reference_counter);
-      //Store position of cell wrt tile
-      curr_struct.m_cell_pos = cell_it.pos();
-      assert(cell_it.pos() < (*tile_its[COORDS_query_idx]).cell_num());
-      curr_struct.m_needs_to_be_processed = true;
-      end_pq.push(&(PQ_end_vec[query_row_idx]));
-      assert(end_pq.size() <= query_config.get_num_rows_to_query());
-    }
-    //Remove elements from tile idx 2 iter mapper which will no longer be used
-    for(auto map_iter = tile_idx_2_iters.begin(), map_end = tile_idx_2_iters.end();map_iter != map_end;)
-    {
-      if(map_iter->second.m_reference_counter == 0ull)
+      //Include only if row is part of query
+      if(query_config.is_queried_array_row_idx(next_coord[0]))
       {
-	auto tmp_iter = map_iter;
-	map_iter++;
-	tile_idx_2_iters.erase(tmp_iter);
+        gt_fill_row<StorageManager::const_iterator>(variant, next_coord[0], next_coord[1], cell_it.pos(), query_config,
+            tile_its, &num_deref_tile_iters);
+        auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+        end_pq.push(&curr_call);
+        assert(end_pq.size() <= query_config.get_num_rows_to_query());
       }
-      else
-	map_iter++;
     }
     ++tile_idx;
   }
   //handle last interval
-  handle_gvcf_ranges(end_pq, PQ_end_vec, query_config, variant, tile_idx_2_iters, output_stream,
-      current_start_position, 0, true);
+  handle_gvcf_ranges(end_pq, query_config, variant, output_stream, current_start_position, 0, true);
   delete[] tile_its;
 }
 
@@ -705,7 +673,8 @@ void VariantQueryProcessor::gt_fill_row(
     return;                     //Implies, this row has no valid data for this query range. Mark Call as invalid
   }
   curr_call.mark_valid(true);   //contains valid data for this query
-
+  //Set begin,end of the Call - NOTE: need not be same as Variant's begin,end
+  curr_call.set_column_interval(column, END_v);
   //Coordinates and END should be the first 2 queried attributes - see reorder_query_fields()
   assert(query_config.get_query_idx_for_known_field_enum(GVCF_COORDINATES_IDX) < 2u);
   assert(query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX) < 2u);

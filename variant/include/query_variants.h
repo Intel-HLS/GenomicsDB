@@ -103,23 +103,6 @@ class GTProfileStats {
 };
 
 /*
- * Stores the tile iterator value for a given tile.
- * Used by scan_and_operate to track multiple tile iterators when variant intervals
- * span large ranges
- */
-class GTTileIteratorsTracker
-{
-  public:
-    GTTileIteratorsTracker(unsigned num_attributes)
-    {
-      m_iter_vector.resize(num_attributes);
-      m_reference_counter = 0ull;
-    }
-    uint64_t m_reference_counter;
-    std::vector<StorageManager::const_iterator> m_iter_vector;
-};
-
-/*
  * Child class of QueryProcessor customized to handle variants
  */
 class VariantQueryProcessor : public QueryProcessor {
@@ -233,9 +216,9 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void initialize_length_descriptor(unsigned idx);
     /** Called by scan_and_operate to handle all ranges for given set of cells */
-    void handle_gvcf_ranges(VariantIntervalPQ& end_pq, std::vector<PQStruct>& PQ_end_vec,
-            const VariantQueryConfig& queryConfig, Variant& variant,
-        std::unordered_map<uint64_t, GTTileIteratorsTracker>& tile_idx_2_iters, std::ostream& output_stream,
+    void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
+        const VariantQueryConfig& queryConfig, Variant& variant,
+        std::ostream& output_stream,
         int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
     /** Fills a row of the input genotyping column with the proper info. */
     template<class ITER>

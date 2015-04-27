@@ -9,27 +9,6 @@
 /*a string to store <NON_REF> string (read-only)*/
 extern std::string g_non_reference_allele;
 
-//Structure stored as part of a priority queue (min-heap) to align genomic intervals
-class PQStruct
-{
-  public:
-    PQStruct()    { m_needs_to_be_processed = false; }
-    bool m_needs_to_be_processed;
-    int64_t m_end_point;
-    int64_t m_array_row_idx;
-    int64_t m_array_column;
-    uint64_t m_cell_pos;
-    uint64_t m_tile_idx;
-};
-
-//Ensures that interval with smallest end is at the top of the PQ/min-heap
-struct CmpPQStruct
-{
-  bool operator()(const PQStruct* x, const PQStruct* y) { return x->m_end_point > y->m_end_point; }
-};
-
-typedef std::priority_queue<PQStruct*, std::vector<PQStruct*>, CmpPQStruct> VariantIntervalPQ;
-
 /**
  * Class equivalent to GACall in GA4GH API. Stores info about 1 CallSet/row for a given position
  */
@@ -86,6 +65,18 @@ class VariantCall
      */
     void set_row_idx(uint64_t rowIdx) { m_row_idx = rowIdx; }
     uint64_t get_row_idx() const { return m_row_idx; }
+    /*
+     * Set genomic interval associated with this VariantCall
+     * Could be different from the begin, end of the Variant that this Call is part of
+     * because this Call is an interval that overlaps with the queried Variant
+     */
+    void set_column_interval(uint64_t col_begin, uint64_t col_end)
+    {
+      m_col_begin = col_begin;
+      m_col_end = col_end;
+    }
+    uint64_t get_column_begin() const { return m_col_begin; }
+    uint64_t get_column_end() const { return m_col_end; }
     /** 
      * Sometimes VariantCall might be allocated, but not store any valid data. This might happen if Variant allocates N
      * VariantCall objects, where N == number of rows. However, for a given query, not all VariantCall objects might contain valid data.
@@ -178,6 +169,14 @@ class VariantCall
     bool m_is_initialized;
     uint64_t m_row_idx;
     std::vector<std::unique_ptr<VariantFieldBase>> m_fields;
+    /**
+     * Begin,end of this VariantCall
+     * Could be different from the begin, end of the Variant that this Call is part of
+     * because this Call is an interval that overlaps with the queried Variant
+     **/
+    uint64_t m_col_begin;
+    uint64_t m_col_end;
+
 };
 
 /*
@@ -324,6 +323,7 @@ class Variant
       assert(call_idx < m_calls.size());
       return m_calls[call_idx];
     }
+    inline std::vector<VariantCall>& get_calls() { return m_calls; }
     /*const iterators for iterating over valid calls*/
     ValidVariantCallIter begin() const { return ValidVariantCallIter(m_calls.begin(), m_calls.end(), 0ull); }
     ValidVariantCallIter end() const { return ValidVariantCallIter(m_calls.end(), m_calls.end(), m_calls.size()); }
@@ -365,6 +365,14 @@ class Variant
     uint64_t m_col_end;
 };
 
+//Priority queue ordered by END position of intervals for VariantCall objects
+//Ensures that interval with the smallest end is at the top of the PQ/min-heap
+struct EndCmpVariantCallStruct
+{
+  bool operator()(const VariantCall* x, const VariantCall* y) { return x->get_column_end() > y->get_column_end(); }
+};
+typedef std::priority_queue<VariantCall*, std::vector<VariantCall*>, EndCmpVariantCallStruct> VariantCallEndPQ;
+
 /*
  * Function that checks whether a ptr is NULL or not
  * The template parameter do_assert controls whether to do actual check or not
@@ -383,7 +391,7 @@ inline void assert_not_null<true>(const void* ptr)
 }
 
 /*
- * Get unique_ptr<VariantFieldTy> for given known field enum
+ * Get VariantFieldTy* for given known field enum, if the query requested it
  */
 template<class VariantFieldTy, bool do_assert>
 VariantFieldTy* get_known_field_if_queried(VariantCall& curr_call, const VariantQueryConfig& query_config,
@@ -399,7 +407,9 @@ VariantFieldTy* get_known_field_if_queried(VariantCall& curr_call, const Variant
   else
     return nullptr;
 }
-
+/*
+ * Get VariantFieldTy* for given known field enum, if the query requested it (no checks)
+ */
 template<class VariantFieldTy, bool do_assert>
 VariantFieldTy* get_known_field(VariantCall& curr_call, const VariantQueryConfig& query_config,
     unsigned known_field_enum)
@@ -409,7 +419,9 @@ VariantFieldTy* get_known_field(VariantCall& curr_call, const VariantQueryConfig
   assert_not_null<do_assert>(static_cast<void*>(field_ptr));
   return field_ptr;
 }
-
+/*
+ * Get VariantFieldTy* for given known field enum, if the query requested it (no checks)
+ */
 template<class VariantFieldTy, bool do_assert>
 const VariantFieldTy* get_known_field(const VariantCall& curr_call, const VariantQueryConfig& query_config,
     unsigned known_field_enum)
