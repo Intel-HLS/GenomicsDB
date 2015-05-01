@@ -6,6 +6,7 @@
 enum ArgsIdxEnum
 {
   ARGS_IDX_IS_PRESORTED=1000,
+  ARGS_IDX_TEST_C_POINTERS
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
@@ -22,6 +23,7 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
     {"temp-space",1,0,'T'},
     {"workspace",1,0,'w'},
     {"presorted", 0, 0, ARGS_IDX_IS_PRESORTED},
+    {"test-c-pointers", 0, 0, ARGS_IDX_TEST_C_POINTERS},
     {0,0,0,0}
   };
   int c = 0;
@@ -61,6 +63,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
       case ARGS_IDX_IS_PRESORTED:
 	cl.m_is_input_csv_sorted = true;
 	break;
+      case ARGS_IDX_TEST_C_POINTERS:
+        cl.m_test_C_pointers = true;
+        break;
       default:
         std::cerr << "Unknown argument "<<argv<<"\n";
         exit(-1);

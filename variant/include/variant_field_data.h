@@ -17,6 +17,8 @@ class VariantFieldBase : public QueryFieldData
     virtual void copy_data_from_tile(const Tile&  base_tile, uint64_t element_idx, uint64_t num_elements) = 0;
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
+    /* Get pointer(s) to data with number of elements */
+    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
 };
 /*
  * Class that holds single element data 
@@ -37,6 +39,13 @@ class VariantFieldData : public VariantFieldBase
     }
     virtual DataType& get() { return m_data; }
     virtual const DataType& get() const { return m_data; }
+    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
+    {
+      size = 1u;
+      *(reinterpret_cast<DataType**>(ptr)) = &m_data;
+      allocated = false;
+      return std::type_index(typeid(DataType));
+    }
   private:
     DataType m_data;
 };
@@ -66,10 +75,19 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << m_data; }
+    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
+    {
+      size = 1u;
+      char** data = new char*;
+      data[0] = const_cast<char*>(m_data.c_str());
+      *(reinterpret_cast<char***>(ptr)) = data;
+      allocated = true;
+      return std::type_index(typeid(char));
+    }
   private:
     std::string m_data;
 };
-//Assigne name for type
+//Assigned name for string type
 typedef VariantFieldData<std::string, const AttributeTile<char>> VariantFieldString;
 /*
  * Sub-class that holds vector data of basic types - int,float etc
@@ -97,6 +115,13 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       for(auto val : m_data)
         fptr << val << ",";
       fptr << "]";
+    }
+    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
+    {
+      size = m_data.size();
+      *(reinterpret_cast<DataType**>(ptr)) = (size > 0) ? &(m_data[0]) : nullptr;
+      allocated = false;
+      return std::type_index(typeid(DataType));
     }
   private:
     std::vector<DataType> m_data;
@@ -164,6 +189,16 @@ class VariantFieldALTData : public VariantFieldBase
       for(auto& val : m_data)
         fptr << val << ",";
       fptr << "]";
+    }
+    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
+    {
+      size = m_data.size();
+      char** data = new char*[size];
+      for(auto i=0u;i<size;++i)
+        data[i] = const_cast<char*>(m_data[i].c_str());
+      *(reinterpret_cast<char***>(ptr)) = data;
+      allocated = true;
+      return std::type_index(typeid(char));
     }
   private:
     std::vector<std::string> m_data;
