@@ -4,7 +4,7 @@
 
 Factory f;
 
-StorageManager *Factory::getStorageManager(std::string workspace) {
+StorageManager *Factory::getStorageManager(std::string &workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
       if( sm != NULL ) {
           clear();
@@ -19,7 +19,7 @@ StorageManager *Factory::getStorageManager(std::string workspace) {
   return sm;
 }
 
-VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad) {
+VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string &workspace, const StorageManager::ArrayDescriptor* ad) {
   if( reset_qp || workspace.compare(this->workspace) != 0 ) {
       // Create query processor
       // The first input is the path to its workspace (the path must exist).
@@ -30,7 +30,7 @@ VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string workspace, 
   return qp;
 }
 
-StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_name) {
+StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string &array_name) {
   if( array_name.compare(this->array_name) != 0 ) {
       // Open arrays in READ mode
       ad = sm->open_array(array_name);
@@ -39,19 +39,19 @@ StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_n
   return ad;
 }
 
-const std::type_info *Factory::get_attribute_type(unsigned &schema_idx) { 
-    return getArrayDescriptor(array_name)->array_schema().type(schema_idx); 
-}
-
 void Factory::clear() {
     if( sm == NULL ) {
         return;
     }
-    StorageManager* sm = f.getStorageManager(workspace);
-    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
-    delete f.getVariantQueryProcessor(workspace, ad);
-    sm->close_array(f.getArrayDescriptor(array_name));
+    try { 
+        delete qp;
+        sm->close_array(ad);
+    }
+    catch (...) { }
     delete sm;
+    sm = NULL;
+    qp = NULL;
+    ad = NULL;
     workspace.clear();
     array_name.clear();
     reset_qp = true;
@@ -91,11 +91,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
 }
 
 extern "C" void db_cleanup() {
-    // f.clear();
-}
-
-extern "C" const std::type_info *get_attribute_type(unsigned &schema_idx) {
-    return f.get_attribute_type(schema_idx); 
+    f.clear();
 }
 
 template<class T>

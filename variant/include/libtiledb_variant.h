@@ -34,19 +34,23 @@ class Factory {
     GTProfileStats stats;
 
     // Get functions that do lazy initialization of the Tile DB Objects
-    StorageManager *getStorageManager(std::string workspace);
-    VariantQueryProcessor *getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad);
-    StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
-    
-    const std::type_info *get_attribute_type(unsigned &schema_idx);
+    StorageManager *getStorageManager(std::string &workspace);
+    VariantQueryProcessor *getVariantQueryProcessor(std::string &workspace, 
+                                                    const StorageManager::ArrayDescriptor* ad);
+    StorageManager::ArrayDescriptor *getArrayDescriptor(std::string &array_name);
 };
 
 extern "C" void db_query_column(std::string workspace, 
-                                                  std::string array_name, 
-                                                  uint64_t query_interval_idx, Variant& v, VariantQueryConfig& config); 
+                                std::string array_name, 
+                                uint64_t query_interval_idx, 
+                                Variant& v, 
+                                VariantQueryConfig& config); 
 
-extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
-        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config);
+extern "C" void db_query_column_range(std::string workspace, 
+                                      std::string array_name, 
+                                      uint64_t query_interval_idx, 
+                                      std::vector<Variant>& variants, 
+                                      VariantQueryConfig& query_config);
 
 extern "C" void db_cleanup();
 
