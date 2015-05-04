@@ -9,8 +9,10 @@
 #include "gperftools/profiler.h"
 #endif
 
+#include "libtiledb_variant.h"
+
 void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const StorageManager::ArrayDescriptor* ad_gVCF,
-    uint64_t column, std::ostream& output_stream)
+    uint64_t column, std::ostream& output_stream, bool do_C_pointer_testing)
 {
   VariantQueryConfig query_config;
   query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
@@ -22,10 +24,11 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
   variant.resize_based_on_query();
   /*Get one column from array*/
   qp.gt_get_column(ad_gVCF, query_config, 0u, variant, stats);
-#if 0
   //Do dummy genotyping operation
-  VariantOperations::do_dummy_genotyping(gt_column, output_stream);
-#endif
+  VariantOperations::do_dummy_genotyping(variant, output_stream);
+  //Test get_C_pointers() functions
+  if(do_C_pointer_testing)
+    test_C_pointers(variant);
 }
 
 int main(int argc, char** argv) {
@@ -97,7 +100,7 @@ int main(int argc, char** argv) {
 	cl.m_positions_list >> position;
 	if(cl.m_positions_list.bad() || cl.m_positions_list.eof() || cl.m_positions_list.fail())
 	  break;
-	GenotypeColumn(qp, &stats, ad_gVCF_opt, position, output_stream);
+	GenotypeColumn(qp, &stats, ad_gVCF_opt, position, output_stream, cl.m_test_C_pointers);
 	++num_queries;
       }
 #ifdef DO_PROFILING
@@ -133,7 +136,7 @@ int main(int argc, char** argv) {
 #endif
     }
     else
-      GenotypeColumn(qp, &stats, ad_gVCF_opt, cl.m_position, output_stream);
+      GenotypeColumn(qp, &stats, ad_gVCF_opt, cl.m_position, output_stream, cl.m_test_C_pointers);
     sm_opt.close_array(ad_gVCF_opt);
   }
 

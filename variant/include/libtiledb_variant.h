@@ -50,4 +50,4 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
 
 extern "C" void db_cleanup();
 
-extern "C" const std::type_info *get_attribute_type(unsigned &schema_idx);
+extern "C" void test_C_pointers(Variant& variant);

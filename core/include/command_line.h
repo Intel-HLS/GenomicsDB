@@ -15,6 +15,7 @@ class CommandLineOpts
       m_num_samples = 0ull;
       m_position = 0ull;
       m_temp_space = "";
+      m_test_C_pointers = false;
     }
     bool m_do_scan;
     bool m_is_input_csv_sorted;
@@ -26,6 +27,7 @@ class CommandLineOpts
     uint64_t m_num_samples;
     uint64_t m_position;
     std::string m_temp_space;
+    bool m_test_C_pointers;
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl);

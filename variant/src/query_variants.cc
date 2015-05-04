@@ -952,3 +952,20 @@ void VariantQueryProcessor::clear()
   m_schema_idx_to_known_variant_field_enum_LUT.reset_luts();
   m_field_factory.clear();
 }
+
+bool VariantQueryProcessor::get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum)
+{
+  assert(VariantQueryProcessor::m_are_static_members_initialized);
+  auto iter = VariantQueryProcessor::m_known_variant_field_name_to_enum.find(field_name);
+  if(iter == VariantQueryProcessor::m_known_variant_field_name_to_enum.end())
+    return false;
+  known_field_enum = (*iter).second;
+  return true;
+}
+
+string VariantQueryProcessor::get_known_field_name_for_enum(unsigned known_field_enum)
+{
+  assert(VariantQueryProcessor::m_are_static_members_initialized);
+  assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
+  return VariantQueryProcessor::m_known_variant_field_names[known_field_enum];
+}

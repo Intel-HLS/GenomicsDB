@@ -115,6 +115,7 @@ class VariantCall
     {
       return m_fields;
     }
+    inline unsigned get_num_fields() const { return m_fields.size(); }
     inline std::unique_ptr<VariantFieldBase>& get_field(unsigned idx)
     {
       assert(idx < m_fields.size());

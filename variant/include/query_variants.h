@@ -202,6 +202,16 @@ class VariantQueryProcessor : public QueryProcessor {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
     }
+    /*
+     * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
+     * If yes, fills known_field_enum and returns true
+     * Else returns false. Leaves known_field_enum untouched.
+     */
+    static bool get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum);
+    /*
+     * Get name for known field enum
+     */
+    static std::string get_known_field_name_for_enum(unsigned known_field_enum);
   private:
     /*initialize all known info about variants*/
     void initialize_known(const StorageManager::ArrayDescriptor* ad);

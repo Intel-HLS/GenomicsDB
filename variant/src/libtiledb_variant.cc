@@ -97,3 +97,89 @@ extern "C" void db_cleanup() {
 extern "C" const std::type_info *get_attribute_type(unsigned &schema_idx) {
     return f.get_attribute_type(schema_idx); 
 }
+
+template<class T>
+void print_vector(T* vec, unsigned size)
+{
+    std::cout << "[ ";
+    for(auto i=0u;i<size;++i)
+        std::cout << vec[i] << ",";
+    std::cout << " ]\n";
+}
+
+#define PRINT_MACRO(X)  print_vector<X>(reinterpret_cast<X*>(ptr), size);
+
+enum TestCPointersEnum
+{
+  TEST_C_POINTER_INT=0u,
+  TEST_C_POINTER_INT64_T,
+  TEST_C_POINTER_UNSIGNED,
+  TEST_C_POINTER_UINT64_T,
+  TEST_C_POINTER_FLOAT,
+  TEST_C_POINTER_DOUBLE,
+  TEST_C_POINTER_CHAR_PTR,
+};
+
+extern "C" void test_C_pointers(Variant& variant)
+{
+    auto type_to_int = std::unordered_map<std::type_index, unsigned> {
+        { std::type_index(typeid(int)), TEST_C_POINTER_INT },
+        { std::type_index(typeid(int64_t)), TEST_C_POINTER_INT64_T },
+        { std::type_index(typeid(unsigned)), TEST_C_POINTER_UNSIGNED },
+        { std::type_index(typeid(uint64_t)), TEST_C_POINTER_UINT64_T },
+        { std::type_index(typeid(float)), TEST_C_POINTER_FLOAT },
+        { std::type_index(typeid(double)), TEST_C_POINTER_DOUBLE },
+        { std::type_index(typeid(char)), TEST_C_POINTER_CHAR_PTR }
+    };
+    for(Variant::valid_calls_iterator iter=variant.begin();iter!=variant.end();++iter)
+    {
+        VariantCall& curr_call = *iter;
+        for(auto i=0u;i<curr_call.get_num_fields();++i)
+        {
+            auto& field_ptr = curr_call.get_field(i);   //returns unique_ptr<VariantFieldBase>&
+            if(field_ptr.get())
+            {
+                unsigned size = 0;
+                char* ptr = 0;
+                bool allocated = false;
+                //The function may allocate memory which must be freed by the client code
+                //For example, when querying the ALT field, the function will allocate array of N char*
+                auto type_index = field_ptr->get_C_pointers(size, reinterpret_cast<void**>(&ptr), allocated);
+                if(type_to_int.find(type_index) == type_to_int.end())
+                {
+                  std::cerr << "Unknown type for field idx "<<i<<", skipping\n";
+                  continue;
+                }
+                switch(type_to_int[type_index])
+                {
+                    case TEST_C_POINTER_INT:
+                        PRINT_MACRO(int);
+                        break;
+                    case TEST_C_POINTER_INT64_T:
+                        PRINT_MACRO(int64_t);
+                        break;  
+                    case TEST_C_POINTER_UNSIGNED:
+                        PRINT_MACRO(unsigned);
+                        break;
+                    case TEST_C_POINTER_UINT64_T:
+                        PRINT_MACRO(uint64_t);
+                        break;
+                    case TEST_C_POINTER_FLOAT:
+                        PRINT_MACRO(float);
+                        break;
+                    case TEST_C_POINTER_DOUBLE:
+                        PRINT_MACRO(double);
+                        break;
+                    case TEST_C_POINTER_CHAR_PTR:
+                        PRINT_MACRO(char*);
+                        break;
+                }
+                if(allocated)
+                  if(size > 1)
+                    delete[] ptr;
+                  else
+                    delete ptr;
+            }
+        }
+    }
+}
