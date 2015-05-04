@@ -38,12 +38,15 @@ int main(int argc, char *argv[]) {
             std::cout << "Position " << i << std::endl;
             db_query_column(argv[1], argv[2], i-start, variant, query_config); 
             std::cout << std::endl;
+            variant.print(std::cout, &query_config);
         }
     }
     else
     {
         std::vector<Variant> variants;
         db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+        for(const auto& variant : variants)
+            variant.print(std::cout, &query_config);
     }
     db_cleanup();
 }
