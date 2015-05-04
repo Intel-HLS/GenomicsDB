@@ -24,10 +24,10 @@ class Factory {
         reset_qp = true;
     }
 
+    void clear();
+
     ~Factory() {
-        if( sm != NULL ) {
-            delete sm;
-        }
+        clear();
     }
 
     //Stats struct
@@ -37,6 +37,8 @@ class Factory {
     StorageManager *getStorageManager(std::string workspace);
     VariantQueryProcessor *getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad);
     StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
+    
+    const std::type_info *get_attribute_type(unsigned &schema_idx);
 };
 
 extern "C" void db_query_column(std::string workspace, 
@@ -46,4 +48,6 @@ extern "C" void db_query_column(std::string workspace,
 extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
         uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config);
 
-extern "C" void db_cleanup(std::string workspace, std::string array_name);
+extern "C" void db_cleanup();
+
+extern "C" const std::type_info *get_attribute_type(unsigned &schema_idx);

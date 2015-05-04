@@ -7,7 +7,7 @@ Factory f;
 StorageManager *Factory::getStorageManager(std::string workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
       if( sm != NULL ) {
-          delete sm;
+          clear();
       }
       // Create storage manager
       // The input is the path to its workspace (the path must exist).
@@ -37,6 +37,24 @@ StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string array_n
       this->array_name = array_name;
   }
   return ad;
+}
+
+const std::type_info *Factory::get_attribute_type(unsigned &schema_idx) { 
+    return getArrayDescriptor(array_name)->array_schema().type(schema_idx); 
+}
+
+void Factory::clear() {
+    if( sm == NULL ) {
+        return;
+    }
+    StorageManager* sm = f.getStorageManager(workspace);
+    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
+    delete f.getVariantQueryProcessor(workspace, ad);
+    sm->close_array(f.getArrayDescriptor(array_name));
+    delete sm;
+    workspace.clear();
+    array_name.clear();
+    reset_qp = true;
 }
 
 extern "C" void db_query_column(std::string workspace, std::string array_name, 
@@ -71,10 +89,11 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     for(const auto& variant : variants)
         variant.print(std::cout, &query_config);
 }
-extern "C" void db_cleanup(std::string workspace, std::string array_name)
-{
-    StorageManager* sm = f.getStorageManager(workspace);
-    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
-    delete f.getVariantQueryProcessor(workspace, ad);
-    sm->close_array(f.getArrayDescriptor(array_name));
+
+extern "C" void db_cleanup() {
+    // f.clear();
+}
+
+extern "C" const std::type_info *get_attribute_type(unsigned &schema_idx) {
+    return f.get_attribute_type(schema_idx); 
 }
