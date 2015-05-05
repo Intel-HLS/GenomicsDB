@@ -24,28 +24,34 @@ class Factory {
         reset_qp = true;
     }
 
+    void clear();
+
     ~Factory() {
-        if( sm != NULL ) {
-            delete sm;
-        }
+        clear();
     }
 
     //Stats struct
     GTProfileStats stats;
 
     // Get functions that do lazy initialization of the Tile DB Objects
-    StorageManager *getStorageManager(std::string workspace);
-    VariantQueryProcessor *getVariantQueryProcessor(std::string workspace, const StorageManager::ArrayDescriptor* ad);
-    StorageManager::ArrayDescriptor *getArrayDescriptor(std::string array_name);
+    StorageManager *getStorageManager(std::string &workspace);
+    VariantQueryProcessor *getVariantQueryProcessor(std::string &workspace, 
+                                                    const StorageManager::ArrayDescriptor* ad);
+    StorageManager::ArrayDescriptor *getArrayDescriptor(std::string &array_name);
 };
 
 extern "C" void db_query_column(std::string workspace, 
-                                                  std::string array_name, 
-                                                  uint64_t query_interval_idx, Variant& v, VariantQueryConfig& config); 
+                                std::string array_name, 
+                                uint64_t query_interval_idx, 
+                                Variant& v, 
+                                VariantQueryConfig& config); 
 
-extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
-        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config);
+extern "C" void db_query_column_range(std::string workspace, 
+                                      std::string array_name, 
+                                      uint64_t query_interval_idx, 
+                                      std::vector<Variant>& variants, 
+                                      VariantQueryConfig& query_config);
 
-extern "C" void db_cleanup(std::string workspace, std::string array_name);
+extern "C" void db_cleanup();
 
 extern "C" void test_C_pointers(Variant& variant);

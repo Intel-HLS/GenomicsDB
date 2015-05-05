@@ -7,8 +7,6 @@ int main(int argc, char *argv[]) {
     if( argc < 5 ) {
       char workspace[] = "/mnt/app_hdd/scratch/jagan/TileDB/DB/";
       char array_name[] = "10_DB";
-      // char workspace[] = "/mnt/app_hdd/scratch/2arth52g/VCFs/tiledb_csv/arrays/";
-      // char array_name[] = "GT10";
       std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
       std::cout << "Usage: " << argv[0] << " <workspace> <array name> <start> <end>" << std::endl;
       std::cout << "Example: " << std::endl << "\t" << argv[0]
@@ -40,13 +38,16 @@ int main(int argc, char *argv[]) {
             std::cout << "Position " << i << std::endl;
             db_query_column(argv[1], argv[2], i-start, variant, query_config); 
             std::cout << std::endl;
+            variant.print(std::cout, &query_config);
         }
     }
     else
     {
         std::vector<Variant> variants;
         db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+        for(const auto& variant : variants)
+            variant.print(std::cout, &query_config);
     }
-    db_cleanup(argv[1], argv[2]);
+    db_cleanup();
 }
 
