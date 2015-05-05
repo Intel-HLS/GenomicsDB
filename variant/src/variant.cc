@@ -24,6 +24,47 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
   }
 }
 
+void VariantCall::copy_simple_members(const VariantCall& other)
+{
+  m_is_valid = other.is_valid();
+  m_is_initialized = other.is_initialized();
+  m_row_idx = other.get_row_idx();
+  m_col_begin = other.m_col_begin;
+  m_col_end = other.m_col_end;
+}
+
+/*
+ * Performs move from other object
+ */
+void VariantCall::move_in(VariantCall& other)
+{
+  copy_simple_members(other);
+  clear();
+  m_fields.resize(other.get_all_fields().size());
+  unsigned idx = 0u;
+  for(auto& other_field : other.get_all_fields())
+  {
+    set_field(idx, other_field);
+    ++idx;
+  }
+}
+/*
+ * Creates copy of Call object
+ */
+void VariantCall::copy_from_call(const VariantCall& other)
+{
+  copy_simple_members(other);
+  clear();
+  m_fields.resize(other.get_all_fields().size());
+  unsigned idx = 0u;
+  for(const auto& other_field : other.get_all_fields())
+  {
+    if(other_field.get())       //not null
+      set_field(idx, other_field->create_copy()); //create copy of field
+    ++idx;
+  }
+}
+
 //Variant functions
 //FIXME: still assumes that Calls are allocated once and re-used across queries, need not be true
 void Variant::reset_for_new_interval()
@@ -67,4 +108,31 @@ void Variant::move_calls_to_separate_variants(std::vector<Variant>& variants,
     curr_variant.set_column_interval(to_move_call.get_column_begin(), to_move_call.get_column_end());
     curr_variant.add_call(std::move(to_move_call));
   }
+}
+
+void Variant::copy_simple_members(const Variant& other)
+{
+  m_query_config = other.m_query_config;
+  m_col_begin = other.m_col_begin;
+  m_col_end = other.m_col_end;
+}
+
+//Function that moves information from other to self
+void Variant::move_in(Variant& other)
+{
+  copy_simple_members(other);
+  //De-allocates existing data
+  clear();
+  for(auto i=0ull;i<m_calls.size();++i)
+    m_calls.emplace_back(std::move(other.get_call(i)));
+}
+
+void Variant::copy_from_variant(const Variant& other)
+{
+  copy_simple_members(other);
+  //De-allocates existing data
+  clear();
+  m_calls.resize(other.get_num_calls());
+  for(auto i=0ull;i<m_calls.size();++i)
+    m_calls[i].copy_from_call(other.get_call(i));  //make copy
 }

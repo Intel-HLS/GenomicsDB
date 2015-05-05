@@ -28,7 +28,13 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
   VariantOperations::do_dummy_genotyping(variant, output_stream);
   //Test get_C_pointers() functions
   if(do_C_pointer_testing)
+  {
     test_C_pointers(variant);
+    std::cout << "Repeating for copy: \n";
+    Variant copy;
+    copy.copy_from_variant(variant);
+    VariantOperations::do_dummy_genotyping(copy, output_stream);
+  }
 }
 
 int main(int argc, char** argv) {

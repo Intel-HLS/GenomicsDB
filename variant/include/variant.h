@@ -107,15 +107,28 @@ class VariantCall
       VariantFieldBase* ptr = field.release();      //Release field from management
       m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
     }
+    /*
+     * Set field through raw pointer
+     */
+    inline void set_field(unsigned idx, VariantFieldBase* field)
+    {
+      assert(idx < m_fields.size());
+      assert(m_fields[idx].get() == 0);        //should not be managing any memory
+      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
+    }
     void add_field(std::unique_ptr<VariantFieldBase>& field)
     {
       m_fields.push_back(std::move(field));
     }
-    inline std::vector<std::unique_ptr<VariantFieldBase>>& get_all_fields()
-    {
-      return m_fields;
-    }
+    /*
+     * Get reference to vector of fields
+     */
+    inline std::vector<std::unique_ptr<VariantFieldBase>>& get_all_fields()  {  return m_fields; }
+    inline const std::vector<std::unique_ptr<VariantFieldBase>>& get_all_fields()  const {  return m_fields; }
     inline unsigned get_num_fields() const { return m_fields.size(); }
+    /*
+     * Get field at idx
+     */
     inline std::unique_ptr<VariantFieldBase>& get_field(unsigned idx)
     {
       assert(idx < m_fields.size());
@@ -146,24 +159,22 @@ class VariantCall
     }
     /** print **/
     void print(std::ostream& stream, const VariantQueryConfig* query_config=0) const;
+    /**
+     * Deep copy VariantCall, avoid using as much as possible (performance)
+     */
+    void copy_from_call(const VariantCall& src);
   private:
     /*
      * Performs move from other object
      */
-    void move_in(VariantCall& other)
-    {
-      m_is_valid = other.is_valid();
-      m_is_initialized = other.is_initialized();
-      m_row_idx = other.get_row_idx();
-      clear();
-      m_fields.resize(other.get_all_fields().size());
-      unsigned idx = 0u;
-      for(auto& other_field : other.get_all_fields())
-      {
-        set_field(idx, other_field);
-        ++idx;
-      }
-    }
+    void move_in(VariantCall& other);
+    /*
+     * Copies the simple member elements
+     */
+    void copy_simple_members(const VariantCall& other);
+    /*
+     * Member data elements - check clear, copy, move_in functions while adding new members
+     */
     //Could be initialized, but invalid (no data for this column interval)
     bool m_is_valid;
     //If false, not initialized (not yet considered in query)
@@ -177,7 +188,6 @@ class VariantCall
      **/
     uint64_t m_col_begin;
     uint64_t m_col_end;
-
 };
 
 /*
@@ -186,6 +196,10 @@ class VariantCall
 class Variant
 {
   public:
+    /*
+     * Iterator object that traverses over VariantCalls vector, skipping invalid/un-initialized Calls
+     * Templated for const, non-const iterators
+     */
     template<class VariantCallTy, class IteratorTy>
     class ValidVariantCallIter
     {
@@ -327,7 +341,13 @@ class Variant
       assert(call_idx < m_calls.size());
       return m_calls[call_idx];
     }
+    inline const VariantCall& get_call(uint64_t call_idx) const
+    {
+      assert(call_idx < m_calls.size());
+      return m_calls[call_idx];
+    }
     inline std::vector<VariantCall>& get_calls() { return m_calls; }
+    inline const std::vector<VariantCall>& get_calls() const { return m_calls; }
     /*
      * If this Variant object has N valid VariantCall objects, then create
      * N variants each with a single valid VariantCall
@@ -359,18 +379,20 @@ class Variant
     const VariantQueryConfig* get_query_config() const { return m_query_config; }
     /** print **/
     void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0) const;
+    /*
+     * Deep copy variant from src to this. Avoid using as much as possible
+     */
+    void copy_from_variant(const Variant& src);
   private:
     //Function that moves from other to self
-    void move_in(Variant& other)
-    {
-      m_query_config = other.m_query_config;
-      m_col_begin = other.m_col_begin;
-      m_col_end = other.m_col_end;
-      //De-allocates existing data
-      clear();
-      for(auto i=0ull;i<m_calls.size();++i)
-        m_calls.emplace_back(std::move(other.get_call(i)));
-    }
+    void move_in(Variant& other);
+    /*
+     * Copies simple member elements from other
+     */
+    void copy_simple_members(const Variant& other);
+    /*
+     * Member data elements - check clear, copy, move_in functions while adding new members
+     */
     std::vector<VariantCall> m_calls;
     const VariantQueryConfig* m_query_config;
     uint64_t m_col_begin;

@@ -19,6 +19,8 @@ class VariantFieldBase : public QueryFieldData
     virtual void print(std::ostream& fptr) const { ; }
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
+    /* Create copy and return pointer - avoid using as much as possible*/
+    virtual VariantFieldBase* create_copy() const = 0;
 };
 /*
  * Class that holds single element data 
@@ -46,6 +48,7 @@ class VariantFieldData : public VariantFieldBase
       allocated = false;
       return std::type_index(typeid(DataType));
     }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType, AttributeTileTy>(*this); }
   private:
     DataType m_data;
 };
@@ -84,6 +87,7 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
       allocated = true;
       return std::type_index(typeid(char));
     }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string, const AttributeTile<char>>(*this); }
   private:
     std::string m_data;
 };
@@ -123,6 +127,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       allocated = false;
       return std::type_index(typeid(DataType));
     }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, AttributeTileTy>(*this); }
   private:
     std::vector<DataType> m_data;
 };
@@ -200,6 +205,7 @@ class VariantFieldALTData : public VariantFieldBase
       allocated = true;
       return std::type_index(typeid(char));
     }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
   private:
     std::vector<std::string> m_data;
 };
