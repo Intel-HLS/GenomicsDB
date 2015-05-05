@@ -61,7 +61,7 @@
 /** Missing double. */
 #define CSV_NULL_DOUBLE std::numeric_limits<double>::max()
 /** The symbol indicating a missing (NULL) value. */
-#define CSV_NULL_VALUE "$"
+#define CSV_NULL_VALUE "#"
 
 class Tile;
 
