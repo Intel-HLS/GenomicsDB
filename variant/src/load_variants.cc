@@ -451,6 +451,7 @@ void VariantLoader::make_tiles_irregular_CSV_gVCF(
 
   new_tiles(array_schema, tile_id, tiles);
 
+  uint64_t line_number = 0ull;
   while(csv_file >> csv_line) {
     if(cell_num == capacity) {
       store_tiles(ad, tiles);
@@ -466,6 +467,7 @@ void VariantLoader::make_tiles_irregular_CSV_gVCF(
       throw LoaderException("[Make tiles] " + le.what()); 
     }
     cell_num++;
+    ++line_number;
   }
 
   // Store the lastly created tiles
