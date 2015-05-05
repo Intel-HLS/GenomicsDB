@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC"});
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AF", "AN", "AC", "QUAL"});
     if(end > start && single_position_queries)
         //Add interval to query - begin, end
         for( uint64_t i = start; i <= end; ++i )
