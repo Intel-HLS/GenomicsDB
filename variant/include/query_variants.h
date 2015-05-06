@@ -5,6 +5,7 @@
 #include "gt_common.h"
 #include "variant_query_config.h"
 #include "variant.h"
+#include "variant_operations.h"
 
 enum GTSchemaVersionEnum
 {
@@ -134,7 +135,8 @@ class VariantQueryProcessor : public QueryProcessor {
     void gt_get_column(
         const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
-    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, std::ostream& output_stream,
+    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
+        SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u) const;
     void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
     /*
@@ -238,7 +240,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /** Called by scan_and_operate to handle all ranges for given set of cells */
     void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
         const VariantQueryConfig& queryConfig, Variant& variant,
-        std::ostream& output_stream,
+        SingleVariantOperatorBase& variant_operator,
         int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
     /** Fills a row of the input genotyping column with the proper info. */
     template<class ITER>

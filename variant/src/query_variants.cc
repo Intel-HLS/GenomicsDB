@@ -1,6 +1,5 @@
 #include "gt_common.h"
 #include "query_variants.h"
-#include "variant_operations.h"
 
 using namespace std;
 
@@ -289,7 +288,7 @@ void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryCon
 
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
-    std::ostream& output_stream,
+    SingleVariantOperatorBase& variant_operator,
     int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
 {
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
@@ -306,7 +305,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
         assert(curr_call.get_column_begin() <= current_start_position);
         modify_reference_if_in_middle(curr_call, query_config, current_start_position);
       }
-    VariantOperations::do_dummy_genotyping(variant, output_stream);
+    variant_operator.operate(variant, query_config);
     //The following intervals have been completely processed
     while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
     {
@@ -350,7 +349,7 @@ void VariantQueryProcessor::iterate_over_all_tiles(const StorageManager::ArrayDe
 }
 
 void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
-    std::ostream& output_stream, unsigned column_interval_idx) const
+    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx) const
 {
   assert(query_config.is_bookkeeping_done());
   //Priority queue of VariantCalls ordered by END positions
@@ -449,7 +448,7 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       {
         next_start_position = next_coord[1];
         assert(next_coord[1] > current_start_position);
-        handle_gvcf_ranges(end_pq, query_config, variant, output_stream, current_start_position,
+        handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
             next_start_position, false);
         assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
         //Set new start for next interval
@@ -474,7 +473,7 @@ void VariantQueryProcessor::scan_and_operate(const StorageManager::ArrayDescript
       break;
   }
   //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, output_stream, current_start_position, 0, true);
+  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true);
   delete[] tile_its;
 }
 

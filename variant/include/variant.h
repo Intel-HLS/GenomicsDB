@@ -280,12 +280,7 @@ class Variant
     /*
      * Memory de-allocation
      */
-    void clear()
-    {
-      for(auto& call : m_calls)
-        call.clear();
-      m_calls.clear();
-    }
+    void clear();
     /*
      * Same query_config, but new interval is starting. Reset what needs to be reset
      */
@@ -295,19 +290,7 @@ class Variant
     /**
      * Allocate maximum possible #calls and #fields per call based on m_query_config
      */
-    void resize_based_on_query()
-    {
-      assert(m_query_config);
-      assert(m_query_config->is_bookkeeping_done());
-      //Initialize VariantCall vector and pointer vector
-      uint64_t num_rows = m_query_config->get_num_rows_to_query();
-      resize(num_rows, m_query_config->get_num_queried_attributes());
-      for(uint64_t i=0ull;i<num_rows;++i)
-      {
-        uint64_t row_idx = m_query_config->get_array_row_idx_for_query_row_idx(i);
-        m_calls[i].set_row_idx(row_idx);
-      }
-    }
+    void resize_based_on_query();
     /*
      * Resize call vector
      */
@@ -383,6 +366,59 @@ class Variant
      * Deep copy variant from src to this. Avoid using as much as possible
      */
     void copy_from_variant(const Variant& src);
+    /*
+     * Functions dealing with fields in this object, common across all Calls
+     */
+    void resize_common_fields(size_t size)
+    {
+      m_fields.resize(size);
+      m_common_fields_query_idxs.resize(size);
+    }
+    /*
+     * Move unique ptr
+     */
+    void set_common_field(unsigned idx, unsigned query_idx, std::unique_ptr<VariantFieldBase>& field)
+    {
+      assert(idx < m_fields.size());
+      m_common_fields_query_idxs[idx] = query_idx;
+      assert(m_fields[idx].get() == 0);        //should not be managing any memory
+      auto ptr = field.release();
+      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
+    }
+    /*
+     * Create unique_ptr around raw ptr
+     */
+    void set_common_field(unsigned idx, unsigned query_idx, VariantFieldBase* field)
+    {
+      assert(idx < m_fields.size());
+      m_common_fields_query_idxs[idx] = query_idx;
+      assert(m_fields[idx].get() == 0);        //should not be managing any memory
+      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
+    }
+    /*
+     * Return common field ptr
+     */
+    const std::unique_ptr<VariantFieldBase>& get_common_field(unsigned idx) const
+    {
+      assert(idx < m_fields.size());
+      return m_fields[idx];
+    }
+    std::unique_ptr<VariantFieldBase>& get_common_field(unsigned idx)
+    {
+      assert(idx < m_fields.size());
+      return m_fields[idx];
+    }
+    /*
+     * Get query idx given idx in common field vector
+     */
+    unsigned get_query_idx_for_common_field(unsigned idx) const
+    {
+      assert(idx < m_common_fields_query_idxs.size());
+      return m_common_fields_query_idxs[idx];
+    }
+    std::vector<unsigned>& get_common_fields_query_idxs() { return m_common_fields_query_idxs; }
+    const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }
+    unsigned get_num_common_fields() const { return m_fields.size(); }
   private:
     //Function that moves from other to self
     void move_in(Variant& other);
@@ -397,6 +433,14 @@ class Variant
     const VariantQueryConfig* m_query_config;
     uint64_t m_col_begin;
     uint64_t m_col_end;
+    /*
+     * Fields common across VariantCalls for this interval
+     */
+    std::vector<std::unique_ptr<VariantFieldBase>> m_fields;
+    /*
+     * Query idx of common fields
+     */
+    std::vector<unsigned> m_common_fields_query_idxs;
 };
 
 //Priority queue ordered by END position of intervals for VariantCall objects

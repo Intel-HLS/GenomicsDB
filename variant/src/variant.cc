@@ -24,6 +24,14 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
   }
 }
 
+void VariantCall::reset_for_new_interval()
+{
+  m_is_initialized = false;
+  m_is_valid = false;
+  //for(auto& ptr : m_fields)
+  //ptr.reset(nullptr);
+}
+
 void VariantCall::copy_simple_members(const VariantCall& other)
 {
   m_is_valid = other.is_valid();
@@ -38,8 +46,8 @@ void VariantCall::copy_simple_members(const VariantCall& other)
  */
 void VariantCall::move_in(VariantCall& other)
 {
-  copy_simple_members(other);
   clear();
+  copy_simple_members(other);
   m_fields.resize(other.get_all_fields().size());
   unsigned idx = 0u;
   for(auto& other_field : other.get_all_fields())
@@ -53,14 +61,13 @@ void VariantCall::move_in(VariantCall& other)
  */
 void VariantCall::copy_from_call(const VariantCall& other)
 {
-  copy_simple_members(other);
   clear();
+  copy_simple_members(other);
   m_fields.resize(other.get_all_fields().size());
   unsigned idx = 0u;
   for(const auto& other_field : other.get_all_fields())
   {
-    if(other_field.get())       //not null
-      set_field(idx, other_field->create_copy()); //create copy of field
+    set_field(idx, other_field.get() ? other_field->create_copy() : 0); //if non-null, create copy, else null
     ++idx;
   }
 }
@@ -73,17 +80,37 @@ void Variant::reset_for_new_interval()
     call.reset_for_new_interval();
 }
 
-void VariantCall::reset_for_new_interval()
+void Variant::resize_based_on_query()
 {
-  m_is_initialized = false;
-  m_is_valid = false;
-  //for(auto& ptr : m_fields)
-  //ptr.reset(nullptr);
+  assert(m_query_config);
+  assert(m_query_config->is_bookkeeping_done());
+  //Initialize VariantCall vector and pointer vector
+  uint64_t num_rows = m_query_config->get_num_rows_to_query();
+  resize(num_rows, m_query_config->get_num_queried_attributes());
+  for(uint64_t i=0ull;i<num_rows;++i)
+  {
+    uint64_t row_idx = m_query_config->get_array_row_idx_for_query_row_idx(i);
+    m_calls[i].set_row_idx(row_idx);
+  }
 }
 
 void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {
-  fptr << "Interval:[ "<<m_col_begin <<", "<<m_col_end<<" ] Calls {";
+  fptr << "Interval:[ "<<m_col_begin <<", "<<m_col_end<<" ]";
+  fptr << " Common fields : { ";
+  auto idx = 0u;
+  for(const auto& field : m_fields)
+  {
+    if(field.get())  //non null field
+    {
+      if(query_config)
+        fptr << (query_config->get_query_attribute_name(m_common_fields_query_idxs[idx])) << " : ";
+      field->print(fptr);
+      fptr << ", ";
+    }
+    ++idx;
+  }
+  fptr <<" } Calls {";
   for(auto i=0ull;i<m_calls.size();++i)
   {
     fptr << " "<< i << " : {";
@@ -117,22 +144,46 @@ void Variant::copy_simple_members(const Variant& other)
   m_col_end = other.m_col_end;
 }
 
+//Memory de-allocation
+void Variant::clear()
+{
+  for(auto& call : m_calls)
+    call.clear();
+  m_calls.clear();
+  m_fields.clear();
+  m_common_fields_query_idxs.clear();
+}
+
 //Function that moves information from other to self
 void Variant::move_in(Variant& other)
 {
-  copy_simple_members(other);
   //De-allocates existing data
   clear();
-  for(auto i=0ull;i<m_calls.size();++i)
-    m_calls.emplace_back(std::move(other.get_call(i)));
+  //Copy simple primitives
+  copy_simple_members(other);
+  //Move Calls
+  m_calls.resize(other.get_num_calls());
+  for(auto i=0ull;i<other.get_num_calls();++i)
+    m_calls[i] = std::move(other.get_call(i));
+  //Move common fields
+  resize_common_fields(other.get_num_common_fields());
+  for(auto i=0u;i<other.get_num_common_fields();++i)
+    set_common_field(i, other.get_query_idx_for_common_field(i), other.get_common_field(i));
 }
 
 void Variant::copy_from_variant(const Variant& other)
 {
-  copy_simple_members(other);
   //De-allocates existing data
   clear();
+  //Copy simple primitive members
+  copy_simple_members(other);
+  //Copy Calls
   m_calls.resize(other.get_num_calls());
-  for(auto i=0ull;i<m_calls.size();++i)
+  for(auto i=0ull;i<other.get_num_calls();++i)
     m_calls[i].copy_from_call(other.get_call(i));  //make copy
+  //Copy common fields
+  resize_common_fields(other.get_num_common_fields());
+  for(auto i=0u;i<other.get_num_common_fields();++i)
+    set_common_field(i, other.get_query_idx_for_common_field(i), 
+        other.get_common_field(i).get() ? other.get_common_field(i)->create_copy() : 0);    //copy if non-null, else null
 }

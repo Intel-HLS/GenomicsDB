@@ -12,7 +12,7 @@ class VariantFieldBase : public QueryFieldData
   public:
     VariantFieldBase() 
       : QueryFieldData()
-    { ; }
+    { m_subclass_type = VARIANT_FIELD_BASE; }
     virtual ~VariantFieldBase() = default;
     virtual void copy_data_from_tile(const Tile&  base_tile, uint64_t element_idx, uint64_t num_elements) = 0;
     virtual void clear() { ; }
@@ -21,6 +21,21 @@ class VariantFieldBase : public QueryFieldData
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Create copy and return pointer - avoid using as much as possible*/
     virtual VariantFieldBase* create_copy() const = 0;
+    //Resize this field - default do nothing
+    virtual void resize(unsigned new_size) { ; }
+    /* Return address of the offset-th element */
+    virtual void* get_address(unsigned offset) { return 0; }
+  protected:
+    enum VariantFieldTypesEnum
+    {
+      VARIANT_FIELD_BASE=0u,
+      VARIANT_FIELD_DATA,
+      VARIANT_FIELD_STRING,
+      VARIANT_FIELD_PRIMITIVE_VECTOR,
+      VARIANT_FIELD_ALT,
+      NUM_VARIANT_FIELD_TYPES
+    };
+    unsigned m_subclass_type;   //enum from above
 };
 /*
  * Class that holds single element data 
@@ -31,7 +46,7 @@ class VariantFieldData : public VariantFieldBase
   public:
     VariantFieldData()
       : VariantFieldBase()
-    { ; }
+    { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
     virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
     {
@@ -49,6 +64,8 @@ class VariantFieldData : public VariantFieldBase
       return std::type_index(typeid(DataType));
     }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType, AttributeTileTy>(*this); }
+    /* Return address of the offset-th element */
+    virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
     DataType m_data;
 };
@@ -61,7 +78,7 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
   public:
     VariantFieldData()
       : VariantFieldBase()
-    { ; }
+    { m_subclass_type = VARIANT_FIELD_STRING; }
     virtual ~VariantFieldData() = default;
     virtual void clear() { m_data.clear(); }
     virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
@@ -88,6 +105,8 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
       return std::type_index(typeid(char));
     }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string, const AttributeTile<char>>(*this); }
+    /* Return address of the offset-th element */
+    virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
     std::string m_data;
 };
@@ -102,7 +121,10 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
   public:
     VariantFieldPrimitiveVectorData()
       : VariantFieldBase()
-    { clear(); }
+    { 
+      m_subclass_type = VARIANT_FIELD_PRIMITIVE_VECTOR;
+      clear(); 
+    }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     virtual void clear() { m_data.clear(); }
     virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements)
@@ -128,6 +150,13 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       return std::type_index(typeid(DataType));
     }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, AttributeTileTy>(*this); }
+    virtual void resize(unsigned new_size) { m_data.resize(new_size); }
+    /* Return address of the offset-th element */
+    virtual void* get_address(unsigned offset)
+    {
+      assert(offset < m_data.size());
+      return reinterpret_cast<void*>(&(m_data[offset]));
+    }
   private:
     std::vector<DataType> m_data;
 };
@@ -139,7 +168,10 @@ class VariantFieldALTData : public VariantFieldBase
   public:
     VariantFieldALTData()
       : VariantFieldBase()
-    { ; }
+    { 
+      m_subclass_type = VARIANT_FIELD_ALT;
+      clear();
+    }
     virtual ~VariantFieldALTData() = default;
     virtual void clear()
     {
@@ -206,6 +238,13 @@ class VariantFieldALTData : public VariantFieldBase
       return std::type_index(typeid(char));
     }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
+    virtual void resize(unsigned new_size) { m_data.resize(new_size); }
+    /* Return address of the offset-th element */
+    virtual void* get_address(unsigned offset)
+    {
+      assert(offset < m_data.size());
+      return reinterpret_cast<void*>(&(m_data[offset]));
+    }
   private:
     std::vector<std::string> m_data;
 };

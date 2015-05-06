@@ -24,8 +24,6 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
   variant.resize_based_on_query();
   /*Get one column from array*/
   qp.gt_get_column(ad_gVCF, query_config, 0u, variant, stats);
-  //Do dummy genotyping operation
-  VariantOperations::do_dummy_genotyping(variant, output_stream);
   //Test get_C_pointers() functions
   if(do_C_pointer_testing)
   {
@@ -35,6 +33,8 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, const Stor
     copy.copy_from_variant(variant);
     VariantOperations::do_dummy_genotyping(copy, output_stream);
   }
+  //Do dummy genotyping operation
+  VariantOperations::do_dummy_genotyping(variant, output_stream);
 }
 
 int main(int argc, char** argv) {
@@ -67,8 +67,11 @@ int main(int argc, char** argv) {
     if(cl.m_position > 0)
       query_config.add_column_interval_to_query(cl.m_position, 6000000000ull);  //end is 6B - large value
     qp.do_query_bookkeeping(ad_gVCF, query_config);
+    //Use VariantOperators
+    DummyGenotypingOperator variant_operator;
+    variant_operator.m_output_stream = &(output_stream);
     //Do scan and operate
-    qp.scan_and_operate(ad_gVCF, query_config, output_stream, 0u);
+    qp.scan_and_operate(ad_gVCF, query_config, variant_operator, 0u);
   }
   else
   {

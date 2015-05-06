@@ -18,6 +18,7 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
     {"num-samples",1,0,'N'},
     {"output",1,0,'o'},
     {"position",1,0,'p'},
+    {"end-position",1,0,'e'},
     {"position-list",1,0,'P'},
     {"scan",0,0,'S'},
     {"temp-space",1,0,'T'},
@@ -28,7 +29,7 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
   };
   int c = 0;
   char* val;
-  while ((c = getopt_long(argc, argv, "A:f:N:o:p:P:Sw:T:",loptions,NULL)) >= 0) {
+  while ((c = getopt_long(argc, argv, "A:f:N:o:p:e:P:Sw:T:",loptions,NULL)) >= 0) {
     switch(c)
     {
       case 'w':
@@ -49,6 +50,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
         break;
       case 'p': //position
         cl.m_position = strtoull(optarg, 0, 10);
+        break;
+      case 'e': //end position
+        cl.m_end_position = strtoull(optarg, 0, 10);
         break;
       case 'P':
         val = optarg;
