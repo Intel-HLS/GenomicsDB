@@ -1,9 +1,24 @@
 #ifndef VARIANT_FIELD_DATA_H
 #define VARIANT_FIELD_DATA_H
 
-#include "query_field_data.h"
 #include <memory>
+#include <unordered_map>
+#include "query_field_data.h"
+#include "gt_common.h"
 
+enum VariantFieldTypeEnum
+{
+  VARIANT_FIELD_VOID=0,
+  VARIANT_FIELD_INT,
+  VARIANT_FIELD_INT64_T,
+  VARIANT_FIELD_UNSIGNED,
+  VARIANT_FIELD_UINT64_T,
+  VARIANT_FIELD_FLOAT,
+  VARIANT_FIELD_DOUBLE,
+  VARIANT_FIELD_STRING,
+  VARIANT_FIELD_CHAR
+};
+extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 /*
  * Base class for variant field data - not sure whether I will add any functionality here
  */
@@ -19,6 +34,8 @@ class VariantFieldBase : public QueryFieldData
     virtual void print(std::ostream& fptr) const { ; }
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
+    /* Return type of data */
+    virtual std::type_index get_element_type() const = 0;
     /* Create copy and return pointer - avoid using as much as possible*/
     virtual VariantFieldBase* create_copy() const = 0;
     //Resize this field - default do nothing
@@ -61,8 +78,9 @@ class VariantFieldData : public VariantFieldBase
       size = 1u;
       *(reinterpret_cast<DataType**>(ptr)) = &m_data;
       allocated = false;
-      return std::type_index(typeid(DataType));
+      return get_element_type();
     }
+    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType, AttributeTileTy>(*this); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
@@ -102,8 +120,9 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
       data[0] = const_cast<char*>(m_data.c_str());
       *(reinterpret_cast<char***>(ptr)) = data;
       allocated = true;
-      return std::type_index(typeid(char));
+      return get_element_type();
     }
+    virtual std::type_index get_element_type() const { return std::type_index(typeid(char)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string, const AttributeTile<char>>(*this); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
@@ -147,8 +166,9 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       size = m_data.size();
       *(reinterpret_cast<DataType**>(ptr)) = (size > 0) ? &(m_data[0]) : nullptr;
       allocated = false;
-      return std::type_index(typeid(DataType));
+      return get_element_type();
     }
+    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, AttributeTileTy>(*this); }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }
     /* Return address of the offset-th element */
@@ -237,6 +257,7 @@ class VariantFieldALTData : public VariantFieldBase
       allocated = true;
       return std::type_index(typeid(char));
     }
+    virtual std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
     virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }
     /* Return address of the offset-th element */

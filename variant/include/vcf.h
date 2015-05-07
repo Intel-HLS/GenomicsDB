@@ -47,6 +47,13 @@ DEALINGS IN THE SOFTWARE.  */
 #define bcf_str_missing      0x07
 extern uint32_t bcf_float_vector_end;
 extern uint32_t bcf_float_missing;
+typedef union
+{
+  uint32_t i;
+  float f;
+}fi_pair;
+extern fi_pair bcf_float_missing_union;
+
 static inline void bcf_float_set(float *ptr, uint32_t value)
 {
     union { uint32_t i; float f; } u;

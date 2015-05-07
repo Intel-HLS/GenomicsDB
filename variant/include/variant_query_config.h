@@ -21,6 +21,7 @@ class OutOfBoundsQueryException {
     std::string msg_;
 };
 
+class KnownFieldInfo;
 class VariantQueryConfig : public QueryConfig
 {
   public:
@@ -41,6 +42,7 @@ class VariantQueryConfig : public QueryConfig
       m_query_rows.clear();
       m_query_column_intervals.clear();
       m_array_row_idx_to_query_row_idx.clear();
+      m_query_idx_known_field_info.clear();
     }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
@@ -64,12 +66,25 @@ class VariantQueryConfig : public QueryConfig
       assert(m_query_idx_known_variant_field_enum_LUT.is_defined_value(knownEnumIdx));
       return m_query_idx_known_variant_field_enum_LUT.get_query_idx_for_known_field_enum(knownEnumIdx);
     }
+    //Get known field enum for given queryIdx
+    inline unsigned get_known_field_enum_for_query_idx(unsigned queryIdx) const
+    {
+      assert(m_query_idx_known_variant_field_enum_LUT.is_defined_value(queryIdx));
+      return m_query_idx_known_variant_field_enum_LUT.get_known_field_enum_for_query_idx(queryIdx);
+    }
     //Check whether query contains given knownEnumIdx
     inline bool is_defined_query_idx_for_known_field_enum(unsigned knownEnumIdx) const
     {
       assert(m_query_idx_known_variant_field_enum_LUT.is_defined_value(knownEnumIdx));
       return m_query_idx_known_variant_field_enum_LUT.is_defined_value(
         m_query_idx_known_variant_field_enum_LUT.get_query_idx_for_known_field_enum(knownEnumIdx));
+    }
+    //Check whether query idx is known field
+    inline bool is_defined_known_field_enum_for_query_idx(unsigned queryIdx) const
+    {
+      assert(m_query_idx_known_variant_field_enum_LUT.is_defined_value(queryIdx));
+      return m_query_idx_known_variant_field_enum_LUT.is_defined_value(
+        m_query_idx_known_variant_field_enum_LUT.get_known_field_enum_for_query_idx(queryIdx));
     }
     inline bool is_bookkeeping_done() const { return m_done_bookkeeping; }
     inline void set_done_bookkeeping(bool value) { m_done_bookkeeping = value; }
@@ -155,6 +170,17 @@ class VariantQueryConfig : public QueryConfig
     }
     inline uint64_t get_column_begin(unsigned idx) const { return get_column_interval(idx).first; }
     inline uint64_t get_column_end(unsigned idx) const { return get_column_interval(idx).second; }
+    /*
+     * Functions for dealing with known field info - set by VariantQueryProcessor, used by downstream
+     * operators/tools
+     */
+    void resize_known_field_info_vector();
+    void set_info_for_query_idx(unsigned idx, const KnownFieldInfo* ptr);
+    const KnownFieldInfo* get_info_for_query_idx(unsigned idx) const
+    {
+      assert(idx < m_query_idx_known_field_info.size());
+      return m_query_idx_known_field_info[idx];
+    }
   private:
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;
@@ -174,6 +200,8 @@ class VariantQueryConfig : public QueryConfig
     uint64_t m_num_rows_in_array;
     /*Column ranges to query*/
     std::vector<ColumnRange> m_query_column_intervals;
+    /*Pointers to info objects*/
+    std::vector<const KnownFieldInfo*> m_query_idx_known_field_info;
 };
 
 #endif

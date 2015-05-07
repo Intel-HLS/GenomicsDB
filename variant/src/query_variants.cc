@@ -43,6 +43,33 @@ Tile::const_iterator get_first_cell_after(const Tile& tile, uint64_t column)
   return Tile::const_iterator(&tile, high);
 }
 
+unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_alleles) const
+{
+  unsigned length = 0u;
+  unsigned num_alleles = num_ALT_alleles + 1u;
+  switch(m_length_descriptor)
+  {
+    case BCF_VL_FIXED:
+      length = m_num_elements;
+      break;
+    case BCF_VL_VAR:
+      length = 1u;      //function that reads from tile will know what to do
+      break;
+    case BCF_VL_A:
+      length = num_ALT_alleles;
+      break;
+    case BCF_VL_R:
+      length = num_alleles;
+      break;
+    case BCF_VL_G:
+      length = (num_alleles*(num_alleles+1))/2;
+      break;
+    default:
+      cerr << "Unknown length descriptor "<<m_length_descriptor<<" - ignoring\n";
+      break;
+  }
+  return length;
+}
 //Static members
 bool VariantQueryProcessor::m_are_static_members_initialized = false;
 vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<string>{
@@ -533,6 +560,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
   }
   //Re-order query fields so that special fields are first
   query_config.reorder_query_fields();
+  //Resize info vector
+  query_config.resize_known_field_info_vector();
   //Set enum within query
   query_config.resize_LUT(GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
@@ -545,6 +574,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
     {
       query_config.add_query_idx_known_field_enum_mapping(i, known_variant_field_enum);
       assert(VariantQueryProcessor::m_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
+      query_config.set_info_for_query_idx(i, &(m_known_field_enum_to_info[known_variant_field_enum]));
     }
   }
   //Set number of rows in the array
@@ -776,30 +806,7 @@ unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned k
     unsigned num_ALT_alleles) const
 {
   assert(known_field_enum < m_known_field_enum_to_info.size());
-  unsigned length = 0u;
-  unsigned num_alleles = num_ALT_alleles + 1;
-  switch(m_known_field_enum_to_info[known_field_enum].m_length_descriptor)
-  {
-    case BCF_VL_FIXED:
-      length = m_known_field_enum_to_info[known_field_enum].m_num_elements;
-      break;
-    case BCF_VL_VAR:
-      length = 1u;      //function that reads from tile will know what to do
-      break;
-    case BCF_VL_A:
-      length = num_ALT_alleles;
-      break;
-    case BCF_VL_R:
-      length = num_alleles;
-      break;
-    case BCF_VL_G:
-      length = (num_alleles*(num_alleles+1))/2;
-      break;
-    default:
-      cerr << "Unknown length descriptor "<<m_known_field_enum_to_info[known_field_enum].m_length_descriptor<<" - ignoring\n";
-      break;
-  }
-  return length;
+  return m_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles);
 }
 
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,

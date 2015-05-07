@@ -56,12 +56,30 @@ class RemappedVariant : public RemappedDataWrapperBase
 class VariantOperations
 {
   public:
+    /*
+     * Obtains a merged REF field as defined in BCF spec
+     */
     static void merge_reference_allele(const Variant& variant, const VariantQueryConfig& query_config,
         std::string& merged_reference_allele);
+    /*
+     * Obtains a merged ALT list as defined in BCF spec
+     */
     static const std::vector<std::string>  merge_alt_alleles(const Variant& variant,
         const VariantQueryConfig& query_config,
         const std::string& merged_reference_allele,
         CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists);
+    /*
+     * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
+     */
+    template<class DataType>
+    static void remap_data_based_on_alleles(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx, 
+        const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists, bool alt_alleles_only,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value);
+    /*
+     * Reorders fields whose length and order depend on the number of genotypes (BCF_VL_G)
+     */
     template<class DataType>
     static void remap_data_based_on_genotype(const std::vector<DataType>& input_data,
         const uint64_t input_call_idx, 
@@ -109,7 +127,7 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
 };
 
 /*
- * Movees info in Variant object into its result vector
+ * Copies info in Variant object into its result vector
  */
 class GA4GHOperator : public SingleVariantOperatorBase
 {

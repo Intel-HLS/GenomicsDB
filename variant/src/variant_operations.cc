@@ -1,4 +1,5 @@
 #include "variant_operations.h"
+#include "query_variants.h"
 
 template<class DataType>
 void RemappedMatrix<DataType>::resize(uint64_t num_rows, uint64_t num_columns, DataType init_value)
@@ -187,7 +188,50 @@ const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Varia
   }
   return merged_alt_alleles;
 }
-
+/*
+  Copied from defunct gamgee library
+  Remaps data dependent on number of genotypes to the new order of alleles as specified in alleles_LUT
+  @param input_data - vector of data values for a given input sample as stored in TileDB
+  @param input_call_idx 
+  @param alleles_LUT LUT mapping alleles from input to merged alleles list
+  @param num_merged_alleles
+  @param NON_REF_exists
+  @param alt_alleles_only flag that determines whether only the ALT alleles will be used or all alleles
+  @param remapped_data - data structure in which remapped info will be stored 
+  @num_calls_with_valid_data - keeps track of how many samples had valid values for given genotype idx
+ */
+template<class DataType>
+void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx, 
+    const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists, bool alt_alleles_only,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value) {
+  //index of NON_REF in merged variant
+  const auto merged_non_reference_allele_idx = NON_REF_exists ? 
+    static_cast<int64_t>(static_cast<int>(num_merged_alleles-1)) : lut_missing_value;
+  //index of NON_REF in input sample
+  const auto input_non_reference_allele_idx = NON_REF_exists ? 
+    alleles_LUT.get_input_idx_for_merged(input_call_idx, merged_non_reference_allele_idx) : lut_missing_value;
+  //Loop over alleles - only ALT or all alleles (BCF_VL_A or BCF_VL_R)
+  unsigned length = alt_alleles_only ? num_merged_alleles-1u: num_merged_alleles;
+  for (auto j=0u;j<length;++j) {
+    auto allele_j = alt_alleles_only ?  j+1u : j;
+    auto input_j_allele = alleles_LUT.get_input_idx_for_merged(input_call_idx, allele_j);
+    if (CombineAllelesLUT::is_missing_value(input_j_allele))	//no mapping found for current allele in input gvcf
+      if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
+      {
+        *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = (missing_value);
+        continue;
+      }
+      else //input contains NON_REF allele, use its idx
+        input_j_allele = input_non_reference_allele_idx;
+    assert(!alt_alleles_only || input_j_allele > 0u);   //if only ALT alleles are used, then input_j_allele must be non-0
+    auto input_j = alt_alleles_only ? input_j_allele-1u : input_j_allele;
+    *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = 
+      input_data[input_j];
+    ++(num_calls_with_valid_data[j]);
+  }
+}
 /*
   Copied from defunct gamgee library
   Remaps data dependent on number of genotypes to the new order of alleles as specified in alleles_LUT
@@ -343,6 +387,23 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
   VariantOperations::do_dummy_genotyping(variant, *m_output_stream);
 }
 
+#define REMAP_MACRO(DataType, missing_value) \
+  /*Input vector is from original variant - copy and variant have identical list of valid calls*/ \
+  /*Remap field in copy (through remapper_variant)*/ \
+  if(info_ptr->is_length_genotype_dependent()) \
+    VariantOperations::remap_data_based_on_genotype<DataType>( \
+        variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<DataType>>(query_field_idx)->get(), \
+        curr_call_idx_in_variant, \
+        m_alleles_LUT, num_merged_alleles, SingleVariantOperatorBase::m_NON_REF_exists, \
+        remapper_variant,  num_calls_with_valid_data, missing_value); \
+  else \
+     VariantOperations::remap_data_based_on_alleles<DataType>( \
+        variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<DataType>>(query_field_idx)->get(), \
+        curr_call_idx_in_variant, \
+        m_alleles_LUT, num_merged_alleles, SingleVariantOperatorBase::m_NON_REF_exists, \
+        info_ptr->is_length_only_ALT_alleles_dependent(), \
+        remapper_variant,  num_calls_with_valid_data, missing_value);
+
 void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
   //Compute merged REF and ALT
@@ -351,31 +412,64 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   m_variants.emplace_back(Variant());
   Variant& copy = m_variants[m_variants.size()-1u];
   copy.copy_from_variant(variant);      //Create copy to store altered PL fields
-  //Setup code for re-ordering PL field elements in copy
+  //Setup code for re-ordering PL/AD etc field elements in copy
   unsigned num_merged_alleles = m_merged_alt_alleles.size()+1u;        //+1 for REF allele
   unsigned num_genotypes = (num_merged_alleles*(num_merged_alleles+1u))/2u;
-  //TODO: write a loop that iterates over all fields that need to be re-ordered, not just PL
-  auto query_field_idx = query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX);
-  unsigned field_size = num_genotypes;
-  //Remapper for copy
-  RemappedVariant remapper_variant(copy, query_field_idx); 
-  std::vector<uint64_t> num_calls_with_valid_data = std::vector<uint64_t>(field_size, 0ull);
-  //Iterate over valid calls - copy and variant have same list of valid calls
-  for(auto iter=copy.begin();iter!=copy.end();++iter)
+  for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
-    auto& curr_call = *iter;
-    auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-    if(curr_call.get_field(query_field_idx).get())      //Not null
+    const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+    //known field whose length is dependent on #alleles
+    if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx)
+        && info_ptr && info_ptr->is_length_allele_dependent())
     {
-      curr_call.get_field(query_field_idx)->resize(field_size);   //resize field in copy
-      //Input vector is from original variant - copy and variant have identical list of valid calls
-      auto& input_pl_vector = 
-        get_known_field<VariantFieldPrimitiveVectorData<int>, true>(variant.get_call(curr_call_idx_in_variant), 
-            query_config, GVCF_PL_IDX)->get();
-      //Remap PL field in copy (through remapper_variant)
-      VariantOperations::remap_data_based_on_genotype<int>(input_pl_vector, curr_call_idx_in_variant,
-        m_alleles_LUT, num_merged_alleles, SingleVariantOperatorBase::m_NON_REF_exists,
-        remapper_variant,  num_calls_with_valid_data, bcf_int32_missing);
+      unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u);     //#alt alleles
+      //Remapper for copy
+      RemappedVariant remapper_variant(copy, query_field_idx); 
+      std::vector<uint64_t> num_calls_with_valid_data = std::vector<uint64_t>(field_size, 0ull);
+      //Iterate over valid calls - copy and variant have same list of valid calls
+      for(auto iter=copy.begin();iter!=copy.end();++iter)
+      {
+        auto& curr_call = *iter;
+        auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+        auto& curr_field = curr_call.get_field(query_field_idx);
+        if(curr_field.get())      //Not null
+        {
+          curr_field->resize(field_size);   //resize field in copy
+          assert(g_variant_field_type_index_to_enum.find(curr_field->get_element_type()) != 
+              g_variant_field_type_index_to_enum.end());
+          switch(g_variant_field_type_index_to_enum[curr_field->get_element_type()])
+          {
+            case VARIANT_FIELD_INT:
+              REMAP_MACRO(int, bcf_int32_missing);
+              break;
+            case VARIANT_FIELD_INT64_T:
+              REMAP_MACRO(int64_t, bcf_int32_missing);
+              break;
+            case VARIANT_FIELD_UNSIGNED:
+              REMAP_MACRO(unsigned, bcf_int32_missing);
+              break;
+            case VARIANT_FIELD_UINT64_T:
+              REMAP_MACRO(uint64_t, bcf_int32_missing);
+              break;
+            case VARIANT_FIELD_FLOAT:
+              REMAP_MACRO(float, bcf_float_missing_union.f);
+              break;
+            case VARIANT_FIELD_DOUBLE:
+              REMAP_MACRO(double, bcf_float_missing);
+              break;
+            case VARIANT_FIELD_STRING:
+              REMAP_MACRO(std::string, "");
+              break;
+            case VARIANT_FIELD_CHAR:
+              REMAP_MACRO(char, '\0');
+              break;
+            default:
+              std::cerr << "Unhandled type " << g_variant_field_type_index_to_enum[curr_field->get_element_type()] << "\n";  //unhandled type
+              exit(-1);
+              break;
+          }
+        }
+      }
     }
   }
   //Set common fields - REF and ALT for now

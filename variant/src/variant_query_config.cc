@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "variant_query_config.h"
+#include "query_variants.h"
 
 using namespace std;
 
@@ -95,4 +96,17 @@ void VariantQueryConfig::reorder_query_fields()
   }
   if(m_after_OFFSETS_field_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
     m_after_OFFSETS_field_query_idx = m_first_normal_field_query_idx;       //after coords, END
+}
+
+void VariantQueryConfig::resize_known_field_info_vector()
+{
+  m_query_idx_known_field_info.resize(get_num_queried_attributes());
+  for(auto i=0u;i<get_num_queried_attributes();++i)
+    m_query_idx_known_field_info[i] = 0;
+}
+
+void VariantQueryConfig::set_info_for_query_idx(unsigned idx, const KnownFieldInfo* ptr)
+{
+  assert(idx < get_num_queried_attributes());
+  m_query_idx_known_field_info[idx] = ptr;
 }

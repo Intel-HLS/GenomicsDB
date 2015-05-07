@@ -1,6 +1,10 @@
 #include "variant.h"
 
 std::string g_non_reference_allele = "<NON_REF>";
+uint32_t bcf_float_missing    = 0x7F800001;
+uint32_t bcf_float_vector_end = 0x7F800002;
+
+fi_pair bcf_float_missing_union = { .i = bcf_float_missing };
 
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const

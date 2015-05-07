@@ -71,6 +71,16 @@ class KnownFieldInfo
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
+  public:
+    inline bool is_length_allele_dependent() const
+    {
+      unsigned length_descriptor = m_length_descriptor;
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
+    inline unsigned get_length_descriptor() const { return m_length_descriptor; }
+    inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
+    inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
+    unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles) const;
 };
 
 /* Structure to store profiling information */
@@ -163,8 +173,7 @@ class VariantQueryProcessor : public QueryProcessor {
     inline bool is_length_allele_dependent(unsigned enumIdx) const
     {
       assert(enumIdx < m_known_field_enum_to_info.size());
-      unsigned length_descriptor = m_known_field_enum_to_info[enumIdx].m_length_descriptor;
-      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+      return m_known_field_enum_to_info[enumIdx].is_length_allele_dependent();
     }
     unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles) const;
     /*
