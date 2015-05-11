@@ -176,36 +176,6 @@ class VariantLoader : public Loader
      void make_tiles_irregular_CSV_gVCF(const std::string& filename,
          const StorageManager::ArrayDescriptor* ad,
          const ArraySchema& array_schema) const;
-     /**
-      * Field attribute idx in schema
-      */
-     unsigned GVCF_END_IDX;
-     unsigned GVCF_REF_IDX;
-     unsigned GVCF_ALT_IDX;
-     unsigned GVCF_QUAL_IDX;
-     unsigned GVCF_FILTER_IDX;
-     unsigned GVCF_BASEQRANKSUM_IDX;
-     unsigned GVCF_CLIPPINGRANKSUM_IDX;
-     unsigned GVCF_MQRANKSUM_IDX;
-     unsigned GVCF_READPOSRANKSUM_IDX;
-     unsigned GVCF_DP_IDX;
-     unsigned GVCF_MQ_IDX;
-     unsigned GVCF_MQ0_IDX;
-     unsigned GVCF_DP_FMT_IDX;
-     unsigned GVCF_MIN_DP_IDX;
-     unsigned GVCF_GQ_IDX;
-     unsigned GVCF_SB_1_IDX;
-     unsigned GVCF_SB_2_IDX;
-     unsigned GVCF_SB_3_IDX;
-     unsigned GVCF_SB_4_IDX;
-     unsigned GVCF_AD_IDX;
-     unsigned GVCF_PL_IDX;
-     unsigned GVCF_AF_IDX;
-     unsigned GVCF_AN_IDX;
-     unsigned GVCF_AC_IDX;
-     unsigned GVCF_NULL_IDX;
-     unsigned GVCF_OFFSETS_IDX;
-     unsigned GVCF_COORDINATES_IDX;
 };
 
 #endif

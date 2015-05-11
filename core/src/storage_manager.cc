@@ -378,7 +378,8 @@ uint64_t StorageManager::const_iterator::tile_id() const {
 
 StorageManager::const_iterator StorageManager::begin(
     const ArrayDescriptor* array_descriptor,
-    unsigned int attribute_id) {
+    unsigned int attribute_id, 
+    uint64_t start_rank) {
   // Check array descriptor
   assert(check_array_descriptor(*array_descriptor)); 
 
@@ -391,7 +392,13 @@ StorageManager::const_iterator StorageManager::begin(
   // Check attribute id
   assert(attribute_id <= array_info.array_schema_.attribute_num());
 
-  return const_iterator(this, array_descriptor, attribute_id, 0);
+  return const_iterator(this, array_descriptor, attribute_id, start_rank);
+}
+
+StorageManager::const_iterator StorageManager::begin(
+    const ArrayDescriptor* array_descriptor,
+    unsigned int attribute_id) {
+  return begin(array_descriptor, attribute_id, 0ull);
 }
 
 StorageManager::const_iterator StorageManager::end(
@@ -700,6 +707,34 @@ int64_t StorageManager::get_left_sweep_start_rank(
     assert(min == tile_num || (col > mbrs[max][3] && col < mbrs[min][2]));
     return max;
   }
+}
+
+int64_t StorageManager::get_right_sweep_start_rank(
+    const ArrayDescriptor* ad, uint64_t col) const {
+  // For easy reference
+  const ArrayInfo& array_info = *(ad->array_info_);
+  const MBRs& mbrs = array_info.mbrs_;
+  const ArraySchema& array_schema = array_info.array_schema_;
+  unsigned int dim_num = array_schema.dim_num();
+  const uint64_t tile_num = mbrs.size();
+
+  // Perform binary search over the MBRs and check the second
+  // dimension (column in gVCF array), i.e., elements 2 and 3
+  // in each MBR.
+  //Invariant: min points to tile with MBR[3] < col, max points to tile with MBR[3] >= col
+  int64_t min = -1ll;
+  int64_t max = tile_num;
+  int64_t mid = 0;
+  while(max > min+1)
+  {
+    mid = (max + min)/2;
+    const auto& curr_mbr = mbrs[mid];
+    if(curr_mbr[3] >= col)      //max column value of tile >= col
+      max = mid;
+    else
+      min = mid;
+  }
+  return max;
 }
 
 /******************************************************

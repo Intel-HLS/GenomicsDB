@@ -14,7 +14,9 @@ class CommandLineOpts
       m_array_name = 0;
       m_num_samples = 0ull;
       m_position = 0ull;
+      m_end_position = 600000000000ull; //600B - large number
       m_temp_space = "";
+      m_test_C_pointers = false;
     }
     bool m_do_scan;
     bool m_is_input_csv_sorted;
@@ -25,7 +27,9 @@ class CommandLineOpts
     std::ifstream m_positions_list;
     uint64_t m_num_samples;
     uint64_t m_position;
+    uint64_t m_end_position;
     std::string m_temp_space;
+    bool m_test_C_pointers;
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl);

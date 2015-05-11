@@ -36,10 +36,24 @@ DEALINGS IN THE SOFTWARE.  */
 
 #ifndef HTSDIR
 
+#define BCF_VL_FIXED 0 // variable length
+#define BCF_VL_VAR   1
+#define BCF_VL_A     2
+#define BCF_VL_G     3
+#define BCF_VL_R     4
+
+
 #define bcf_int32_missing    INT32_MIN
 #define bcf_str_missing      0x07
 extern uint32_t bcf_float_vector_end;
 extern uint32_t bcf_float_missing;
+typedef union
+{
+  uint32_t i;
+  float f;
+}fi_pair;
+extern fi_pair bcf_float_missing_union;
+
 static inline void bcf_float_set(float *ptr, uint32_t value)
 {
     union { uint32_t i; float f; } u;

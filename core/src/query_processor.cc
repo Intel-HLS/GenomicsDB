@@ -128,6 +128,21 @@ void QueryProcessor::subarray(const StorageManager::ArrayDescriptor* ad,
     subarray_irregular(ad, range, result_array_name);
 }
 
+void QueryProcessor::obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig) const
+{
+  const auto& schema = array_descriptor->array_schema();
+  for(auto i=0u;i<schema.attribute_num();++i)
+  {
+    const auto& name = schema.attribute_name(i);
+    unsigned query_idx = 0u;
+    if(queryConfig.get_query_idx_for_name(name, query_idx))
+      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+  }
+  for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
+    if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
+      throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));
+}
+
 /******************************************************
 ******************* PRIVATE METHODS *******************
 ******************************************************/

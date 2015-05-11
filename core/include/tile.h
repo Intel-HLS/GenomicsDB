@@ -586,6 +586,10 @@ class AttributeTile : public Tile {
   const T& cell(uint64_t i) const;
   /** Copies the tile payload into buffer. */
   virtual void copy_payload(char* buffer) const;
+  /** Copies num_elements of data from &(payload[idx]) to buffer **/
+  virtual void copy_payload(T* buffer, uint64_t idx, uint64_t num_elements) const;
+  /** Returns pointer into payload at element idx **/
+  virtual const T* get_payload_ptr(uint64_t idx) const;
 
   // MUTATORS
   /** Inapplicable to attribute tiles. Attribute tiles do not have MBRs. */
@@ -765,6 +769,9 @@ class CoordinateTile : public Tile {
   const std::vector<T>& cell(uint64_t i) const;
   /** Copies the tile payload into buffer. */
   virtual void copy_payload(char* buffer) const;
+  /** Copies num_elements of data from &(payload[idx]) to buffer **/
+  virtual void copy_payload(char* buffer, uint64_t idx, uint64_t num_elements) const;
+
   /** Returns the number of dimensions. */
   virtual unsigned int dim_num() const { return dim_num_; } 
   /** 

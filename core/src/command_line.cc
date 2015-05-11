@@ -6,6 +6,7 @@
 enum ArgsIdxEnum
 {
   ARGS_IDX_IS_PRESORTED=1000,
+  ARGS_IDX_TEST_C_POINTERS
 };
 
 void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
@@ -17,16 +18,18 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
     {"num-samples",1,0,'N'},
     {"output",1,0,'o'},
     {"position",1,0,'p'},
+    {"end-position",1,0,'e'},
     {"position-list",1,0,'P'},
     {"scan",0,0,'S'},
     {"temp-space",1,0,'T'},
     {"workspace",1,0,'w'},
     {"presorted", 0, 0, ARGS_IDX_IS_PRESORTED},
+    {"test-c-pointers", 0, 0, ARGS_IDX_TEST_C_POINTERS},
     {0,0,0,0}
   };
   int c = 0;
   char* val;
-  while ((c = getopt_long(argc, argv, "A:f:N:o:p:P:Sw:T:",loptions,NULL)) >= 0) {
+  while ((c = getopt_long(argc, argv, "A:f:N:o:p:e:P:Sw:T:",loptions,NULL)) >= 0) {
     switch(c)
     {
       case 'w':
@@ -48,6 +51,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
       case 'p': //position
         cl.m_position = strtoull(optarg, 0, 10);
         break;
+      case 'e': //end position
+        cl.m_end_position = strtoull(optarg, 0, 10);
+        break;
       case 'P':
         val = optarg;
         cl.m_positions_list.open(val); 
@@ -61,6 +67,9 @@ void parse_command_line(int argc, char** argv, CommandLineOpts& cl)
       case ARGS_IDX_IS_PRESORTED:
 	cl.m_is_input_csv_sorted = true;
 	break;
+      case ARGS_IDX_TEST_C_POINTERS:
+        cl.m_test_C_pointers = true;
+        break;
       default:
         std::cerr << "Unknown argument "<<argv<<"\n";
         exit(-1);

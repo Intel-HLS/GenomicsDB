@@ -619,6 +619,17 @@ void AttributeTile<T>::copy_payload(char* buffer) const {
   memcpy(buffer, &payload_[0], tile_size());
 }
 
+template<class T> 
+void AttributeTile<T>::copy_payload(T* buffer, uint64_t idx, uint64_t num_elements) const {
+  memcpy(buffer, &(payload_[idx]), num_elements*sizeof(T));
+}
+
+template<class T> 
+const T* AttributeTile<T>::get_payload_ptr(uint64_t idx) const {
+  return &(payload_[idx]);
+}
+
+
 /******************************************************
 *********************** MUTATORS **********************
 ******************************************************/
@@ -954,6 +965,15 @@ template<class T>
 void CoordinateTile<T>::copy_payload(char* buffer) const {
   uint64_t offset = 0;
   for(uint64_t i=0; i<cell_num_; i++) {
+    memcpy(buffer + offset, &payload_[i][0], cell_size_);
+    offset += cell_size_;
+  }
+}
+
+template<class T> 
+void CoordinateTile<T>::copy_payload(char* buffer, uint64_t idx, uint64_t num_elements) const {
+  uint64_t offset = 0;
+  for(uint64_t i=idx; i<cell_num_ && i<num_elements; i++) {
     memcpy(buffer + offset, &payload_[i][0], cell_size_);
     offset += cell_size_;
   }

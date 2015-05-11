@@ -39,6 +39,7 @@
 #include "csv_file.h"
 #include "storage_manager.h"
 #include <ostream>
+#include "query_config.h"
 
 /** 
  * This class implements the query processor module, which is responsible
@@ -92,6 +93,10 @@ class QueryProcessor {
   void subarray(const StorageManager::ArrayDescriptor* array_descriptor,
                 const Tile::Range& range,
                 const std::string& result_array_name) const;
+  /**
+   * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
+   */
+  void obtain_TileDB_attribute_idxs(const StorageManager::ArrayDescriptor* array_descriptor, QueryConfig& queryConfig) const;
 
  private:
   // PRIVATE ATTRIBUTES

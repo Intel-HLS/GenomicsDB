@@ -3,8 +3,9 @@
 
 #include <assert.h>
 #include <vector>
+#include <stdlib.h>
 
-#define lut_missing_value -1
+#define lut_missing_value -1ll
 /**
  * LUT = Look Up Table (to avoid confusion with map, unordered_map etc)
  * @brief Base class to store look up information between fields of merged header and input headers
@@ -24,7 +25,7 @@
  * Almost all the 'complexity' of the code comes from being able to handle the different layouts in a transparent manner
  *
  * Alternate explanation:
- * This class contains two matrices (vector<vector<int>>) to store the mapping information:
+ * This class contains two matrices (vector<vector<int64_t>>) to store the mapping information:
  * m_inputs_2_merged_lut and m_merged_2_inputs_lut. You can layout each matrix in one of the 2 following ways:
  * (a) LUT[i][j]  corresponds to input VCF i and field j 
  * (b) LUT[i][j]  corresponds to field i and input VCF j
@@ -61,7 +62,7 @@ class LUTBase
    * @param inputIdx index of the field in the input VCF file - field could be anything header field,sample,allele etc
    * @param mergedIdx index of the field in the merged VCF file
    */
-  inline void add_input_merged_idx_pair(unsigned inputGVCFIdx, int inputIdx, int mergedIdx)
+  inline void add_input_merged_idx_pair(int64_t inputGVCFIdx, int64_t inputIdx, int64_t mergedIdx)
   {
     set_merged_idx_for_input(inputGVCFIdx, inputIdx, mergedIdx);
     set_input_idx_for_merged(inputGVCFIdx, inputIdx, mergedIdx);
@@ -77,10 +78,10 @@ class LUTBase
    * @return index of the field in the input VCF file
    */
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  inline int get_input_idx_for_merged(unsigned inputGVCFIdx, int mergedIdx) const
+  inline int64_t get_input_idx_for_merged(int64_t inputGVCFIdx, int64_t mergedIdx) const
   { return get_lut_value(m_merged_2_inputs_lut, inputGVCFIdx, mergedIdx); }
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  inline int get_input_idx_for_merged(unsigned inputGVCFIdx, int mergedIdx) const
+  inline int64_t get_input_idx_for_merged(int64_t inputGVCFIdx, int64_t mergedIdx) const
   { return get_lut_value(m_merged_2_inputs_lut, mergedIdx, inputGVCFIdx); }
 
   /**
@@ -93,10 +94,10 @@ class LUTBase
    * @return index of the field in the merged VCF file
    */
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  inline int get_merged_idx_for_input(unsigned inputGVCFIdx, int inputIdx) const
+  inline int64_t get_merged_idx_for_input(int64_t inputGVCFIdx, int64_t inputIdx) const
   { return get_lut_value(m_inputs_2_merged_lut, inputGVCFIdx, inputIdx); }
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  inline int get_merged_idx_for_input(unsigned inputGVCFIdx, int inputIdx) const
+  inline int64_t get_merged_idx_for_input(int64_t inputGVCFIdx, int64_t inputIdx) const
   { return get_lut_value(m_inputs_2_merged_lut, inputIdx, inputGVCFIdx); }
 
   /**
@@ -104,30 +105,30 @@ class LUTBase
    * @param inputGVCFIdx index of the input VCF file
    * @param inputIdx index of the field in the input VCF file
    */
-  inline void reset_merged_idx_for_input(unsigned inputGVCFIdx, int inputIdx)
+  inline void reset_merged_idx_for_input(int64_t inputGVCFIdx, int64_t inputIdx)
   { set_merged_idx_for_input(inputGVCFIdx, inputIdx, lut_missing_value); }
   /**
    * @brief reset/invalidate the input field index for input VCF inputGVCFIdx for merged field mergedIdx
    * @param inputGVCFIdx index of the input VCF file
    * @param mergedIdx index of the field in the merged VCF file
    */
-  inline void reset_input_idx_for_merged(unsigned inputGVCFIdx, int mergedIdx)
+  inline void reset_input_idx_for_merged(int64_t inputGVCFIdx, int64_t mergedIdx)
   { set_input_idx_for_merged(inputGVCFIdx, lut_missing_value, mergedIdx); }
 
-  static inline bool is_missing_value(int value) { return value == lut_missing_value; }
+  static inline bool is_missing_value(int64_t value) { return value == lut_missing_value; }
 
   protected:
   //Only inherited classes should call constructor,destructor etc
   LUTBase(); 
-  LUTBase(unsigned numInputGVCFs, unsigned numMergedFields);
+  LUTBase(int64_t numInputGVCFs, int64_t numMergedFields);
   ~LUTBase() = default;
   /**
    * @brief deallocates memory
    */
   void clear();
 
-  unsigned m_num_input_vcfs;
-  unsigned m_num_merged_fields;
+  int64_t m_num_input_vcfs;
+  int64_t m_num_merged_fields;
 
   /**
    *  @brief resize LUT functions 
@@ -137,50 +138,50 @@ class LUTBase
    *  @param numMergedFields number of fields combined across all input VCFs
    */
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  void resize_inputs_2_merged_lut_if_needed(unsigned numInputGVCFs, unsigned numMergedFields)
+  void resize_inputs_2_merged_lut_if_needed(int64_t numInputGVCFs, int64_t numMergedFields)
   { resize_and_reset_lut(m_inputs_2_merged_lut, numInputGVCFs, numMergedFields, m_num_input_vcfs, m_num_merged_fields); }
 
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  void resize_inputs_2_merged_lut_if_needed(unsigned numInputGVCFs, unsigned numMergedFields)
+  void resize_inputs_2_merged_lut_if_needed(int64_t numInputGVCFs, int64_t numMergedFields)
   { resize_and_reset_lut(m_inputs_2_merged_lut, numMergedFields, numInputGVCFs, m_num_merged_fields, m_num_input_vcfs); }
 
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  void resize_merged_2_inputs_lut_if_needed(unsigned numInputGVCFs, unsigned numMergedFields)
+  void resize_merged_2_inputs_lut_if_needed(int64_t numInputGVCFs, int64_t numMergedFields)
   { resize_and_reset_lut(m_merged_2_inputs_lut, numInputGVCFs, numMergedFields, m_num_input_vcfs, m_num_merged_fields); }
 
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  void resize_merged_2_inputs_lut_if_needed(unsigned numInputGVCFs, unsigned numMergedFields)
+  void resize_merged_2_inputs_lut_if_needed(int64_t numInputGVCFs, int64_t numMergedFields)
   { resize_and_reset_lut(m_merged_2_inputs_lut, numMergedFields, numInputGVCFs, m_num_merged_fields, m_num_input_vcfs); }
 
   /*
    * @brief wrapper around single LUT resize functions
    */
-  void resize_luts_if_needed(unsigned numInputGVCFs, unsigned numMergedFields)
+  void resize_luts_if_needed(int64_t numInputGVCFs, int64_t numMergedFields)
   {
     resize_merged_2_inputs_lut_if_needed(numInputGVCFs, numMergedFields);
     resize_inputs_2_merged_lut_if_needed(numInputGVCFs, numMergedFields);
   }
   private:
   //why not unordered_map? because I feel the need, the need for speed
-  std::vector<std::vector<int>> m_inputs_2_merged_lut;
-  std::vector<std::vector<int>> m_merged_2_inputs_lut;
+  std::vector<std::vector<int64_t>> m_inputs_2_merged_lut;
+  std::vector<std::vector<int64_t>> m_merged_2_inputs_lut;
   /**
    * @brief invalidate/reset all mappings in a vector
    * @note sets all elements to missing
    * @param vec the vector to reset
    * @param from offset in the vector from which to start reset, 0 by default
    */
-  void reset_vector(std::vector<int>& vec, unsigned from=0u);
+  void reset_vector(std::vector<int64_t>& vec, int64_t from=0u);
   /**
    * @brief resize and reset a vector
    * @note resize and reset is done only if new_size > vec.size()
    */
-  void resize_and_reset_vector(std::vector<int>& vec, unsigned new_size);
+  void resize_and_reset_vector(std::vector<int64_t>& vec, int64_t new_size);
   /**
    * @brief resize and reset a LUT
    * @note resize and reset is done only if new_size > old_size
    */
-  void resize_and_reset_lut(std::vector<std::vector<int>>& lut, unsigned new_lut_size, unsigned new_size, unsigned& numRowsVar, unsigned& numColsVar);
+  void resize_and_reset_lut(std::vector<std::vector<int64_t>>& lut, int64_t new_lut_size, int64_t new_size, int64_t& numRowsVar, int64_t& numColsVar);
 
   /**
    * @brief get LUT value at a particular row,column
@@ -190,12 +191,12 @@ class LUTBase
    * @param columnIdx column
    * @return value at lut[row][column], could be invalid, check with is_missing()
    */
-  inline int get_lut_value(const std::vector<std::vector<int>>& lut, int rowIdx, int columnIdx) const
+  inline int64_t get_lut_value(const std::vector<std::vector<int64_t>>& lut, int64_t rowIdx, int64_t columnIdx) const
   {
     assert(rowIdx >= 0);
-    assert(rowIdx < static_cast<int>(lut.size()));
+    assert(rowIdx < static_cast<int64_t>(lut.size()));
     assert(columnIdx >= 0);
-    assert(columnIdx < static_cast<int>(lut[rowIdx].size()));
+    assert(columnIdx < static_cast<int64_t>(lut[rowIdx].size()));
     return lut[rowIdx][columnIdx];
   }
 
@@ -207,12 +208,12 @@ class LUTBase
    * @param columnIdx column
    * @param value value to write at lut[row][column] 
    */
-  inline void set_lut_value(std::vector<std::vector<int>>& lut, int rowIdx, int columnIdx, int value)
+  inline void set_lut_value(std::vector<std::vector<int64_t>>& lut, int64_t rowIdx, int64_t columnIdx, int64_t value)
   {
     assert(rowIdx >= 0);
-    assert(rowIdx < static_cast<int>(lut.size()));
+    assert(rowIdx < static_cast<int64_t>(lut.size()));
     assert(columnIdx >= 0);
-    assert(columnIdx < static_cast<int>(lut[rowIdx].size()));
+    assert(columnIdx < static_cast<int64_t>(lut[rowIdx].size()));
     lut[rowIdx][columnIdx] = value;
   }
 
@@ -224,11 +225,11 @@ class LUTBase
    * @param mergedIdx index of the field in the merged VCF file
    */
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  inline void set_merged_idx_for_input(unsigned inputGVCFIdx, int inputIdx, int mergedIdx)
+  inline void set_merged_idx_for_input(int64_t inputGVCFIdx, int64_t inputIdx, int64_t mergedIdx)
   { set_lut_value(m_inputs_2_merged_lut, inputGVCFIdx, inputIdx, mergedIdx); } 
 
   template <bool M = inputs_2_merged_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  inline void set_merged_idx_for_input(unsigned inputGVCFIdx, int inputIdx, int mergedIdx)
+  inline void set_merged_idx_for_input(int64_t inputGVCFIdx, int64_t inputIdx, int64_t mergedIdx)
   { set_lut_value(m_inputs_2_merged_lut, inputIdx, inputGVCFIdx, mergedIdx); } 
 
   /**
@@ -239,11 +240,11 @@ class LUTBase
    * @param mergedIdx index of the field in the merged VCF file
    */
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<M>::type* = nullptr>
-  inline void set_input_idx_for_merged(unsigned inputGVCFIdx, int inputIdx, int mergedIdx)
+  inline void set_input_idx_for_merged(int64_t inputGVCFIdx, int64_t inputIdx, int64_t mergedIdx)
   { set_lut_value(m_merged_2_inputs_lut, inputGVCFIdx, mergedIdx, inputIdx); }
 
   template <bool M = merged_2_inputs_LUT_is_input_ordered, typename std::enable_if<!M>::type* = nullptr>
-  inline void set_input_idx_for_merged(unsigned inputGVCFIdx, int inputIdx, int mergedIdx)
+  inline void set_input_idx_for_merged(int64_t inputGVCFIdx, int64_t inputIdx, int64_t mergedIdx)
   { set_lut_value(m_merged_2_inputs_lut, mergedIdx, inputGVCFIdx, inputIdx); }
 
 };
@@ -258,13 +259,18 @@ class MergedAllelesIdxLUT
 : public LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>
 {
   private:
+    static const auto m_DEFAULT_NUM_INPUT_GVCFS=10u;
     static const auto m_DEFAULT_INIT_NUM_ALLELES=10u;
   public:
-    MergedAllelesIdxLUT(unsigned numInputGVCFs)
+    MergedAllelesIdxLUT()
+      : LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>(m_DEFAULT_NUM_INPUT_GVCFS,
+          m_DEFAULT_INIT_NUM_ALLELES)
+    { m_max_num_alleles = m_DEFAULT_INIT_NUM_ALLELES; }
+    MergedAllelesIdxLUT(int64_t numInputGVCFs)
       : LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>(numInputGVCFs,
           m_DEFAULT_INIT_NUM_ALLELES)
     { m_max_num_alleles = m_DEFAULT_INIT_NUM_ALLELES; }
-    inline void resize_luts_if_needed(unsigned numMergedAlleles)
+    inline void resize_luts_if_needed(int64_t numMergedAlleles)
     {
       if(numMergedAlleles > m_max_num_alleles)
       {
@@ -273,11 +279,96 @@ class MergedAllelesIdxLUT
         m_max_num_alleles = numMergedAlleles;
       }
     }
+    inline void resize_luts_if_needed(int64_t numInputGVCFs, int64_t numMergedAlleles)
+    {
+      LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::resize_luts_if_needed(
+          numInputGVCFs, numMergedAlleles); 
+    }
+    inline static bool is_missing_value(unsigned val)
+    {
+      return LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::is_missing_value(
+          static_cast<int>(val));
+    }
   private:
-    unsigned m_max_num_alleles;
+    int64_t m_max_num_alleles;
 };
 
 /*NOTE: Needs explicit instantiation in .cpp file to use this type alias*/
 using CombineAllelesLUT = MergedAllelesIdxLUT<true,true>;
 
+//Not a full LUT, each matrix is actually just a vector (single row matrix)
+class QueryIdxToKnownVariantFieldsEnumLUT : public LUTBase<true, true>
+{
+  public:
+    QueryIdxToKnownVariantFieldsEnumLUT()
+      : LUTBase<true, true>(1u, 100u)
+    {
+      m_LUT_size = 100u;
+    }
+    inline void resize_luts_if_needed(int64_t numQueriedAttributes, int64_t numKnownVariantFields)
+    {
+      int64_t maxValue = std::max(numKnownVariantFields, numQueriedAttributes);
+      if(maxValue > m_LUT_size)
+      {
+        LUTBase<true, true>::resize_luts_if_needed(1u, maxValue); 
+        m_LUT_size = maxValue;
+      }
+    }
+    void add_query_idx_known_field_enum_mapping(int64_t queryIdx, int64_t knownFieldEnum)
+    {
+      add_input_merged_idx_pair(0u, queryIdx, knownFieldEnum);
+    }
+    unsigned get_known_field_enum_for_query_idx(int64_t queryIdx) const
+    {
+      return static_cast<unsigned>(get_merged_idx_for_input(0u, queryIdx));
+    }
+    unsigned get_query_idx_for_known_field_enum(int64_t knownFieldEnum) const
+    {
+      return static_cast<unsigned>(get_input_idx_for_merged(0u, knownFieldEnum));
+    }
+    bool is_defined_value(unsigned val) const
+    {
+      return !is_missing_value(static_cast<int>(val));
+    }
+  private:
+    int64_t m_LUT_size;
+};
+
+//Not a full LUT, each matrix is actually just a vector (single row matrix)
+class SchemaIdxToKnownVariantFieldsEnumLUT : public LUTBase<true, true>
+{
+  public:
+    SchemaIdxToKnownVariantFieldsEnumLUT()
+      : LUTBase<true, true>(1u, 100u)
+    {
+      m_LUT_size = 100u;
+    }
+    inline void resize_luts_if_needed(int64_t numSchemaAttributes, int64_t numKnownVariantFields)
+    {
+      int64_t maxValue = std::max(numKnownVariantFields, numSchemaAttributes);
+      if(maxValue > m_LUT_size)
+      {
+        LUTBase<true, true>::resize_luts_if_needed(1u, maxValue); 
+        m_LUT_size = maxValue;
+      }
+    }
+    void add_schema_idx_known_field_mapping(int64_t schemaIdx, int64_t knownFieldEnum)
+    {
+      add_input_merged_idx_pair(0u, schemaIdx, knownFieldEnum);
+    }
+    unsigned get_known_field_enum_for_schema_idx(int64_t schemaIdx) const
+    {
+      return static_cast<unsigned>(get_merged_idx_for_input(0u, schemaIdx));
+    }
+    unsigned get_schema_idx_for_known_field_enum(int64_t knownFieldEnum) const
+    {
+      return static_cast<unsigned>(get_input_idx_for_merged(0u, knownFieldEnum));
+    }
+    bool is_defined_value(unsigned val) const
+    {
+      return !is_missing_value(static_cast<int>(val));
+    }
+  private:
+    int64_t m_LUT_size;
+};
 #endif
