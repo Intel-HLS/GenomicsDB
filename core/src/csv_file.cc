@@ -394,7 +394,7 @@ CSVFile::~CSVFile() {
     // flush the buffer.
     if(mode_ == APPEND && buffer_offset_ != 0)
       flush_buffer();
-    delete buffer_;
+    delete[] buffer_;
   }
 }
 

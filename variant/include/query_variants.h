@@ -10,7 +10,8 @@
 enum GTSchemaVersionEnum
 {
     GT_SCHEMA_V0=0,
-    GT_SCHEMA_V1
+    GT_SCHEMA_V1,
+    GT_SCHEMA_V2
 };
 
 //Bit positions in the NULL bitmap of all known field enums
@@ -21,7 +22,10 @@ enum GTSchemaVersionEnum
 //Should be in the reverse order of fields as used in load_variants.cc
 enum KnownFieldsNULLBitidxEnum
 {
-  GVCF_AC_NULL_BITIDX=0,
+  GVCF_PS_NULL_BITIDX=0,
+  GVCF_GT_NULL_BITIDX,
+  GVCF_PLOIDY_NULL_BITIDX,
+  GVCF_AC_NULL_BITIDX,
   GVCF_AN_NULL_BITIDX,
   GVCF_AF_NULL_BITIDX,
   GVCF_PL_NULL_BITIDX,
@@ -51,6 +55,7 @@ enum KnownVariantFieldOffsetsEnum
   GVCF_FILTER_OFFSET_IDX,
   GVCF_AD_OFFSET_IDX,
   GVCF_PL_OFFSET_IDX,
+  GVCF_GT_OFFSET_IDX,
   GVCF_NUM_KNOWN_OFFSET_ELEMENTS_PER_CELL
 };
 /*
@@ -61,11 +66,13 @@ class KnownFieldInfo
   public:
     KnownFieldInfo()
     {
+      m_ploidy_required = false;
       m_NULL_bitidx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_OFFSETS_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
     }
+    bool m_ploidy_required;
     unsigned m_NULL_bitidx;
     unsigned m_OFFSETS_idx;
     unsigned m_length_descriptor;
@@ -80,7 +87,8 @@ class KnownFieldInfo
     inline unsigned get_length_descriptor() const { return m_length_descriptor; }
     inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
     inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
-    unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles) const;
+    unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
+    inline bool ploidy_required_for_known_field_enum() const { return m_ploidy_required; }
 };
 
 /* Structure to store profiling information */
@@ -175,7 +183,7 @@ class VariantQueryProcessor : public QueryProcessor {
       assert(enumIdx < m_known_field_enum_to_info.size());
       return m_known_field_enum_to_info[enumIdx].is_length_allele_dependent();
     }
-    unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles) const;
+    unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles, unsigned ploidy) const;
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum
      * returns true if the field requires the OFFSETS field 
@@ -214,6 +222,14 @@ class VariantQueryProcessor : public QueryProcessor {
       return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
     }
     /*
+     * Check whether the known field requires PLOIDY - e.g. GT, GQ etc
+     */
+    inline bool ploidy_required_for_known_field_enum(unsigned enumIdx) const
+    {
+      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+      return m_known_field_enum_to_info[enumIdx].ploidy_required_for_known_field_enum();
+    }
+    /*
      * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
      * If yes, fills known_field_enum and returns true
      * Else returns false. Leaves known_field_enum untouched.
@@ -226,10 +242,12 @@ class VariantQueryProcessor : public QueryProcessor {
   private:
     /*initialize all known info about variants*/
     void initialize_known(const StorageManager::ArrayDescriptor* ad);
-    /*Initialize schema version v1 info*/
+    /*Initialize schema version v0 info*/
     void initialize_v0(const StorageManager::ArrayDescriptor* ad);
-    /*Check and initialize schema version v2 info*/
+    /*Check and initialize schema version v1 info*/
     void initialize_v1(const StorageManager::ArrayDescriptor* ad);
+    /*Check and initialize schema version v2 info*/
+    void initialize_v2(const StorageManager::ArrayDescriptor* ad);
     /*Initialize versioning information based on schema*/
     void initialize_version(const StorageManager::ArrayDescriptor* ad);
     /*Register field creator pointers with the factory object*/
@@ -280,7 +298,8 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
         const Tile& tile, int64_t pos,
-        const std::vector<int64_t>* OFFSETS_values, const int NULL_bitmap, const unsigned num_ALT_alleles,
+        const std::vector<int64_t>* OFFSETS_values, const int NULL_bitmap,
+        const unsigned num_ALT_alleles, const unsigned ploidy,
         const unsigned schema_idx, uint64_t* num_deref_tile_iters=0
         ) const;
 

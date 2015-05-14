@@ -68,7 +68,7 @@ void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
 
 void VariantQueryConfig::reorder_query_fields()
 {
-  auto special_field_names = vector<string>{ "COORDINATES", "END", "NULL", "OFFSETS", "ALT" };
+  auto special_field_names = vector<string>{ "COORDINATES", "END", "NULL", "OFFSETS", "ALT", "PLOIDY" };
   m_after_OFFSETS_field_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_first_normal_field_query_idx = 0u;
   for(auto i=0u;i<special_field_names.size();++i)
@@ -90,7 +90,7 @@ void VariantQueryConfig::reorder_query_fields()
         //Now other_field_name can no longer be used
       }
       ++m_first_normal_field_query_idx;
-      if(curr_field_name == "OFFSETS")
+      if(curr_field_name == "OFFSETS" || curr_field_name == "NULL")
         m_after_OFFSETS_field_query_idx = m_first_normal_field_query_idx;
     }
   }

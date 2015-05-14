@@ -422,7 +422,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx)
         && info_ptr && info_ptr->is_length_allele_dependent())
     {
-      unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u);     //#alt alleles
+      unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
       //Remapper for copy
       RemappedVariant remapper_variant(copy, query_field_idx); 
       std::vector<uint64_t> num_calls_with_valid_data = std::vector<uint64_t>(field_size, 0ull);
