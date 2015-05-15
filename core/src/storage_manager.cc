@@ -1198,7 +1198,7 @@ void StorageManager::flush_tiles(ArrayInfo& array_info,
     write(fd, segment, segment_size);
   
     // Clean up 
-    delete segment;
+    delete[] segment;
     close(fd);
   }
 }

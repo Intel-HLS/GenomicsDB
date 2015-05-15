@@ -66,6 +66,7 @@ void VariantLoader::append_cell_gVCF(const ArraySchema& array_schema,
   int64_t FILTER_ID_offset = tiles[GVCF_FILTER_IDX]->cell_num(); 
   int64_t AD_offset = tiles[GVCF_AD_IDX]->cell_num(); 
   int64_t PL_offset = tiles[GVCF_PL_IDX]->cell_num(); 
+  int64_t GT_offset = tiles[GVCF_GT_IDX]->cell_num(); 
   
   // ALT_num and FILTER_num variables
   int ALT_num;
@@ -341,7 +342,61 @@ void VariantLoader::append_cell_gVCF(const ArraySchema& array_schema,
   } else {
     *tiles[GVCF_AC_IDX] << int_v;
   }
+  NULL_bitmap = NULL_bitmap << 1;
   
+  // PLOIDY -- Attribute GVCF_PLOIDY_IDX
+  int ploidy = 0;
+  if(!(*csv_line >> int_v))
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_PLOIDY_IDX] << 0;
+  } else {
+    *tiles[GVCF_PLOIDY_IDX] << int_v;
+    ploidy = int_v;
+  }
+  NULL_bitmap = NULL_bitmap << 1;
+
+  // GT -- Attribute GVCF_GT_IDX
+  // TileDB does not like it if an attribute is completely empty
+  // Basically, all attributes MUST have the same #tiles as the coordinates
+  if(ploidy == 0)
+  {
+    *tiles[GVCF_GT_IDX] << 0;
+    int_v = CSV_NULL_INT;
+  }
+  else
+    for(int i=0; i<ploidy; i++) {
+      if(!(*csv_line >> int_v))
+        int_v = CSV_NULL_INT;
+      if(int_v == CSV_NULL_INT)
+      {
+        *tiles[GVCF_GT_IDX] << 0;
+        break;
+      }
+      else 
+        *tiles[GVCF_GT_IDX] << int_v;
+    }
+  if(int_v == CSV_NULL_INT) // We assume that if one GT value is NULL, all are
+    NULL_bitmap += 1;
+
+  // PS - phase set GVCF_PS_IDX 
+  NULL_bitmap = NULL_bitmap << 1;
+  if(!(*csv_line >> int_v))
+    // We are not throwing an exception here because we want to be backward 
+    // compatible with VCF Files
+    // Assign int_v to CSV_NULL_INT and fall through rest of the logic
+    int_v = CSV_NULL_INT;
+  if(int_v == CSV_NULL_INT) {
+    NULL_bitmap += 1;
+    *tiles[GVCF_PS_IDX] << 0;
+  } else {
+    *tiles[GVCF_PS_IDX] << int_v;
+  }
+
   // NULL -- Attribute GVCF_NULL_IDX
   *tiles[GVCF_NULL_IDX] << NULL_bitmap;
 
@@ -351,6 +406,7 @@ void VariantLoader::append_cell_gVCF(const ArraySchema& array_schema,
   *tiles[GVCF_OFFSETS_IDX] << FILTER_ID_offset;
   *tiles[GVCF_OFFSETS_IDX] << AD_offset;
   *tiles[GVCF_OFFSETS_IDX] << PL_offset;
+  *tiles[GVCF_OFFSETS_IDX] << GT_offset;
 }
 
 ArraySchema* VariantLoader::create_gVCF_array_schema(const char* array_name, const uint64_t max_sample_idx) const {
@@ -390,6 +446,9 @@ ArraySchema* VariantLoader::create_gVCF_array_schema(const char* array_name, con
   attribute_names.push_back("AF"); 
   attribute_names.push_back("AN"); 
   attribute_names.push_back("AC"); 
+  attribute_names.push_back("PLOIDY"); 
+  attribute_names.push_back("GT"); 
+  attribute_names.push_back("PS"); 
   attribute_names.push_back("NULL"); 
   attribute_names.push_back("OFFSETS"); 
  
@@ -421,6 +480,9 @@ ArraySchema* VariantLoader::create_gVCF_array_schema(const char* array_name, con
   types.push_back(&typeid(float));    // AF
   types.push_back(&typeid(int));      // AN
   types.push_back(&typeid(int));      // AC
+  types.push_back(&typeid(int));      // PLOIDY
+  types.push_back(&typeid(int));      // GT
+  types.push_back(&typeid(int));      // PS (phase set)
   types.push_back(&typeid(int));      // NULL
   types.push_back(&typeid(int64_t));  // OFFSETS 
   types.push_back(&typeid(int64_t));  // Coordinates (SampleID, POS)

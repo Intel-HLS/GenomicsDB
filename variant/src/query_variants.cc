@@ -43,7 +43,7 @@ Tile::const_iterator get_first_cell_after(const Tile& tile, uint64_t column)
   return Tile::const_iterator(&tile, high);
 }
 
-unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_alleles) const
+unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const
 {
   unsigned length = 0u;
   unsigned num_alleles = num_ALT_alleles + 1u;
@@ -63,6 +63,9 @@ unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_
       break;
     case BCF_VL_G:
       length = (num_alleles*(num_alleles+1))/2;
+      break;
+    case BCF_VL_P:
+      length = ploidy;
       break;
     default:
       cerr << "Unknown length descriptor "<<m_length_descriptor<<" - ignoring\n";
@@ -97,6 +100,9 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
     "AF",
     "AN",
     "AC",
+    "PLOIDY",
+    "GT",
+    "PS",
     "NULL",
     "OFFSETS",
     "COORDINATES"
@@ -133,6 +139,9 @@ void VariantQueryProcessor::initialize_static_members()
 void VariantQueryProcessor::initialize_known(const StorageManager::ArrayDescriptor* ad)
 {
   //Initialize NULL bit idx for all known variant fields
+  m_known_field_enum_to_info[GVCF_PS_IDX].m_NULL_bitidx =                        GVCF_PS_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_GT_IDX].m_NULL_bitidx =                        GVCF_GT_NULL_BITIDX;
+  m_known_field_enum_to_info[GVCF_PLOIDY_IDX].m_NULL_bitidx =                    GVCF_PLOIDY_NULL_BITIDX;
   m_known_field_enum_to_info[GVCF_AC_IDX].m_NULL_bitidx =                        GVCF_AC_NULL_BITIDX;
   m_known_field_enum_to_info[GVCF_AN_IDX].m_NULL_bitidx =                        GVCF_AN_NULL_BITIDX;
   m_known_field_enum_to_info[GVCF_AF_IDX].m_NULL_bitidx =                        GVCF_AF_NULL_BITIDX;
@@ -159,8 +168,11 @@ void VariantQueryProcessor::initialize_known(const StorageManager::ArrayDescript
   m_known_field_enum_to_info[GVCF_FILTER_IDX].m_OFFSETS_idx =  GVCF_FILTER_OFFSET_IDX;
   m_known_field_enum_to_info[GVCF_AD_IDX].m_OFFSETS_idx =  GVCF_AD_OFFSET_IDX;
   m_known_field_enum_to_info[GVCF_PL_IDX].m_OFFSETS_idx =  GVCF_PL_OFFSET_IDX;
+  m_known_field_enum_to_info[GVCF_GT_IDX].m_OFFSETS_idx =  GVCF_GT_OFFSET_IDX;
   //Could change based on version as well
   m_num_elements_per_offset_cell = GVCF_NUM_KNOWN_OFFSET_ELEMENTS_PER_CELL;
+  //Ploidy requirements
+  m_known_field_enum_to_info[GVCF_GT_IDX].m_ploidy_required = true;
   //Initialize schema idx <--> known_field_enum mapping
   //+1 for the coordinates
   const auto& schema = ad->array_schema();
@@ -189,18 +201,20 @@ void VariantQueryProcessor::initialize_v0(const StorageManager::ArrayDescriptor*
     }
   }
   m_GT_schema_version = GT_SCHEMA_V0;
+  m_num_elements_per_offset_cell = GVCF_PL_OFFSET_IDX + 1u; 
 }
 
+//Added AF,AN and AC fields
 void VariantQueryProcessor::initialize_v1(const StorageManager::ArrayDescriptor* ad)
 {
   const auto& schema = ad->array_schema();
   //Check if any attributes in V2 schema
-  const auto v2_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
+  const auto v1_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
   for(auto i=0u;i<schema.attribute_num();++i)
-    if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
+    if(v1_fields.find(schema.attribute_name(i)) != v1_fields.end())
     {
-      unsigned diff = (GVCF_PL_NULL_BITIDX - GVCF_AC_NULL_BITIDX);    //v2 only knows upto field AC
-      //Reverse of v1, increment NULL bitix of defined fields
+      unsigned diff = (GVCF_PL_NULL_BITIDX - GVCF_AC_NULL_BITIDX);    //v1 only knows upto field AC
+      //Reverse of v0, increment NULL bitix of defined fields
       for(auto i=0u;i<=GVCF_PL_IDX;++i)
       {
         if((is_NULL_bitidx_defined_for_known_field_enum(i)))
@@ -212,6 +226,34 @@ void VariantQueryProcessor::initialize_v1(const StorageManager::ArrayDescriptor*
         m_known_field_enum_to_info[i].m_NULL_bitidx =  diff - (i - GVCF_AF_IDX);
       //set schema version
       m_GT_schema_version = GT_SCHEMA_V1;
+      break;
+    }
+}
+
+//Added PLOIDY and GT fields
+void VariantQueryProcessor::initialize_v2(const StorageManager::ArrayDescriptor* ad)
+{
+  const auto& schema = ad->array_schema();
+  //Check if any attributes in V2 schema
+  const auto v2_fields = std::unordered_set<std::string>{ "PLOIDY", "GT", "PS" };
+  for(auto i=0u;i<schema.attribute_num();++i)
+    if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
+    {
+      unsigned diff = (GVCF_AC_NULL_BITIDX - GVCF_PS_NULL_BITIDX);    //v2 only knows upto field PS
+      //Increment NULL bitix of defined fields
+      for(auto i=0u;i<=GVCF_AC_IDX;++i)
+      {
+        if((is_NULL_bitidx_defined_for_known_field_enum(i)))
+          m_known_field_enum_to_info[i].m_NULL_bitidx +=  diff;
+      }
+      diff = (GVCF_PLOIDY_NULL_BITIDX - GVCF_PS_NULL_BITIDX);
+      //validate null bit idx for PLOIDY, GT, PS
+      for(unsigned i=GVCF_PLOIDY_IDX;i<=GVCF_PS_IDX;++i)
+        m_known_field_enum_to_info[i].m_NULL_bitidx =  diff - (i - GVCF_PLOIDY_IDX);
+      //set schema version
+      m_GT_schema_version = GT_SCHEMA_V2;
+      //Number of fields per OFFSETS cell changes
+      m_num_elements_per_offset_cell = GVCF_GT_OFFSET_IDX + 1u; 
       break;
     }
 }
@@ -241,6 +283,9 @@ void VariantQueryProcessor::initialize_length_descriptor(unsigned idx)
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
       m_known_field_enum_to_info[idx].m_num_elements = m_num_elements_per_offset_cell;
       break;
+    case GVCF_GT_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_P;
+      break;
     default:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
       m_known_field_enum_to_info[idx].m_num_elements = 1u;
@@ -254,6 +299,7 @@ void VariantQueryProcessor::initialize_version(const StorageManager::ArrayDescri
   //Initialize to v0 schema by default
   initialize_v0(ad);
   initialize_v1(ad);
+  initialize_v2(ad);
 }
 
 void VariantQueryProcessor::register_field_creators(const StorageManager::ArrayDescriptor* ad)
@@ -526,6 +572,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_NULL_IDX);
   unsigned ALT_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
+  unsigned PLOIDY_schema_idx =
+    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_PLOIDY_IDX);
   for(auto i=0u;i<num_queried_attributes;++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
@@ -555,6 +603,15 @@ void VariantQueryProcessor::do_query_bookkeeping(const StorageManager::ArrayDesc
         //ALT uses OFFSETS
         assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(OFFSETS_schema_idx));
         query_config.add_attribute_to_query("OFFSETS", OFFSETS_schema_idx);
+      }
+      //Does the field require PLOIDY
+      if(ploidy_required_for_known_field_enum(known_variant_field_enum))
+      {
+        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(PLOIDY_schema_idx));
+        query_config.add_attribute_to_query("PLOIDY", PLOIDY_schema_idx);
+        //ploidy uses NULL
+        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(NULL_schema_idx));
+        query_config.add_attribute_to_query("NULL", NULL_schema_idx);
       }
     }
   }
@@ -803,20 +860,22 @@ void VariantQueryProcessor::gt_get_column(
 }
 
 unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned known_field_enum,
-    unsigned num_ALT_alleles) const
+    unsigned num_ALT_alleles, unsigned ploidy) const
 {
   assert(known_field_enum < m_known_field_enum_to_info.size());
-  return m_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles);
+  return m_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles, ploidy);
 }
 
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
     const Tile& tile, int64_t pos,
-    const vector<int64_t>* OFFSETS_values, const int NULL_bitmap, const unsigned num_ALT_alleles,
+    const vector<int64_t>* OFFSETS_values, const int NULL_bitmap,
+    const unsigned num_ALT_alleles, const unsigned ploidy,
     unsigned schema_idx, uint64_t* num_deref_tile_iters
     ) const
 {
   if(field_ptr.get() == nullptr)       //Allocate only if null
     field_ptr = std::move(m_field_factory.Create(schema_idx)); 
+  field_ptr->set_valid(false);  //mark as invalid by default
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   uint64_t num_elements = 0ull;
   //Default value of offset == offset of cell in co-ordinates tile
@@ -832,7 +891,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
       if((NULL_bitmap >> NULL_bitidx) & 1) //is null, nothing to do
         return;
     }
-    num_elements = get_num_elements_for_known_field_enum(known_field_enum, num_ALT_alleles);
+    num_elements = get_num_elements_for_known_field_enum(known_field_enum, num_ALT_alleles, ploidy);
     //Uses OFFSETS
     if(uses_OFFSETS_field_for_known_field_enum(known_field_enum))
     {
@@ -842,6 +901,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
       field_offset = OFFSETS_values->operator[](OFFSETS_idx);
     }
   }
+  field_ptr->set_valid(true);  //mark as valid, since tile is actually accessed
   field_ptr->copy_data_from_tile(tile, field_offset, num_elements);
 #ifdef DO_PROFILING
   ++(*num_deref_tile_iters);
@@ -886,13 +946,15 @@ void VariantQueryProcessor::gt_fill_row(
   int NULL_bitmap = 0;
   //Num alternate alleles
   unsigned num_ALT_alleles = 0u;
+  //ploidy
+  unsigned ploidy = 0u;
   //Load special fields up to and including OFFSETS
   //NOTE, none of the special fields should use NULL bitmap or OFFSETS field
   for(auto i=2u;i<query_config.get_after_OFFSETS_field_query_idx();++i)
   {
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
-        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles, ploidy,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );
   }
@@ -910,20 +972,24 @@ void VariantQueryProcessor::gt_fill_row(
   {
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
-        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles, ploidy,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );
   }
   //Initialize ALT field, if needed
   const auto* ALT_field_ptr = get_known_field_if_queried<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX); 
   num_ALT_alleles = ALT_field_ptr->get().size();   //ALT field data is vector<string>
-
+  //Initialize ploidy, if queried
+  const auto* PLOIDY_field_ptr =
+    get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PLOIDY_IDX);
+  if(PLOIDY_field_ptr && PLOIDY_field_ptr->is_valid())
+    ploidy = PLOIDY_field_ptr->get()[0];   //ALT field data is vector<string>
   //Go over all normal query fields and fetch data
   for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i)
   {
     //Read from Tile
     fill_field(curr_call.get_field(i),(*tile_its[i]), pos,
-        OFFSETS_values, NULL_bitmap, num_ALT_alleles,
+        OFFSETS_values, NULL_bitmap, num_ALT_alleles, ploidy,
         query_config.get_schema_idx_for_query_idx(i), num_deref_tile_iters
         );     
   }

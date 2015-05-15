@@ -27,7 +27,10 @@ class VariantFieldBase : public QueryFieldData
   public:
     VariantFieldBase() 
       : QueryFieldData()
-    { m_subclass_type = VARIANT_FIELD_BASE; }
+    {
+      m_subclass_type = VARIANT_FIELD_BASE;
+      m_valid = false;
+    }
     virtual ~VariantFieldBase() = default;
     virtual void copy_data_from_tile(const Tile&  base_tile, uint64_t element_idx, uint64_t num_elements) = 0;
     virtual void clear() { ; }
@@ -42,6 +45,9 @@ class VariantFieldBase : public QueryFieldData
     virtual void resize(unsigned new_size) { ; }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return 0; }
+    /* Validity of field */
+    void set_valid(bool value) { m_valid = value; }
+    bool is_valid() const { return m_valid; }
   protected:
     enum VariantFieldTypesEnum
     {
@@ -53,6 +59,8 @@ class VariantFieldBase : public QueryFieldData
       NUM_VARIANT_FIELD_TYPES
     };
     unsigned m_subclass_type;   //enum from above
+  private:
+    bool m_valid;
 };
 /*
  * Class that holds single element data 
