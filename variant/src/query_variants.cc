@@ -235,20 +235,20 @@ void VariantQueryProcessor::initialize_v2(const StorageManager::ArrayDescriptor*
 {
   const auto& schema = ad->array_schema();
   //Check if any attributes in V2 schema
-  const auto v2_fields = std::unordered_set<std::string>{ "PLOIDY", "GT" };
+  const auto v2_fields = std::unordered_set<std::string>{ "PLOIDY", "GT", "PS" };
   for(auto i=0u;i<schema.attribute_num();++i)
     if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
     {
-      unsigned diff = (GVCF_AC_NULL_BITIDX - GVCF_GT_NULL_BITIDX);    //v2 only knows upto field GT
+      unsigned diff = (GVCF_AC_NULL_BITIDX - GVCF_PS_NULL_BITIDX);    //v2 only knows upto field PS
       //Increment NULL bitix of defined fields
       for(auto i=0u;i<=GVCF_AC_IDX;++i)
       {
         if((is_NULL_bitidx_defined_for_known_field_enum(i)))
           m_known_field_enum_to_info[i].m_NULL_bitidx +=  diff;
       }
-      diff = (GVCF_PLOIDY_NULL_BITIDX - GVCF_GT_NULL_BITIDX);
-      //validate null bit idx for PLOIDY, GT
-      for(unsigned i=GVCF_PLOIDY_IDX;i<=GVCF_GT_IDX;++i)
+      diff = (GVCF_PLOIDY_NULL_BITIDX - GVCF_PS_NULL_BITIDX);
+      //validate null bit idx for PLOIDY, GT, PS
+      for(unsigned i=GVCF_PLOIDY_IDX;i<=GVCF_PS_IDX;++i)
         m_known_field_enum_to_info[i].m_NULL_bitidx =  diff - (i - GVCF_PLOIDY_IDX);
       //set schema version
       m_GT_schema_version = GT_SCHEMA_V2;
@@ -875,6 +875,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
 {
   if(field_ptr.get() == nullptr)       //Allocate only if null
     field_ptr = std::move(m_field_factory.Create(schema_idx)); 
+  field_ptr->set_valid(false);  //mark as invalid by default
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   uint64_t num_elements = 0ull;
   //Default value of offset == offset of cell in co-ordinates tile
@@ -900,6 +901,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
       field_offset = OFFSETS_values->operator[](OFFSETS_idx);
     }
   }
+  field_ptr->set_valid(true);  //mark as valid, since tile is actually accessed
   field_ptr->copy_data_from_tile(tile, field_offset, num_elements);
 #ifdef DO_PROFILING
   ++(*num_deref_tile_iters);
@@ -980,7 +982,7 @@ void VariantQueryProcessor::gt_fill_row(
   //Initialize ploidy, if queried
   const auto* PLOIDY_field_ptr =
     get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PLOIDY_IDX);
-  if(PLOIDY_field_ptr)
+  if(PLOIDY_field_ptr && PLOIDY_field_ptr->is_valid())
     ploidy = PLOIDY_field_ptr->get()[0];   //ALT field data is vector<string>
   //Go over all normal query fields and fetch data
   for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i)

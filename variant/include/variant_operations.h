@@ -69,6 +69,11 @@ class VariantOperations
         const std::string& merged_reference_allele,
         CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists);
     /*
+     * Remaps GT field of Calls in the combined Variant based on new allele order
+     */
+    static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
+        const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx);
+    /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
     template<class DataType>

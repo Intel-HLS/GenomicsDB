@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 #endif
   //Setup query
   VariantQueryConfig query_config;
-  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AD" });
+  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AD", "GT"});
   if(cl.m_position > 0)
     query_config.add_column_interval_to_query(cl.m_position, cl.m_end_position);
   qp.do_query_bookkeeping(ad_gVCF, query_config);
