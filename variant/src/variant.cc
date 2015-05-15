@@ -16,7 +16,7 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
     unsigned idx = 0u;
     for(const auto& field : m_fields)
     {
-      if(field.get())  //non null field
+      if(field.get() && field->is_valid())  //non null, valid field
       {
         if(query_config)
           fptr << (query_config->get_query_attribute_name(idx)) << " : ";
