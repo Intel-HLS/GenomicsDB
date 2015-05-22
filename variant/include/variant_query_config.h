@@ -154,8 +154,15 @@ class VariantQueryConfig : public QueryConfig
     }
     /*
      * Function that specifies which column ranges to query
+     * Note that the order in which these intervals are queried is NOT the same order in which
+     * the intervals are added. Book-keeping sorts the intervals in ascending order so that
+     * intervals close by have a chance of re-using cached tiles in memory 
      */
     void add_column_interval_to_query(const int64_t colBegin, const int64_t colEnd);
+    /*
+     * Function that sets the interval as the only interval to be queried
+     */
+    void set_column_interval_to_query(const int64_t colBegin, const int64_t colEnd);
     /**
      * Returns number of ranges queried
      */

@@ -24,6 +24,12 @@ void VariantQueryConfig::add_column_interval_to_query(const int64_t colBegin, co
   std::sort(m_query_column_intervals.begin(), m_query_column_intervals.end(), ColumnRangeCompare);
 }
 
+void VariantQueryConfig::set_column_interval_to_query(const int64_t colBegin, const int64_t colEnd)
+{
+  m_query_column_intervals.resize(1u);
+  m_query_column_intervals[0] = make_pair(colBegin, colEnd);
+}
+
 void VariantQueryConfig::setup_array_row_idx_to_query_row_idx_map()
 {
   if(m_query_all_rows)  //if querying all rows, don't even bother setting up map
