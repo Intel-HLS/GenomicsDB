@@ -667,6 +667,7 @@ void VariantQueryProcessor::gt_get_column_interval(
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
     vector<Variant>& variants, GTProfileStats* stats) const {
   uint64_t num_deref_tile_iters = 0ull;
+  uint64_t start_variant_idx = variants.size();
   //Will be used to produce Variants with one CallSet
   VariantQueryConfig subset_query_config(query_config);
   vector<int64_t> subset_rows = vector<int64_t>(1u, 0);
@@ -682,7 +683,9 @@ void VariantQueryProcessor::gt_get_column_interval(
   gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
   //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
   //into multiple Variants, each containing a single call
-  interval_begin_variant.move_calls_to_separate_variants(variants, query_row_idx_in_order);
+  GA4GHCallInfoToVariantIdx call_info_2_variant;
+  interval_begin_variant.move_calls_to_separate_variants(query_config, variants, query_row_idx_in_order,
+      call_info_2_variant);
   //If this is not a single position query, need to fetch more cells
   if(query_config.get_column_end(column_interval_idx) >
       query_config.get_column_begin(column_interval_idx))
@@ -708,6 +711,8 @@ void VariantQueryProcessor::gt_get_column_interval(
     uint64_t num_deref_tile_iters = 0; 
     bool first_tile = true;
     bool break_out = false;
+    Variant tmp_variant(&subset_query_config);
+    tmp_variant.resize_based_on_query();
     for(;tile_its[COORDS_query_idx] != tile_it_end;advance_tile_its(num_queried_attributes-1, tile_its))
     {
       // Initialize cell iterators for the coordinates
@@ -729,16 +734,16 @@ void VariantQueryProcessor::gt_get_column_interval(
           //Create Variant with single Call (subset_query_config contains one row)
           subset_rows[0] = next_coord[0];
           subset_query_config.update_rows_to_query(subset_rows);
-          variants.emplace_back(Variant(&subset_query_config));
-          auto& curr_variant = variants[variants.size()-1];
-          curr_variant.set_column_interval(next_coord[1], next_coord[1]);
-          curr_variant.resize_based_on_query();
-          gt_fill_row<StorageManager::const_iterator>(curr_variant, next_coord[0], next_coord[1], cell_it.pos(), 
+          tmp_variant.resize_based_on_query();
+          assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
+          tmp_variant.get_call(0u).set_row_idx(next_coord[0]); //set row idx
+          tmp_variant.set_column_interval(next_coord[1], next_coord[1]);
+          gt_fill_row<StorageManager::const_iterator>(tmp_variant, next_coord[0], next_coord[1], cell_it.pos(), 
               subset_query_config, tile_its, &num_deref_tile_iters);
           //Set correct end for the variant 
-          assert(curr_variant.get_num_calls() == 1u);      //exactly 1 call
-          curr_variant.set_column_interval(curr_variant.get_column_begin(),
-              curr_variant.get_call(0).get_column_end());
+          assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
+          //Move call to variants vector, creating new Variant if necessary
+          move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant);
         }
       }
       first_tile = false;
@@ -747,6 +752,15 @@ void VariantQueryProcessor::gt_get_column_interval(
     }
     delete[] tile_its;
   }
+  GA4GHOperator variant_operator;
+  for(auto i=start_variant_idx;i<variants.size();++i)
+    if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
+    {
+      variant_operator.clear();
+      variant_operator.operate(variants[i], query_config);
+      assert(variant_operator.get_variants().size() == 1u);     //exactly one variant
+      variants[i] = std::move(variant_operator.get_variants()[0]);
+    }
 }
 
 void VariantQueryProcessor::gt_get_column(

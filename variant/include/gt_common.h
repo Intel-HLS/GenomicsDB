@@ -14,6 +14,8 @@
 #include <unordered_set>
 #include <algorithm>
 #include <string>
+#include <set>
+#include <map>
 #include "profiling.h"
 
 #ifndef HTSDIR
