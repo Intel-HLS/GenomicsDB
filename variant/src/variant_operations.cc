@@ -438,9 +438,9 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
     const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
-    //known field whose length is dependent on #alleles
     if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
     {
+      //known field whose length is dependent on #alleles
       if(info_ptr && info_ptr->is_length_allele_dependent())
       {
         unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles

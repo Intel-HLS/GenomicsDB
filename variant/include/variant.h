@@ -9,6 +9,45 @@
 /*a string to store <NON_REF> string (read-only)*/
 extern std::string g_non_reference_allele;
 
+/*
+ * Class that stores info that helps determine whether 2 VariantCalls should be
+ * merged into a single Variant object.
+ * 2 VariantCalls x,y must satisfy the following conditions to be collapsed:
+ * x.m_col_begin == y.m_col_begin && x.m_col_end == y.m_col.end && x.REF == y.REF
+ * && x.ALT == y.ALT
+ * This condition is checked using a hierarchical structure:
+ * unordered_map : m_col_begin ->  
+ * unordered_map : m_col_end ->
+ * unordered_map : REF(string)->
+ * map : set<ALT(string)> -> variant_idx
+ * The ALTs are stored as set<string> since the ordering of ALT in two Calls may be different,
+ * yet they may be identical
+ */
+class VariantCall;
+class GA4GHCallInfoToVariantIdx 
+{
+  typedef std::map<std::set<std::string>, uint64_t> ALTSetToVariantIdxTy;
+  typedef std::unordered_map<std::string, ALTSetToVariantIdxTy> REFToVariantIdxTy;
+  typedef std::unordered_map<uint64_t, REFToVariantIdxTy> EndToVariantIdxTy;
+  public:
+    GA4GHCallInfoToVariantIdx() { clear(); }
+    /*
+     * This function finds an index corresponding to the given info if exists, else creates an entry 
+     * in the hierarchical map with the new info and assigns the value of variant_index passed
+     * Hence, variant_index must be set to a new index value when the function is called.
+     * If the function determines the existence of a record with the same info, then variant_index is modified to
+     * point to the existing record.
+     * @return True if new record created, false otherwise
+     */
+    bool find_or_insert(uint64_t begin, uint64_t end, const std::string& REF, 
+        const std::vector<std::string>& ALT_vec, uint64_t& variant_idx);
+    bool find_or_insert(const VariantQueryConfig& query_config, VariantCall& to_move_call,
+      uint64_t& variant_idx);
+    void clear();
+  private:
+    std::unordered_map<uint64_t, EndToVariantIdxTy> m_begin_to_variant;
+};
+
 /**
  * Class equivalent to GACall in GA4GH API. Stores info about 1 CallSet/row for a given position
  */
@@ -335,7 +374,9 @@ class Variant
      * If this Variant object has N valid VariantCall objects, then create
      * N variants each with a single valid VariantCall
      */
-    void move_calls_to_separate_variants(std::vector<Variant>& variants, std::vector<uint64_t>& query_row_idx_in_order);
+    void move_calls_to_separate_variants(const VariantQueryConfig& query_config,
+        std::vector<Variant>& variants, std::vector<uint64_t>& query_row_idx_in_order,
+        GA4GHCallInfoToVariantIdx& call_info_2_variant);
     /*Non-const iterators for iterating over valid calls*/
     valid_calls_iterator begin() { return valid_calls_iterator(m_calls.begin(), m_calls.end(), 0ull); }
     valid_calls_iterator end() { return valid_calls_iterator(m_calls.end(), m_calls.end(), m_calls.size()); }
@@ -509,4 +550,11 @@ const VariantFieldTy* get_known_field(const VariantCall& curr_call, const Varian
   assert_not_null<do_assert>(static_cast<const void*>(field_ptr));
   return field_ptr;
 }
+
+/*
+ * Move call to variants vector - create new Variant if necessary
+ */
+void move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
+    std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant);
+
 #endif

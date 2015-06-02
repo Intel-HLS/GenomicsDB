@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
   qp.do_query_bookkeeping(ad_gVCF, query_config);
   //Use GA4GH VariantOperators
   GA4GHOperator variant_operator;
+  variant_operator.clear();
   //Do scan and operate
   qp.scan_and_operate(ad_gVCF, query_config, variant_operator, 0u);
   //Print variants - aligned variants (interval splitting, REF, ALT merging etc done)
