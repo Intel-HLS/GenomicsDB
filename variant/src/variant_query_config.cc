@@ -30,16 +30,28 @@ void VariantQueryConfig::set_column_interval_to_query(const int64_t colBegin, co
   m_query_column_intervals[0] = make_pair(colBegin, colEnd);
 }
 
+void VariantQueryConfig::invalidate_array_row_idx_to_query_row_idx_map(bool all_rows)
+{
+  if(all_rows)
+    for(auto i=0ull;i<get_num_rows_in_array();++i)
+      m_array_row_idx_to_query_row_idx[i] = UNDEFINED_NUM_ROWS_VALUE;
+  else
+    for(auto i=0ull;i<get_num_rows_to_query();++i)
+    {
+      assert(get_array_row_idx_for_query_row_idx(i) >=0 && get_array_row_idx_for_query_row_idx(i) < m_array_row_idx_to_query_row_idx.size());
+      m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)] = UNDEFINED_NUM_ROWS_VALUE;
+    }
+}
+
 void VariantQueryConfig::setup_array_row_idx_to_query_row_idx_map()
 {
   if(m_query_all_rows)  //if querying all rows, don't even bother setting up map
     return;
   m_array_row_idx_to_query_row_idx.resize(get_num_rows_in_array());
-  for(auto i=0ull;i<get_num_rows_in_array();++i)
-    m_array_row_idx_to_query_row_idx[i] = UNDEFINED_NUM_ROWS_VALUE;     //invalid value
+  invalidate_array_row_idx_to_query_row_idx_map(true); 
   for(auto i=0ull;i<m_query_rows.size();++i)
   {
-    if(m_query_rows[i] < 0 || m_query_rows[i] >= get_num_rows_in_array())
+    if(get_array_row_idx_for_query_row_idx(i) < 0 || get_array_row_idx_for_query_row_idx(i) >= get_num_rows_in_array())
       throw OutOfBoundsQueryException("Queried row index "+std::to_string(m_query_rows[i])+" is out of bounds");
     m_array_row_idx_to_query_row_idx[m_query_rows[i]] = i;
   }
@@ -51,11 +63,7 @@ void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
   //invalidate old queried rows, if a subset of rows were being queried earlier
   if(!m_query_all_rows)
   {
-    for(auto i=0ull;i<get_num_rows_to_query();++i)
-    {
-      assert(get_array_row_idx_for_query_row_idx(i) >=0 && get_array_row_idx_for_query_row_idx(i) < m_array_row_idx_to_query_row_idx.size());
-      m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)] = UNDEFINED_NUM_ROWS_VALUE;
-    }
+    invalidate_array_row_idx_to_query_row_idx_map(false); 
     set_rows_to_query(rows);
   }
   else
@@ -70,6 +78,15 @@ void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
       throw OutOfBoundsQueryException("Queried row index "+std::to_string(m_query_rows[i])+" is out of bounds");
     m_array_row_idx_to_query_row_idx[m_query_rows[i]] = i;
   }
+}
+
+void VariantQueryConfig::update_rows_to_query_to_all_rows()
+{
+  if(m_query_all_rows)  //already querying all rows
+    return;
+  assert(is_bookkeeping_done());
+  invalidate_array_row_idx_to_query_row_idx_map(false); //invalidate mappings for currently queried rows
+  m_query_all_rows = true;
 }
 
 void VariantQueryConfig::reorder_query_fields()

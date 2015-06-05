@@ -18,13 +18,18 @@ int main(int argc, char *argv[]) {
     uint64_t end = std::stoull(std::string(argv[4]));
 
     bool single_position_queries = false;
-    if(argc >= 6 && std::string(argv[5])=="--single-positions")
+    bool test_update_rows = false;
+    if(argc >= 6) 
+      if(std::string(argv[5])=="--single-positions")
         single_position_queries = true;
+      else
+        if(std::string(argv[5])=="--test-update-rows")
+          test_update_rows = true;
     
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "GT", "AC", "DP", "PS"});
-    //query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+    //query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "GT", "AC", "DP", "PS"});
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
     if(end > start && single_position_queries)
         //Add interval to query - begin, end
         for( uint64_t i = start; i <= end; ++i )
@@ -45,6 +50,18 @@ int main(int argc, char *argv[]) {
     else
     {
         std::vector<Variant> variants;
+        if(test_update_rows)
+        {
+          std::cout << "Querying only row 0\n";
+          query_config.set_rows_to_query(std::vector<int64_t>(1u, 0ll));     //query row 0 only
+          db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+          for(const auto& variant : variants)
+              variant.print(std::cout, &query_config);
+          variants.clear();
+          //Bookkeeping must be done BEFORE calling this function
+          query_config.update_rows_to_query_to_all_rows();
+          std::cout << "Querying all rows\n";
+        }
         db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
         for(const auto& variant : variants)
             variant.print(std::cout, &query_config);
