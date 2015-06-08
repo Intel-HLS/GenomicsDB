@@ -103,8 +103,15 @@ class VariantQueryConfig : public QueryConfig
     /*
      * Function that specifies which rows to query and also updates 
      * m_array_row_idx_to_query_row_idx
+     * Pre-requisite: query bookkeeping should be done before calling this function
      */
     void update_rows_to_query(const std::vector<int64_t>& rowIdx);
+    /*
+     * Function that specifies all rows should be queried. 
+     * m_array_row_idx_to_query_row_idx
+     * Pre-requisite: query bookkeeping should be done before calling this function
+     */
+    void update_rows_to_query_to_all_rows();
     /**
      * Rows to query
      */
@@ -189,6 +196,11 @@ class VariantQueryConfig : public QueryConfig
       return m_query_idx_known_field_info[idx];
     }
   private:
+    /*
+     * Function to invalid TileDB array row idx -> query row idx mapping
+     * @param all_rows if true, invalidates all mappings, else invalidates mapping for rows in m_query_rows only
+     */
+    void invalidate_array_row_idx_to_query_row_idx_map(bool all_rows);
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;
     //Idx in m_query_attributes_names with the first common attribute - see reorder_query_fields();
