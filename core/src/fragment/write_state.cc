@@ -137,7 +137,9 @@ void WriteState::flush() {
   finalize_last_run();
 
   // Make tiles
-  make_tiles(*temp_dirname_);
+  if(runs_num_ > 0)
+    make_tiles(*temp_dirname_);
+
   flush_segments();
 }
 
@@ -430,6 +432,7 @@ void WriteState::flush_sorted_run() {
   // Prepare BIN file
   std::stringstream filename;
   filename << *temp_dirname_ << "/" << runs_num_;
+
   BINFile file(array_schema_, 0);
   file.open(filename.str(), "w", segment_size_);
 
@@ -635,7 +638,7 @@ void WriteState::make_tiles_with_2_ids(const std::string& dirname) {
 
   // Create a file collection
   BINFileCollection<T> bin_file_collection(*workspace_ + "/__temp");
-  bin_file_collection.open(array_schema_, id_num,  dirname, sorted);
+  bin_file_collection.open(array_schema_, id_num, dirname, sorted);
 
   // Loop over the cells
   while(bin_file_collection >> cell) 
