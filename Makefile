@@ -11,8 +11,8 @@ OS := $(shell uname)
 
 # MPI compiler for C++
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
-CC  = $(MPIPATH)mpicc -std=c11 -fPIC
-CXX = $(MPIPATH)mpicxx -std=c++11 -fPIC -fvisibility=hidden 
+CC  = $(MPIPATH)mpicc -std=c11 -fPIC -g -gdwarf-2 -g3 -DDEBUG
+CXX = $(MPIPATH)mpicxx -std=c++11 -fPIC -fvisibility=hidden -g -gdwarf-2 -g3 -DDEBUG
 
 # --- Directories --- #
 # Directories for the core code of TileDB
@@ -80,7 +80,7 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 
 # --- Libs --- #
 MPI_LIB = -lmpi
-OPENMP_LIB = -fopenmp
+OPENMP_LIB = -fopenmp -g -gdwarf-2 -g3 -DDEBUG
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
