@@ -258,7 +258,7 @@ void Tile::set_payload(void* payload, size_t payload_size) {
 
     while(offset < payload_size) {
       offsets_.push_back(offset); 
-      assert(offset + sizeof(int) < payload_size);
+      assert(offset + sizeof(int) <= payload_size);
       memcpy(&val_num, c_payload + offset, sizeof(int)); 
       offset += sizeof(int) + val_num * type_size_;
     }
