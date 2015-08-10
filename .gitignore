@@ -24,3 +24,8 @@ manpages/html/
 rvma/obj/
 rvma/bin/
 doc/*
+*.o
+*.a
+*.so
+*.d
+example/bin
