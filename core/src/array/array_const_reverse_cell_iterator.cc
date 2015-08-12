@@ -65,8 +65,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   range_ = NULL;
   full_overlap_ = NULL;
   return_del_ = false;
-  cell_its_ = NULL;
-  tile_its_ = NULL; 
 
   // Prepare the ids of the fragments the iterator will iterate on
   for(int i=0; i<fragment_num_; ++i)
@@ -75,16 +73,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   // Prepare the ids of the attributes the iterator will iterate on
   for(int i=0; i<=attribute_num_; ++i)
     attribute_ids_.push_back(i);
-
-  // Case where the array is empty
-  if(array_->empty()) {
-    cell_size_ = 0;
-    var_size_ = false;
-    cell_ = NULL;
-    end_ = true;
-    is_del_ = false;
-    return;
-  }
 
   // Allocate space for the cell
   cell_size_ = array_schema->cell_size(attribute_ids_);
@@ -117,8 +105,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   end_ = false;
   range_ = NULL;
   full_overlap_ = NULL;
-  cell_its_ = NULL;
-  tile_its_ = NULL;
 
   // Prepare the ids of the fragments the iterator will iterate on
   fragment_ids_ = fragment_ids;
@@ -126,16 +112,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   // Prepare the ids of the attributes the iterator will iterate on
   for(int i=0; i<=attribute_num_; ++i)
     attribute_ids_.push_back(i);
-
-  // Case where the array is empty
-  if(array_->empty()) {
-    cell_size_ = 0;
-    var_size_ = false;
-    cell_ = NULL;
-    end_ = true;
-    is_del_ = false;
-    return;
-  }
 
   // Allocate space for the cell
   cell_size_ = array_schema->cell_size(attribute_ids_);
@@ -168,8 +144,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   range_ = NULL;
   full_overlap_ = NULL;
   return_del_ = false;
-  cell_its_ = NULL;
-  tile_its_ = NULL;
 
   // Prepare the ids of the fragments the iterator will iterate on
   for(int i=0; i<fragment_num_; ++i)
@@ -185,16 +159,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
     attribute_ids_.push_back(array_schema->smallest_attribute());
   attribute_ids_.push_back(attribute_num_);
   attribute_ids_ = rdedup(attribute_ids_);
-
-  // Case where the array is empty
-  if(array_->empty()) {
-    cell_size_ = 0;
-    var_size_ = false;
-    cell_ = NULL;
-    end_ = true;
-    is_del_ = false;
-    return;
-  }
 
   // Allocate space for the cell
   cell_size_ = array_schema->cell_size(attribute_ids_);
@@ -224,8 +188,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   range_ = new T[2*dim_num_];
   full_overlap_ = new bool[fragment_num_];
   memcpy(range_, range, 2*dim_num_*sizeof(T)); 
-  cell_its_ = NULL;
-  tile_its_ = NULL;
 
   // Prepare the ids of the fragments the iterator will iterate on
   // By default it is all the fragments, but this may change in the future
@@ -235,16 +197,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   // Prepare the ids of the attributes the iterator will iterate on
   for(int i=0; i<=attribute_num_; ++i)
     attribute_ids_.push_back(i);
-
-  // Case where the array is empty
-  if(array_->empty()) {
-    cell_size_ = 0;
-    var_size_ = false;
-    cell_ = NULL;
-    end_ = true;
-    is_del_ = false;
-    return;
-  }
 
   // Allocate space for the cell
   cell_size_ = array_schema->cell_size(attribute_ids_);
@@ -281,8 +233,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
   range_ = new T[2*dim_num_];
   full_overlap_ = new bool[fragment_num_];
   memcpy(range_, range, 2*dim_num_*sizeof(T)); 
-  cell_its_ = NULL;
-  tile_its_ = NULL;
 
   // Prepare the ids of the fragments the iterator will iterate on
   // By default it is all the fragments, but this may change in the future
@@ -299,16 +249,6 @@ ArrayConstReverseCellIterator<T>::ArrayConstReverseCellIterator(
     attribute_ids_.push_back(array_schema->smallest_attribute());
   attribute_ids_.push_back(attribute_num_);
   attribute_ids_ = rdedup(attribute_ids_);
-
-  // Case where the array is empty
-  if(array_->empty()) {
-    cell_size_ = 0;
-    var_size_ = false;
-    cell_ = NULL;
-    end_ = true;
-    is_del_ = false;
-    return;
-  }
 
   // Allocate space for the cell
   cell_size_ = array_schema->cell_size(attribute_ids_);

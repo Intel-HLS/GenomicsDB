@@ -96,7 +96,7 @@ Fragment::~Fragment() {
     clear_book_keeping();
   }
 
-  // Delete temp directory
+  // Temp directory
   delete_directory(temp_dirname_);
 }
 
