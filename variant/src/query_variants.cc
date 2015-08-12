@@ -737,8 +737,8 @@ void VariantQueryProcessor::gt_get_column(
     ++(*reverse_iter);
   }
   //Free memory 
-  if(cell.cell())
-    free(const_cast<void*>(cell.cell()));
+  //if(cell.cell())
+  //free(const_cast<void*>(cell.cell()));
   delete reverse_iter;
 
   if(query_row_idx_in_order)

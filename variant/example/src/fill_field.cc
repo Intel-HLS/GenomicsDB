@@ -12,7 +12,7 @@ main(int argc, char** argv)
   assert(status == TILEDB_OK);
   //schema_ptr->print();
   VariantQueryConfig query_config;
-  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
+  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
   query_config.add_column_interval_to_query(position, position);
   qp.do_query_bookkeeping(*schema_ptr, query_config);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)

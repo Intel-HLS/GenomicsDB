@@ -39,6 +39,7 @@ inline bool IS_NON_REF_ALLELE(const char allele_char)
 }
 
 #define TILEDB_NON_REF_VARIANT_REPRESENTATION "&"
+#define TILEDB_ALT_ALLELE_SEPARATOR "|"
 
 //Should be identical to the vector m_known_variant_field_names, see file query_variants.cc
 enum KnownVariantFieldsEnum

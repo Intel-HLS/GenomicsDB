@@ -543,6 +543,8 @@ int ArrayConstReverseCellIterator<T>::get_next_cell() {
 
     return fragment_id;
   } else { // No more cells
+    if(cell_)
+      free(cell_);
     cell_ = NULL;
     end_ = true;
     is_del_ = false;

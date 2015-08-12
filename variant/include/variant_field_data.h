@@ -228,9 +228,19 @@ class VariantFieldALTData : public VariantFieldBase
         num_elements = *num_elements_ptr;
         ptr = static_cast<const char*>(base_ptr + sizeof(int));
       }
-      //FIXME: tokenize string
-      m_data.resize(1u);
-      m_data[0] = std::move(std::string(ptr, num_elements));
+      //Create copy for use in strtok
+      char* tmp = strndup(ptr, num_elements);
+      assert(strnlen(tmp, num_elements+1) == num_elements); //last element should be 0
+      //Tokenize
+      char* saveptr = 0;
+      char* argptr = tmp;
+      m_data.clear();
+      while(auto curr_token = strtok_r(argptr, TILEDB_ALT_ALLELE_SEPARATOR, &saveptr))
+      {
+        m_data.push_back(curr_token);
+        argptr = 0;
+      }
+      free(tmp);
     }
     virtual std::vector<std::string>& get() { return m_data; }
     virtual const std::vector<std::string>& get() const { return m_data; }
