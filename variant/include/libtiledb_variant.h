@@ -1,5 +1,6 @@
 #include "query_variants.h"
 
+#if 0
 class Factory {
   private:
     StorageManager *sm;
@@ -55,3 +56,4 @@ extern "C" void db_query_column_range(std::string workspace,
 extern "C" void db_cleanup();
 
 extern "C" void test_C_pointers(Variant& variant);
+#endif

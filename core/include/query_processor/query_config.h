@@ -77,9 +77,10 @@ class QueryConfig
      * Get number of attributes in query
      */
     inline unsigned get_num_queried_attributes() const { return m_query_attributes_names.size(); }
+    inline const std::vector<int>& get_query_attributes_schema_idxs() const { return m_query_attributes_schema_idxs; }
   protected:
     std::vector<std::string> m_query_attributes_names;
-    std::vector<unsigned>  m_query_attributes_schema_idxs;
+    std::vector<int> m_query_attributes_schema_idxs;
     std::unordered_map<std::string, unsigned> m_query_attribute_name_to_query_idx;
 };
 

@@ -2,6 +2,11 @@
 
 #include "libtiledb_variant.h"
 
+
+
+
+#if 0
+
 Factory f;
 
 StorageManager *Factory::getStorageManager(std::string &workspace) {
@@ -176,3 +181,4 @@ extern "C" void test_C_pointers(Variant& variant)
         }
     }
 }
+#endif

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "query_field_data.h"
 #include "gt_common.h"
+#include "cell_const_attr_iterator.h"
 
 enum VariantFieldTypeEnum
 {
@@ -32,7 +33,7 @@ class VariantFieldBase : public QueryFieldData
       m_valid = false;
     }
     virtual ~VariantFieldBase() = default;
-    virtual void copy_data_from_tile(const Tile&  base_tile, uint64_t element_idx, uint64_t num_elements) = 0;
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements) = 0;
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
     /* Get pointer(s) to data with number of elements */
@@ -65,7 +66,7 @@ class VariantFieldBase : public QueryFieldData
 /*
  * Class that holds single element data 
  */
-template<class DataType, class AttributeTileTy=const AttributeTile<DataType>>
+template<class DataType>
 class VariantFieldData : public VariantFieldBase
 {
   public:
@@ -73,11 +74,13 @@ class VariantFieldData : public VariantFieldBase
       : VariantFieldBase()
     { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
-    virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, uint64_t length_descriptor, unsigned num_elements)
     {
-      const AttributeTileTy& tile = static_cast<const AttributeTileTy&>(base_tile);
-      m_data = tile.cell(element_idx);
-      /*tile.copy_payload(&m_data, element_idx, 1u);*/
+      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto ptr = (*attr_iter).operator const DataType*(); //const DataType* ptr
+      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+        ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
+      m_data = *ptr;
     }
     virtual DataType& get() { return m_data; }
     virtual const DataType& get() const { return m_data; }
@@ -89,7 +92,7 @@ class VariantFieldData : public VariantFieldBase
       return get_element_type();
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType, AttributeTileTy>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType>(*this); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
@@ -99,7 +102,7 @@ class VariantFieldData : public VariantFieldBase
  * Specialize class for string, AttributeTile type is <char> 
  */
 template<>
-class VariantFieldData<std::string, const AttributeTile<char>> : public VariantFieldBase
+class VariantFieldData<std::string> : public VariantFieldBase
 {
   public:
     VariantFieldData()
@@ -107,16 +110,17 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
     { m_subclass_type = VARIANT_FIELD_STRING; }
     virtual ~VariantFieldData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      const AttributeTile<char>& tile = static_cast<const AttributeTile<char>&>(base_tile);
-      /** Assuming the string in the payload is null terminated, else dead.
-       * This still copies the data into m_data, effectively strcpy, which hopefully is faster than any
-       * custom code we write **/
-      const auto* payload_ptr = tile.get_payload_ptr(element_idx);
-      assert(element_idx < tile.cell_num());
-      auto string_length = strnlen(payload_ptr, tile.cell_num()-element_idx); //do not run off beyond end of tile
-      m_data = std::move(std::string(tile.get_payload_ptr(element_idx), string_length));
+      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto ptr = (*attr_iter).operator const char*(); //const char* pointer
+      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      {
+        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
+        num_elements = *num_elements_ptr;
+        ptr = static_cast<const char*>(base_ptr + sizeof(int));
+      }
+      m_data = std::move(std::string(ptr, num_elements));
     }
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
@@ -131,18 +135,18 @@ class VariantFieldData<std::string, const AttributeTile<char>> : public VariantF
       return get_element_type();
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(char)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string, const AttributeTile<char>>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string>(*this); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
     std::string m_data;
 };
 //Assigned name for string type
-typedef VariantFieldData<std::string, const AttributeTile<char>> VariantFieldString;
+typedef VariantFieldData<std::string> VariantFieldString;
 /*
  * Sub-class that holds vector data of basic types - int,float etc
  */
-template<class DataType, class AttributeTileTy=const AttributeTile<DataType>>
+template<class DataType>
 class VariantFieldPrimitiveVectorData : public VariantFieldBase
 {
   public:
@@ -154,11 +158,18 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements)
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      const AttributeTileTy& tile = static_cast<const AttributeTileTy&>(base_tile);
+      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto ptr = (*attr_iter).operator const DataType*(); //const DataType* ptr
+      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      {
+        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
+        num_elements = *num_elements_ptr;
+        ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
+      }
       m_data.resize(num_elements);
-      tile.copy_payload(&(m_data[0]), element_idx, num_elements);
+      memcpy(&(m_data[0]), ptr, num_elements*sizeof(DataType));
     }
     virtual std::vector<DataType>& get()  { return m_data; }
     virtual const std::vector<DataType>& get() const { return m_data; }
@@ -177,7 +188,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       return get_element_type();
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, AttributeTileTy>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType>(*this); }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset)
@@ -207,44 +218,19 @@ class VariantFieldALTData : public VariantFieldBase
         s.clear();
       m_data.clear();
     }
-    virtual void copy_data_from_tile(const Tile& base_tile, uint64_t element_idx, uint64_t num_elements=0)
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      auto insert_idx = 0u;
-      const AttributeTile<char>& tile = static_cast<const AttributeTile<char>&>(base_tile);
-      assert(element_idx < tile.cell_num());
-      uint64_t offset_idx = element_idx;
-      /** Exit if empty string or last element is NON_REF **/
-      while(1)
+      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto ptr = (*attr_iter).operator const char*(); //const char* pointer
+      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
       {
-        /* Assuming the string in the payload is null terminated.
-         * This still copies the data into m_data, effectively calling strcpy which, hopefully, is faster than any
-         * custom code we write **/
-        const auto* payload_ptr = tile.get_payload_ptr(offset_idx);
-        if(offset_idx >= tile.cell_num())     //end of tile
-          break;
-        auto string_length = strnlen(payload_ptr, tile.cell_num()-offset_idx); //do not run off beyond end of tile
-        std::string last_string = std::move(std::string(payload_ptr, string_length));
-        /** Exit if empty string or last element is NON_REF **/
-        if(string_length == 0u) 
-          break;
-        else
-        {
-          if(insert_idx >= m_data.size())
-            m_data.resize(2u*insert_idx+1u);
-          char first_char = last_string[0];
-          /** Exit if empty string or last element is NON_REF **/
-          if(IS_NON_REF_ALLELE(first_char))
-          {
-            m_data[insert_idx++] = TILEDB_NON_REF_VARIANT_REPRESENTATION;
-            break;
-          }
-          else
-            m_data[insert_idx++] = std::move(last_string);
-          /* DO NOT USE last_string beyond this point*/
-          offset_idx += string_length + 1u; //the +1 is for going beyond the end '\0' 
-        }
+        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
+        num_elements = *num_elements_ptr;
+        ptr = static_cast<const char*>(base_ptr + sizeof(int));
       }
-      m_data.resize(insert_idx);
+      //FIXME: tokenize string
+      m_data.resize(1u);
+      m_data[0] = std::move(std::string(ptr, num_elements));
     }
     virtual std::vector<std::string>& get() { return m_data; }
     virtual const std::vector<std::string>& get() const { return m_data; }

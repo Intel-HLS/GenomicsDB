@@ -95,10 +95,12 @@ Cell::Cell(
   // Checks
   assert(attribute_ids.size() != 0);
   assert(no_duplicates(attribute_ids));
-  assert(attribute_ids.back() == attribute_num);
 
   // Set attribute_ids_
   attribute_ids_= attribute_ids;
+  // Add coordinates at the end, if needed
+  if(attribute_ids.back() != attribute_num)
+    attribute_ids_.push_back(attribute_num);
 
   // Set cell_size_ and var_size_
   cell_size_ = array_schema_->cell_size(attribute_ids_) + 

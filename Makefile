@@ -63,10 +63,10 @@ VARIANT_INCLUDE_DIR = variant/include
 VARIANT_SRC_DIR = variant/src
 VARIANT_OBJ_DIR = variant/obj
 VARIANT_BIN_DIR = variant/bin
-EXAMPLE_INCLUDE_DIR = example/include
-EXAMPLE_SRC_DIR = example/src
-EXAMPLE_OBJ_DIR = example/obj
-EXAMPLE_BIN_DIR = example/bin
+EXAMPLE_INCLUDE_DIR = variant/example/include
+EXAMPLE_SRC_DIR = variant/example/src
+EXAMPLE_OBJ_DIR = variant/example/obj
+EXAMPLE_BIN_DIR = variant/example/bin
 
 # Directories of Google Test
 GTEST_DIR = gtest
@@ -183,8 +183,9 @@ MANPAGES_HTML := $(patsubst $(MANPAGES_MAN_DIR)/%,\
 # General Targets #
 ###################
 
-.PHONY: core example gtest test doc clean_core clean_gtest \
-        clean_test clean_tiledb_cmd clean_la clean
+.PHONY: core gtest test doc clean_core clean_gtest \
+        clean_test clean_tiledb_cmd clean_la clean \
+	variant example
 
 all: core libtiledb tiledb_cmd la gtest test rvma variant example
 
@@ -228,9 +229,9 @@ clean: clean_core clean_libtiledb clean_tiledb_cmd clean_la clean_gtest \
 $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -284,8 +285,8 @@ clean_libtiledb:
 $(TILEDB_CMD_OBJ_DIR)/%.o: $(TILEDB_CMD_SRC_DIR)/%.cc
 	@mkdir -p $(TILEDB_CMD_OBJ_DIR)
 	@echo "Compiling $<"
-	@$(CXX) $(TILEDB_CMD_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(TILEDB_CMD_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(TILEDB_CMD_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(TILEDB_CMD_INCLUDE_PATHS) \
                     $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
@@ -316,8 +317,8 @@ clean_tiledb_cmd:
 $(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
 	@test -d $(LA_OBJ_DIR) || mkdir -p $(LA_OBJ_DIR)
 	@echo "Compiling $<"
-	@$(CXX) $(LA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $(LA_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) $(LA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(LA_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -333,9 +334,9 @@ $(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
 $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -365,8 +366,8 @@ clean_la:
 $(RVMA_OBJ_DIR)/%.o: $(RVMA_SRC_DIR)/%.c
 	@test -d $(RVMA_OBJ_DIR) || mkdir -p $(RVMA_OBJ_DIR)
 	@echo "Compiling $<"
-	@$(CXX) $(RVMA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $(RVMA_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) $(RVMA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(RVMA_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
@@ -405,9 +406,9 @@ clean_variant:
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)

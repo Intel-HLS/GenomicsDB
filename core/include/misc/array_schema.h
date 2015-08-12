@@ -41,6 +41,7 @@
 #include <string>
 #include <inttypes.h>
 #include <typeinfo>
+#include <unistd.h>
 
 /** Default value for ArraySchema::capacity_. */
 #define AS_CAPACITY 10000

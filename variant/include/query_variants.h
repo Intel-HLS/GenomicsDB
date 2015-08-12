@@ -14,50 +14,6 @@ enum GTSchemaVersionEnum
     GT_SCHEMA_V2
 };
 
-//Bit positions in the NULL bitmap of all known field enums
-//Note: this MAY not be the real positions in a given array schema, the real positions
-//are initialized in the query_variants.cc::initialize_version() functions. This enum 
-//simply lists the bitidx in the latest version of the Loader (or the latest version of
-//the variant schema)
-//Should be in the reverse order of fields as used in load_variants.cc
-enum KnownFieldsNULLBitidxEnum
-{
-  GVCF_PS_NULL_BITIDX=0,
-  GVCF_GT_NULL_BITIDX,
-  GVCF_PLOIDY_NULL_BITIDX,
-  GVCF_AC_NULL_BITIDX,
-  GVCF_AN_NULL_BITIDX,
-  GVCF_AF_NULL_BITIDX,
-  GVCF_PL_NULL_BITIDX,
-  GVCF_AD_NULL_BITIDX,
-  GVCF_SB_4_NULL_BITIDX,
-  GVCF_SB_3_NULL_BITIDX,
-  GVCF_SB_2_NULL_BITIDX,
-  GVCF_SB_1_NULL_BITIDX,
-  GVCF_GQ_NULL_BITIDX,
-  GVCF_MIN_DP_NULL_BITIDX,
-  GVCF_DP_FMT_NULL_BITIDX,
-  GVCF_MQ0_NULL_BITIDX,
-  GVCF_MQ_NULL_BITIDX,
-  GVCF_DP_NULL_BITIDX,
-  GVCF_READPOSRANKSUM_NULL_BITIDX,
-  GVCF_MQRANKSUM_NULL_BITIDX,
-  GVCF_CLIPPINGRANKSUM_NULL_BITIDX,
-  GVCF_BASEQRANKSUM_NULL_BITIDX,
-  GVCF_QUAL_NULL_BITIDX,
-  GVCF_NUM_NULL_BITS_USED
-};
-//Stores index in OFFSETS field for each field
-enum KnownVariantFieldOffsetsEnum
-{
-  GVCF_REF_OFFSET_IDX=0,
-  GVCF_ALT_OFFSET_IDX,
-  GVCF_FILTER_OFFSET_IDX,
-  GVCF_AD_OFFSET_IDX,
-  GVCF_PL_OFFSET_IDX,
-  GVCF_GT_OFFSET_IDX,
-  GVCF_NUM_KNOWN_OFFSET_ELEMENTS_PER_CELL
-};
 /*
  * Class that stores info about the some of the known fields
  */
@@ -67,14 +23,10 @@ class KnownFieldInfo
     KnownFieldInfo()
     {
       m_ploidy_required = false;
-      m_NULL_bitidx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
-      m_OFFSETS_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
     }
     bool m_ploidy_required;
-    unsigned m_NULL_bitidx;
-    unsigned m_OFFSETS_idx;
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
@@ -132,49 +84,33 @@ class VariantQueryProcessor : public QueryProcessor {
      * its data. The storage manager is the module the query processor interefaces 
      * with.
      */
-    VariantQueryProcessor(const std::string& workspace, StorageManager& storage_manager,
-        const StorageManager::ArrayDescriptor* ad);
+    VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name);
     void clear();
     /**
      * When querying, setup bookkeeping structures first 
      */
-    void do_query_bookkeeping(const StorageManager::ArrayDescriptor* array_descriptor,
+    void do_query_bookkeeping(const ArraySchema& array_schema,
         VariantQueryConfig& query_config) const;
+#if 0
     /*
      * Equivalent of gt_get_column, but for interval
      */
     void gt_get_column_interval(
-        const StorageManager::ArrayDescriptor* ad,
+        const ArraySchema& array_schema,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
         std::vector<Variant>& variants, GTProfileStats* stats) const;
+
+    void scan_and_operate(const ArraySchema& array_schema, const VariantQueryConfig& query_config,
+        SingleVariantOperatorBase& variant_operator,
+        unsigned column_interval_idx=0u) const;
+    void iterate_over_all_tiles(const ArraySchema& array_schema, const VariantQueryConfig& query_config) const;
+#endif
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
     void gt_get_column(
-        const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
+        const int ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
-    void scan_and_operate(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config,
-        SingleVariantOperatorBase& variant_operator,
-        unsigned column_interval_idx=0u) const;
-    void iterate_over_all_tiles(const StorageManager::ArrayDescriptor* ad, const VariantQueryConfig& query_config) const;
-    /*
-     * Function that, given an enum value from KnownVariantFieldsEnum,
-     * checks if the field requires NULL bitidx field to be used 
-     */
-    inline bool is_NULL_bitidx_defined_for_known_field_enum(unsigned enumIdx) const
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size());
-      return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
-    }
-    /*
-     * Client code MUST check is_NULL_bitidx_defined_for_known_field_enum() before using the
-     * value returned by this function
-     */
-    inline unsigned get_NULL_bitidx_for_known_field_enum(unsigned enumIdx) const
-    {
-        assert(enumIdx < m_known_field_enum_to_info.size());
-        return (m_known_field_enum_to_info[enumIdx].m_NULL_bitidx);
-    }
     /*
      * Functions that determine number of elements for known fields
      */
@@ -184,24 +120,7 @@ class VariantQueryProcessor : public QueryProcessor {
       return m_known_field_enum_to_info[enumIdx].is_length_allele_dependent();
     }
     unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles, unsigned ploidy) const;
-    /*
-     * Function that, given an enum value from KnownVariantFieldsEnum
-     * returns true if the field requires the OFFSETS field 
-     */
-    inline bool uses_OFFSETS_field_for_known_field_enum(unsigned enumIdx) const
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size()); 
-      return (m_known_field_enum_to_info[enumIdx].m_OFFSETS_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE);
-    }
-    /*
-     * Client code MUST check uses_OFFSETS_field_for_known_field_enum() before using the
-     * value returned by this function
-     */
-    inline unsigned get_OFFSETS_idx_for_known_field_enum(unsigned enumIdx) const
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size()); 
-      return (m_known_field_enum_to_info[enumIdx].m_OFFSETS_idx);
-    }
+    unsigned get_length_descriptor_for_known_field_enum(unsigned known_field_enum) const;
     /*
      * Function that, given an enum value from KnownVariantFieldsEnum
      * returns the schema idx for the given array 
@@ -229,6 +148,7 @@ class VariantQueryProcessor : public QueryProcessor {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return m_known_field_enum_to_info[enumIdx].ploidy_required_for_known_field_enum();
     }
+    int get_array_descriptor() const { return m_ad; }
     /*
      * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
      * If yes, fills known_field_enum and returns true
@@ -241,25 +161,17 @@ class VariantQueryProcessor : public QueryProcessor {
     static std::string get_known_field_name_for_enum(unsigned known_field_enum);
   private:
     /*initialize all known info about variants*/
-    void initialize_known(const StorageManager::ArrayDescriptor* ad);
+    void initialize_known(const ArraySchema& array_schema);
     /*Initialize schema version v0 info*/
-    void initialize_v0(const StorageManager::ArrayDescriptor* ad);
+    void initialize_v0(const ArraySchema& array_schema);
     /*Check and initialize schema version v1 info*/
-    void initialize_v1(const StorageManager::ArrayDescriptor* ad);
+    void initialize_v1(const ArraySchema& array_schema);
     /*Check and initialize schema version v2 info*/
-    void initialize_v2(const StorageManager::ArrayDescriptor* ad);
+    void initialize_v2(const ArraySchema& array_schema);
     /*Initialize versioning information based on schema*/
-    void initialize_version(const StorageManager::ArrayDescriptor* ad);
+    void initialize_version(const ArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
-    void register_field_creators(const StorageManager::ArrayDescriptor* ad);
-    /**
-     * Function invalidating enum to NULL bitidx
-     */
-    void invalidate_NULL_bitidx(unsigned enumIdx)
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size());
-      m_known_field_enum_to_info[enumIdx].m_NULL_bitidx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
-    }
+    void register_field_creators(const ArraySchema& array_schema);
     /**
      * Initialized field length info
      */
@@ -270,19 +182,17 @@ class VariantQueryProcessor : public QueryProcessor {
         SingleVariantOperatorBase& variant_operator,
         int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
     /** Fills a row of the input genotyping column with the proper info. */
-    template<class ITER>
     void gt_fill_row(
-        Variant& variant, int64_t row, int64_t column, int64_t pos, const VariantQueryConfig& query_config,
-        const ITER* tile_its, uint64_t* num_deref_tile_iters) const;
+        Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
+        const Cell& cell, uint64_t* num_deref_tile_iters) const;
     /** 
      * Initializes tile iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
      */
     unsigned int gt_initialize_tile_its(
-        const StorageManager::ArrayDescriptor* ad,
+        const int ad,
         const VariantQueryConfig& query_config, const unsigned column_interval_idx,
-        StorageManager::const_reverse_iterator*& tile_its,
-        StorageManager::const_reverse_iterator& tile_it_end ) const;
+        ArrayConstReverseCellIterator<int64_t>*& reverse_iter) const;
     /*
      * Fill data from tile for attribute query_idx into curr_call
      * @param curr_call  VariantCall object in which data will be stored
@@ -296,9 +206,7 @@ class VariantQueryProcessor : public QueryProcessor {
      * @schema_idx The idx of the attribute in the schema of the current array 
      * @num_deref_tile_iters - useful only if compiled in PROFILING mode
      */
-    void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
-        const Tile& tile, int64_t pos,
-        const std::vector<int64_t>* OFFSETS_values, const int NULL_bitmap,
+    void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr, const CellConstAttrIterator& attr_iter,
         const unsigned num_ALT_alleles, const unsigned ploidy,
         const unsigned schema_idx, uint64_t* num_deref_tile_iters=0
         ) const;
@@ -316,13 +224,14 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     std::vector<KnownFieldInfo> m_known_field_enum_to_info;
     /**
-     * Number of elements per cell in the OFFSETS field - could change with different schema versions
-     */
-    unsigned m_num_elements_per_offset_cell;
-    /**
      * Factory object that creates variant fields as and when needed
      */
     VariantFieldFactory m_field_factory;
+    /*
+     * Array descriptor and schema
+     */
+    int m_ad;
+    const ArraySchema* m_array_schema;
     /*
      * Static members that track information known about variant data
      */
