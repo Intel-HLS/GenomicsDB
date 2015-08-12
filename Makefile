@@ -28,7 +28,7 @@ SOFLAGS=-shared -Wl,-soname,
 
 LINKFLAGS=
 ifdef DEBUG
-  CPPFLAGS+= -g -gdwarf-2 -g3
+  CPPFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
 endif
 ifdef SPEED
@@ -123,7 +123,7 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 
 # --- Libs --- #
 MPI_LIB = -lmpi
-OPENMP_LIB = -fopenmp -g -gdwarf-2 -g3 -DDEBUG
+OPENMP_LIB = -fopenmp
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -183,9 +183,8 @@ MANPAGES_HTML := $(patsubst $(MANPAGES_MAN_DIR)/%,\
 # General Targets #
 ###################
 
-.PHONY: core gtest test doc clean_core clean_gtest \
-        clean_test clean_tiledb_cmd clean_la clean \
-	variant example
+.PHONY: core gtest test doc clean_core clean_gtest variant example \
+        clean_test clean_tiledb_cmd clean_la clean_variant clean_example clean
 
 all: core libtiledb tiledb_cmd la gtest test rvma variant example
 
@@ -323,6 +322,20 @@ $(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
+# --- Linking --- #
+
+$(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
+	@mkdir -p $(LA_BIN_DIR)
+	@echo "Creating example_transpose"
+	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+               -o $@ $^
+
+# --- Cleaning --- #
+
+clean_la:
+	@echo 'Cleaning la'
+	@rm -f $(LA_OBJ_DIR)/* $(LA_BIN_DIR)/* 
+
 ###############
 # Variant specific part of TileDB #
 ###############
@@ -341,19 +354,16 @@ $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
-# --- Linking --- #
+$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
+	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
+	ar rcs $@ $^
 
-$(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
-	@mkdir -p $(LA_BIN_DIR)
-	@echo "Creating example_transpose"
-	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-               -o $@ $^
+$(VARIANT_BIN_DIR)/libtiledb_variant.so: $(CORE_OBJ) $(VARIANT_OBJ)
+	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
+	$(CXX) $(SOFLAGS)libtiledb_variant.so -o $@ $^
 
-# --- Cleaning --- #
-
-clean_la:
-	@echo 'Cleaning la'
-	@rm -f $(LA_OBJ_DIR)/* $(LA_BIN_DIR)/* 
+clean_variant:
+	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
 
 ########
 # RVMA #
@@ -372,14 +382,6 @@ $(RVMA_OBJ_DIR)/%.o: $(RVMA_SRC_DIR)/%.c
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
-$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
-	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
-	ar rcs $@ $^
-
-$(VARIANT_BIN_DIR)/libtiledb_variant.so: $(CORE_OBJ) $(VARIANT_OBJ)
-	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
-	$(CXX) $(SOFLAGS)libtiledb_variant.so -o $@ $^
-
 $(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
 	@mkdir -p $(RVMA_BIN_DIR)
 	@echo "Creating simple_test"
@@ -391,9 +393,6 @@ $(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
 clean_rvma:
 	@echo 'Cleaning RVMA'
 	@rm -f $(RVMA_OBJ_DIR)/* $(RVMA_BIN_DIR)/*
-
-clean_variant:
-	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
 
 ############
 # Examples #
