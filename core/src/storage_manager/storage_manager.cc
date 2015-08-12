@@ -442,7 +442,6 @@ ArrayConstCellIterator<T>* StorageManager::begin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstCellIterator<T>(arrays_[ad]);
 }
@@ -453,7 +452,6 @@ ArrayConstCellIterator<T>* StorageManager::begin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstCellIterator<T>(arrays_[ad], attribute_ids);
 }
@@ -464,7 +462,6 @@ ArrayConstCellIterator<T>* StorageManager::begin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstCellIterator<T>(arrays_[ad], range);
 }
@@ -475,7 +472,6 @@ ArrayConstCellIterator<T>* StorageManager::begin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstCellIterator<T>(arrays_[ad], range, attribute_ids);
 }
@@ -486,7 +482,6 @@ ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstReverseCellIterator<T>(arrays_[ad]);
 }
@@ -497,7 +492,6 @@ ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstReverseCellIterator<T>(arrays_[ad], attribute_ids);
 }
@@ -508,7 +502,6 @@ ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstReverseCellIterator<T>(arrays_[ad], range);
 }
@@ -519,7 +512,6 @@ ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
   assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
 
   return new ArrayConstReverseCellIterator<T>(
                  arrays_[ad], range, attribute_ids);
@@ -627,12 +619,19 @@ template<class T>
 void StorageManager::write_cell(int ad, const void* cell) const {
   assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
   assert(arrays_[ad] != NULL);
+  assert(arrays_[ad]->mode() == Array::WRITE ||
+         arrays_[ad]->mode() == Array::APPEND);
 
   arrays_[ad]->write_cell<T>(cell);
 }
 
 template<class T>
 void StorageManager::write_cell_sorted(int ad, const void* cell) const {
+  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
+  assert(arrays_[ad] != NULL);
+  assert(arrays_[ad]->mode() == Array::WRITE ||
+         arrays_[ad]->mode() == Array::APPEND);
+
   arrays_[ad]->write_cell_sorted<T>(cell); 
 }
 
