@@ -91,15 +91,14 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void do_query_bookkeeping(const ArraySchema& array_schema,
         VariantQueryConfig& query_config) const;
-#if 0
     /*
      * Equivalent of gt_get_column, but for interval
      */
     void gt_get_column_interval(
-        const ArraySchema& array_schema,
+        const int ad,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
-        std::vector<Variant>& variants, GTProfileStats* stats) const;
-
+        std::vector<Variant>& variants, GTProfileStats* stats=0) const;
+#if 0
     void scan_and_operate(const ArraySchema& array_schema, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u) const;
@@ -186,13 +185,21 @@ class VariantQueryProcessor : public QueryProcessor {
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
         const Cell& cell, uint64_t* num_deref_tile_iters) const;
     /** 
-     * Initializes tile iterators for joint genotyping for column col. 
+     * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
      */
-    unsigned int gt_initialize_tile_its(
+    unsigned int gt_initialize_reverse_iter(
         const int ad,
-        const VariantQueryConfig& query_config, const unsigned column_interval_idx,
+        const VariantQueryConfig& query_config, const int64_t column,
         ArrayConstReverseCellIterator<int64_t>*& reverse_iter) const;
+    /** 
+     * Initializes forward iterators for joint genotyping for column col. 
+     * Returns the number of attributes used in joint genotyping.
+     */
+    unsigned int gt_initialize_forward_iter(
+        const int ad,
+        const VariantQueryConfig& query_config, const int64_t column,
+        ArrayConstCellIterator<int64_t>*& forward_iter) const;
     /*
      * Fill data from tile for attribute query_idx into curr_call
      * @param curr_call  VariantCall object in which data will be stored
