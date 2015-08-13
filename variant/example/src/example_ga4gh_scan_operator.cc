@@ -16,14 +16,10 @@ int main(int argc, char** argv) {
   // Create storage manager
   // The input is the path to its workspace (the path must exist).
   StorageManager sm(cl.m_workspace);
-  // Open arrays in READ mode
-  const StorageManager::ArrayDescriptor* ad_gVCF = 
-    sm.open_array(cl.m_array_name);
-
   std::ostream& output_stream = cl.m_output_fstream.is_open() ? cl.m_output_fstream : std::cout;
   // Create query processor
   // The first input is the path to its workspace (the path must exist).
-  VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
+  VariantQueryProcessor qp(&sm, cl.m_array_name);
 #ifdef DO_PROFILING
   sm.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
 #endif
@@ -32,17 +28,19 @@ int main(int argc, char** argv) {
   query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AD", "GT"});
   if(cl.m_position > 0)
     query_config.add_column_interval_to_query(cl.m_position, cl.m_end_position);
-  qp.do_query_bookkeeping(ad_gVCF, query_config);
+  qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
   //Use GA4GH VariantOperators
   GA4GHOperator variant_operator;
   variant_operator.clear();
+#if 0
   //Do scan and operate
   qp.scan_and_operate(ad_gVCF, query_config, variant_operator, 0u);
+#endif
   //Print variants - aligned variants (interval splitting, REF, ALT merging etc done)
   for(const auto& variant : variant_operator.get_variants())
     variant.print(output_stream, &query_config);
 
-  sm.close_array(ad_gVCF);
+  sm.close_array(qp.get_array_descriptor());
   if(cl.m_output_fstream.is_open())
     cl.m_output_fstream.close();
   if(cl.m_positions_list.is_open())
