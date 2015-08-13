@@ -148,6 +148,7 @@ class VariantQueryProcessor : public QueryProcessor {
       return m_known_field_enum_to_info[enumIdx].ploidy_required_for_known_field_enum();
     }
     int get_array_descriptor() const { return m_ad; }
+    const ArraySchema& get_array_schema() const { return *m_array_schema; }
     /*
      * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
      * If yes, fills known_field_enum and returns true
