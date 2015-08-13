@@ -5,7 +5,6 @@
 
 
 
-#if 0
 
 Factory f;
 
@@ -24,24 +23,15 @@ StorageManager *Factory::getStorageManager(std::string &workspace) {
   return sm;
 }
 
-VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string &workspace, const StorageManager::ArrayDescriptor* ad) {
+VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string &workspace, const std::string& array_name) {
   if( reset_qp || workspace.compare(this->workspace) != 0 ) {
       // Create query processor
       // The first input is the path to its workspace (the path must exist).
-      qp = new VariantQueryProcessor(workspace, *getStorageManager(workspace), ad);
+      qp = new VariantQueryProcessor(getStorageManager(workspace), array_name);
       this->workspace = workspace;
       reset_qp = false;
   }
   return qp;
-}
-
-StorageManager::ArrayDescriptor *Factory::getArrayDescriptor(std::string &array_name) {
-  if( array_name.compare(this->array_name) != 0 ) {
-      // Open arrays in READ mode
-      ad = sm->open_array(array_name);
-      this->array_name = array_name;
-  }
-  return ad;
 }
 
 void Factory::clear() {
@@ -49,14 +39,13 @@ void Factory::clear() {
         return;
     }
     try { 
+        sm->close_array(qp->get_array_descriptor());
         delete qp;
-        sm->close_array(ad);
     }
     catch (...) { }
     delete sm;
     sm = NULL;
     qp = NULL;
-    ad = NULL;
     workspace.clear();
     array_name.clear();
     reset_qp = true;
@@ -67,16 +56,15 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     StorageManager *sm = f.getStorageManager(workspace);
-    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
-    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
     {
-      qp->do_query_bookkeeping(ad, query_config);
+      qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
       variant = std::move(Variant(&query_config));
       variant.resize_based_on_query();
     }
-    qp->gt_get_column(ad, query_config, query_interval_idx, variant, &f.stats);
+    qp->gt_get_column(qp->get_array_descriptor(), query_config, query_interval_idx, variant, &f.stats);
 }
 
 extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
@@ -84,12 +72,11 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     StorageManager *sm = f.getStorageManager(workspace);
-    StorageManager::ArrayDescriptor *ad = f.getArrayDescriptor(array_name);
-    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, ad);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
-        qp->do_query_bookkeeping(ad, query_config);
-    qp->gt_get_column_interval(ad, query_config, query_interval_idx, variants, &f.stats);
+        qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
+    qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, &f.stats);
 }
 
 extern "C" void db_cleanup() {
@@ -181,4 +168,3 @@ extern "C" void test_C_pointers(Variant& variant)
         }
     }
 }
-#endif

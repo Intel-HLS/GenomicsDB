@@ -1,11 +1,9 @@
 #include "query_variants.h"
 
-#if 0
 class Factory {
   private:
     StorageManager *sm;
     VariantQueryProcessor *qp;
-    StorageManager::ArrayDescriptor *ad;
 
     // path to TileDb workspace
     std::string workspace;
@@ -19,7 +17,6 @@ class Factory {
     Factory() {
         sm = NULL;
         qp = NULL;
-        ad = NULL;
         workspace = "";
         array_name = "";
         reset_qp = true;
@@ -37,8 +34,7 @@ class Factory {
     // Get functions that do lazy initialization of the Tile DB Objects
     StorageManager *getStorageManager(std::string &workspace);
     VariantQueryProcessor *getVariantQueryProcessor(std::string &workspace, 
-                                                    const StorageManager::ArrayDescriptor* ad);
-    StorageManager::ArrayDescriptor *getArrayDescriptor(std::string &array_name);
+                                                    const std::string& array_name);
 };
 
 extern "C" void db_query_column(std::string workspace, 
@@ -56,4 +52,3 @@ extern "C" void db_query_column_range(std::string workspace,
 extern "C" void db_cleanup();
 
 extern "C" void test_C_pointers(Variant& variant);
-#endif
