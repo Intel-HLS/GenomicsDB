@@ -24,7 +24,7 @@ ifdef HTSDIR
 endif
 
 CPPFLAGS += -fPIC
-SOFLAGS=-shared -Wl,-soname,
+SOFLAGS=-shared -Wl,-soname=
 
 LINKFLAGS=
 ifdef DEBUG
