@@ -140,7 +140,7 @@ class VariantQueryProcessor : public QueryProcessor {
       return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
     }
     /*
-     * Check whether the known field requires PLOIDY - e.g. GT, GQ etc
+     * Check whether the known field requires ploidy - e.g. GT, GQ etc
      */
     inline bool ploidy_required_for_known_field_enum(unsigned enumIdx) const
     {

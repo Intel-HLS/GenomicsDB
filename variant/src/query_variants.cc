@@ -99,7 +99,6 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
     "AF",
     "AN",
     "AC",
-    "PLOIDY",
     "GT",
     "PS"
 };
@@ -165,11 +164,11 @@ void VariantQueryProcessor::initialize_v1(const ArraySchema& schema)
     }
 }
 
-//Added PLOIDY and GT fields
+//Added GT and PS fields
 void VariantQueryProcessor::initialize_v2(const ArraySchema& schema)
 {
   //Check if any attributes in V2 schema
-  const auto v2_fields = std::unordered_set<std::string>{ "PLOIDY", "GT", "PS" };
+  const auto v2_fields = std::unordered_set<std::string>{ "GT", "PS" };
   for(auto i=0u;i<schema.attribute_num();++i)
     if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
     {
@@ -476,12 +475,10 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
           m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_END_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(END_schema_idx));
   query_config.add_attribute_to_query("END", END_schema_idx);
-  //Check if ALT or PLOIDY need to be added as part of queried attributes
+  //Check if ALT needs to be added as part of queried attributes
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   unsigned ALT_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
-  unsigned PLOIDY_schema_idx =
-    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_PLOIDY_IDX);
   for(auto i=0u;i<num_queried_attributes;++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
@@ -496,12 +493,6 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
       {
         assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
         query_config.add_attribute_to_query("ALT", ALT_schema_idx);
-      }
-      //Does the field require PLOIDY
-      if(ploidy_required_for_known_field_enum(known_variant_field_enum))
-      {
-        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(PLOIDY_schema_idx));
-        query_config.add_attribute_to_query("PLOIDY", PLOIDY_schema_idx);
       }
     }
   }
@@ -804,7 +795,7 @@ void VariantQueryProcessor::gt_fill_row(
   //Iterate over attributes
   auto attr_iter = cell.begin();
   ++attr_iter;  //skip the END field
-  //First, load special fields up to and including PLOIDY
+  //First, load special fields up to and including ALT
   for(auto i=1u;i<query_config.get_first_normal_field_query_idx();++i,++attr_iter)
   {
     //Read from Tile
@@ -817,11 +808,6 @@ void VariantQueryProcessor::gt_fill_row(
   const auto* ALT_field_ptr = get_known_field_if_queried<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX); 
   if(ALT_field_ptr && ALT_field_ptr->is_valid())
     num_ALT_alleles = ALT_field_ptr->get().size();   //ALT field data is vector<string>
-  //Initialize ploidy, if queried
-  const auto* PLOIDY_field_ptr =
-    get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PLOIDY_IDX);
-  if(PLOIDY_field_ptr && PLOIDY_field_ptr->is_valid())
-    ploidy = PLOIDY_field_ptr->get()[0];   //ALT field data is vector<string>
   //Go over all normal query fields and fetch data
   for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i, ++attr_iter)
   {
