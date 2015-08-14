@@ -92,7 +92,7 @@ int CSVFileCollection<T>::open(
   // Open files and prepare first cells
   int file_num = int(filenames_.size());
   CSVFile* csv_file;
-  Cell* cell;
+  Cell* cell = 0;
   for(int i=0; i<file_num; ++i) {
     csv_file = new CSVFile(array_schema_);  
 // TODO: Fix this

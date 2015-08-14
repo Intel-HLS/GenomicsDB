@@ -59,6 +59,7 @@ CSVFile::CSVFile(const ArraySchema* array_schema)
   buffer_ = NULL;
   buffer_end_ = 0;
   buffer_offset_ = 0;
+  cell_ = NULL;
   if(array_schema_->cell_size() != VAR_SIZE)
     cell_ = malloc(array_schema_->cell_size());
   file_offset_ = 0;
@@ -90,7 +91,7 @@ void CSVFile::close() {
     if(((strcmp(mode_, "a") == 0) || (strcmp(mode_, "w") == 0)) && 
        buffer_offset_ != 0)
       flush_buffer();
-    delete buffer_;
+    delete[] buffer_;
     buffer_ = NULL;
   }
 

@@ -97,7 +97,7 @@ int BINFile::close() {
       if(bytes_flushed == -1) //TODO: delete buffer_
         return -1;
     }
-    delete buffer_;
+    delete[] buffer_;
     buffer_ = NULL;
   }
 
@@ -314,6 +314,7 @@ void BINFile::init() {
   buffer_offset_ = 0;
   file_offset_ = 0;
   ids_ = NULL;
+  mode_[0] = 0;
 }
 
 ssize_t BINFile::read_segment() {
