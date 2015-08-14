@@ -12,3 +12,38 @@ std::unordered_map<std::type_index, VariantFieldTypeEnum>{
   { std::type_index(typeid(std::string)), VARIANT_FIELD_STRING },
   { std::type_index(typeid(char)), VARIANT_FIELD_CHAR }
 };
+
+template<>
+bool is_tiledb_missing_value(const float value)
+{
+  fi_union null_float;
+  null_float.f = NULL_FLOAT;
+  fi_union curr;
+  curr.f = value;
+  return (curr.i == null_float.i);      //bitwise equality
+}
+
+template<>
+bool is_tiledb_missing_value(const double value)
+{
+  di_union null_double;
+  null_double.d = NULL_DOUBLE;
+  di_union curr;
+  curr.d = value;
+  return (curr.i == null_double.i);      //bitwise equality
+}
+
+template<>
+bool is_tiledb_missing_value(const char value) { return (value == NULL_CHAR); }
+
+template<>
+bool is_tiledb_missing_value(const int value) { return (value == NULL_INT); }
+
+template<>
+bool is_tiledb_missing_value(const unsigned value) { return (static_cast<int>(value) == NULL_INT); }
+
+template<>
+bool is_tiledb_missing_value(const int64_t value) { return (value == NULL_INT64_T); }
+
+template<>
+bool is_tiledb_missing_value(const uint64_t value) { return (static_cast<int64_t>(value) == NULL_INT64_T); }

@@ -6,6 +6,7 @@
 #include "query_field_data.h"
 #include "gt_common.h"
 #include "cell_const_attr_iterator.h"
+#include "special_values.h"
 
 enum VariantFieldTypeEnum
 {
@@ -20,6 +21,23 @@ enum VariantFieldTypeEnum
   VARIANT_FIELD_CHAR
 };
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
+
+template<class T>
+bool is_tiledb_missing_value(const T value);
+
+//For comparison
+typedef union
+{
+  unsigned i;
+  float f;
+}fi_union;
+
+typedef union
+{
+  uint64_t i;
+  double d;
+}di_union;
+
 /*
  * Base class for variant field data - not sure whether I will add any functionality here
  */
@@ -121,6 +139,20 @@ class VariantFieldData<std::string> : public VariantFieldBase
         ptr = static_cast<const char*>(base_ptr + sizeof(int));
       }
       m_data = std::move(std::string(ptr, num_elements));
+      bool is_missing_flag = true;
+      for(auto val : m_data)
+        if(val != NULL_CHAR)
+        {
+          is_missing_flag = false;
+          break;
+        }
+      //Whole field is missing, clear and invalidate
+      //Note that 0-length fields are invalidated based on the logic in this function
+      if(is_missing_flag)
+      {
+        set_valid(false);
+        m_data.clear();
+      }
     }
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
@@ -170,6 +202,20 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       }
       m_data.resize(num_elements);
       memcpy(&(m_data[0]), ptr, num_elements*sizeof(DataType));
+      bool is_missing_flag = true;
+      for(auto val : m_data)
+        if(!is_tiledb_missing_value<DataType>(val))
+        {
+          is_missing_flag = false;
+          break;
+        }
+      //Whole field is missing, clear and invalidate
+      //Note that 0-length fields are invalidated based on the logic in this function
+      if(is_missing_flag)
+      {
+        set_valid(false);
+        m_data.clear();
+      }
     }
     virtual std::vector<DataType>& get()  { return m_data; }
     virtual const std::vector<DataType>& get() const { return m_data; }
