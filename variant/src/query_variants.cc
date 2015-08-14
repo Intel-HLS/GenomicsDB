@@ -732,7 +732,6 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
 {
   if(field_ptr.get() == nullptr)       //Allocate only if null
     field_ptr = std::move(m_field_factory.Create(schema_idx)); 
-  field_ptr->set_valid(false);  //mark as invalid by default
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   //For known fields, check length descriptors - default FIXED
   unsigned length_descriptor = BCF_VL_FIXED;
@@ -743,6 +742,8 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
     num_elements = get_num_elements_for_known_field_enum(known_field_enum, num_ALT_alleles, ploidy);
   }
   field_ptr->set_valid(true);  //mark as valid, since tile is actually accessed
+  //This function might mark the field as invalid - some fields are  determined to be invalid only
+  //after accessing the data and comparing to NULL_* values
   field_ptr->copy_data_from_tile(attr_iter, length_descriptor, num_elements);
 #ifdef DO_PROFILING
   ++(*num_deref_tile_iters);
@@ -818,7 +819,6 @@ unsigned int VariantQueryProcessor::gt_initialize_reverse_iter(
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign reverse iterator
   //FIXME: No longer binary search?
-  //FIXME: Cell iterator starts at end of tile, not at correct position
   vector<int64_t> query_range = { 0ll, static_cast<int64_t>(query_config.get_num_rows_in_array()),
     0ll, column };
   reverse_iter = get_storage_manager()->rbegin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
@@ -836,7 +836,6 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign forward iterator
   //FIXME: No longer binary search?
-  //FIXME: Cell iterator starts at end of tile, not at correct position
   vector<int64_t> query_range = { 0ll, static_cast<int64_t>(query_config.get_num_rows_in_array()),
     column, 10000000000ull };
   forward_iter = get_storage_manager()->begin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
