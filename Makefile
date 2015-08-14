@@ -206,7 +206,7 @@ ifdef HTSDIR
 include $(HTSDIR)/htslib.mk
 endif
 
-variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.so $(VARIANT_BIN_DIR)/libtiledb_variant.a
+variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.a
 
 example: $(EXAMPLE_BIN) $(EXAMPLE_OBJ)
 
@@ -357,10 +357,6 @@ $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
 $(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
 	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
 	ar rcs $@ $^
-
-$(VARIANT_BIN_DIR)/libtiledb_variant.so: $(CORE_OBJ) $(VARIANT_OBJ)
-	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
-	$(CXX) $(SOFLAGS)libtiledb_variant.so -o $@ $^
 
 clean_variant:
 	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
