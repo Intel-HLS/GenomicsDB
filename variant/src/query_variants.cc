@@ -262,17 +262,6 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
   register_field_creators(*m_array_schema);
 }
 
-void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
-{
-  //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
-  if(curr_call.get_column_begin() < current_start_position) 
-  {
-    auto* REF_ptr = get_known_field<VariantFieldString,true>
-      (curr_call, query_config, GVCF_REF_IDX);
-    REF_ptr->get() = "N";
-  }
-}
-
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     SingleVariantOperatorBase& variant_operator,

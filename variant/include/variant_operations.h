@@ -145,4 +145,9 @@ class GA4GHOperator : public SingleVariantOperatorBase
     std::vector<Variant> m_variants;
 };
 
+/*
+ * If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
+ */
+void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position);
+
 #endif

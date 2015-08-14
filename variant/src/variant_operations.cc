@@ -313,6 +313,9 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
 {
   assert(variant.get_query_config());
   const VariantQueryConfig& query_config = *(variant.get_query_config());
+
+  for(VariantCall& valid_call : variant)
+    modify_reference_if_in_middle(valid_call, query_config, variant.get_column_begin());
   
   std::string merged_reference_allele;
   merged_reference_allele.reserve(10);
@@ -524,3 +527,15 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   copy.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
   //Do not use m_merged_alt_alleles and m_merged_reference_allele after this point
 }
+
+void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
+{
+  //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
+  if(curr_call.get_column_begin() < current_start_position) 
+  {
+    auto* REF_ptr = get_known_field<VariantFieldString,true>
+      (curr_call, query_config, GVCF_REF_IDX);
+    REF_ptr->get() = "N";
+  }
+}
+
