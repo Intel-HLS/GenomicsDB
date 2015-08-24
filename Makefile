@@ -4,6 +4,21 @@
 
 OS := $(shell uname)
 
+# Large file support
+LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
+
+# --- Debug/Release mode handler --- #
+BUILD ?= debug 
+CFLAGS = -fopenmp
+ifeq ($(BUILD),debug)
+#  CFLAGS += -DDEBUG -Wall -O0 -g
+  CFLAGS += -DDEBUG -O0 -g
+endif
+
+ifeq ($(BUILD),release)
+  CFLAGS += -DNDEBUG -O3 
+endif
+
 # --- Compilers --- #
 
 # C++ compiler
@@ -13,7 +28,8 @@ OS := $(shell uname)
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
 CC  = $(MPIPATH)mpicc
 CXX = $(MPIPATH)mpicxx
-CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden
+CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
+      $(LFS_CFLAGS) $(CFLAGS)
 LDFLAGS=
 
 #HTSDIR=../../htslib
@@ -48,15 +64,42 @@ CORE_INCLUDE_DIR = core/include
 CORE_INCLUDE_SUBDIRS = $(wildcard core/include/*)
 CORE_SRC_DIR = core/src
 CORE_SRC_SUBDIRS = $(wildcard core/src/*)
-CORE_OBJ_DIR = core/obj
-CORE_BIN_DIR = core/bin
-CORE_LIB_DIR = core/lib
+CORE_OBJ_DEB_DIR = core/obj/debug
+CORE_BIN_DEB_DIR = core/bin/debug
+ifeq ($(BUILD),debug)
+  CORE_OBJ_DIR = $(CORE_OBJ_DEB_DIR)
+  CORE_BIN_DIR = $(CORE_BIN_DEB_DIR)
+endif
+CORE_OBJ_REL_DIR = core/obj/release
+CORE_BIN_REL_DIR = core/bin/release
+ifeq ($(BUILD),release)
+  CORE_OBJ_DIR = $(CORE_OBJ_REL_DIR)
+  CORE_BIN_DIR = $(CORE_BIN_REL_DIR)
+endif
+CORE_LIB_DEB_DIR = core/lib/debug
+ifeq ($(BUILD),debug)
+  CORE_LIB_DIR = $(CORE_LIB_DEB_DIR)
+endif
+CORE_LIB_REL_DIR = core/lib/release
+ifeq ($(BUILD),release)
+  CORE_LIB_DIR = $(CORE_LIB_REL_DIR)
+endif
 
 # Directories for the command-line-based frontend of TileDB
 TILEDB_CMD_INCLUDE_DIR = tiledb_cmd/include
 TILEDB_CMD_SRC_DIR = tiledb_cmd/src
-TILEDB_CMD_OBJ_DIR = tiledb_cmd/obj
-TILEDB_CMD_BIN_DIR = tiledb_cmd/bin
+TILEDB_CMD_OBJ_DEB_DIR = tiledb_cmd/obj/debug
+TILEDB_CMD_BIN_DEB_DIR = tiledb_cmd/bin/debug
+ifeq ($(BUILD),debug)
+  TILEDB_CMD_OBJ_DIR = $(TILEDB_CMD_OBJ_DEB_DIR)
+  TILEDB_CMD_BIN_DIR = $(TILEDB_CMD_BIN_DEB_DIR)
+endif
+TILEDB_CMD_OBJ_REL_DIR = tiledb_cmd/obj/release
+TILEDB_CMD_BIN_REL_DIR = tiledb_cmd/bin/release
+ifeq ($(BUILD),release)
+  TILEDB_CMD_OBJ_DIR = $(TILEDB_CMD_OBJ_REL_DIR)
+  TILEDB_CMD_BIN_DIR = $(TILEDB_CMD_BIN_REL_DIR)
+endif
 
 #Variant dir
 VARIANT_INCLUDE_DIR = variant/include
@@ -123,7 +166,7 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 
 # --- Libs --- #
 MPI_LIB = -lmpi
-OPENMP_LIB = -fopenmp
+OPENMP_LIB = -fopenmp 
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -186,13 +229,13 @@ MANPAGES_HTML := $(patsubst $(MANPAGES_MAN_DIR)/%,\
 .PHONY: core gtest test doc clean_core clean_gtest variant example \
         clean_test clean_tiledb_cmd clean_la clean_variant clean_example clean
 
-all: core libtiledb tiledb_cmd la gtest test rvma variant example
+all: core libtiledb tiledb_cmd gtest test variant example 
 
 core: $(CORE_OBJ) 
 
 libtiledb: core $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT)
 
-tiledb_cmd: core $(TILEDB_CMD_BIN)
+tiledb_cmd: core $(TILEDB_CMD_OBJ) $(TILEDB_CMD_BIN)
 
 la: core $(LA_OBJ) $(LA_BIN_DIR)/example_transpose
 
@@ -214,8 +257,8 @@ gtest: $(GTEST_OBJ_DIR)/gtest-all.o
 
 test: $(TEST_OBJ)
 
-clean: clean_core clean_libtiledb clean_tiledb_cmd clean_la clean_gtest \
-       clean_test clean_doc clean_rvma  clean_variant clean_example
+clean: clean_core clean_libtiledb clean_tiledb_cmd clean_gtest \
+       clean_test clean_doc clean_variant clean_example 
 
 ########
 # Core #
@@ -239,7 +282,8 @@ $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 
 clean_core: 
 	@echo 'Cleaning core'
-	@rm -rf $(CORE_OBJ_DIR)/* $(CORE_BIN_DIR)/* 
+	@rm -rf $(CORE_OBJ_DEB_DIR)/* $(CORE_OBJ_REL_DIR)/* \
+                $(CORE_BIN_DEB_DIR)/* $(CORE_BIN_REL_DIR)/*
 
 #############
 # libtiledb #
@@ -271,7 +315,7 @@ $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT): $(CORE_OBJ)
 
 clean_libtiledb:
 	@echo "Cleaning libtiledb.$(SHLIB_EXT)"
-	@rm -rf $(CORE_LIB_DIR)/*
+	@rm -rf $(CORE_LIB_DEB_DIR)/* $(CORE_LIB_REL_DIR)/*
 
 ##############
 # TileDB_cmd #
@@ -303,7 +347,8 @@ $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 
 clean_tiledb_cmd:
 	@echo 'Cleaning tiledb_cmd'
-	@rm -f $(TILEDB_CMD_OBJ_DIR)/* $(TILEDB_CMD_BIN_DIR)/*
+	@rm -f $(TILEDB_CMD_OBJ_DEB_DIR)/* $(TILEDB_CMD_OBJ_REL_DIR)/* \
+               $(TILEDB_CMD_BIN_DEB_DIR)/* $(TILEDB_CMD_BIN_REL_DIR)/*
  
 ######
 # LA #
@@ -311,30 +356,30 @@ clean_tiledb_cmd:
 
 # --- Compilation and dependency genration --- #
 
--include $(LA_OBJ:.o=.d)
+# -include $(LA_OBJ:.o=.d)
 
-$(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
-	@test -d $(LA_OBJ_DIR) || mkdir -p $(LA_OBJ_DIR)
-	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(LA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(LA_INCLUDE_PATHS) $< > $(@:.o=.d)
-	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-	@rm -f $(@:.o=.d.tmp)
+# $(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
+# 	@test -d $(LA_OBJ_DIR) || mkdir -p $(LA_OBJ_DIR)
+# 	@echo "Compiling $<"
+# 	@$(CXX) $(CPPFLAGS) $(LA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+# 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(LA_INCLUDE_PATHS) $< > $(@:.o=.d)
+# 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
+# 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
+# 	@rm -f $(@:.o=.d.tmp)
 
 # --- Linking --- #
 
-$(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
-	@mkdir -p $(LA_BIN_DIR)
-	@echo "Creating example_transpose"
-	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-               -o $@ $^
+# $(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
+#	@mkdir -p $(LA_BIN_DIR)
+#	@echo "Creating example_transpose"
+#	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+#               -o $@ $^
 
 # --- Cleaning --- #
 
-clean_la:
-	@echo 'Cleaning la'
-	@rm -f $(LA_OBJ_DIR)/* $(LA_BIN_DIR)/* 
+# clean_la:
+#	@echo 'Cleaning la'
+#	@rm -f $(LA_OBJ_DIR)/* $(LA_BIN_DIR)/* 
 
 ###############
 # Variant specific part of TileDB #
@@ -367,28 +412,28 @@ clean_variant:
 
 # --- Compilation and dependency genration --- #
 
--include $(RVMA_OBJ:.o=.d)
+# -include $(RVMA_OBJ:.o=.d)
 
-$(RVMA_OBJ_DIR)/%.o: $(RVMA_SRC_DIR)/%.c
-	@test -d $(RVMA_OBJ_DIR) || mkdir -p $(RVMA_OBJ_DIR)
-	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(RVMA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(RVMA_INCLUDE_PATHS) $< > $(@:.o=.d)
-	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-	@rm -f $(@:.o=.d.tmp)
+# $(RVMA_OBJ_DIR)/%.o: $(RVMA_SRC_DIR)/%.c
+# 	@test -d $(RVMA_OBJ_DIR) || mkdir -p $(RVMA_OBJ_DIR)
+# 	@echo "Compiling $<"
+# 	@$(CXX) $(CPPFLAGS) $(RVMA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
+# 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(RVMA_INCLUDE_PATHS) $< > $(@:.o=.d)
+# 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
+# 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
+# 	@rm -f $(@:.o=.d.tmp)
 
-$(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
-	@mkdir -p $(RVMA_BIN_DIR)
-	@echo "Creating simple_test"
-	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-               -o $@ $^
+# $(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
+# 	@mkdir -p $(RVMA_BIN_DIR)
+# 	@echo "Creating simple_test"
+# 	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+#                -o $@ $^
 
 # --- Cleaning --- #
 
-clean_rvma:
-	@echo 'Cleaning RVMA'
-	@rm -f $(RVMA_OBJ_DIR)/* $(RVMA_BIN_DIR)/*
+# clean_rvma:
+#	@echo 'Cleaning RVMA'
+#	@rm -f $(RVMA_OBJ_DIR)/* $(RVMA_BIN_DIR)/*
 
 ############
 # Examples #
@@ -411,7 +456,7 @@ $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 #Linking
 $(EXAMPLE_BIN_DIR)/%: $(EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
+	$(CXX) $(LINKFLAGS) $(CFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
 
 clean_example:
 	rm -f $(EXAMPLE_OBJ_DIR)/* $(EXAMPLE_BIN_DIR)/* 

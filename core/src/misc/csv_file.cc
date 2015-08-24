@@ -59,9 +59,13 @@ CSVFile::CSVFile(const ArraySchema* array_schema)
   buffer_ = NULL;
   buffer_end_ = 0;
   buffer_offset_ = 0;
-  cell_ = NULL;
-  if(array_schema_->cell_size() != VAR_SIZE)
+  if(array_schema_->cell_size() != VAR_SIZE) {
     cell_ = malloc(array_schema_->cell_size());
+    allocated_cell_size_ = array_schema_->cell_size();
+  } else {
+    cell_ = malloc(CSV_INITIAL_VAR_CELL_SIZE);
+    allocated_cell_size_ = CSV_INITIAL_VAR_CELL_SIZE;
+  }
   file_offset_ = 0;
 }
 
@@ -78,6 +82,26 @@ CSVFile::CSVFile(const std::string& filename, const char* mode) {
 
 CSVFile::~CSVFile() {
   close();
+}
+
+/******************************************************
+********************** ACCESSORS **********************
+******************************************************/
+
+ssize_t CSVFile::bytes_read() const {
+  if(file_offset_ == 0)
+    return 0;
+  else 
+    return file_offset_ - segment_size_ + buffer_offset_;
+}
+
+ssize_t CSVFile::size() const {
+  int fd = ::open(filename_.c_str(), O_RDONLY);
+  struct stat st;
+  fstat(fd, &st);
+  ::close(fd);
+
+  return st.st_size;
 }
 
 /******************************************************
@@ -136,8 +160,8 @@ bool CSVFile::open(const std::string& filename,
 void CSVFile::operator<<(const CSVLine& csv_line) {
   assert(strcmp(mode_, "w") == 0 || strcmp(mode_, "a") == 0);
 
-  const std::string& line = csv_line.str(); 
-  assert(line.size() <= segment_size_);
+  size_t line_size = csv_line.strlen();
+  assert(line_size < segment_size_);
 
   // Initialize the buffer.
   if(buffer_ == NULL) 
@@ -146,14 +170,14 @@ void CSVFile::operator<<(const CSVLine& csv_line) {
   // Flush the buffer to the file if its stored data size plus the size of the
   // new line exceed CSVFile::segment_size_. The +1 is for the '\n' appended
   // after the line.
-  if(buffer_offset_ + line.size() + 1 > segment_size_) {	
+  if(buffer_offset_ + line_size + 1 > segment_size_) {	
     flush_buffer();
     buffer_offset_ = 0;
   }
 
   // Write the line in the buffer
-  memcpy(buffer_ + buffer_offset_, line.c_str(), line.size());
-  buffer_offset_ += line.size();
+  memcpy(buffer_ + buffer_offset_, csv_line.c_str(), line_size);
+  buffer_offset_ += line_size;
 
   // Write the '\n' character in the end
   char c = '\n';
@@ -211,7 +235,7 @@ bool CSVFile::operator>>(Cell& cell) {
     return false;
   }
 
-  array_schema_->csv_line_to_cell(csv_line, cell_);
+  array_schema_->csv_line_to_cell(csv_line, cell_, allocated_cell_size_);
   cell.set_cell(cell_);
 
   return true;

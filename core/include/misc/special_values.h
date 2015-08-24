@@ -55,7 +55,7 @@
 /** Deleted size_t. */
 #define DEL_SIZE_T std::numeric_limits<size_t>::max()-1
 /** Indicates a deleted value. */
-#define DEL_VALUE "$"
+#define DEL_VALUE '$'
 /** Error log file name. */
 #define ERROR_LOG_FILENAME "tiledb_error.log"
 /** A header that precedes an error message. */
@@ -73,7 +73,7 @@
 /** TileDB message header */
 #define MSG_HEADER "[TileDB]"
 /** Indicates a missing (NULL) value. */
-#define NULL_VALUE "*"
+#define NULL_VALUE '*'
 /** Missing char. */
 #define NULL_CHAR '*'
 /** Missing int. */
@@ -92,7 +92,7 @@
  * Determines the mount of data that can be exchanged between the hard disk and
  * the main memory in a single I/O operation. 
  */
-#define SEGMENT_SIZE 1000000 // ~1MB
+#define SEGMENT_SIZE 10000000 // ~10MB
 /** Name for temp (usually used in directory paths). */
 #define TEMP "temp"
 /** Name of the file storing the id of each tile. */

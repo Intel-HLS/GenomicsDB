@@ -42,7 +42,10 @@
  * between the BIN file (in hard disk) and the main memory in one I/O operation.
  * Unless otherwise defined, this default size is used. 
  */
-#define BIN_SEGMENT_SIZE 40000 // 40 KB
+#define BIN_SEGMENT_SIZE 10000000 // ~10 MB
+
+/** Initial size for a variable cell. */
+#define BIN_INITIAL_VAR_CELL_SIZE 4000
 
 /**
  * This class implements a simple BIN file with basic operations such as
@@ -87,6 +90,8 @@ class BINFile {
 
  private:
   // PRIVATE ATTRIBUTES
+  /** Important for variable cells. */
+  size_t allocated_cell_size_;
   /** The array schema. */
   const ArraySchema* array_schema_;
   /** 

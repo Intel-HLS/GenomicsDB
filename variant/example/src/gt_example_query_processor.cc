@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     if(segment_size > SEGMENT_SIZE)
       segment_size = SEGMENT_SIZE;
     //Create new objects
-    StorageManager sm_opt(cl.m_workspace, 0, segment_size);
+    StorageManager sm_opt(cl.m_workspace, segment_size);
     // Create query processor
     VariantQueryProcessor qp(&sm_opt, cl.m_array_name);
     //Stats struct

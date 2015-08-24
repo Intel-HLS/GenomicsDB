@@ -52,6 +52,9 @@
  */
 #define CSV_SEGMENT_SIZE 10000000 // 10 MB
 
+/** Initial size for a variable cell. */
+#define CSV_INITIAL_VAR_CELL_SIZE 4000
+
 /**
  * This class implements a simple CSV file with basic operations such as
  * getting a line from the file, or appending a line to it. It makes
@@ -71,6 +74,12 @@ class CSVFile {
   CSVFile(const std::string& filename, const char* mode);
   /** Destructor. */
   ~CSVFile();
+
+  // ACCESSORS
+  /** Returns the number of bytes read from the file. */
+  ssize_t bytes_read() const;
+  /** Returns the size of the file in bytes. */
+  ssize_t size() const;
  
   // MUTATORS
   /** Closes the CSV file. */
@@ -96,6 +105,11 @@ class CSVFile {
 
  private:
   // PRIVATE ATTRIBUTES
+  /** 
+   * This is important when the cells retrieved from the CSV file are of
+   * variable size.
+   */
+  size_t allocated_cell_size_;
   /** An array schema. */
   const ArraySchema* array_schema_; 
   /** 
