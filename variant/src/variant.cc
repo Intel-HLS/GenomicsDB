@@ -180,6 +180,9 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) 
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
     std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant)
 {
+  if(query_row_idx_in_order.size() == 0)
+    return;
+
   //Reverse order as gt_get_column uses reverse iterators
   for(int64_t i=query_row_idx_in_order.size()-1;i>=0;--i)
   {
