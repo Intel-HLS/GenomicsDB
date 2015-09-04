@@ -2,12 +2,6 @@
 
 #include "libtiledb_variant.h"
 
-
-
-
-
-Factory f;
-
 StorageManager *Factory::getStorageManager(std::string &workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
       if( sm != NULL ) {
@@ -55,6 +49,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
         uint64_t query_interval_idx, Variant& variant, VariantQueryConfig& query_config) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
+    Factory f;
     StorageManager *sm = f.getStorageManager(workspace);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
@@ -71,6 +66,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
         uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
+    Factory f;
     StorageManager *sm = f.getStorageManager(workspace);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
@@ -80,7 +76,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
 }
 
 extern "C" void db_cleanup() {
-    f.clear();
+    // f.clear();
 }
 
 template<class T>

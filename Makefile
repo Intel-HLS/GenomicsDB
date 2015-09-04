@@ -58,6 +58,10 @@ ifdef DO_PROFILING
   LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 
+ifdef VERBOSE
+	CPPFLAGS+= -DVERBOSE=$(VERBOSE)
+endif
+
 # --- Directories --- #
 # Directories for the core code of TileDB
 CORE_INCLUDE_DIR = core/include

@@ -549,6 +549,9 @@ void VariantQueryProcessor::gt_get_column_interval(
   //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
   //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
   vector<uint64_t> query_row_idx_in_order = vector<uint64_t>(query_config.get_num_rows_to_query(), UNDEFINED_NUM_ROWS_VALUE);
+  #if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
+  #endif
   gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
   //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
   //into multiple Variants, each containing a single call
@@ -568,6 +571,10 @@ void VariantQueryProcessor::gt_get_column_interval(
     //Multiple variants could be merged later on
     Variant tmp_variant(&subset_query_config);
     tmp_variant.resize_based_on_query();
+    #if VERBOSE>0
+      std::cout << "[query_variants:gt_get_column_interval] Fetching columns from " << query_config.get_column_begin(column_interval_idx) + 1;
+      std::cout << " to " << query_config.get_column_end(column_interval_idx) << std::endl;
+    #endif
     //Cell object that will be used for iterating over attributes
     Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
     for(;!(forward_iter->end());++(*forward_iter))
@@ -595,8 +602,14 @@ void VariantQueryProcessor::gt_get_column_interval(
         move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant);
       }
     }
+    #if VERBOSE>0
+      std::cout << "[query_variants:gt_get_column_interval] Fetching columns complete " << std::endl;
+    #endif
     delete forward_iter;
   }
+  #if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
+  #endif
   GA4GHOperator variant_operator;
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
@@ -606,6 +619,9 @@ void VariantQueryProcessor::gt_get_column_interval(
       assert(variant_operator.get_variants().size() == 1u);     //exactly one variant
       variants[i] = std::move(variant_operator.get_variants()[0]);
     }
+  #if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column_interval] query complete " << std::endl;
+  #endif
 }
 
 void VariantQueryProcessor::gt_get_column(
@@ -624,6 +640,9 @@ void VariantQueryProcessor::gt_get_column(
           query_config.get_column_interval(column_interval_idx).second);
   //TODO: Still single position query
   uint64_t col = query_config.get_column_interval(column_interval_idx).first;
+  #if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column] Fetching column : " << col << std::endl;
+  #endif
   // Initialize reverse tile iterators
   // The reverse iterator will start with the cells
   // of the various attributes that have the largest
@@ -754,6 +773,9 @@ void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
     const Cell& cell, uint64_t* num_deref_tile_iters) const {
+  #if VERBOSE>1
+    std::cout << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
+  #endif
   //Current row should be part of query
   assert(query_config.is_queried_array_row_idx(row));
   VariantCall& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(row));
