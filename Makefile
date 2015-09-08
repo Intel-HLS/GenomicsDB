@@ -10,13 +10,16 @@ LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 # --- Debug/Release mode handler --- #
 BUILD ?= debug 
 CFLAGS = -fopenmp
+LINKFLAGS=
 ifeq ($(BUILD),debug)
 #  CFLAGS += -DDEBUG -Wall -O0 -g
-  CFLAGS += -DDEBUG -O0 -g
+  CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
+  LINKFLAGS+=-g -gdwarf-2 -g3
 endif
 
 ifeq ($(BUILD),release)
   CFLAGS += -DNDEBUG -O3 
+  LINKFLAGS+=-O3
 endif
 
 # --- Compilers --- #
@@ -42,15 +45,6 @@ endif
 CPPFLAGS += -fPIC
 SOFLAGS=-shared -Wl,-soname=
 
-LINKFLAGS=
-ifdef DEBUG
-  CPPFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
-  LINKFLAGS+=-g -gdwarf-2 -g3
-endif
-ifdef SPEED
-  CPPFLAGS+=-O3 -DNDEBUG
-  LINKFLAGS+=-O3
-endif
 
 ifdef DO_PROFILING
   GPERFTOOLSDIR=/home/karthikg/softwares/gperftools-2.2/install/
