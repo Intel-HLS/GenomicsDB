@@ -507,7 +507,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
   //Set number of rows in the array
   const std::vector<std::pair<double, double> >& dim_domains =
       array_schema.dim_domains();
-  uint64_t row_num = dim_domains[0].second - dim_domains[0].first;
+  uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
   query_config.set_num_rows_in_array(row_num);
   query_config.setup_array_row_idx_to_query_row_idx_map();
   //Bounds checking for query
