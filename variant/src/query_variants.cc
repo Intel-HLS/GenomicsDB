@@ -788,7 +788,7 @@ void VariantQueryProcessor::gt_fill_row(
 #ifdef DO_PROFILING
   ++(*num_deref_tile_iters);
 #endif
-  if(END_v < variant.get_column_begin()) {
+  if(END_v < static_cast<int64_t>(variant.get_column_begin())) {
     curr_call.mark_valid(false);  //The interval in this cell stops before the current variant's start column
     return;                       //Implies, this row has no valid data for this query range. Mark Call as invalid
   }
