@@ -229,6 +229,7 @@ class VariantCall
     uint64_t m_col_end;
 };
 
+class GA4GHPagingInfo;
 /*
  * Class equivalent to GAVariant in GA4GH API. Stores info about 1 position/interval
  */
@@ -376,7 +377,7 @@ class Variant
      */
     void move_calls_to_separate_variants(const VariantQueryConfig& query_config,
         std::vector<Variant>& variants, std::vector<uint64_t>& query_row_idx_in_order,
-        GA4GHCallInfoToVariantIdx& call_info_2_variant);
+        GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info=0);
     /*Non-const iterators for iterating over valid calls*/
     valid_calls_iterator begin() { return valid_calls_iterator(m_calls.begin(), m_calls.end(), 0ull); }
     valid_calls_iterator end() { return valid_calls_iterator(m_calls.end(), m_calls.end(), m_calls.size()); }
@@ -483,6 +484,60 @@ class Variant
      */
     std::vector<unsigned> m_common_fields_query_idxs;
 };
+
+/*
+ * Class to store information about paging in a GA4GH query
+ */
+class GA4GHPagingInfo
+{
+  public:
+    GA4GHPagingInfo()
+    {
+      m_max_num_variants_per_page = 1000000000u;        //large number, 1B
+      m_last_row_idx = 0;
+      m_last_column_idx = 0;
+      reset();
+    }
+    void reset()
+    {
+      m_is_query_completed = false;
+    }
+    inline unsigned get_max_num_variants_per_page() const { return m_max_num_variants_per_page; }
+    inline void set_last_cell_info(const uint64_t row_idx, const uint64_t column_idx)
+    {
+      m_last_row_idx = row_idx;
+      m_last_column_idx = column_idx;
+    }
+    void resize_and_track_page_end(std::vector<Variant>& variants);
+    inline bool handled_previously(const uint64_t row_idx, const uint64_t column_idx)
+    {
+      //Column major order storage
+      //hence, if m_last_column_idx is less than column_idx, not handled
+      if(column_idx > m_last_column_idx)
+        return false;
+      else
+        if(column_idx < m_last_column_idx)      //if m_last_column_idx is greater than column_idx, handled
+          return true;
+        else    //m_last_column_idx == column_idx
+        {
+          //sorted by rows
+          if(row_idx > m_last_row_idx)
+            return false;
+          else
+            return true;
+        }
+    }
+    inline uint64_t get_last_column() const { return m_last_column_idx; }
+    inline void set_page_size(unsigned page_size) { m_max_num_variants_per_page = page_size; }
+    inline bool is_query_completed() const { return m_is_query_completed; }
+    inline void set_query_completed() { m_is_query_completed = true; }
+  private:
+    bool m_is_query_completed;
+    unsigned m_max_num_variants_per_page;      //page size
+    uint64_t m_last_row_idx;       //Set by query to mark end of cyrr page, i.e., next query will
+    uint64_t m_last_column_idx;    //access cells with row,column > these values
+};
+
 
 //Priority queue ordered by END position of intervals for VariantCall objects
 //Ensures that interval with the smallest end is at the top of the PQ/min-heap

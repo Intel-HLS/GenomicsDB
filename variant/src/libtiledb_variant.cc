@@ -63,7 +63,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
 }
 
 extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
-        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config) {
+        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config, GA4GHPagingInfo* paging_info) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
@@ -72,7 +72,20 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
         qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
-    qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, &f.stats);
+    qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, paging_info, &f.stats);
+    //Multi-page queries
+    if(paging_info)
+    {
+      std::vector<Variant> tmp_vector;
+      while(!(paging_info->is_query_completed()))
+      {
+        qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, tmp_vector, paging_info, &f.stats);
+        //Move to final vector
+        for(auto& v : tmp_vector)
+          variants.push_back(std::move(v));
+        tmp_vector.clear();
+      }
+    }
 }
 
 extern "C" void db_cleanup() {

@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
 
     uint64_t start = std::stoull(std::string(argv[3]));
     uint64_t end = std::stoull(std::string(argv[4]));
+    unsigned page_size = 0;
 
     bool single_position_queries = false;
     bool test_update_rows = false;
@@ -25,6 +26,12 @@ int main(int argc, char *argv[]) {
       else
         if(std::string(argv[5])=="--test-update-rows")
           test_update_rows = true;
+        else
+          if(std::string(argv[5]) == "--page-size")
+          {
+            if(argc >= 7)
+              page_size = strtoull(argv[6], 0, 10);
+          }
     
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
@@ -62,7 +69,10 @@ int main(int argc, char *argv[]) {
           query_config.update_rows_to_query_to_all_rows();
           std::cout << "Querying all rows\n";
         }
-        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+        GA4GHPagingInfo paging_info;
+        if(page_size)
+          paging_info.set_page_size(page_size);
+        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config, page_size ? &paging_info : 0);
         for(const auto& variant : variants)
             variant.print(std::cout, &query_config);
     }

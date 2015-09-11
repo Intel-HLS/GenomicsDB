@@ -59,6 +59,20 @@ void GA4GHCallInfoToVariantIdx::clear()
   m_begin_to_variant.clear();
 }
 
+//GA4GHPagingInfo functions
+void GA4GHPagingInfo::resize_and_track_page_end(std::vector<Variant>& variants)
+{
+  assert(variants.size() > 0u);
+  variants.resize(get_max_num_variants_per_page());
+  auto& last_variant = variants[variants.size()-1u];
+  //Must have >= 1 valid calls
+  assert(last_variant.get_num_calls() > 0u);
+  auto& last_call = last_variant.get_call(0u);
+  assert(last_call.is_valid());
+  //All calls merged within a GA4GH variant have the same start,end values
+  set_last_cell_info(last_call.get_row_idx(), last_call.get_column_begin());
+}
+
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {
@@ -178,19 +192,28 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) 
 }
 
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
-    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant)
+    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
 {
   if(query_row_idx_in_order.size() == 0)
     return;
-
   //Reverse order as gt_get_column uses reverse iterators
   for(int64_t i=query_row_idx_in_order.size()-1;i>=0;--i)
   {
     auto query_row_idx = query_row_idx_in_order[i];
     assert(query_row_idx < get_num_calls());
     auto& to_move_call = get_call(query_row_idx);
-    move_call_to_variant_vector(query_config, to_move_call, variants, call_info_2_variant);
+    auto curr_row_idx = to_move_call.get_row_idx();
+    auto curr_column_idx = to_move_call.get_column_begin();
+    //If this is a continued query, only return results after the last page
+    if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
+      continue;
+    move_call_to_variant_vector(query_config, to_move_call, variants, call_info_2_variant); 
   }
+  //Can check paging only after all calls handled because multiple calls may be merged into 
+  //a single variant. Which calls are merged is known only after the for loop completes
+  if(paging_info && variants.size() >= paging_info->get_max_num_variants_per_page())
+    paging_info->resize_and_track_page_end(variants);
+  
 }
 
 void Variant::copy_simple_members(const Variant& other)

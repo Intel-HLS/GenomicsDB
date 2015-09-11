@@ -18,7 +18,7 @@ ifeq ($(BUILD),debug)
 endif
 
 ifeq ($(BUILD),release)
-  CFLAGS += -DNDEBUG -O3 
+  CFLAGS += -DNDEBUG -O3 -fvisibility=hidden
   LINKFLAGS+=-O3
 endif
 
@@ -31,8 +31,7 @@ endif
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
 CC  = $(MPIPATH)mpicc
 CXX = $(MPIPATH)mpicxx
-CPPFLAGS=-lstdc++ -std=c++11 -fPIC -fvisibility=hidden \
-      $(LFS_CFLAGS) $(CFLAGS)
+CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 LDFLAGS=
 
 #HTSDIR=../../htslib
@@ -42,9 +41,7 @@ ifdef HTSDIR
   LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
-CPPFLAGS += -fPIC
 SOFLAGS=-shared -Wl,-soname=
-
 
 ifdef DO_PROFILING
   GPERFTOOLSDIR=/home/karthikg/softwares/gperftools-2.2/install/
@@ -53,7 +50,7 @@ ifdef DO_PROFILING
 endif
 
 ifdef VERBOSE
-	CPPFLAGS+= -DVERBOSE=$(VERBOSE)
+  CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
 # --- Directories --- #
@@ -165,6 +162,7 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 # --- Libs --- #
 MPI_LIB = -lmpi
 OPENMP_LIB = -fopenmp 
+LINKFLAGS+=-fopenmp
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -454,7 +452,7 @@ $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 #Linking
 $(EXAMPLE_BIN_DIR)/%: $(EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
 	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) $(CFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
+	$(CXX) $(LINKFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
 
 clean_example:
 	rm -f $(EXAMPLE_OBJ_DIR)/* $(EXAMPLE_BIN_DIR)/* 

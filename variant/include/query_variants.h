@@ -97,7 +97,7 @@ class VariantQueryProcessor : public QueryProcessor {
     void gt_get_column_interval(
         const int ad,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
-        std::vector<Variant>& variants, GTProfileStats* stats=0) const;
+        std::vector<Variant>& variants, GA4GHPagingInfo* paging_info=0, GTProfileStats* stats=0) const;
 #if 0
     void scan_and_operate(const ArraySchema& array_schema, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,

@@ -534,82 +534,125 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
 void VariantQueryProcessor::gt_get_column_interval(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    vector<Variant>& variants, GTProfileStats* stats) const {
+    vector<Variant>& variants, GA4GHPagingInfo* paging_info, GTProfileStats* stats) const {
   uint64_t num_deref_tile_iters = 0ull;
   uint64_t start_variant_idx = variants.size();
   //Will be used later in the function to produce Variants with one CallSet
   VariantQueryConfig subset_query_config(query_config);
   vector<int64_t> subset_rows = vector<int64_t>(1u, 0);
   subset_query_config.update_rows_to_query(subset_rows);  //only 1 row, row 0
+  //Structure that helps merge multiple Calls into a single variant if the GA4GH specific merging
+  //conditions are satisfied
+  GA4GHCallInfoToVariantIdx call_info_2_variant;
   //If the queried interval is [100:200], then the first part of the function gets a Variant object
   //containing Calls that intersect with 100. Some of them could start before 100 and extend beyond. This
   //information is recorded in the Call
-  Variant interval_begin_variant(&query_config);
-  interval_begin_variant.resize_based_on_query();
-  //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
-  //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
-  vector<uint64_t> query_row_idx_in_order = vector<uint64_t>(query_config.get_num_rows_to_query(), UNDEFINED_NUM_ROWS_VALUE);
-  #if VERBOSE>0
+  //With paging, if this is a continuation of the query and the continuation should occur <= the same column 
+  //as the start of the query, the left sweep operation should be repeated. However, if the continuation is beyond
+  //the start of the query, skip the left sweep operation (as all variants accessed by the left sweep would have
+  //been returned in a previous page)
+  if(paging_info == 0 || paging_info->get_last_column() <= query_config.get_column_begin(column_interval_idx))
+  {
+    Variant interval_begin_variant(&query_config);
+    interval_begin_variant.resize_based_on_query();
+    //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
+    //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
+    vector<uint64_t> query_row_idx_in_order = vector<uint64_t>(query_config.get_num_rows_to_query(), UNDEFINED_NUM_ROWS_VALUE);
+#if VERBOSE>0
     std::cout << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
-  #endif
-  gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
-  //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
-  //into multiple Variants, each containing a single call
-  GA4GHCallInfoToVariantIdx call_info_2_variant;
-  interval_begin_variant.move_calls_to_separate_variants(query_config, variants, query_row_idx_in_order,
-      call_info_2_variant);
-  //If this is not a single position query, need to fetch more cells
-  if(query_config.get_column_end(column_interval_idx) >
-      query_config.get_column_begin(column_interval_idx))
+#endif
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
+    //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
+    //into multiple Variants, each containing calls that are satisfy the GA4GH properties for merging calls
+    interval_begin_variant.move_calls_to_separate_variants(query_config, variants, query_row_idx_in_order,
+        call_info_2_variant, paging_info);
+  }
+  //If this is not a single position query and paging limit is not hit, need to fetch more cells
+  if((query_config.get_column_end(column_interval_idx) >
+        query_config.get_column_begin(column_interval_idx)) && 
+      !(paging_info && variants.size() >= paging_info->get_max_num_variants_per_page()))
   {
     //Get the iterator to the first cell that has column > query_column_start. All cells with column == query_column_start
     //(or intersecting) would have been handled by gt_get_column(). Hence, must start from next column
+    uint64_t start_column_forward_sweep = query_config.get_column_interval(column_interval_idx).first+1;
+    //If paging, continue from last column
+    start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column(), start_column_forward_sweep) 
+      : start_column_forward_sweep;
     ArrayConstCellIterator<int64_t>* forward_iter = 0;
-    gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first+1, forward_iter);
+    //initialize iterators
+    //FIXME: for paging, incorporate row range also
+    gt_initialize_forward_iter(ad, query_config, start_column_forward_sweep, forward_iter);
     uint64_t num_deref_tile_iters = 0; 
     //Used to store single call variants  - one variant per cell
     //Multiple variants could be merged later on
     Variant tmp_variant(&subset_query_config);
     tmp_variant.resize_based_on_query();
-    #if VERBOSE>0
-      std::cout << "[query_variants:gt_get_column_interval] Fetching columns from " << query_config.get_column_begin(column_interval_idx) + 1;
-      std::cout << " to " << query_config.get_column_end(column_interval_idx) << std::endl;
-    #endif
+#if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column_interval] Fetching columns from " << query_config.get_column_begin(column_interval_idx) + 1;
+    std::cout << " to " << query_config.get_column_end(column_interval_idx) << std::endl;
+#endif
     //Cell object that will be used for iterating over attributes
     Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+    //Used for paging
+    auto last_column_idx = start_column_forward_sweep;
+    auto curr_column_idx = start_column_forward_sweep;
+    auto curr_row_idx = 0;
+    bool first_iter = true;
     for(;!(forward_iter->end());++(*forward_iter))
     {
       auto* cell_ptr = **forward_iter;
       //Coordinates are at the start of the cell
       auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
-      if(next_coord[1] > query_config.get_column_end(column_interval_idx))    //Genomic interval begins after end of query interval
-        break;
-      if(query_config.is_queried_array_row_idx(next_coord[0]))       //If row is part of query, process cell
+      curr_row_idx = next_coord[0];
+      curr_column_idx = next_coord[1];
+      if(curr_column_idx > query_config.get_column_end(column_interval_idx))    //Genomic interval begins after end of query interval
       {
+        if(paging_info)
+          paging_info->set_query_completed();
+        break;
+      }
+      //If paging and moved to the next column, check if page size exceeded
+      //According to GA4GH, a variant is determined by start,end - so if we move to a new column,
+      //then the last variant is done, i.e., no more calls will be added to the last variant
+      if(paging_info && !first_iter && curr_column_idx != last_column_idx && 
+          variants.size() >= paging_info->get_max_num_variants_per_page())
+      {
+        paging_info->resize_and_track_page_end(variants);
+        break;
+      }
+      last_column_idx = curr_column_idx;
+      first_iter = false;
+      if(query_config.is_queried_array_row_idx(curr_row_idx))       //If row is part of query, process cell
+      {
+        //If this is a continued query, only return results after the last page
+        if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
+          continue;
         //Create Variant with single Call (subset_query_config contains one row)
-        subset_rows[0] = next_coord[0];
+        subset_rows[0] = curr_row_idx;
         subset_query_config.update_rows_to_query(subset_rows);
         tmp_variant.resize_based_on_query();
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
-        tmp_variant.get_call(0u).set_row_idx(next_coord[0]); //set row idx
-        tmp_variant.set_column_interval(next_coord[1], next_coord[1]);
+        tmp_variant.get_call(0u).set_row_idx(curr_row_idx); //set row idx
+        tmp_variant.set_column_interval(curr_column_idx, curr_column_idx);
         //Set contents of cell 
         cell.set_cell(cell_ptr);
-        gt_fill_row(tmp_variant, next_coord[0], next_coord[1], subset_query_config, cell, &num_deref_tile_iters);
-        //Set correct end for the variant 
+        gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, &num_deref_tile_iters);
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
         //Move call to variants vector, creating new Variant if necessary
         move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant);
       }
     }
-    #if VERBOSE>0
-      std::cout << "[query_variants:gt_get_column_interval] Fetching columns complete " << std::endl;
-    #endif
+    //Full TileDB array iteration completed
+    if(paging_info && forward_iter->end())
+      paging_info->set_query_completed();
+#if VERBOSE>0
+    std::cout << "[query_variants:gt_get_column_interval] Fetching columns complete " << std::endl;
+#endif
     delete forward_iter;
   }
-  #if VERBOSE>0
-    std::cout << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
-  #endif
+#if VERBOSE>0
+  std::cout << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
+#endif
   GA4GHOperator variant_operator;
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
@@ -619,9 +662,9 @@ void VariantQueryProcessor::gt_get_column_interval(
       assert(variant_operator.get_variants().size() == 1u);     //exactly one variant
       variants[i] = std::move(variant_operator.get_variants()[0]);
     }
-  #if VERBOSE>0
-    std::cout << "[query_variants:gt_get_column_interval] query complete " << std::endl;
-  #endif
+#if VERBOSE>0
+  std::cout << "[query_variants:gt_get_column_interval] query complete " << std::endl;
+#endif
 }
 
 void VariantQueryProcessor::gt_get_column(
