@@ -16,10 +16,33 @@ ifeq ($(BUILD),debug)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
 endif
+# Parallel sort
+GNU_PARALLEL =
 
+ifeq ($(GNU_PARALLEL),)
+  GNU_PARALLEL = 1
+endif
+
+ifeq ($(GNU_PARALLEL),1)
+  CFLAGS = -fopenmp -DGNU_PARALLEL
+else
+  CFLAGS =
+endif
+
+# --- Debug/Release mode handler --- #
+BUILD =
+
+ifeq ($(BUILD),)
+  BUILD = release
+endif
+ 
 ifeq ($(BUILD),release)
   CFLAGS += -DNDEBUG -O3 -fvisibility=hidden
   LINKFLAGS+=-O3
+endif
+
+ifeq ($(BUILD),debug)
+  CFLAGS += -DDEBUG -O0 -g
 endif
 
 # --- Compilers --- #
