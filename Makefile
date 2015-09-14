@@ -15,6 +15,7 @@ ifeq ($(BUILD),debug)
 #  CFLAGS += -DDEBUG -Wall -O0 -g
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
+endif
 # Parallel sort
 GNU_PARALLEL =
 
