@@ -7,16 +7,32 @@ OS := $(shell uname)
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-# --- Debug/Release mode handler --- #
-BUILD ?= debug 
-CFLAGS = -fopenmp
-ifeq ($(BUILD),debug)
-#  CFLAGS += -DDEBUG -Wall -O0 -g
-  CFLAGS += -DDEBUG -O0 -g
+# Parallel sort
+GNU_PARALLEL =
+
+ifeq ($(GNU_PARALLEL),)
+  GNU_PARALLEL = 1
 endif
 
+ifeq ($(GNU_PARALLEL),1)
+  CFLAGS = -fopenmp -DGNU_PARALLEL
+else
+  CFLAGS =
+endif
+
+# --- Debug/Release mode handler --- #
+BUILD =
+
+ifeq ($(BUILD),)
+  BUILD = release
+endif
+ 
 ifeq ($(BUILD),release)
   CFLAGS += -DNDEBUG -O3 
+endif
+
+ifeq ($(BUILD),debug)
+  CFLAGS += -DDEBUG -O0 -g
 endif
 
 # --- Compilers --- #
