@@ -59,6 +59,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
       variant = std::move(Variant(&query_config));
       variant.resize_based_on_query();
     }
+    f.stats.increment_num_queries();
     qp->gt_get_column(qp->get_array_descriptor(), query_config, query_interval_idx, variant, &f.stats);
 }
 
@@ -72,6 +73,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
         qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
+    f.stats.increment_num_queries();
     qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, &f.stats);
 }
 

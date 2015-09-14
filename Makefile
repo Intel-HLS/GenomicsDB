@@ -41,10 +41,6 @@ ifeq ($(BUILD),release)
   LINKFLAGS+=-O3
 endif
 
-ifeq ($(BUILD),debug)
-  CFLAGS += -DDEBUG -O0 -g
-endif
-
 # --- Compilers --- #
 
 # C++ compiler
@@ -68,15 +64,18 @@ endif
 CPPFLAGS += -fPIC
 SOFLAGS=-shared -Wl,-soname=
 
-
 ifdef DO_PROFILING
-  GPERFTOOLSDIR=/home/karthikg/softwares/gperftools-2.2/install/
-  CPPFLAGS+=-DDO_PROFILING --no-inline -I$(GPERFTOOLSDIR)/include
-  LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
+    CPPFLAGS+=-DDO_PROFILING
+endif
+
+ifdef USE_GPERFTOOLS
+    GPERFTOOLSDIR ?= /home/karthikg/softwares/gperftools-2.2/install/
+    CPPFLAGS+=-DUSE_GPERFTOOLS --no-inline -I$(GPERFTOOLSDIR)/include
+    LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 
 ifdef VERBOSE
-	CPPFLAGS+= -DVERBOSE=$(VERBOSE)
+    CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
 # --- Directories --- #

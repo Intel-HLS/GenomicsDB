@@ -46,31 +46,55 @@ class KnownFieldInfo
 /* Structure to store profiling information */
 class GTProfileStats {
   public:
-    GTProfileStats()
+    enum GTStatIdx
     {
-      m_sum_num_cells_touched = 0;
-      m_sum_num_deref_tile_iters = 0;
-      m_sum_num_tiles_touched = 0;
-      m_sum_num_cells_last_iter = 0;
-      m_sum_num_cells_first_sample = 0;
-      m_sum_sq_num_cells_touched = 0;
-      m_sum_sq_num_deref_tile_iters = 0;      
-      m_sum_sq_num_tiles_touched = 0;
-      m_sum_sq_num_cells_last_iter = 0;
-      m_sum_sq_num_cells_first_sample = 0;
-      m_num_samples = 0;
+      GT_NUM_CELLS=0,   //total #cells traversed in the query, coord cells are accessed for every time
+      GT_NUM_CELLS_IN_LEFT_SWEEP,//total #cells traversed in the query left sweep, coord cells are accessed for every time
+      GT_NUM_VALID_CELLS_IN_QUERY,//#valid cells actually returned in query 
+      GT_NUM_ATTR_CELLS_ACCESSED,//#attribute cells accessed in the query
+      GT_NUM_STATS
+    };
+    GTProfileStats();
+    inline void update_stat(unsigned stat_idx, uint64_t value)
+    {
+      assert(stat_idx < m_stats_sum_vector.size());
+      m_stats_sum_vector[stat_idx] += value;
+      double v = value;
+      m_stats_sum_sq_vector[stat_idx] += (v*v);
     }
-    uint64_t m_sum_num_cells_touched;
-    uint64_t m_sum_num_deref_tile_iters;
-    uint64_t m_sum_num_tiles_touched;
-    uint64_t m_sum_num_cells_last_iter;
-    uint64_t m_sum_num_cells_first_sample;
-    uint64_t m_sum_sq_num_cells_touched;
-    uint64_t m_sum_sq_num_deref_tile_iters;
-    uint64_t m_sum_sq_num_tiles_touched;
-    uint64_t m_sum_sq_num_cells_last_iter;
-    uint64_t m_sum_sq_num_cells_first_sample;
-    uint64_t m_num_samples;
+    inline void update_stat_from_tmp_counter(unsigned stat_idx)
+    {
+      assert(stat_idx < m_stats_tmp_count_vector.size());
+      update_stat(stat_idx, m_stats_tmp_count_vector[stat_idx]);
+      m_stats_tmp_count_vector[stat_idx] = 0;
+    }
+    inline void update_all_from_tmp_counters()
+    {
+      for(auto stat_idx=0u;stat_idx<GT_NUM_STATS;++stat_idx)
+      {
+        assert(stat_idx < m_stats_tmp_count_vector.size());
+        update_stat(stat_idx, m_stats_tmp_count_vector[stat_idx]);
+        m_stats_tmp_count_vector[stat_idx] = 0;
+      }
+    }
+    inline void increment_tmp_counter(unsigned stat_idx, uint64_t value=1u)
+    {
+      assert(stat_idx < m_stats_tmp_count_vector.size());
+      m_stats_tmp_count_vector[stat_idx] += value;
+    }
+    inline void reset_tmp_counter(unsigned stat_idx)
+    {
+      assert(stat_idx < m_stats_tmp_count_vector.size());
+      m_stats_tmp_count_vector[stat_idx] = 0;
+    }
+    void print_stats(std::ostream& fptr=std::cout) const;
+    void increment_num_queries() { ++m_num_queries; }
+  private:
+    std::vector<uint64_t> m_stats_sum_vector;
+    std::vector<uint64_t> m_stats_tmp_count_vector;
+    std::vector<double> m_stats_sum_sq_vector;
+    std::vector<std::string> m_stats_name_vector;
+    uint64_t m_num_queries;
 };
 
 /*
@@ -184,7 +208,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /** Fills a row of the input genotyping column with the proper info. */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
-        const Cell& cell, uint64_t* num_deref_tile_iters) const;
+        const Cell& cell, GTProfileStats* stats) const;
     /** 
      * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
@@ -212,11 +236,10 @@ class VariantQueryProcessor : public QueryProcessor {
      * @param NULL_bitmap - can be 0, if the current field does not use NULL field
      * @param num_ALT_alleles - number of ALT alleles:can be 0, if the current field does not use this info
      * @schema_idx The idx of the attribute in the schema of the current array 
-     * @num_deref_tile_iters - useful only if compiled in PROFILING mode
      */
     void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr, const CellConstAttrIterator& attr_iter,
         const unsigned num_ALT_alleles, const unsigned ploidy,
-        const unsigned schema_idx, uint64_t* num_deref_tile_iters=0
+        const unsigned schema_idx
         ) const;
 
     /**
