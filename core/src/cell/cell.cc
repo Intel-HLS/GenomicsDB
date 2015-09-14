@@ -106,8 +106,8 @@ Cell::Cell(
   cell_size_ = array_schema->cell_size(attribute_ids_);
   var_size_ = (cell_size_ == VAR_SIZE);
   if(!var_size_)
-  cell_size_ = array_schema_->cell_size(attribute_ids_) + 
-               id_num * sizeof(int64_t);
+    cell_size_ = array_schema_->cell_size(attribute_ids_) + 
+      id_num * sizeof(int64_t);
 }
 
 Cell::~Cell() {
@@ -306,9 +306,9 @@ void Cell::append_string(int attribute_id, CSVLine& csv_line) const {
 
   v.assign(s, val_num);
 
-  if(is_null(v[0]))
+  if(is_null(v[0])) {
     csv_line << NULL_VALUE;
-  else if(is_del(v[0]))
+  } else if(is_del(v[0]))
     csv_line << DEL_VALUE;
   else 
     csv_line << v;
