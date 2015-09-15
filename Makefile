@@ -187,6 +187,9 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 # --- Libs --- #
 MPI_LIB = -lmpi
 OPENMP_LIB = -fopenmp 
+ZLIB = -lz
+
+LDFLAGS+=$(ZLIB)
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -361,7 +364,7 @@ $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 	@mkdir -p $(TILEDB_CMD_BIN_DIR)
 	@echo "Creating $@"
 	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-                -o $@ $^
+                -o $@ $^ $(ZLIB)
 
 # --- Cleaning --- #
 
