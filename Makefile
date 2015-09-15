@@ -7,14 +7,21 @@ OS := $(shell uname)
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
+CFLAGS = -fopenmp
+#LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
+LINKFLAGS=-fopenmp
+#LDFLAGS appear after the list of object files (-lz etc)
+LDFLAGS=-lz
+
 # --- Debug/Release mode handler --- #
 BUILD ?= debug 
-CFLAGS = 
-LINKFLAGS=
+
 ifeq ($(BUILD),debug)
+# CFLAGS += -DDEBUG -Wall -O0 -g
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
 endif
+
 ifeq ($(BUILD),release)
   CFLAGS += -DNDEBUG -O3 -fvisibility=hidden
   LINKFLAGS+=-O3
@@ -28,7 +35,7 @@ ifeq ($(GNU_PARALLEL),)
 endif
 
 ifeq ($(GNU_PARALLEL),1)
-  CFLAGS += -fopenmp -DGNU_PARALLEL
+  CFLAGS += -DGNU_PARALLEL
 endif
 
 # --- Compilers --- #
@@ -40,8 +47,8 @@ endif
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
 CC  = $(MPIPATH)mpicc
 CXX = $(MPIPATH)mpicxx
-CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
-LDFLAGS=
+CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
+      $(LFS_CFLAGS) $(CFLAGS)
 
 #HTSDIR=../../htslib
 
@@ -53,13 +60,17 @@ endif
 SOFLAGS=-shared -Wl,-soname=
 
 ifdef DO_PROFILING
-  GPERFTOOLSDIR=/home/karthikg/softwares/gperftools-2.2/install/
-  CPPFLAGS+=-DDO_PROFILING --no-inline -I$(GPERFTOOLSDIR)/include
-  LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
+    CPPFLAGS+=-DDO_PROFILING
+endif
+
+ifdef USE_GPERFTOOLS
+    GPERFTOOLSDIR ?= /home/karthikg/softwares/gperftools-2.2/install/
+    CPPFLAGS+=-DUSE_GPERFTOOLS --no-inline -I$(GPERFTOOLSDIR)/include
+    LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 
 ifdef VERBOSE
-  CPPFLAGS+= -DVERBOSE=$(VERBOSE)
+    CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
 # --- Directories --- #
@@ -171,7 +182,7 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 # --- Libs --- #
 MPI_LIB = -lmpi
 OPENMP_LIB = -fopenmp 
-LINKFLAGS+=-fopenmp
+ZLIB = -lz
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -346,7 +357,7 @@ $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 	@mkdir -p $(TILEDB_CMD_BIN_DIR)
 	@echo "Creating $@"
 	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-                -o $@ $^
+                -o $@ $^ $(ZLIB)
 
 # --- Cleaning --- #
 

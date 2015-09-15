@@ -18,6 +18,7 @@
 #include <map>
 #include <climits>
 #include "profiling.h"
+#include <iomanip>
 
 #ifndef HTSDIR
 #include "vcf.h"

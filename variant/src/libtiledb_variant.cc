@@ -59,6 +59,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
       variant = std::move(Variant(&query_config));
       variant.resize_based_on_query();
     }
+    f.stats.increment_num_queries();
     qp->gt_get_column(qp->get_array_descriptor(), query_config, query_interval_idx, variant, &f.stats);
 }
 
@@ -96,6 +97,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
         tmp_vector.clear();
       }
     }
+    f.stats.increment_num_queries();
 }
 
 extern "C" void db_cleanup() {
