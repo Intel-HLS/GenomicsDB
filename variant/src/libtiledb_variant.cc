@@ -73,9 +73,15 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     if(!query_config.is_bookkeeping_done())
         qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
     qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, paging_info, &f.stats);
+#ifdef DEBUG
+    auto page_idx = 0u;
+#endif
     //Multi-page queries
     if(paging_info)
     {
+#ifdef DEBUG
+      std::cout << "Page "<<page_idx<<" has "<<variants.size()<<" variants\n";
+#endif
       std::vector<Variant> tmp_vector;
       while(!(paging_info->is_query_completed()))
       {
@@ -83,6 +89,10 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
         //Move to final vector
         for(auto& v : tmp_vector)
           variants.push_back(std::move(v));
+#ifdef DEBUG
+        ++page_idx;
+        std::cout << "Page "<<page_idx<<" has "<<tmp_vector.size()<<" variants\n";
+#endif
         tmp_vector.clear();
       }
     }
