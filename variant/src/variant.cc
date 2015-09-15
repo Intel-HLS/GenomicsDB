@@ -59,20 +59,6 @@ void GA4GHCallInfoToVariantIdx::clear()
   m_begin_to_variant.clear();
 }
 
-//GA4GHPagingInfo functions
-void GA4GHPagingInfo::resize_and_track_page_end(std::vector<Variant>& variants)
-{
-  assert(variants.size() > 0u);
-  variants.resize(get_max_num_variants_per_page());
-  auto& last_variant = variants[variants.size()-1u];
-  //Must have >= 1 valid calls
-  assert(last_variant.get_num_calls() > 0u);
-  auto& last_call = last_variant.get_call(0u);
-  assert(last_call.is_valid());
-  //All calls merged within a GA4GH variant have the same start,end values
-  set_last_cell_info(last_call.get_row_idx(), last_call.get_column_begin());
-}
-
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {
@@ -196,6 +182,8 @@ void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_co
 {
   if(query_row_idx_in_order.size() == 0)
     return;
+  uint64_t last_column_idx = 0u;
+  bool first_iter = true;
   //Reverse order as gt_get_column uses reverse iterators
   for(int64_t i=query_row_idx_in_order.size()-1;i>=0;--i)
   {
@@ -207,13 +195,22 @@ void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_co
     //If this is a continued query, only return results after the last page
     if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
       continue;
+    //If paging, moved to new column and exceeded page size, return
+    //Since multiple Calls/cells with the same column may be merged into a single variant, check for page limits
+    //only after a new column is reached
+    if(paging_info && !first_iter && last_column_idx != curr_column_idx
+        && variants.size() >= paging_info->get_max_num_variants_per_page())
+    {
+      paging_info->set_last_cell_info(ULLONG_MAX, last_column_idx);
+      return;
+    }
     move_call_to_variant_vector(query_config, to_move_call, variants, call_info_2_variant); 
+    last_column_idx = curr_column_idx;
+    first_iter = false;
   }
-  //Can check paging only after all calls handled because multiple calls may be merged into 
-  //a single variant. Which calls are merged is known only after the for loop completes
+  //If paging, exceeded page size, return
   if(paging_info && variants.size() >= paging_info->get_max_num_variants_per_page())
-    paging_info->resize_and_track_page_end(variants);
-  
+    paging_info->set_last_cell_info(ULLONG_MAX, last_column_idx);
 }
 
 void Variant::copy_simple_members(const Variant& other)

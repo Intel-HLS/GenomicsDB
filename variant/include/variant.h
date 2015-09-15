@@ -508,7 +508,6 @@ class GA4GHPagingInfo
       m_last_row_idx = row_idx;
       m_last_column_idx = column_idx;
     }
-    void resize_and_track_page_end(std::vector<Variant>& variants);
     inline bool handled_previously(const uint64_t row_idx, const uint64_t column_idx)
     {
       //Column major order storage

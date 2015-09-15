@@ -575,12 +575,11 @@ void VariantQueryProcessor::gt_get_column_interval(
     //Get the iterator to the first cell that has column > query_column_start. All cells with column == query_column_start
     //(or intersecting) would have been handled by gt_get_column(). Hence, must start from next column
     uint64_t start_column_forward_sweep = query_config.get_column_interval(column_interval_idx).first+1;
-    //If paging, continue from last column
-    start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column(), start_column_forward_sweep) 
+    //If paging, continue after last column that was handled in the previous page
+    start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column()+1, start_column_forward_sweep) 
       : start_column_forward_sweep;
     ArrayConstCellIterator<int64_t>* forward_iter = 0;
     //initialize iterators
-    //FIXME: for paging, incorporate row range also
     gt_initialize_forward_iter(ad, query_config, start_column_forward_sweep, forward_iter);
     uint64_t num_deref_tile_iters = 0; 
     //Used to store single call variants  - one variant per cell
@@ -611,22 +610,24 @@ void VariantQueryProcessor::gt_get_column_interval(
           paging_info->set_query_completed();
         break;
       }
-      //If paging and moved to the next column, check if page size exceeded
-      //According to GA4GH, a variant is determined by start,end - so if we move to a new column,
-      //then the last variant is done, i.e., no more calls will be added to the last variant
-      if(paging_info && !first_iter && curr_column_idx != last_column_idx && 
-          variants.size() >= paging_info->get_max_num_variants_per_page())
+      //Paging related checks
+      if(paging_info)
       {
-        paging_info->resize_and_track_page_end(variants);
-        break;
+        //TODO: should never happen, since the iterator starts at the next column (verify)
+        if(paging_info->handled_previously(curr_row_idx, curr_column_idx))
+          continue;
+        //If paging and moved to the next column, check if page size exceeded
+        //According to GA4GH, a variant is determined by start,end - so if we move to a new column,
+        //then the last variant is done, i.e., no more calls will be added to the last variant
+        if(!first_iter && curr_column_idx != last_column_idx && 
+            variants.size() >= paging_info->get_max_num_variants_per_page())
+        {
+          paging_info->set_last_cell_info(ULLONG_MAX, last_column_idx);
+          break;
+        }
       }
-      last_column_idx = curr_column_idx;
-      first_iter = false;
       if(query_config.is_queried_array_row_idx(curr_row_idx))       //If row is part of query, process cell
       {
-        //If this is a continued query, only return results after the last page
-        if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
-          continue;
         //Create Variant with single Call (subset_query_config contains one row)
         subset_rows[0] = curr_row_idx;
         subset_query_config.update_rows_to_query(subset_rows);
@@ -641,6 +642,8 @@ void VariantQueryProcessor::gt_get_column_interval(
         //Move call to variants vector, creating new Variant if necessary
         move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant);
       }
+      last_column_idx = curr_column_idx;
+      first_iter = false;
     }
     //Full TileDB array iteration completed
     if(paging_info && forward_iter->end())

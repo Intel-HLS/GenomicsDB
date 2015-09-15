@@ -16,6 +16,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <climits>
 #include "profiling.h"
 
 #ifndef HTSDIR
