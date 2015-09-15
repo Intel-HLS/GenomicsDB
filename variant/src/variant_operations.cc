@@ -60,7 +60,7 @@ void VariantOperations::merge_reference_allele(const Variant& variant, const Var
     }
 #ifdef DEBUG
     //sanity check only - the shorter ref must be a prefix of the longer ref (since they begin at the same location)
-    if(longer_ref->find(*shorter_ref) != 0)
+    if(!CHECK_IN_THE_MIDDLE_REF(merged_reference_allele) && !CHECK_IN_THE_MIDDLE_REF(curr_ref) && longer_ref->find(*shorter_ref) != 0)
     {
       throw std::invalid_argument(std::string{"When combining variants at a given position, the shorter reference allele should be a prefix of the longer reference allele: \'"} + *shorter_ref + " , " + *longer_ref);
     }
