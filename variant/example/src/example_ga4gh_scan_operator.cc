@@ -20,9 +20,6 @@ int main(int argc, char** argv) {
   // Create query processor
   // The first input is the path to its workspace (the path must exist).
   VariantQueryProcessor qp(&sm, cl.m_array_name);
-#ifdef DO_PROFILING
-  sm.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
-#endif
   //Setup query
   VariantQueryConfig query_config;
   query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "AD", "GT"});

@@ -4,7 +4,7 @@
 #include "query_variants.h"
 #include "variant_operations.h"
 
-#ifdef DO_PROFILING
+#ifdef USE_GPERFTOOLS
 #include "gperftools/profiler.h"
 #endif
 
@@ -19,8 +19,14 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats,
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
+#ifdef DO_PROFILING
+  stats->increment_num_queries();
+#endif
   /*Get one column from array*/
   qp.gt_get_column(qp.get_array_descriptor(), query_config, 0u, variant, stats);
+#ifdef DO_PROFILING
+  stats->update_all_from_tmp_counters();
+#endif
 #if 0
   //Test get_C_pointers() functions
   if(do_C_pointer_testing)
@@ -59,9 +65,6 @@ int main(int argc, char** argv) {
     // Create query processor
     // The first input is the path to its workspace (the path must exist).
     VariantQueryProcessor qp(cl.m_workspace, sm, ad_gVCF);
-#ifdef DO_PROFILING
-    sm.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
-#endif
     //Setup query
     VariantQueryConfig query_config;
     query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
@@ -102,9 +105,8 @@ int main(int argc, char** argv) {
     if(cl.m_positions_list.is_open())
     {
       uint64_t num_queries = 0;
-#ifdef DO_PROFILING
+#ifdef USE_GPERFTOOLS
       ProfilerStart("gprofile.log");
-      sm_opt.m_coords_attribute_idx = qp.get_schema_idx_for_known_field_enum(GVCF_COORDINATES_IDX);
 #endif
       while(1)
       {
@@ -115,41 +117,16 @@ int main(int argc, char** argv) {
 	GenotypeColumn(qp, &stats, position, output_stream, cl.m_test_C_pointers);
 	++num_queries;
       }
-#ifdef DO_PROFILING
+#ifdef USE_GPERFTOOLS
       ProfilerStop();
-      if(num_queries)
-      {
-	printf("mean #cells for first sample,mean #cells per sample,mean #cells for exit,mean #tiles per query,mean #deref tile iters per query,,std-dev #cells for first sample,std-dev #cells per sample,std-dev #cells for exit,std-dev #tiles per query,std-dev #deref tile iters per query,,mean #disk derefs,mean #coords disk deref,mean #cached deref,mean #coords cached deref,mean #tiles loaded from disk\n");
-	double mean_cells_per_sample = ((double)stats.m_sum_num_cells_touched)/stats.m_num_samples;
-	double stddev_cells_per_sample = sqrt(((double)stats.m_sum_sq_num_cells_touched)/stats.m_num_samples - 
-	    (mean_cells_per_sample*mean_cells_per_sample));
-	double mean_cells_first_sample = ((double)stats.m_sum_num_cells_first_sample)/num_queries;
-	double stddev_cells_first_sample = sqrt(((double)stats.m_sum_sq_num_cells_first_sample)/num_queries - 
-	    (mean_cells_first_sample*mean_cells_first_sample));
-	double mean_cells_last_iter = ((double)stats.m_sum_num_cells_last_iter)/num_queries;
-	double stddev_cells_last_iter = sqrt(((double)stats.m_sum_sq_num_cells_last_iter)/num_queries - mean_cells_last_iter*mean_cells_last_iter);
-	double mean_deref_tile_iters = ((double)stats.m_sum_num_deref_tile_iters)/num_queries;
-	double stddev_deref_tile_iters = sqrt(((double)stats.m_sum_sq_num_deref_tile_iters)/num_queries - (mean_deref_tile_iters*mean_deref_tile_iters));
-	double mean_tiles_per_query = ((double)stats.m_sum_num_tiles_touched)/num_queries;
-	double stddev_tiles_per_query = sqrt(((double)stats.m_sum_sq_num_tiles_touched)/num_queries - mean_tiles_per_query*mean_tiles_per_query);
-	double mean_disk_loads_per_query = ((double)g_num_disk_loads)/num_queries;
-	double mean_coords_disk_loads_per_query = ((double)g_coords_num_disk_loads)/num_queries;
-	double mean_cached_loads = ((double)g_num_cached_loads)/num_queries;
-	double mean_coords_cached_loads = ((double)g_coords_num_cached_loads)/num_queries;
-	double mean_tiles_loaded_from_disk = ((double)g_total_num_tiles_loaded)/num_queries;
-	printf("%.2lf,%.2lf,%2.lf,%.2lf,%.2lf,,%.2lf,%.2lf,%2.lf,%.2lf,%.2lf,,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf\n",
-	    mean_cells_first_sample, mean_cells_per_sample,
-	    mean_cells_last_iter, mean_tiles_per_query, mean_deref_tile_iters,
-	    stddev_cells_first_sample, stddev_cells_per_sample,
-	    stddev_cells_last_iter, stddev_tiles_per_query, stddev_deref_tile_iters,
-	    mean_disk_loads_per_query, mean_coords_disk_loads_per_query, mean_cached_loads,
-	    mean_coords_cached_loads, mean_tiles_loaded_from_disk);
-      }
 #endif
     }
     else
       GenotypeColumn(qp, &stats, cl.m_position, output_stream, cl.m_test_C_pointers);
     sm_opt.close_array(qp.get_array_descriptor());
+#ifdef DO_PROFILING
+    stats.print_stats();
+#endif
   }
   if(cl.m_output_fstream.is_open())
     cl.m_output_fstream.close();

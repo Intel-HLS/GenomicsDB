@@ -17,6 +17,7 @@
 #include <set>
 #include <map>
 #include "profiling.h"
+#include <iomanip>
 
 #ifndef HTSDIR
 #include "vcf.h"
