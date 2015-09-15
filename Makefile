@@ -190,6 +190,8 @@ MPI_LIB = -lmpi
 OPENMP_LIB = -fopenmp 
 ZLIB = -lz
 
+LDFLAGS+=$(ZLIB)
+
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
   SHLIB_EXT = dylib
