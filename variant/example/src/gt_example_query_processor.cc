@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     //expected_num_tiles_per_query = 1;
 #endif
     double expected_num_tiles_per_query = 1;
-    uint64_t segment_size = expected_num_tiles_per_query*40000;
+    uint64_t segment_size = expected_num_tiles_per_query*60000;
     //uint64_t segment_size = 8192;
     if(segment_size > SEGMENT_SIZE)
       segment_size = SEGMENT_SIZE;
