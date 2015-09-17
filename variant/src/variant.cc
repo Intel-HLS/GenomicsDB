@@ -59,6 +59,51 @@ void GA4GHCallInfoToVariantIdx::clear()
   m_begin_to_variant.clear();
 }
 
+//GA4GHPagingInfo functions
+void GA4GHPagingInfo::serialize_page_end(const std::string& array_name)
+{
+  m_last_page_end_token = array_name + "_" + std::to_string(is_query_completed() ? ULLONG_MAX : m_last_row_idx) + "_" 
+    + std::to_string(is_query_completed() ? ULLONG_MAX : m_last_column_idx);
+}
+
+void GA4GHPagingInfo::deserialize_page_end()
+{
+  if(m_last_page_end_token == "")
+  {
+    m_last_column_idx = m_last_row_idx = 0;
+    return;
+  }
+  char* dup_string = strdup(m_last_page_end_token.c_str());
+  std::string row_string = "";
+  std::string column_string = "";
+  char* saveptr = 0;
+  char* ret_ptr = strtok_r(dup_string, "_", &saveptr);
+  auto num_tokens = 0u;
+  //Since array name may contain delimiters, tokenize and get the last 2 tokens only for row,col
+  while(ret_ptr)
+  {
+    row_string = column_string;
+    column_string = ret_ptr;
+    ++num_tokens;
+    ret_ptr = strtok_r(0, "_", &saveptr);
+  }
+  free(dup_string);
+  if(num_tokens < 3u)   //<array_name>_<row>_<column>
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>");
+  if(column_string.length() == 0u || row_string.length() == 0u)
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>");
+  saveptr = 0;
+  m_last_row_idx = strtoull(row_string.c_str(), &saveptr, 10);
+  //Invalid number 
+  if(saveptr == 0 ||  saveptr == row_string.c_str())
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column> - row idx not detected");
+  saveptr = 0;
+  m_last_column_idx = strtoull(column_string.c_str(), &saveptr, 10);
+  //Invalid number 
+  if(saveptr == 0 ||  saveptr == column_string.c_str())
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column> - column idx not detected");
+}
+
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {

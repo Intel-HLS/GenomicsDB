@@ -485,6 +485,19 @@ class Variant
     std::vector<unsigned> m_common_fields_query_idxs;
 };
 
+//GA4GH page token exception
+class InvalidGA4GHPageTokenException {
+  public:
+    InvalidGA4GHPageTokenException(const std::string m="Invalid GA4GH page token exception") : msg_(m) { ; }
+    ~InvalidGA4GHPageTokenException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const std::string& what() const { return msg_; }
+  private:
+    std::string msg_;
+};
+
+
 /*
  * Class to store information about paging in a GA4GH query
  */
@@ -501,6 +514,7 @@ class GA4GHPagingInfo
     void reset()
     {
       m_is_query_completed = false;
+      m_last_page_end_token = "";
     }
     inline unsigned get_max_num_variants_per_page() const { return m_max_num_variants_per_page; }
     inline void set_last_cell_info(const uint64_t row_idx, const uint64_t column_idx)
@@ -530,11 +544,17 @@ class GA4GHPagingInfo
     inline void set_page_size(unsigned page_size) { m_max_num_variants_per_page = page_size; }
     inline bool is_query_completed() const { return m_is_query_completed; }
     inline void set_query_completed() { m_is_query_completed = true; }
+    //GA4GH string tokens
+    void serialize_page_end(const std::string& array_name);
+    void deserialize_page_end();
+    const std::string& get_page_end_token() const { return m_last_page_end_token; }
   private:
     bool m_is_query_completed;
     unsigned m_max_num_variants_per_page;      //page size
     uint64_t m_last_row_idx;       //Set by query to mark end of cyrr page, i.e., next query will
     uint64_t m_last_column_idx;    //access cells with row,column > these values
+    //GA4GH string tokens
+    std::string m_last_page_end_token;
 };
 
 

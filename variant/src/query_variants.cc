@@ -574,6 +574,8 @@ void VariantQueryProcessor::gt_get_column_interval(
 #ifdef DO_PROFILING
   assert(stats);
 #endif
+  if(paging_info)
+    paging_info->deserialize_page_end();
   uint64_t start_variant_idx = variants.size();
   //Will be used later in the function to produce Variants with one CallSet
   VariantQueryConfig subset_query_config(query_config);
@@ -706,6 +708,8 @@ void VariantQueryProcessor::gt_get_column_interval(
       assert(variant_operator.get_variants().size() == 1u);     //exactly one variant
       variants[i] = std::move(variant_operator.get_variants()[0]);
     }
+  if(paging_info)
+    paging_info->serialize_page_end(m_array_schema->array_name());
 #if VERBOSE>0
   std::cout << "[query_variants:gt_get_column_interval] query complete " << std::endl;
 #endif
