@@ -575,7 +575,7 @@ void VariantQueryProcessor::gt_get_column_interval(
   assert(stats);
 #endif
   if(paging_info)
-    paging_info->deserialize_page_end();
+    paging_info->init_page_query();
   uint64_t start_variant_idx = variants.size();
   //Will be used later in the function to produce Variants with one CallSet
   VariantQueryConfig subset_query_config(query_config);
@@ -610,13 +610,13 @@ void VariantQueryProcessor::gt_get_column_interval(
   //If this is not a single position query and paging limit is not hit, need to fetch more cells
   if((query_config.get_column_end(column_interval_idx) >
         query_config.get_column_begin(column_interval_idx)) && 
-      !(paging_info && variants.size() >= paging_info->get_max_num_variants_per_page()))
+      !(paging_info && paging_info->is_page_limit_hit(variants.size())))
   {
     //Get the iterator to the first cell that has column > query_column_start. All cells with column == query_column_start
     //(or intersecting) would have been handled by gt_get_column(). Hence, must start from next column
-    uint64_t start_column_forward_sweep = query_config.get_column_interval(column_interval_idx).first+1;
-    //If paging, continue after last column that was handled in the previous page
-    start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column()+1, start_column_forward_sweep) 
+    uint64_t start_column_forward_sweep = query_config.get_column_interval(column_interval_idx).first+1u;
+    //If paging, continue at the last column that was handled in the previous page
+    start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column(), start_column_forward_sweep) 
       : start_column_forward_sweep;
     ArrayConstCellIterator<int64_t>* forward_iter = 0;
     gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first+1, forward_iter);
@@ -632,9 +632,16 @@ void VariantQueryProcessor::gt_get_column_interval(
     Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
     //Used for paging
     auto last_column_idx = start_column_forward_sweep;
+    auto last_row_idx = 0ull;
+    //Num handled variants - if beginning from same column as end of last page, get from paging info
+    //else, reset to 0
+    auto num_last_column_variants_handled_after_curr_page = paging_info ? 
+      (paging_info->get_last_column() == last_column_idx) ? paging_info->get_num_handled_variants_in_last_column() : 0u
+      : 0u;
+    num_last_column_variants_handled_after_curr_page = 0u;
     auto curr_column_idx = start_column_forward_sweep;
-    auto curr_row_idx = 0;
-    bool first_iter = true;
+    auto curr_row_idx = 0ull;
+    bool stop_inserting_new_variants = false;
     for(;!(forward_iter->end());++(*forward_iter))
     {
 #ifdef DO_PROFILING
@@ -648,27 +655,11 @@ void VariantQueryProcessor::gt_get_column_interval(
       curr_row_idx = next_coord[0];
       curr_column_idx = next_coord[1];
       if(curr_column_idx > query_config.get_column_end(column_interval_idx))    //Genomic interval begins after end of query interval
-      {
-        if(paging_info)
-          paging_info->set_query_completed();
         break;
-      }
-      //Paging related checks
-      if(paging_info)
-      {
-        //TODO: should never happen, since the iterator starts at the next column (verify)
-        if(paging_info->handled_previously(curr_row_idx, curr_column_idx))
-          continue;
-        //If paging and moved to the next column, check if page size exceeded
-        //According to GA4GH, a variant is determined by start,end - so if we move to a new column,
-        //then the last variant is done, i.e., no more calls will be added to the last variant
-        if(!first_iter && curr_column_idx != last_column_idx && 
-            variants.size() >= paging_info->get_max_num_variants_per_page())
-        {
-          paging_info->set_last_cell_info(ULLONG_MAX, last_column_idx);
-          break;
-        }
-      }
+      //Check variants handled in previous page
+      //TODO: should never enter this if statement, I think
+      if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
+        continue;
       if(query_config.is_queried_array_row_idx(curr_row_idx))       //If row is part of query, process cell
       {
         //Create Variant with single Call (subset_query_config contains one row)
@@ -683,18 +674,26 @@ void VariantQueryProcessor::gt_get_column_interval(
         gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, stats);
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
         //Move call to variants vector, creating new Variant if necessary
-        move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant);
+        auto newly_inserted = move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant,
+            stop_inserting_new_variants);
+        //Check if page limit hit
+        PAGE_END_CHECK_LOGIC
       }
+      last_row_idx = curr_row_idx;
       last_column_idx = curr_column_idx;
-      first_iter = false;
     }
-    //Full TileDB array iteration completed
-    if(paging_info && forward_iter->end())
-      paging_info->set_query_completed();
 #if VERBOSE>0
     std::cout << "[query_variants:gt_get_column_interval] Fetching columns complete " << std::endl;
 #endif
     delete forward_iter;
+  }
+  if(paging_info)
+  {
+    //Exited loop without hitting page limit - only reason, end of query
+    if(!(paging_info->is_page_limit_hit(variants.size())))
+      paging_info->set_query_completed(variants);
+    //Remove variants handled in the previous page(s)
+    paging_info->shift_left_variants(variants);
   }
 #if VERBOSE>0
   std::cout << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;

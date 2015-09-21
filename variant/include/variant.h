@@ -507,21 +507,38 @@ class GA4GHPagingInfo
     GA4GHPagingInfo()
     {
       m_max_num_variants_per_page = 1000000000u;        //large number, 1B
-      m_last_row_idx = 0;
-      m_last_column_idx = 0;
       reset();
     }
     void reset()
     {
       m_is_query_completed = false;
+      m_last_row_idx = 0;
+      m_last_column_idx = 0;
       m_last_page_end_token = "";
+      m_num_handled_variants_in_last_column = 0u;
+      m_num_variants_to_shift_left = 0u;
+      m_num_variants_in_curr_page = 0u;
     }
-    inline unsigned get_max_num_variants_per_page() const { return m_max_num_variants_per_page; }
-    inline void set_last_cell_info(const uint64_t row_idx, const uint64_t column_idx)
-    {
-      m_last_row_idx = row_idx;
-      m_last_column_idx = column_idx;
-    }
+    //Call at the start of new page
+    void init_page_query();
+    //Page limit functions
+    inline void set_page_size(unsigned page_size) { m_max_num_variants_per_page = page_size; }
+    inline unsigned get_page_size() const { return m_max_num_variants_per_page; }
+    /*
+     * Page limit is hit if one of two conditions satisfied:
+     * (a) #new variants inserted in this page >= page_size. This condition is important when the page limit
+     * has not been hit previously and the variable m_num_variants_in_curr_page is un-initialized
+     * (b) m_num_variants_in_curr_page is initialized and has hit the page limit. The variable is initialized
+     * after set_last_cell_info() function is called. Hence, all subsequent calls to is_page_limit_hit()
+     * will return true (until init_page_query() function is called, which resets the value of m_num_variants_in_curr_page)
+     */
+    inline bool is_page_limit_hit(unsigned variants_vec_size) const
+    { return ( (variants_vec_size >= get_num_handled_variants_in_last_column() + get_page_size())
+        || (m_num_variants_in_curr_page >= get_page_size()) ); }
+    inline unsigned get_num_variants_in_curr_page() const { return m_num_variants_in_curr_page; }
+    void set_last_cell_info(std::vector<Variant>& variants,
+        const uint64_t row_idx, const uint64_t column_idx, const unsigned num_last_column_variants_handled_after_curr_page);
+    void shift_left_variants(std::vector<Variant>& variants);
     inline bool handled_previously(const uint64_t row_idx, const uint64_t column_idx)
     {
       //Column major order storage
@@ -533,17 +550,27 @@ class GA4GHPagingInfo
           return true;
         else    //m_last_column_idx == column_idx
         {
+          return false; //need to check all cells with the same column_idx, because of how GA4GH variants are constructed
+#if 0
           //sorted by rows
           if(row_idx > m_last_row_idx)
             return false;
           else
             return true;
+#endif
         }
     }
     inline uint64_t get_last_column() const { return m_last_column_idx; }
-    inline void set_page_size(unsigned page_size) { m_max_num_variants_per_page = page_size; }
+    inline unsigned get_num_handled_variants_in_last_column()  const { return m_num_handled_variants_in_last_column; }
+    /*
+     * End of query, no more pages
+     */
     inline bool is_query_completed() const { return m_is_query_completed; }
-    inline void set_query_completed() { m_is_query_completed = true; }
+    inline void set_query_completed(std::vector<Variant>& variants)
+    {
+      m_is_query_completed = true;
+      set_last_cell_info(variants, ULLONG_MAX, ULLONG_MAX, 0u);
+    }
     //GA4GH string tokens
     void serialize_page_end(const std::string& array_name);
     void deserialize_page_end();
@@ -551,12 +578,37 @@ class GA4GHPagingInfo
   private:
     bool m_is_query_completed;
     unsigned m_max_num_variants_per_page;      //page size
-    uint64_t m_last_row_idx;       //Set by query to mark end of cyrr page, i.e., next query will
+    uint64_t m_last_row_idx;       //Set by query to mark end of curr page, i.e., next query will
     uint64_t m_last_column_idx;    //access cells with row,column > these values
+    unsigned m_num_handled_variants_in_last_column;     //#variants starting at the last column that were returned in the last page
+    unsigned m_num_variants_to_shift_left;      //helps determine how many elements need to be removed from the head of the vector before returning
+    unsigned m_num_variants_in_curr_page;
     //GA4GH string tokens
     std::string m_last_page_end_token;
 };
 
+#define PAGE_END_CHECK_LOGIC \
+if(paging_info && newly_inserted) \
+{ \
+  /*Moved to a different column, num_last_column_variants_handled_after_curr_page gets reset*/ \
+  if(last_column_idx != curr_column_idx) \
+    num_last_column_variants_handled_after_curr_page = 1u; \
+  else \
+    ++num_last_column_variants_handled_after_curr_page; \
+  if(paging_info->is_page_limit_hit(variants.size())) /*Page limit hit*/ \
+  { \
+    /*First time page limit hit is detected*/ \
+    if(paging_info->get_num_variants_in_curr_page() == 0u) \
+    { \
+      stop_inserting_new_variants = true; \
+      paging_info->set_last_cell_info(variants, curr_row_idx, curr_column_idx, num_last_column_variants_handled_after_curr_page); \
+    } \
+    else /*page limit was hit in a previous iteration, have moved to a new column, break out of loop*/ \
+         /*since no more Calls can be added to any Variant in the variants vector */ \
+      if(paging_info->get_last_column() != curr_column_idx) \
+        break; \
+  } \
+}
 
 //Priority queue ordered by END position of intervals for VariantCall objects
 //Ensures that interval with the smallest end is at the top of the PQ/min-heap
@@ -628,7 +680,7 @@ const VariantFieldTy* get_known_field(const VariantCall& curr_call, const Varian
 /*
  * Move call to variants vector - create new Variant if necessary
  */
-void move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
-    std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant);
+bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
+    std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants);
 
 #endif
