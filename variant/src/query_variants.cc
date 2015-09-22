@@ -897,10 +897,8 @@ unsigned int VariantQueryProcessor::gt_initialize_reverse_iter(
   //Num attributes in query
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign reverse iterator
-  //FIXME: No longer binary search?
-  vector<int64_t> query_range = { 0ll, static_cast<int64_t>(query_config.get_num_rows_in_array()),
-    0ll, column };
-  reverse_iter = get_storage_manager()->rbegin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
+  vector<int64_t> query_range = { static_cast<int64_t>(query_config.get_num_rows_in_array()-1u), column };
+  reverse_iter = get_storage_manager()->rbegin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs(), false);
   return num_queried_attributes - 1;
 }
 

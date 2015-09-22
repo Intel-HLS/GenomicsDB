@@ -182,7 +182,6 @@ OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 # --- Libs --- #
 MPI_LIB = -lmpi
 OPENMP_LIB = -fopenmp 
-ZLIB = -lz
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -324,7 +323,7 @@ endif
 $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT): $(CORE_OBJ)
 	@mkdir -p $(CORE_LIB_DIR)
 	@echo "Creating libtiledb.$(SHLIB_EXT)"
-	@$(CXX) $(SHLIB_FLAGS) $(SONAME) -o $@ $^
+	@$(CXX) $(SHLIB_FLAGS) $(SONAME) -o $@ $^ $(LDFLAGS)
 	ar rcs $(CORE_LIB_DIR)/libtiledb.a $^
 
 # --- Cleaning --- #
@@ -357,7 +356,7 @@ $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 	@mkdir -p $(TILEDB_CMD_BIN_DIR)
 	@echo "Creating $@"
 	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
-                -o $@ $^ $(ZLIB)
+                -o $@ $^ $(LDFLAGS)
 
 # --- Cleaning --- #
 
