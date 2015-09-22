@@ -3,6 +3,10 @@
 
 #include "libtiledb_variant.h"
 
+#ifdef USE_GPERFTOOLS
+#include "gperftools/profiler.h"
+#endif
+
 int main(int argc, char *argv[]) {
     if( argc < 5 ) {
       char workspace[] = "/mnt/app_hdd/scratch/jagan/TileDB/DB/";
@@ -36,7 +40,9 @@ int main(int argc, char *argv[]) {
             query_config.add_column_interval_to_query(i, i);        //single position queries
     else
         query_config.add_column_interval_to_query(start, end);
-    
+#ifdef USE_GPERFTOOLS
+    ProfilerStart("gprofile.log");
+#endif
     if(single_position_queries)
     {
         Variant variant;
@@ -66,6 +72,9 @@ int main(int argc, char *argv[]) {
         for(const auto& variant : variants)
             variant.print(std::cout, &query_config);
     }
+#ifdef USE_GPERFTOOLS
+    ProfilerStop();
+#endif
     db_cleanup();
 }
 
