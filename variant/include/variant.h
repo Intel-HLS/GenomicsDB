@@ -575,6 +575,7 @@ class GA4GHPagingInfo
     void serialize_page_end(const std::string& array_name);
     void deserialize_page_end();
     const std::string& get_page_end_token() const { return m_last_page_end_token; }
+    void set_page_end_token(const std::string& last_end_token) { m_last_page_end_token = last_end_token; }
   private:
     bool m_is_query_completed;
     unsigned m_max_num_variants_per_page;      //page size

@@ -63,6 +63,11 @@ void GA4GHCallInfoToVariantIdx::clear()
 
 void GA4GHPagingInfo::init_page_query()
 {
+  m_is_query_completed = false;
+  m_last_row_idx = 0;
+  m_last_column_idx = 0;
+  m_num_handled_variants_in_last_column = 0u;
+  m_num_variants_to_shift_left = 0u;
   m_num_variants_in_curr_page = 0u;
   deserialize_page_end();
 }
@@ -111,9 +116,13 @@ void GA4GHPagingInfo::shift_left_variants(std::vector<Variant>& variants)
 
 void GA4GHPagingInfo::serialize_page_end(const std::string& array_name)
 {
-  m_last_page_end_token = array_name + "_" + std::to_string(is_query_completed() ? ULLONG_MAX : m_last_row_idx) + "_" 
-    + std::to_string(is_query_completed() ? ULLONG_MAX : m_last_column_idx) + "_"
-    + std::to_string(m_num_handled_variants_in_last_column);
+  if(is_query_completed())
+    m_last_page_end_token = "";
+  else
+    m_last_page_end_token = array_name + "_"
+      + std::to_string(m_last_row_idx) + "_" 
+      + std::to_string(m_last_column_idx) + "_"
+      + std::to_string(m_num_handled_variants_in_last_column);
 }
 
 void GA4GHPagingInfo::deserialize_page_end()
