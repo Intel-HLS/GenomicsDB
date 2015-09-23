@@ -141,6 +141,7 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
 };
 unordered_map<string, unsigned> VariantQueryProcessor::m_known_variant_field_name_to_enum;
 unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator;
+std::vector<KnownFieldInfo> VariantQueryProcessor::m_known_field_enum_to_info;
 
 //Initialize static members function
 void VariantQueryProcessor::initialize_static_members()
@@ -164,6 +165,11 @@ void VariantQueryProcessor::initialize_static_members()
   //Char becomes string instead of vector<char>
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(char))] = 
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>());
+  //Mapping from known_field enum
+  m_known_field_enum_to_info.resize(GVCF_NUM_KNOWN_FIELDS);
+  //set length descriptors and creator objects for special attributes
+  for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
+    initialize_length_descriptor(i);
   //Set initialized flag
   VariantQueryProcessor::m_are_static_members_initialized = true;
 }
@@ -288,13 +294,8 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
   m_ad = storage_manager->open_array(array_name, "r");
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
-  //Mapping from known_field enum
-  m_known_field_enum_to_info.resize(GVCF_NUM_KNOWN_FIELDS);
   //Initialize versioning information
-  initialize_version(*m_array_schema);
-  //set length descriptors and creator objects for special attributes
-  for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
-    initialize_length_descriptor(i);
+  initialize_version(*m_array_schema); 
   //Register creators in factory
   register_field_creators(*m_array_schema);
 }
@@ -921,7 +922,6 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
 
 void VariantQueryProcessor::clear()
 {
-  m_known_field_enum_to_info.clear();
   m_schema_idx_to_known_variant_field_enum_LUT.reset_luts();
   m_field_factory.clear();
 }

@@ -25,6 +25,7 @@ class KnownFieldInfo
       m_ploidy_required = false;
       m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
       m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_field_creator = 0;
     }
     bool m_ploidy_required;
     unsigned m_length_descriptor;
@@ -199,7 +200,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /**
      * Initialized field length info
      */
-    void initialize_length_descriptor(unsigned idx);
+    static void initialize_length_descriptor(unsigned idx);
     /** Called by scan_and_operate to handle all ranges for given set of cells */
     void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
         const VariantQueryConfig& queryConfig, Variant& variant,
@@ -251,10 +252,6 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     SchemaIdxToKnownVariantFieldsEnumLUT m_schema_idx_to_known_variant_field_enum_LUT;
     /**
-     * Vector that stores information about the known fields - NULL bitidx, OFFSETS bitidx, length etc
-     */
-    std::vector<KnownFieldInfo> m_known_field_enum_to_info;
-    /**
      * Factory object that creates variant fields as and when needed
      */
     VariantFieldFactory m_field_factory;
@@ -274,6 +271,10 @@ class VariantQueryProcessor : public QueryProcessor {
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized
     static bool m_are_static_members_initialized;
+    /**
+     * Vector that stores information about the known fields - length, Factory methods etc
+     */
+    static std::vector<KnownFieldInfo> m_known_field_enum_to_info;
     //Function that initializes static members
     static void initialize_static_members();
 };
