@@ -122,12 +122,9 @@ class VariantQueryProcessor : public QueryProcessor {
         const int ad,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
         std::vector<Variant>& variants, GTProfileStats* stats=0) const;
-#if 0
-    void scan_and_operate(const ArraySchema& array_schema, const VariantQueryConfig& query_config,
+    void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u) const;
-    void iterate_over_all_tiles(const ArraySchema& array_schema, const VariantQueryConfig& query_config) const;
-#endif
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
