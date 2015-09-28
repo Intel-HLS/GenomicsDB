@@ -81,6 +81,22 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
   }
 }
 
+void VariantCall::print_Cotton_JSON(std::ostream& fptr, unsigned field_idx) const
+{
+  if(m_is_initialized && m_is_valid)
+  {
+    assert(field_idx < m_fields.size());
+    auto& field = m_fields[field_idx];
+    if(field.get() && field->is_valid())  //non null, valid field
+    {
+      field->print_Cotton_JSON(fptr);
+      return;
+    }
+    else
+      fptr << "null";
+  }
+}
+
 void VariantCall::reset_for_new_interval()
 {
   m_is_initialized = false;
@@ -175,6 +191,99 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) 
     fptr << " }";
   }
   fptr << " }\n";
+}
+
+void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config)
+{
+  assert(query_config.is_bookkeeping_done());
+  fptr << "{\n";
+  bool first = true;
+  std::string indent = "    ";
+  //Row idxs
+  {
+    auto first_valid = true;
+    fptr << indent + "\"indices\" : [ ";
+    for(const auto& variant : variants)
+    {
+      for(const auto& call : variant)
+      {
+        if(!first_valid)
+          fptr << "," << call.get_row_idx();
+        else
+        {
+          fptr << call.get_row_idx();
+          first_valid = false;
+        }
+      }
+    }
+    fptr << " ],\n";
+  }
+  //Start
+  {
+    auto first_valid = true;
+    fptr << indent + "\"start\" : [ ";
+    for(const auto& variant : variants)
+    {
+      for(const auto& call : variant)
+      {
+        if(!first_valid)
+          fptr << "," << call.get_column_begin();
+        else
+        {
+          fptr << call.get_column_begin();
+          first_valid = false;
+        }
+      }
+    }
+    fptr << " ],\n";
+  }
+  //END
+  {
+    auto first_valid = true;
+    fptr << indent + "\"end\" : [ ";
+    for(const auto& variant : variants)
+    {
+      for(const auto& call : variant)
+      {
+        if(!first_valid)
+          fptr << "," << call.get_column_end();
+        else
+        {
+          fptr << call.get_column_end();
+          first_valid = false;
+        }
+      }
+    }
+    fptr << " ],\n";
+  }
+  //other attributes, start from 1 as the first queried attribute is always END
+  for(auto i=1u;i<query_config.get_num_queried_attributes();++i)
+  {
+    auto first_valid = true;
+    fptr << indent + "\"" + query_config.get_query_attribute_name(i) + "\" : [ ";
+    for(const auto& variant : variants)
+    {
+      for(const auto& call : variant)
+      {
+        if(!first_valid)
+        {
+          fptr << ",";
+          call.print_Cotton_JSON(fptr, i);
+        }
+        else
+        {
+          call.print_Cotton_JSON(fptr, i);
+          first_valid = false;
+        }
+      }
+    }
+    fptr << " ]";
+    if(i+1u >= query_config.get_num_queried_attributes())       //last query, no comma
+      fptr << "\n";
+    else
+      fptr << ",\n";
+  }
+  fptr << "}\n";
 }
 
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
