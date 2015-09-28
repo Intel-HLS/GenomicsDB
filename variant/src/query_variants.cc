@@ -226,9 +226,12 @@ void VariantQueryProcessor::initialize_length_descriptor(unsigned idx)
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
       m_known_field_enum_to_info[idx].m_field_creator = std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldALTData>());
       break;
-    case GVCF_FILTER_IDX:
+    case GVCF_FILTER_IDX: 
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
-      //TODO: How to get this?
+      break;
+    case GVCF_AF_IDX:
+    case GVCF_AC_IDX:
+      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_A;
       break;
     case GVCF_AD_IDX:
       m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_R;
