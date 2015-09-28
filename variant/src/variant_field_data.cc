@@ -1,5 +1,7 @@
 #include "variant_field_data.h"
 
+std::string g_vcf_NON_REF="<NON_REF>";
+
 std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum = 
 std::unordered_map<std::type_index, VariantFieldTypeEnum>{
   { std::type_index(typeid(void)), VARIANT_FIELD_VOID },

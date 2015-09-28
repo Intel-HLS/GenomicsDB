@@ -198,6 +198,10 @@ class VariantCall
     }
     /** print **/
     void print(std::ostream& stream, const VariantQueryConfig* query_config=0) const;
+    /* 
+     * Print JSON for Cotton
+     */
+    void print_Cotton_JSON(std::ostream& fptr, unsigned field_idx) const;
     /**
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
@@ -684,4 +688,8 @@ const VariantFieldTy* get_known_field(const VariantCall& curr_call, const Varian
 bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
     std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants);
 
+/*
+ * JSON as required by John and Cotton
+ */
+void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config);
 #endif

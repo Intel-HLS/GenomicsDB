@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
     //query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "GT", "AC", "DP", "PS"});
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL"});
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
     if(end > start && single_position_queries)
         //Add interval to query - begin, end
         for( uint64_t i = start; i <= end; ++i )
@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
         }
         for(const auto& variant : variants)
             variant.print(std::cout, &query_config);
+        print_Cotton_JSON(std::cout, variants, query_config);
     }
 #ifdef USE_GPERFTOOLS
     ProfilerStop();

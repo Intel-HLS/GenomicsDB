@@ -54,6 +54,7 @@ class VariantFieldBase : public QueryFieldData
     virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements) = 0;
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
+    virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Return type of data */
@@ -157,6 +158,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << m_data; }
+    virtual void print_Cotton_JSON(std::ostream& fptr) const { fptr << "\"" << m_data << "\"" ; }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = 1u;
@@ -194,6 +196,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     {
       auto base_ptr = (*attr_iter).operator const char*(); //const char*
       auto ptr = (*attr_iter).operator const DataType*(); //const DataType* ptr
+      m_length_descriptor = length_descriptor;
       if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
       {
         auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
@@ -222,9 +225,29 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     virtual void print(std::ostream& fptr) const
     {
       fptr << "[ ";
+      auto first_elem = true;
       for(auto val : m_data)
-        fptr << val << ",";
-      fptr << "]";
+      {
+        if(first_elem)
+        {
+          fptr << val;
+          first_elem = false;
+        }
+        else
+          fptr << "," << val;
+      }
+      fptr << " ]";
+    }
+    virtual void print_Cotton_JSON(std::ostream& fptr) const
+    {
+      //Variable length field or #elements > 1, print JSON list
+      if(m_length_descriptor != BCF_VL_FIXED || m_data.size() > 1u)
+        print(fptr);
+      else      //single element field
+        if(m_data.size() > 0u)
+          fptr << m_data[0];
+        else
+          fptr << "null";
     }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
@@ -244,6 +267,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     }
   private:
     std::vector<DataType> m_data;
+    unsigned m_length_descriptor;
 };
 /*
  * Special class for ALT field. ALT field is parsed in a weird way, hence treated in a special manner
@@ -293,10 +317,21 @@ class VariantFieldALTData : public VariantFieldBase
     virtual void print(std::ostream& fptr) const
     {
       fptr << "[ ";
+      auto first_elem = true;
       for(auto& val : m_data)
-        fptr << val << ",";
-      fptr << "]";
+      {
+        auto& ptr = IS_NON_REF_ALLELE(val) ? g_vcf_NON_REF : val;
+        if(first_elem)
+        {
+          fptr << "\"" << ptr << "\"";
+          first_elem = false;
+        }
+        else
+          fptr << ",\"" << ptr << "\"";
+      }
+      fptr << " ]";
     }
+    virtual void print_Cotton_JSON(std::ostream& fptr) const { print(fptr); }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = m_data.size();
