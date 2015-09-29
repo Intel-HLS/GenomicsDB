@@ -736,27 +736,85 @@ unsigned VariantQueryProcessor::get_length_descriptor_for_known_field_enum(unsig
   return m_known_field_enum_to_info[known_field_enum].get_length_descriptor();
 }
 
+
+void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
+    unsigned& length_descriptor, unsigned& num_elements) const
+{
+  if(field_ptr.get() == nullptr)       //Allocate only if null
+    field_ptr = std::move(m_field_factory.Create(schema_idx)); 
+  unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
+  //For known fields, check length descriptors - default FIXED
+  length_descriptor = BCF_VL_FIXED;
+  num_elements = 1u;
+  if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
+  {
+    length_descriptor = get_length_descriptor_for_known_field_enum(known_field_enum);
+    num_elements = get_num_elements_for_known_field_enum(known_field_enum, 0, 0);
+  }
+  field_ptr->set_valid(true);  //mark as valid
+}
+
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
     const CellConstAttrIterator& attr_iter,
     const unsigned num_ALT_alleles, const unsigned ploidy,
     unsigned schema_idx
     ) const
 {
-  if(field_ptr.get() == nullptr)       //Allocate only if null
-    field_ptr = std::move(m_field_factory.Create(schema_idx)); 
-  unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
-  //For known fields, check length descriptors - default FIXED
   unsigned length_descriptor = BCF_VL_FIXED;
   unsigned num_elements = 1u;
-  if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
-  {
-    length_descriptor = get_length_descriptor_for_known_field_enum(known_field_enum);
-    num_elements = get_num_elements_for_known_field_enum(known_field_enum, num_ALT_alleles, ploidy);
-  }
-  field_ptr->set_valid(true);  //mark as valid, since tile is actually accessed
+  fill_field_prep(field_ptr, schema_idx, length_descriptor, num_elements);
   //This function might mark the field as invalid - some fields are  determined to be invalid only
   //after accessing the data and comparing to NULL_* values
   field_ptr->copy_data_from_tile(attr_iter, length_descriptor, num_elements);
+}
+
+void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQueryConfig& query_config,
+    const vector<uint8_t>& buffer, uint64_t& offset) const
+{
+  assert(offset < buffer.size());
+  //deserialize header
+  variant.binary_deserialize_header(buffer, offset, query_config.get_num_queried_attributes());
+  //VariantCall info
+  for(auto i=0ull;i<variant.get_num_calls();++i)
+  {
+    auto& curr_call = variant.get_call(i);
+    curr_call.binary_deserialize_header(buffer, offset);
+    //Fields
+    assert(query_config.get_num_queried_attributes() == curr_call.get_num_fields());
+    for(auto j=0u;j<curr_call.get_num_fields();++j)
+    {
+      //check if field is valid
+      auto is_valid_field = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+      offset += sizeof(bool);
+      if(is_valid_field)
+      {
+        auto& field_ptr = curr_call.get_field(j); 
+        unsigned length_descriptor = BCF_VL_FIXED;
+        unsigned num_elements = 1u;
+        fill_field_prep(field_ptr, query_config.get_schema_idx_for_query_idx(j), length_descriptor, num_elements);
+        field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+      }
+    }
+  }
+  //Common fields in the Variant object
+  for(auto i=0u;i<variant.get_num_common_fields();++i)
+  {
+    //Flag representing whether common field is not null
+    auto is_valid_field = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+    offset += sizeof(bool);
+    //Query idx for common field
+    auto query_idx = *(reinterpret_cast<const unsigned*>(&(buffer[offset])));
+    offset += sizeof(unsigned);
+    variant.set_query_idx_for_common_field(i, query_idx);
+    if(is_valid_field)
+    {
+      std::unique_ptr<VariantFieldBase>& field_ptr = variant.get_common_field(i); 
+      unsigned length_descriptor = BCF_VL_FIXED;
+      unsigned num_elements = 1u;
+      fill_field_prep(field_ptr, query_config.get_schema_idx_for_query_idx(query_idx), length_descriptor, num_elements);
+      field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+    }
+  }
 }
 
 void VariantQueryProcessor::gt_fill_row(

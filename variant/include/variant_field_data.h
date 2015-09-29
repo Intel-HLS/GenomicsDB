@@ -58,7 +58,8 @@ class VariantFieldBase : public QueryFieldData
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
-    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const { ; }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const = 0;
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements) = 0;
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Return type of data */
@@ -97,13 +98,30 @@ class VariantFieldData : public VariantFieldBase
       : VariantFieldBase()
     { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, uint64_t length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
       auto base_ptr = (*attr_iter).operator const char*(); //const char*
-      auto ptr = (*attr_iter).operator const DataType*(); //const DataType* ptr
+      uint64_t offset = 0ull;
+      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+    }
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    {
+      auto base_ptr = buffer + offset; //const char*
+      auto ptr = reinterpret_cast<const DataType*>(base_ptr); //const DataType* ptr
       if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      {
         ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
+        offset += sizeof(int);
+      }
       m_data = *ptr;
+      offset += sizeof(DataType);
+    }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+    {
+      uint64_t add_size = sizeof(DataType);
+      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+      *(reinterpret_cast<DataType*>(&(buffer[offset]))) = m_data;
+      offset += sizeof(DataType);
     }
     virtual DataType& get() { return m_data; }
     virtual const DataType& get() const { return m_data; }
@@ -136,12 +154,19 @@ class VariantFieldData<std::string> : public VariantFieldBase
     virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
       auto base_ptr = (*attr_iter).operator const char*(); //const char*
-      auto ptr = (*attr_iter).operator const char*(); //const char* pointer
+      uint64_t offset = 0ull;
+      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+    }
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    {
+      auto base_ptr = buffer + offset; //const char* pointer
+      auto ptr = base_ptr;      //const char* pointer
       if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
       {
-        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
+        auto num_elements_ptr = reinterpret_cast<const int*>(ptr);
         num_elements = *num_elements_ptr;
         ptr = static_cast<const char*>(base_ptr + sizeof(int));
+        offset += sizeof(int);
       }
       m_data = std::move(std::string(ptr, num_elements));
       bool is_missing_flag = true;
@@ -158,6 +183,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
         set_valid(false);
         m_data.clear();
       }
+      offset += num_elements*sizeof(char);
     }
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
@@ -167,11 +193,11 @@ class VariantFieldData<std::string> : public VariantFieldBase
     {
       //string length + contents
       unsigned str_length = m_data.length();
-      uint64_t add_size = sizeof(unsigned) + str_length;
+      uint64_t add_size = sizeof(int) + str_length;
       RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
       //string length
       *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = str_length;
-      offset += sizeof(unsigned);
+      offset += sizeof(int);
       //string contents
       memcpy(&(buffer[offset]), &(m_data[0]), str_length);
       offset += str_length;
@@ -212,16 +238,24 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
       auto base_ptr = (*attr_iter).operator const char*(); //const char*
-      auto ptr = (*attr_iter).operator const DataType*(); //const DataType* ptr
+      uint64_t offset = 0ull;
+      binary_deserialize(base_ptr, offset, length_descriptor, num_elements); 
+    }
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    {
+      auto base_ptr = buffer + offset; //const char*
+      auto ptr = reinterpret_cast<const DataType*>(base_ptr); //const DataType* ptr
       m_length_descriptor = length_descriptor;
       if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
       {
         auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
         num_elements = *num_elements_ptr;
         ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
+        offset += sizeof(int);
       }
       m_data.resize(num_elements);
-      memcpy(&(m_data[0]), ptr, num_elements*sizeof(DataType));
+      unsigned data_size = num_elements*sizeof(DataType);
+      memcpy(&(m_data[0]), ptr, data_size);
       bool is_missing_flag = true;
       for(auto val : m_data)
         if(!is_tiledb_missing_value<DataType>(val))
@@ -236,6 +270,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
         set_valid(false);
         m_data.clear();
       }
+      offset += data_size; 
     }
     virtual std::vector<DataType>& get()  { return m_data; }
     virtual const std::vector<DataType>& get() const { return m_data; }
@@ -271,13 +306,13 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       //Data contents
       unsigned data_length = m_data.size()*sizeof(DataType);
       //Add length field, if var sized field
-      uint64_t add_size = ((m_length_descriptor == BCF_VL_FIXED) ? 0u : sizeof(unsigned)) + data_length;
+      uint64_t add_size = ((m_length_descriptor == BCF_VL_FIXED) ? 0u : sizeof(int)) + data_length;
       RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
       //Num elements
       if(m_length_descriptor != BCF_VL_FIXED)
       {
         *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = m_data.size();
-        offset += sizeof(unsigned);
+        offset += sizeof(int);
       }
       //data contents
       memcpy(&(buffer[offset]), &(m_data[0]), data_length);
@@ -325,12 +360,19 @@ class VariantFieldALTData : public VariantFieldBase
     virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
       auto base_ptr = (*attr_iter).operator const char*(); //const char*
-      auto ptr = (*attr_iter).operator const char*(); //const char* pointer
+      uint64_t offset = 0ull;
+      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+    }
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    {
+      auto base_ptr = buffer + offset; //const char*
+      auto ptr = base_ptr; //const char* pointer
       if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
       {
         auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
         num_elements = *num_elements_ptr;
         ptr = static_cast<const char*>(base_ptr + sizeof(int));
+        offset += sizeof(int);
       }
       //Create copy for use in strtok
       char* tmp = strndup(ptr, num_elements);
@@ -345,6 +387,7 @@ class VariantFieldALTData : public VariantFieldBase
         argptr = 0;
       }
       free(tmp);
+      offset += num_elements*sizeof(char);
     }
     virtual std::vector<std::string>& get() { return m_data; }
     virtual const std::vector<std::string>& get() const { return m_data; }
@@ -369,11 +412,11 @@ class VariantFieldALTData : public VariantFieldBase
     virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
     {
       //string length
-      uint64_t add_size = sizeof(unsigned);
+      uint64_t add_size = sizeof(int);
       RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
       //store location at which string length must be stored
       auto str_length_offset = offset;
-      offset += sizeof(unsigned);
+      offset += sizeof(int);
       //location at which ALT string begins
       auto str_begin_offset = offset;
       bool first_elem = true;

@@ -206,6 +206,10 @@ class VariantCall
      * Binary serialize into buffer
      */
     void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
+    /*
+     * Deserialize header of VariantCall (column interval, num fields etc)
+     */
+    void binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset);
     /**
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
@@ -417,6 +421,10 @@ class Variant
      */
     void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
     /*
+     * Deserialize header of Variant (column interval, num calls etc)
+     */
+    void binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset, unsigned num_queried_attributes);
+    /*
      * Deep copy variant from src to this. Avoid using as much as possible
      */
     void copy_from_variant(const Variant& src);
@@ -469,6 +477,14 @@ class Variant
     {
       assert(idx < m_common_fields_query_idxs.size());
       return m_common_fields_query_idxs[idx];
+    }
+    /*
+     * Set query idx for given idx in common field vector
+     */
+    void set_query_idx_for_common_field(unsigned idx, unsigned query_idx)
+    {
+      assert(idx < m_common_fields_query_idxs.size());
+      m_common_fields_query_idxs[idx] = query_idx;
     }
     std::vector<unsigned>& get_common_fields_query_idxs() { return m_common_fields_query_idxs; }
     const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }

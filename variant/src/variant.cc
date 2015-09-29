@@ -283,17 +283,40 @@ void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offse
   offset += sizeof(unsigned);
   for(auto& field : m_fields)
   {
-    //flag to represent non-null field
-    add_size = sizeof(uint8_t);
+    //flag to represent valid field
+    add_size = sizeof(bool);
     if(offset + add_size > buffer.size())
       buffer.resize(offset + add_size + 1024ull); //extra space
-    //is non-null
-    buffer[offset] = field.get() ? 1u : 0u;
-    offset += sizeof(uint8_t);
-    //serialize field
-    if(field.get())
+    //is valid
+    *(reinterpret_cast<bool*>(&(buffer[offset]))) = (field.get() && field->is_valid()) ? true : false;
+    offset += sizeof(bool);
+    //serialize valid field
+    if(field.get() && field->is_valid())
       field->binary_serialize(buffer, offset);
   }
+}
+
+void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset)
+{
+  //is_valid
+  m_is_valid = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //is_initialized
+  m_is_initialized = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //row idx
+  m_row_idx = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //column begin
+  m_col_begin = *(reinterpret_cast<const uint64_t*>(&(buffer[offset]))); 
+  offset += sizeof(uint64_t);
+  //column end
+  m_col_end = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //num fields
+  auto num_fields = *(reinterpret_cast<const unsigned*>(&(buffer[offset])));
+  offset += sizeof(unsigned);
+  resize(num_fields);
 }
 
 //Variant functions
@@ -539,22 +562,44 @@ void Variant::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) c
   //Serialize calls
   for(auto i=0ull;i<get_num_calls();++i)
     m_calls[i].binary_serialize(buffer, offset);
+  //Common fields
   for(auto i=0u;i<get_num_common_fields();++i)
   {
     //Flag representing whether common field is not null and query idx for common field
-    add_size = sizeof(uint8_t) + sizeof(unsigned);
+    add_size = sizeof(bool) + sizeof(unsigned);
     if(offset + add_size > buffer.size())
       buffer.resize(offset+1024u);      //larger size
+    auto& curr_field = m_fields[i];
     //Flag representing whether common field is not null
-    buffer[offset] = m_fields[i].get() ? 1 : 0;
-    offset += sizeof(uint8_t);
+    *(reinterpret_cast<bool*>(&(buffer[offset]))) = (curr_field.get() && curr_field->is_valid()) ? true : false;
+    offset += sizeof(bool);
     //Query idx for common field
     *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = get_query_idx_for_common_field(i);
     offset += sizeof(unsigned);
     //Serialize common field
-    if(m_fields[i].get())
-      m_fields[i]->binary_serialize(buffer, offset);
+    if(curr_field.get() && curr_field->is_valid())
+      curr_field->binary_serialize(buffer, offset);
   }
+}
+
+void Variant::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset, unsigned num_queried_attributes)
+{
+  //Col begin
+  auto col_begin = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //Col end
+  auto col_end = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  set_column_interval(col_begin, col_end);
+  //num calls
+  auto num_calls = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //num common fields
+  auto num_common_fields = *(reinterpret_cast<const unsigned*>(&(buffer[offset])));
+  offset += sizeof(unsigned);
+  //Resize variant
+  resize(num_calls, num_queried_attributes);
+  resize_common_fields(num_common_fields);
 }
 
 bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
