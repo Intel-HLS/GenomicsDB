@@ -59,6 +59,117 @@ void GA4GHCallInfoToVariantIdx::clear()
   m_begin_to_variant.clear();
 }
 
+//GA4GHPagingInfo functions
+
+void GA4GHPagingInfo::init_page_query()
+{
+  m_is_query_completed = false;
+  m_last_row_idx = 0;
+  m_last_column_idx = 0;
+  m_num_handled_variants_in_last_column = 0u;
+  m_num_variants_to_shift_left = 0u;
+  m_num_variants_in_curr_page = 0u;
+  deserialize_page_end();
+}
+
+void GA4GHPagingInfo::set_last_cell_info(std::vector<Variant>& variants,
+    const uint64_t row_idx, const uint64_t column_idx, const unsigned num_last_column_variants_handled_after_curr_page)
+{
+#ifdef DEBUG
+  assert(m_num_variants_in_curr_page == 0u);    //value set in init_page_query(), this function [resize] should never be called twice
+  assert(m_num_handled_variants_in_last_column <= variants.size());
+  assert(m_num_handled_variants_in_last_column + m_max_num_variants_per_page >= variants.size());
+  assert(num_last_column_variants_handled_after_curr_page <= variants.size());
+  //First set of variants must have same column as last_column_idx
+  for(auto i=0u;i<m_num_handled_variants_in_last_column;++i)
+    assert(variants[i].get_column_begin() == m_last_column_idx);
+  //Last set of variants must have same column as column_idx
+  for(auto i=variants.size()-num_last_column_variants_handled_after_curr_page;i<variants.size();++i)
+    assert(variants[i].get_column_begin() == column_idx);
+  //Curr page ends at same column as previous page, should have handled more variants [fwd progress]
+  if(column_idx == m_last_column_idx)
+  {
+    assert(num_last_column_variants_handled_after_curr_page > m_num_handled_variants_in_last_column);
+    assert(num_last_column_variants_handled_after_curr_page <= m_num_handled_variants_in_last_column
+        + m_max_num_variants_per_page);
+  }
+#endif 
+  m_num_variants_in_curr_page = variants.size() - m_num_handled_variants_in_last_column;
+  m_last_row_idx = row_idx;
+  m_last_column_idx = column_idx;
+  m_num_variants_to_shift_left = m_num_handled_variants_in_last_column;
+  m_num_handled_variants_in_last_column = num_last_column_variants_handled_after_curr_page;
+}
+
+void GA4GHPagingInfo::shift_left_variants(std::vector<Variant>& variants)
+{
+  //Remove variants handled in the previous page
+  if(m_num_variants_to_shift_left)
+  {
+    //Shift left all variants in the vector
+    auto num_variants_to_return = variants.size() - m_num_variants_to_shift_left;
+    for(auto i=0u;i<num_variants_to_return;++i)
+      variants[i] = std::move(variants[i+m_num_variants_to_shift_left]);
+    variants.resize(num_variants_to_return);
+  }
+}
+
+void GA4GHPagingInfo::serialize_page_end(const std::string& array_name)
+{
+  if(is_query_completed())
+    m_last_page_end_token = "";
+  else
+    m_last_page_end_token = array_name + "_"
+      + std::to_string(m_last_row_idx) + "_" 
+      + std::to_string(m_last_column_idx) + "_"
+      + std::to_string(m_num_handled_variants_in_last_column);
+}
+
+void GA4GHPagingInfo::deserialize_page_end()
+{
+  if(m_last_page_end_token == "")
+  {
+    m_last_column_idx = m_last_row_idx = 0ull;
+    m_num_handled_variants_in_last_column = 0u;
+    return;
+  }
+  char* dup_string = strdup(m_last_page_end_token.c_str());
+  std::string row_string = "";
+  std::string column_string = "";
+  std::string num_handled_variants_string = "";
+  char* saveptr = 0;
+  char* ret_ptr = strtok_r(dup_string, "_", &saveptr);
+  auto num_tokens = 0u;
+  //Since array name may contain delimiters, tokenize and get the last 2 tokens only for row,col
+  while(ret_ptr)
+  {
+    row_string = column_string;
+    column_string = num_handled_variants_string;
+    num_handled_variants_string = std::move(std::string(ret_ptr));
+    ++num_tokens;
+    ret_ptr = strtok_r(0, "_", &saveptr);
+  }
+  free(dup_string);
+  if(num_tokens < 4u)   //<array_name>_<row>_<column>_<#variants_handled>
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>_<#handled_variants>");
+  if(column_string.length() == 0u || row_string.length() == 0u || num_handled_variants_string.length() == 0u)
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>_<#handled_variants>");
+  saveptr = 0;
+  m_last_row_idx = strtoull(row_string.c_str(), &saveptr, 10);
+  //Invalid number 
+  if(saveptr == 0 ||  saveptr == row_string.c_str())
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column> - row idx not detected");
+  saveptr = 0;
+  m_last_column_idx = strtoull(column_string.c_str(), &saveptr, 10);
+  //Invalid number 
+  if(saveptr == 0 ||  saveptr == column_string.c_str())
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column> - column idx not detected");
+  m_num_handled_variants_in_last_column = strtoull(num_handled_variants_string.c_str(), &saveptr, 10);
+  //Invalid number 
+  if(saveptr == 0 ||  saveptr == num_handled_variants_string.c_str())
+    throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>_<#handled_variants> - #handled_variants not detected");
+}
+
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {
@@ -327,18 +438,31 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
 }
 
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
-    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant)
+    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
 {
-  if(query_row_idx_in_order.size() == 0)
+  if(query_row_idx_in_order.size() == 0u)
     return;
-
+  uint64_t last_column_idx = paging_info ? paging_info->get_last_column() : 0u;
+  uint64_t last_row_idx = 0u;
+  auto num_last_column_variants_handled_after_curr_page = 0u;
+  bool stop_inserting_new_variants = false;
   //Reverse order as gt_get_column uses reverse iterators
   for(int64_t i=query_row_idx_in_order.size()-1;i>=0;--i)
   {
     auto query_row_idx = query_row_idx_in_order[i];
     assert(query_row_idx < get_num_calls());
     auto& to_move_call = get_call(query_row_idx);
-    move_call_to_variant_vector(query_config, to_move_call, variants, call_info_2_variant);
+    auto curr_row_idx = to_move_call.get_row_idx();
+    auto curr_column_idx = to_move_call.get_column_begin();
+    //If this is a continued query, only return results after the last page
+    if(paging_info && paging_info->handled_previously(curr_row_idx, curr_column_idx))
+      continue;
+    auto newly_inserted = move_call_to_variant_vector(query_config, to_move_call, variants, call_info_2_variant,
+        stop_inserting_new_variants); 
+    //If paging, complex logic for checking page end 
+    PAGE_END_CHECK_LOGIC 
+    last_row_idx = curr_row_idx;
+    last_column_idx = curr_column_idx;
   }
 }
 
@@ -433,15 +557,21 @@ void Variant::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) c
   }
 }
 
-void move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
-    std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant)
+bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
+    std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants)
 {
   uint64_t variant_idx = variants.size();
   bool newly_inserted = call_info_2_variant.find_or_insert(query_config, to_move_call, variant_idx);
-  if(newly_inserted)
+  if(newly_inserted && !stop_inserting_new_variants)
     variants.emplace_back(Variant());
-  Variant& curr_variant = variants[variant_idx];
-  //Set position of variant
-  curr_variant.set_column_interval(to_move_call.get_column_begin(), to_move_call.get_column_end());
-  curr_variant.add_call(std::move(to_move_call));
+  //variant_idx can be >= variants.size() if stop_inserting_new_variants is true
+  assert(variant_idx < variants.size() || stop_inserting_new_variants);
+  if((!newly_inserted && variant_idx < variants.size()) || !stop_inserting_new_variants)
+  {
+    Variant& curr_variant = variants[variant_idx];
+    //Set position of variant
+    curr_variant.set_column_interval(to_move_call.get_column_begin(), to_move_call.get_column_end());
+    curr_variant.add_call(std::move(to_move_call));
+  }
+  return newly_inserted;
 }

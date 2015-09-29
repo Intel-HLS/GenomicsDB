@@ -47,7 +47,7 @@ extern "C" void db_query_column_range(std::string workspace,
                                       std::string array_name, 
                                       uint64_t query_interval_idx, 
                                       std::vector<Variant>& variants, 
-                                      VariantQueryConfig& query_config);
+                                      VariantQueryConfig& query_config, GA4GHPagingInfo* paging_info=0);
 
 extern "C" void db_cleanup();
 
