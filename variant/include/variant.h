@@ -202,6 +202,10 @@ class VariantCall
      * Print JSON for Cotton
      */
     void print_Cotton_JSON(std::ostream& fptr, unsigned field_idx) const;
+    /*
+     * Binary serialize into buffer
+     */
+    void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
     /**
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
@@ -407,6 +411,10 @@ class Variant
     const VariantQueryConfig* get_query_config() const { return m_query_config; }
     /** print **/
     void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0) const;
+    /*
+     * Binary serialize into buffer
+     */
+    void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
     /*
      * Deep copy variant from src to this. Avoid using as much as possible
      */

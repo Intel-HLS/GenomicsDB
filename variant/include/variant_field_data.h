@@ -38,6 +38,9 @@ typedef union
   double d;
 }di_union;
 
+#define RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size) \
+      if(offset + add_size > buffer.size()) \
+        buffer.resize(offset + add_size + 1024u);
 /*
  * Base class for variant field data - not sure whether I will add any functionality here
  */
@@ -55,6 +58,7 @@ class VariantFieldBase : public QueryFieldData
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const { ; }
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Return type of data */
@@ -159,6 +163,19 @@ class VariantFieldData<std::string> : public VariantFieldBase
     virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << m_data; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { fptr << "\"" << m_data << "\"" ; }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+    {
+      //string length + contents
+      unsigned str_length = m_data.length();
+      uint64_t add_size = sizeof(unsigned) + str_length;
+      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+      //string length
+      *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = str_length;
+      offset += sizeof(unsigned);
+      //string contents
+      memcpy(&(buffer[offset]), &(m_data[0]), str_length);
+      offset += str_length;
+    }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = 1u;
@@ -249,6 +266,23 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
         else
           fptr << "null";
     }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+    {
+      //Data contents
+      unsigned data_length = m_data.size()*sizeof(DataType);
+      //Add length field, if var sized field
+      uint64_t add_size = ((m_length_descriptor == BCF_VL_FIXED) ? 0u : sizeof(unsigned)) + data_length;
+      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+      //Num elements
+      if(m_length_descriptor != BCF_VL_FIXED)
+      {
+        *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = m_data.size();
+        offset += sizeof(unsigned);
+      }
+      //data contents
+      memcpy(&(buffer[offset]), &(m_data[0]), data_length);
+      offset += data_length;
+    }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = m_data.size();
@@ -332,6 +366,40 @@ class VariantFieldALTData : public VariantFieldBase
       fptr << " ]";
     }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { print(fptr); }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+    {
+      //string length
+      uint64_t add_size = sizeof(unsigned);
+      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+      //store location at which string length must be stored
+      auto str_length_offset = offset;
+      offset += sizeof(unsigned);
+      //location at which ALT string begins
+      auto str_begin_offset = offset;
+      bool first_elem = true;
+      for(auto& val : m_data)
+      {
+        auto str_size = val.length();
+        if(first_elem)
+        {
+          add_size = str_size;
+          RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+          first_elem = false;
+        }
+        else
+        {
+          add_size = str_size + sizeof(char); //+1 for ALT separator
+          RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+          *(reinterpret_cast<char*>(&(buffer[offset]))) = '|';
+          offset += sizeof(char);
+
+        }
+        memcpy(&(buffer[offset]), val.c_str(), val.length());
+        offset += str_size;
+      }
+      //string length
+      *(reinterpret_cast<unsigned*>(&(buffer[str_length_offset]))) = offset - str_begin_offset;
+    }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = m_data.size();
