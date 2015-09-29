@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
 
     uint64_t start = std::stoull(std::string(argv[3]));
     uint64_t end = std::stoull(std::string(argv[4]));
+    unsigned page_size = 0;
 
     bool single_position_queries = false;
     bool test_update_rows = false;
@@ -29,6 +30,12 @@ int main(int argc, char *argv[]) {
       else
         if(std::string(argv[5])=="--test-update-rows")
           test_update_rows = true;
+        else
+          if(std::string(argv[5]) == "--page-size")
+          {
+            if(argc >= 7)
+              page_size = strtoull(argv[6], 0, 10);
+          }
     
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
@@ -68,7 +75,37 @@ int main(int argc, char *argv[]) {
           query_config.update_rows_to_query_to_all_rows();
           std::cout << "Querying all rows\n";
         }
-        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+        GA4GHPagingInfo tmp_paging_info;
+        GA4GHPagingInfo* paging_info = 0;
+        if(page_size)
+        {
+          paging_info = &tmp_paging_info;
+          paging_info->set_page_size(page_size);
+        }
+        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config, paging_info);
+#ifdef DEBUG
+        auto page_idx = 0u;
+#endif
+        //Multi-page queries
+        if(paging_info)
+        {
+#ifdef DEBUG
+          std::cout << "Page "<<page_idx<<" has "<<variants.size()<<" variants\n";
+#endif
+          std::vector<Variant> tmp_vector;
+          while(!(paging_info->is_query_completed()))
+          {
+            db_query_column_range(argv[1], argv[2], 0ull, tmp_vector, query_config, paging_info);
+            //Move to final vector
+            for(auto& v : tmp_vector)
+              variants.push_back(std::move(v));
+#ifdef DEBUG
+            ++page_idx;
+            std::cout << "Page "<<page_idx<<" has "<<tmp_vector.size()<<" variants\n";
+#endif
+            tmp_vector.clear();
+          }
+        }
         for(const auto& variant : variants)
             variant.print(std::cout, &query_config);
         print_Cotton_JSON(std::cout, variants, query_config);

@@ -23,7 +23,7 @@ ifeq ($(BUILD),debug)
 endif
 
 ifeq ($(BUILD),release)
-  CFLAGS += -DNDEBUG -O3 
+  CFLAGS += -DNDEBUG -O3 -fvisibility=hidden
   LINKFLAGS+=-O3
 endif
 
