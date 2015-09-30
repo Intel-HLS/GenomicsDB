@@ -196,7 +196,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       uint64_t add_size = sizeof(int) + str_length;
       RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
       //string length
-      *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = str_length;
+      *(reinterpret_cast<int*>(&(buffer[offset]))) = str_length;
       offset += sizeof(int);
       //string contents
       memcpy(&(buffer[offset]), &(m_data[0]), str_length);
@@ -311,7 +311,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       //Num elements
       if(m_length_descriptor != BCF_VL_FIXED)
       {
-        *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = m_data.size();
+        *(reinterpret_cast<int*>(&(buffer[offset]))) = m_data.size();
         offset += sizeof(int);
       }
       //data contents
@@ -429,19 +429,18 @@ class VariantFieldALTData : public VariantFieldBase
           RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
           first_elem = false;
         }
-        else
+        else    //add '|' separator
         {
           add_size = str_size + sizeof(char); //+1 for ALT separator
           RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
-          *(reinterpret_cast<char*>(&(buffer[offset]))) = '|';
+          *(reinterpret_cast<char*>(&(buffer[offset]))) = *TILEDB_ALT_ALLELE_SEPARATOR;
           offset += sizeof(char);
-
         }
-        memcpy(&(buffer[offset]), val.c_str(), val.length());
+        memcpy(&(buffer[offset]), val.c_str(), str_size);
         offset += str_size;
       }
       //string length
-      *(reinterpret_cast<unsigned*>(&(buffer[str_length_offset]))) = offset - str_begin_offset;
+      *(reinterpret_cast<int*>(&(buffer[str_length_offset]))) = offset - str_begin_offset;
     }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {

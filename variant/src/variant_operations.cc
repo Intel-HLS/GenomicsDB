@@ -519,10 +519,12 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   //Set common fields - REF and ALT for now
   copy.resize_common_fields(2u);
   auto* REF_ptr = new VariantFieldString();
+  REF_ptr->set_valid(true);
   REF_ptr->get() = std::move(m_merged_reference_allele);        //get returns string&
   copy.set_common_field(0u, query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX), REF_ptr);
   //ALT
   auto* ALT_ptr = new VariantFieldALTData();
+  ALT_ptr->set_valid(true);
   ALT_ptr->get() = std::move(m_merged_alt_alleles);        //get returns vector<string>&
   copy.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
   //Do not use m_merged_alt_alleles and m_merged_reference_allele after this point
