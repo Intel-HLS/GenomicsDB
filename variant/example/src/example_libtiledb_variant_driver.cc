@@ -162,11 +162,7 @@ int main(int argc, char *argv[]) {
             for(auto i=0ull;offset < serialized_length;++i)
                 qp.binary_deserialize(variants[i], query_config, buffer, offset);
         }
-        if(output_format == "Cotton-JSON")
-            print_Cotton_JSON(std::cout, variants, query_config);
-        else
-            for(const auto& variant : variants)
-                variant.print(std::cout, &query_config);
+        print_variants(variants, output_format, query_config, std::cout);
     }
 #ifdef USE_GPERFTOOLS
     ProfilerStop();

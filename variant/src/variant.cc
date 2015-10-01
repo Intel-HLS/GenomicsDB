@@ -616,3 +616,27 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
   }
   return newly_inserted;
 }
+
+void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
+    std::ostream& fptr)
+{
+  static const std::unordered_map<std::string, unsigned> format_2_enum = {
+    { "Cotton-JSON", COTTON_JSON_OUTPUT_FORMAT_IDX },
+    { "GA4GH", GA4GH_OUTPUT_FORMAT_IDX }
+  };
+  unsigned output_format_idx = DEFAULT_OUTPUT_FORMAT_IDX;
+  auto iter = format_2_enum.find(output_format);
+  if(iter != format_2_enum.end())
+    output_format_idx = (*iter).second;
+  switch(output_format_idx)
+  {
+    case COTTON_JSON_OUTPUT_FORMAT_IDX:
+      print_Cotton_JSON(fptr, variants, query_config);
+      break;
+    case DEFAULT_OUTPUT_FORMAT_IDX:
+    default:
+      for(const auto& variant : variants)
+        variant.print(fptr, &query_config);
+      break;
+  }
+}

@@ -712,8 +712,20 @@ const VariantFieldTy* get_known_field(const VariantCall& curr_call, const Varian
 bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
     std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants);
 
+enum VariantOutputFormatEnum
+{
+  COTTON_JSON_OUTPUT_FORMAT_IDX=0,
+  GA4GH_OUTPUT_FORMAT_IDX,
+  DEFAULT_OUTPUT_FORMAT_IDX
+};
+
 /*
  * JSON as required by John and Cotton
  */
 void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config);
+/*
+ * Prints variants in requested format
+ */
+void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
+    std::ostream& fptr=std::cout);
 #endif

@@ -149,8 +149,7 @@ int main(int argc, char *argv[]) {
       auto& variant = variants.back();
       qp.binary_deserialize(variant, query_config, receive_buffer, offset);
     }
-    for(const auto& variant : variants)
-      variant.print(std::cout, &query_config);
+    print_variants(variants, output_format, query_config, std::cout);
   }
   MPI_Finalize();
   sm.close_array(qp.get_array_descriptor());
