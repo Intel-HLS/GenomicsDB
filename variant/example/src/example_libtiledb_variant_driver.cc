@@ -173,5 +173,6 @@ int main(int argc, char *argv[]) {
 #endif
     db_cleanup();
     sm.close_array(qp.get_array_descriptor());
+    return 0;
 }
 

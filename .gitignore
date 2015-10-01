@@ -29,3 +29,4 @@ doc/*
 *.so
 *.d
 /variant/example/bin
+test_inputs
