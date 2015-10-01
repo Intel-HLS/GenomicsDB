@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <mpi.h>
 #include "libtiledb_variant.h"
+#include "run_config.h"
 
 //Enable asserts
 #ifdef NDEBUG
@@ -15,60 +16,6 @@ enum ArgsEnum
 };
 
 int main(int argc, char *argv[]) {
-  // Define long options
-  static struct option long_options[] = 
-  {
-    {"page-size",1,0,'p'},
-    {"output-format",1,0,'O'},
-    {"workspace",1,0,'w'},
-    {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
-    {"array",1,0,'A'},
-    {0,0,0,0},
-  };
-  int c;
-  uint64_t page_size = 0u;
-  std::string output_format = "";
-  std::string workspace = "";
-  std::string array_name = "";
-  bool skip_query_on_root = false;
-  while((c=getopt_long(argc, argv, "w:A:p:O:", long_options, NULL)) >= 0)
-  {
-    switch(c)
-    {
-      case 'p':
-        page_size = strtoull(optarg, 0, 10);
-        std::cerr << "WARNING: page size is ignored for now\n";
-        break;
-      case 'O':
-        output_format = std::move(std::string(optarg));
-        break;
-      case 'w':
-        workspace = std::move(std::string(optarg));
-        break;
-      case 'A':
-        array_name = std::move(std::string(optarg));
-        break;
-      case ARGS_IDX_SKIP_QUERY_ON_ROOT:
-        skip_query_on_root = true;
-        break;
-      default:
-        std::cerr << "Unknown command line argument\n";
-        exit(-1);
-    }
-  }
-  if(workspace == "" || array_name == "")
-  {
-    std::cerr << "Missing workspace(-w) or array name (-A)\n";
-    return -1;
-  }
-  if( optind + 2 > argc ) {
-    std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-    std::cout << "Usage: " << argv[0] << " -w <workspace> -A <array name> <start> <end> [ -O <output_format> -p <page_size> ]" << std::endl;
-    return -1;
-  }
-  uint64_t start = std::stoull(std::string(argv[optind]));
-  uint64_t end = std::stoull(std::string(argv[optind+1]));
-  
   //Initialize MPI environment
   auto rc = MPI_Init(0, 0);
   if (rc != MPI_SUCCESS) {
@@ -90,20 +37,91 @@ int main(int argc, char *argv[]) {
     std::cerr << "#processes "<<num_mpi_processes<<"\n";
   std::cerr << "Host : "<< &(hostname[0]) << " rank "<< my_world_mpi_rank << " LD_LIBRARY_PATH= "<<getenv("LD_LIBRARY_PATH") << "\n";
 #endif
+  // Define long options
+  static struct option long_options[] = 
+  {
+    {"page-size",1,0,'p'},
+    {"output-format",1,0,'O'},
+    {"workspace",1,0,'w'},
+    {"json-config",1,0,'j'},
+    {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
+    {"array",1,0,'A'},
+    {0,0,0,0},
+  };
+  int c;
+  uint64_t page_size = 0u;
+  std::string output_format = "";
+  std::string workspace = "";
+  std::string array_name = "";
+  std::string json_config_file = "";
+  bool skip_query_on_root = false;
+  while((c=getopt_long(argc, argv, "j:w:A:p:O:", long_options, NULL)) >= 0)
+  {
+    switch(c)
+    {
+      case 'p':
+        page_size = strtoull(optarg, 0, 10);
+        std::cerr << "WARNING: page size is ignored for now\n";
+        break;
+      case 'O':
+        output_format = std::move(std::string(optarg));
+        break;
+      case 'w':
+        workspace = std::move(std::string(optarg));
+        break;
+      case 'A':
+        array_name = std::move(std::string(optarg));
+        break;
+      case ARGS_IDX_SKIP_QUERY_ON_ROOT:
+        skip_query_on_root = true;
+        break;
+      case 'j':
+        json_config_file = std::move(std::string(optarg));
+        break;
+      default:
+        std::cerr << "Unknown command line argument\n";
+        exit(-1);
+    }
+  }
+  //Use VariantQueryConfig to setup query info
+  VariantQueryConfig query_config;
+  //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
+  if(json_config_file != "")
+  {
+    g_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+    workspace = g_run_config.m_workspace;
+    array_name = g_run_config.m_array_name;
+  }
+  else
+  {
+    if( optind + 2 > argc ) {
+      std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
+      std::cout << "Usage: " << argv[0] << "  ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
+      return -1;
+    }
+    uint64_t start = std::stoull(std::string(argv[optind]));
+    uint64_t end = std::stoull(std::string(argv[optind+1])); 
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
+    query_config.add_column_interval_to_query(start, end);
+  }
+  if(workspace == "" || array_name == "")
+  {
+    std::cerr << "Missing workspace(-w) or array name (-A)\n";
+    return -1;
+  }
   /*Create storage manager*/
   StorageManager sm(workspace);
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
-  //Use VariantQueryConfig to setup query info
-  VariantQueryConfig query_config;
-  query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
-  query_config.add_column_interval_to_query(start, end);
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
   //Variants vector
   std::vector<Variant> variants;
   //Perform query if not root or !skip_query_on_root
   if(my_world_mpi_rank != 0 || !skip_query_on_root)
-    qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, 0u, variants);
+  {
+    for(auto i=0u;i<query_config.get_num_column_intervals();++i)
+      qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants);
+  }
   //serialized variant data
   std::vector<uint8_t> serialized_buffer;
   serialized_buffer.resize(1000000u);       //1MB, arbitrary value - will be resized if necessary by serialization functions

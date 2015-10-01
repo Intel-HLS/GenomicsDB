@@ -57,6 +57,13 @@ ifdef HTSDIR
   LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
+#RAPIDJSON_INCLUDE_DIR ?= /home/karthikg/softwares/setup_files/rapidjson/include/
+ifdef RAPIDJSON_INCLUDE_DIR
+    CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
+else
+   $(error Variable RAPIDJSON_INCLUDE_DIR is not defined) 
+endif
+
 SOFLAGS=-shared -Wl,-soname=
 
 ifdef DO_PROFILING
