@@ -5,6 +5,9 @@
 #include "libtiledb_variant.h"
 #include "run_config.h"
 #include "timer.h"
+#ifdef USE_BIGMPI
+#include "bigmpi.h"
+#endif
 
 enum ArgsEnum
 {
@@ -187,19 +190,27 @@ int main(int argc, char *argv[]) {
   auto total_serialized_size = 0ull;
   //Buffer to receive all gathered data, will be resized at root
   std::vector<uint8_t> receive_buffer(1u);
-  //FIXME: MPI uses int for counts and displacements, create multiple batches of gather for large data
+#ifdef USE_BIGMPI
+  std::vector<MPI_Count> recvcounts(num_mpi_processes);
+  std::vector<MPI_Aint> displs(num_mpi_processes);
+#else
+  //MPI uses int for counts and displacements
   std::vector<int> recvcounts(num_mpi_processes);
   std::vector<int> displs(num_mpi_processes);
+#endif
   //root
   if(my_world_mpi_rank == 0)
   {
     for(auto val : lengths_vector)
       total_serialized_size += val;
-    if(total_serialized_size >= 2000000000ull) //2GB
+#ifndef USE_BIGMPI
+    if(total_serialized_size >= static_cast<uint64_t>(INT_MAX)) //max 32 bit signed int
     {
-      std::cerr << "Serialized size beyond 32-bit int limit - exiting\n";
+      std::cerr << "Serialized size beyond 32-bit int limit - exiting.\n";
+      std::cerr <<  "Use the BigMPI library: https://github.com/jeffhammond/BigMPI and recompile the TileDB library with USE_BIGMPI=<path>\n";
       exit(-1);
     }
+#endif
     receive_buffer.resize(total_serialized_size);
     auto curr_displ = 0ull;
     //Fill in recvcounts and displs vectors
@@ -212,7 +223,11 @@ int main(int argc, char *argv[]) {
     }
   }
   //Gather serialized variant data
+#ifdef USE_BIGMPI
+  ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#else
   ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#endif
 #ifdef DO_PROFILING
   timer.stop();
   timer.get_last_interval_times(timings, TIMER_MPI_GATHER_IDX);
@@ -238,6 +253,9 @@ int main(int argc, char *argv[]) {
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
+    std::cerr << "Root received "<< std::setprecision(3) <<
+      (total_serialized_size == 0 ? 0 : ((double)total_serialized_size)/(1024*1024))
+      << " MBs of variant data in binary format\n";
     for(auto i=0u;i<TIMER_NUM_TIMERS;++i)
     {
       std::cerr << g_timer_names[i];
