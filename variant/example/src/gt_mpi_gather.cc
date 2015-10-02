@@ -4,16 +4,39 @@
 #include <mpi.h>
 #include "libtiledb_variant.h"
 #include "run_config.h"
-
-//Enable asserts
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
+#include "timer.h"
 
 enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000
 };
+
+#ifdef DO_PROFILING
+enum TimerTypesEnum
+{
+  TIMER_TILEDB_QUERY_RANGE_IDX=0u,
+  TIMER_BINARY_SERIALIZATION_IDX,
+  TIMER_MPI_GATHER_IDX,
+  TIMER_ROOT_BINARY_DESERIALIZATION_IDX,
+  TIMER_JSON_PRINTING_IDX,
+  TIMER_NUM_TIMERS
+};
+
+auto g_timer_names = std::vector<std::string>
+{
+  "TileDB-query",
+  "Binary-serialization",
+  "MPI-gather",
+  "Binary-deserialization",
+  "JSON-printing"
+};
+#endif
+
+#ifdef NDEBUG
+#define ASSERT(X) if(!(X)) { std::cerr << "Assertion failed - exiting\n"; exit(-1); }
+#else
+#define ASSERT(X) assert(X)
+#endif
 
 int main(int argc, char *argv[]) {
   //Initialize MPI environment
@@ -28,6 +51,15 @@ int main(int argc, char *argv[]) {
   //Get my world rank
   int my_world_mpi_rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
+  GTProfileStats* stats_ptr = 0;
+#ifdef DO_PROFILING
+  //Performance measurements
+  Timer timer;
+  std::vector<double> timings(2u*TIMER_NUM_TIMERS, 0);  //[cpu-time,wall-clock time]
+  ASSERT(g_timer_names.size() == TIMER_NUM_TIMERS);
+  GTProfileStats stats;
+  stats_ptr = &stats;
+#endif
 #ifdef DEBUG
   //Print host, rank and LD_LIBRARY_PATH
   std::vector<char> hostname;
@@ -119,18 +151,38 @@ int main(int argc, char *argv[]) {
   //Perform query if not root or !skip_query_on_root
   if(my_world_mpi_rank != 0 || !skip_query_on_root)
   {
+#ifdef DO_PROFILING
+    timer.start();
+#endif
     for(auto i=0u;i<query_config.get_num_column_intervals();++i)
-      qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants);
+      qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants, 0, stats_ptr);
+#ifdef DO_PROFILING
+    timer.stop();
+    timer.get_last_interval_times(timings, TIMER_TILEDB_QUERY_RANGE_IDX);
+#endif
   }
+#ifdef DO_PROFILING
+  timer.start();
+#endif
   //serialized variant data
   std::vector<uint8_t> serialized_buffer;
   serialized_buffer.resize(1000000u);       //1MB, arbitrary value - will be resized if necessary by serialization functions
   uint64_t serialized_length = 0ull;
   for(const auto& variant : variants)
     variant.binary_serialize(serialized_buffer, serialized_length);
+#ifdef DO_PROFILING
+  timer.stop();
+  timer.get_last_interval_times(timings, TIMER_BINARY_SERIALIZATION_IDX);
+  //Gather profiling data at root
+  auto num_timing_values_per_mpi_process = 2*(TIMER_BINARY_SERIALIZATION_IDX+1);
+  std::vector<double> gathered_timings(num_mpi_processes*num_timing_values_per_mpi_process);
+  ASSERT(MPI_Gather(&(timings[0]), num_timing_values_per_mpi_process, MPI_DOUBLE,
+        &(gathered_timings[0]), num_timing_values_per_mpi_process, MPI_DOUBLE, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  timer.start();
+#endif
   //Gather all serialized lengths (in bytes) at root
   std::vector<uint64_t> lengths_vector(num_mpi_processes, 0ull); 
-  assert(MPI_Gather(&serialized_length, 1, MPI_UINT64_T, &(lengths_vector[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPI_Gather(&serialized_length, 1, MPI_UINT64_T, &(lengths_vector[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
   //Total size of gathered data (valid at root only)
   auto total_serialized_size = 0ull;
   //Buffer to receive all gathered data, will be resized at root
@@ -143,6 +195,11 @@ int main(int argc, char *argv[]) {
   {
     for(auto val : lengths_vector)
       total_serialized_size += val;
+    if(total_serialized_size >= 2000000000ull) //2GB
+    {
+      std::cerr << "Serialized size beyond 32-bit int limit - exiting\n";
+      exit(-1);
+    }
     receive_buffer.resize(total_serialized_size);
     auto curr_displ = 0ull;
     //Fill in recvcounts and displs vectors
@@ -155,7 +212,12 @@ int main(int argc, char *argv[]) {
     }
   }
   //Gather serialized variant data
-  MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD);
+  ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#ifdef DO_PROFILING
+  timer.stop();
+  timer.get_last_interval_times(timings, TIMER_MPI_GATHER_IDX);
+  timer.start();
+#endif
   //Deserialize at root
   if(my_world_mpi_rank == 0)
   {
@@ -167,7 +229,32 @@ int main(int argc, char *argv[]) {
       auto& variant = variants.back();
       qp.binary_deserialize(variant, query_config, receive_buffer, offset);
     }
+#ifdef DO_PROFILING
+    timer.stop();
+    timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
+    timer.start();
+#endif
     print_variants(variants, output_format, query_config, std::cout);
+#ifdef DO_PROFILING
+    timer.stop();
+    timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
+    for(auto i=0u;i<TIMER_NUM_TIMERS;++i)
+    {
+      std::cerr << g_timer_names[i];
+      if(i >= TIMER_MPI_GATHER_IDX) //only root info
+        std::cerr << std::setprecision(3) << "," << timings[2*i] << ",," << timings[2*i+1u] << "\n";
+      else
+      {
+        assert(2*i+1 < num_timing_values_per_mpi_process);
+        for(auto j=0u;j<gathered_timings.size();j+=num_timing_values_per_mpi_process)
+          std::cerr << std::setprecision(3) << "," << gathered_timings[j + 2*i];
+        std::cerr << ",";
+        for(auto j=0u;j<gathered_timings.size();j+=num_timing_values_per_mpi_process)
+          std::cerr << std::setprecision(3) << "," << gathered_timings[j + 2*i + 1];
+        std::cerr << "\n";
+      }
+    }
+#endif
   }
   MPI_Finalize();
   sm.close_array(qp.get_array_descriptor());
