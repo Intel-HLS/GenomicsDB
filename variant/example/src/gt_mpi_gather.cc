@@ -14,6 +14,7 @@ enum ArgsEnum
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000
 };
 
+#define MegaByte (1024*1024)
 #ifdef DO_PROFILING
 enum TimerTypesEnum
 {
@@ -167,12 +168,19 @@ int main(int argc, char *argv[]) {
 #ifdef DO_PROFILING
   timer.start();
 #endif
+#if VERBOSE>0
+  std::cerr << "[Rank "<< my_world_mpi_rank << " ]: Completed query, obtained "<<variants.size()<<" variants\n";
+#endif
   //serialized variant data
   std::vector<uint8_t> serialized_buffer;
   serialized_buffer.resize(1000000u);       //1MB, arbitrary value - will be resized if necessary by serialization functions
   uint64_t serialized_length = 0ull;
   for(const auto& variant : variants)
     variant.binary_serialize(serialized_buffer, serialized_length);
+#if VERBOSE>0
+  std::cerr << "[Rank "<< my_world_mpi_rank << " ]: Completed serialization, serialized data size "
+    << std::fixed << std::setprecision(3) << ((double)serialized_length)/MegaByte  << " MBs\n";
+#endif
 #ifdef DO_PROFILING
   timer.stop();
   timer.get_last_interval_times(timings, TIMER_BINARY_SERIALIZATION_IDX);
@@ -203,6 +211,10 @@ int main(int argc, char *argv[]) {
   {
     for(auto val : lengths_vector)
       total_serialized_size += val;
+#if VERBOSE>0
+    std::cerr << "[Rank "<< my_world_mpi_rank << " ]: Gathered lengths, total size "
+      << std::fixed << std::setprecision(3) << (((double)total_serialized_size)/MegaByte)<<" MBs\n";
+#endif
 #ifndef USE_BIGMPI
     if(total_serialized_size >= static_cast<uint64_t>(INT_MAX)) //max 32 bit signed int
     {
@@ -223,10 +235,18 @@ int main(int argc, char *argv[]) {
     }
   }
   //Gather serialized variant data
+#if VERBOSE>0
+  if(my_world_mpi_rank == 0)
+    std::cerr << "Starting MPIGather at root into buffer of size "<<((double)receive_buffer.size())/MegaByte<<"\n";
+#endif
 #ifdef USE_BIGMPI
   ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #else
   ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#endif
+#if VERBOSE>0
+  if(my_world_mpi_rank == 0)
+    std::cerr << "Completed MPI_Gather\n";
 #endif
 #ifdef DO_PROFILING
   timer.stop();
@@ -244,6 +264,9 @@ int main(int argc, char *argv[]) {
       auto& variant = variants.back();
       qp.binary_deserialize(variant, query_config, receive_buffer, offset);
     }
+#if VERBOSE>0
+    std::cerr << "Completed binary deserialization at root\n";
+#endif
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
@@ -253,22 +276,21 @@ int main(int argc, char *argv[]) {
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
-    std::cerr << "Root received "<< std::setprecision(3) <<
-      (total_serialized_size == 0 ? 0 : ((double)total_serialized_size)/(1024*1024))
+    std::cerr << "Root received "<< std::fixed << std::setprecision(3) << (((double)total_serialized_size)/MegaByte)
       << " MBs of variant data in binary format\n";
     for(auto i=0u;i<TIMER_NUM_TIMERS;++i)
     {
       std::cerr << g_timer_names[i];
       if(i >= TIMER_MPI_GATHER_IDX) //only root info
-        std::cerr << std::setprecision(3) << "," << timings[2*i] << ",," << timings[2*i+1u] << "\n";
+        std::cerr << std::fixed << std::setprecision(3) << "," << timings[2*i] << ",," << timings[2*i+1u] << "\n";
       else
       {
         assert(2*i+1 < num_timing_values_per_mpi_process);
         for(auto j=0u;j<gathered_timings.size();j+=num_timing_values_per_mpi_process)
-          std::cerr << std::setprecision(3) << "," << gathered_timings[j + 2*i];
+          std::cerr << std::fixed << std::setprecision(3) << "," << gathered_timings[j + 2*i];
         std::cerr << ",";
         for(auto j=0u;j<gathered_timings.size();j+=num_timing_values_per_mpi_process)
-          std::cerr << std::setprecision(3) << "," << gathered_timings[j + 2*i + 1];
+          std::cerr << std::fixed << std::setprecision(3) << "," << gathered_timings[j + 2*i + 1];
         std::cerr << "\n";
       }
     }
