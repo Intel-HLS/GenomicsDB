@@ -40,6 +40,7 @@
 #include "cell.h"
 #include "csv_line.h"
 #include "special_values.h"
+#include "utils.h"
 #include <string>
 #include <vector>
 #include <inttypes.h>
@@ -66,9 +67,6 @@
  */
 class CSVFile {
  public:
-  // TYPE DEFINITIONS
-  enum Compression {NONE, GZIP};
-
   // CONSTRUCTORS & DESTRUCTORS
   /** Constructor. */
   CSVFile();
@@ -131,7 +129,7 @@ class CSVFile {
   /** Stores the cell format of the lastly read CSV line. */
   void* cell_;
   /** Compression mode. */
-  Compression compression_;
+  CompressionType compression_;
   /** True if the end of file has been reached. */
   bool eof_;
   /** File descriptor for an uncompressed file. */
@@ -140,7 +138,7 @@ class CSVFile {
   gzFile fdz_;
   /** Size of the file opened in read mode. */
   size_t file_size_;
-    /** The name of the CSV file. */
+  /** The name of the CSV file. */
   std::string filename_;
   /** 
    * The mode of the CSV file. There are three modes available:
@@ -162,7 +160,7 @@ class CSVFile {
   // PRIVATE METHODS
   /** Writes the content of the buffer to the end of the file on the disk. */
   void flush_buffer();
-  /** */
+  /** Opens a file depneding on compression type. */
   void open_file(const std::string& filename);
   /** 
    * Reads a set of lines from the file, whose aggregate size is at most

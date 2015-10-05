@@ -35,6 +35,7 @@
 #define ARRAY_SCHEMA_H
 
 #include "csv_line.h"
+#include "hilbert_curve.h"
 #include "special_values.h"
 #include "utils.h"
 #include <vector>
@@ -241,11 +242,11 @@ class ArraySchema {
   /** 
    * Updates the coordinates such that they immediately follow the old
    * ones along the global cell order, following a dense format.
-   * Returns true if the new coordinates are still within the dimensions
-   * domain, and false otherwise. 
+   * Returns true if the new coordinates are still within the range
+   * or domain if range=NULL, and false otherwise. 
    */
   template<class T>
-  bool advance_coords(T* coords) const;
+  bool advance_coords(T* coords, const T* range) const;
   /** 
    * Returns the cell id of the input coordinates, along the Hilbert 
    * space-filling curve.
@@ -306,17 +307,11 @@ class ArraySchema {
       const std::vector<std::string>& attribute_names,
       std::vector<int>& attribute_ids) const;
   /** 
-   * Copies the last coordinates inside the domain following the global
-   * order for a dense format.
+   * Copies the first coordinates inside the input range, or the domain (if
+   * range=NULL) following the global order for a dense format.
    */
   template<class T>
-  void get_domain_end(T* coords) const;
-  /** 
-   * Copies the first coordinates inside the domain following the global
-   * order for a dense format.
-   */
-  template<class T>
-  void get_domain_start(T* coords) const;
+  void get_domain_start(T* coords, const T* range) const;
   /** 
    * Returns true if the array has irregular tiles (i.e., 
    * ArraySchema::tile_extents_ is empty), and false otherwise. 
@@ -375,6 +370,8 @@ class ArraySchema {
    */
   template<class T>
   bool succeeds(const T* coords_A, const T* coords_B) const;
+  /** Returns the tile id, based on the stored tile order. */
+  int64_t tile_id(const void* coords) const;
   /** Returns the tile id, based on the stored tile order. */
   template<class T>
   int64_t tile_id(const T* coords) const;
@@ -444,6 +441,8 @@ class ArraySchema {
   int consolidation_step_;
   /** Holds space for browsing coordinates. */
   void* coords_;
+  /** To be used when calculating Hilbert ids. */
+  int* coords_for_hilbert_;
   /** The list with the dimension domains.*/
   std::vector< std::pair< double, double> > dim_domains_;
   /** The list with the dimension names.*/
@@ -455,6 +454,10 @@ class ArraySchema {
    * Hilbert curve, via ArraySchema::cell_id_hilbert. 
    */
   int hilbert_cell_bits_;
+  /** A Hilbert curve object for finding cell ids. */
+  HilbertCurve* hilbert_curve_for_cells_;
+  /** A Hilbert curve object for finding tile ids. */
+  HilbertCurve* hilbert_curve_for_tiles_;
   /** 
    * Number of bits used for the calculation of tile ids with the 
    * Hilbert curve, via ArraySchema::tile_id_hilbert. 
@@ -494,10 +497,10 @@ class ArraySchema {
    * Updates the coordinates such that they immediately follow the old
    * ones along the column major order for the case of irregular tiles, 
    * following a dense format. Returns true if the new coordinates are still
-   * within the dimensions domain, and false otherwise. 
+   * within the range (or domain if range=NULL), and false otherwise. 
    */
   template<class T>
-  bool advance_coords_irregular_column_major(T* coords) const;
+  bool advance_coords_irregular_column_major(T* coords, const T* range) const;
   /** 
    * Updates the coordinates such that they immediately follow the old
    * ones along the hilbert order for the case of irregular tiles, 
@@ -505,7 +508,7 @@ class ArraySchema {
    * within the dimensions domain, and false otherwise. 
    */
   template<class T>
-  bool advance_coords_irregular_hilbert(T* coords) const;
+  bool advance_coords_irregular_hilbert(T* coords, const T* range) const;
   /** 
    * Updates the coordinates such that they immediately follow the old
    * ones along the row major order for the case of irregular tiles, 
@@ -513,7 +516,7 @@ class ArraySchema {
    * within the dimensions domain, and false otherwise. 
    */
   template<class T>
-  bool advance_coords_irregular_row_major(T* coords) const;
+  bool advance_coords_irregular_row_major(T* coords, const T* range) const;
   /** Appends the attribute values from a CSV line to a cell. */
   void append_attributes(
       CSVLine& csv_line, void*& cell, size_t& cell_size, size_t& offset) const;
