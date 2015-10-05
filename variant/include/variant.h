@@ -727,5 +727,5 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
  * Prints variants in requested format
  */
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr=std::cout);
+    std::ostream& fptr=std::cout, bool output_directly=false);
 #endif

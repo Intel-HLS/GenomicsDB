@@ -17,6 +17,7 @@
 #include <set>
 #include <map>
 #include <climits>
+#include <sstream>
 #include "profiling.h"
 #include <iomanip>
 

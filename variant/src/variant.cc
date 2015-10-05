@@ -618,7 +618,7 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
 }
 
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr)
+    std::ostream& fptr, bool output_directly)
 {
   static const std::unordered_map<std::string, unsigned> format_2_enum = {
     { "Cotton-JSON", COTTON_JSON_OUTPUT_FORMAT_IDX },
@@ -628,15 +628,32 @@ void print_variants(const std::vector<Variant>& variants, const std::string& out
   auto iter = format_2_enum.find(output_format);
   if(iter != format_2_enum.end())
     output_format_idx = (*iter).second;
+  std::stringstream ss;
+  //if output stream is a stringstream, use it directly, else output to stringstream first
+  std::ostream& optr = (output_directly || dynamic_cast<std::ostringstream*>(&fptr)) ? fptr : ss;
   switch(output_format_idx)
   {
     case COTTON_JSON_OUTPUT_FORMAT_IDX:
-      print_Cotton_JSON(fptr, variants, query_config);
+      print_Cotton_JSON(optr, variants, query_config);
       break;
     case DEFAULT_OUTPUT_FORMAT_IDX:
     default:
       for(const auto& variant : variants)
-        variant.print(fptr, &query_config);
+        variant.print(optr, &query_config);
       break;
+  }
+  //If using stringstream as a temp buffer, print out to fptr
+  if(&optr == &ss)
+  {
+    std::string buffer;
+#define STRINGSTREAM_BUFFER_SIZE 65536u
+    buffer.resize(STRINGSTREAM_BUFFER_SIZE);
+    while(!(ss.eof()) && !(ss.fail()))
+    {
+      ss.read(&(buffer[0]), STRINGSTREAM_BUFFER_SIZE);
+      auto count = ss.gcount();
+      fptr.write(&(buffer[0]), count);
+    }
+    ss.clear();
   }
 }
