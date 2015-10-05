@@ -362,7 +362,7 @@ void VariantQueryProcessor::scan_and_operate(
     //information is recorded in the Call
     //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
     //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
-    gt_get_column(ad, query_config, column_interval_idx, variant, nullptr);
+    gt_get_column(ad, query_config, column_interval_idx, variant, stats_ptr);
     //Insert valid calls produced by gt_get_column into the priority queue
     for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
     {
