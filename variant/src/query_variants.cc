@@ -339,6 +339,11 @@ void VariantQueryProcessor::scan_and_operate(
     const VariantQueryConfig& query_config,
     SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx) const
 {
+  GTProfileStats* stats_ptr = 0;
+#ifdef DO_PROFILING
+  GTProfileStats stats;
+  stats_ptr = &stats;
+#endif
   assert(query_config.is_bookkeeping_done());
   //Priority queue of VariantCalls ordered by END positions
   VariantCallEndPQ end_pq;
@@ -414,7 +419,7 @@ void VariantQueryProcessor::scan_and_operate(
     if(query_config.is_queried_array_row_idx(next_coord[0]))
     {
       cell.set_cell(cell_ptr);
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, 0);
+      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
       auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
       end_pq.push(&curr_call);
       assert(end_pq.size() <= query_config.get_num_rows_to_query());

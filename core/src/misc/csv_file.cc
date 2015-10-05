@@ -51,10 +51,11 @@ CSVFile::CSVFile() {
   buffer_end_ = 0;
   buffer_offset_ = 0;
   cell_ = NULL;
-  compression_ = NONE;
+  compression_ = NO_COMPRESSION;
   eof_ = false;
   fd_ = -1;
   fdz_ = NULL;
+  mode_[0] = '\0';
 }
 
 CSVFile::CSVFile(const ArraySchema* array_schema) 
@@ -69,10 +70,11 @@ CSVFile::CSVFile(const ArraySchema* array_schema)
     cell_ = malloc(CSV_INITIAL_VAR_CELL_SIZE);
     allocated_cell_size_ = CSV_INITIAL_VAR_CELL_SIZE;
   }
-  compression_ = NONE;
+  compression_ = NO_COMPRESSION;
   eof_ = false;
   fd_ = -1;
   fdz_ = NULL;
+  mode_[0] = '\0';
 }
 
 CSVFile::CSVFile(const std::string& filename, const char* mode) { 
@@ -84,6 +86,7 @@ CSVFile::CSVFile(const std::string& filename, const char* mode) {
   eof_ = false;
   fd_ = -1;
   fdz_ = NULL;
+  mode_[0] = '\0';
 
   open(filename, mode);
 }
@@ -160,7 +163,7 @@ bool CSVFile::open(const std::string& filename,
   if(ends_with(filename, ".gz"))
     compression_ = GZIP;
   else
-    compression_ = NONE;
+    compression_ = NO_COMPRESSION;
 
   // Calculate file size
   int fd = ::open(filename_.c_str(), O_RDONLY);
@@ -276,8 +279,7 @@ void CSVFile::flush_buffer() {
   assert(fd_ != -1 || fdz_ != NULL);
 
   ssize_t bytes_written;
-
-  if(compression_ == NONE) 
+  if(compression_ == NO_COMPRESSION) 
     bytes_written = write(fd_, buffer_, buffer_offset_);
   else if(compression_ == GZIP) 
     bytes_written = gzwrite(fdz_, buffer_, buffer_offset_);
@@ -287,7 +289,7 @@ void CSVFile::flush_buffer() {
 
 void CSVFile::open_file(const std::string& filename) {
   // No compression
-  if(compression_ == NONE) {
+  if(compression_ == NO_COMPRESSION) {
     if(strcmp(mode_, "r") == 0) 
       fd_ = ::open(filename_.c_str(), O_RDONLY);
     else if(strcmp(mode_, "a") == 0) 
@@ -302,7 +304,7 @@ void CSVFile::open_file(const std::string& filename) {
 }
 
 bool CSVFile::read_segment() {
-  assert(fd_ != -1);
+  assert(fd_ != -1 || fdz_ != NULL);
 
   // Handle end of the file
   if(eof_) 
@@ -339,7 +341,7 @@ bool CSVFile::read_segment() {
 
   // Read the new lines
   size_t bytes_read;
-  if(compression_ == NONE) 
+  if(compression_ == NO_COMPRESSION) 
     bytes_read = read(fd_, buffer_+bytes_to_copy, bytes_to_be_read);
   else if(compression_ == GZIP)
     bytes_read = gzread(fdz_, buffer_+bytes_to_copy, bytes_to_be_read);
