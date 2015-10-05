@@ -1,9 +1,9 @@
-#include "run_config.h"
-
 //Enable asserts
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
+
+#include "run_config.h"
 
 RunConfig g_run_config;
 
