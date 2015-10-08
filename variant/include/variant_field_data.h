@@ -25,19 +25,6 @@ extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field
 template<class T>
 bool is_tiledb_missing_value(const T value);
 
-//For comparison
-typedef union
-{
-  unsigned i;
-  float f;
-}fi_union;
-
-typedef union
-{
-  uint64_t i;
-  double d;
-}di_union;
-
 #define RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size) \
       if(offset + add_size > buffer.size()) \
         buffer.resize(offset + add_size + 1024u);

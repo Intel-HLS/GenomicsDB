@@ -138,6 +138,10 @@ class VariantFieldHander
 {
   public:
     VariantFieldHander() { m_num_calls_with_valid_data.resize(100u); }  //resize once, re-use many times - avoid reallocs()
+    /*
+     * Wrapper function to remap order of elements in fields which depend on order of alleles
+     * E.g. PL, AD etc
+     */
     void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
         unsigned length_descriptor, unsigned num_elements, const RemappedVariant& remapper_variant)

@@ -6,8 +6,6 @@
 #include "variant_field_data.h"
 #include "variant_query_config.h"
 
-extern fi_union bcf_float_missing_union;
-
 /*a string to store <NON_REF> string (read-only)*/
 extern std::string g_non_reference_allele;
 

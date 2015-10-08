@@ -50,4 +50,47 @@ static inline int bcf_float_is_vector_end(float f)
 
 #endif //ifdef HTSDIR
 
+//For bitwise comparison of float values
+typedef union
+{
+  unsigned i;
+  float f;
+}fi_union;
+
+typedef union
+{
+  uint64_t i;
+  double d;
+}di_union;
+
+extern fi_union bcf_float_missing_union;
+
+//Template function that return bcf missing value
+template<class T>
+inline T get_bcf_missing_value();
+
+template<>
+inline int get_bcf_missing_value<int>() { return bcf_int32_missing; }
+
+template<>
+inline unsigned get_bcf_missing_value<unsigned>() { return bcf_int32_missing; }
+
+template<>
+inline int64_t get_bcf_missing_value<int64_t>() { return bcf_int32_missing; }
+
+template<>
+inline uint64_t get_bcf_missing_value<uint64_t>() { return bcf_int32_missing; }
+
+template<>
+inline float get_bcf_missing_value<float>() { return bcf_float_missing_union.f; }
+
+template<>
+inline double get_bcf_missing_value<double>() { return bcf_float_missing_union.f; }
+
+template<>
+inline std::string get_bcf_missing_value<std::string>() { return ""; }
+
+template<>
+inline char get_bcf_missing_value<char>() { return bcf_str_missing; }
+
 #endif

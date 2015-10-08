@@ -7,7 +7,7 @@ uint32_t bcf_float_vector_end = 0x7F800002;
 #endif
 fi_union bcf_float_missing_union = { .i = bcf_float_missing };
 
-
+//Remapper classes
 template<class DataType>
 void RemappedMatrix<DataType>::resize(uint64_t num_rows, uint64_t num_columns, DataType init_value)
 {
