@@ -417,62 +417,54 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
   VariantOperations::do_dummy_genotyping(variant, *m_output_stream);
 }
 
-#define REMAP_MACRO(DataType, missing_value) \
-  /*Input vector is from original variant - copy and variant have identical list of valid calls*/ \
-  /*Remap field in copy (through remapper_variant)*/ \
-  if(info_ptr->is_length_genotype_dependent()) \
-    VariantOperations::remap_data_based_on_genotype<DataType>( \
-        variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<DataType>>(query_field_idx)->get(), \
-        curr_call_idx_in_variant, \
-        m_alleles_LUT, num_merged_alleles, SingleVariantOperatorBase::m_NON_REF_exists, \
-        remapper_variant,  num_calls_with_valid_data, missing_value); \
-  else \
-     VariantOperations::remap_data_based_on_alleles<DataType>( \
-        variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<DataType>>(query_field_idx)->get(), \
-        curr_call_idx_in_variant, \
-        m_alleles_LUT, num_merged_alleles, SingleVariantOperatorBase::m_NON_REF_exists, \
-        info_ptr->is_length_only_ALT_alleles_dependent(), \
-        remapper_variant,  num_calls_with_valid_data, missing_value);
-
-
 //GA4GHOperator functions
 GA4GHOperator::GA4GHOperator() : SingleVariantOperatorBase()
 {
   m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
   for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
   {
-    auto enum_idx = ti_enum_pair.second;
-    assert(static_cast<unsigned>(enum_idx) < m_field_handlers.size());
+    unsigned variant_field_type_idx = ti_enum_pair.second;
+    assert(variant_field_type_idx < m_field_handlers.size());
     //uninitialized
-    assert(m_field_handlers[enum_idx].get() == 0);
-    switch(enum_idx)
+    assert(m_field_handlers[variant_field_type_idx].get() == 0);
+    switch(variant_field_type_idx)
     {
       case VARIANT_FIELD_INT:
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>())); 
         break;
       case VARIANT_FIELD_UNSIGNED:
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>())); 
         break;
       case VARIANT_FIELD_INT64_T:
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>())); 
         break;
       case VARIANT_FIELD_UINT64_T:
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>())); 
         break;
       case VARIANT_FIELD_FLOAT:
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>())); 
         break;                                                                          
       case VARIANT_FIELD_DOUBLE:                                                        
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>())); 
         break;                                                                          
       case VARIANT_FIELD_STRING:                                                        
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<std::string>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<std::string>())); 
         break;                                                                          
       case VARIANT_FIELD_CHAR:                                                          
-        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>())); 
+        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>())); 
         break;
     }
   }
+}
+
+inline std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
+{
+  //Get Enum Idx from VariantFieldTypeEnum
+  assert(g_variant_field_type_index_to_enum.find(ty) != g_variant_field_type_index_to_enum.end());
+  unsigned variant_field_type_enum = g_variant_field_type_index_to_enum[ty];
+  //Check that valid handler exists
+  assert(variant_field_type_enum < m_field_handlers.size());
+  return m_field_handlers[variant_field_type_enum];
 }
 
 void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
@@ -488,17 +480,16 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   unsigned num_genotypes = (num_merged_alleles*(num_merged_alleles+1u))/2u;
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
-    const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+    //is known field?
     if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
     {
+      const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
       //known field whose length is dependent on #alleles
       if(info_ptr && info_ptr->is_length_allele_dependent())
       {
-        /*Input vector is from original variant - copy and variant have identical list of valid calls*/ 
-        unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
+        unsigned num_merged_elements = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
         //Remapper for copy
         RemappedVariant remapper_variant(copy, query_field_idx); 
-        std::vector<uint64_t> num_calls_with_valid_data = std::vector<uint64_t>(field_size, 0ull);
         //Iterate over valid calls - copy and variant have same list of valid calls
         for(auto iter=copy.begin();iter!=copy.end();++iter)
         {
@@ -507,40 +498,15 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
           auto& curr_field = curr_call.get_field(query_field_idx);
           if(curr_field.get() && curr_field->is_valid())      //Not null
           {
-            curr_field->resize(field_size);   //resize field in copy
-            assert(g_variant_field_type_index_to_enum.find(curr_field->get_element_type()) != 
-                g_variant_field_type_index_to_enum.end());
-            switch(g_variant_field_type_index_to_enum[curr_field->get_element_type()])
-            {
-              case VARIANT_FIELD_INT:
-                REMAP_MACRO(int, bcf_int32_missing);
-                break;
-              case VARIANT_FIELD_INT64_T:
-                REMAP_MACRO(int64_t, bcf_int32_missing);
-                break;
-              case VARIANT_FIELD_UNSIGNED:
-                REMAP_MACRO(unsigned, bcf_int32_missing);
-                break;
-              case VARIANT_FIELD_UINT64_T:
-                REMAP_MACRO(uint64_t, bcf_int32_missing);
-                break;
-              case VARIANT_FIELD_FLOAT:
-                REMAP_MACRO(float, bcf_float_missing_union.f);
-                break;
-              case VARIANT_FIELD_DOUBLE:
-                REMAP_MACRO(double, bcf_float_missing);
-                break;
-              case VARIANT_FIELD_STRING:
-                REMAP_MACRO(std::string, "");
-                break;
-              case VARIANT_FIELD_CHAR:
-                REMAP_MACRO(char, '\0');
-                break;
-              default:
-                std::cerr << "Unhandled type " << g_variant_field_type_index_to_enum[curr_field->get_element_type()] << "\n";  //unhandled type
-                exit(-1);
-                break;
-            }
+            curr_field->resize(num_merged_elements);
+            //Get handler for current type
+            auto& handler = get_handler_for_type(curr_field->get_element_type());
+            assert(handler.get());
+            //Call remap function
+            handler->remap_vector_data(
+                variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx), curr_call_idx_in_variant,
+                m_alleles_LUT, num_merged_alleles, m_NON_REF_exists,
+                info_ptr->get_length_descriptor(), num_merged_elements, remapper_variant);
           }
         }
       }

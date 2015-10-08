@@ -136,6 +136,7 @@ class VariantFieldHandlerBase
 {
   public:
     VariantFieldHandlerBase() { ; }
+    virtual ~VariantFieldHandlerBase() = default;
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
         unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
@@ -152,14 +153,15 @@ class VariantFieldHandler : public VariantFieldHandlerBase
       //resize once, re-use many times - avoid reallocs()
       m_num_calls_with_valid_data.resize(100u);
       m_bcf_missing_value = get_bcf_missing_value<DataType>();
-    }  
+    }
+    ~VariantFieldHandler() = default;
     /*
      * Wrapper function to remap order of elements in fields which depend on order of alleles
      * E.g. PL, AD etc
      */
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
-        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant)
+        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant)
     {
       auto* raw_orig_field_ptr = orig_field_ptr.get();
       if(raw_orig_field_ptr == 0)
@@ -168,8 +170,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
       assert(dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(raw_orig_field_ptr));
       auto* orig_vector_field_ptr = static_cast<VariantFieldPrimitiveVectorData<DataType>*>(raw_orig_field_ptr);
       //Resize and zero vector
-      m_num_calls_with_valid_data.resize(num_elements);
-      memset(&(m_num_calls_with_valid_data[0]), 0, num_elements*sizeof(uint64_t));
+      m_num_calls_with_valid_data.resize(num_merged_elements);
+      memset(&(m_num_calls_with_valid_data[0]), 0, num_merged_elements*sizeof(uint64_t));
       /*Remap field in copy (through remapper_variant)*/
       if(KnownFieldInfo::is_length_genotype_dependent(length_descriptor)) 
         VariantOperations::remap_data_based_on_genotype<DataType>( 
@@ -199,6 +201,7 @@ class GA4GHOperator : public SingleVariantOperatorBase
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const std::vector<Variant>& get_variants() const { return m_variants; }
     std::vector<Variant>& get_variants() { return m_variants; }
+    inline std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
   private:
     std::vector<Variant> m_variants;
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
