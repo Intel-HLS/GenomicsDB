@@ -131,20 +131,35 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
     std::ostream* m_output_stream;
 };
 
+//Base virtual class for storing a big bag of handler functions
+class VariantFieldHandlerBase 
+{
+  public:
+    VariantFieldHandlerBase() { ; }
+    virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
+        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+};
+
 //Big bag handler functions useful for handling different types of fields (int, char etc)
 //Helps avoid writing a whole bunch of switch statements
 template<class DataType>
-class VariantFieldHander
+class VariantFieldHandler : public VariantFieldHandlerBase
 {
   public:
-    VariantFieldHander() { m_num_calls_with_valid_data.resize(100u); }  //resize once, re-use many times - avoid reallocs()
+    VariantFieldHandler() : VariantFieldHandlerBase()
+    { 
+      //resize once, re-use many times - avoid reallocs()
+      m_num_calls_with_valid_data.resize(100u);
+      m_bcf_missing_value = get_bcf_missing_value<DataType>();
+    }  
     /*
      * Wrapper function to remap order of elements in fields which depend on order of alleles
      * E.g. PL, AD etc
      */
-    void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
+    virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
-        unsigned length_descriptor, unsigned num_elements, const RemappedVariant& remapper_variant)
+        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant)
     {
       auto* raw_orig_field_ptr = orig_field_ptr.get();
       if(raw_orig_field_ptr == 0)
@@ -179,12 +194,14 @@ class VariantFieldHander
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
+    GA4GHOperator();
     void clear() { m_variants.clear(); }
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const std::vector<Variant>& get_variants() const { return m_variants; }
     std::vector<Variant>& get_variants() { return m_variants; }
   private:
     std::vector<Variant> m_variants;
+    std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
 };
 
 /*

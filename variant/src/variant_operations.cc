@@ -434,6 +434,47 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
         info_ptr->is_length_only_ALT_alleles_dependent(), \
         remapper_variant,  num_calls_with_valid_data, missing_value);
 
+
+//GA4GHOperator functions
+GA4GHOperator::GA4GHOperator() : SingleVariantOperatorBase()
+{
+  m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
+  for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
+  {
+    auto enum_idx = ti_enum_pair.second;
+    assert(static_cast<unsigned>(enum_idx) < m_field_handlers.size());
+    //uninitialized
+    assert(m_field_handlers[enum_idx].get() == 0);
+    switch(enum_idx)
+    {
+      case VARIANT_FIELD_INT:
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>())); 
+        break;
+      case VARIANT_FIELD_UNSIGNED:
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>())); 
+        break;
+      case VARIANT_FIELD_INT64_T:
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>())); 
+        break;
+      case VARIANT_FIELD_UINT64_T:
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>())); 
+        break;
+      case VARIANT_FIELD_FLOAT:
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>())); 
+        break;                                                                          
+      case VARIANT_FIELD_DOUBLE:                                                        
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>())); 
+        break;                                                                          
+      case VARIANT_FIELD_STRING:                                                        
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<std::string>())); 
+        break;                                                                          
+      case VARIANT_FIELD_CHAR:                                                          
+        m_field_handlers[enum_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>())); 
+        break;
+    }
+  }
+}
+
 void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
   //Compute merged REF and ALT

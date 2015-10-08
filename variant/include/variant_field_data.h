@@ -18,7 +18,8 @@ enum VariantFieldTypeEnum
   VARIANT_FIELD_FLOAT,
   VARIANT_FIELD_DOUBLE,
   VARIANT_FIELD_STRING,
-  VARIANT_FIELD_CHAR
+  VARIANT_FIELD_CHAR,
+  VARIANT_FIELD_NUM_TYPES
 };
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 
