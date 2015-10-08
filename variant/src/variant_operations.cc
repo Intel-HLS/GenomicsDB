@@ -453,6 +453,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
       //known field whose length is dependent on #alleles
       if(info_ptr && info_ptr->is_length_allele_dependent())
       {
+        /*Input vector is from original variant - copy and variant have identical list of valid calls*/ 
         unsigned field_size = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
         //Remapper for copy
         RemappedVariant remapper_variant(copy, query_field_idx); 

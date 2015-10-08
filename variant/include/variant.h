@@ -12,6 +12,38 @@ extern fi_union bcf_float_missing_union;
 extern std::string g_non_reference_allele;
 
 /*
+ * Class that stores info about the some of the known fields
+ */
+class KnownFieldInfo
+{
+  public:
+    KnownFieldInfo()
+    {
+      m_ploidy_required = false;
+      m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+      m_field_creator = 0;
+    }
+    bool m_ploidy_required;
+    unsigned m_length_descriptor;
+    unsigned m_num_elements;
+    std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
+  public:
+    inline bool is_length_allele_dependent() const
+    {
+      unsigned length_descriptor = m_length_descriptor;
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
+    inline unsigned get_length_descriptor() const { return m_length_descriptor; }
+    inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
+    inline static bool is_length_genotype_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_G; }
+    inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
+    inline static bool is_length_only_ALT_alleles_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_A; }
+    unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
+    inline bool ploidy_required_for_known_field_enum() const { return m_ploidy_required; }
+};
+
+/*
  * Class that stores info that helps determine whether 2 VariantCalls should be
  * merged into a single Variant object.
  * 2 VariantCalls x,y must satisfy the following conditions to be collapsed:
