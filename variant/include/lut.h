@@ -371,4 +371,46 @@ class SchemaIdxToKnownVariantFieldsEnumLUT : public LUTBase<true, true>
   private:
     int64_t m_LUT_size;
 };
+
+//Not a full LUT, each matrix is actually just a vector (single row matrix)
+class QueryIdxToVCFHeaderFieldIdxLUT : public LUTBase<true, true>
+{
+  public:
+    QueryIdxToVCFHeaderFieldIdxLUT()
+      : LUTBase<true, true>(1u, 100u)
+    {
+      m_LUT_size = 100u;
+    }
+    inline void resize_luts_if_needed(int numQueryAttributes, int numHeaderFields)
+    {
+      int64_t maxValue = std::max(numHeaderFields, numQueryAttributes);
+      if(maxValue > m_LUT_size)
+      {
+        LUTBase<true, true>::resize_luts_if_needed(1u, maxValue); 
+        m_LUT_size = maxValue;
+      }
+    }
+    void add_query_idx_header_field_mapping(unsigned queryIdx, int header_field_idx)
+    {
+      add_input_merged_idx_pair(0u, queryIdx, header_field_idx);
+    }
+    int get_header_field_idx_for_query_idx(unsigned queryIdx) const
+    {
+      return static_cast<int>(get_merged_idx_for_input(0u, queryIdx));
+    }
+    unsigned get_query_idx_for_header_field_idx(int header_field_idx) const
+    {
+      return static_cast<unsigned>(get_input_idx_for_merged(0u, header_field_idx));
+    }
+    bool is_defined_value(unsigned val) const
+    {
+      return !is_missing_value(static_cast<int>(val));
+    }
+    bool is_defined_value(int val) const
+    {
+      return !is_missing_value(val);
+    }
+  private:
+    int64_t m_LUT_size;
+};
 #endif

@@ -1,6 +1,13 @@
 #include "variant_operations.h"
 #include "query_variants.h"
 
+#ifndef HTSDIR
+uint32_t bcf_float_missing    = 0x7F800001;
+uint32_t bcf_float_vector_end = 0x7F800002;
+#endif
+fi_union bcf_float_missing_union = { .i = bcf_float_missing };
+
+
 template<class DataType>
 void RemappedMatrix<DataType>::resize(uint64_t num_rows, uint64_t num_columns, DataType init_value)
 {
@@ -432,7 +439,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   //Compute merged REF and ALT
   SingleVariantOperatorBase::operate(variant, query_config);
   //Store copy of variant in vector<Variant>
-  m_variants.emplace_back(Variant());
+  m_variants.emplace_back();
   Variant& copy = m_variants[m_variants.size()-1u];
   copy.copy_from_variant(variant);      //Create copy to store altered PL fields
   //Setup code for re-ordering PL/AD etc field elements in copy

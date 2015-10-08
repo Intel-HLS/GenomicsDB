@@ -51,7 +51,8 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
   //This means that rank 0 will have 2 query intervals: [0-5] and [45-45] and rank 1 will have
   //2 intervals [76-76] and [87-87]
   //But you could have a single innermost list - with this option all ranks will query the same list 
-  assert(m_json.HasMember("query_column_ranges"));
+  assert(m_json.HasMember("query_column_ranges") || m_json.HasMember("scan_full"));
+  if(m_json.HasMember("query_column_ranges"))
   {
     const rapidjson::Value& q1 = m_json["query_column_ranges"];
     assert(q1.IsArray());
@@ -124,4 +125,24 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
     }
     query_config.set_attributes_to_query(attributes);
   }
+}
+    
+void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter, int rank)
+{
+  RunConfig::read_from_file(filename, query_config, rank);
+  //SQLite file name
+  assert(m_json.HasMember("sqlite"));
+  {
+    const rapidjson::Value& v = m_json["sqlite"];
+    assert(v.IsString());
+    m_sqlite_filename = v.GetString();
+  }
+  //VCF header filename
+  assert(m_json.HasMember("vcf_header_filename"));
+  {
+    const rapidjson::Value& v = m_json["vcf_header_filename"];
+    assert(v.IsString());
+    m_vcf_header_filename = v.GetString();
+  }
+  vcf_adapter.initialize(m_sqlite_filename, m_vcf_header_filename);
 }

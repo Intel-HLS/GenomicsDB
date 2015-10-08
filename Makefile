@@ -52,9 +52,14 @@ CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
 
 #HTSDIR=../../htslib
 
+ifdef BCFTOOLSDIR
+    CPPFLAGS+=-I$(BCFTOOLSDIR)
+    LDFLAGS+=-Wl,-Bstatic -L$(BCFTOOLSDIR) -lbcftools -Wl,-Bdynamic -lpthread -lz -lm -ldl -lsqlite3
+endif
+
 ifdef HTSDIR
-  CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
-  LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
+    CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
+    LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
 ifdef RAPIDJSON_INCLUDE_DIR

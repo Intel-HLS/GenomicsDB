@@ -1,10 +1,6 @@
 #include "variant.h"
 
 std::string g_non_reference_allele = "<NON_REF>";
-uint32_t bcf_float_missing    = 0x7F800001;
-uint32_t bcf_float_vector_end = 0x7F800002;
-
-fi_pair bcf_float_missing_union = { .i = bcf_float_missing };
 
 //GA4GHCallInfoToVariantIdx functions
 bool GA4GHCallInfoToVariantIdx::find_or_insert(uint64_t begin, uint64_t end, const std::string& REF, 

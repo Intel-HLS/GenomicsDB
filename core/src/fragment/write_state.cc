@@ -600,7 +600,7 @@ void WriteState::flush_gz_segment_to_segment(
 
   // Compress
   size_t compressed_data_size;
-  gzip(static_cast<unsigned char*>(gz_segments_[attribute_id]), 
+  tiledb_gzip(static_cast<unsigned char*>(gz_segments_[attribute_id]), 
        gz_segment_utilization_[attribute_id], 
        static_cast<unsigned char*>(gz_buffer_),
        segment_size_, 

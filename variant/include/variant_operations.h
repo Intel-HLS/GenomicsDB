@@ -131,6 +131,18 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
     std::ostream* m_output_stream;
 };
 
+//Big bag handler functions useful for handling different types of fields (int, char etc)
+//Helps avoid writing a whole bunch of switch statements
+template<class DataType>
+class VariantFieldHander
+{
+  public:
+    VariantFieldHander() { ; }
+    void remap_vector_data(std::unique_ptr<VariantFieldBase>& field_ptr, uint64_t curr_call_idx_in_variant, 
+        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        unsigned length_descriptor, const RemappedVariant& remapper_variant); 
+};
+
 /*
  * Copies info in Variant object into its result vector
  */

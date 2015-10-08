@@ -8,8 +8,8 @@
 #include <vector>
 #include <sstream>
 #include "lut.h"
-#include "vcf.h"
 
+#include "vcf.h"
 
 using namespace std;
 
