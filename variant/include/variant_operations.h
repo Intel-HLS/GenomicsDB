@@ -161,30 +161,7 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      */
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
-        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant)
-    {
-      auto* raw_orig_field_ptr = orig_field_ptr.get();
-      if(raw_orig_field_ptr == 0)
-        return;
-      //Assert that ptr is of type VariantFieldPrimitiveVectorData<DataType>
-      assert(dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(raw_orig_field_ptr));
-      auto* orig_vector_field_ptr = static_cast<VariantFieldPrimitiveVectorData<DataType>*>(raw_orig_field_ptr);
-      //Resize and zero vector
-      m_num_calls_with_valid_data.resize(num_merged_elements);
-      memset(&(m_num_calls_with_valid_data[0]), 0, num_merged_elements*sizeof(uint64_t));
-      /*Remap field in copy (through remapper_variant)*/
-      if(KnownFieldInfo::is_length_genotype_dependent(length_descriptor)) 
-        VariantOperations::remap_data_based_on_genotype<DataType>( 
-            orig_vector_field_ptr->get(), curr_call_idx_in_variant, 
-            alleles_LUT, num_merged_alleles, non_ref_exists, 
-            remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value); 
-      else 
-        VariantOperations::remap_data_based_on_alleles<DataType>( 
-            orig_vector_field_ptr->get(), curr_call_idx_in_variant, 
-            alleles_LUT, num_merged_alleles, non_ref_exists, 
-            KnownFieldInfo::is_length_only_ALT_alleles_dependent(length_descriptor), 
-            remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value);
-    }
+        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;
