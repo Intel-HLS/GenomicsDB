@@ -126,7 +126,9 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
     query_config.set_attributes_to_query(attributes);
   }
 }
-    
+   
+#ifdef HTSDIR
+
 void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter, int rank)
 {
   RunConfig::read_from_file(filename, query_config, rank);
@@ -146,3 +148,5 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
   }
   vcf_adapter.initialize(m_sqlite_filename, m_vcf_header_filename);
 }
+
+#endif

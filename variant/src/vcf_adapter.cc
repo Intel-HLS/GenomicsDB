@@ -1,3 +1,5 @@
+#ifdef HTSDIR
+
 #include "vcf_adapter.h"
 
 bool contig_offset_idx_pair_cmp(const std::pair<int64_t, int>& first, const std::pair<int64_t, int>& second)
@@ -127,3 +129,5 @@ bool VCFAdapter::get_next_contig_location(int64_t query_position, std::string& n
   }
   return true;
 }
+
+#endif //ifdef HTSDIR

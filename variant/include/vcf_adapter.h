@@ -1,6 +1,8 @@
 #ifndef VCF_ADAPTER_H
 #define VCF_ADAPTER_H
 
+#ifdef HTSDIR
+
 #include "headers.h"
 #include "htslib/vcf.h"
 #include "bcftools.h"
@@ -35,5 +37,7 @@ class VCFAdapter
     std::vector<std::pair<int64_t, int>> m_contig_begin_2_idx;
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
 };
+
+#endif  //ifdef HTSDIR
 
 #endif

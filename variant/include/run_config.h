@@ -25,6 +25,8 @@ class RunConfig
 
 extern RunConfig g_run_config;
 
+#ifdef HTSDIR
+
 class VCFAdapterRunConfig : public RunConfig
 {
   public:
@@ -37,5 +39,7 @@ class VCFAdapterRunConfig : public RunConfig
     std::string m_sqlite_filename;
     std::string m_vcf_header_filename;
 };
+
+#endif
 
 #endif

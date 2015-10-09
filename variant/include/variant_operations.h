@@ -179,7 +179,7 @@ class GA4GHOperator : public SingleVariantOperatorBase
     const std::vector<Variant>& get_variants() const { return m_variants; }
     std::vector<Variant>& get_variants() { return m_variants; }
     inline std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
-  private:
+  protected:
     std::vector<Variant> m_variants;
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
 };
