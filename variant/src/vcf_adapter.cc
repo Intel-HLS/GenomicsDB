@@ -22,6 +22,8 @@ VCFAdapter::~VCFAdapter()
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
   free_sqlite3_data(&m_sqlite_mapping_info);
+  if(m_output_fptr)
+    bcf_close(m_output_fptr);
 }
 
 void VCFAdapter::clear()
@@ -30,7 +32,8 @@ void VCFAdapter::clear()
   m_contig_end_2_idx.clear();
 }
 
-void VCFAdapter::initialize(const std::string& sqlite_filename, const std::string& vcf_header_filename)
+void VCFAdapter::initialize(const std::string& sqlite_filename, const std::string& vcf_header_filename,
+    std::string output_filename, std::string output_format)
 {
   //Sqlite file for mapping ids to names etc
   m_sqlite_filename = sqlite_filename;
@@ -65,6 +68,19 @@ void VCFAdapter::initialize(const std::string& sqlite_filename, const std::strin
   auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
   m_template_vcf_hdr = bcf_hdr_read(fptr);
   bcf_close(fptr);
+  //Output fptr
+  std::set<std::string> valid_output_formats = { "b", "bu", "z", "" };
+  if(valid_output_formats.find(output_format) == valid_output_formats.end())
+  {
+    std::cerr << "INFO: Invalid BCF/VCF output format: "<<output_format<<", will output compressed VCF\n";
+    output_format = "z";
+  }
+  m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
+  if(m_output_fptr == 0)
+  {
+    std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
+    exit(-1);
+  }
 }
     
 bool VCFAdapter::get_contig_location(int64_t query_position, std::string& contig_name, int64_t& contig_position) const

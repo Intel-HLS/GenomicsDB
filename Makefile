@@ -53,7 +53,7 @@ CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
 #HTSDIR=../../htslib
 
 ifdef BCFTOOLSDIR
-    CPPFLAGS+=-I$(BCFTOOLSDIR)
+    CPPFLAGS+=-I$(BCFTOOLSDIR) -DBCFTOOLSDIR
     LDFLAGS+=-Wl,-Bstatic -L$(BCFTOOLSDIR) -lbcftools -Wl,-Bdynamic -lpthread -lz -lm -ldl -lsqlite3
 endif
 

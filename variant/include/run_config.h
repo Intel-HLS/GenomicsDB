@@ -23,8 +23,6 @@ class RunConfig
     std::string m_array_name;
 };
 
-extern RunConfig g_run_config;
-
 #ifdef HTSDIR
 
 class VCFAdapterRunConfig : public RunConfig
@@ -35,9 +33,11 @@ class VCFAdapterRunConfig : public RunConfig
       m_sqlite_filename = "";
       m_vcf_header_filename = "";
     }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter, int rank=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+        std::string output_format="", int rank=0);
     std::string m_sqlite_filename;
     std::string m_vcf_header_filename;
+    std::string m_vcf_output_filename;
 };
 
 #endif

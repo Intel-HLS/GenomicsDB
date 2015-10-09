@@ -13,7 +13,8 @@ class VCFAdapter
     VCFAdapter();
     ~VCFAdapter();
     void clear();
-    void initialize(const std::string& sqlite_filename, const std::string& vcf_header_filename);
+    void initialize(const std::string& sqlite_filename, const std::string& vcf_header_filename,
+        std::string output_filename, std::string output_format="");
     /*
      * Given a position in a flattened 'address' space [TileDB column idx], get the contig_name and location
      * in the contig [0-based]
@@ -26,6 +27,8 @@ class VCFAdapter
      * Returns true if valid contig found, false otherwise
      */
     bool get_next_contig_location(int64_t position, std::string& next_contig_name, int64_t& next_contig_offset) const;
+    bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
+    void print_bcf_line(bcf1_t* line) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
   private:
     //Template VCF header to start with
     std::string m_vcf_header_filename;
@@ -36,6 +39,8 @@ class VCFAdapter
     //sorted vectors of pair<contig begin/end, idx> 
     std::vector<std::pair<int64_t, int>> m_contig_begin_2_idx;
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
+    //Output fptr
+    htsFile* m_output_fptr;
 };
 
 #endif  //ifdef HTSDIR

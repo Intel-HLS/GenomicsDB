@@ -5,8 +5,6 @@
 
 #include "run_config.h"
 
-RunConfig g_run_config;
-
 void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank)
 {
   std::ifstream ifs(filename.c_str());
@@ -129,7 +127,8 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
    
 #ifdef HTSDIR
 
-void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter, int rank)
+void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+    std::string output_format, int rank)
 {
   RunConfig::read_from_file(filename, query_config, rank);
   //SQLite file name
@@ -146,7 +145,16 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
     assert(v.IsString());
     m_vcf_header_filename = v.GetString();
   }
-  vcf_adapter.initialize(m_sqlite_filename, m_vcf_header_filename);
+  //VCF output filename
+  if(m_json.HasMember("vcf_output_filename"))
+  {
+    const rapidjson::Value& v = m_json["vcf_output_filename"];
+    assert(v.IsString());
+    m_vcf_output_filename = v.GetString();
+  }
+  else
+    m_vcf_output_filename = "-";        //stdout
+  vcf_adapter.initialize(m_sqlite_filename, m_vcf_header_filename, m_vcf_output_filename, output_format);
 }
 
 #endif
