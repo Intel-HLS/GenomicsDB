@@ -52,4 +52,9 @@ enum KnownVariantFieldsEnum
   GVCF_NUM_KNOWN_FIELDS
 };
 
+//All known field names specific to variant data
+extern std::vector<std::string> g_known_variant_field_names;
+//Mapping from field name to enum idx
+extern std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
+
 #endif

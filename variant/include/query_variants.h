@@ -244,10 +244,6 @@ class VariantQueryProcessor : public QueryProcessor {
     /*
      * Static members that track information known about variant data
      */
-    //All known field names specific to variant data
-    static std::vector<std::string> m_known_variant_field_names;
-    //Mapping from field name to enum idx
-    static std::unordered_map<std::string, unsigned> m_known_variant_field_name_to_enum;
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized

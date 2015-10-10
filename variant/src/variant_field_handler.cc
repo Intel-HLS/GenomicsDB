@@ -1,5 +1,8 @@
 #include "variant_operations.h"
 
+template<>
+std::string get_zero_value() { return ""; }
+
 /*
   Copied from defunct gamgee library
   Remaps data dependent on number of genotypes to the new order of alleles as specified in alleles_LUT
@@ -131,6 +134,68 @@ void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFie
         alleles_LUT, num_merged_alleles, non_ref_exists, 
         KnownFieldInfo::is_length_only_ALT_alleles_dependent(length_descriptor), 
         remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value);
+}
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr)
+{
+  m_median_compute_vector.resize(variant.get_num_calls());
+  auto valid_idx = 0u;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto call_idx = iter.get_call_idx_in_variant();
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr); 
+      assert((ptr->get()).size() > 0u);
+      m_median_compute_vector[valid_idx++] = ptr->get()[0u];
+    }
+  }
+  if(valid_idx == 0u)   //no valid fields found
+    return false;
+  auto mid_point = valid_idx/2u;
+  std::nth_element(m_median_compute_vector.begin(), m_median_compute_vector.begin()+mid_point, m_median_compute_vector.begin()+valid_idx);
+  auto result_ptr = reinterpret_cast<DataType*>(output_ptr);
+  *result_ptr = m_median_compute_vector[mid_point];
+  return true;
+}
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr)
+{
+  m_median_compute_vector.resize(variant.get_num_calls());
+  DataType sum = get_zero_value<DataType>();
+  auto valid_idx = 0u;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto call_idx = iter.get_call_idx_in_variant();
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr); 
+      assert((ptr->get()).size() > 0u);
+      sum += ptr->get()[0u];
+      ++valid_idx;
+    }
+  }
+  if(valid_idx == 0u)   //no valid fields found
+    return false;
+  auto result_ptr = reinterpret_cast<DataType*>(output_ptr);
+  *result_ptr = sum;
+  return true;
 }
 
 //Explicit template instantiation

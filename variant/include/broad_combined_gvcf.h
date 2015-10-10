@@ -6,6 +6,7 @@
 #include "variant_operations.h"
 #include "vcf_adapter.h"
 
+typedef std::tuple<unsigned, unsigned, unsigned> INFO_tuple_type;
 /*
  * Operator to produce the combined GVCF that Broad expects
  */
@@ -36,7 +37,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //alleles pointers buffer
     std::vector<const char*> m_alleles_pointer_buffer;
     //INFO fields enum vector
-    std::vector<unsigned> m_INFO_fields_vec;
+    std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<unsigned> m_FORMAT_fields_vec;
 };
 

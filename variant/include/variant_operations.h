@@ -131,6 +131,9 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
     std::ostream* m_output_stream;
 };
 
+template<class T>
+T get_zero_value() { return 0; }
+
 //Base virtual class for storing a big bag of handler functions
 class VariantFieldHandlerBase 
 {
@@ -140,6 +143,10 @@ class VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
         unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+    virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr) = 0; 
+    virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr) = 0; 
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -153,6 +160,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
       //resize once, re-use many times - avoid reallocs()
       m_num_calls_with_valid_data.resize(100u);
       m_bcf_missing_value = get_bcf_missing_value<DataType>();
+      //Vector to hold data values for computing median - avoid frequent re-allocs
+      m_median_compute_vector.resize(100u);
     }
     ~VariantFieldHandler() = default;
     /*
@@ -162,9 +171,21 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
         unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
+    /*
+     * Computes median for a given field over all Calls (only considers calls with valid field)
+     */
+    virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr); 
+    /*
+     * Computes sum for a given field over all Calls (only considers calls with valid field)
+     */
+    virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr); 
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;
+    //Vector to hold data values for computing median - avoid frequent re-allocs
+    std::vector<DataType> m_median_compute_vector;
 };
 
 /*

@@ -12,6 +12,7 @@ VCFAdapter::VCFAdapter()
   m_sqlite_filename = "";
   m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
+  m_output_fptr = 0;
   memset(&m_sqlite_mapping_info, 0, sizeof(sqlite_mappings_struct));
   clear();
 }

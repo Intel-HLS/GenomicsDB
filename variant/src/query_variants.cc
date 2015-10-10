@@ -114,7 +114,7 @@ void GTProfileStats::print_stats(std::ostream& fptr) const
 
 //Static members
 bool VariantQueryProcessor::m_are_static_members_initialized = false;
-vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<string>{
+vector<string> g_known_variant_field_names = vector<string>{
     "END",
     "REF",
     "ALT",
@@ -139,15 +139,15 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
     "GT",
     "PS"
 };
-unordered_map<string, unsigned> VariantQueryProcessor::m_known_variant_field_name_to_enum;
+unordered_map<string, unsigned> g_known_variant_field_name_to_enum;
 unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator;
 std::vector<KnownFieldInfo> VariantQueryProcessor::m_known_field_enum_to_info;
 
 //Initialize static members function
 void VariantQueryProcessor::initialize_static_members()
 {
-  for(auto i=0u;i<VariantQueryProcessor::m_known_variant_field_names.size();++i)
-    VariantQueryProcessor::m_known_variant_field_name_to_enum[VariantQueryProcessor::m_known_variant_field_names[i]] = i;
+  for(auto i=0u;i<g_known_variant_field_names.size();++i)
+    g_known_variant_field_name_to_enum[g_known_variant_field_names[i]] = i;
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int))] = 
@@ -182,8 +182,8 @@ void VariantQueryProcessor::initialize_known(const ArraySchema& schema)
   m_schema_idx_to_known_variant_field_enum_LUT.resize_luts_if_needed(schema.attribute_num(), GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<schema.attribute_num();++i)
   {
-    auto iter = VariantQueryProcessor::m_known_variant_field_name_to_enum.find(schema.attribute_name(i));
-    if(iter != VariantQueryProcessor::m_known_variant_field_name_to_enum.end())
+    auto iter = g_known_variant_field_name_to_enum.find(schema.attribute_name(i));
+    if(iter != g_known_variant_field_name_to_enum.end())
       m_schema_idx_to_known_variant_field_enum_LUT.add_schema_idx_known_field_mapping(i, (*iter).second);
   }
 }
@@ -475,7 +475,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_variant_field_enum))
     {
       query_config.add_query_idx_known_field_enum_mapping(i, known_variant_field_enum);
-      assert(VariantQueryProcessor::m_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
+      assert(g_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
       query_config.set_info_for_query_idx(i, &(m_known_field_enum_to_info[known_variant_field_enum]));
     }
   }
@@ -925,8 +925,8 @@ void VariantQueryProcessor::clear()
 bool VariantQueryProcessor::get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum)
 {
   assert(VariantQueryProcessor::m_are_static_members_initialized);
-  auto iter = VariantQueryProcessor::m_known_variant_field_name_to_enum.find(field_name);
-  if(iter == VariantQueryProcessor::m_known_variant_field_name_to_enum.end())
+  auto iter = g_known_variant_field_name_to_enum.find(field_name);
+  if(iter == g_known_variant_field_name_to_enum.end())
     return false;
   known_field_enum = (*iter).second;
   return true;
@@ -936,5 +936,5 @@ string VariantQueryProcessor::get_known_field_name_for_enum(unsigned known_field
 {
   assert(VariantQueryProcessor::m_are_static_members_initialized);
   assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
-  return VariantQueryProcessor::m_known_variant_field_names[known_field_enum];
+  return g_known_variant_field_names[known_field_enum];
 }
