@@ -110,16 +110,6 @@ class VariantQueryProcessor : public QueryProcessor {
     void binary_deserialize(Variant& variant, const VariantQueryConfig& query_config,
         const std::vector<uint8_t>& buffer, uint64_t& offset) const;
     /*
-     * Functions that determine number of elements for known fields
-     */
-    inline bool is_length_allele_dependent(unsigned enumIdx) const
-    {
-      assert(enumIdx < m_known_field_enum_to_info.size());
-      return m_known_field_enum_to_info[enumIdx].is_length_allele_dependent();
-    }
-    unsigned get_num_elements_for_known_field_enum(unsigned enumIdx, unsigned num_ALT_alleles, unsigned ploidy) const;
-    unsigned get_length_descriptor_for_known_field_enum(unsigned known_field_enum) const;
-    /*
      * Function that, given an enum value from KnownVariantFieldsEnum
      * returns the schema idx for the given array 
      * NOTE: returned value may be invalid, client code MUST check validity using
@@ -129,35 +119,10 @@ class VariantQueryProcessor : public QueryProcessor {
     {
       assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
-    }
-    /*
-     * Check whether the known field requires a special creator
-     */
-    inline bool requires_special_creator(unsigned enumIdx) const
-    {
-      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
-      return (m_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
-    }
-    /*
-     * Check whether the known field requires ploidy - e.g. GT, GQ etc
-     */
-    inline bool ploidy_required_for_known_field_enum(unsigned enumIdx) const
-    {
-      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
-      return m_known_field_enum_to_info[enumIdx].ploidy_required_for_known_field_enum();
-    }
+    } 
     int get_array_descriptor() const { return m_ad; }
     const ArraySchema& get_array_schema() const { return *m_array_schema; }
-    /*
-     * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
-     * If yes, fills known_field_enum and returns true
-     * Else returns false. Leaves known_field_enum untouched.
-     */
-    static bool get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum);
-    /*
-     * Get name for known field enum
-     */
-    static std::string get_known_field_name_for_enum(unsigned known_field_enum);
+
   private:
     /*initialize all known info about variants*/
     void initialize_known(const ArraySchema& array_schema);
@@ -241,17 +206,10 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     int m_ad;
     const ArraySchema* m_array_schema;
-    /*
-     * Static members that track information known about variant data
-     */
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized
-    static bool m_are_static_members_initialized;
-    /**
-     * Vector that stores information about the known fields - length, Factory methods etc
-     */
-    static std::vector<KnownFieldInfo> m_known_field_enum_to_info;
+    static bool m_are_static_members_initialized; 
     //Function that initializes static members
     static void initialize_static_members();
 };
