@@ -21,7 +21,7 @@ enum KnownVariantFieldsEnum
   GVCF_DP_IDX,
   GVCF_MQ_IDX,
   GVCF_MQ0_IDX,
-  GVCF_DP_FMT_IDX,
+  GVCF_DP_FORMAT_IDX,
   GVCF_MIN_DP_IDX,
   GVCF_GQ_IDX,
   GVCF_SB_IDX,

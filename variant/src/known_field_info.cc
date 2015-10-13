@@ -16,7 +16,7 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "DP",
     "MQ",
     "MQ0",
-    "DP_FMT",
+    "DP_FORMAT",
     "MIN_DP",
     "GQ",
     "SB",

@@ -64,6 +64,7 @@ typedef union
 }di_union;
 
 extern fi_union bcf_float_missing_union;
+extern fi_union bcf_float_vector_end_union;
 
 //Template function that return bcf missing value
 template<class T>
@@ -92,5 +93,36 @@ inline std::string get_bcf_missing_value<std::string>() { return ""; }
 
 template<>
 inline char get_bcf_missing_value<char>() { return bcf_str_missing; }
+
+//Template function that return bcf vector_end value
+template<class T>
+inline T get_bcf_vector_end_value();
+
+template<>
+inline int get_bcf_vector_end_value<int>() { return bcf_int32_vector_end; }
+
+template<>
+inline unsigned get_bcf_vector_end_value<unsigned>() { return bcf_int32_vector_end; }
+
+template<>
+inline int64_t get_bcf_vector_end_value<int64_t>() { return bcf_int32_vector_end; }
+
+template<>
+inline uint64_t get_bcf_vector_end_value<uint64_t>() { return bcf_int32_vector_end; }
+
+template<>
+inline float get_bcf_vector_end_value<float>() { return bcf_float_vector_end_union.f; }
+
+template<>
+inline double get_bcf_vector_end_value<double>() { return bcf_float_vector_end_union.f; }
+
+template<>
+inline std::string get_bcf_vector_end_value<std::string>() { return ""; }
+
+template<>
+inline char get_bcf_vector_end_value<char>() { return bcf_str_vector_end; }
+
+template<class T>
+inline bool is_bcf_valid_value(T val) { return (val != get_bcf_missing_value<T>() && val != get_bcf_vector_end_value<T>()); }
 
 #endif

@@ -147,6 +147,8 @@ class VariantFieldHandlerBase
         unsigned query_idx, void* output_ptr) = 0; 
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr) = 0; 
+    virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -180,12 +182,19 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Computes sum for a given field over all Calls (only considers calls with valid field)
      */
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr); 
+        unsigned query_idx, void* output_ptr);
+    /*
+     * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
+     */
+    bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements);
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;
     //Vector to hold data values for computing median - avoid frequent re-allocs
     std::vector<DataType> m_median_compute_vector;
+    //Vector to hold extended vector to use in BCF format fields
+    std::vector<DataType> m_extended_field_vector;
 };
 
 /*

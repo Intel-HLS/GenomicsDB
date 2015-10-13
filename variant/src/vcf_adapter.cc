@@ -70,12 +70,13 @@ void VCFAdapter::initialize(const std::string& sqlite_filename, const std::strin
   m_template_vcf_hdr = bcf_hdr_read(fptr);
   bcf_close(fptr);
   //Output fptr
-  std::set<std::string> valid_output_formats = { "b", "bu", "z", "" };
+  std::unordered_map<std::string, bool> valid_output_formats = { {"b", true}, {"bu",true}, {"z",false}, {"",false} };
   if(valid_output_formats.find(output_format) == valid_output_formats.end())
   {
     std::cerr << "INFO: Invalid BCF/VCF output format: "<<output_format<<", will output compressed VCF\n";
     output_format = "z";
   }
+  m_is_bcf = valid_output_formats[output_format];
   m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
   if(m_output_fptr == 0)
   {
@@ -145,6 +146,17 @@ bool VCFAdapter::get_next_contig_location(int64_t query_position, std::string& n
     assert(next_contig_offset > query_position);
   }
   return true;
+}
+
+const char* VCFAdapter::get_sample_name_for_idx(int64_t idx) const
+{
+  assert(idx < m_sqlite_mapping_info.m_num_samples);
+  return m_sqlite_mapping_info.m_sample_names[idx];
+}
+
+void VCFAdapter::print_header()
+{
+  bcf_hdr_write(m_output_fptr, m_template_vcf_hdr);
 }
 
 #endif //ifdef HTSDIR

@@ -171,7 +171,6 @@ template<class DataType>
 bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr)
 {
-  m_median_compute_vector.resize(variant.get_num_calls());
   DataType sum = get_zero_value<DataType>();
   auto valid_idx = 0u;
   //Iterate over valid calls
@@ -198,6 +197,69 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
   return true;
 }
 
+template<class DataType>
+bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements)
+{
+  auto max_elements_per_call = 0u;
+  auto valid_idx = 0u;
+  //Iterate over valid calls and obtain max fields over all calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto call_idx = iter.get_call_idx_in_variant();
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr); 
+      assert((ptr->get()).size() > 0u);
+      max_elements_per_call = std::max<unsigned>(max_elements_per_call, (ptr->get()).size());
+      ++valid_idx;
+    }
+  }
+  if(valid_idx == 0u)   //no valid fields found
+    return false;
+  //Resize the extended field vector
+  if(variant.get_num_calls()*max_elements_per_call > m_extended_field_vector.size())
+    m_extended_field_vector.resize(variant.get_num_calls()*max_elements_per_call);
+  auto extended_field_vector_idx = 0u;
+  //Iterate over all calls, invalid calls also
+  for(auto call_idx=0ull;call_idx<variant.get_num_calls();++call_idx)
+  {
+    auto& curr_call = variant.get_call(call_idx);
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //#elements inserted for this call
+    auto num_elements_inserted = 0u;
+    //Valid field in a valid call
+    if(curr_call.is_valid() && field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr); 
+      const std::vector<DataType>& curr_data = ptr->get();
+      assert(curr_data.size() > 0u);
+      memcpy(&(m_extended_field_vector[extended_field_vector_idx]), &(curr_data[0]), curr_data.size()*sizeof(DataType));
+      num_elements_inserted = curr_data.size();
+      extended_field_vector_idx += num_elements_inserted;
+    }
+    if(num_elements_inserted == 0u) //no elements inserted, insert missing value first
+    {
+      m_extended_field_vector[extended_field_vector_idx] = get_bcf_missing_value<DataType>();
+      ++num_elements_inserted;
+      ++extended_field_vector_idx;
+    }
+    //Pad with vector end values, handles invalid fields also
+    for(;num_elements_inserted<max_elements_per_call;++num_elements_inserted,++extended_field_vector_idx)
+      m_extended_field_vector[extended_field_vector_idx] = get_bcf_vector_end_value<DataType>();
+  }
+  assert(extended_field_vector_idx <= m_extended_field_vector.size());
+  *output_ptr = reinterpret_cast<const void*>(&(m_extended_field_vector[0]));
+  num_elements = extended_field_vector_idx;
+  return true;
+}
 //Explicit template instantiation
 template class VariantFieldHandler<int>;
 template class VariantFieldHandler<unsigned>;

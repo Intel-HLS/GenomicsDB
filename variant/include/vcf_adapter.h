@@ -29,6 +29,8 @@ class VCFAdapter
     bool get_next_contig_location(int64_t position, std::string& next_contig_name, int64_t& next_contig_offset) const;
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
     void print_bcf_line(bcf1_t* line) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
+    void print_header();
+    const char* get_sample_name_for_idx(int64_t sample_idx) const;
   private:
     //Template VCF header to start with
     std::string m_vcf_header_filename;
@@ -41,6 +43,7 @@ class VCFAdapter
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
     //Output fptr
     htsFile* m_output_fptr;
+    bool m_is_bcf;
 };
 
 #endif  //ifdef HTSDIR

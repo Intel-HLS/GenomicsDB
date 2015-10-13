@@ -47,7 +47,7 @@ endif
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
 CC  = $(MPIPATH)mpicc
 CXX = $(MPIPATH)mpicxx
-CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
+CPPFLAGS=-std=c++11 -fPIC \
       $(LFS_CFLAGS) $(CFLAGS)
 
 #HTSDIR=../../htslib

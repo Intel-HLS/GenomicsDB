@@ -6,6 +6,7 @@ uint32_t bcf_float_missing    = 0x7F800001;
 uint32_t bcf_float_vector_end = 0x7F800002;
 #endif
 fi_union bcf_float_missing_union = { .i = bcf_float_missing };
+fi_union bcf_float_vector_end_union = { .i = bcf_float_vector_end };
 
 //Remapper classes
 template<class DataType>
