@@ -14,6 +14,18 @@ enum GTSchemaVersionEnum
     GT_SCHEMA_V2
 };
 
+//Exceptions thrown 
+class InconsistentQueryOptionsException {
+  public:
+    InconsistentQueryOptionsException(const std::string m="") : msg_("InconsistentQueryOptionsException : "+m) { ; }
+    ~InconsistentQueryOptionsException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const std::string& what() const { return msg_; }
+  private:
+    std::string msg_;
+};
+
 /* Structure to store profiling information */
 class GTProfileStats {
   public:
@@ -95,7 +107,7 @@ class VariantQueryProcessor : public QueryProcessor {
         std::vector<Variant>& variants, GA4GHPagingInfo* paging_info=0, GTProfileStats* stats=0) const;
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
-        unsigned column_interval_idx=0u) const;
+        unsigned column_interval_idx=0u, bool treat_deletions_as_intervals=false) const;
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
@@ -144,11 +156,11 @@ class VariantQueryProcessor : public QueryProcessor {
     void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
         const VariantQueryConfig& queryConfig, Variant& variant,
         SingleVariantOperatorBase& variant_operator,
-        int64_t current_start_position, int64_t next_start_position, bool is_last_call) const;
+        int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
     /** Fills a row of the input genotyping column with the proper info. */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
-        const Cell& cell, GTProfileStats* stats) const;
+        const Cell& cell, GTProfileStats* stats, bool treat_deletions_as_intervals=false) const;
     /** 
      * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.

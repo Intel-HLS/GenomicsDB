@@ -210,7 +210,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
-  qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op);
+  qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
 }
 
 int main(int argc, char *argv[]) {

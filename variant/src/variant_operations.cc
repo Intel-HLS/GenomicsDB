@@ -105,7 +105,7 @@ const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Varia
     const std::string& merged_reference_allele,
     CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists) {
   // marking non_reference_allele as already seen will ensure it's not included in the middle
-  auto seen_alleles = std::unordered_map<std::string, int>{{g_non_reference_allele,-1}};
+  auto seen_alleles = std::unordered_map<std::string, int>{{g_vcf_NON_REF,-1}};
   auto merged_alt_alleles = std::vector<std::string>{};
   auto merged_reference_length = merged_reference_allele.length();
   //invalidate all existing mappings in the LUT
@@ -179,7 +179,7 @@ const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Varia
   if(NON_REF_exists)    //if NON_REF allele exists
   {
     // always want non_reference_allele to be last
-    merged_alt_alleles.push_back(g_non_reference_allele);
+    merged_alt_alleles.push_back(g_vcf_NON_REF);
     auto non_reference_allele_idx = merged_alt_alleles.size(); //why not -1, include reference allele also
     //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
     alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1); 

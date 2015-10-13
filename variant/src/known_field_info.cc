@@ -175,3 +175,14 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
       break;
   }
 }
+
+bool VariantUtils::contains_deletion(const std::string& REF, const std::vector<std::string>& ALT_vec)
+{
+  auto REF_length = REF.length();
+  if(REF_length <= 1u)
+    return false;
+  for(auto& alt_allele : ALT_vec)
+    if(!(IS_NON_REF_ALLELE(alt_allele)) && alt_allele.length() < REF_length)
+      return true;
+  return false;
+}

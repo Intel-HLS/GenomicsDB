@@ -201,12 +201,14 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     SingleVariantOperatorBase& variant_operator,
-    int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
+    int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const
 {
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
     int64_t top_end_pq = end_pq.top()->get_column_end();
     int64_t min_end_point = (is_last_call || (top_end_pq < (next_start_position - 1))) ? top_end_pq : (next_start_position-1);
+    //If deletions, single position stepping
+    min_end_point = num_calls_with_deletions ? current_start_position : min_end_point;
     //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
     //Set REF to N if the call interval is split in the middle
@@ -222,6 +224,8 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
     {
       auto top_element = end_pq.top();
+      if(top_element->contains_deletion())
+        --num_calls_with_deletions;
       top_element->mark_valid(false);
       end_pq.pop();
     }
@@ -232,7 +236,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
 void VariantQueryProcessor::scan_and_operate(
     const int ad,
     const VariantQueryConfig& query_config,
-    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx) const
+    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool treat_deletions_as_intervals) const
 {
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
@@ -249,6 +253,8 @@ void VariantQueryProcessor::scan_and_operate(
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
+  //Number of calls with deletions
+  uint64_t num_calls_with_deletions = 0;
   //Scan only queried interval, not whole array
   if(query_config.get_num_column_intervals() > 0)
   {
@@ -302,7 +308,7 @@ void VariantQueryProcessor::scan_and_operate(
       next_start_position = next_coord[1];
       assert(next_coord[1] > current_start_position);
       handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
-          next_start_position, false);
+          next_start_position, false, num_calls_with_deletions);
       assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
       //Set new start for next interval
       current_start_position = next_start_position;
@@ -314,15 +320,17 @@ void VariantQueryProcessor::scan_and_operate(
     if(query_config.is_queried_array_row_idx(next_coord[0]))
     {
       cell.set_cell(cell_ptr);
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
+      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, treat_deletions_as_intervals);
       auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
       end_pq.push(&curr_call);
+      if(treat_deletions_as_intervals && curr_call.contains_deletion())
+        ++num_calls_with_deletions;
       assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
   }
   delete forward_iter;
   //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true);
+  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true, num_calls_with_deletions);
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema,
@@ -703,7 +711,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
-    const Cell& cell, GTProfileStats* stats) const {
+    const Cell& cell, GTProfileStats* stats, bool treat_deletions_as_intervals) const {
   #if VERBOSE>1
     std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
   #endif
@@ -712,6 +720,7 @@ void VariantQueryProcessor::gt_fill_row(
   VariantCall& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(row));
   //Curr call will be initialized, one way or the other
   curr_call.mark_initialized(true);
+  curr_call.set_contains_deletion(false);
   // First check if the row contains valid data, i.e., check whether the interval intersects with the current queried interval
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   auto* END_ptr = cell[query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX)].operator const int64_t*();
@@ -760,6 +769,22 @@ void VariantQueryProcessor::gt_fill_row(
         num_ALT_alleles, ploidy,
         query_config.get_schema_idx_for_query_idx(i)
         );     
+  }
+  if(treat_deletions_as_intervals)
+  {
+    //Initialize REF field, if needed
+    const auto* REF_field_ptr = get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX); 
+    if(REF_field_ptr && REF_field_ptr->is_valid() && ALT_field_ptr && ALT_field_ptr->is_valid())
+    {
+      auto has_deletion = VariantUtils::contains_deletion(REF_field_ptr->get(), ALT_field_ptr->get());
+      if(has_deletion)
+      {
+        curr_call.set_contains_deletion(true);
+        curr_call.set_column_interval(column, column + ((REF_field_ptr->get()).length()) - 1u);
+      }
+    }
+    else
+      throw InconsistentQueryOptionsException("To treat deletions as intervals, you must query both REF and ALT fields");  
   }
 }
 

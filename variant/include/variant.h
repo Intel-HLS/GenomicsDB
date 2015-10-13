@@ -7,9 +7,6 @@
 #include "variant_query_config.h"
 #include "known_field_info.h"
 
-/*a string to store <NON_REF> string (read-only)*/
-extern std::string g_non_reference_allele;
-
 /*
  * Class that stores info that helps determine whether 2 VariantCalls should be
  * merged into a single Variant object.
@@ -62,6 +59,7 @@ class VariantCall
     {
       m_is_valid = false;
       m_is_initialized = false;
+      m_contains_deletion = false;
       m_row_idx = UNDEFINED_NUM_ROWS_VALUE;
       clear();
     }
@@ -72,6 +70,7 @@ class VariantCall
     {
       m_is_valid = false;
       m_is_initialized = false;
+      m_contains_deletion = false;
       m_row_idx = rowIdx;
       clear();
     } 
@@ -215,6 +214,11 @@ class VariantCall
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
     void copy_from_call(const VariantCall& src);
+    /*
+     * Flag that determines whether the current call contains a deletion
+     */
+    void set_contains_deletion(bool val) { m_contains_deletion = val; }
+    bool contains_deletion() const { return m_contains_deletion; }
   private:
     /*
      * Performs move from other object
@@ -225,12 +229,14 @@ class VariantCall
      */
     void copy_simple_members(const VariantCall& other);
     /*
-     * Member data elements - check clear, copy, move_in functions while adding new members
+     * Member data elements - check clear, copy, move_in,binary_serialize/deserialize functions while adding new members
      */
     //Could be initialized, but invalid (no data for this column interval)
     bool m_is_valid;
     //If false, not initialized (not yet considered in query)
     bool m_is_initialized;
+    //whether the ALT contains a deletion
+    bool m_contains_deletion;
     uint64_t m_row_idx;
     std::vector<std::unique_ptr<VariantFieldBase>> m_fields;
     /**

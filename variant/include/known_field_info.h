@@ -127,4 +127,10 @@ class KnownFieldInitializer
 };
 extern KnownFieldInitializer g_known_field_initializer;
 
+class VariantUtils
+{
+  public:
+    static bool contains_deletion(const std::string& REF, const std::vector<std::string>& ALT_vec);
+};
+
 #endif

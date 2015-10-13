@@ -1,7 +1,5 @@
 #include "variant.h"
 
-std::string g_non_reference_allele = "<NON_REF>";
-
 //GA4GHCallInfoToVariantIdx functions
 bool GA4GHCallInfoToVariantIdx::find_or_insert(uint64_t begin, uint64_t end, const std::string& REF, 
         const std::vector<std::string>& ALT_vec, uint64_t& variant_idx)
@@ -205,6 +203,7 @@ void VariantCall::reset_for_new_interval()
 {
   m_is_initialized = false;
   m_is_valid = false;
+  m_contains_deletion = false;
   //for(auto& ptr : m_fields)
   //ptr.reset(nullptr);
 }
@@ -213,6 +212,7 @@ void VariantCall::copy_simple_members(const VariantCall& other)
 {
   m_is_valid = other.is_valid();
   m_is_initialized = other.is_initialized();
+  m_contains_deletion = other.m_contains_deletion;
   m_row_idx = other.get_row_idx();
   m_col_begin = other.m_col_begin;
   m_col_end = other.m_col_end;
@@ -252,14 +252,17 @@ void VariantCall::copy_from_call(const VariantCall& other)
 void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
 {
   uint64_t add_size = 0ull;
-  //is_valid, is_initialized, row_idx, col_begin, col_end, num fields[unsigned]
-  add_size = 2*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned);
+  //is_valid, is_initialized, contains_deletion, row_idx, col_begin, col_end, num fields[unsigned]
+  add_size = 3*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned);
   RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
   //is_valid
   *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_valid;
   offset += sizeof(bool);
   //is_initialized
   *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_initialized;
+  offset += sizeof(bool);
+  //contains_deletion
+  *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_contains_deletion;
   offset += sizeof(bool);
   //row idx
   *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_row_idx;
@@ -289,12 +292,16 @@ void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offse
 
 void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset)
 {
-  assert(offset + 2*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
+  //is_valid, is_initialized, contains_deletion, row_idx, col_begin, col_end, num fields[unsigned]
+  assert(offset + 3*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
   //is_valid
   m_is_valid = *(reinterpret_cast<const bool*>(&(buffer[offset])));
   offset += sizeof(bool);
   //is_initialized
   m_is_initialized = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //contains_deletion
+  m_contains_deletion = *(reinterpret_cast<const bool*>(&(buffer[offset])));
   offset += sizeof(bool);
   //row idx
   m_row_idx = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
