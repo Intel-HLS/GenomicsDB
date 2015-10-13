@@ -24,7 +24,7 @@ VCFAdapter::~VCFAdapter()
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
   free_sqlite3_data(&m_sqlite_mapping_info);
-  destroy_reference(&m_reference_genome_info);
+  free_reference_info(&m_reference_genome_info);
   if(m_output_fptr)
     bcf_close(m_output_fptr);
 }
@@ -87,7 +87,7 @@ void VCFAdapter::initialize(const std::string& sqlite_filename, const std::strin
     exit(-1);
   }
   //Reference genome
-  initialize_reference(&m_reference_genome_info, reference_genome.c_str());
+  initialize_reference_info(&m_reference_genome_info, reference_genome.c_str());
 }
     
 bool VCFAdapter::get_contig_location(int64_t query_position, std::string& contig_name, int64_t& contig_position) const
