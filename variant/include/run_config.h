@@ -37,6 +37,7 @@ class VCFAdapterRunConfig : public RunConfig
         std::string output_format="", int rank=0);
     std::string m_sqlite_filename;
     std::string m_vcf_header_filename;
+    std::string m_reference_genome;
     std::string m_vcf_output_filename;
 };
 

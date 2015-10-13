@@ -154,7 +154,14 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
   }
   else
     m_vcf_output_filename = "-";        //stdout
-  vcf_adapter.initialize(m_sqlite_filename, m_vcf_header_filename, m_vcf_output_filename, output_format);
+  //Reference genome
+  assert(m_json.HasMember("reference_genome"));
+  {
+    const rapidjson::Value& v = m_json["reference_genome"];
+    assert(v.IsString());
+    m_reference_genome = v.GetString();
+  }
+  vcf_adapter.initialize(m_sqlite_filename, m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
 }
 
 #endif

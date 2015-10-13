@@ -14,6 +14,7 @@ VCFAdapter::VCFAdapter()
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
   memset(&m_sqlite_mapping_info, 0, sizeof(sqlite_mappings_struct));
+  memset(&m_reference_genome_info, 0, sizeof(reference_genome_info));
   clear();
 }
 
@@ -23,6 +24,7 @@ VCFAdapter::~VCFAdapter()
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
   free_sqlite3_data(&m_sqlite_mapping_info);
+  destroy_reference(&m_reference_genome_info);
   if(m_output_fptr)
     bcf_close(m_output_fptr);
 }
@@ -33,7 +35,8 @@ void VCFAdapter::clear()
   m_contig_end_2_idx.clear();
 }
 
-void VCFAdapter::initialize(const std::string& sqlite_filename, const std::string& vcf_header_filename,
+void VCFAdapter::initialize(const std::string& sqlite_filename, const std::string& reference_genome,
+    const std::string& vcf_header_filename,
     std::string output_filename, std::string output_format)
 {
   //Sqlite file for mapping ids to names etc
@@ -83,6 +86,8 @@ void VCFAdapter::initialize(const std::string& sqlite_filename, const std::strin
     std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
     exit(-1);
   }
+  //Reference genome
+  initialize_reference(&m_reference_genome_info, reference_genome.c_str());
 }
     
 bool VCFAdapter::get_contig_location(int64_t query_position, std::string& contig_name, int64_t& contig_position) const
@@ -152,6 +157,11 @@ const char* VCFAdapter::get_sample_name_for_idx(int64_t idx) const
 {
   assert(idx < m_sqlite_mapping_info.m_num_samples);
   return m_sqlite_mapping_info.m_sample_names[idx];
+}
+
+char VCFAdapter::get_reference_base_at_position(const char* contig, int pos)
+{
+  return ::get_reference_base_at_position(&m_reference_genome_info, contig, pos);
 }
 
 void VCFAdapter::print_header()

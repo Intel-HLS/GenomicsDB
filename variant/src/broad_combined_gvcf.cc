@@ -181,8 +181,10 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
     {
       int dp_info_val = valid_DP_found ? int_vec[j] : get_bcf_missing_value<int>();
       int dp_format_val = valid_DP_FORMAT_found ? m_DP_FORMAT_vector[j] : get_bcf_missing_value<int>();
+      assert(is_bcf_valid_value<int>(dp_format_val) || dp_format_val == get_bcf_missing_value<int>());
+      assert(is_bcf_valid_value<int>(dp_info_val) || dp_info_val == get_bcf_missing_value<int>());
       //If DP_FORMAT is invalid, use dp_info value for DP_FORMAT
-      dp_format_val = is_bcf_valid_value<int>(dp_format_val) ? dp_format_val : dp_info_val;
+      //dp_format_val = is_bcf_valid_value<int>(dp_format_val) ? dp_format_val : dp_info_val;
       if(!is_bcf_valid_value<int>(dp_info_val))  //no valid DP info value found
       {
         //MIN_DP gets higher priority
@@ -215,7 +217,9 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   m_bcf_out->rid = m_curr_contig_hdr_idx;
   m_bcf_out->pos = copy_variant.get_column_begin() - m_curr_contig_begin_position;
   //Update alleles
-  const auto& ref_allele = dynamic_cast<VariantFieldString*>(copy_variant.get_common_field(0u).get())->get();
+  auto& ref_allele = dynamic_cast<VariantFieldString*>(copy_variant.get_common_field(0u).get())->get();
+  if(ref_allele.length() == 1u && ref_allele[0] == 'N')
+    ref_allele[0] = m_vcf_adapter->get_reference_base_at_position(m_curr_contig_name.c_str(), m_bcf_out->pos);
   const auto& alt_alleles = dynamic_cast<VariantFieldALTData*>(copy_variant.get_common_field(1u).get())->get();
   auto total_num_merged_alleles = alt_alleles.size() + 1u;      //+1 for REF
   if(total_num_merged_alleles > m_alleles_pointer_buffer.size())
