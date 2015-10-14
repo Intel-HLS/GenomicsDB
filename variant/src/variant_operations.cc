@@ -151,7 +151,7 @@ const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Varia
       else
       {
         auto* allele_ptr = &allele;
-        if(is_suffix_needed)
+        if(is_suffix_needed && !VariantUtils::is_symbolic_allele(allele))
         {
           copy_allele = allele;
           copy_allele.append(merged_reference_allele, curr_reference_length, suffix_length);
@@ -206,9 +206,14 @@ void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::ve
   assert(input_GT.size() == output_GT.size());
   for(auto i=0;i<input_GT.size();++i)
   {
-    auto output_allele_idx = alleles_LUT.get_merged_idx_for_input(input_call_idx, input_GT[i]);
-    assert(!alleles_LUT.is_missing_value(output_allele_idx));
-    output_GT[i] = output_allele_idx;
+    if(is_tiledb_missing_value<int>(input_GT[i]))
+      output_GT[i] = input_GT[i];
+    else
+    {
+      auto output_allele_idx = alleles_LUT.get_merged_idx_for_input(input_call_idx, input_GT[i]);
+      assert(!alleles_LUT.is_missing_value(output_allele_idx));
+      output_GT[i] = output_allele_idx;
+    }
   }
 }
 

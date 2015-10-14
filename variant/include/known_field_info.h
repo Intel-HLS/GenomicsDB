@@ -136,6 +136,8 @@ class VariantUtils
       auto REF_length = REF.length();
       return (REF_length > 1u) && !IS_NON_REF_ALLELE(alt_allele) && (alt_allele.length() < REF_length);
     }
+    inline static bool is_symbolic_allele(const std::string& allele)
+    { return IS_NON_REF_ALLELE(allele) || allele == g_vcf_SPANNING_DELETION; }
 };
 
 #endif

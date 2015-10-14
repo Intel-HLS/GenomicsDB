@@ -255,6 +255,8 @@ void VariantQueryProcessor::scan_and_operate(
   variant.resize_based_on_query();
   //Number of calls with deletions
   uint64_t num_calls_with_deletions = 0;
+  //Used when deletions have to be treated as intervals and the PQ needs to be emptied
+  std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Scan only queried interval, not whole array
   if(query_config.get_num_column_intervals() > 0)
   {
@@ -320,8 +322,34 @@ void VariantQueryProcessor::scan_and_operate(
     if(query_config.is_queried_array_row_idx(next_coord[0]))
     {
       cell.set_cell(cell_ptr);
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, treat_deletions_as_intervals);
       auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+      //Current call is a deletion which spans across next position
+      //Have to ignore rest of this deletion - overwrite with the new info from the cell
+      if(treat_deletions_as_intervals && curr_call.contains_deletion() && curr_call.get_column_end() >= next_coord[1])
+      {
+        //Have to cycle through priority queue and remove this call
+        auto found_curr_call = false;
+        auto num_entries_in_tmp_pq_buffer = 0ull;
+        while(!end_pq.empty() && !found_curr_call)
+        {
+          auto top_call = end_pq.top();
+          if(top_call == &curr_call)
+            found_curr_call = true;
+          else
+          {
+            assert(num_entries_in_tmp_pq_buffer < query_config.get_num_rows_to_query());
+            tmp_pq_buffer[num_entries_in_tmp_pq_buffer++] = top_call;
+          }
+          end_pq.pop();
+        }
+        assert(found_curr_call);
+        for(auto i=0ull;i<num_entries_in_tmp_pq_buffer;++i)
+          end_pq.push(tmp_pq_buffer[i]);
+        //Reduce #calls with deletions 
+        assert(num_calls_with_deletions > 0u);
+        --num_calls_with_deletions;
+      }
+      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, treat_deletions_as_intervals);
       end_pq.push(&curr_call);
       if(treat_deletions_as_intervals && curr_call.contains_deletion())
         ++num_calls_with_deletions;

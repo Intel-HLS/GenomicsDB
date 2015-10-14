@@ -218,7 +218,7 @@ class VariantCall
      * Flag that determines whether the current call contains a deletion
      */
     void set_contains_deletion(bool val) { m_contains_deletion = val; }
-    bool contains_deletion() const { return m_contains_deletion; }
+    bool contains_deletion() const { return m_is_valid && m_contains_deletion; }
   private:
     /*
      * Performs move from other object

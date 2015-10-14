@@ -231,7 +231,8 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
     m_alleles_pointer_buffer[i] = alt_alleles[i-1u].c_str();
   bcf_update_alleles(m_vcf_hdr, m_bcf_out, &(m_alleles_pointer_buffer[0]), total_num_merged_alleles);
   //Flag that determines when to add GQ field - only when <NON_REF> is the only alternate allele
-  m_should_add_GQ_field = (m_NON_REF_exists && alt_alleles.size() == 1u);
+  //m_should_add_GQ_field = (m_NON_REF_exists && alt_alleles.size() == 1u);
+  m_should_add_GQ_field = true; //always added in new version of CombineGVCFs
   //INFO fields
   handle_INFO_fields();
   //FORMAT fields
@@ -337,8 +338,23 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
                   info_ptr->get_length_descriptor(), num_reduced_elements, remapper_variant);
             }
           }
-          //Broad's CombineGVCF ignores GT field anyway
+          //Broad's CombineGVCF ignores GT field anyway - set missing
+          if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
+          {
+            auto& GT_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_GT_IDX)->get();
+            for(auto i=0u;i<GT_vector.size();++i)
+              GT_vector[i] = NULL_INT; 
+          }
         }
+      }
+      //Invalidate INFO fields
+      for(const auto& tuple : m_INFO_fields_vec)
+      {
+        assert(query_config.is_defined_query_idx_for_known_field_enum(BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple)));
+        auto query_idx = query_config.get_query_idx_for_known_field_enum(BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple));
+        auto& field = curr_call.get_field(query_idx);
+        if(field.get())
+          field->set_valid(false);
       }
     }
   }
