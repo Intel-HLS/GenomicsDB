@@ -237,6 +237,8 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //FORMAT fields
   handle_FORMAT_fields();
   m_vcf_adapter->print_bcf_line(m_bcf_out);
+  //Change ALT alleles in calls with deletions to *, <NON_REF>
+  handle_deletions(variant, query_config);
   //Last line in this function always
   m_variants.clear();
 }
@@ -248,6 +250,98 @@ void BroadCombinedGVCFOperator::switch_contig()
   m_curr_contig_hdr_idx = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_CTG, m_curr_contig_name.c_str());
   auto next_contig_flag = m_vcf_adapter->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
   assert(next_contig_flag);
+}
+
+//Modifies original Variant object
+void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const VariantQueryConfig& query_config)
+{
+  m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 10u);    //will not have more than 3 alleles anyway
+  m_reduced_alleles_LUT.reset_luts();
+  for(auto iter=variant.begin(), e=variant.end();iter != e;++iter)
+  {
+    auto& curr_call = *iter;
+    auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+    //Deletion and first time deletion seen
+    //So replace the ALT with *,<NON_REF> and REF with "N"
+    //Remap PL, AD fields
+    if(curr_call.contains_deletion() && curr_call.get_column_begin() == variant.get_column_begin())
+    {
+      auto& ref_allele = get_known_field<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX)->get();
+      auto& alt_alleles = get_known_field<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX)->get();
+      //Reduced allele list will be REF="N", ALT="*, <NON_REF>"
+      m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, 0, 0);  //REF-REF mapping
+      //Need to find deletion allele with lowest PL value - this deletion allele is mapped to "*" allele
+      auto lowest_deletion_allele_idx = -1;
+      int lowest_PL_value = INT_MAX;
+      auto& PL_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX)->get();
+      auto has_NON_REF = false;
+      for(auto i=0u;i<alt_alleles.size();++i)
+      {
+        auto allele_idx = i+1;  //+1 for REF
+        if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+        {
+          unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
+          assert(gt_idx < PL_vector.size());
+          if(PL_vector[gt_idx] < lowest_PL_value)
+          {
+            lowest_PL_value = PL_vector[gt_idx];
+            lowest_deletion_allele_idx = allele_idx;
+          }
+        }
+        else
+          if(IS_NON_REF_ALLELE(alt_alleles[i]))
+          {
+            m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
+            has_NON_REF = true;
+          }
+      }
+      assert(lowest_deletion_allele_idx >= 1);    //should be an ALT allele
+      //first ALT allele in reduced list is *
+      m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, lowest_deletion_allele_idx, 1); 
+      if(has_NON_REF)
+      {
+        alt_alleles.resize(2u);
+        alt_alleles[1u] = TILEDB_NON_REF_VARIANT_REPRESENTATION;
+      }
+      else
+        alt_alleles.resize(1u); //only spanning deletion
+      ref_allele = "N"; //set to unknown REF for now
+      alt_alleles[0u] = g_vcf_SPANNING_DELETION;
+      unsigned num_reduced_alleles = alt_alleles.size() + 1u;   //+1 for REF
+      //Remap known fields
+      for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
+      {
+        //is known field?
+        if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
+        {
+          const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+          //known field whose length is dependent on #alleles
+          if(info_ptr && info_ptr->is_length_allele_dependent())
+          {
+            unsigned num_reduced_elements = info_ptr->get_num_elements_for_known_field_enum(num_reduced_alleles-1u, 0u);     //#alt alleles
+            //Remapper for variant
+            RemappedVariant remapper_variant(variant, query_field_idx); 
+            auto& curr_field = curr_call.get_field(query_field_idx);
+            if(curr_field.get() && curr_field->is_valid())      //Not null
+            {
+              //Create copy to pass to remap function 
+              std::unique_ptr<VariantFieldBase> copy_field(curr_field->create_copy());
+              curr_field->resize(num_reduced_elements);
+              //Get handler for current type
+              auto& handler = get_handler_for_type(curr_field->get_element_type());
+              assert(handler.get());
+              //Call remap function
+              handler->remap_vector_data(
+                  copy_field, curr_call_idx_in_variant,
+                  m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF,
+                  info_ptr->get_length_descriptor(), num_reduced_elements, remapper_variant);
+            }
+          }
+          //Broad's CombineGVCF ignores GT field anyway
+        }
+      }
+    }
+  }
 }
 
 #endif //ifdef HTSDIR

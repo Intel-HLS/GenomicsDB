@@ -10,6 +10,7 @@
 #define CHECK_UNINITIALIZED_SAMPLE_GIVEN_REF(REF) ((REF).size() == 0 || ((REF) == ""))
 #define CHECK_IN_THE_MIDDLE_REF(REF) ((REF)[0] == 'N')
 extern std::string g_vcf_NON_REF;
+extern std::string g_vcf_SPANNING_DELETION;
 inline bool IS_NON_REF_ALLELE(const std::string& allele)
 {
   return allele.length() > 0 && ((allele)[0] == '&');

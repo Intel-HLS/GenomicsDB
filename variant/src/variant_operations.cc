@@ -354,7 +354,7 @@ GA4GHOperator::GA4GHOperator() : SingleVariantOperatorBase()
   }
 }
 
-inline std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
+std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
 {
   //Get Enum Idx from VariantFieldTypeEnum
   assert(g_variant_field_type_index_to_enum.find(ty) != g_variant_field_type_index_to_enum.end());

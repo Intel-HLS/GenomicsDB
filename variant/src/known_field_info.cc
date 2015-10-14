@@ -1,5 +1,6 @@
 #include "known_field_info.h"
 
+std::string g_vcf_SPANNING_DELETION="*";
 //Global vector storing info of all known fields
 std::vector<KnownFieldInfo> g_known_field_enum_to_info;
 //Known field enum to name vector

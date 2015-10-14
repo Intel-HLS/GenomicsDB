@@ -131,6 +131,11 @@ class VariantUtils
 {
   public:
     static bool contains_deletion(const std::string& REF, const std::vector<std::string>& ALT_vec);
+    inline static bool is_deletion(const std::string& REF, const std::string& alt_allele)
+    {
+      auto REF_length = REF.length();
+      return (REF_length > 1u) && !IS_NON_REF_ALLELE(alt_allele) && (alt_allele.length() < REF_length);
+    }
 };
 
 #endif

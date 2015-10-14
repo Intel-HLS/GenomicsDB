@@ -39,6 +39,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     void handle_INFO_fields();
     void handle_FORMAT_fields();
+    void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
   private:
     const VariantQueryConfig* m_query_config;
     VCFAdapter* m_vcf_adapter;
@@ -60,6 +61,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     std::vector<int> m_MIN_DP_vector;
     //DP_FORMAT values
     std::vector<int> m_DP_FORMAT_vector;
+    //Used for handling deletions - remapping PL/AD where a deletion is replaced with *
+    CombineAllelesLUT m_reduced_alleles_LUT;
 };
 
 #endif //ifdef HTSDIR
