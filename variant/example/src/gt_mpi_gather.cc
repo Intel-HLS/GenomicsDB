@@ -11,6 +11,10 @@
 #include "bigmpi.h"
 #endif
 
+#ifdef USE_GPERFTOOLS
+#include "gperftools/profiler.h"
+#endif
+
 enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
@@ -341,6 +345,9 @@ int main(int argc, char *argv[]) {
     std::cerr << "Missing workspace(-w) or array name (-A)\n";
     return -1;
   }
+#ifdef USE_GPERFTOOLS
+  ProfilerStart("gprofile.log");
+#endif
   /*Create storage manager*/
   StorageManager sm(workspace);
   /*Create query processor*/
@@ -353,6 +360,10 @@ int main(int argc, char *argv[]) {
     if(produce_Broad_GVCF)
       scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
+#ifdef USE_GPERFTOOLS
+  ProfilerStop();
+#endif
+
   MPI_Finalize();
   sm.close_array(qp.get_array_descriptor());
   return 0;

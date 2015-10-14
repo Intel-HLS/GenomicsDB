@@ -79,7 +79,7 @@ endif
 
 ifdef USE_GPERFTOOLS
     GPERFTOOLSDIR ?= /home/karthikg/softwares/gperftools-2.2/install/
-    CPPFLAGS+=-DUSE_GPERFTOOLS --no-inline -I$(GPERFTOOLSDIR)/include
+    CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
     LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 
