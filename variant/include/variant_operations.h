@@ -137,12 +137,11 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    void clear() { m_variants.clear(); }
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
-    const std::vector<Variant>& get_variants() const { return m_variants; }
-    std::vector<Variant>& get_variants() { return m_variants; }
+    const Variant& get_remapped_variant() const { return m_remapped_variant; }
+    Variant& get_remapped_variant() { return m_remapped_variant; }
   private:
-    std::vector<Variant> m_variants;
+    Variant m_remapped_variant;
 };
 
 /*
