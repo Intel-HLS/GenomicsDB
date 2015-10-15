@@ -136,15 +136,12 @@ class VariantCall
     void resize(unsigned num_fields)
     { m_fields.resize(num_fields);  }
     /**
-     * Set field transfers ownership of field data to member unique ptr. The argument field is released from
-     * managing more memory
+     * Set field does a move transfers ownership of field data to member unique ptr. 
      */
     inline void set_field(unsigned idx, std::unique_ptr<VariantFieldBase>& field)
     {
       assert(idx < m_fields.size());
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
-      VariantFieldBase* ptr = field.release();      //Release field from management
-      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
+      m_fields[idx] = std::move(field); //transfer ownership of pointer
     }
     /*
      * Set field through raw pointer
@@ -152,7 +149,6 @@ class VariantCall
     inline void set_field(unsigned idx, VariantFieldBase* field)
     {
       assert(idx < m_fields.size());
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
       m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
     }
     void add_field(std::unique_ptr<VariantFieldBase>& field)
@@ -443,9 +439,7 @@ class Variant
     {
       assert(idx < m_fields.size());
       m_common_fields_query_idxs[idx] = query_idx;
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
-      auto ptr = field.release();
-      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
+      m_fields[idx] = std::move(field); //transfer ownership of pointer
     }
     /*
      * Create unique_ptr around raw ptr
@@ -454,7 +448,6 @@ class Variant
     {
       assert(idx < m_fields.size());
       m_common_fields_query_idxs[idx] = query_idx;
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
       m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
     }
     /*
@@ -489,6 +482,7 @@ class Variant
     std::vector<unsigned>& get_common_fields_query_idxs() { return m_common_fields_query_idxs; }
     const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }
     unsigned get_num_common_fields() const { return m_fields.size(); }
+    const std::vector<std::unique_ptr<VariantFieldBase>>& get_common_fields() const { return m_fields; }
   private:
     //Function that moves from other to self
     void move_in(Variant& other);

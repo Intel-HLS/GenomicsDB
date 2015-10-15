@@ -66,6 +66,12 @@ class VariantFieldBase : public QueryFieldData
     virtual std::type_index get_element_type() const = 0;
     /* Create copy and return pointer - avoid using as much as possible*/
     virtual VariantFieldBase* create_copy() const = 0;
+    /* Copy from src ptr*/
+    virtual void copy_from(const VariantFieldBase* base_src)
+    {
+      m_valid = base_src->m_valid;
+      m_subclass_type = base_src->m_subclass_type;
+    }
     //Resize this field - default do nothing
     virtual void resize(unsigned new_size) { ; }
     /* Return address of the offset-th element */
@@ -134,6 +140,13 @@ class VariantFieldData : public VariantFieldBase
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType>(*this); }
+    virtual void copy_from(const VariantFieldBase* base_src)
+    {
+      VariantFieldBase::copy_from(base_src);
+      auto src = dynamic_cast<const VariantFieldData<DataType>*>(base_src);
+      assert(src);
+      m_data = src->m_data;
+    }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
@@ -213,6 +226,15 @@ class VariantFieldData<std::string> : public VariantFieldBase
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(char)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string>(*this); }
+    virtual void copy_from(const VariantFieldBase* base_src)
+    {
+      VariantFieldBase::copy_from(base_src);
+      auto src = dynamic_cast<const VariantFieldData<std::string>*>(base_src);
+      assert(src);
+      m_data.resize(src->m_data.size());
+      if(m_data.size())
+        memcpy(&(m_data[0]), &(src->m_data[0]), m_data.size()*sizeof(char));
+    }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
   private:
@@ -327,6 +349,16 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType>(*this); }
+    virtual void copy_from(const VariantFieldBase* base_src)
+    {
+      VariantFieldBase::copy_from(base_src);
+      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType>*>(base_src);
+      assert(src);
+      m_length_descriptor = src->m_length_descriptor;
+      m_data.resize(src->m_data.size());
+      if(m_data.size())
+        memcpy(&(m_data[0]), &(src->m_data[0]), m_data.size()*sizeof(DataType));
+    }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset)
@@ -454,6 +486,20 @@ class VariantFieldALTData : public VariantFieldBase
     }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
     virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
+    virtual void copy_from(const VariantFieldBase* base_src)
+    {
+      VariantFieldBase::copy_from(base_src);
+      auto src = dynamic_cast<const VariantFieldALTData*>(base_src);
+      assert(src);
+      m_data.resize(src->m_data.size());
+      for(auto i=0u;i<m_data.size();++i)
+      {
+        auto& curr_dst = m_data[i];
+        auto& curr_src = src->m_data[i];
+        curr_dst.resize(curr_src.size());
+        memcpy(&(curr_dst[0]), &(curr_src[0]), curr_src.size()*sizeof(char));
+      }
+    }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset)
