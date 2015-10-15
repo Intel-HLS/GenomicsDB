@@ -57,6 +57,15 @@ ifdef HTSDIR
   LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
+ifdef RAPIDJSON_INCLUDE_DIR
+    CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
+endif
+
+ifdef USE_BIGMPI
+    CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
+    LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
+endif
+
 SOFLAGS=-shared -Wl,-soname=
 
 ifdef DO_PROFILING

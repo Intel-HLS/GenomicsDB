@@ -199,10 +199,7 @@ void VariantCall::print_Cotton_JSON(std::ostream& fptr, unsigned field_idx) cons
     assert(field_idx < m_fields.size());
     auto& field = m_fields[field_idx];
     if(field.get() && field->is_valid())  //non null, valid field
-    {
       field->print_Cotton_JSON(fptr);
-      return;
-    }
     else
       fptr << "null";
   }
@@ -256,6 +253,68 @@ void VariantCall::copy_from_call(const VariantCall& other)
   }
 }
 
+void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+{
+  uint64_t add_size = 0ull;
+  //is_valid, is_initialized, row_idx, col_begin, col_end, num fields[unsigned]
+  add_size = 2*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned);
+  RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+  //is_valid
+  *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_valid;
+  offset += sizeof(bool);
+  //is_initialized
+  *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_initialized;
+  offset += sizeof(bool);
+  //row idx
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_row_idx;
+  offset += sizeof(uint64_t);
+  //column begin
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_col_begin;
+  offset += sizeof(uint64_t);
+  //column end
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_col_end;
+  offset += sizeof(uint64_t);
+  //num fields
+  *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = m_fields.size();
+  offset += sizeof(unsigned);
+  for(auto& field : m_fields)
+  {
+    //flag to represent valid field
+    add_size = sizeof(bool);
+    RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+    //is valid
+    *(reinterpret_cast<bool*>(&(buffer[offset]))) = (field.get() && field->is_valid()) ? true : false;
+    offset += sizeof(bool);
+    //serialize valid field
+    if(field.get() && field->is_valid())
+      field->binary_serialize(buffer, offset);
+  }
+}
+
+void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset)
+{
+  assert(offset + 2*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
+  //is_valid
+  m_is_valid = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //is_initialized
+  m_is_initialized = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //row idx
+  m_row_idx = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //column begin
+  m_col_begin = *(reinterpret_cast<const uint64_t*>(&(buffer[offset]))); 
+  offset += sizeof(uint64_t);
+  //column end
+  m_col_end = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //num fields
+  auto num_fields = *(reinterpret_cast<const unsigned*>(&(buffer[offset])));
+  offset += sizeof(unsigned);
+  resize(num_fields);
+}
+
 //Variant functions
 //FIXME: still assumes that Calls are allocated once and re-used across queries, need not be true
 void Variant::reset_for_new_interval()
@@ -285,7 +344,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) 
   auto idx = 0u;
   for(const auto& field : m_fields)
   {
-    if(field.get())  //non null field
+    if(field.get() && field->is_valid())  //non null, valid field
     {
       if(query_config)
         fptr << (query_config->get_query_attribute_name(m_common_fields_query_idxs[idx])) << " : ";
@@ -477,6 +536,68 @@ void Variant::copy_from_variant(const Variant& other)
         other.get_common_field(i).get() ? other.get_common_field(i)->create_copy() : 0);    //copy if non-null, else null
 }
 
+void Variant::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+{
+  uint64_t add_size = 0ull;
+  //Header - column begin, end, num_calls, num_common_fields[unsigned]
+  add_size = 3*sizeof(uint64_t) + sizeof(unsigned);
+  RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+  //Col begin
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_col_begin;
+  offset += sizeof(uint64_t);
+  //Col end
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_col_end;
+  offset += sizeof(uint64_t);
+  //num calls
+  *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = get_num_calls();
+  offset += sizeof(uint64_t);
+  //num common fields
+  *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = get_num_common_fields();
+  offset += sizeof(unsigned);
+  //Serialize calls
+  for(auto i=0ull;i<get_num_calls();++i)
+    m_calls[i].binary_serialize(buffer, offset);
+  //Common fields
+  for(auto i=0u;i<get_num_common_fields();++i)
+  {
+    //Flag representing whether common field is valid and query idx for common field
+    add_size = sizeof(bool) + sizeof(unsigned);
+    RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+    auto& curr_field = m_fields[i];
+    //Flag representing whether common field is not null
+    *(reinterpret_cast<bool*>(&(buffer[offset]))) = (curr_field.get() && curr_field->is_valid()) ? true : false;
+    offset += sizeof(bool);
+    //Query idx for common field
+    *(reinterpret_cast<unsigned*>(&(buffer[offset]))) = get_query_idx_for_common_field(i);
+    offset += sizeof(unsigned);
+    //Serialize common field
+    if(curr_field.get() && curr_field->is_valid())
+      curr_field->binary_serialize(buffer, offset);
+  }
+}
+
+void Variant::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset, unsigned num_queried_attributes)
+{
+  assert(offset + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
+  //Col begin
+  auto col_begin = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //Col end
+  auto col_end = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //num calls
+  auto num_calls = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
+  offset += sizeof(uint64_t);
+  //num common fields
+  auto num_common_fields = *(reinterpret_cast<const unsigned*>(&(buffer[offset])));
+  offset += sizeof(unsigned);
+  //column info
+  set_column_interval(col_begin, col_end);
+  //Resize variant
+  resize(num_calls, num_queried_attributes);
+  resize_common_fields(num_common_fields);
+}
+
 bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
     std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants)
 {
@@ -494,4 +615,45 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
     curr_variant.add_call(std::move(to_move_call));
   }
   return newly_inserted;
+}
+
+void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
+    std::ostream& fptr, bool output_directly)
+{
+  static const std::unordered_map<std::string, unsigned> format_2_enum = {
+    { "Cotton-JSON", COTTON_JSON_OUTPUT_FORMAT_IDX },
+    { "GA4GH", GA4GH_OUTPUT_FORMAT_IDX }
+  };
+  unsigned output_format_idx = DEFAULT_OUTPUT_FORMAT_IDX;
+  auto iter = format_2_enum.find(output_format);
+  if(iter != format_2_enum.end())
+    output_format_idx = (*iter).second;
+  std::stringstream ss;
+  //if output stream is a stringstream, use it directly, else output to stringstream first
+  std::ostream& optr = (output_directly || dynamic_cast<std::ostringstream*>(&fptr)) ? fptr : ss;
+  switch(output_format_idx)
+  {
+    case COTTON_JSON_OUTPUT_FORMAT_IDX:
+      print_Cotton_JSON(optr, variants, query_config);
+      break;
+    case DEFAULT_OUTPUT_FORMAT_IDX:
+    default:
+      for(const auto& variant : variants)
+        variant.print(optr, &query_config);
+      break;
+  }
+  //If using stringstream as a temp buffer, print out to fptr
+  if(&optr == &ss)
+  {
+    std::string buffer;
+#define STRINGSTREAM_BUFFER_SIZE 65536u
+    buffer.resize(STRINGSTREAM_BUFFER_SIZE);
+    while(!(ss.eof()) && !(ss.fail()))
+    {
+      ss.read(&(buffer[0]), STRINGSTREAM_BUFFER_SIZE);
+      auto count = ss.gcount();
+      fptr.write(&(buffer[0]), count);
+    }
+    ss.clear();
+  }
 }

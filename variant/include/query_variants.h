@@ -133,6 +133,13 @@ class VariantQueryProcessor : public QueryProcessor {
         const int ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
     /*
+     * Create Variant from a buffer produced by the binary_serialize() functions
+     * This is a member of VariantQueryProcessor because the Factory methods are already setup for 
+     * constructing various types of fields.
+     */
+    void binary_deserialize(Variant& variant, const VariantQueryConfig& query_config,
+        const std::vector<uint8_t>& buffer, uint64_t& offset) const;
+    /*
      * Functions that determine number of elements for known fields
      */
     inline bool is_length_allele_dependent(unsigned enumIdx) const
@@ -239,7 +246,14 @@ class VariantQueryProcessor : public QueryProcessor {
         const unsigned num_ALT_alleles, const unsigned ploidy,
         const unsigned schema_idx
         ) const;
-
+    /*
+     * Prep work for filling out a field_ptr
+     * Allocates field_ptr using the Factory
+     * Marks field_ptr as valid
+     * Gets length_descriptor, num_elements for known fields
+     */
+    void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
+        unsigned& length_descriptor, unsigned& num_elements) const;
     /**
      * Variables to store versioning information about array schema
      */

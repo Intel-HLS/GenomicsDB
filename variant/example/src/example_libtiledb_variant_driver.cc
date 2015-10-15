@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <getopt.h>
 
 #include "libtiledb_variant.h"
 
@@ -7,8 +8,57 @@
 #include "gperftools/profiler.h"
 #endif
 
+enum ArgsEnum
+{
+  ARGS_IDX_TEST_SINGLE_POSITIONS=1000,
+  ARGS_IDX_TEST_UPDATE_ROWS,
+  ARGS_IDX_TEST_BINARY_SERIALIZATION,
+  ARGS_IDX_NUM_ARGS
+};
+
 int main(int argc, char *argv[]) {
-    if( argc < 5 ) {
+    // Define long options
+    static struct option long_options[] = 
+    {
+        {"single-positions",0,0,ARGS_IDX_TEST_SINGLE_POSITIONS},
+        {"test-update-rows",0,0,ARGS_IDX_TEST_UPDATE_ROWS},
+        {"page-size",1,0,'p'},
+        {"output-format",1,0,'O'},
+        {"test-binary-serialization",0,0,ARGS_IDX_TEST_BINARY_SERIALIZATION},
+        {0,0,0,0},
+    };
+    int c;
+    uint64_t page_size = 0u;
+    std::string output_format = "";
+    bool test_single_positions = false;
+    bool test_update_rows = false;
+    bool test_binary_serialization = false;
+    while((c=getopt_long(argc, argv, "p:O:", long_options, NULL)) >= 0)
+    {
+        switch(c)
+        {
+            case 'p':
+                page_size = strtoull(optarg, 0, 10);
+                break;
+            case 'O':
+                output_format = std::move(std::string(optarg));
+                break;
+            case ARGS_IDX_TEST_BINARY_SERIALIZATION:
+                test_binary_serialization = true;
+                break;
+            case ARGS_IDX_TEST_SINGLE_POSITIONS:
+                test_single_positions = true;
+                break;
+            case ARGS_IDX_TEST_UPDATE_ROWS:
+                test_update_rows = true;
+                break;
+            default:
+                std::cerr << "Unknown command line argument\n";
+                exit(-1);
+        }
+    }
+
+    if( optind + 4 > argc ) {
       char workspace[] = "/mnt/app_hdd/scratch/jagan/TileDB/DB/";
       char array_name[] = "10_DB";
       std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
@@ -17,31 +67,22 @@ int main(int argc, char *argv[]) {
         << " " << workspace << " " << array_name << " 762588 762600" << std::endl;
       return 0;
     }
+    std::string workspace = argv[optind];
+    std::string array_name = argv[optind+1];
+    uint64_t start = std::stoull(std::string(argv[optind+2]));
+    uint64_t end = std::stoull(std::string(argv[optind+3]));
 
-    uint64_t start = std::stoull(std::string(argv[3]));
-    uint64_t end = std::stoull(std::string(argv[4]));
-    unsigned page_size = 0;
+    //Local TileDB structures
+    /*Create storage manager*/
+    StorageManager sm(workspace);
+    /*Create query processor*/
+    VariantQueryProcessor qp(&sm, array_name);
 
-    bool single_position_queries = false;
-    bool test_update_rows = false;
-    if(argc >= 6) 
-      if(std::string(argv[5])=="--single-positions")
-        single_position_queries = true;
-      else
-        if(std::string(argv[5])=="--test-update-rows")
-          test_update_rows = true;
-        else
-          if(std::string(argv[5]) == "--page-size")
-          {
-            if(argc >= 7)
-              page_size = strtoull(argv[6], 0, 10);
-          }
-    
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
     //query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "PL", "GT", "AC", "DP", "PS"});
     query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
-    if(end > start && single_position_queries)
+    if(end > start && test_single_positions)
         //Add interval to query - begin, end
         for( uint64_t i = start; i <= end; ++i )
             query_config.add_column_interval_to_query(i, i);        //single position queries
@@ -50,12 +91,12 @@ int main(int argc, char *argv[]) {
 #ifdef USE_GPERFTOOLS
     ProfilerStart("gprofile.log");
 #endif
-    if(single_position_queries)
+    if(test_single_positions)
     {
         Variant variant;
         for( uint64_t i = start; i <= end; ++i ) {
             std::cout << "Position " << i << std::endl;
-            db_query_column(argv[1], argv[2], i-start, variant, query_config); 
+            db_query_column(workspace, array_name, i-start, variant, query_config); 
             std::cout << std::endl;
             variant.print(std::cout, &query_config);
         }
@@ -67,7 +108,7 @@ int main(int argc, char *argv[]) {
         {
           std::cout << "Querying only row 0\n";
           query_config.set_rows_to_query(std::vector<int64_t>(1u, 0ll));     //query row 0 only
-          db_query_column_range(argv[1], argv[2], 0ull, variants, query_config);
+          db_query_column_range(workspace, array_name, 0ull, variants, query_config);
           for(const auto& variant : variants)
               variant.print(std::cout, &query_config);
           variants.clear();
@@ -82,7 +123,7 @@ int main(int argc, char *argv[]) {
           paging_info = &tmp_paging_info;
           paging_info->set_page_size(page_size);
         }
-        db_query_column_range(argv[1], argv[2], 0ull, variants, query_config, paging_info);
+        db_query_column_range(workspace, array_name, 0ull, variants, query_config, paging_info);
 #ifdef DEBUG
         auto page_idx = 0u;
 #endif
@@ -95,7 +136,7 @@ int main(int argc, char *argv[]) {
           std::vector<Variant> tmp_vector;
           while(!(paging_info->is_query_completed()))
           {
-            db_query_column_range(argv[1], argv[2], 0ull, tmp_vector, query_config, paging_info);
+            db_query_column_range(workspace, array_name, 0ull, tmp_vector, query_config, paging_info);
             //Move to final vector
             for(auto& v : tmp_vector)
               variants.push_back(std::move(v));
@@ -106,13 +147,28 @@ int main(int argc, char *argv[]) {
             tmp_vector.clear();
           }
         }
-        for(const auto& variant : variants)
-            variant.print(std::cout, &query_config);
-        print_Cotton_JSON(std::cout, variants, query_config);
+        if(test_binary_serialization)
+        {
+            std::vector<uint8_t> buffer;
+            uint64_t offset = 0ull;
+            for(const auto& variant : variants)
+                variant.binary_serialize(buffer, offset);
+            //Clear vector and deserialize into same vector
+            auto serialized_length = offset;
+            offset = 0ull;
+            auto num_variants = variants.size();
+            variants.clear();
+            variants.resize(num_variants);
+            for(auto i=0ull;offset < serialized_length;++i)
+                qp.binary_deserialize(variants[i], query_config, buffer, offset);
+        }
+        print_variants(variants, output_format, query_config, std::cout);
     }
 #ifdef USE_GPERFTOOLS
     ProfilerStop();
 #endif
     db_cleanup();
+    sm.close_array(qp.get_array_descriptor());
+    return 0;
 }
 

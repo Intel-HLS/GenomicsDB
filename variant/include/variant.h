@@ -202,6 +202,14 @@ class VariantCall
      * Print JSON for Cotton
      */
     void print_Cotton_JSON(std::ostream& fptr, unsigned field_idx) const;
+    /*
+     * Binary serialize into buffer
+     */
+    void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
+    /*
+     * Deserialize header of VariantCall (column interval, num fields etc)
+     */
+    void binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset);
     /**
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
@@ -409,6 +417,14 @@ class Variant
     /** print **/
     void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0) const;
     /*
+     * Binary serialize into buffer
+     */
+    void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const;
+    /*
+     * Deserialize header of Variant (column interval, num calls etc)
+     */
+    void binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset, unsigned num_queried_attributes);
+    /*
      * Deep copy variant from src to this. Avoid using as much as possible
      */
     void copy_from_variant(const Variant& src);
@@ -461,6 +477,14 @@ class Variant
     {
       assert(idx < m_common_fields_query_idxs.size());
       return m_common_fields_query_idxs[idx];
+    }
+    /*
+     * Set query idx for given idx in common field vector
+     */
+    void set_query_idx_for_common_field(unsigned idx, unsigned query_idx)
+    {
+      assert(idx < m_common_fields_query_idxs.size());
+      m_common_fields_query_idxs[idx] = query_idx;
     }
     std::vector<unsigned>& get_common_fields_query_idxs() { return m_common_fields_query_idxs; }
     const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }
@@ -688,8 +712,20 @@ const VariantFieldTy* get_known_field(const VariantCall& curr_call, const Varian
 bool move_call_to_variant_vector(const VariantQueryConfig& query_config, VariantCall& to_move_call,
     std::vector<Variant>& variants, GA4GHCallInfoToVariantIdx& call_info_2_variant, bool stop_inserting_new_variants);
 
+enum VariantOutputFormatEnum
+{
+  COTTON_JSON_OUTPUT_FORMAT_IDX=0,
+  GA4GH_OUTPUT_FORMAT_IDX,
+  DEFAULT_OUTPUT_FORMAT_IDX
+};
+
 /*
  * JSON as required by John and Cotton
  */
 void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config);
+/*
+ * Prints variants in requested format
+ */
+void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
+    std::ostream& fptr=std::cout, bool output_directly=false);
 #endif
