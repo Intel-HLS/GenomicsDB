@@ -135,22 +135,52 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
   assert(m_json.HasMember("sqlite"));
   {
     const rapidjson::Value& v = m_json["sqlite"];
-    assert(v.IsString());
-    m_sqlite_filename = v.GetString();
+    //sqlite could be an array, one sqlite location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_sqlite_filename = v[rank].GetString();
+    }
+    else //sqlite is simply a string
+    {
+      assert(v.IsString());
+      m_sqlite_filename = v.GetString();
+    }
   }
   //VCF header filename
   assert(m_json.HasMember("vcf_header_filename"));
   {
     const rapidjson::Value& v = m_json["vcf_header_filename"];
-    assert(v.IsString());
-    m_vcf_header_filename = v.GetString();
+    //vcf_header_filename could be an array, one vcf_header_filename location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_vcf_header_filename = v[rank].GetString();
+    }
+    else //vcf_header_filename is simply a string
+    {
+      assert(v.IsString());
+      m_vcf_header_filename = v.GetString();
+    }
   }
   //VCF output filename
   if(m_json.HasMember("vcf_output_filename"))
   {
     const rapidjson::Value& v = m_json["vcf_output_filename"];
-    assert(v.IsString());
-    m_vcf_output_filename = v.GetString();
+    //vcf_output_filename could be an array, one vcf_output_filename location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_vcf_output_filename = v[rank].GetString();
+    }
+    else //vcf_output_filename is simply a string
+    {
+      assert(v.IsString());
+      m_vcf_output_filename = v.GetString();
+    }
   }
   else
     m_vcf_output_filename = "-";        //stdout
@@ -158,8 +188,18 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
   assert(m_json.HasMember("reference_genome"));
   {
     const rapidjson::Value& v = m_json["reference_genome"];
-    assert(v.IsString());
-    m_reference_genome = v.GetString();
+    //reference_genome could be an array, one reference_genome location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_reference_genome = v[rank].GetString();
+    }
+    else //reference_genome is simply a string
+    {
+      assert(v.IsString());
+      m_reference_genome = v.GetString();
+    }
   }
   vcf_adapter.initialize(m_sqlite_filename, m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
 }
