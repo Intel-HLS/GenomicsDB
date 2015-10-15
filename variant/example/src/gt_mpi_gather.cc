@@ -210,12 +210,14 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   }
 }
 
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
 void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
   qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
 }
+#endif
 
 int main(int argc, char *argv[]) {
   //Initialize MPI environment
@@ -302,7 +304,9 @@ int main(int argc, char *argv[]) {
   {
     RunConfig* run_config_ptr = 0;
     RunConfig range_query_run_config;
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
     VCFAdapterRunConfig scan_run_config;
+#endif
     if(do_range_query)
     {
       range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
@@ -355,7 +359,7 @@ int main(int argc, char *argv[]) {
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
   if(do_range_query)
     run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
-#ifdef HTSDIR
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
   else
     if(produce_Broad_GVCF)
       scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);

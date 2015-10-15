@@ -21,7 +21,9 @@
 
 
 #define bcf_int32_missing    INT32_MIN
+#define bcf_int32_vector_end (INT32_MIN+1)
 #define bcf_str_missing      0x07
+#define bcf_str_vector_end   0
 extern uint32_t bcf_float_vector_end;
 extern uint32_t bcf_float_missing;
 
