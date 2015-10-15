@@ -137,11 +137,16 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
+    GA4GHOperator(const VariantQueryConfig& query_config);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }
   private:
     Variant m_remapped_variant;
+    //Query idxs of fields that need to be remmaped - PL, AD etc
+    std::vector<unsigned> m_remapped_fields_query_idxs;
+    //Query idx of GT field, could be UNDEFINED_ATTRIBUTE_IDX_VALUE
+    unsigned m_GT_query_idx;
 };
 
 /*
