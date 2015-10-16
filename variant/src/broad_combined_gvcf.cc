@@ -17,7 +17,7 @@
 
 
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VariantQueryConfig& query_config) 
-: GA4GHOperator()
+: GA4GHOperator(query_config)
 {
   clear();
   m_query_config = &query_config;
@@ -88,11 +88,10 @@ void BroadCombinedGVCFOperator::clear()
 
 void BroadCombinedGVCFOperator::handle_INFO_fields()
 {
-  auto& copy_variant = m_variants[0];
   //interval variant, add END tag
-  if(copy_variant.get_column_end() > copy_variant.get_column_begin())
+  if(m_remapped_variant.get_column_end() > m_remapped_variant.get_column_begin())
   {
-    int vcf_end_pos = copy_variant.get_column_end() - m_curr_contig_begin_position + 1; //vcf END is 1 based
+    int vcf_end_pos = m_remapped_variant.get_column_end() - m_curr_contig_begin_position + 1; //vcf END is 1 based
     bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "END", &vcf_end_pos, 1);
   }
   //Compute median for all INFO fields
@@ -106,7 +105,7 @@ void BroadCombinedGVCFOperator::handle_INFO_fields()
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
     //Just need a 4-byte value, the contents could be a float or int (determined by the templated median function)
     int32_t median;
-    auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(copy_variant, *m_query_config,
+    auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(m_remapped_variant, *m_query_config,
         m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&median));
     if(valid_median_found)
       bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &median, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
@@ -115,13 +114,12 @@ void BroadCombinedGVCFOperator::handle_INFO_fields()
 
 void BroadCombinedGVCFOperator::handle_FORMAT_fields()
 {
-  auto& copy_variant = m_variants[0];
   //For weird DP field handling
   auto valid_DP_found = false;
   auto valid_MIN_DP_found = false; 
-  m_MIN_DP_vector.resize(copy_variant.get_num_calls()); //will do nothing after the first resize
+  m_MIN_DP_vector.resize(m_remapped_variant.get_num_calls()); //will do nothing after the first resize
   auto valid_DP_FORMAT_found = false; 
-  m_DP_FORMAT_vector.resize(copy_variant.get_num_calls());
+  m_DP_FORMAT_vector.resize(m_remapped_variant.get_num_calls());
   //Pointer to extended vector inside field handler object 
   const void* ptr = 0;
   auto num_elements = 0u;
@@ -135,7 +133,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
     auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
     //valid field handler
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get()); 
-    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(copy_variant, *m_query_config,
+    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(m_remapped_variant, *m_query_config,
         m_query_config->get_query_idx_for_known_field_enum(known_field_enum), &ptr, num_elements);
     if(valid_field_found)
     {
@@ -152,11 +150,11 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
           do_insert = m_should_add_GQ_field;
           break;
         case GVCF_MIN_DP_IDX: //simply copy over min-dp values
-          memcpy(&(m_MIN_DP_vector[0]), ptr, copy_variant.get_num_calls()*sizeof(int));
+          memcpy(&(m_MIN_DP_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_MIN_DP_found = true;
           break;
         case GVCF_DP_FORMAT_IDX:
-          memcpy(&(m_DP_FORMAT_vector[0]), ptr, copy_variant.get_num_calls()*sizeof(int));
+          memcpy(&(m_DP_FORMAT_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_DP_FORMAT_found = true;
           do_insert = false; //Do not insert DP_FORMAT, wait till DP is read
           break;
@@ -177,7 +175,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
   if(valid_DP_found || valid_DP_FORMAT_found)
   {
     int sum_INFO_DP = 0;
-    for(auto j=0ull;j<copy_variant.get_num_calls();++j)
+    for(auto j=0ull;j<m_remapped_variant.get_num_calls();++j)
     {
       int dp_info_val = valid_DP_found ? int_vec[j] : get_bcf_missing_value<int>();
       int dp_format_val = valid_DP_FORMAT_found ? m_DP_FORMAT_vector[j] : get_bcf_missing_value<int>();
@@ -206,21 +204,19 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
 void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
   GA4GHOperator::operate(variant, query_config);
-  assert(m_variants.size() == 1u);      //one variant added by GA4GHOperator::operate, re-orders PL, AD etc
-  auto& copy_variant = m_variants[0];
   //Moved to new contig
-  if(copy_variant.get_column_begin() >= m_next_contig_begin_position)
+  if(m_remapped_variant.get_column_begin() >= m_next_contig_begin_position)
     switch_contig();
   //clear out
   bcf_clear(m_bcf_out);
   //position
   m_bcf_out->rid = m_curr_contig_hdr_idx;
-  m_bcf_out->pos = copy_variant.get_column_begin() - m_curr_contig_begin_position;
+  m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
   //Update alleles
-  auto& ref_allele = dynamic_cast<VariantFieldString*>(copy_variant.get_common_field(0u).get())->get();
+  auto& ref_allele = dynamic_cast<VariantFieldString*>(m_remapped_variant.get_common_field(0u).get())->get();
   if(ref_allele.length() == 1u && ref_allele[0] == 'N')
     ref_allele[0] = m_vcf_adapter->get_reference_base_at_position(m_curr_contig_name.c_str(), m_bcf_out->pos);
-  const auto& alt_alleles = dynamic_cast<VariantFieldALTData*>(copy_variant.get_common_field(1u).get())->get();
+  const auto& alt_alleles = dynamic_cast<VariantFieldALTData*>(m_remapped_variant.get_common_field(1u).get())->get();
   auto total_num_merged_alleles = alt_alleles.size() + 1u;      //+1 for REF
   if(total_num_merged_alleles > m_alleles_pointer_buffer.size())
     m_alleles_pointer_buffer.resize(total_num_merged_alleles);
@@ -240,8 +236,6 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   m_vcf_adapter->print_bcf_line(m_bcf_out);
   //Change ALT alleles in calls with deletions to *, <NON_REF>
   handle_deletions(variant, query_config);
-  //Last line in this function always
-  m_variants.clear();
 }
 
 void BroadCombinedGVCFOperator::switch_contig()

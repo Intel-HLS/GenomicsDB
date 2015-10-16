@@ -320,8 +320,25 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
 }
 
 //GA4GHOperator functions
-GA4GHOperator::GA4GHOperator() : SingleVariantOperatorBase()
+GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config)
+  : SingleVariantOperatorBase()
 {
+  m_GT_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+  m_remapped_fields_query_idxs.clear();
+  for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
+  {
+    //is known field
+    if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
+    {
+      const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+      //known field whose length is dependent on #alleles
+      if(info_ptr && info_ptr->is_length_allele_dependent())
+        m_remapped_fields_query_idxs.push_back(query_field_idx);
+      //GT field
+      if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
+        m_GT_query_idx = query_field_idx;
+    }
+  }
   m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
   for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
   {
@@ -373,77 +390,71 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
 {
   //Compute merged REF and ALT
   SingleVariantOperatorBase::operate(variant, query_config);
-  //Store copy of variant in vector<Variant>
-  m_variants.emplace_back();
-  Variant& copy = m_variants[m_variants.size()-1u];
-  copy.copy_from_variant(variant);      //Create copy to store altered PL fields
-  //Setup code for re-ordering PL/AD etc field elements in copy
+  //Copy variant to m_remapped_variant
+  m_remapped_variant.copy_from_variant(variant);
+  //Setup code for re-ordering PL/AD etc field elements in m_remapped_variant
   unsigned num_merged_alleles = m_merged_alt_alleles.size()+1u;        //+1 for REF allele
   unsigned num_genotypes = (num_merged_alleles*(num_merged_alleles+1u))/2u;
-  for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
+  //Known fields that need to be re-mapped
+  for(auto query_field_idx : m_remapped_fields_query_idxs)
   {
-    //is known field?
-    if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
+    assert(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx));
+    const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+    //known field whose length is dependent on #alleles
+    assert(info_ptr && info_ptr->is_length_allele_dependent());
+    unsigned num_merged_elements = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
+    //Remapper for m_remapped_variant
+    RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
+    //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
+    for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
     {
-      const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
-      //known field whose length is dependent on #alleles
-      if(info_ptr && info_ptr->is_length_allele_dependent())
+      auto& curr_call = *iter;
+      auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+      auto& curr_field = curr_call.get_field(query_field_idx);
+      if(curr_field.get() && curr_field->is_valid())      //Not null
       {
-        unsigned num_merged_elements = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
-        //Remapper for copy
-        RemappedVariant remapper_variant(copy, query_field_idx); 
-        //Iterate over valid calls - copy and variant have same list of valid calls
-        for(auto iter=copy.begin();iter!=copy.end();++iter)
-        {
-          auto& curr_call = *iter;
-          auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-          auto& curr_field = curr_call.get_field(query_field_idx);
-          if(curr_field.get() && curr_field->is_valid())      //Not null
-          {
-            curr_field->resize(num_merged_elements);
-            //Get handler for current type
-            auto& handler = get_handler_for_type(curr_field->get_element_type());
-            assert(handler.get());
-            //Call remap function
-            handler->remap_vector_data(
-                variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx), curr_call_idx_in_variant,
-                m_alleles_LUT, num_merged_alleles, m_NON_REF_exists,
-                info_ptr->get_length_descriptor(), num_merged_elements, remapper_variant);
-          }
-        }
+        curr_field->resize(num_merged_elements);
+        //Get handler for current type
+        auto& handler = get_handler_for_type(curr_field->get_element_type());
+        assert(handler.get());
+        //Call remap function
+        handler->remap_vector_data(
+            variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx), curr_call_idx_in_variant,
+            m_alleles_LUT, num_merged_alleles, m_NON_REF_exists,
+            info_ptr->get_length_descriptor(), num_merged_elements, remapper_variant);
       }
-      //GT field
-      if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
+    }
+  }
+  //if GT field is queried
+  if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+  {
+    //Valid calls
+    for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
+    {
+      auto& curr_call = *iter;
+      auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+      auto& curr_field = curr_call.get_field(m_GT_query_idx);
+      if(curr_field.get() && curr_field->is_valid())      //Not null
       {
-        //Valid calls
-        for(auto iter=copy.begin();iter!=copy.end();++iter)
-        {
-          auto& curr_call = *iter;
-          auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-          auto& curr_field = curr_call.get_field(query_field_idx);
-          if(curr_field.get() && curr_field->is_valid())      //Not null
-          {
-            auto& input_GT =
-              variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(query_field_idx)->get();
-            auto& output_GT = 
-              curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(query_field_idx)->get();
-            VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant);
-          }
-        }
+        auto& input_GT =
+          variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+        auto& output_GT = 
+          curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+        VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant);
       }
     }
   }
   //Set common fields - REF and ALT for now
-  copy.resize_common_fields(2u);
+  m_remapped_variant.resize_common_fields(2u);
   auto* REF_ptr = new VariantFieldString();
   REF_ptr->set_valid(true);
   REF_ptr->get() = std::move(m_merged_reference_allele);        //get returns string&
-  copy.set_common_field(0u, query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX), REF_ptr);
+  m_remapped_variant.set_common_field(0u, query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX), REF_ptr);
   //ALT
   auto* ALT_ptr = new VariantFieldALTData();
   ALT_ptr->set_valid(true);
   ALT_ptr->get() = std::move(m_merged_alt_alleles);        //get returns vector<string>&
-  copy.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
+  m_remapped_variant.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
   //Do not use m_merged_alt_alleles and m_merged_reference_allele after this point
 }
 

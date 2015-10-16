@@ -203,14 +203,19 @@ class VariantFieldHandler : public VariantFieldHandlerBase
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    GA4GHOperator();
-    void clear() { m_variants.clear(); }
+    GA4GHOperator(const VariantQueryConfig& query_config);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
-    const std::vector<Variant>& get_variants() const { return m_variants; }
-    std::vector<Variant>& get_variants() { return m_variants; }
-    std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
+    const Variant& get_remapped_variant() const { return m_remapped_variant; }
+    Variant& get_remapped_variant() { return m_remapped_variant; }
   protected:
-    std::vector<Variant> m_variants;
+    Variant m_remapped_variant;
+    //Query idxs of fields that need to be remmaped - PL, AD etc
+    std::vector<unsigned> m_remapped_fields_query_idxs;
+    //Query idx of GT field, could be UNDEFINED_ATTRIBUTE_IDX_VALUE
+    unsigned m_GT_query_idx;
+    //Get handler based on type of field
+    std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
+    //Handlers for various fields
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
 };
 

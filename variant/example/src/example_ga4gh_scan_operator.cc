@@ -27,16 +27,12 @@ int main(int argc, char** argv) {
     query_config.add_column_interval_to_query(cl.m_position, cl.m_end_position);
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
   //Use GA4GH VariantOperators
-  GA4GHOperator variant_operator;
+  GA4GHOperator variant_operator(query_config);
   variant_operator.clear();
 #if 0
   //Do scan and operate
   qp.scan_and_operate(ad_gVCF, query_config, variant_operator, 0u);
 #endif
-  //Print variants - aligned variants (interval splitting, REF, ALT merging etc done)
-  for(const auto& variant : variant_operator.get_variants())
-    variant.print(output_stream, &query_config);
-
   sm.close_array(qp.get_array_descriptor());
   if(cl.m_output_fstream.is_open())
     cl.m_output_fstream.close();

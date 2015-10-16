@@ -565,14 +565,12 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
   std::cerr << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
 #endif
-  GA4GHOperator variant_operator;
+  GA4GHOperator variant_operator(query_config);
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
     {
-      variant_operator.clear();
       variant_operator.operate(variants[i], query_config);
-      assert(variant_operator.get_variants().size() == 1u);     //exactly one variant
-      variants[i] = std::move(variant_operator.get_variants()[0]);
+      variants[i].copy_from_variant(variant_operator.get_remapped_variant());   //copy is cheaper than move, since it avoids re-allocations in future
     }
   if(paging_info)
     paging_info->serialize_page_end(m_array_schema->array_name());
