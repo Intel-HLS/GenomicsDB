@@ -119,7 +119,7 @@ vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<strin
     "REF",
     "ALT",
     "QUAL",
-    "FILTER_ID",
+    "FILTER",
     "BaseQRankSum",
     "ClippingRankSum",
     "MQRankSum",
