@@ -37,8 +37,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void clear();
     void switch_contig();
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
-    void handle_INFO_fields();
-    void handle_FORMAT_fields();
+    void handle_INFO_fields(const Variant& variant);
+    void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
   private:
     const VariantQueryConfig* m_query_config;

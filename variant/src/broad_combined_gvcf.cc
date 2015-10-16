@@ -90,7 +90,7 @@ void BroadCombinedGVCFOperator::clear()
   m_spanning_deletions_remapped_fields.clear();
 }
 
-void BroadCombinedGVCFOperator::handle_INFO_fields()
+void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
 {
   //interval variant, add END tag
   if(m_remapped_variant.get_column_end() > m_remapped_variant.get_column_begin())
@@ -109,14 +109,14 @@ void BroadCombinedGVCFOperator::handle_INFO_fields()
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
     //Just need a 4-byte value, the contents could be a float or int (determined by the templated median function)
     int32_t median;
-    auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(m_remapped_variant, *m_query_config,
+    auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(variant, *m_query_config,
         m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&median));
     if(valid_median_found)
       bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &median, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
   }
 }
 
-void BroadCombinedGVCFOperator::handle_FORMAT_fields()
+void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
 {
   //For weird DP field handling
   auto valid_DP_found = false;
@@ -136,9 +136,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields()
     assert(known_field_enum < g_known_variant_field_names.size());
     auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
     //valid field handler
-    assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get()); 
-    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(m_remapped_variant, *m_query_config,
-        m_query_config->get_query_idx_for_known_field_enum(known_field_enum), &ptr, num_elements);
+    assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+    //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
+    //else we should use field objects from the original variant
+    auto query_field_idx = m_query_config->get_query_idx_for_known_field_enum(known_field_enum);
+    auto& src_variant = (KnownFieldInfo::is_length_allele_dependent(known_field_enum)) ? m_remapped_variant : variant;
+    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
+        query_field_idx, &ptr, num_elements);
     if(valid_field_found)
     {
       auto j=0u;
@@ -234,9 +238,9 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //m_should_add_GQ_field = (m_NON_REF_exists && alt_alleles.size() == 1u);
   m_should_add_GQ_field = true; //always added in new version of CombineGVCFs
   //INFO fields
-  handle_INFO_fields();
+  handle_INFO_fields(variant);
   //FORMAT fields
-  handle_FORMAT_fields();
+  handle_FORMAT_fields(variant);
   m_vcf_adapter->print_bcf_line(m_bcf_out);
   //Change ALT alleles in calls with deletions to *, <NON_REF>
   handle_deletions(variant, query_config);

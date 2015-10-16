@@ -215,6 +215,11 @@ class VariantCall
      */
     void set_contains_deletion(bool val) { m_contains_deletion = val; }
     bool contains_deletion() const { return m_is_valid && m_contains_deletion; }
+    /*
+     * Only copy simple elements and resize m_fields vector
+     * Do not copy the fields themselves
+     */
+    void deep_copy_simple_members(const VariantCall& src);
   private:
     /*
      * Performs move from other object
@@ -490,9 +495,18 @@ class Variant
     const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }
     unsigned get_num_common_fields() const { return m_fields.size(); }
     const std::vector<std::unique_ptr<VariantFieldBase>>& get_common_fields() const { return m_fields; }
+    /*
+     * Copies simple member elements from other as well as simple member
+     * elements of other's VariantCall objects
+     */
+    void deep_copy_simple_members(const Variant& other);
+    /*
+     * Copy common fields and query idxs associated with those fields
+     */
+    void copy_common_fields(const Variant& other);
   private:
     //Function that moves from other to self
-    void move_in(Variant& other);
+    void move_in(Variant& other); 
     /*
      * Copies simple member elements from other
      */

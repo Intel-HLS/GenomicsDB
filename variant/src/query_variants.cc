@@ -570,7 +570,7 @@ void VariantQueryProcessor::gt_get_column_interval(
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
     {
       variant_operator.operate(variants[i], query_config);
-      variants[i].copy_from_variant(variant_operator.get_remapped_variant());   //copy is cheaper than move, since it avoids re-allocations in future
+      variant_operator.copy_back_remapped_fields(variants[i]); //copy back fields that have been remapped
     }
   if(paging_info)
     paging_info->serialize_page_end(m_array_schema->array_name());
