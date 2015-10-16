@@ -181,7 +181,8 @@ class VariantFieldData<std::string> : public VariantFieldBase
         ptr = static_cast<const char*>(base_ptr + sizeof(int));
         offset += sizeof(int);
       }
-      m_data = std::move(std::string(ptr, num_elements));
+      m_data.resize(num_elements);
+      memcpy(&(m_data[0]), ptr, num_elements*sizeof(char));
       bool is_missing_flag = true;
       for(auto val : m_data)
         if(val != NULL_CHAR)
