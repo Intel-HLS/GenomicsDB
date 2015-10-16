@@ -452,8 +452,8 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
 {
   //Compute merged REF and ALT
   SingleVariantOperatorBase::operate(variant, query_config);
-  //Copy variant to m_remapped_variant
-  m_remapped_variant.copy_from_variant(variant);
+  //Copy variant to m_remapped_variant - only simple elements, not all fields
+  m_remapped_variant.deep_copy_simple_members(variant);
   //Setup code for re-ordering PL/AD etc field elements in m_remapped_variant
   unsigned num_merged_alleles = m_merged_alt_alleles.size()+1u;        //+1 for REF allele
   unsigned num_genotypes = (num_merged_alleles*(num_merged_alleles+1u))/2u;
@@ -471,15 +471,17 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
     for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
     {
-      auto& curr_call = *iter;
+      auto& remapped_call = *iter;
       auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-      auto& curr_field = curr_call.get_field(query_field_idx);
-      if(curr_field.get() && curr_field->is_valid())      //Not null
+      auto& remapped_field = remapped_call.get_field(query_field_idx);
+      auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx);
+      copy_field(remapped_field, orig_field);
+      if(remapped_field.get() && remapped_field->is_valid())      //Not null
       {
-        curr_field->resize(field_size);   //resize field in m_remapped_variant
-        assert(g_variant_field_type_index_to_enum.find(curr_field->get_element_type()) != 
+        remapped_field->resize(field_size);   //resize field in m_remapped_variant
+        assert(g_variant_field_type_index_to_enum.find(remapped_field->get_element_type()) != 
             g_variant_field_type_index_to_enum.end());
-        switch(g_variant_field_type_index_to_enum[curr_field->get_element_type()])
+        switch(g_variant_field_type_index_to_enum[remapped_field->get_element_type()])
         {
           case VARIANT_FIELD_INT:
             REMAP_MACRO(int, bcf_int32_missing);
@@ -506,7 +508,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
             REMAP_MACRO(char, '\0');
             break;
           default:
-            std::cerr << "Unhandled type " << g_variant_field_type_index_to_enum[curr_field->get_element_type()] << "\n";  //unhandled type
+            std::cerr << "Unhandled type " << g_variant_field_type_index_to_enum[remapped_field->get_element_type()] << "\n";  //unhandled type
             exit(-1);
             break;
         }
@@ -519,15 +521,17 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     //Valid calls
     for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
     {
-      auto& curr_call = *iter;
+      auto& remapped_call = *iter;
       auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-      auto& curr_field = curr_call.get_field(m_GT_query_idx);
-      if(curr_field.get() && curr_field->is_valid())      //Not null
+      auto& remapped_field = remapped_call.get_field(m_GT_query_idx);
+      auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(m_GT_query_idx);
+      copy_field(remapped_field, orig_field);
+      if(remapped_field.get() && remapped_field->is_valid())      //Not null
       {
         auto& input_GT =
           variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
         auto& output_GT = 
-          curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+          remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
         VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant);
       }
     }
@@ -544,6 +548,36 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   ALT_ptr->get() = std::move(m_merged_alt_alleles);        //get returns vector<string>&
   m_remapped_variant.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
   //Do not use m_merged_alt_alleles and m_merged_reference_allele after this point
+}
+
+void GA4GHOperator::copy_back_remapped_fields(Variant& variant) const
+{
+  for(auto query_field_idx : m_remapped_fields_query_idxs)
+  {
+    //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
+    for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
+    {
+      auto& remapped_call = *iter;
+      auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+      const auto& remapped_field = remapped_call.get_field(query_field_idx);
+      auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx);
+      copy_field(orig_field, remapped_field);
+    }
+  }
+  //if GT field is queried
+  if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+  {
+    //Valid calls
+    for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
+    {
+      auto& remapped_call = *iter;
+      auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+      const auto& remapped_field = remapped_call.get_field(m_GT_query_idx);
+      auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(m_GT_query_idx);
+      copy_field(orig_field, remapped_field);
+    }
+  }
+  variant.copy_common_fields(m_remapped_variant);
 }
 
 void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)

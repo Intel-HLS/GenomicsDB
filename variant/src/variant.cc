@@ -280,6 +280,12 @@ void VariantCall::copy_from_call(const VariantCall& other)
   copy_fields(m_fields, other.get_all_fields());
 }
 
+void VariantCall::deep_copy_simple_members(const VariantCall& other)
+{
+  copy_simple_members(other);  //make copy
+  resize(other.get_num_fields());
+}
+
 void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
 {
   uint64_t add_size = 0ull;
@@ -552,6 +558,11 @@ void Variant::copy_from_variant(const Variant& other)
   m_calls.resize(other.get_num_calls());
   for(auto i=0ull;i<other.get_num_calls();++i)
     m_calls[i].copy_from_call(other.get_call(i));  //make copy
+  copy_common_fields(other);
+}
+
+void Variant::copy_common_fields(const Variant& other)
+{
   //Resize common fields
   resize_common_fields(other.get_num_common_fields());
   if(get_num_common_fields())
@@ -560,6 +571,16 @@ void Variant::copy_from_variant(const Variant& other)
     memcpy(&(m_common_fields_query_idxs[0]), &(other.get_common_fields_query_idxs()[0]), m_common_fields_query_idxs.size()*sizeof(unsigned));
     copy_fields(m_fields, other.get_common_fields());
   }
+}
+
+void Variant::deep_copy_simple_members(const Variant& other)
+{
+  //Copy simple primitive members
+  copy_simple_members(other);
+  //Copy simple primitive members of member calls
+  m_calls.resize(other.get_num_calls());
+  for(auto i=0ull;i<other.get_num_calls();++i)
+    m_calls[i].deep_copy_simple_members(other.get_call(i));
 }
 
 void Variant::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const

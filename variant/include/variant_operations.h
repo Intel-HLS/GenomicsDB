@@ -141,6 +141,7 @@ class GA4GHOperator : public SingleVariantOperatorBase
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }
+    void copy_back_remapped_fields(Variant& variant) const;
   private:
     Variant m_remapped_variant;
     //Query idxs of fields that need to be remmaped - PL, AD etc
