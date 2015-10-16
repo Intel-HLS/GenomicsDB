@@ -136,15 +136,12 @@ class VariantCall
     void resize(unsigned num_fields)
     { m_fields.resize(num_fields);  }
     /**
-     * Set field transfers ownership of field data to member unique ptr. The argument field is released from
-     * managing more memory
+     * Set field does a move transfers ownership of field data to member unique ptr. 
      */
     inline void set_field(unsigned idx, std::unique_ptr<VariantFieldBase>& field)
     {
       assert(idx < m_fields.size());
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
-      VariantFieldBase* ptr = field.release();      //Release field from management
-      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
+      m_fields[idx] = std::move(field); //transfer ownership of pointer
     }
     /*
      * Set field through raw pointer
@@ -152,7 +149,6 @@ class VariantCall
     inline void set_field(unsigned idx, VariantFieldBase* field)
     {
       assert(idx < m_fields.size());
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
       m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
     }
     void add_field(std::unique_ptr<VariantFieldBase>& field)
@@ -214,6 +210,11 @@ class VariantCall
      * Deep copy VariantCall, avoid using as much as possible (performance)
      */
     void copy_from_call(const VariantCall& src);
+    /*
+     * Only copy simple elements and resize m_fields vector
+     * Do not copy the fields themselves
+     */
+    void deep_copy_simple_members(const VariantCall& src);
   private:
     /*
      * Performs move from other object
@@ -443,9 +444,7 @@ class Variant
     {
       assert(idx < m_fields.size());
       m_common_fields_query_idxs[idx] = query_idx;
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
-      auto ptr = field.release();
-      m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(ptr)); //transfer ownership of pointer
+      m_fields[idx] = std::move(field); //transfer ownership of pointer
     }
     /*
      * Create unique_ptr around raw ptr
@@ -454,7 +453,6 @@ class Variant
     {
       assert(idx < m_fields.size());
       m_common_fields_query_idxs[idx] = query_idx;
-      assert(m_fields[idx].get() == 0);        //should not be managing any memory
       m_fields[idx] = std::move(std::unique_ptr<VariantFieldBase>(field)); //transfer ownership of pointer
     }
     /*
@@ -489,9 +487,19 @@ class Variant
     std::vector<unsigned>& get_common_fields_query_idxs() { return m_common_fields_query_idxs; }
     const std::vector<unsigned>& get_common_fields_query_idxs() const { return m_common_fields_query_idxs; }
     unsigned get_num_common_fields() const { return m_fields.size(); }
+    const std::vector<std::unique_ptr<VariantFieldBase>>& get_common_fields() const { return m_fields; }
+    /*
+     * Copies simple member elements from other as well as simple member
+     * elements of other's VariantCall objects
+     */
+    void deep_copy_simple_members(const Variant& other);
+    /*
+     * Copy common fields and query idxs associated with those fields
+     */
+    void copy_common_fields(const Variant& other);
   private:
     //Function that moves from other to self
-    void move_in(Variant& other);
+    void move_in(Variant& other); 
     /*
      * Copies simple member elements from other
      */
@@ -728,4 +736,10 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
  */
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
     std::ostream& fptr=std::cout, bool output_directly=false);
+/*
+ * Copies field from src to dst. Optimized to reduce #re-allocations
+ * Handles the case where src and/or dst may be null
+ */
+void copy_field(std::unique_ptr<VariantFieldBase>& dst, const std::unique_ptr<VariantFieldBase>& src);
+void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std::vector<std::unique_ptr<VariantFieldBase>>& src);
 #endif

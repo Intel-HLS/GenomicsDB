@@ -64,10 +64,10 @@ class VariantOperations
     /*
      * Obtains a merged ALT list as defined in BCF spec
      */
-    static const std::vector<std::string>  merge_alt_alleles(const Variant& variant,
+    static void merge_alt_alleles(const Variant& variant,
         const VariantQueryConfig& query_config,
         const std::string& merged_reference_allele,
-        CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists);
+        CombineAllelesLUT& alleles_LUT, std::vector<std::string>& merged_alt_alleles, bool& NON_REF_exists);
     /*
      * Remaps GT field of Calls in the combined Variant based on new allele order
      */
@@ -137,12 +137,17 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    void clear() { m_variants.clear(); }
+    GA4GHOperator(const VariantQueryConfig& query_config);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
-    const std::vector<Variant>& get_variants() const { return m_variants; }
-    std::vector<Variant>& get_variants() { return m_variants; }
+    const Variant& get_remapped_variant() const { return m_remapped_variant; }
+    Variant& get_remapped_variant() { return m_remapped_variant; }
+    void copy_back_remapped_fields(Variant& variant) const;
   private:
-    std::vector<Variant> m_variants;
+    Variant m_remapped_variant;
+    //Query idxs of fields that need to be remmaped - PL, AD etc
+    std::vector<unsigned> m_remapped_fields_query_idxs;
+    //Query idx of GT field, could be UNDEFINED_ATTRIBUTE_IDX_VALUE
+    unsigned m_GT_query_idx;
 };
 
 /*

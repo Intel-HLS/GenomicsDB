@@ -170,6 +170,41 @@ void GA4GHPagingInfo::deserialize_page_end()
     throw InvalidGA4GHPageTokenException("Invalid GA4GH page token "+m_last_page_end_token+", TileDB-GA4GH page token should be of the form: <array_name>_<row>_<column>_<#handled_variants> - #handled_variants not detected");
 }
 
+
+//Common functions used by VariantCall and Variant
+
+//Function that copies field from src to dst
+//Tries to minimize #re-allocations on the heap
+void copy_field(std::unique_ptr<VariantFieldBase>& dst, const std::unique_ptr<VariantFieldBase>& src)
+{
+  auto dst_non_null = dst.get() ? 1u : 0u;
+  auto src_non_null = src.get() ? 1u : 0u;
+  auto combined = (dst_non_null << 1u) | src_non_null;
+  switch(combined)
+  {
+    case 0u:     //both null, nothing to do
+      break;
+    case 1u:     //dst null, src non-null, create copy
+      dst = std::move(std::unique_ptr<VariantFieldBase>(src->create_copy()));
+      break;
+    case 2u:     //dst non-null, src null, invalidate
+      dst->set_valid(false);
+      break;
+    case 3u:     //both non-null, do fast copy
+      dst->copy_from(src.get());
+      break;
+    default:
+      break;
+  }
+}
+
+void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std::vector<std::unique_ptr<VariantFieldBase>>& src)
+{
+  dst.resize(src.size());
+  for(auto i=0u;i<src.size();++i)
+    copy_field(dst[i], src[i]);
+}
+
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config) const
 {
@@ -227,7 +262,6 @@ void VariantCall::copy_simple_members(const VariantCall& other)
  */
 void VariantCall::move_in(VariantCall& other)
 {
-  clear();
   copy_simple_members(other);
   m_fields.resize(other.get_all_fields().size());
   unsigned idx = 0u;
@@ -242,15 +276,14 @@ void VariantCall::move_in(VariantCall& other)
  */
 void VariantCall::copy_from_call(const VariantCall& other)
 {
-  clear();
   copy_simple_members(other);
-  m_fields.resize(other.get_all_fields().size());
-  unsigned idx = 0u;
-  for(const auto& other_field : other.get_all_fields())
-  {
-    set_field(idx, other_field.get() ? other_field->create_copy() : 0); //if non-null, create copy, else null
-    ++idx;
-  }
+  copy_fields(m_fields, other.get_all_fields());
+}
+
+void VariantCall::deep_copy_simple_members(const VariantCall& other)
+{
+  copy_simple_members(other);  //make copy
+  resize(other.get_num_fields());
 }
 
 void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
@@ -505,8 +538,6 @@ void Variant::clear()
 //Function that moves information from other to self
 void Variant::move_in(Variant& other)
 {
-  //De-allocates existing data
-  clear();
   //Copy simple primitives
   copy_simple_members(other);
   //Move Calls
@@ -521,19 +552,35 @@ void Variant::move_in(Variant& other)
 
 void Variant::copy_from_variant(const Variant& other)
 {
-  //De-allocates existing data
-  clear();
   //Copy simple primitive members
   copy_simple_members(other);
   //Copy Calls
   m_calls.resize(other.get_num_calls());
   for(auto i=0ull;i<other.get_num_calls();++i)
     m_calls[i].copy_from_call(other.get_call(i));  //make copy
-  //Copy common fields
+  copy_common_fields(other);
+}
+
+void Variant::copy_common_fields(const Variant& other)
+{
+  //Resize common fields
   resize_common_fields(other.get_num_common_fields());
-  for(auto i=0u;i<other.get_num_common_fields();++i)
-    set_common_field(i, other.get_query_idx_for_common_field(i), 
-        other.get_common_field(i).get() ? other.get_common_field(i)->create_copy() : 0);    //copy if non-null, else null
+  if(get_num_common_fields())
+  {
+    //Copy query idxs
+    memcpy(&(m_common_fields_query_idxs[0]), &(other.get_common_fields_query_idxs()[0]), m_common_fields_query_idxs.size()*sizeof(unsigned));
+    copy_fields(m_fields, other.get_common_fields());
+  }
+}
+
+void Variant::deep_copy_simple_members(const Variant& other)
+{
+  //Copy simple primitive members
+  copy_simple_members(other);
+  //Copy simple primitive members of member calls
+  m_calls.resize(other.get_num_calls());
+  for(auto i=0ull;i<other.get_num_calls();++i)
+    m_calls[i].deep_copy_simple_members(other.get_call(i));
 }
 
 void Variant::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
