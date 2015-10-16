@@ -73,6 +73,9 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   }
   bcf_hdr_sync(m_vcf_hdr);
   m_vcf_adapter->print_header();
+  //vector of field pointers used for handling remapped fields when dealing with spanning deletions
+  //Individual pointers will be allocated later
+  m_spanning_deletions_remapped_fields.resize(m_remapped_fields_query_idxs.size());
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -84,6 +87,7 @@ void BroadCombinedGVCFOperator::clear()
   m_FORMAT_fields_vec.clear();
   m_MIN_DP_vector.clear();
   m_DP_FORMAT_vector.clear();
+  m_spanning_deletions_remapped_fields.clear();
 }
 
 void BroadCombinedGVCFOperator::handle_INFO_fields()
@@ -303,43 +307,41 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       ref_allele = "N"; //set to unknown REF for now
       alt_alleles[0u] = g_vcf_SPANNING_DELETION;
       unsigned num_reduced_alleles = alt_alleles.size() + 1u;   //+1 for REF
-      //Remap known fields
-      for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
+      //Remap fields that need to be remapped
+      for(auto i=0u;i<m_remapped_fields_query_idxs.size();++i)
       {
+        auto query_field_idx = m_remapped_fields_query_idxs[i];
         //is known field?
-        if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
+        assert(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx));
+        const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
+        //known field whose length is dependent on #alleles
+        assert(info_ptr && info_ptr->is_length_allele_dependent());
+        unsigned num_reduced_elements = info_ptr->get_num_elements_for_known_field_enum(num_reduced_alleles-1u, 0u);     //#alt alleles
+        //Remapper for variant
+        RemappedVariant remapper_variant(variant, query_field_idx); 
+        auto& curr_field = curr_call.get_field(query_field_idx);
+        if(curr_field.get() && curr_field->is_valid())      //Not null
         {
-          const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
-          //known field whose length is dependent on #alleles
-          if(info_ptr && info_ptr->is_length_allele_dependent())
-          {
-            unsigned num_reduced_elements = info_ptr->get_num_elements_for_known_field_enum(num_reduced_alleles-1u, 0u);     //#alt alleles
-            //Remapper for variant
-            RemappedVariant remapper_variant(variant, query_field_idx); 
-            auto& curr_field = curr_call.get_field(query_field_idx);
-            if(curr_field.get() && curr_field->is_valid())      //Not null
-            {
-              //Create copy to pass to remap function 
-              std::unique_ptr<VariantFieldBase> copy_field(curr_field->create_copy());
-              curr_field->resize(num_reduced_elements);
-              //Get handler for current type
-              auto& handler = get_handler_for_type(curr_field->get_element_type());
-              assert(handler.get());
-              //Call remap function
-              handler->remap_vector_data(
-                  copy_field, curr_call_idx_in_variant,
-                  m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF,
-                  info_ptr->get_length_descriptor(), num_reduced_elements, remapper_variant);
-            }
-          }
-          //Broad's CombineGVCF ignores GT field anyway - set missing
-          if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
-          {
-            auto& GT_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_GT_IDX)->get();
-            for(auto i=0u;i<GT_vector.size();++i)
-              GT_vector[i] = NULL_INT; 
-          }
+          //Copy field to pass to remap function 
+          assert(i < m_spanning_deletions_remapped_fields.size());
+          copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
+          curr_field->resize(num_reduced_elements);
+          //Get handler for current type
+          auto& handler = get_handler_for_type(curr_field->get_element_type());
+          assert(handler.get());
+          //Call remap function
+          handler->remap_vector_data(
+              m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
+              m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF,
+              info_ptr->get_length_descriptor(), num_reduced_elements, remapper_variant);
         }
+      }
+      //Broad's CombineGVCF ignores GT field anyway - set missing
+      if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+      {
+        auto& GT_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_GT_IDX)->get();
+        for(auto i=0u;i<GT_vector.size();++i)
+          GT_vector[i] = NULL_INT; 
       }
       //Invalidate INFO fields
       for(const auto& tuple : m_INFO_fields_vec)

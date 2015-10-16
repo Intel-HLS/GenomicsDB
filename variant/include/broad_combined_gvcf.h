@@ -63,6 +63,9 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     std::vector<int> m_DP_FORMAT_vector;
     //Used for handling deletions - remapping PL/AD where a deletion is replaced with *
     CombineAllelesLUT m_reduced_alleles_LUT;
+    //vector of field pointers used for handling remapped fields when dealing with spanning deletions
+    //avoids re-allocation overhead
+    std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
 };
 
 #endif //ifdef HTSDIR

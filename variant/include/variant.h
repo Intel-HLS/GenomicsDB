@@ -729,4 +729,10 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
  */
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
     std::ostream& fptr=std::cout, bool output_directly=false);
+/*
+ * Copies field from src to dst. Optimized to reduce #re-allocations
+ * Handles the case where src and/or dst may be null
+ */
+void copy_field(std::unique_ptr<VariantFieldBase>& dst, const std::unique_ptr<VariantFieldBase>& src);
+void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std::vector<std::unique_ptr<VariantFieldBase>>& src);
 #endif
