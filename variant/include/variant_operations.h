@@ -64,10 +64,10 @@ class VariantOperations
     /*
      * Obtains a merged ALT list as defined in BCF spec
      */
-    static const std::vector<std::string>  merge_alt_alleles(const Variant& variant,
+    static void merge_alt_alleles(const Variant& variant,
         const VariantQueryConfig& query_config,
         const std::string& merged_reference_allele,
-        CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists);
+        CombineAllelesLUT& alleles_LUT, std::vector<std::string>& merged_alt_alleles, bool& NON_REF_exists);
     /*
      * Remaps GT field of Calls in the combined Variant based on new allele order
      */

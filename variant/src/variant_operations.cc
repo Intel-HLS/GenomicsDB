@@ -98,15 +98,15 @@ void VariantOperations::merge_reference_allele(const Variant& variant, const Var
  * @param variant - self explanatory
  * @param merged_reference_allele - the merged reference produced by merge_reference_allele
  * @param alleles_LUT -  LUT containing mapping of allele idxs between merged variant and input variants
- * @return vector of merged alt allele strings
+ * @param merged_alt_alleles vector of merged alt allele strings
  */
-const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Variant& variant,
+void VariantOperations::merge_alt_alleles(const Variant& variant,
     const VariantQueryConfig& query_config,
     const std::string& merged_reference_allele,
-    CombineAllelesLUT& alleles_LUT, bool& NON_REF_exists) {
+    CombineAllelesLUT& alleles_LUT, std::vector<std::string>& merged_alt_alleles, bool& NON_REF_exists) {
   // marking non_reference_allele as already seen will ensure it's not included in the middle
   auto seen_alleles = std::unordered_map<std::string, int>{{g_vcf_NON_REF,-1}};
-  auto merged_alt_alleles = std::vector<std::string>{};
+  merged_alt_alleles.clear();
   auto merged_reference_length = merged_reference_allele.length();
   //invalidate all existing mappings in the LUT
   alleles_LUT.reset_luts();
@@ -194,7 +194,6 @@ const std::vector<std::string>  VariantOperations::merge_alt_alleles(const Varia
             non_reference_allele_idx);
     }
   }
-  return merged_alt_alleles;
 }
 
 /*
@@ -233,7 +232,8 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
   //initialize to number of samples
   CombineAllelesLUT alleles_LUT { static_cast<unsigned>(variant.get_num_calls()) };
   bool NON_REF_exists = false;
-  auto& merged_alt_alleles = merge_alt_alleles(variant, query_config, merged_reference_allele, alleles_LUT, NON_REF_exists);
+  std::vector<std::string> merged_alt_alleles;
+  merge_alt_alleles(variant, query_config, merged_reference_allele, alleles_LUT, merged_alt_alleles, NON_REF_exists);
 
   //Allocate space for remapped PL
   auto num_calls = variant.get_num_calls();
@@ -301,15 +301,15 @@ void SingleVariantOperatorBase::clear()
 
 void SingleVariantOperatorBase::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
+  m_merged_reference_allele.resize(0u);
+  m_merged_alt_alleles.clear();
   //REF allele
   VariantOperations::merge_reference_allele(variant, query_config, m_merged_reference_allele);
   //ALT alleles
   //set #rows to number of calls
   m_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 10u);    //arbitrary non-0 second arg, will be resized correctly anyway
-  auto& merged_alt_alleles =  VariantOperations::merge_alt_alleles(variant, query_config, m_merged_reference_allele, m_alleles_LUT,
-      m_NON_REF_exists);
-  //Move to class member
-  m_merged_alt_alleles = std::move(merged_alt_alleles);
+  VariantOperations::merge_alt_alleles(variant, query_config, m_merged_reference_allele, m_alleles_LUT,
+      m_merged_alt_alleles, m_NON_REF_exists);
 }
 
 //Dummy genotyping operator
@@ -374,6 +374,10 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config)
         break;
     }
   }
+  //Set common fields - REF and ALT for now
+  m_remapped_variant.resize_common_fields(2u);
+  m_remapped_variant.set_common_field(0u, query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX), 0);
+  m_remapped_variant.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), 0);
 }
 
 std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
@@ -448,18 +452,33 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
       }
     }
   }
-  //Set common fields - REF and ALT for now
-  m_remapped_variant.resize_common_fields(2u);
-  auto* REF_ptr = new VariantFieldString();
+  uint64_t offset = 0;
+  //Assign REF and ALT common fields
+  auto& REF = m_remapped_variant.get_common_field(0u);
+  if(REF.get() == 0)
+    REF = std::move(std::unique_ptr<VariantFieldString>(new VariantFieldString()));
+  auto REF_ptr = dynamic_cast<VariantFieldString*>(REF.get());
+  assert(REF_ptr);
   REF_ptr->set_valid(true);
-  REF_ptr->get() = std::move(m_merged_reference_allele);        //get returns string&
-  m_remapped_variant.set_common_field(0u, query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX), REF_ptr);
+  offset = 0ull;
+  REF_ptr->binary_deserialize(&(m_merged_reference_allele[0]), offset, BCF_VL_FIXED, m_merged_reference_allele.length());
   //ALT
-  auto* ALT_ptr = new VariantFieldALTData();
+  auto& ALT = m_remapped_variant.get_common_field(1u);
+  if(ALT.get() == 0)
+    ALT = std::move(std::unique_ptr<VariantFieldALTData>(new VariantFieldALTData()));
+  auto ALT_ptr =  dynamic_cast<VariantFieldALTData*>(ALT.get()); 
+  assert(ALT_ptr);
   ALT_ptr->set_valid(true);
-  ALT_ptr->get() = std::move(m_merged_alt_alleles);        //get returns vector<string>&
-  m_remapped_variant.set_common_field(1u, query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX), ALT_ptr);
-  //Do not use m_merged_alt_alleles and m_merged_reference_allele after this point
+  auto& ALT_vec = ALT_ptr->get();
+  ALT_vec.resize(m_merged_alt_alleles.size());
+  for(auto i=0u;i<m_merged_alt_alleles.size();++i)
+  {
+    auto& orig = m_merged_alt_alleles[i];
+    auto alt_length = orig.length();
+    auto& curr_copy = ALT_vec[i];
+    curr_copy.resize(alt_length);
+    memcpy(&(curr_copy[0]), &(orig[0]), alt_length*sizeof(char));
+  }
 }
 
 void GA4GHOperator::copy_back_remapped_fields(Variant& variant) const
