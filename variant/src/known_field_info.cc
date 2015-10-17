@@ -9,7 +9,7 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "REF",
     "ALT",
     "QUAL",
-    "FILTER_ID",
+    "FILTER",
     "BaseQRankSum",
     "ClippingRankSum",
     "MQRankSum",
