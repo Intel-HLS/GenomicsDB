@@ -681,6 +681,8 @@ void print_variants(const std::vector<Variant>& variants, const std::string& out
   std::stringstream ss;
   //if output stream is a stringstream, use it directly, else output to stringstream first
   std::ostream& optr = (output_directly || dynamic_cast<std::ostringstream*>(&fptr)) ? fptr : ss;
+  optr << std::fixed;
+  optr << std::setprecision(6);
   switch(output_format_idx)
   {
     case COTTON_JSON_OUTPUT_FORMAT_IDX:
