@@ -151,8 +151,10 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       {
         case GVCF_GT_IDX: //GT field is a pita
           int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
+          //CombineGVCF sets GT field to missing
           for(j=0u;j<num_elements;++j)
-            int_vec[j] = (int_vec[j] == get_bcf_missing_value<int>()) ? bcf_gt_missing : bcf_gt_unphased(int_vec[j]);
+            int_vec[j] = bcf_gt_missing;
+          //int_vec[j] = (int_vec[j] == get_bcf_missing_value<int>()) ? bcf_gt_missing : bcf_gt_unphased(int_vec[j]);
           break;
         case GVCF_GQ_IDX:
           do_insert = m_should_add_GQ_field;
