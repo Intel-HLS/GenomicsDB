@@ -137,7 +137,17 @@ class VariantUtils
       return (REF_length > 1u) && !IS_NON_REF_ALLELE(alt_allele) && (alt_allele.length() < REF_length);
     }
     inline static bool is_symbolic_allele(const std::string& allele)
-    { return IS_NON_REF_ALLELE(allele) || allele == g_vcf_SPANNING_DELETION; }
+    {
+      return IS_NON_REF_ALLELE(allele)
+        || (allele == g_vcf_SPANNING_DELETION)
+        || (
+            allele.length() > 0u &&
+            (
+             (allele[0] == '<' && allele[allele.length()-1u] == '>') || 
+             (allele.find_first_of('[') != std::string::npos || allele.find_first_of(']') != std::string::npos)
+            ) 
+           );
+    }
 };
 
 #endif
