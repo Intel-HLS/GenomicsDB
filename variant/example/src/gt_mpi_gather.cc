@@ -248,6 +248,7 @@ int main(int argc, char *argv[]) {
     {"output-format",1,0,'O'},
     {"workspace",1,0,'w'},
     {"json-config",1,0,'j'},
+    {"segment-size",1,0,'s'},
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
     {"array",1,0,'A'},
@@ -262,7 +263,8 @@ int main(int argc, char *argv[]) {
   bool skip_query_on_root = false;
   bool do_range_query = true;
   bool produce_Broad_GVCF = false;
-  while((c=getopt_long(argc, argv, "j:w:A:p:O:", long_options, NULL)) >= 0)
+  size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
+  while((c=getopt_long(argc, argv, "j:w:A:p:O:s:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
@@ -278,6 +280,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'A':
         array_name = std::move(std::string(optarg));
+        break;
+      case 's':
+        segment_size = strtoull(optarg, 0, 10);
         break;
       case ARGS_IDX_SKIP_QUERY_ON_ROOT:
         skip_query_on_root = true;
@@ -352,8 +357,11 @@ int main(int argc, char *argv[]) {
 #ifdef USE_GPERFTOOLS
   ProfilerStart("gprofile.log");
 #endif
+#if VERBOSE>0
+  std::cerr << "Segment size: "<<segment_size<<" bytes\n";
+#endif
   /*Create storage manager*/
-  StorageManager sm(workspace);
+  StorageManager sm(workspace, segment_size);
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);

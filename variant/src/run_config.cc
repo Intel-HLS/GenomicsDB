@@ -5,42 +5,45 @@
 
 #include "run_config.h"
 
+#define VERIFY_OR_THROW(X) if(!(X)) throw RunConfigException(#X);
+
 void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank)
 {
   std::ifstream ifs(filename.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
   //Workspace
-  assert(m_json.HasMember("workspace"));
+  VERIFY_OR_THROW(m_json.HasMember("workspace"));
   {
     const rapidjson::Value& workspace = m_json["workspace"];
     //workspace could be an array, one workspace dir for every rank
     if(workspace.IsArray())
     {
-      assert(rank < workspace.Size());
-      assert(workspace[rank].IsString());
+      VERIFY_OR_THROW(rank < workspace.Size());
+      VERIFY_OR_THROW(workspace[rank].IsString());
       m_workspace = workspace[rank].GetString();
     }
     else //workspace is simply a string
     {
-      assert(workspace.IsString());
+      VERIFY_OR_THROW(workspace.IsString());
       m_workspace = workspace.GetString();
     }
   }
   //Array
-  assert(m_json.HasMember("array"));
+  VERIFY_OR_THROW(m_json.HasMember("array"));
   {
     const rapidjson::Value& array_name = m_json["array"];
     //array could be an array, one array dir for every rank
     if(array_name.IsArray())
     {
-      assert(rank < array_name.Size());
-      assert(array_name[rank].IsString());
+      VERIFY_OR_THROW(rank < array_name.Size());
+      VERIFY_OR_THROW(array_name[rank].IsString());
       m_array_name = array_name[rank].GetString();
     }
     else //array is simply a string
     {
-      assert(array_name.IsString());
+      VERIFY_OR_THROW(array_name.IsString());
       m_array_name = array_name.GetString();
     }
   }
@@ -49,29 +52,29 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
   //This means that rank 0 will have 2 query intervals: [0-5] and [45-45] and rank 1 will have
   //2 intervals [76-76] and [87-87]
   //But you could have a single innermost list - with this option all ranks will query the same list 
-  assert(m_json.HasMember("query_column_ranges") || m_json.HasMember("scan_full"));
+  VERIFY_OR_THROW(m_json.HasMember("query_column_ranges") || m_json.HasMember("scan_full"));
   if(m_json.HasMember("query_column_ranges"))
   {
     const rapidjson::Value& q1 = m_json["query_column_ranges"];
-    assert(q1.IsArray());
+    VERIFY_OR_THROW(q1.IsArray());
     //Single element list or rank < size
-    assert(q1.Size() == 1 || rank < q1.Size());
+    VERIFY_OR_THROW(q1.Size() == 1 || rank < q1.Size());
     const rapidjson::Value& q2 = (q1.Size() == 1) ? q1[0u] : q1[rank];
-    assert(q2.IsArray());
+    VERIFY_OR_THROW(q2.IsArray());
     for(rapidjson::SizeType i=0;i<q2.Size();++i)
     {
       const rapidjson::Value& q3 = q2[i];
       //q3 is list of 2 elements to represent query interval
       if(q3.IsArray())
       {
-        assert(q3.Size() == 2);
-        assert(q3[0u].IsInt64());
-        assert(q3[1u].IsInt64());
+        VERIFY_OR_THROW(q3.Size() == 2);
+        VERIFY_OR_THROW(q3[0u].IsInt64());
+        VERIFY_OR_THROW(q3[1u].IsInt64());
         query_config.add_column_interval_to_query(q3[0u].GetInt64(), q3[1u].GetInt64());
       }
       else //single position
       {
-        assert(q3.IsInt64());
+        VERIFY_OR_THROW(q3.IsInt64());
         query_config.add_column_interval_to_query(q3.GetInt64(), q3.GetInt64());
       }
     }
@@ -84,11 +87,11 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
   if(m_json.HasMember("query_row_ranges"))
   {
     const rapidjson::Value& q1 = m_json["query_row_ranges"];
-    assert(q1.IsArray());
+    VERIFY_OR_THROW(q1.IsArray());
     //Single element list or rank < size
-    assert(q1.Size() == 1 || rank < q1.Size());
+    VERIFY_OR_THROW(q1.Size() == 1 || rank < q1.Size());
     const rapidjson::Value& q2 = (q1.Size() == 1) ? q1[0u] : q1[rank];
-    assert(q2.IsArray());
+    VERIFY_OR_THROW(q2.IsArray());
     std::vector<int64_t> row_idxs;
     for(rapidjson::SizeType i=0;i<q2.Size();++i)
     {
@@ -96,29 +99,29 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
       //q3 is list of 2 elements to represent query row interval
       if(q3.IsArray())
       {
-        assert(q3.Size() == 2);
-        assert(q3[0u].IsInt64());
-        assert(q3[1u].IsInt64());
+        VERIFY_OR_THROW(q3.Size() == 2);
+        VERIFY_OR_THROW(q3[0u].IsInt64());
+        VERIFY_OR_THROW(q3[1u].IsInt64());
         for(auto i=q3[0u].GetInt64();i<=q3[1u].GetInt64();++i)
           row_idxs.push_back(i);
       }
       else //single position
       {
-        assert(q3.IsInt64());
+        VERIFY_OR_THROW(q3.IsInt64());
         row_idxs.push_back(q3.GetInt64());
       }
     }
     query_config.set_rows_to_query(row_idxs);
   }
-  assert(m_json.HasMember("query_attributes"));
+  VERIFY_OR_THROW(m_json.HasMember("query_attributes"));
   {
     const rapidjson::Value& q1 = m_json["query_attributes"];
-    assert(q1.IsArray());
+    VERIFY_OR_THROW(q1.IsArray());
     std::vector<std::string> attributes(q1.Size());
     for(rapidjson::SizeType i=0;i<q1.Size();++i)
     {
       const rapidjson::Value& q2 = q1[i];
-      assert(q2.IsString());
+      VERIFY_OR_THROW(q2.IsString());
       attributes[i] = std::move(std::string(q2.GetString()));
     }
     query_config.set_attributes_to_query(attributes);
@@ -132,36 +135,36 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
 {
   RunConfig::read_from_file(filename, query_config, rank);
   //SQLite file name
-  assert(m_json.HasMember("sqlite"));
+  VERIFY_OR_THROW(m_json.HasMember("sqlite"));
   {
     const rapidjson::Value& v = m_json["sqlite"];
     //sqlite could be an array, one sqlite location for every rank
     if(v.IsArray())
     {
-      assert(rank < v.Size());
-      assert(v[rank].IsString());
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
       m_sqlite_filename = v[rank].GetString();
     }
     else //sqlite is simply a string
     {
-      assert(v.IsString());
+      VERIFY_OR_THROW(v.IsString());
       m_sqlite_filename = v.GetString();
     }
   }
   //VCF header filename
-  assert(m_json.HasMember("vcf_header_filename"));
+  VERIFY_OR_THROW(m_json.HasMember("vcf_header_filename"));
   {
     const rapidjson::Value& v = m_json["vcf_header_filename"];
     //vcf_header_filename could be an array, one vcf_header_filename location for every rank
     if(v.IsArray())
     {
-      assert(rank < v.Size());
-      assert(v[rank].IsString());
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
       m_vcf_header_filename = v[rank].GetString();
     }
     else //vcf_header_filename is simply a string
     {
-      assert(v.IsString());
+      VERIFY_OR_THROW(v.IsString());
       m_vcf_header_filename = v.GetString();
     }
   }
@@ -172,32 +175,32 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
     //vcf_output_filename could be an array, one vcf_output_filename location for every rank
     if(v.IsArray())
     {
-      assert(rank < v.Size());
-      assert(v[rank].IsString());
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
       m_vcf_output_filename = v[rank].GetString();
     }
     else //vcf_output_filename is simply a string
     {
-      assert(v.IsString());
+      VERIFY_OR_THROW(v.IsString());
       m_vcf_output_filename = v.GetString();
     }
   }
   else
     m_vcf_output_filename = "-";        //stdout
   //Reference genome
-  assert(m_json.HasMember("reference_genome"));
+  VERIFY_OR_THROW(m_json.HasMember("reference_genome"));
   {
     const rapidjson::Value& v = m_json["reference_genome"];
     //reference_genome could be an array, one reference_genome location for every rank
     if(v.IsArray())
     {
-      assert(rank < v.Size());
-      assert(v[rank].IsString());
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
       m_reference_genome = v[rank].GetString();
     }
     else //reference_genome is simply a string
     {
-      assert(v.IsString());
+      VERIFY_OR_THROW(v.IsString());
       m_reference_genome = v.GetString();
     }
   }

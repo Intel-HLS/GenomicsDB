@@ -7,7 +7,18 @@
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
-#include <fstream>
+
+//Exceptions thrown 
+class RunConfigException {
+  public:
+    RunConfigException(const std::string m="") : msg_("RunConfigException : "+m) { ; }
+    ~RunConfigException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
 
 class RunConfig
 {
