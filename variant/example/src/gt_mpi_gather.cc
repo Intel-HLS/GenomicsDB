@@ -5,16 +5,24 @@
 #include "libtiledb_variant.h"
 #include "run_config.h"
 #include "timer.h"
+#include "broad_combined_gvcf.h"
+
 #ifdef USE_BIGMPI
 #include "bigmpi.h"
 #endif
 
+#ifdef USE_GPERFTOOLS
+#include "gperftools/profiler.h"
+#endif
+
 enum ArgsEnum
 {
-  ARGS_IDX_SKIP_QUERY_ON_ROOT=1000
+  ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
+  ARGS_IDX_PRODUCE_BROAD_GVCF
 };
 
 #define MegaByte (1024*1024)
+
 #ifdef DO_PROFILING
 enum TimerTypesEnum
 {
@@ -42,19 +50,9 @@ auto g_timer_names = std::vector<std::string>
 #define ASSERT(X) assert(X)
 #endif
 
-int main(int argc, char *argv[]) {
-  //Initialize MPI environment
-  auto rc = MPI_Init(0, 0);
-  if (rc != MPI_SUCCESS) {
-    printf ("Error starting MPI program. Terminating.\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
-  }
-  //Get number of MPI processes
-  int num_mpi_processes = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &num_mpi_processes);
-  //Get my world rank
-  int my_world_mpi_rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
+void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const std::string& output_format,
+    int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
+{
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
   //Performance measurements
@@ -64,92 +62,6 @@ int main(int argc, char *argv[]) {
   GTProfileStats stats;
   stats_ptr = &stats;
 #endif
-#ifdef DEBUG
-  //Print host, rank and LD_LIBRARY_PATH
-  std::vector<char> hostname;
-  hostname.resize(500u);
-  gethostname(&(hostname[0]), hostname.size());
-  if(my_world_mpi_rank == 0)
-    std::cerr << "#processes "<<num_mpi_processes<<"\n";
-  std::cerr << "Host : "<< &(hostname[0]) << " rank "<< my_world_mpi_rank << " LD_LIBRARY_PATH= "<<getenv("LD_LIBRARY_PATH") << "\n";
-#endif
-  // Define long options
-  static struct option long_options[] = 
-  {
-    {"page-size",1,0,'p'},
-    {"output-format",1,0,'O'},
-    {"workspace",1,0,'w'},
-    {"json-config",1,0,'j'},
-    {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
-    {"array",1,0,'A'},
-    {0,0,0,0},
-  };
-  int c;
-  uint64_t page_size = 0u;
-  std::string output_format = "";
-  std::string workspace = "";
-  std::string array_name = "";
-  std::string json_config_file = "";
-  bool skip_query_on_root = false;
-  while((c=getopt_long(argc, argv, "j:w:A:p:O:", long_options, NULL)) >= 0)
-  {
-    switch(c)
-    {
-      case 'p':
-        page_size = strtoull(optarg, 0, 10);
-        std::cerr << "WARNING: page size is ignored for now\n";
-        break;
-      case 'O':
-        output_format = std::move(std::string(optarg));
-        break;
-      case 'w':
-        workspace = std::move(std::string(optarg));
-        break;
-      case 'A':
-        array_name = std::move(std::string(optarg));
-        break;
-      case ARGS_IDX_SKIP_QUERY_ON_ROOT:
-        skip_query_on_root = true;
-        break;
-      case 'j':
-        json_config_file = std::move(std::string(optarg));
-        break;
-      default:
-        std::cerr << "Unknown command line argument\n";
-        exit(-1);
-    }
-  }
-  //Use VariantQueryConfig to setup query info
-  VariantQueryConfig query_config;
-  //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
-  if(json_config_file != "")
-  {
-    g_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
-    workspace = g_run_config.m_workspace;
-    array_name = g_run_config.m_array_name;
-  }
-  else
-  {
-    if( optind + 2 > argc ) {
-      std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-      std::cout << "Usage: " << argv[0] << "  ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
-      return -1;
-    }
-    uint64_t start = std::stoull(std::string(argv[optind]));
-    uint64_t end = std::stoull(std::string(argv[optind+1])); 
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
-    query_config.add_column_interval_to_query(start, end);
-  }
-  if(workspace == "" || array_name == "")
-  {
-    std::cerr << "Missing workspace(-w) or array name (-A)\n";
-    return -1;
-  }
-  /*Create storage manager*/
-  StorageManager sm(workspace);
-  /*Create query processor*/
-  VariantQueryProcessor qp(&sm, array_name);
-  qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
   //Variants vector
   std::vector<Variant> variants;
   //Perform query if not root or !skip_query_on_root
@@ -296,6 +208,166 @@ int main(int argc, char *argv[]) {
     }
 #endif
   }
+}
+
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
+void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+    int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
+{
+  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
+  qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
+}
+#endif
+
+int main(int argc, char *argv[]) {
+  //Initialize MPI environment
+  auto rc = MPI_Init(0, 0);
+  if (rc != MPI_SUCCESS) {
+    printf ("Error starting MPI program. Terminating.\n");
+    MPI_Abort(MPI_COMM_WORLD, rc);
+  }
+  //Get number of MPI processes
+  int num_mpi_processes = 0;
+  MPI_Comm_size(MPI_COMM_WORLD, &num_mpi_processes);
+  //Get my world rank
+  int my_world_mpi_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
+#ifdef DEBUG
+  //Print host, rank and LD_LIBRARY_PATH
+  std::vector<char> hostname;
+  hostname.resize(500u);
+  gethostname(&(hostname[0]), hostname.size());
+  if(my_world_mpi_rank == 0)
+    std::cerr << "#processes "<<num_mpi_processes<<"\n";
+  std::cerr << "Host : "<< &(hostname[0]) << " rank "<< my_world_mpi_rank << " LD_LIBRARY_PATH= "<<getenv("LD_LIBRARY_PATH") << "\n";
+#endif
+  // Define long options
+  static struct option long_options[] = 
+  {
+    {"page-size",1,0,'p'},
+    {"output-format",1,0,'O'},
+    {"workspace",1,0,'w'},
+    {"json-config",1,0,'j'},
+    {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
+    {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
+    {"array",1,0,'A'},
+    {0,0,0,0},
+  };
+  int c;
+  uint64_t page_size = 0u;
+  std::string output_format = "";
+  std::string workspace = "";
+  std::string array_name = "";
+  std::string json_config_file = "";
+  bool skip_query_on_root = false;
+  bool do_range_query = true;
+  bool produce_Broad_GVCF = false;
+  while((c=getopt_long(argc, argv, "j:w:A:p:O:", long_options, NULL)) >= 0)
+  {
+    switch(c)
+    {
+      case 'p':
+        page_size = strtoull(optarg, 0, 10);
+        std::cerr << "WARNING: page size is ignored for now\n";
+        break;
+      case 'O':
+        output_format = std::move(std::string(optarg));
+        break;
+      case 'w':
+        workspace = std::move(std::string(optarg));
+        break;
+      case 'A':
+        array_name = std::move(std::string(optarg));
+        break;
+      case ARGS_IDX_SKIP_QUERY_ON_ROOT:
+        skip_query_on_root = true;
+        break;
+      case ARGS_IDX_PRODUCE_BROAD_GVCF:
+        produce_Broad_GVCF = true;
+        do_range_query = false;
+        break;
+      case 'j':
+        json_config_file = std::move(std::string(optarg));
+        break;
+      default:
+        std::cerr << "Unknown command line argument\n";
+        exit(-1);
+    }
+  }
+  //Use VariantQueryConfig to setup query info
+  VariantQueryConfig query_config;
+#ifdef HTSDIR
+  VCFAdapter vcf_adapter;
+#endif
+  //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
+  if(json_config_file != "")
+  {
+    RunConfig* run_config_ptr = 0;
+    RunConfig range_query_run_config;
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
+    VCFAdapterRunConfig scan_run_config;
+#endif
+    if(do_range_query)
+    {
+      range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+      run_config_ptr = &range_query_run_config;
+    }
+    else
+      if(produce_Broad_GVCF)
+      {
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
+        scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, output_format, my_world_mpi_rank);
+        run_config_ptr = static_cast<RunConfig*>(&scan_run_config);
+#else
+        std::cerr << "Cannot produce Broad's combined GVCF without htslib and bcftools. Re-compile with HTSDIR and BCFTOOLSDIR variables set\n";
+        exit(-1);
+#endif
+      }
+    ASSERT(run_config_ptr);
+    workspace = run_config_ptr->m_workspace;
+    array_name = run_config_ptr->m_array_name;
+  }
+  else
+  {
+    if( optind + 2 > argc ) {
+      std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
+      std::cout << "Usage: " << argv[0] << "  ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
+      return -1;
+    }
+    uint64_t start = std::stoull(std::string(argv[optind]));
+    uint64_t end = std::stoull(std::string(argv[optind+1])); 
+    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
+    query_config.add_column_interval_to_query(start, end);
+    if(produce_Broad_GVCF)
+    {
+      std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
+      exit(-1);
+    }
+  }
+  if(workspace == "" || array_name == "")
+  {
+    std::cerr << "Missing workspace(-w) or array name (-A)\n";
+    return -1;
+  }
+#ifdef USE_GPERFTOOLS
+  ProfilerStart("gprofile.log");
+#endif
+  /*Create storage manager*/
+  StorageManager sm(workspace);
+  /*Create query processor*/
+  VariantQueryProcessor qp(&sm, array_name);
+  qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
+  if(do_range_query)
+    run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+#if defined(HTSDIR) && defined(BCFTOOLSDIR)
+  else
+    if(produce_Broad_GVCF)
+      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+#endif
+#ifdef USE_GPERFTOOLS
+  ProfilerStop();
+#endif
+
   MPI_Finalize();
   sm.close_array(qp.get_array_descriptor());
   return 0;

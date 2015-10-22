@@ -47,14 +47,19 @@ endif
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
 CC  = $(MPIPATH)mpicc
 CXX = $(MPIPATH)mpicxx
-CPPFLAGS=-std=c++11 -fPIC -fvisibility=hidden \
+CPPFLAGS=-std=c++11 -fPIC \
       $(LFS_CFLAGS) $(CFLAGS)
 
 #HTSDIR=../../htslib
 
+ifdef BCFTOOLSDIR
+    CPPFLAGS+=-I$(BCFTOOLSDIR) -DBCFTOOLSDIR
+    LDFLAGS+=-Wl,-Bstatic -L$(BCFTOOLSDIR) -lbcftools -Wl,-Bdynamic -lpthread -lz -lm -ldl -lsqlite3
+endif
+
 ifdef HTSDIR
-  CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
-  LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
+    CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
+    LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
 ifdef RAPIDJSON_INCLUDE_DIR
@@ -74,7 +79,7 @@ endif
 
 ifdef USE_GPERFTOOLS
     GPERFTOOLSDIR ?= /home/karthikg/softwares/gperftools-2.2/install/
-    CPPFLAGS+=-DUSE_GPERFTOOLS --no-inline -I$(GPERFTOOLSDIR)/include
+    CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
     LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
 endif
 

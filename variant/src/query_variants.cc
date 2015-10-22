@@ -45,37 +45,6 @@ Tile::const_iterator get_first_cell_after(const Tile& tile, uint64_t column)
 }
 #endif
 
-unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const
-{
-  unsigned length = 0u;
-  unsigned num_alleles = num_ALT_alleles + 1u;
-  switch(m_length_descriptor)
-  {
-    case BCF_VL_FIXED:
-      length = m_num_elements;
-      break;
-    case BCF_VL_VAR:
-      length = 1u;      //function that reads from tile will know what to do
-      break;
-    case BCF_VL_A:
-      length = num_ALT_alleles;
-      break;
-    case BCF_VL_R:
-      length = num_alleles;
-      break;
-    case BCF_VL_G:
-      length = (num_alleles*(num_alleles+1))/2;
-      break;
-    case BCF_VL_P:
-      length = ploidy;
-      break;
-    default:
-      cerr << "Unknown length descriptor "<<m_length_descriptor<<" - ignoring\n";
-      break;
-  }
-  return length;
-}
-
 //Profiling functions
 GTProfileStats::GTProfileStats()
 {
@@ -114,40 +83,11 @@ void GTProfileStats::print_stats(std::ostream& fptr) const
 
 //Static members
 bool VariantQueryProcessor::m_are_static_members_initialized = false;
-vector<string> VariantQueryProcessor::m_known_variant_field_names = vector<string>{
-    "END",
-    "REF",
-    "ALT",
-    "QUAL",
-    "FILTER",
-    "BaseQRankSum",
-    "ClippingRankSum",
-    "MQRankSum",
-    "ReadPosRankSum",
-    "DP",
-    "MQ",
-    "MQ0",
-    "DP_FMT",
-    "MIN_DP",
-    "GQ",
-    "SB",
-    "AD",
-    "PL",
-    "AF",
-    "AN",
-    "AC",
-    "GT",
-    "PS"
-};
-unordered_map<string, unsigned> VariantQueryProcessor::m_known_variant_field_name_to_enum;
 unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator;
-std::vector<KnownFieldInfo> VariantQueryProcessor::m_known_field_enum_to_info;
 
 //Initialize static members function
 void VariantQueryProcessor::initialize_static_members()
 {
-  for(auto i=0u;i<VariantQueryProcessor::m_known_variant_field_names.size();++i)
-    VariantQueryProcessor::m_known_variant_field_name_to_enum[VariantQueryProcessor::m_known_variant_field_names[i]] = i;
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int))] = 
@@ -164,26 +104,19 @@ void VariantQueryProcessor::initialize_static_members()
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<double>>());
   //Char becomes string instead of vector<char>
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(char))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>());
-  //Mapping from known_field enum
-  m_known_field_enum_to_info.resize(GVCF_NUM_KNOWN_FIELDS);
-  //set length descriptors and creator objects for special attributes
-  for(auto i=0u;i<m_known_field_enum_to_info.size();++i)
-    initialize_length_descriptor(i);
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>()); 
   //Set initialized flag
   VariantQueryProcessor::m_are_static_members_initialized = true;
 }
 
 void VariantQueryProcessor::initialize_known(const ArraySchema& schema)
 {
-  //Ploidy requirements
-  m_known_field_enum_to_info[GVCF_GT_IDX].m_ploidy_required = true;
   //Initialize schema idx <--> known_field_enum mapping
   m_schema_idx_to_known_variant_field_enum_LUT.resize_luts_if_needed(schema.attribute_num(), GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<schema.attribute_num();++i)
   {
-    auto iter = VariantQueryProcessor::m_known_variant_field_name_to_enum.find(schema.attribute_name(i));
-    if(iter != VariantQueryProcessor::m_known_variant_field_name_to_enum.end())
+    auto iter = g_known_variant_field_name_to_enum.find(schema.attribute_name(i));
+    if(iter != g_known_variant_field_name_to_enum.end())
       m_schema_idx_to_known_variant_field_enum_LUT.add_schema_idx_known_field_mapping(i, (*iter).second);
   }
 }
@@ -221,44 +154,6 @@ void VariantQueryProcessor::initialize_v2(const ArraySchema& schema)
     }
 }
 
-void VariantQueryProcessor::initialize_length_descriptor(unsigned idx)
-{
-  switch(idx)
-  {
-    case GVCF_REF_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
-      break;
-    case GVCF_ALT_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
-      m_known_field_enum_to_info[idx].m_field_creator = std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldALTData>());
-      break;
-    case GVCF_FILTER_IDX: 
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
-      break;
-    case GVCF_AF_IDX:
-    case GVCF_AC_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_A;
-      break;
-    case GVCF_AD_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_R;
-      break;
-    case GVCF_PL_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_G;
-      break;
-    case GVCF_GT_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_P;
-      break;
-    case GVCF_SB_IDX:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
-      m_known_field_enum_to_info[idx].m_num_elements = 4u;
-      break;
-    default:
-      m_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
-      m_known_field_enum_to_info[idx].m_num_elements = 1u;
-      break;
-  }
-}
-
 void VariantQueryProcessor::initialize_version(const ArraySchema& schema)
 {
   initialize_known(schema);
@@ -280,8 +175,8 @@ void VariantQueryProcessor::register_field_creators(const ArraySchema& schema)
       throw UnknownAttributeTypeException("Unknown type of schema attribute "+std::string(curr_type_info->name()));
     //For known fields, check for special creators
     unsigned enumIdx = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(i);
-    if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(enumIdx) && requires_special_creator(enumIdx))
-      m_field_factory.Register(i, m_known_field_enum_to_info[enumIdx].m_field_creator);
+    if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(enumIdx) && KnownFieldInfo::requires_special_creator(enumIdx))
+      m_field_factory.Register(i, KnownFieldInfo::get_field_creator(enumIdx));
     else
       m_field_factory.Register(i, (*iter).second);
   }
@@ -306,12 +201,14 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     SingleVariantOperatorBase& variant_operator,
-    int64_t current_start_position, int64_t next_start_position, bool is_last_call) const
+    int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const
 {
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
   {
     int64_t top_end_pq = end_pq.top()->get_column_end();
     int64_t min_end_point = (is_last_call || (top_end_pq < (next_start_position - 1))) ? top_end_pq : (next_start_position-1);
+    //If deletions, single position stepping
+    min_end_point = num_calls_with_deletions ? current_start_position : min_end_point;
     //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
     //Set REF to N if the call interval is split in the middle
@@ -327,6 +224,8 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
     {
       auto top_element = end_pq.top();
+      if(top_element->contains_deletion())
+        --num_calls_with_deletions;
       top_element->mark_valid(false);
       end_pq.pop();
     }
@@ -337,7 +236,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
 void VariantQueryProcessor::scan_and_operate(
     const int ad,
     const VariantQueryConfig& query_config,
-    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx) const
+    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool treat_deletions_as_intervals) const
 {
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
@@ -354,6 +253,10 @@ void VariantQueryProcessor::scan_and_operate(
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
+  //Number of calls with deletions
+  uint64_t num_calls_with_deletions = 0;
+  //Used when deletions have to be treated as intervals and the PQ needs to be emptied
+  std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Scan only queried interval, not whole array
   if(query_config.get_num_column_intervals() > 0)
   {
@@ -407,7 +310,7 @@ void VariantQueryProcessor::scan_and_operate(
       next_start_position = next_coord[1];
       assert(next_coord[1] > current_start_position);
       handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
-          next_start_position, false);
+          next_start_position, false, num_calls_with_deletions);
       assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
       //Set new start for next interval
       current_start_position = next_start_position;
@@ -419,15 +322,43 @@ void VariantQueryProcessor::scan_and_operate(
     if(query_config.is_queried_array_row_idx(next_coord[0]))
     {
       cell.set_cell(cell_ptr);
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
       auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+      //Current call is a deletion which spans across next position
+      //Have to ignore rest of this deletion - overwrite with the new info from the cell
+      if(treat_deletions_as_intervals && curr_call.contains_deletion() && curr_call.get_column_end() >= next_coord[1])
+      {
+        //Have to cycle through priority queue and remove this call
+        auto found_curr_call = false;
+        auto num_entries_in_tmp_pq_buffer = 0ull;
+        while(!end_pq.empty() && !found_curr_call)
+        {
+          auto top_call = end_pq.top();
+          if(top_call == &curr_call)
+            found_curr_call = true;
+          else
+          {
+            assert(num_entries_in_tmp_pq_buffer < query_config.get_num_rows_to_query());
+            tmp_pq_buffer[num_entries_in_tmp_pq_buffer++] = top_call;
+          }
+          end_pq.pop();
+        }
+        assert(found_curr_call);
+        for(auto i=0ull;i<num_entries_in_tmp_pq_buffer;++i)
+          end_pq.push(tmp_pq_buffer[i]);
+        //Reduce #calls with deletions 
+        assert(num_calls_with_deletions > 0u);
+        --num_calls_with_deletions;
+      }
+      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, treat_deletions_as_intervals);
       end_pq.push(&curr_call);
+      if(treat_deletions_as_intervals && curr_call.contains_deletion())
+        ++num_calls_with_deletions;
       assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
   }
   delete forward_iter;
   //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true);
+  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true, num_calls_with_deletions);
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema,
@@ -453,7 +384,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_variant_field_enum))
     {
       //Does the length of the field depend on the number of alleles
-      if(is_length_allele_dependent(known_variant_field_enum))
+      if(KnownFieldInfo::is_length_allele_dependent(known_variant_field_enum))
       {
         assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
         query_config.add_attribute_to_query("ALT", ALT_schema_idx);
@@ -462,8 +393,6 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
   }
   //Re-order query fields so that special fields are first
   query_config.reorder_query_fields();
-  //Resize info vector
-  query_config.resize_known_field_info_vector();
   //Set enum within query
   query_config.resize_LUT(GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
@@ -475,8 +404,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_variant_field_enum))
     {
       query_config.add_query_idx_known_field_enum_mapping(i, known_variant_field_enum);
-      assert(VariantQueryProcessor::m_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
-      query_config.set_info_for_query_idx(i, &(m_known_field_enum_to_info[known_variant_field_enum]));
+      assert(g_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
     }
   }
   //Set number of rows in the array
@@ -726,20 +654,6 @@ void VariantQueryProcessor::gt_get_column(
 
 }
 
-unsigned VariantQueryProcessor::get_num_elements_for_known_field_enum(unsigned known_field_enum,
-    unsigned num_ALT_alleles, unsigned ploidy) const
-{
-  assert(known_field_enum < m_known_field_enum_to_info.size());
-  return m_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles, ploidy);
-}
-
-unsigned VariantQueryProcessor::get_length_descriptor_for_known_field_enum(unsigned known_field_enum) const
-{
-  assert(known_field_enum < m_known_field_enum_to_info.size());
-  return m_known_field_enum_to_info[known_field_enum].get_length_descriptor();
-}
-
-
 void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
     unsigned& length_descriptor, unsigned& num_elements) const
 {
@@ -751,8 +665,8 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
   num_elements = 1u;
   if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
   {
-    length_descriptor = get_length_descriptor_for_known_field_enum(known_field_enum);
-    num_elements = get_num_elements_for_known_field_enum(known_field_enum, 0, 0);
+    length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
+    num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0, 0);
   }
   field_ptr->set_valid(true);  //mark as valid
 }
@@ -823,7 +737,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
-    const Cell& cell, GTProfileStats* stats) const {
+    const Cell& cell, GTProfileStats* stats, bool treat_deletions_as_intervals) const {
   #if VERBOSE>1
     std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
   #endif
@@ -832,6 +746,7 @@ void VariantQueryProcessor::gt_fill_row(
   VariantCall& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(row));
   //Curr call will be initialized, one way or the other
   curr_call.mark_initialized(true);
+  curr_call.set_contains_deletion(false);
   // First check if the row contains valid data, i.e., check whether the interval intersects with the current queried interval
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   auto* END_ptr = cell[query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX)].operator const int64_t*();
@@ -881,6 +796,22 @@ void VariantQueryProcessor::gt_fill_row(
         query_config.get_schema_idx_for_query_idx(i)
         );     
   }
+  if(treat_deletions_as_intervals)
+  {
+    //Initialize REF field, if needed
+    const auto* REF_field_ptr = get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX); 
+    if(REF_field_ptr && REF_field_ptr->is_valid() && ALT_field_ptr && ALT_field_ptr->is_valid())
+    {
+      auto has_deletion = VariantUtils::contains_deletion(REF_field_ptr->get(), ALT_field_ptr->get());
+      if(has_deletion)
+      {
+        curr_call.set_contains_deletion(true);
+        curr_call.set_column_interval(column, column + ((REF_field_ptr->get()).length()) - 1u);
+      }
+    }
+    else
+      throw InconsistentQueryOptionsException("To treat deletions as intervals, you must query both REF and ALT fields");  
+  }
 }
 
 inline
@@ -920,19 +851,3 @@ void VariantQueryProcessor::clear()
   m_field_factory.clear();
 }
 
-bool VariantQueryProcessor::get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum)
-{
-  assert(VariantQueryProcessor::m_are_static_members_initialized);
-  auto iter = VariantQueryProcessor::m_known_variant_field_name_to_enum.find(field_name);
-  if(iter == VariantQueryProcessor::m_known_variant_field_name_to_enum.end())
-    return false;
-  known_field_enum = (*iter).second;
-  return true;
-}
-
-string VariantQueryProcessor::get_known_field_name_for_enum(unsigned known_field_enum)
-{
-  assert(VariantQueryProcessor::m_are_static_members_initialized);
-  assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
-  return VariantQueryProcessor::m_known_variant_field_names[known_field_enum];
-}

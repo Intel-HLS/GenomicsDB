@@ -1,40 +1,16 @@
-/*  vcf.h -- VCF/BCF API functions.
-
-    Copyright (C) 2012, 2013 Broad Institute.
-    Copyright (C) 2012-2014 Genome Research Ltd.
-
-    Author: Heng Li <lh3@sanger.ac.uk>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.  */
 /*
  * Stripped down version of vcf.h to re-use some values, expressions
- */
-/*
-    todo:
-        - make the function names consistent
-        - provide calls to abstract away structs as much as possible
+ * if the full htslib library is not available
  */
 
-#ifndef HTSLIB_VCF_H
-#define HTSLIB_VCF_H
+#ifndef HTSLIB_VCF_LITE_H
+#define HTSLIB_VCF_LITE_H
 
-#ifndef HTSDIR
+#ifdef HTSDIR   //Use htslib's headers
+
+#include "htslib/vcf.h"
+
+#else
 
 #define BCF_VL_FIXED 0 // variable length
 #define BCF_VL_VAR   1
@@ -45,15 +21,11 @@ DEALINGS IN THE SOFTWARE.  */
 
 
 #define bcf_int32_missing    INT32_MIN
+#define bcf_int32_vector_end (INT32_MIN+1)
 #define bcf_str_missing      0x07
+#define bcf_str_vector_end   0
 extern uint32_t bcf_float_vector_end;
 extern uint32_t bcf_float_missing;
-typedef union
-{
-  uint32_t i;
-  float f;
-}fi_pair;
-extern fi_pair bcf_float_missing_union;
 
 static inline void bcf_float_set(float *ptr, uint32_t value)
 {
@@ -78,6 +50,81 @@ static inline int bcf_float_is_vector_end(float f)
 
 #define bcf_alleles2gt(a,b) ((a)>(b)?((a)*((a)+1)/2+(b)):((b)*((b)+1)/2+(a)))
 
-#endif
+#endif //ifdef HTSDIR
+
+//For bitwise comparison of float values
+typedef union
+{
+  unsigned i;
+  float f;
+}fi_union;
+
+typedef union
+{
+  uint64_t i;
+  double d;
+}di_union;
+
+extern fi_union bcf_float_missing_union;
+extern fi_union bcf_float_vector_end_union;
+
+//Template function that return bcf missing value
+template<class T>
+inline T get_bcf_missing_value();
+
+template<>
+inline int get_bcf_missing_value<int>() { return bcf_int32_missing; }
+
+template<>
+inline unsigned get_bcf_missing_value<unsigned>() { return bcf_int32_missing; }
+
+template<>
+inline int64_t get_bcf_missing_value<int64_t>() { return bcf_int32_missing; }
+
+template<>
+inline uint64_t get_bcf_missing_value<uint64_t>() { return bcf_int32_missing; }
+
+template<>
+inline float get_bcf_missing_value<float>() { return bcf_float_missing_union.f; }
+
+template<>
+inline double get_bcf_missing_value<double>() { return bcf_float_missing_union.f; }
+
+template<>
+inline std::string get_bcf_missing_value<std::string>() { return ""; }
+
+template<>
+inline char get_bcf_missing_value<char>() { return bcf_str_missing; }
+
+//Template function that return bcf vector_end value
+template<class T>
+inline T get_bcf_vector_end_value();
+
+template<>
+inline int get_bcf_vector_end_value<int>() { return bcf_int32_vector_end; }
+
+template<>
+inline unsigned get_bcf_vector_end_value<unsigned>() { return bcf_int32_vector_end; }
+
+template<>
+inline int64_t get_bcf_vector_end_value<int64_t>() { return bcf_int32_vector_end; }
+
+template<>
+inline uint64_t get_bcf_vector_end_value<uint64_t>() { return bcf_int32_vector_end; }
+
+template<>
+inline float get_bcf_vector_end_value<float>() { return bcf_float_vector_end_union.f; }
+
+template<>
+inline double get_bcf_vector_end_value<double>() { return bcf_float_vector_end_union.f; }
+
+template<>
+inline std::string get_bcf_vector_end_value<std::string>() { return ""; }
+
+template<>
+inline char get_bcf_vector_end_value<char>() { return bcf_str_vector_end; }
+
+template<class T>
+inline bool is_bcf_valid_value(T val) { return (val != get_bcf_missing_value<T>() && val != get_bcf_vector_end_value<T>()); }
 
 #endif

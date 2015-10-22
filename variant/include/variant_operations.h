@@ -131,6 +131,72 @@ class DummyGenotypingOperator : public SingleVariantOperatorBase
     std::ostream* m_output_stream;
 };
 
+template<class T>
+T get_zero_value() { return 0; }
+
+//Base virtual class for storing a big bag of handler functions
+class VariantFieldHandlerBase 
+{
+  public:
+    VariantFieldHandlerBase() { ; }
+    virtual ~VariantFieldHandlerBase() = default;
+    virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
+        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+    virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr) = 0; 
+    virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr) = 0; 
+    virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements) = 0;
+};
+
+//Big bag handler functions useful for handling different types of fields (int, char etc)
+//Helps avoid writing a whole bunch of switch statements
+template<class DataType>
+class VariantFieldHandler : public VariantFieldHandlerBase
+{
+  public:
+    VariantFieldHandler() : VariantFieldHandlerBase()
+    { 
+      //resize once, re-use many times - avoid reallocs()
+      m_num_calls_with_valid_data.resize(100u);
+      m_bcf_missing_value = get_bcf_missing_value<DataType>();
+      //Vector to hold data values for computing median - avoid frequent re-allocs
+      m_median_compute_vector.resize(100u);
+    }
+    ~VariantFieldHandler() = default;
+    /*
+     * Wrapper function to remap order of elements in fields which depend on order of alleles
+     * E.g. PL, AD etc
+     */
+    virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
+        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
+    /*
+     * Computes median for a given field over all Calls (only considers calls with valid field)
+     */
+    virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr); 
+    /*
+     * Computes sum for a given field over all Calls (only considers calls with valid field)
+     */
+    virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, void* output_ptr);
+    /*
+     * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
+     */
+    bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements);
+  private:
+    std::vector<uint64_t> m_num_calls_with_valid_data;
+    DataType m_bcf_missing_value;
+    //Vector to hold data values for computing median - avoid frequent re-allocs
+    std::vector<DataType> m_median_compute_vector;
+    //Vector to hold extended vector to use in BCF format fields
+    std::vector<DataType> m_extended_field_vector;
+};
+
 /*
  * Copies info in Variant object into its result vector
  */
@@ -142,12 +208,16 @@ class GA4GHOperator : public SingleVariantOperatorBase
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }
     void copy_back_remapped_fields(Variant& variant) const;
-  private:
+  protected:
     Variant m_remapped_variant;
     //Query idxs of fields that need to be remmaped - PL, AD etc
     std::vector<unsigned> m_remapped_fields_query_idxs;
     //Query idx of GT field, could be UNDEFINED_ATTRIBUTE_IDX_VALUE
     unsigned m_GT_query_idx;
+    //Get handler based on type of field
+    std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
+    //Handlers for various fields
+    std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
 };
 
 /*

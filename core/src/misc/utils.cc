@@ -224,7 +224,7 @@ std::vector<std::string> get_filenames(const std::string& dirname) {
   return filenames;
 }
 
-void gzip(unsigned char* in, size_t in_size,
+void tiledb_gzip(unsigned char* in, size_t in_size,
           unsigned char* out, size_t avail_out, size_t& out_size) {
   int ret;
   unsigned have;

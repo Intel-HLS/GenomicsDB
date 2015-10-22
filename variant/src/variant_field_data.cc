@@ -2,6 +2,9 @@
 
 std::string g_vcf_NON_REF="<NON_REF>";
 
+fi_union g_tiledb_null_float = { .f = NULL_FLOAT };
+di_union g_tiledb_null_double = { .d = NULL_DOUBLE };
+
 std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum = 
 std::unordered_map<std::type_index, VariantFieldTypeEnum>{
   { std::type_index(typeid(void)), VARIANT_FIELD_VOID },
@@ -18,21 +21,17 @@ std::unordered_map<std::type_index, VariantFieldTypeEnum>{
 template<>
 bool is_tiledb_missing_value(const float value)
 {
-  fi_union null_float;
-  null_float.f = NULL_FLOAT;
   fi_union curr;
   curr.f = value;
-  return (curr.i == null_float.i);      //bitwise equality
+  return (curr.i == g_tiledb_null_float.i);      //bitwise equality
 }
 
 template<>
 bool is_tiledb_missing_value(const double value)
-{
-  di_union null_double;
-  null_double.d = NULL_DOUBLE;
+{ 
   di_union curr;
   curr.d = value;
-  return (curr.i == null_double.i);      //bitwise equality
+  return (curr.i == g_tiledb_null_double.i);      //bitwise equality
 }
 
 template<>

@@ -116,15 +116,3 @@ void VariantQueryConfig::reorder_query_fields()
   }
 }
 
-void VariantQueryConfig::resize_known_field_info_vector()
-{
-  m_query_idx_known_field_info.resize(get_num_queried_attributes());
-  for(auto i=0u;i<get_num_queried_attributes();++i)
-    m_query_idx_known_field_info[i] = 0;
-}
-
-void VariantQueryConfig::set_info_for_query_idx(unsigned idx, const KnownFieldInfo* ptr)
-{
-  assert(idx < get_num_queried_attributes());
-  m_query_idx_known_field_info[idx] = ptr;
-}

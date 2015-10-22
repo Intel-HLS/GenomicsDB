@@ -18,25 +18,13 @@ enum VariantFieldTypeEnum
   VARIANT_FIELD_FLOAT,
   VARIANT_FIELD_DOUBLE,
   VARIANT_FIELD_STRING,
-  VARIANT_FIELD_CHAR
+  VARIANT_FIELD_CHAR,
+  VARIANT_FIELD_NUM_TYPES
 };
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 
 template<class T>
 bool is_tiledb_missing_value(const T value);
-
-//For comparison
-typedef union
-{
-  unsigned i;
-  float f;
-}fi_union;
-
-typedef union
-{
-  uint64_t i;
-  double d;
-}di_union;
 
 #define RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size) \
       if(offset + add_size > buffer.size()) \

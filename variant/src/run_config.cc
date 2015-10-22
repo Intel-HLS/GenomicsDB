@@ -5,8 +5,6 @@
 
 #include "run_config.h"
 
-RunConfig g_run_config;
-
 void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank)
 {
   std::ifstream ifs(filename.c_str());
@@ -51,7 +49,8 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
   //This means that rank 0 will have 2 query intervals: [0-5] and [45-45] and rank 1 will have
   //2 intervals [76-76] and [87-87]
   //But you could have a single innermost list - with this option all ranks will query the same list 
-  assert(m_json.HasMember("query_column_ranges"));
+  assert(m_json.HasMember("query_column_ranges") || m_json.HasMember("scan_full"));
+  if(m_json.HasMember("query_column_ranges"))
   {
     const rapidjson::Value& q1 = m_json["query_column_ranges"];
     assert(q1.IsArray());
@@ -125,3 +124,84 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
     query_config.set_attributes_to_query(attributes);
   }
 }
+   
+#ifdef HTSDIR
+
+void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+    std::string output_format, int rank)
+{
+  RunConfig::read_from_file(filename, query_config, rank);
+  //SQLite file name
+  assert(m_json.HasMember("sqlite"));
+  {
+    const rapidjson::Value& v = m_json["sqlite"];
+    //sqlite could be an array, one sqlite location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_sqlite_filename = v[rank].GetString();
+    }
+    else //sqlite is simply a string
+    {
+      assert(v.IsString());
+      m_sqlite_filename = v.GetString();
+    }
+  }
+  //VCF header filename
+  assert(m_json.HasMember("vcf_header_filename"));
+  {
+    const rapidjson::Value& v = m_json["vcf_header_filename"];
+    //vcf_header_filename could be an array, one vcf_header_filename location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_vcf_header_filename = v[rank].GetString();
+    }
+    else //vcf_header_filename is simply a string
+    {
+      assert(v.IsString());
+      m_vcf_header_filename = v.GetString();
+    }
+  }
+  //VCF output filename
+  if(m_json.HasMember("vcf_output_filename"))
+  {
+    const rapidjson::Value& v = m_json["vcf_output_filename"];
+    //vcf_output_filename could be an array, one vcf_output_filename location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_vcf_output_filename = v[rank].GetString();
+    }
+    else //vcf_output_filename is simply a string
+    {
+      assert(v.IsString());
+      m_vcf_output_filename = v.GetString();
+    }
+  }
+  else
+    m_vcf_output_filename = "-";        //stdout
+  //Reference genome
+  assert(m_json.HasMember("reference_genome"));
+  {
+    const rapidjson::Value& v = m_json["reference_genome"];
+    //reference_genome could be an array, one reference_genome location for every rank
+    if(v.IsArray())
+    {
+      assert(rank < v.Size());
+      assert(v[rank].IsString());
+      m_reference_genome = v[rank].GetString();
+    }
+    else //reference_genome is simply a string
+    {
+      assert(v.IsString());
+      m_reference_genome = v.GetString();
+    }
+  }
+  vcf_adapter.initialize(m_sqlite_filename, m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
+}
+
+#endif

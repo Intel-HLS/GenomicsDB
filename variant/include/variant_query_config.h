@@ -3,6 +3,7 @@
 
 #include "query_config.h"
 #include "lut.h"
+#include "known_field_info.h"
 
 #define UNDEFINED_NUM_ROWS_VALUE 0xFFFFFFFFFFFFFFFFull
 
@@ -21,7 +22,6 @@ class OutOfBoundsQueryException {
     std::string msg_;
 };
 
-class KnownFieldInfo;
 class VariantQueryConfig : public QueryConfig
 {
   public:
@@ -41,7 +41,6 @@ class VariantQueryConfig : public QueryConfig
       m_query_rows.clear();
       m_query_column_intervals.clear();
       m_array_row_idx_to_query_row_idx.clear();
-      m_query_idx_known_field_info.clear();
     }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
@@ -183,15 +182,17 @@ class VariantQueryConfig : public QueryConfig
     inline uint64_t get_column_begin(unsigned idx) const { return get_column_interval(idx).first; }
     inline uint64_t get_column_end(unsigned idx) const { return get_column_interval(idx).second; }
     /*
-     * Functions for dealing with known field info - set by VariantQueryProcessor, used by downstream
-     * operators/tools
+     * Functions for dealing with known field info
+     * Returns pointer in vector if known field, else null
      */
-    void resize_known_field_info_vector();
-    void set_info_for_query_idx(unsigned idx, const KnownFieldInfo* ptr);
     const KnownFieldInfo* get_info_for_query_idx(unsigned idx) const
     {
-      assert(idx < m_query_idx_known_field_info.size());
-      return m_query_idx_known_field_info[idx];
+      assert(idx < get_num_queried_attributes());
+      unsigned known_field_idx = m_query_idx_known_variant_field_enum_LUT.get_known_field_enum_for_query_idx(idx);
+      if(m_query_idx_known_variant_field_enum_LUT.is_defined_value(known_field_idx))
+        return &(g_known_field_enum_to_info[known_field_idx]);
+      else
+        return 0;
     }
   private:
     /*
@@ -215,8 +216,6 @@ class VariantQueryConfig : public QueryConfig
     uint64_t m_num_rows_in_array;
     /*Column ranges to query*/
     std::vector<ColumnRange> m_query_column_intervals;
-    /*Pointers to info objects*/
-    std::vector<const KnownFieldInfo*> m_query_idx_known_field_info;
 };
 
 #endif
