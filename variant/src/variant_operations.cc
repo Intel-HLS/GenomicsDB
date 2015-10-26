@@ -511,6 +511,54 @@ void GA4GHOperator::copy_back_remapped_fields(Variant& variant) const
   variant.copy_common_fields(m_remapped_variant);
 }
 
+
+//Single cell operators
+ColumnHistogramOperator::ColumnHistogramOperator(uint64_t begin, uint64_t end, uint64_t bin_size)
+  : SingleCellOperatorBase()
+{
+  m_bin_size = bin_size;
+  m_begin_column = begin;
+  m_end_column = end;
+  assert(end >= begin);
+  auto num_bins = (end - begin)/bin_size + 1;
+  m_bin_counts_vector.resize(num_bins);
+  memset(&(m_bin_counts_vector[0]), 0, num_bins*sizeof(uint64_t));
+}
+
+void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfig& query_config)
+{
+  auto call_begin = call.get_column_begin();
+  auto bin_idx = call_begin <= m_begin_column ? 0ull
+    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1 
+    : (call_begin - m_begin_column)/m_bin_size;
+  assert(bin_idx < m_bin_counts_vector.size());
+  ++(m_bin_counts_vector[bin_idx]);
+}
+
+bool ColumnHistogramOperator::equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr) const
+{
+  if(num_bins >= m_bin_counts_vector.size())
+  {
+    std::cerr << "Requested #equi bins is smaller than allocated bin counts vector, returning\n";
+    return false;
+  }
+  auto total_count = 0ull;
+  for(auto val : m_bin_counts_vector)
+    total_count += val;
+  auto count_per_bin = ((double)total_count)/num_bins;
+  fptr << "Total "<<total_count<<" #bins "<<num_bins<<" count/bins "<< std::fixed << std::setprecision(1) << count_per_bin <<"\n";
+  for(auto i=0ull;i<m_bin_counts_vector.size();)
+  {
+    auto j = i;
+    auto curr_bin_total = 0ull;
+    for(;curr_bin_total<count_per_bin && j<m_bin_counts_vector.size();curr_bin_total+=m_bin_counts_vector[j],++j);
+    assert(j > i);
+    fptr << m_begin_column+i*m_bin_size << "," <<m_begin_column+j*m_bin_size-1 <<"," << curr_bin_total << "\n";
+    i = j;
+  }
+  fptr << "\n";
+}
+
 void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
 {
   //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)

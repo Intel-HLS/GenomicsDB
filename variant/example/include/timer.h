@@ -35,7 +35,7 @@ class Timer
     {
       if(prefix.size() > 0u)
         fptr << prefix <<" : ";
-      fptr << "Wall-clock time(s) : "<< std::setprecision(2) << m_last_interval_wall_clock_time << " Cpu time(s) : "
+      fptr << "Wall-clock time(s) : "<< std::setprecision(6) << m_last_interval_wall_clock_time << " Cpu time(s) : "
         << m_last_interval_cpu_time << "\n";
     }
     void get_last_interval_times(std::vector<double>& timings, unsigned timer_idx) const

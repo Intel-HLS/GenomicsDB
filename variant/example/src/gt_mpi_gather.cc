@@ -18,7 +18,15 @@
 enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
-  ARGS_IDX_PRODUCE_BROAD_GVCF
+  ARGS_IDX_PRODUCE_BROAD_GVCF,
+  ARGS_IDX_PRODUCE_HISTOGRAM
+};
+
+enum CommandsEnum
+{
+  COMMAND_RANGE_QUERY=0,
+  COMMAND_PRODUCE_BROAD_GVCF,
+  COMMAND_PRODUCE_HISTOGRAM
 };
 
 #define MegaByte (1024*1024)
@@ -214,10 +222,23 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
+  Timer timer;
   BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
+  timer.start();
   qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
+  timer.stop();
+  timer.print("Rank : "+std::to_string(my_world_mpi_rank)+" ", std::cerr);
 }
 #endif
+
+void produce_column_histogram(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, uint64_t bin_size,
+    const std::vector<uint64_t>& num_equi_load_bins)
+{
+  ColumnHistogramOperator histogram_op(0, 4000000000ull, bin_size);
+  qp.iterate_over_cells(qp.get_array_descriptor(), query_config, histogram_op, 0u);
+  for(auto val : num_equi_load_bins)
+    histogram_op.equi_partition_and_print_bins(val);
+}
 
 int main(int argc, char *argv[]) {
   //Initialize MPI environment
@@ -251,6 +272,7 @@ int main(int argc, char *argv[]) {
     {"segment-size",1,0,'s'},
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
+    {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
     {"array",1,0,'A'},
     {0,0,0,0},
   };
@@ -261,8 +283,7 @@ int main(int argc, char *argv[]) {
   std::string array_name = "";
   std::string json_config_file = "";
   bool skip_query_on_root = false;
-  bool do_range_query = true;
-  bool produce_Broad_GVCF = false;
+  unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
   while((c=getopt_long(argc, argv, "j:w:A:p:O:s:", long_options, NULL)) >= 0)
   {
@@ -288,8 +309,10 @@ int main(int argc, char *argv[]) {
         skip_query_on_root = true;
         break;
       case ARGS_IDX_PRODUCE_BROAD_GVCF:
-        produce_Broad_GVCF = true;
-        do_range_query = false;
+        command_idx = COMMAND_PRODUCE_BROAD_GVCF;
+        break;
+      case ARGS_IDX_PRODUCE_HISTOGRAM:
+        command_idx = COMMAND_PRODUCE_HISTOGRAM;
         break;
       case 'j':
         json_config_file = std::move(std::string(optarg));
@@ -312,14 +335,9 @@ int main(int argc, char *argv[]) {
 #if defined(HTSDIR) && defined(BCFTOOLSDIR)
     VCFAdapterRunConfig scan_run_config;
 #endif
-    if(do_range_query)
+    switch(command_idx)
     {
-      range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
-      run_config_ptr = &range_query_run_config;
-    }
-    else
-      if(produce_Broad_GVCF)
-      {
+      case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR) && defined(BCFTOOLSDIR)
         scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, output_format, my_world_mpi_rank);
         run_config_ptr = static_cast<RunConfig*>(&scan_run_config);
@@ -327,7 +345,12 @@ int main(int argc, char *argv[]) {
         std::cerr << "Cannot produce Broad's combined GVCF without htslib and bcftools. Re-compile with HTSDIR and BCFTOOLSDIR variables set\n";
         exit(-1);
 #endif
-      }
+        break;
+      default:
+        range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+        run_config_ptr = &range_query_run_config;
+        break;
+    }
     ASSERT(run_config_ptr);
     workspace = run_config_ptr->m_workspace;
     array_name = run_config_ptr->m_array_name;
@@ -341,12 +364,18 @@ int main(int argc, char *argv[]) {
     }
     uint64_t start = std::stoull(std::string(argv[optind]));
     uint64_t end = std::stoull(std::string(argv[optind+1])); 
-    query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
     query_config.add_column_interval_to_query(start, end);
-    if(produce_Broad_GVCF)
+    switch(command_idx)
     {
-      std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
-      exit(-1);
+      case COMMAND_PRODUCE_BROAD_GVCF:
+        std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
+        exit(-1);
+        break;
+      case COMMAND_PRODUCE_HISTOGRAM:
+        break;  //no attributes
+      default:
+        query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
+        break;
     }
   }
   if(workspace == "" || array_name == "")
@@ -365,13 +394,20 @@ int main(int argc, char *argv[]) {
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
-  if(do_range_query)
-    run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+  switch(command_idx)
+  {
+    case COMMAND_RANGE_QUERY:
+      run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+      break;
+    case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR) && defined(BCFTOOLSDIR)
-  else
-    if(produce_Broad_GVCF)
       scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
+      break;
+    case COMMAND_PRODUCE_HISTOGRAM:
+      produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
+      break;
+  }
 #ifdef USE_GPERFTOOLS
   ProfilerStop();
 #endif

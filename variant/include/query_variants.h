@@ -108,6 +108,11 @@ class VariantQueryProcessor : public QueryProcessor {
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u, bool treat_deletions_as_intervals=false) const;
+    //while scan breaks up the intervals, iterate does not
+    void iterate_over_cells(
+        const int ad,
+        const VariantQueryConfig& query_config, 
+        SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const;
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)

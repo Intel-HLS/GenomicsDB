@@ -220,6 +220,26 @@ class GA4GHOperator : public SingleVariantOperatorBase
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
 };
 
+class SingleCellOperatorBase
+{
+  public:
+    SingleCellOperatorBase() { ; }
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)  { ; }
+};
+
+class ColumnHistogramOperator : public SingleCellOperatorBase
+{
+  public:
+    ColumnHistogramOperator(uint64_t begin, uint64_t end, uint64_t bin_size);
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config);
+    bool equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr=std::cout) const; 
+  private:
+    std::vector<uint64_t> m_bin_counts_vector;
+    uint64_t m_begin_column;
+    uint64_t m_end_column;
+    uint64_t m_bin_size;
+};
+
 /*
  * If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
  */

@@ -361,6 +361,45 @@ void VariantQueryProcessor::scan_and_operate(
   handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true, num_calls_with_deletions);
 }
 
+void VariantQueryProcessor::iterate_over_cells(
+    const int ad,
+    const VariantQueryConfig& query_config, 
+    SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const
+{
+  GTProfileStats* stats_ptr = 0;
+#ifdef DO_PROFILING
+  GTProfileStats stats;
+  stats_ptr = &stats;
+#endif
+  assert(query_config.is_bookkeeping_done());
+  //Rank of tile from which scan should start
+  int64_t start_column = 0;
+  //Scan only queried interval, not whole array
+  if(query_config.get_num_column_intervals() > 0u)
+    start_column = query_config.get_column_begin(column_interval_idx);
+  //Initialize forward scan iterators
+  ArrayConstCellIterator<int64_t>* forward_iter = 0;
+  gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
+  //Cell object that will be used for iterating over attributes
+  Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+  //Variant object
+  Variant variant(&query_config);
+  variant.resize_based_on_query();
+  for(;!(forward_iter->end());++(*forward_iter))
+  {
+    auto* cell_ptr = **forward_iter;
+    //Coordinates are at the start of the cell
+    auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
+    //If only interval requested and end of interval crossed, exit loop
+    if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+      break;
+    cell.set_cell(cell_ptr);
+    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, false);
+    variant_operator.operate(variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0])), query_config);
+  }
+  delete forward_iter;
+}
+
 void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema,
     VariantQueryConfig& query_config) const
 {
