@@ -107,7 +107,7 @@ class VariantQueryProcessor : public QueryProcessor {
         std::vector<Variant>& variants, GA4GHPagingInfo* paging_info=0, GTProfileStats* stats=0) const;
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
-        unsigned column_interval_idx=0u, bool treat_deletions_as_intervals=false) const;
+        unsigned column_interval_idx=0u, bool handle_spanning_deletions=false) const;
     //while scan breaks up the intervals, iterate does not
     void iterate_over_cells(
         const int ad,
@@ -165,7 +165,7 @@ class VariantQueryProcessor : public QueryProcessor {
     /** Fills a row of the input genotyping column with the proper info. */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
-        const Cell& cell, GTProfileStats* stats, bool treat_deletions_as_intervals=false) const;
+        const Cell& cell, GTProfileStats* stats) const;
     /** 
      * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.

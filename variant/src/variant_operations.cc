@@ -52,11 +52,19 @@ void VariantOperations::merge_reference_allele(const Variant& variant, const Var
 {
   auto* longer_ref = &merged_reference_allele;
   auto merged_ref_length = merged_reference_allele.length();
+  if(merged_ref_length == 0u)
+  {
+    merged_reference_allele = "N";
+    merged_ref_length = 1u;
+  }
   //assert(variant.get_query_config());
   //const VariantQueryConfig& query_config = *(variant.get_query_config());
   //Iterate over valid calls
   for(const auto& curr_valid_call : variant)
   {
+    //If call begins before the current variant begin, its reference is useless
+    if(curr_valid_call.get_column_begin() < variant.get_column_begin())
+      continue;
     auto& curr_ref = get_known_field<VariantFieldString, true>(curr_valid_call, query_config, GVCF_REF_IDX)->get();
     auto curr_ref_length = curr_ref.length();
     auto* shorter_ref = &curr_ref;
