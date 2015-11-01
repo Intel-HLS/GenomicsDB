@@ -357,9 +357,12 @@ void VariantQueryProcessor::scan_and_operate(
       assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
   }
-  delete forward_iter;
+  auto completed_iter = (forward_iter->end() || (query_config.get_num_column_intervals()==0u)) ? true : false;
+  next_start_position =  completed_iter ? 0 //iterator end, don't care about next
+    : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
   //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true, num_calls_with_deletions);
+  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
+  delete forward_iter;
 }
 
 void VariantQueryProcessor::iterate_over_cells(
