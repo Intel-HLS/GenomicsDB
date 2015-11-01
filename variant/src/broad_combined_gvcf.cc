@@ -213,6 +213,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
 
 void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
+  //Handle spanning deletions - change ALT alleles in calls with deletions to *, <NON_REF>
+  handle_deletions(variant, query_config);
   GA4GHOperator::operate(variant, query_config);
   //Moved to new contig
   if(m_remapped_variant.get_column_begin() >= m_next_contig_begin_position)
@@ -244,8 +246,6 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //FORMAT fields
   handle_FORMAT_fields(variant);
   m_vcf_adapter->print_bcf_line(m_bcf_out);
-  //Change ALT alleles in calls with deletions to *, <NON_REF>
-  handle_deletions(variant, query_config);
 }
 
 void BroadCombinedGVCFOperator::switch_contig()
@@ -266,13 +266,17 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
   {
     auto& curr_call = *iter;
     auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-    //Deletion and first time deletion seen
+    //Deletion and not handled as spanning deletion 
     //So replace the ALT with *,<NON_REF> and REF with "N"
     //Remap PL, AD fields
-    if(curr_call.contains_deletion() && curr_call.get_column_begin() == variant.get_column_begin())
+    if(curr_call.contains_deletion() && variant.get_column_begin() > curr_call.get_column_begin())
     {
       auto& ref_allele = get_known_field<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX)->get();
       auto& alt_alleles = get_known_field<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX)->get();
+      assert(alt_alleles.size() > 0u);
+      //Already handled as a spanning deletion, nothing to do
+      if(alt_alleles[0u] == g_vcf_SPANNING_DELETION)
+        continue;
       //Reduced allele list will be REF="N", ALT="*, <NON_REF>"
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, 0, 0);  //REF-REF mapping
       //Need to find deletion allele with lowest PL value - this deletion allele is mapped to "*" allele

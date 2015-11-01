@@ -217,7 +217,6 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
       {
         auto& curr_call = *iter;
         assert(curr_call.get_column_begin() <= current_start_position);
-        modify_reference_if_in_middle(curr_call, query_config, current_start_position);
       }
     variant_operator.operate(variant, query_config);
     //The following intervals have been completely processed
@@ -236,7 +235,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
 void VariantQueryProcessor::scan_and_operate(
     const int ad,
     const VariantQueryConfig& query_config,
-    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool treat_deletions_as_intervals) const
+    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool handle_spanning_deletions) const
 {
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
@@ -271,6 +270,8 @@ void VariantQueryProcessor::scan_and_operate(
     {
       auto& curr_call = *iter;
       end_pq.push(&curr_call);
+      if(handle_spanning_deletions && curr_call.contains_deletion())
+        ++num_calls_with_deletions;
       assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
     //Valid calls were found, start position == query colum interval begin
@@ -323,9 +324,9 @@ void VariantQueryProcessor::scan_and_operate(
     {
       cell.set_cell(cell_ptr);
       auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
-      //Current call is a deletion which spans across next position
-      //Have to ignore rest of this deletion - overwrite with the new info from the cell
-      if(treat_deletions_as_intervals && curr_call.contains_deletion() && curr_call.get_column_end() >= next_coord[1])
+      //Overlapping intervals for current call - spans across next position
+      //Have to ignore rest of this interval - overwrite with the new info from the cell
+      if(curr_call.is_valid() && curr_call.get_column_end() >= next_coord[1])
       {
         //Have to cycle through priority queue and remove this call
         auto found_curr_call = false;
@@ -349,16 +350,19 @@ void VariantQueryProcessor::scan_and_operate(
         assert(num_calls_with_deletions > 0u);
         --num_calls_with_deletions;
       }
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, treat_deletions_as_intervals);
+      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
       end_pq.push(&curr_call);
-      if(treat_deletions_as_intervals && curr_call.contains_deletion())
+      if(handle_spanning_deletions && curr_call.contains_deletion())
         ++num_calls_with_deletions;
       assert(end_pq.size() <= query_config.get_num_rows_to_query());
     }
   }
-  delete forward_iter;
+  auto completed_iter = (forward_iter->end() || (query_config.get_num_column_intervals()==0u)) ? true : false;
+  next_start_position =  completed_iter ? 0 //iterator end, don't care about next
+    : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
   //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, 0, true, num_calls_with_deletions);
+  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
+  delete forward_iter;
 }
 
 void VariantQueryProcessor::iterate_over_cells(
@@ -394,7 +398,7 @@ void VariantQueryProcessor::iterate_over_cells(
     if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
       break;
     cell.set_cell(cell_ptr);
-    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr, false);
+    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
     variant_operator.operate(variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0])), query_config);
   }
   delete forward_iter;
@@ -776,7 +780,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
-    const Cell& cell, GTProfileStats* stats, bool treat_deletions_as_intervals) const {
+    const Cell& cell, GTProfileStats* stats) const {
   #if VERBOSE>1
     std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
   #endif
@@ -835,21 +839,13 @@ void VariantQueryProcessor::gt_fill_row(
         query_config.get_schema_idx_for_query_idx(i)
         );     
   }
-  if(treat_deletions_as_intervals)
+  //Initialize REF field, if queried
+  const auto* REF_field_ptr = get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX); 
+  //Check for deletion
+  if(REF_field_ptr && REF_field_ptr->is_valid() && ALT_field_ptr && ALT_field_ptr->is_valid())
   {
-    //Initialize REF field, if needed
-    const auto* REF_field_ptr = get_known_field_if_queried<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX); 
-    if(REF_field_ptr && REF_field_ptr->is_valid() && ALT_field_ptr && ALT_field_ptr->is_valid())
-    {
-      auto has_deletion = VariantUtils::contains_deletion(REF_field_ptr->get(), ALT_field_ptr->get());
-      if(has_deletion)
-      {
-        curr_call.set_contains_deletion(true);
-        curr_call.set_column_interval(column, column + ((REF_field_ptr->get()).length()) - 1u);
-      }
-    }
-    else
-      throw InconsistentQueryOptionsException("To treat deletions as intervals, you must query both REF and ALT fields");  
+    auto has_deletion = VariantUtils::contains_deletion(REF_field_ptr->get(), ALT_field_ptr->get());
+    curr_call.set_contains_deletion(has_deletion);
   }
 }
 
