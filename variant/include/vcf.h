@@ -12,6 +12,10 @@
 
 #else
 
+#define BCF_HL_FLT  0 // header line : FLT = filter
+#define BCF_HL_INFO 1
+#define BCF_HL_FMT  2
+
 #define BCF_VL_FIXED 0 // variable length
 #define BCF_VL_VAR   1
 #define BCF_VL_A     2
@@ -125,6 +129,19 @@ template<>
 inline char get_bcf_vector_end_value<char>() { return bcf_str_vector_end; }
 
 template<class T>
-inline bool is_bcf_valid_value(T val) { return (val != get_bcf_missing_value<T>() && val != get_bcf_vector_end_value<T>()); }
+inline bool is_bcf_missing_value(const T val) { return val == get_bcf_missing_value<T>(); }
+
+template<class T>
+inline bool is_bcf_vector_end_value(const T val) { return val == get_bcf_vector_end_value<T>(); }
+
+//for float, equality is not an adequate check
+template<>
+inline bool is_bcf_missing_value(const float val) { return bcf_float_is_missing(val); }
+
+template<>
+inline bool is_bcf_vector_end_value(const float val) { return bcf_float_is_vector_end(val); }
+
+template<class T>
+inline bool is_bcf_valid_value(T val) { return !is_bcf_missing_value(val) && !is_bcf_vector_end_value(val); }
 
 #endif

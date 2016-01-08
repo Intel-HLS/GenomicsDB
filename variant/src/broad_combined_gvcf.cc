@@ -254,7 +254,6 @@ void BroadCombinedGVCFOperator::switch_contig()
   m_curr_contig_begin_position = m_next_contig_begin_position;
   m_curr_contig_hdr_idx = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_CTG, m_curr_contig_name.c_str());
   auto next_contig_flag = m_vcf_adapter->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
-  assert(next_contig_flag);
 }
 
 //Modifies original Variant object

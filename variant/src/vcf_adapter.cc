@@ -1,11 +1,7 @@
 #ifdef HTSDIR
 
 #include "vcf_adapter.h"
-
-bool contig_offset_idx_pair_cmp(const std::pair<int64_t, int>& first, const std::pair<int64_t, int>& second)
-{
-  return (first.first < second.first);
-}
+#include "vid_mapper.h"
 
 VCFAdapter::VCFAdapter()
 {
