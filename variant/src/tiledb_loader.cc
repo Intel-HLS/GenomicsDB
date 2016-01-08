@@ -242,6 +242,12 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   m_num_callsets_owned = 0;
   for(auto x : num_callsets_in_file)
     m_num_callsets_owned += x;
+  //Update row idx to ordering
+  m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_num_callsets_owned, -1ll));
+  int64_t order = 0ll;
+  for(const auto& x : m_vcf2binary_handlers)
+    x.set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
+  assert(order == m_num_callsets_owned);
 }
 
 void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const int partition_idx)
@@ -298,13 +304,15 @@ void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream
       int64_t idx_offset = curr_exchange.get_idx_offset_for_partition(partition_idx);
       for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx];++i)
       {
+        auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
         int64_t local_file_idx = -1;
         auto status = 
-          m_vid_mapper->get_local_file_idx_for_row(curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i],
-              local_file_idx);
+          m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
         assert(status);
         auto& file_batch = m_partition_batch[partition_idx].get_partition_file_batch(local_file_idx);
-        auto offset = m_partition_batch[partition_idx].get_partition_begin_offset() + i*m_max_size_per_callset;
+        auto order = m_standalone_converter_process ? i : m_tiledb_row_idx_to_order[row_idx];
+        assert(order >= 0);
+        auto offset = m_partition_batch[partition_idx].get_partition_begin_offset() + order*m_max_size_per_callset;
         for(auto j=0ll;j<m_max_size_per_callset;++j)
         {
           auto val = (*(m_cell_data_buffers[file_batch.get_buffer_idx()]))[offset+j];

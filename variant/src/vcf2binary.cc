@@ -78,6 +78,7 @@ VCF2Binary::VCF2Binary(VCF2Binary&& other)
   m_vcf_filename = std::move(other.m_vcf_filename);
   m_regions = std::move(other.m_regions);
   m_local_callset_idx_to_tiledb_row_idx = std::move(other.m_local_callset_idx_to_tiledb_row_idx);
+  m_enabled_local_callset_idx_vec = std::move(other.m_enabled_local_callset_idx_vec);
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);
   m_partitions = std::move(other.m_partitions);
@@ -102,6 +103,7 @@ void VCF2Binary::clear()
   m_vcf_filename.clear();
   m_regions.clear();
   m_local_callset_idx_to_tiledb_row_idx.clear();
+  m_enabled_local_callset_idx_vec.clear();
   m_local_contig_idx_to_global_contig_idx.clear();
   m_local_field_idx_to_global_field_idx.clear();
   m_partitions.clear();
@@ -123,8 +125,11 @@ void VCF2Binary::initialize(const std::vector<int64_t>& partition_bounds)
   auto* fptr = bcf_open(m_vcf_filename.c_str(), "r");
   auto* hdr = bcf_hdr_read(fptr);
   //Callset mapping
-  m_local_callset_idx_to_tiledb_row_idx = std::move(std::vector<int64_t>(hdr->n[BCF_DT_SAMPLE], -1ll));
+  m_local_callset_idx_to_tiledb_row_idx = std::move(std::vector<int64_t>(bcf_hdr_nsamples(hdr), -1ll));
   m_vid_mapper->get_local_tiledb_row_idx_vec(m_vcf_filename, m_local_callset_idx_to_tiledb_row_idx);
+  for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
+    if(m_local_callset_idx_to_tiledb_row_idx[i] >= 0)
+      m_enabled_local_callset_idx_vec.push_back(i);
   //Contig mapping
   m_local_contig_idx_to_global_contig_idx = std::move(std::vector<int>(hdr->n[BCF_DT_CTG], -1ll));
   for(auto i=0;i<hdr->n[BCF_DT_CTG];++i)
@@ -171,12 +176,24 @@ void VCF2Binary::initialize_partition(unsigned idx, const std::vector<int64_t>& 
   else
     column_interval_info.m_reader = m_reader;
   //buffer offsets for each callset in this partition
-  column_interval_info.m_buffer_offset_for_local_callset.resize(m_local_callset_idx_to_tiledb_row_idx.size());
-  column_interval_info.m_begin_buffer_offset_for_local_callset.resize(m_local_callset_idx_to_tiledb_row_idx.size());
-  column_interval_info.m_last_full_line_end_buffer_offset_for_local_callset.resize(m_local_callset_idx_to_tiledb_row_idx.size());
+  column_interval_info.m_buffer_offset_for_local_callset.resize(m_enabled_local_callset_idx_vec.size());
+  column_interval_info.m_begin_buffer_offset_for_local_callset.resize(m_enabled_local_callset_idx_vec.size());
+  column_interval_info.m_last_full_line_end_buffer_offset_for_local_callset.resize(m_enabled_local_callset_idx_vec.size());
   //Indicates that nothing has been read for this interval
   column_interval_info.m_local_contig_idx = -1;
   column_interval_info.m_contig_position = -1;
+}
+
+void VCF2Binary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
+{
+  for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+  {
+    assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+    auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+    assert(row_idx >= 0);
+    assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
+    tiledb_row_idx_to_order[row_idx] = order_value++;
+  }
 }
 
 void VCF2Binary::list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
@@ -184,9 +201,13 @@ void VCF2Binary::list_active_row_idxs(const ColumnPartitionBatch& partition_batc
   auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
   if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
   {
-    for(auto row_idx : m_local_callset_idx_to_tiledb_row_idx)
-      if(row_idx >= 0)
-        row_idx_vec[row_idx_offset++] = row_idx;
+    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    {
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      row_idx_vec[row_idx_offset++] = row_idx;
+    }
   }
 }
 
@@ -232,17 +253,12 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
     bcf_sr_add_reader(vcf_partition.m_reader, m_vcf_filename.c_str());
   auto* hdr = bcf_sr_get_header(vcf_partition.m_reader, 0);
   //Setup buffer offsets first 
-  auto to_process_local_callset_idx = 0u;
-  for(auto i=0;i<bcf_hdr_nsamples(hdr);++i)
+  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
   {
-    assert(static_cast<size_t>(i) < m_local_callset_idx_to_tiledb_row_idx.size());
-    if(m_local_callset_idx_to_tiledb_row_idx[i] < 0)
-      continue;
-    auto curr_offset = partition_file_batch.get_offset_for_local_callset_idx(to_process_local_callset_idx, m_max_size_per_callset);
+    auto curr_offset = partition_file_batch.get_offset_for_local_callset_idx(i, m_max_size_per_callset);
     vcf_partition.m_begin_buffer_offset_for_local_callset[i] = curr_offset;
     vcf_partition.m_buffer_offset_for_local_callset[i] = curr_offset;
     vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[i] = curr_offset;
-    ++to_process_local_callset_idx;
   }
   //If file is re-opened, seek to position from which to begin reading, but do not advance iterator from previous position
   //The second parameter is useful if the file handler is open, buffer was full in a previous call
@@ -253,11 +269,8 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
   {
     auto* line = bcf_sr_get_line(vcf_partition.m_reader, 0);
     bcf_unpack(line, BCF_UN_ALL);
-    for(auto i=0;i<bcf_hdr_nsamples(hdr);++i)
+    for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
     {
-      assert(static_cast<size_t>(i) < m_local_callset_idx_to_tiledb_row_idx.size());
-      if(m_local_callset_idx_to_tiledb_row_idx[i] < 0)
-        continue;
       buffer_full = buffer_full || convert_VCF_to_binary_for_callset(buffer, vcf_partition, m_max_size_per_callset, i);
       if(buffer_full)
         break;
@@ -267,7 +280,7 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
     {
       has_data = seek_and_fetch_position(vcf_partition, false, true);  //no need to re-seek, use next_line() directly, advance file pointer
       //Store buffer offsets at the beginning of the line
-      for(auto i=0;i<bcf_hdr_nsamples(hdr);++i)
+      for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
         vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[i] = vcf_partition.m_buffer_offset_for_local_callset[i];
       read_one_line_fully = true;
     } 
@@ -275,10 +288,8 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
       VERIFY_OR_THROW(read_one_line_fully && "Buffer did not have space to hold a line fully - increase buffer size")
   }
   //put Tiledb NULL for row_idx as end-of-batch marker 
-  for(auto i=0;i<bcf_hdr_nsamples(hdr);++i)
+  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
   {
-    if(m_local_callset_idx_to_tiledb_row_idx[i] < 0)
-      continue;
 #ifdef PRODUCE_BINARY_CELLS
     tiledb_buffer_print_null<int64_t>(buffer, vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[i], 
         vcf_partition.m_begin_buffer_offset_for_local_callset[i] + m_max_size_per_callset);
@@ -526,18 +537,20 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
 }
 
 bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition,
-    size_t size_per_callset, int local_callset_idx)
+    size_t size_per_callset, uint64_t enabled_callsets_idx)
 {
   auto* hdr = bcf_sr_get_header(vcf_partition.m_reader, 0);
   auto* line = bcf_sr_get_line(vcf_partition.m_reader, 0);
   assert(line);
+  assert(enabled_callsets_idx < m_enabled_local_callset_idx_vec.size());
+  auto local_callset_idx = m_enabled_local_callset_idx_vec[enabled_callsets_idx];
   assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size()
       && local_callset_idx < bcf_hdr_nsamples(hdr));
   assert(vcf_partition.m_local_contig_idx >= 0 && vcf_partition.m_local_contig_idx == line->rid);
   assert(vcf_partition.m_contig_tiledb_column_offset >= 0);
   //Buffer offsets tracking
-  const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[local_callset_idx];
-  int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[local_callset_idx];
+  const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[enabled_callsets_idx];
+  int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[enabled_callsets_idx];
   assert(buffer_offset >= begin_buffer_offset && buffer_offset <= begin_buffer_offset + size_per_callset);
   const int64_t buffer_offset_limit = begin_buffer_offset + size_per_callset;
   bool buffer_full = false;

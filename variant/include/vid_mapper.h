@@ -83,7 +83,7 @@ class FileInfo
     int64_t m_local_file_idx;
     //A VCF can contain multiple callsets - each entry in this map contains a vector of pair<local_idx,row_idx>,
     //corresponding to each callset in the VCF
-    std::vector<std::pair<int, int64_t>> m_local_tiledb_row_idx_pairs;
+    std::vector<std::pair<int64_t, int64_t>> m_local_tiledb_row_idx_pairs;
 };
 
 class FieldInfo

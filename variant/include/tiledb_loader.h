@@ -107,13 +107,15 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     void initialize_vcf2binary_objects();
   private:
     int64_t m_num_callsets_owned;
-    VidMapper* m_vid_mapper; 
+    VidMapper* m_vid_mapper;
     //One per partition
     std::vector<ColumnPartitionBatch> m_partition_batch;
     //Vector of vector of strings, outer vector corresponds to FILTER, INFO, FORMAT
     std::vector<std::vector<std::string>> m_vcf_fields; 
     //One per VCF file
     std::vector<VCF2Binary> m_vcf2binary_handlers;
+    //Ordering of TileDB row idx for this converter - determined by the order of m_vcf2binary_handlers
+    std::vector<int64_t> m_tiledb_row_idx_to_order;
     //References to ping-pong buffers 
     //May point to buffers owned by this object or by VCF2TileDBLoader depending on the configuration
     std::vector<std::vector<uint8_t>*> m_cell_data_buffers; 

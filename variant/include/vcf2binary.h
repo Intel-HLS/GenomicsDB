@@ -115,6 +115,10 @@ class VCF2Binary
     void initialize(const std::vector<int64_t>& partition_bounds);
     void initialize_partition(unsigned idx, const std::vector<int64_t>& partition_bounds );
     /*
+     * Set order of enabled callsets
+     */
+    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
+    /*
      * List active row idxs
      */
     void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
@@ -130,7 +134,7 @@ class VCF2Binary
     void update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf1_t* line);
     //VCF->TileDB conversion functions
     bool convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition,
-        size_t size_per_callset, int local_callset_idx);
+        size_t size_per_callset, uint64_t enabled_callsets_idx);
     /*
      * field_type_idx: 0=INFO, 1=FORMAT
      */
@@ -164,6 +168,8 @@ class VCF2Binary
     std::string m_regions;
     //Local callset idx to tiledb row idx
     std::vector<int64_t> m_local_callset_idx_to_tiledb_row_idx;
+    //Enabled local callset idx
+    std::vector<int64_t> m_enabled_local_callset_idx_vec;
     //Local contig idx to global contig idx
     std::vector<int> m_local_contig_idx_to_global_contig_idx;
     //Local field idx to global field idx
