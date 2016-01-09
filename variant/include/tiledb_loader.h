@@ -71,6 +71,7 @@ class VCF2TileDBLoaderConverterBase
     int m_idx;
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
+    unsigned m_num_entries_in_circular_buffer;
     int m_num_converter_processes;
     int64_t m_per_partition_size;
     int64_t m_max_size_per_callset;
@@ -84,6 +85,11 @@ class VCF2TileDBLoaderConverterBase
     //Data structure for exchanging info between loader and converter
     //Note that these buffers may remain at size 0, if the exchanges are owned by a different object
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
+    void resize_circular_buffers(unsigned num_entries)
+    {
+      m_num_entries_in_circular_buffer = num_entries;
+      m_ping_pong_buffers.resize(num_entries);
+    }
 };
 
 class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
@@ -101,6 +107,11 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     void activate_next_batch(const unsigned exchange_idx, const int partition_idx);
     void read_next_batch(const unsigned exchange_idx);
     void dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr) const;
+    inline int64_t get_order_for_row_idx(const int64_t row_idx) const
+    {
+      assert(static_cast<size_t>(row_idx) < m_tiledb_row_idx_to_order.size());
+      return m_tiledb_row_idx_to_order[row_idx];
+    }
   private:
     void clear();
     void initialize_column_batch_objects();
@@ -145,10 +156,23 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     void clear();
     VCF2TileDBConverter* get_converter() { return m_converter; }
     void read_all();
+    /*
+     * Get the order value at which the given row idx appears
+     */
+    inline int64_t get_order_for_row_idx(const int64_t row_idx) const
+    { return m_standalone_converter_process ? row_idx : m_converter->get_order_for_row_idx(row_idx); }
+    /*
+     * Debug dumper
+     */
+    void dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr);
   private:
+    bool advance_write_idxs(unsigned exchange_idx);
+    //Private members
     VidMapper* m_vid_mapper;
     //May be null
     VCF2TileDBConverter* m_converter;
+    //Circular buffer logic
+    std::vector<CircularBufferController> m_row_idx_to_buffer_control;
 };
 
 #endif

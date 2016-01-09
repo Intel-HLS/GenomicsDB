@@ -3,18 +3,53 @@
 
 #include "headers.h"
 
-//bitwise XOR - flip between 0 and 1
-#define FLIP_BUFFER_IDX(X) ((X) ^ 1)
-
-class ColumnPartitionFileBatch
+class CircularBufferController
 {
-  friend class ColumnPartitionBatch;
   public:
-    ColumnPartitionFileBatch()
+    CircularBufferController(unsigned num_entries)
+    {
+      m_num_entries = num_entries;
+      m_num_entries_with_valid_data = 0u;
+      m_curr_write_idx = num_entries-1u;
+      m_curr_read_idx = 0u;
+    }
+    //Advance write idx
+    inline void advance_write_idx()
+    {
+      m_curr_write_idx = (m_curr_write_idx+1u)%m_num_entries;
+      assert(m_num_entries_with_valid_data < m_num_entries);
+      ++m_num_entries_with_valid_data;
+    }
+    inline void advance_read_idx()
+    {
+      m_curr_read_idx = (m_curr_read_idx+1u)%m_num_entries;
+      assert(m_num_entries_with_valid_data > 0u);
+      --m_num_entries_with_valid_data;
+    }
+    inline unsigned get_num_entries_with_valid_data() const
+    { return m_num_entries_with_valid_data; }
+    inline unsigned get_num_empty_entries() const
+    { return m_num_entries - m_num_entries_with_valid_data; }
+    //Get idx
+    inline unsigned get_write_idx() const { return m_curr_write_idx; }
+    inline unsigned get_read_idx() const { return m_curr_read_idx; }
+  protected:
+    //Points to latest entry with valid data
+    unsigned m_curr_write_idx;
+    //Points to entry being read currently
+    unsigned m_curr_read_idx;
+    unsigned m_num_entries;
+    unsigned m_num_entries_with_valid_data;
+};
+
+class ColumnPartitionFileBatch : public CircularBufferController
+{
+  public:
+    ColumnPartitionFileBatch(unsigned num_entries_in_circular_buffer)
+      : CircularBufferController(num_entries_in_circular_buffer)
     {
       m_fetch = false;
       m_completed = false;
-      m_buffer_idx = 1; //the first activate call flips it to 0
       m_buffer_offset = -1;
       m_num_callsets = 1;
     }
@@ -26,28 +61,31 @@ class ColumnPartitionFileBatch
       assert(to_process_local_callset_idx < m_num_callsets);
       return m_buffer_offset + to_process_local_callset_idx*max_size_per_callset;
     }
-    inline int get_buffer_idx() const { return m_buffer_idx; }
+    inline unsigned get_buffer_idx() const { return get_write_idx(); }
+    void update_buffer_offset(int64_t& offset, size_t max_size_per_callset)
+    {
+      m_buffer_offset = offset;
+      offset += m_num_callsets*max_size_per_callset;
+    }
     //Members
     bool m_fetch;
     bool m_completed;
     int64_t m_num_callsets;
   private:
-    //In a ping-pong buffer mechanism, m_buffer_idx points to the buffer where data from the file should be copied
-    //An alternate definition - m_buffer_idx is the buffer idx that contains the latest data for the file in this partition
-    int m_buffer_idx;
     int64_t m_buffer_offset;
 };
 
 class ColumnPartitionBatch
 {
   public:
-    ColumnPartitionBatch(int column_partition_idx, uint64_t max_size_per_callset, const std::vector<int64_t>& num_callsets_in_file)
+    ColumnPartitionBatch(int column_partition_idx, uint64_t max_size_per_callset, const std::vector<int64_t>& num_callsets_in_file,
+        unsigned num_entries_in_circular_buffer)
     {
       m_num_completed = 0;
       m_total_num_callsets = 0;
       m_idx = column_partition_idx;
       m_max_size_per_callset = max_size_per_callset;
-      m_file_batches.resize(num_callsets_in_file.size());
+      m_file_batches.resize(num_callsets_in_file.size(), ColumnPartitionFileBatch(num_entries_in_circular_buffer));
       for(auto i=0ull;i<num_callsets_in_file.size();++i)
         set_num_callsets_in_file(i, num_callsets_in_file[i]);
       //In the global buffer, data for the current partition begins here
@@ -66,8 +104,8 @@ class ColumnPartitionBatch
       {
         //set fetch
         file_batch.m_fetch = true;
-        //Flip ping-pong buffer idx
-        file_batch.m_buffer_idx = FLIP_BUFFER_IDX(file_batch.m_buffer_idx);
+        //Advance circular buffer idx
+        file_batch.advance_write_idx();
         return true;
       }
       else
@@ -83,10 +121,7 @@ class ColumnPartitionBatch
       for(auto& file_batch : m_file_batches)
       {
         if(force_update || (file_batch.m_fetch && !file_batch.m_completed))
-        {
-          file_batch.m_buffer_offset = offset;
-          offset += file_batch.m_num_callsets*m_max_size_per_callset;
-        }
+          file_batch.update_buffer_offset(offset, m_max_size_per_callset);
       }
     }
     /*

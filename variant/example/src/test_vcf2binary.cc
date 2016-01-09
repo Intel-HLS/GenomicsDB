@@ -4,7 +4,7 @@
 main(int argc, char** argv)
 {
   assert(argc >= 2);
-  for(auto i=0u;i<2u;++i)
+  for(auto i=0u;i<1u;++i)
   {
     std::cout << "Column range idx "<<i<<"\n";
     VCF2TileDBLoader loader(argv[1], i);

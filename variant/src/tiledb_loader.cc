@@ -5,12 +5,12 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2TileDBException(#X);
 
-#define NUM_PING_PONG_BUFFERS 2u
-
 void LoaderConverterMessageExchange::resize_vectors(int num_divisions, int64_t total_size)
 {
   m_all_num_tiledb_row_idx_vec_request.resize(num_divisions);
   m_all_num_tiledb_row_idx_vec_response.resize(num_divisions);
+  for(auto i=0;i<num_divisions;++i)
+    m_all_num_tiledb_row_idx_vec_request[i] = m_all_num_tiledb_row_idx_vec_response[i] = 0;
   m_all_tiledb_row_idx_vec_request.resize(total_size);
   m_all_tiledb_row_idx_vec_response.resize(total_size);
 }
@@ -71,10 +71,6 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   //Buffer size per column partition
   VERIFY_OR_THROW(json_doc.HasMember("size_per_column_partition"));
   m_per_partition_size = json_doc["size_per_column_partition"].GetInt64();
-  //Ping-pong buffers
-  m_ping_pong_buffers.resize(NUM_PING_PONG_BUFFERS);
-  //Exchanges
-  m_owned_exchanges.resize(NUM_PING_PONG_BUFFERS);
   //Obtain number of converters
   m_num_converter_processes = 0;
   if(json_doc.HasMember("num_converter_processes"))
@@ -86,6 +82,10 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
     m_treat_deletions_as_intervals = json_doc["treat_deletions_as_intervals"].GetBool();
   else
     m_treat_deletions_as_intervals = false;
+  //Circular buffers - 3 needed in non-standalone converter mode
+  resize_circular_buffers(3u);
+  //Exchange structure
+  m_owned_exchanges.resize(2u);
 }
 
 void VCF2TileDBLoaderConverterBase::clear()
@@ -108,15 +108,16 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
     m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename));
+    //2 entries sufficient
+    resize_circular_buffers(2u);
     //Buffer "pointers"
-    m_cell_data_buffers.resize(NUM_PING_PONG_BUFFERS);
-    //Exchange pointers
-    m_exchanges.resize(NUM_PING_PONG_BUFFERS);
+    m_cell_data_buffers.resize(m_num_entries_in_circular_buffer);
     for(auto i=0u;i<m_ping_pong_buffers.size();++i)
-    {
       m_cell_data_buffers[i] = &(m_ping_pong_buffers[i]);
+    //Exchange pointers
+    m_exchanges.resize(m_owned_exchanges.size());
+    for(auto i=0u;i<m_owned_exchanges.size();++i)
       m_exchanges[i] = &(m_owned_exchanges[i]);
-    } 
   }
   else
   {
@@ -125,6 +126,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
     VERIFY_OR_THROW(m_vid_mapper);
     //Buffer maintained external to converter, only maintain pointers
     VERIFY_OR_THROW(buffers);
+    m_num_entries_in_circular_buffer = buffers->size();
     m_cell_data_buffers.resize(buffers->size());
     for(auto i=0u;i<m_cell_data_buffers.size();++i)
       m_cell_data_buffers[i] = &((*buffers)[i]);
@@ -238,7 +240,7 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   //Else only allocate single column partition idx corresponding to the loader
   auto num_column_partitions = m_standalone_converter_process ? m_column_partition_begin_values.size() : 1u;
   for(auto i=0u;i<num_column_partitions;++i)
-    m_partition_batch.emplace_back(i, m_max_size_per_callset, num_callsets_in_file);
+    m_partition_batch.emplace_back(i, m_max_size_per_callset, num_callsets_in_file, m_num_entries_in_circular_buffer);
   m_num_callsets_owned = 0;
   for(auto x : num_callsets_in_file)
     m_num_callsets_owned += x;
@@ -335,12 +337,10 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_begin_values.size());
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename));
   m_max_size_per_callset = m_per_partition_size/m_vid_mapper->get_num_callsets();
-  //Allocate buffers
-  for(auto i=0u;i<m_ping_pong_buffers.size();++i)
-    m_ping_pong_buffers[i].resize(m_per_partition_size);
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
   {
+    resize_circular_buffers(4u);
     //Allocate exchange objects
   }
   else
@@ -354,18 +354,89 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
         x.m_all_tiledb_row_idx_vec_request[x.get_idx_offset_for_converter(0)+i] = i;
     }
     m_converter = new VCF2TileDBConverter(config_filename, idx, m_vid_mapper, &m_ping_pong_buffers, &m_owned_exchanges);
-  } 
+  }
+  //Allocate buffers
+  for(auto i=0u;i<m_ping_pong_buffers.size();++i)
+    m_ping_pong_buffers[i].resize(m_per_partition_size);
+  //Circular buffer control
+  m_row_idx_to_buffer_control.resize(m_vid_mapper->get_num_callsets(), CircularBufferController(m_num_entries_in_circular_buffer));
 }
 
+#include "omp.h"
 void VCF2TileDBLoader::read_all()
 {
+  auto exchange_ping = 0u;
+  auto exchange_pong = 1u;
   while(true)
   {
-    m_converter->read_next_batch(0u);
-    if(m_owned_exchanges[0].is_new_data_in_converter_response(0u))
-      m_converter->dump_latest_buffer(0u, std::cout);
-    else
+#pragma omp parallel sections
+    {
+#pragma omp section
+      {
+        m_converter->read_next_batch(exchange_ping);
+      }
+#pragma omp section
+      {
+        dump_latest_buffer(exchange_pong, std::cout);
+      }
+    }
+    auto done = advance_write_idxs(exchange_ping);
+    if(done)
       break;
+    std::swap<unsigned>(exchange_ping, exchange_pong);
+  }
+}
+
+bool VCF2TileDBLoader::advance_write_idxs(unsigned exchange_idx)
+{
+  auto converter_idx = 0u;
+  auto& curr_exchange = m_owned_exchanges[exchange_idx];
+  if(!curr_exchange.is_new_data_in_converter_response(converter_idx))
+    return true;
+  //Advance circular buffer control
+  int64_t idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
+  for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];++i)
+  {
+    auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
+    auto& buffer_control = m_row_idx_to_buffer_control[row_idx];
+    assert(buffer_control.get_num_empty_entries() > 0u);
+    buffer_control.advance_write_idx();
+  }
+  return false;
+}
+
+void VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr)
+{
+  auto& curr_exchange = m_owned_exchanges[exchange_idx];
+  auto converter_idx = 0u;
+  if(curr_exchange.is_new_data_in_converter_response(converter_idx))
+  {
+    osptr << "Batch in exchange "<<exchange_idx<<"\n";
+    int64_t idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
+    for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];++i)
+    {
+      auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
+      assert(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_buffer_control.size());
+      //Add to next request
+      curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset + i] = row_idx;
+      //Ping pong buffering control
+      auto buffer_idx = m_row_idx_to_buffer_control[row_idx].get_read_idx();
+      assert(m_row_idx_to_buffer_control[row_idx].get_num_entries_with_valid_data() > 0u);
+      auto order = get_order_for_row_idx(row_idx);
+      assert(order >= 0);
+      int64_t offset = order*m_max_size_per_callset;
+      auto j=0ll;
+      for(;j<m_max_size_per_callset;++j)
+      {
+        auto val = m_ping_pong_buffers[buffer_idx][offset+j];
+        if(val != 0)
+          osptr << static_cast<char>(val);
+        else
+          break;
+      }
+      m_row_idx_to_buffer_control[row_idx].advance_read_idx();
+    }
+    curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx] = curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];
   }
 }
 
