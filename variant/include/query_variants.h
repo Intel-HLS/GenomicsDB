@@ -92,6 +92,11 @@ class VariantQueryProcessor : public QueryProcessor {
      * with.
      */
     VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name);
+    /*
+     * This constructor is useful when there is no StorageManager. This happens when loading and querying are 
+     * combined and the data does not exist on disk as TileDB arrays
+     */
+    VariantQueryProcessor(const ArraySchema& array_schema);
     void clear();
     /**
      * When querying, setup bookkeeping structures first 
@@ -105,9 +110,22 @@ class VariantQueryProcessor : public QueryProcessor {
         const int ad,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
         std::vector<Variant>& variants, GA4GHPagingInfo* paging_info=0, GTProfileStats* stats=0) const;
+    /*
+     * Scans column interval, aligns intervals and runs operate
+     */
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u, bool handle_spanning_deletions=false) const;
+    /*
+     * Deal with next cell in forward iteration in a scan
+     * */
+    bool scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
+        Variant& variant, SingleVariantOperatorBase& variant_operator,
+        Cell& cell, const void* cell_ptr,
+        VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
+        int64_t& current_start_position, int64_t& next_start_position,
+        uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
+        GTProfileStats* stats_ptr) const;
     //while scan breaks up the intervals, iterate does not
     void iterate_over_cells(
         const int ad,
@@ -153,6 +171,8 @@ class VariantQueryProcessor : public QueryProcessor {
     void initialize_version(const ArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
     void register_field_creators(const ArraySchema& array_schema);
+    /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
+    void initialize();
     /**
      * Initialized field length info
      */
