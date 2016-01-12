@@ -23,6 +23,7 @@ class VCF2TileDBException : public std::exception{
 class LoaderConverterMessageExchange
 {
   public:
+    LoaderConverterMessageExchange() { m_is_serviced = false; }
     void resize_vectors(int num_divisions, int64_t total_size);
     void initialize_from_converter(int num_partitions, int64_t num_owned_callsets);
     //Used when no standalone converter processes exist
@@ -48,6 +49,7 @@ class LoaderConverterMessageExchange
       return (m_all_num_tiledb_row_idx_vec_response[converter_idx] > 0);
     }
   public:
+    bool m_is_serviced;
     //Vector containing number of tiledb row idx requested
     std::vector<int64_t> m_all_num_tiledb_row_idx_vec_request;
     //Vector containing requested row idxs
@@ -135,6 +137,32 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     std::vector<LoaderConverterMessageExchange*> m_exchanges;
 };
 
+class CellPQElement
+{
+  public:
+    CellPQElement()
+    {
+      m_offset = 0;
+      m_crossed_one_buffer = false;
+      m_completed = false;
+    }
+    bool m_crossed_one_buffer;
+    bool m_completed;
+    int64_t m_row_idx;
+    int64_t m_column;
+    int64_t m_offset;
+}; 
+
+struct TileDBCellsColumnMajorCompare
+{
+  bool operator()(const CellPQElement* a, const CellPQElement* b)
+  {
+    return ((a->m_column > b->m_column) || (a->m_column == b->m_column && a->m_row_idx > b->m_row_idx));
+  }
+};
+
+typedef std::priority_queue<CellPQElement*, std::vector<CellPQElement*>, TileDBCellsColumnMajorCompare> TileDBColumnMajorPQ; 
+
 //One per array column partition
 class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
@@ -161,18 +189,30 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
      */
     inline int64_t get_order_for_row_idx(const int64_t row_idx) const
     { return m_standalone_converter_process ? row_idx : m_converter->get_order_for_row_idx(row_idx); }
+    inline int64_t get_buffer_start_offset_for_row_idx(const int64_t row_idx) const
+    { return get_order_for_row_idx(row_idx)*m_max_size_per_callset; }
     /*
      * Debug dumper
+     * Return true if no more data available
      */
-    void dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr);
+    bool dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr);
+    bool read_cell_from_buffer(const int64_t row_idx);
+    bool read_next_cell_from_buffer(const int64_t row_idx);
+    bool produce_cells_in_column_major_order(unsigned exchange_idx);
   private:
-    bool advance_write_idxs(unsigned exchange_idx);
+    void reserve_entries_in_circular_buffer(unsigned exchange_idx);
+    void advance_write_idxs(unsigned exchange_idx);
     //Private members
     VidMapper* m_vid_mapper;
     //May be null
     VCF2TileDBConverter* m_converter;
     //Circular buffer logic
     std::vector<CircularBufferController> m_row_idx_to_buffer_control;
+    //Vector to be used in PQ for producing cells in column major order
+    std::vector<CellPQElement> m_pq_vector;
+    TileDBColumnMajorPQ m_column_major_pq;
+    //Row idxs not in PQ - need to be inserted in next call
+    std::vector<int64_t> m_rows_not_in_pq;
 };
 
 #endif

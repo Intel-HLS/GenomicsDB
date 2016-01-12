@@ -258,17 +258,17 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
   auto& curr_exchange = *(m_exchanges[exchange_idx]);
   auto& all_partitions_tiledb_row_idx_vec = curr_exchange.m_all_tiledb_row_idx_vec_request;
   assert(static_cast<size_t>(partition_idx) < m_partition_batch.size());
-  int64_t begin_idx = curr_exchange.get_idx_offset_for_partition(partition_idx);
+  auto idx_offset = curr_exchange.get_idx_offset_for_partition(partition_idx);
   for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_request[partition_idx];++i)
   {
-    assert(static_cast<size_t>(begin_idx+i) < all_partitions_tiledb_row_idx_vec.size());
-    auto row_idx = all_partitions_tiledb_row_idx_vec[begin_idx+i];
-    if(row_idx < 0)
-      break; 
+    assert(static_cast<size_t>(idx_offset+i) < all_partitions_tiledb_row_idx_vec.size());
+    auto row_idx = all_partitions_tiledb_row_idx_vec[idx_offset+i];
     int64_t local_file_idx = -1;
     m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
     assert(local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
-    m_partition_batch[partition_idx].activate_file(local_file_idx);
+    //Advance write idx
+    //If non-standalone converter, advance read idx also
+    m_partition_batch[partition_idx].activate_file(local_file_idx, !m_standalone_converter_process);
   }
   //Compute offsets in buffer if standalone, otherwise maintain offsets computed during initialization
   if(m_standalone_converter_process)
@@ -293,6 +293,7 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
     }
   for(auto& vcf_handler : m_vcf2binary_handlers)
     vcf_handler.read_next_batch(m_cell_data_buffers, m_partition_batch, false);
+  curr_exchange.m_is_serviced = true;
 }
 
 void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr) const
@@ -360,56 +361,83 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_ping_pong_buffers[i].resize(m_per_partition_size);
   //Circular buffer control
   m_row_idx_to_buffer_control.resize(m_vid_mapper->get_num_callsets(), CircularBufferController(m_num_entries_in_circular_buffer));
+  //Priority queue elements
+  m_pq_vector.resize(m_vid_mapper->get_num_callsets());
+  m_rows_not_in_pq.resize(m_vid_mapper->get_num_callsets());
+  for(auto i=0ull;i<m_pq_vector.size();++i)
+  {
+    m_pq_vector[i].m_row_idx = i;
+    m_pq_vector[i].m_offset = get_buffer_start_offset_for_row_idx(i);
+    m_rows_not_in_pq[i] = i;
+  }
 }
 
 #include "omp.h"
 void VCF2TileDBLoader::read_all()
 {
-  auto exchange_ping = 0u;
-  auto exchange_pong = 1u;
+  auto num_exchanges = m_owned_exchanges.size();
+  auto exchange_counter = num_exchanges-1u;
   while(true)
   {
-#pragma omp parallel sections
+    auto done=false;
+    auto fetch_exchange_counter = (exchange_counter+1u)%num_exchanges;
+    auto load_exchange_counter = exchange_counter;
+    //For row idx requested, reserve entries
+    reserve_entries_in_circular_buffer(fetch_exchange_counter);
+#pragma omp parallel sections shared(done) 
     {
 #pragma omp section
       {
-        m_converter->read_next_batch(exchange_ping);
+        m_converter->read_next_batch(fetch_exchange_counter);
       }
 #pragma omp section
       {
-        dump_latest_buffer(exchange_pong, std::cout);
+        //done = dump_latest_buffer(load_exchange_counter, std::cout);
+        done = produce_cells_in_column_major_order(load_exchange_counter);
       }
     }
-    auto done = advance_write_idxs(exchange_ping);
+    advance_write_idxs(fetch_exchange_counter);
     if(done)
       break;
-    std::swap<unsigned>(exchange_ping, exchange_pong);
+    exchange_counter = (exchange_counter+1u)%num_exchanges;
   }
 }
 
-bool VCF2TileDBLoader::advance_write_idxs(unsigned exchange_idx)
+void VCF2TileDBLoader::reserve_entries_in_circular_buffer(unsigned exchange_idx)
 {
   auto converter_idx = 0u;
   auto& curr_exchange = m_owned_exchanges[exchange_idx];
-  if(!curr_exchange.is_new_data_in_converter_response(converter_idx))
-    return true;
+  //Reserve entry in circular buffer - implies that entry is reserved, but no valid data exists
+  int64_t idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
+  for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx];++i)
+  {
+    auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset+i];
+    assert(m_row_idx_to_buffer_control[row_idx].get_num_empty_entries() > 0u);
+    m_row_idx_to_buffer_control[row_idx].reserve_entry();
+  }
+}
+
+void VCF2TileDBLoader::advance_write_idxs(unsigned exchange_idx)
+{
+  auto converter_idx = 0u;
+  auto& curr_exchange = m_owned_exchanges[exchange_idx];
+  if(!curr_exchange.m_is_serviced)
+    return;
   //Advance circular buffer control
   int64_t idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
   for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];++i)
   {
     auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
-    auto& buffer_control = m_row_idx_to_buffer_control[row_idx];
-    assert(buffer_control.get_num_empty_entries() > 0u);
-    buffer_control.advance_write_idx();
+    //Advance and un-reserve
+    m_row_idx_to_buffer_control[row_idx].advance_write_idx(true);
   }
-  return false;
 }
 
-void VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr)
+bool VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr)
 {
   auto& curr_exchange = m_owned_exchanges[exchange_idx];
   auto converter_idx = 0u;
-  if(curr_exchange.is_new_data_in_converter_response(converter_idx))
+  if(curr_exchange.m_is_serviced)
   {
     osptr << "Batch in exchange "<<exchange_idx<<"\n";
     int64_t idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
@@ -437,9 +465,124 @@ void VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& o
       m_row_idx_to_buffer_control[row_idx].advance_read_idx();
     }
     curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx] = curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];
+    return (curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx] == 0);
   }
+  else
+    return false;
+}
+
+bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
+{
+  assert(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_buffer_control.size());
+  auto& buffer_control = m_row_idx_to_buffer_control[row_idx];
+  //No valid entries exist
+  if(buffer_control.get_num_entries_with_valid_data() == 0u)
+    return false;
+  auto& pq_element = m_pq_vector[row_idx];
+  //Past the buffer limit for this callset
+  if(static_cast<size_t>(pq_element.m_offset) + sizeof(int64_t) > 
+      static_cast<size_t>(get_buffer_start_offset_for_row_idx(row_idx)) + m_max_size_per_callset)
+    return false;
+  auto& curr_buffer = m_ping_pong_buffers[buffer_control.get_read_idx()];
+  auto ptr = reinterpret_cast<const int64_t*>(&(curr_buffer[pq_element.m_offset]));
+  auto row_idx_in_buffer = ptr[0];
+  //row idx in buffer == NULL, no more valid data
+  if(row_idx_in_buffer == get_tiledb_null_value<int64_t>())
+    return false;
+  assert(row_idx_in_buffer == row_idx);
+  pq_element.m_column = ptr[1];
+  return true;
+}
+
+bool VCF2TileDBLoader::read_next_cell_from_buffer(const int64_t row_idx)
+{
+  //curr position is valid
+  assert(read_cell_from_buffer(row_idx));
+  auto& buffer_control = m_row_idx_to_buffer_control[row_idx];
+  auto& pq_element = m_pq_vector[row_idx];
+  auto& curr_buffer = m_ping_pong_buffers[buffer_control.get_read_idx()];
+  //Cell size is after the coordinates
+  auto ptr = reinterpret_cast<const size_t*>(&(curr_buffer[pq_element.m_offset+2*sizeof(int64_t)]));
+  auto cell_size = *ptr;
+  //Update offset
+  pq_element.m_offset += cell_size;
+  //Check if next valid cell is within the buffer limit
+  if(read_cell_from_buffer(row_idx))
+    return true;
+  //No valid cell found in current buffer - advance read idx
+  buffer_control.advance_read_idx();
+  //Reset offset
+  pq_element.m_offset = get_buffer_start_offset_for_row_idx(row_idx);
+  //If already crossed buffer once in this batch, don't bother reading further
+  if(pq_element.m_crossed_one_buffer)
+    return false;
+  pq_element.m_crossed_one_buffer = true;
+  return read_cell_from_buffer(row_idx);
+}
+
+bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx)
+{
+  auto& curr_exchange = m_owned_exchanges[exchange_idx];
+  if(!curr_exchange.m_is_serviced)
+    return false;
+  auto converter_idx = 0u;
+  auto idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
+  //Add callsets that are not in PQ into the PQ if valid cells found
+  for(auto i=0ull;i<m_rows_not_in_pq.size();++i)
+  {
+    auto row_idx = m_rows_not_in_pq[i];
+    auto valid_cell_found = read_cell_from_buffer(row_idx);
+    if(valid_cell_found)
+      m_column_major_pq.push(&(m_pq_vector[row_idx]));
+    else
+      m_pq_vector[row_idx].m_completed = true;
+  }
+  auto num_rows_not_in_pq = 0ull;
+  //No re-allocation as resize() doesn't reduce capacity
+  m_rows_not_in_pq.resize(m_vid_mapper->get_num_callsets());
+  auto top_column = -1ll;
+  auto hit_invalid_cell = false;
+  while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
+  {
+    auto* top_ptr = m_column_major_pq.top();
+    m_column_major_pq.pop();
+    auto row_idx = top_ptr->m_row_idx;
+    //do something here
+    std::cout << row_idx <<","<<top_ptr->m_column<<"\n";
+    auto valid_cell_found = read_next_cell_from_buffer(row_idx);
+    if(valid_cell_found)
+      m_column_major_pq.push(&(m_pq_vector[row_idx]));
+    else
+    {
+      if(!hit_invalid_cell)     //first invalid cell found
+      {
+        hit_invalid_cell = true;
+        top_column = top_ptr->m_column;
+      }
+      m_rows_not_in_pq[num_rows_not_in_pq++] = row_idx;
+    }
+  }
+  //No re-allocation as resize() doesn't reduce capacity
+  m_rows_not_in_pq.resize(num_rows_not_in_pq);
+  //Find rows to request in next batch - rows which have empty space
+  auto num_rows_in_next_request = 0ull;
+  for(auto i=0ll;i<m_vid_mapper->get_num_callsets();++i)
+  {
+    auto& pq_element = m_pq_vector[i];
+    pq_element.m_crossed_one_buffer = false;
+    //Space in circular buffer
+    if(!pq_element.m_completed && m_row_idx_to_buffer_control[i].get_num_empty_entries() > 0u)
+    {
+      curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset + num_rows_in_next_request] = i;
+      ++num_rows_in_next_request;
+    }
+  }
+  curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx] = num_rows_in_next_request;
+  return (m_column_major_pq.empty() && num_rows_in_next_request == 0u && num_rows_not_in_pq == 0u);
 }
 
 void VCF2TileDBLoader::clear()
 {
+  m_row_idx_to_buffer_control.clear();
+  m_pq_vector.clear();
 }

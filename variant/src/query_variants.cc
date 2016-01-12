@@ -211,13 +211,6 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     min_end_point = num_calls_with_deletions ? current_start_position : min_end_point;
     //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
-    //Set REF to N if the call interval is split in the middle
-    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX))
-      for(Variant::valid_calls_iterator iter=variant.begin();iter!=variant.end();++iter)
-      {
-        auto& curr_call = *iter;
-        assert(curr_call.get_column_begin() <= current_start_position);
-      }
     variant_operator.operate(variant, query_config);
     //The following intervals have been completely processed
     while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)

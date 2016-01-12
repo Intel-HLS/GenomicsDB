@@ -2,8 +2,8 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
-//#define PRODUCE_BINARY_CELLS 1
-#define PRODUCE_CSV_CELLS 1
+#define PRODUCE_BINARY_CELLS 1
+//#define PRODUCE_CSV_CELLS 1
 
 //Binary gets priority
 #if defined(PRODUCE_BINARY_CELLS) and defined(PRODUCE_CSV_CELLS)
