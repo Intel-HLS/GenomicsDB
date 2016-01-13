@@ -135,6 +135,9 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
     std::string output_format, int rank)
 {
   RunConfig::read_from_file(filename, query_config, rank);
+  std::string callset_mapping_file="";
+  if(m_json.HasMember("callset_mapping_file") && m_json["callset_mapping_file"].IsString())
+    callset_mapping_file = m_json["callset_mapping_file"].GetString();
   //contig and callset id mapping
   VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   {
@@ -144,12 +147,12 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
     {
       VERIFY_OR_THROW(rank < v.Size());
       VERIFY_OR_THROW(v[rank].IsString());
-      id_mapper = std::move(FileBasedVidMapper(v[rank].GetString()));
+      id_mapper = std::move(FileBasedVidMapper(v[rank].GetString(), callset_mapping_file));
     }
     else //or single string for all processes
     {
       VERIFY_OR_THROW(v.IsString());
-      id_mapper = std::move(FileBasedVidMapper(v.GetString()));
+      id_mapper = std::move(FileBasedVidMapper(v.GetString(), callset_mapping_file));
     }
   }
   //VCF header filename

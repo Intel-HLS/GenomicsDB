@@ -380,7 +380,7 @@ class FileBasedVidMapper : public VidMapper
 {
   public:
     FileBasedVidMapper() : VidMapper() { ; }
-    FileBasedVidMapper(const std::string& filename);
+    FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="");
   private:
     void parse_callsets_file(const std::string& filename);
 };

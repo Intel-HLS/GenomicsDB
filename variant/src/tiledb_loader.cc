@@ -86,14 +86,19 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   resize_circular_buffers(3u);
   //Exchange structure
   m_owned_exchanges.resize(2u);
+  //callset mapping file - check if defined in upper level json
+  m_callset_mapping_file = "";
+  if(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString())
+    m_callset_mapping_file = json_doc["callset_mapping_file"].GetString();
 }
 
 void VCF2TileDBLoaderConverterBase::clear()
 {
+  m_vid_mapping_filename.clear();
+  m_callset_mapping_file.clear();
   m_column_partition_begin_values.clear();
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
-  m_vid_mapping_filename.clear();
 }
 
 VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int idx, VidMapper* vid_mapper, 
@@ -107,7 +112,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   {
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
-    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename));
+    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file));
     //2 entries sufficient
     resize_circular_buffers(2u);
     //Buffer "pointers"
@@ -336,7 +341,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   m_converter = 0;
   clear();
   VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_begin_values.size());
-  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename));
+  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file));
   m_max_size_per_callset = m_per_partition_size/m_vid_mapper->get_num_callsets();
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)

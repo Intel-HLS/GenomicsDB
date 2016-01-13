@@ -211,7 +211,7 @@ void VidMapper::build_tiledb_array_schema(ArraySchema& array_schema) const
 //FileBasedVidMapper code
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
-FileBasedVidMapper::FileBasedVidMapper(const std::string& filename)
+FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file)
   : VidMapper()
 {
   rapidjson::Document json_doc;
@@ -220,9 +220,13 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename)
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
   //Callset info parsing
-  VERIFY_OR_THROW(json_doc.HasMember("callset_mapping_file"));
-  VERIFY_OR_THROW(json_doc["callset_mapping_file"].IsString());
-  parse_callsets_file(json_doc["callset_mapping_file"].GetString());
+  if(callset_mapping_file != "")
+    parse_callsets_file(callset_mapping_file);
+  else
+  {
+    VERIFY_OR_THROW(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString());
+    parse_callsets_file(json_doc["callset_mapping_file"].GetString());
+  }
   //Contig info parsing
   VERIFY_OR_THROW(json_doc.HasMember("contigs"));
   {

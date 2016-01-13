@@ -70,6 +70,12 @@ class VCF2TileDBLoaderConverterBase
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
     void clear();
   protected:
+    void resize_circular_buffers(unsigned num_entries)
+    {
+      m_num_entries_in_circular_buffer = num_entries;
+      m_ping_pong_buffers.resize(num_entries);
+    }
+  protected:
     int m_idx;
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -79,6 +85,8 @@ class VCF2TileDBLoaderConverterBase
     int64_t m_max_size_per_callset;
     //Vid mapping file
     std::string m_vid_mapping_filename;
+    //callset mapping file - if defined in upper level config file
+    std::string m_callset_mapping_file;
     //Partition begin values
     std::vector<int64_t> m_column_partition_begin_values;
     //Ping-pong buffers
@@ -87,11 +95,6 @@ class VCF2TileDBLoaderConverterBase
     //Data structure for exchanging info between loader and converter
     //Note that these buffers may remain at size 0, if the exchanges are owned by a different object
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
-    void resize_circular_buffers(unsigned num_entries)
-    {
-      m_num_entries_in_circular_buffer = num_entries;
-      m_ping_pong_buffers.resize(num_entries);
-    }
 };
 
 class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
