@@ -5,6 +5,7 @@
 
 #include "variant_operations.h"
 #include "vcf_adapter.h"
+#include "vid_mapper.h"
 
 typedef std::tuple<unsigned, unsigned, unsigned> INFO_tuple_type;
 typedef std::tuple<unsigned, unsigned, unsigned> FORMAT_tuple_type;
@@ -28,7 +29,7 @@ class BroadCombinedGVCFException {
 class BroadCombinedGVCFOperator : public GA4GHOperator
 {
   public:
-    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VariantQueryConfig& query_config);
+    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config);
     ~BroadCombinedGVCFOperator()
     {
       bcf_destroy(m_bcf_out);
@@ -43,6 +44,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
   private:
     const VariantQueryConfig* m_query_config;
     VCFAdapter* m_vcf_adapter;
+    const VidMapper* m_vid_mapper;
     bcf1_t* m_bcf_out;
     bcf_hdr_t* m_vcf_hdr;
     //Contig info

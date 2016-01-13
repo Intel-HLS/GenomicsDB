@@ -16,17 +16,19 @@
 #define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<2>(X))
 
 
-BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VariantQueryConfig& query_config) 
+BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
+    const VariantQueryConfig& query_config) 
 : GA4GHOperator(query_config)
 {
   clear();
   m_query_config = &query_config;
   //Initialize VCF structs
   m_vcf_adapter = &vcf_adapter;
+  m_vid_mapper = &id_mapper;
   m_vcf_hdr = vcf_adapter.get_vcf_header();
   m_bcf_out = bcf_init();
   //Get contig info for position 0, store curr contig in next_contig and call switch_contig function to do all the setup
-  auto curr_contig_flag = m_vcf_adapter->get_contig_location(0, m_next_contig_name, m_next_contig_begin_position);
+  auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
   assert(curr_contig_flag);
   switch_contig();
   //GATK combined GVCF does not care about QUAL value
@@ -66,10 +68,13 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     if(!query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
       throw BroadCombinedGVCFException("Field "+g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple)]+" not specified as part of query");
   //Add samples to template header
+  std::string callset_name;
   for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
   {
     auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
-    bcf_hdr_add_sample(m_vcf_hdr, m_vcf_adapter->get_sample_name_for_idx(row_idx));
+    auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
+    assert(status);
+    bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
   }
   bcf_hdr_sync(m_vcf_hdr);
   m_vcf_adapter->print_header();
@@ -253,7 +258,7 @@ void BroadCombinedGVCFOperator::switch_contig()
   m_curr_contig_name = std::move(m_next_contig_name);
   m_curr_contig_begin_position = m_next_contig_begin_position;
   m_curr_contig_hdr_idx = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_CTG, m_curr_contig_name.c_str());
-  auto next_contig_flag = m_vcf_adapter->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
+  auto next_contig_flag = m_vid_mapper->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
 }
 
 //Modifies original Variant object

@@ -130,25 +130,26 @@ void RunConfig::read_from_file(const std::string& filename, VariantQueryConfig& 
    
 #ifdef HTSDIR
 
-void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
+    VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
     std::string output_format, int rank)
 {
   RunConfig::read_from_file(filename, query_config, rank);
-  //SQLite file name
-  VERIFY_OR_THROW(m_json.HasMember("sqlite"));
+  //contig and callset id mapping
+  VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   {
-    const rapidjson::Value& v = m_json["sqlite"];
-    //sqlite could be an array, one sqlite location for every rank
+    const rapidjson::Value& v = m_json["vid_mapping_file"];
+    //Could be array - one for each process
     if(v.IsArray())
     {
       VERIFY_OR_THROW(rank < v.Size());
       VERIFY_OR_THROW(v[rank].IsString());
-      m_sqlite_filename = v[rank].GetString();
+      id_mapper = std::move(FileBasedVidMapper(v[rank].GetString()));
     }
-    else //sqlite is simply a string
+    else //or single string for all processes
     {
       VERIFY_OR_THROW(v.IsString());
-      m_sqlite_filename = v.GetString();
+      id_mapper = std::move(FileBasedVidMapper(v.GetString()));
     }
   }
   //VCF header filename
@@ -204,7 +205,7 @@ void VCFAdapterRunConfig::read_from_file(const std::string& filename, VariantQue
       m_reference_genome = v.GetString();
     }
   }
-  vcf_adapter.initialize(m_sqlite_filename, m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
+  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
 }
 
 #endif

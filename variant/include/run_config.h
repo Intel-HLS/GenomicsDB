@@ -3,13 +3,14 @@
 
 #include "variant_query_config.h"
 #include "vcf_adapter.h"
+#include "vid_mapper.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
 
 //Exceptions thrown 
-class RunConfigException {
+class RunConfigException : public std::exception {
   public:
     RunConfigException(const std::string m="") : msg_("RunConfigException : "+m) { ; }
     ~RunConfigException() { ; }
@@ -41,12 +42,11 @@ class VCFAdapterRunConfig : public RunConfig
   public:
     VCFAdapterRunConfig() : RunConfig()
     {
-      m_sqlite_filename = "";
       m_vcf_header_filename = "";
     }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
+        VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
         std::string output_format="", int rank=0);
-    std::string m_sqlite_filename;
     std::string m_vcf_header_filename;
     std::string m_reference_genome;
     std::string m_vcf_output_filename;

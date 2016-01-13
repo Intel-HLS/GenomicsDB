@@ -2,7 +2,27 @@
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
-#include "vcf.h"
+
+std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
+    {"BCF_VL_FIXED", BCF_VL_FIXED},
+    {"BCF_VL_A", BCF_VL_A},
+    {"A", BCF_VL_A},
+    {"BCF_VL_R", BCF_VL_R},
+    {"R", BCF_VL_R},
+    {"BCF_VL_G", BCF_VL_G},
+    {"G", BCF_VL_G},
+    {"BCF_VL_P", BCF_VL_P},
+    {"P", BCF_VL_P},
+    {"BCF_VL_VAR", BCF_VL_VAR},
+    {"VAR", BCF_VL_VAR}
+    });
+
+std::unordered_map<std::string, const std::type_info*> VidMapper::m_typename_string_to_typeinfo =
+  std::unordered_map<std::string, const std::type_info*>({
+      {"int", &(typeid(int))},
+      {"float", &(typeid(float))},
+      {"char", &(typeid(char))}
+      });
 
 void VidMapper::clear()
 {
@@ -98,7 +118,7 @@ bool VidMapper::get_tiledb_position(int64_t& position, const std::string& contig
   return true;
 }
     
-bool VidMapper::get_callset_name(const std::string& array_name, const int64_t row_idx, std::string& callset_name) const
+bool VidMapper::get_callset_name(const int64_t row_idx, std::string& callset_name) const
 {
   if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
     return false;
@@ -106,7 +126,7 @@ bool VidMapper::get_callset_name(const std::string& array_name, const int64_t ro
   return true;
 }
     
-bool VidMapper::get_tiledb_row_idx(const std::string& array_name, int64_t& row_idx, const std::string& callset_name) const
+bool VidMapper::get_tiledb_row_idx(int64_t& row_idx, const std::string& callset_name) const
 {
   auto iter = m_callset_name_to_row_idx.find(callset_name);
   if(iter == m_callset_name_to_row_idx.end())
@@ -126,6 +146,66 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
     if(field_info.m_is_vcf_FORMAT_field)
       vcf_fields[BCF_HL_FMT].push_back(field_info.m_name);
   }
+}
+
+void VidMapper::build_tiledb_array_schema(ArraySchema& array_schema) const
+{
+  auto dim_names = std::vector<std::string>({"samples", "position"});
+  auto dim_domains = std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, 100000000000ll } });        //100B
+  std::vector<std::string> attribute_names;
+  std::vector<const std::type_info*> types;
+  std::vector<int> num_vals;
+  //END
+  attribute_names.push_back("END");
+  types.push_back(&(typeid(int64_t)));
+  num_vals.push_back(1);
+  //REF
+  attribute_names.push_back("REF");
+  types.push_back(&(typeid(char)));
+  num_vals.push_back(VAR_SIZE);
+  //ALT
+  attribute_names.push_back("ALT");
+  types.push_back(&(typeid(char)));
+  num_vals.push_back(VAR_SIZE);
+  //QUAL
+  attribute_names.push_back("QUAL");
+  types.push_back(&(typeid(float)));
+  num_vals.push_back(1);
+  //FILTER
+  attribute_names.push_back("FILTER");
+  types.push_back(&(typeid(int)));
+  num_vals.push_back(VAR_SIZE);
+  //INFO fields
+  for(const auto& field_info : m_field_idx_to_info)
+  {
+    if(field_info.m_name == "END")      //skip END field
+      continue;
+    if(field_info.m_is_vcf_INFO_field)
+    {
+      attribute_names.push_back(field_info.m_name);
+      types.push_back(field_info.m_type_info);
+      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : VAR_SIZE);
+    }
+  }
+  //FORMAT fields
+  for(const auto& field_info : m_field_idx_to_info)
+  {
+    if(field_info.m_is_vcf_FORMAT_field)
+    {
+      if(field_info.m_is_vcf_INFO_field)        //Also an INFO field of the same name - add suffix
+        attribute_names.push_back(field_info.m_name+"_FORMAT");
+      else
+        attribute_names.push_back(field_info.m_name);
+      types.push_back(field_info.m_type_info);
+      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : VAR_SIZE);
+    }
+  }
+  //COORDS
+  types.push_back(&(typeid(int64_t)));
+  //no compression - empty vector
+  std::vector<CompressionType> compression;
+  array_schema = std::move(ArraySchema("tmp", attribute_names, dim_names, dim_domains, types, num_vals, compression,
+        ArraySchema::CO_COLUMN_MAJOR));
 }
 
 //FileBasedVidMapper code
@@ -155,17 +235,16 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename)
     m_contig_end_2_idx.resize(num_contigs);
     std::string contig_name;
     std::string filename;
-    for(auto b=contigs_dict.MemberBegin(), e=contigs_dict.MemberEnd();b!=e;++b)
+    auto contig_idx=0;
+    for(auto b=contigs_dict.MemberBegin(), e=contigs_dict.MemberEnd();b!=e;++b,++contig_idx)
     {
       const auto& curr_obj = *b;
       contig_name = curr_obj.name.GetString();
       const auto& contig_info_dict = curr_obj.value;
       VERIFY_OR_THROW(contig_info_dict.IsObject());    //must be dict
-      VERIFY_OR_THROW(contig_info_dict.HasMember("contig_idx"));
-      auto contig_idx = contig_info_dict["contig_idx"].GetInt64();
-      VERIFY_OR_THROW(contig_info_dict.HasMember("tiledb_column_offset"));
+      VERIFY_OR_THROW(contig_info_dict.HasMember("tiledb_column_offset") && contig_info_dict["tiledb_column_offset"].IsInt64());
       auto tiledb_column_offset = contig_info_dict["tiledb_column_offset"].GetInt64();
-      VERIFY_OR_THROW(contig_info_dict.HasMember("length"));
+      VERIFY_OR_THROW(contig_info_dict.HasMember("length") && contig_info_dict["length"].IsInt64());
       auto length = contig_info_dict["length"].GetInt64();
       VERIFY_OR_THROW(static_cast<size_t>(contig_idx) < static_cast<size_t>(num_contigs));
       m_contig_name_to_idx[contig_name] = contig_idx;
@@ -196,6 +275,11 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename)
       m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
       const auto& field_info_dict = curr_obj.value;
       VERIFY_OR_THROW(field_info_dict.IsObject());
+      //Field type - int, char etc
+      VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
+      auto iter = VidMapper::m_typename_string_to_typeinfo.find(field_info_dict["type"].GetString());
+      VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_typeinfo.end() && "Unhandled field type");
+      m_field_idx_to_info[field_idx].m_type_info = (*iter).second;
       if(field_info_dict.HasMember("vcf_field_class"))
       {
         //Array which specifies whether field if INFO, FORMAT, FILTER etc
@@ -209,6 +293,20 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename)
           else
             if(class_name == "FORMAT")
               m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
+        }
+      }
+      if(field_info_dict.HasMember("length"))
+      {
+        if(field_info_dict["length"].IsInt64())
+          m_field_idx_to_info[field_idx].m_num_elements = field_info_dict["length"].GetInt64();
+        else
+        {
+          VERIFY_OR_THROW(field_info_dict["length"].IsString());
+          auto iter = VidMapper::m_length_descriptor_string_to_int.find(field_info_dict["length"].GetString());
+          if(iter == VidMapper::m_length_descriptor_string_to_int.end())
+            m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+          else
+            m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
         }
       }
     }

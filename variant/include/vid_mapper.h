@@ -2,6 +2,8 @@
 #define VID_MAPPER_HD
 
 #include "headers.h"
+#include "array_schema.h"
+#include "vcf.h"
 
 inline bool contig_offset_idx_pair_cmp(const std::pair<int64_t, int>& first, const std::pair<int64_t, int>& second)
 {
@@ -94,6 +96,8 @@ class FieldInfo
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
+      m_length_descriptor = BCF_VL_FIXED;
+      m_num_elements = 1;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -104,6 +108,9 @@ class FieldInfo
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;
+    const std::type_info* m_type_info;
+    int m_length_descriptor;
+    int m_num_elements;
 };
 
 /*
@@ -136,12 +143,12 @@ class VidMapper
      * Given a TileDB row idx in array, obtain callset name
      * Returns true if valid callset name found, false otherwise
      */
-    bool get_callset_name(const std::string& array_name, const int64_t row_idx, std::string& callset_name) const;
+    bool get_callset_name(const int64_t row_idx, std::string& callset_name) const;
     /*
      * Given a callset name, return TileDB row idx in array
      * Returns true if valid callset name found, false otherwise
      */
-    bool get_tiledb_row_idx(const std::string& array_name, int64_t& row_idx, const std::string& callset_name) const;
+    bool get_tiledb_row_idx(int64_t& row_idx, const std::string& callset_name) const;
     uint64_t get_num_callsets() const { return m_row_idx_to_info.size(); }
     /*
      * Return callset info
@@ -308,6 +315,7 @@ class VidMapper
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
+    void build_tiledb_array_schema(ArraySchema& array_schema) const;
     /*
      * Given a global contig idx, return contig info
      */
@@ -348,10 +356,13 @@ class VidMapper
     std::vector<FileInfo> m_file_idx_to_info;
     //owner idx to file_idx vector
     std::vector<std::vector<int64_t>> m_owner_idx_to_file_idx_vec;
+    //Static members
+    static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
+    static std::unordered_map<std::string, const std::type_info*> m_typename_string_to_typeinfo;
 };
 
 //Exceptions thrown 
-class FileBasedVidMapperException {
+class FileBasedVidMapperException : public std::exception {
   public:
     FileBasedVidMapperException(const std::string m="") : msg_("FileBasedVidMapperException : "+m) { ; }
     ~FileBasedVidMapperException() { ; }
@@ -368,6 +379,7 @@ class FileBasedVidMapperException {
 class FileBasedVidMapper : public VidMapper
 {
   public:
+    FileBasedVidMapper() : VidMapper() { ; }
     FileBasedVidMapper(const std::string& filename);
   private:
     void parse_callsets_file(const std::string& filename);

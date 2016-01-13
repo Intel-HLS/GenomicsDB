@@ -218,12 +218,13 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   }
 }
 
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+#if defined(HTSDIR)
+void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config,
+    VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   Timer timer;
-  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
+  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config);
   timer.start();
   qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
   timer.stop();
@@ -324,6 +325,7 @@ int main(int argc, char *argv[]) {
   }
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
+  FileBasedVidMapper id_mapper;
 #ifdef HTSDIR
   VCFAdapter vcf_adapter;
 #endif
@@ -332,17 +334,17 @@ int main(int argc, char *argv[]) {
   {
     RunConfig* run_config_ptr = 0;
     RunConfig range_query_run_config;
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
+#if defined(HTSDIR)
     VCFAdapterRunConfig scan_run_config;
 #endif
     switch(command_idx)
     {
       case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-        scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, output_format, my_world_mpi_rank);
+#if defined(HTSDIR)
+        scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, id_mapper, output_format, my_world_mpi_rank);
         run_config_ptr = static_cast<RunConfig*>(&scan_run_config);
 #else
-        std::cerr << "Cannot produce Broad's combined GVCF without htslib and bcftools. Re-compile with HTSDIR and BCFTOOLSDIR variables set\n";
+        std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
         exit(-1);
 #endif
         break;
@@ -400,8 +402,9 @@ int main(int argc, char *argv[]) {
       run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+#if defined(HTSDIR)
+      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper),
+          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
       break;
     case COMMAND_PRODUCE_HISTOGRAM:

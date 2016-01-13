@@ -52,11 +52,6 @@ CPPFLAGS=-std=c++11 -fPIC \
 
 #HTSDIR=../../htslib
 
-ifdef BCFTOOLSDIR
-    CPPFLAGS+=-I$(BCFTOOLSDIR) -DBCFTOOLSDIR
-    LDFLAGS+=-Wl,-Bstatic -L$(BCFTOOLSDIR) -lbcftools -Wl,-Bdynamic -lpthread -lz -lm -ldl -lsqlite3
-endif
-
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
     LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
