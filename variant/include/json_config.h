@@ -21,36 +21,56 @@ class RunConfigException : public std::exception {
     std::string msg_;
 };
 
-class RunConfig
+class JSONConfigBase
 {
   public:
-    RunConfig()
+    JSONConfigBase() { ; }
+    void read_from_file(const std::string& filename);
+  protected:
+    rapidjson::Document m_json;
+};
+
+class JSONBasicQueryConfig : public JSONConfigBase
+{
+  public:
+    JSONBasicQueryConfig() : JSONConfigBase()
     {
       m_workspace = "";
       m_array_name = "";
     }
     void read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank=0);
-    rapidjson::Document m_json;
+  public:
     std::string m_workspace;
     std::string m_array_name;
 };
 
 #ifdef HTSDIR
 
-class VCFAdapterRunConfig : public RunConfig
+class JSONVCFAdapterConfig : public JSONConfigBase
 {
   public:
-    VCFAdapterRunConfig() : RunConfig()
+    JSONVCFAdapterConfig() : JSONConfigBase()
     {
       m_vcf_header_filename = "";
     }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
-        std::string output_format="", int rank=0);
+    void read_from_file(const std::string& filename,
+        VCFAdapter& vcf_adapter, std::string output_format="", int rank=0);
+  protected:
     std::string m_vcf_header_filename;
     std::string m_reference_genome;
     std::string m_vcf_output_filename;
 };
+
+class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQueryConfig
+{
+  public:
+    JSONVCFAdapterQueryConfig() : JSONVCFAdapterConfig(), JSONBasicQueryConfig() { ; }
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
+        VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
+        std::string output_format="", int rank=0);
+};
+
+
 
 #endif
 

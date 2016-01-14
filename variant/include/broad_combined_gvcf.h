@@ -11,13 +11,13 @@ typedef std::tuple<unsigned, unsigned, unsigned> INFO_tuple_type;
 typedef std::tuple<unsigned, unsigned, unsigned> FORMAT_tuple_type;
 
 //Exceptions thrown 
-class BroadCombinedGVCFException {
+class BroadCombinedGVCFException : public std::exception {
   public:
     BroadCombinedGVCFException(const std::string m="") : msg_("Broad combine GVCFs exception : "+m) { ; }
     ~BroadCombinedGVCFException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };

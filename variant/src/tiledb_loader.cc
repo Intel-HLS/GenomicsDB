@@ -90,6 +90,10 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   m_callset_mapping_file = "";
   if(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString())
     m_callset_mapping_file = json_doc["callset_mapping_file"].GetString();
+  //Produce combined vcf
+  m_produce_combined_vcf = false;
+  if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
+    m_produce_combined_vcf = true;
 }
 
 void VCF2TileDBLoaderConverterBase::clear()
@@ -375,6 +379,10 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_pq_vector[i].m_offset = get_buffer_start_offset_for_row_idx(i);
     m_rows_not_in_pq[i] = i;
   }
+  //Operators
+  if(m_produce_combined_vcf)
+    m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
+          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals)));
 }
 
 #include "omp.h"
@@ -406,6 +414,8 @@ void VCF2TileDBLoader::read_all()
       break;
     exchange_counter = (exchange_counter+1u)%num_exchanges;
   }
+  for(auto op : m_operators)
+    op->finish(get_column_partition_end());
 }
 
 void VCF2TileDBLoader::reserve_entries_in_circular_buffer(unsigned exchange_idx)
@@ -552,8 +562,11 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     auto* top_ptr = m_column_major_pq.top();
     m_column_major_pq.pop();
     auto row_idx = top_ptr->m_row_idx;
-    //do something here
-    std::cout << row_idx <<","<<top_ptr->m_column<<"\n";
+    //std::cout << row_idx <<","<<top_ptr->m_column<<"\n";
+    const auto& buffer = m_ping_pong_buffers[m_row_idx_to_buffer_control[row_idx].get_read_idx()];
+    auto offset = top_ptr->m_offset;
+    for(auto op : m_operators)
+      op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
     auto valid_cell_found = read_next_cell_from_buffer(row_idx);
     if(valid_cell_found)
       m_column_major_pq.push(&(m_pq_vector[row_idx]));
@@ -590,4 +603,5 @@ void VCF2TileDBLoader::clear()
 {
   m_row_idx_to_buffer_control.clear();
   m_pq_vector.clear();
+  m_operators.clear();
 }

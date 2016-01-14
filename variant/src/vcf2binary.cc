@@ -424,6 +424,12 @@ inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_
   return false;
 }
 
+template<>
+inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, char* val, bool print_sep)
+{
+  tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
+}
+
 //specialization for std::string type
 template<>
 inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, const std::string& val, bool print_sep)
@@ -435,6 +441,12 @@ inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_
   memcpy(&(buffer[buffer_offset]), val.c_str(), add_size);
   buffer_offset += add_size;
   return false;
+}
+
+template<>
+inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, std::string& val, bool print_sep)
+{
+  tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
 }
 
 template<class FieldType>
@@ -605,7 +617,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, strlen(line->d.allele[0]));
   if(buffer_full) return true;
 #endif
-  buffer_full = buffer_full || tiledb_buffer_print<char*>(buffer, buffer_offset, buffer_offset_limit, line->d.allele[0]);
+  buffer_full = buffer_full || tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, line->d.allele[0]);
   if(buffer_full) return true;
   //ALT
 #ifdef PRODUCE_BINARY_CELLS
@@ -618,9 +630,8 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   {
     if(i > 1)
       alt_allele_serialized += TILEDB_ALT_ALLELE_SEPARATOR;
-    //alt_allele_serialized += (bcf_get_variant_type(line, i) == VCF_NON_REF) ? TILEDB_NON_REF_VARIANT_REPRESENTATION
-    //: line->d.allele[i];
-    alt_allele_serialized += line->d.allele[i];
+    alt_allele_serialized += (bcf_get_variant_type(line, i) == VCF_NON_REF) ? TILEDB_NON_REF_VARIANT_REPRESENTATION
+      : line->d.allele[i];
   }
   buffer_full = buffer_full || tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, alt_allele_serialized);
   if(buffer_full) return true;
@@ -651,6 +662,8 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
     for(auto j=0u;j<(*m_vcf_fields)[field_type_idx].size();++j)
     {
       const auto& field_name = (*m_vcf_fields)[field_type_idx][j];
+      if(field_type_idx == BCF_HL_INFO && field_name == "END")   //ignore END field
+        continue;
       auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
       //FIXME: handle missing fields gracefully
       VERIFY_OR_THROW(field_idx >= 0);

@@ -315,7 +315,7 @@ class VidMapper
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
-    void build_tiledb_array_schema(ArraySchema& array_schema) const;
+    void build_tiledb_array_schema(ArraySchema*& array_schema) const;
     /*
      * Given a global contig idx, return contig info
      */

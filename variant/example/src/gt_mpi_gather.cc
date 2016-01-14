@@ -3,7 +3,7 @@
 #include <getopt.h>
 #include <mpi.h>
 #include "libtiledb_variant.h"
-#include "run_config.h"
+#include "json_config.h"
 #include "timer.h"
 #include "broad_combined_gvcf.h"
 
@@ -332,30 +332,30 @@ int main(int argc, char *argv[]) {
   //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
   if(json_config_file != "")
   {
-    RunConfig* run_config_ptr = 0;
-    RunConfig range_query_run_config;
+    JSONBasicQueryConfig* json_config_ptr = 0;
+    JSONBasicQueryConfig range_query_config;
 #if defined(HTSDIR)
-    VCFAdapterRunConfig scan_run_config;
+    JSONVCFAdapterQueryConfig scan_config;
 #endif
     switch(command_idx)
     {
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-        scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, id_mapper, output_format, my_world_mpi_rank);
-        run_config_ptr = static_cast<RunConfig*>(&scan_run_config);
+        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, id_mapper, output_format, my_world_mpi_rank);
+        json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
         std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
         exit(-1);
 #endif
         break;
       default:
-        range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
-        run_config_ptr = &range_query_run_config;
+        range_query_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+        json_config_ptr = &range_query_config;
         break;
     }
-    ASSERT(run_config_ptr);
-    workspace = run_config_ptr->m_workspace;
-    array_name = run_config_ptr->m_array_name;
+    ASSERT(json_config_ptr);
+    workspace = json_config_ptr->m_workspace;
+    array_name = json_config_ptr->m_array_name;
   }
   else
   {

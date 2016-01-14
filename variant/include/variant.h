@@ -529,13 +529,13 @@ class Variant
 };
 
 //GA4GH page token exception
-class InvalidGA4GHPageTokenException {
+class InvalidGA4GHPageTokenException : public std::exception {
   public:
     InvalidGA4GHPageTokenException(const std::string m="Invalid GA4GH page token exception") : msg_(m) { ; }
     ~InvalidGA4GHPageTokenException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };

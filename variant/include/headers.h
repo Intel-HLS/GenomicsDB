@@ -18,3 +18,4 @@
 #include <iomanip>
 #include <exception>
 #include <fstream>
+#include <functional>

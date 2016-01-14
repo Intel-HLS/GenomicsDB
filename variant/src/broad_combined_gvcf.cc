@@ -60,13 +60,24 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   if(BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u]) != GVCF_DP_IDX)
     throw BroadCombinedGVCFException("Last queried FORMAT field should be DP, instead it is "
         +g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u])]);
-  //Sanity checks - all required fields must be queried
-  for(auto& tuple : m_INFO_fields_vec)
-    if(!query_config.is_defined_query_idx_for_known_field_enum((BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple))))
-      throw BroadCombinedGVCFException("Field "+g_known_variant_field_names[BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple)]+" not specified as part of query");
-  for(auto& tuple : m_FORMAT_fields_vec)
-    if(!query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
-      throw BroadCombinedGVCFException("Field "+g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple)]+" not specified as part of query");
+  //Discard fields not part of the query
+  auto last_valid_idx = 0u;
+  for(auto i=0u;i<m_INFO_fields_vec.size();++i)
+  {
+    auto& tuple = m_INFO_fields_vec[i];
+    if(query_config.is_defined_query_idx_for_known_field_enum((BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple))))
+      m_INFO_fields_vec[last_valid_idx++] = tuple;
+  }
+  m_INFO_fields_vec.resize(last_valid_idx);
+  //Same for FORMAT
+  last_valid_idx = 0u;
+  for(auto i=0u;i<m_FORMAT_fields_vec.size();++i)
+  {
+    auto& tuple = m_FORMAT_fields_vec[i];
+    if(query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
+      m_FORMAT_fields_vec[last_valid_idx++] = tuple;
+  }
+  m_FORMAT_fields_vec.resize(last_valid_idx);
   //Add samples to template header
   std::string callset_name;
   for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
@@ -226,6 +237,8 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
     switch_contig();
   //clear out
   bcf_clear(m_bcf_out);
+  //If no valid FORMAT fields exist, this value is never set
+  m_bcf_out->n_sample = bcf_hdr_nsamples(m_vcf_hdr);
   //position
   m_bcf_out->rid = m_curr_contig_hdr_idx;
   m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
@@ -286,28 +299,35 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       //Need to find deletion allele with lowest PL value - this deletion allele is mapped to "*" allele
       auto lowest_deletion_allele_idx = -1;
       int lowest_PL_value = INT_MAX;
-      auto& PL_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX)->get();
+      auto PL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX);
       auto has_NON_REF = false;
-      for(auto i=0u;i<alt_alleles.size();++i)
+      //PL field exists
+      if(PL_field_ptr)
       {
-        auto allele_idx = i+1;  //+1 for REF
-        if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+        auto& PL_vector = PL_field_ptr->get();
+        for(auto i=0u;i<alt_alleles.size();++i)
         {
-          unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
-          assert(gt_idx < PL_vector.size());
-          if(PL_vector[gt_idx] < lowest_PL_value)
+          auto allele_idx = i+1;  //+1 for REF
+          if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
           {
-            lowest_PL_value = PL_vector[gt_idx];
-            lowest_deletion_allele_idx = allele_idx;
+            unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
+            assert(gt_idx < PL_vector.size());
+            if(PL_vector[gt_idx] < lowest_PL_value)
+            {
+              lowest_PL_value = PL_vector[gt_idx];
+              lowest_deletion_allele_idx = allele_idx;
+            }
           }
+          else
+            if(IS_NON_REF_ALLELE(alt_alleles[i]))
+            {
+              m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
+              has_NON_REF = true;
+            }
         }
-        else
-          if(IS_NON_REF_ALLELE(alt_alleles[i]))
-          {
-            m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
-            has_NON_REF = true;
-          }
       }
+      else      //PL field is not queried, simply use the first ALT allele
+        lowest_deletion_allele_idx = 1;
       assert(lowest_deletion_allele_idx >= 1);    //should be an ALT allele
       //first ALT allele in reduced list is *
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, lowest_deletion_allele_idx, 1); 

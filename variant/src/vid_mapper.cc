@@ -148,7 +148,7 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   }
 }
 
-void VidMapper::build_tiledb_array_schema(ArraySchema& array_schema) const
+void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema) const
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
   auto dim_domains = std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, 100000000000ll } });        //100B
@@ -190,6 +190,8 @@ void VidMapper::build_tiledb_array_schema(ArraySchema& array_schema) const
   //FORMAT fields
   for(const auto& field_info : m_field_idx_to_info)
   {
+    if(field_info.m_name == "END")      //skip END field
+      continue;
     if(field_info.m_is_vcf_FORMAT_field)
     {
       if(field_info.m_is_vcf_INFO_field)        //Also an INFO field of the same name - add suffix
@@ -204,8 +206,8 @@ void VidMapper::build_tiledb_array_schema(ArraySchema& array_schema) const
   types.push_back(&(typeid(int64_t)));
   //no compression - empty vector
   std::vector<CompressionType> compression;
-  array_schema = std::move(ArraySchema("tmp", attribute_names, dim_names, dim_domains, types, num_vals, compression,
-        ArraySchema::CO_COLUMN_MAJOR));
+  array_schema = new ArraySchema("tmp", attribute_names, dim_names, dim_domains, types, num_vals, compression,
+        ArraySchema::CO_COLUMN_MAJOR);
 }
 
 //FileBasedVidMapper code

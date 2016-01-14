@@ -4,6 +4,7 @@
 #include "vid_mapper.h"
 #include "column_partition_batch.h"
 #include "vcf2binary.h"
+#include "load_operators.h"
 
 //Exceptions thrown 
 class VCF2TileDBException : public std::exception{
@@ -68,6 +69,13 @@ class VCF2TileDBLoaderConverterBase
 {
   public:
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
+    int64_t get_column_partition_end() const
+    {
+      if(static_cast<unsigned>(m_idx)+1u < m_column_partition_begin_values.size())
+        return m_column_partition_begin_values[m_idx+1u]-1;
+      else
+        return INT64_MAX;
+    }
     void clear();
   protected:
     void resize_circular_buffers(unsigned num_entries)
@@ -79,6 +87,7 @@ class VCF2TileDBLoaderConverterBase
     int m_idx;
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
+    bool m_produce_combined_vcf;
     unsigned m_num_entries_in_circular_buffer;
     int m_num_converter_processes;
     int64_t m_per_partition_size;
@@ -177,6 +186,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     VCF2TileDBLoader(VCF2TileDBLoader&& other) = delete;
     ~VCF2TileDBLoader()
     {
+      for(auto op : m_operators)
+        if(op)
+          delete op;
       clear();
       if(m_converter)
         delete m_converter;
@@ -216,6 +228,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     TileDBColumnMajorPQ m_column_major_pq;
     //Row idxs not in PQ - need to be inserted in next call
     std::vector<int64_t> m_rows_not_in_pq;
+    //Operators - act on one cell per call
+    std::vector<LoaderOperatorBase*> m_operators;
 };
 
 #endif
