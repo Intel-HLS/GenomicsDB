@@ -300,8 +300,9 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
             curr_exchange.m_all_tiledb_row_idx_vec_response);
       curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = idx_offset - begin_idx_offset;
     }
-  for(auto& vcf_handler : m_vcf2binary_handlers)
-    vcf_handler.read_next_batch(m_cell_data_buffers, m_partition_batch, false);
+#pragma omp parallel for default(shared)
+  for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
+    m_vcf2binary_handlers[i].read_next_batch(m_cell_data_buffers, m_partition_batch, false);
   curr_exchange.m_is_serviced = true;
 }
 
@@ -397,7 +398,7 @@ void VCF2TileDBLoader::read_all()
     auto load_exchange_counter = exchange_counter;
     //For row idx requested, reserve entries
     reserve_entries_in_circular_buffer(fetch_exchange_counter);
-#pragma omp parallel sections shared(done) 
+#pragma omp parallel sections default(shared)
     {
 #pragma omp section
       {
