@@ -490,6 +490,8 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
 {
   auto* hdr = bcf_sr_get_header(vcf_partition.m_reader, 0);
   auto* line = bcf_sr_get_line(vcf_partition.m_reader, 0);
+  //FIXME: avoid strings
+  auto is_GT_field = (field_type_idx == BCF_HL_FMT && field_name == "GT");
   assert(line);
   assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size()
       && local_callset_idx < bcf_hdr_nsamples(hdr));
@@ -497,9 +499,9 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   //FIXME: handle missing fields gracefully
   VERIFY_OR_THROW(field_idx >= 0);
   //FIXME: special length descriptors
-  auto length_descriptor = bcf_hdr_id2length(hdr, field_type_idx, field_idx);
+  auto length_descriptor = is_GT_field ? BCF_VL_P : bcf_hdr_id2length(hdr, field_type_idx, field_idx);
   auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
-  auto bcf_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
+  auto bcf_ht_type = is_GT_field ? BCF_HT_INT : bcf_hdr_id2type(hdr, field_type_idx, field_idx);
   int max_num_values = vcf_partition.m_vcf_get_buffer_size/sizeof(FieldType);
   auto num_values = (field_type_idx == BCF_HL_INFO) ?
     bcf_get_info_values(hdr, line, field_name.c_str(), reinterpret_cast<void**>(&(vcf_partition.m_vcf_get_buffer)), &max_num_values, bcf_ht_type)
@@ -535,7 +537,6 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       num_values = num_values/bcf_hdr_nsamples(hdr);
       ptr += (local_callset_idx*num_values);
     }
-    auto is_GT_field = (field_type_idx == BCF_HL_FMT && field_name == "GT");
     for(auto k=0;k<num_values;++k)
     {
       auto val = ptr[k];
@@ -588,6 +589,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
 #endif
   //END position
   int max_num_values = vcf_partition.m_vcf_get_buffer_size/sizeof(int);
+  //FIXME: avoid strings
   auto num_values = bcf_get_info_int32(hdr, line, "END", &(vcf_partition.m_vcf_get_buffer), &max_num_values);
   assert(num_values == 1 || num_values == -3);
   auto end_column_idx = column_idx;
@@ -662,12 +664,17 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
     for(auto j=0u;j<(*m_vcf_fields)[field_type_idx].size();++j)
     {
       const auto& field_name = (*m_vcf_fields)[field_type_idx][j];
+      //FIXME: avoid strings
       if(field_type_idx == BCF_HL_INFO && field_name == "END")   //ignore END field
         continue;
       auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
       //FIXME: handle missing fields gracefully
       VERIFY_OR_THROW(field_idx >= 0);
-      switch(bcf_hdr_id2type(hdr, field_type_idx, field_idx))
+      auto field_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
+      //Because GT is encoded type string in VCF - total nonsense
+      //FIXME: avoid strings
+      field_ht_type = (field_type_idx == BCF_HL_FMT && field_name == "GT") ? BCF_HT_INT : field_ht_type;
+      switch(field_ht_type)
       {
         case BCF_HT_INT:
           buffer_full = buffer_full || convert_field_to_tiledb<int>(buffer, vcf_partition, buffer_offset, buffer_offset_limit, local_callset_idx,
