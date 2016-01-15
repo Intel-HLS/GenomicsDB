@@ -2,9 +2,6 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
-#define PRODUCE_BINARY_CELLS 1
-//#define PRODUCE_CSV_CELLS 1
-
 //Binary gets priority
 #if defined(PRODUCE_BINARY_CELLS) and defined(PRODUCE_CSV_CELLS)
 #undef PRODUCE_CSV_CELLS
@@ -562,8 +559,11 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   assert(vcf_partition.m_contig_tiledb_column_offset >= 0);
   //Buffer offsets tracking
   const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[enabled_callsets_idx];
+  const int64_t line_begin_buffer_offset = vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[enabled_callsets_idx];
   int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[enabled_callsets_idx];
+  assert(line_begin_buffer_offset >= begin_buffer_offset && line_begin_buffer_offset <= begin_buffer_offset + size_per_callset);
   assert(buffer_offset >= begin_buffer_offset && buffer_offset <= begin_buffer_offset + size_per_callset);
+  assert(buffer_offset >= line_begin_buffer_offset);
   const int64_t buffer_offset_limit = begin_buffer_offset + size_per_callset;
   bool buffer_full = false;
   auto curr_cell_begin_offset = buffer_offset;
@@ -693,7 +693,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   }
 #ifdef PRODUCE_BINARY_CELLS
   //Update total size
-  buffer_full = buffer_full ||  tiledb_buffer_print<size_t>(buffer, cell_size_offset, buffer_offset_limit, buffer_offset-begin_buffer_offset);
+  buffer_full = buffer_full ||  tiledb_buffer_print<size_t>(buffer, cell_size_offset, buffer_offset_limit, buffer_offset-line_begin_buffer_offset);
   if(buffer_full) return true;
 #endif
 #ifdef PRODUCE_CSV_CELLS

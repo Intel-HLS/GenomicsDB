@@ -408,8 +408,12 @@ void VCF2TileDBLoader::read_all()
       }
 #pragma omp section
       {
-        //done = dump_latest_buffer(load_exchange_counter, std::cout);
+#ifdef PRODUCE_CSV_CELLS
+        done = dump_latest_buffer(load_exchange_counter, std::cout);
+#endif
+#ifdef PRODUCE_BINARY_CELLS
         done = produce_cells_in_column_major_order(load_exchange_counter);
+#endif
       }
     }
     advance_write_idxs(fetch_exchange_counter);
@@ -565,7 +569,7 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     auto* top_ptr = m_column_major_pq.top();
     m_column_major_pq.pop();
     auto row_idx = top_ptr->m_row_idx;
-    //std::cout << row_idx <<","<<top_ptr->m_column<<"\n";
+    //std::cerr << row_idx <<","<<top_ptr->m_column<<"\n";
     const auto& buffer = m_ping_pong_buffers[m_row_idx_to_buffer_control[row_idx].get_read_idx()];
     auto offset = top_ptr->m_offset;
     for(auto op : m_operators)

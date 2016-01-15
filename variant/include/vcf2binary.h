@@ -1,6 +1,9 @@
 #ifndef VCF2BINARY_H
 #define VCF2BINARY_H
 
+#define PRODUCE_BINARY_CELLS 1
+/*#define PRODUCE_CSV_CELLS 1*/
+
 #ifdef HTSDIR
 
 #include "headers.h"
