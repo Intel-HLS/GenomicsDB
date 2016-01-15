@@ -51,7 +51,7 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
     auto& column_partitions_dict = json_doc["column_partitions"];
     //column_partitions_dict itself a dictionary of the form { "0" : { "begin" : <value> } }
     VERIFY_OR_THROW(column_partitions_dict.IsObject());
-    m_column_partition_begin_values.resize(column_partitions_dict.MemberCount());
+    m_column_partition_bounds.resize(column_partitions_dict.MemberCount());
     auto partition_idx = 0u;
     for(auto b=column_partitions_dict.MemberBegin(), e=column_partitions_dict.MemberEnd();b!=e;++b,++partition_idx)
     {
@@ -60,10 +60,17 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
       const auto& curr_partition_info_dict = curr_obj.value;
       VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
       VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-      m_column_partition_begin_values[partition_idx] = curr_partition_info_dict["begin"].GetInt64();
+      m_column_partition_bounds[partition_idx].first = curr_partition_info_dict["begin"].GetInt64();
+      m_column_partition_bounds[partition_idx].second = INT64_MAX;
+      if(curr_partition_info_dict.HasMember("end"))
+        m_column_partition_bounds[partition_idx].second = curr_partition_info_dict["end"].GetInt64();
     }
     //Sort in ascending order
-    std::sort(m_column_partition_begin_values.begin(), m_column_partition_begin_values.end());
+    std::sort(m_column_partition_bounds.begin(), m_column_partition_bounds.end(), ColumnRangeCompare);
+    //Set end value if not valid
+    for(auto i=0ull;i+1u<m_column_partition_bounds.size();++i)
+      if(m_column_partition_bounds[i].second >= m_column_partition_bounds[i+1u].first)
+        m_column_partition_bounds[i].second = m_column_partition_bounds[i+1u].first-1;
   }
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(json_doc.HasMember("vid_mapping_file"));
@@ -100,7 +107,7 @@ void VCF2TileDBLoaderConverterBase::clear()
 {
   m_vid_mapping_filename.clear();
   m_callset_mapping_file.clear();
-  m_column_partition_begin_values.clear();
+  m_column_partition_bounds.clear();
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
 }
@@ -130,7 +137,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   }
   else
   {
-    VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_begin_values.size());
+    VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
     m_vid_mapper = vid_mapper;
     VERIFY_OR_THROW(m_vid_mapper);
     //Buffer maintained external to converter, only maintain pointers
@@ -189,7 +196,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
       auto global_file_idx = global_file_idx_vec[i];
       auto& file_info = m_vid_mapper->get_file_info(global_file_idx);
       m_vcf2binary_handlers.emplace_back( 
-          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, m_column_partition_begin_values,
+          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, m_column_partition_bounds,
           m_max_size_per_callset,
           m_treat_deletions_as_intervals, false, false, false
           );
@@ -199,12 +206,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
   {
     //Same process as loader - must read all files
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
-    auto partition_bounds=std::vector<int64_t>(2u);
-    partition_bounds[0] = m_column_partition_begin_values[m_idx];
-    if(static_cast<size_t>(m_idx) < m_column_partition_begin_values.size()-1)
-      partition_bounds[1] = m_column_partition_begin_values[m_idx+1];
-    else
-      partition_bounds[1] = INT64_MAX;
+    auto partition_bounds=std::vector<ColumnRange>(1u, m_column_partition_bounds[m_idx]);
     for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
     {
       auto global_file_idx = i;
@@ -247,7 +249,7 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   }
   //If standalone converter process, initialize for all partitions
   //Else only allocate single column partition idx corresponding to the loader
-  auto num_column_partitions = m_standalone_converter_process ? m_column_partition_begin_values.size() : 1u;
+  auto num_column_partitions = m_standalone_converter_process ? m_column_partition_bounds.size() : 1u;
   for(auto i=0u;i<num_column_partitions;++i)
     m_partition_batch.emplace_back(i, m_max_size_per_callset, num_callsets_in_file, m_num_entries_in_circular_buffer);
   m_num_callsets_owned = 0;
@@ -345,7 +347,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
 {
   m_converter = 0;
   clear();
-  VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_begin_values.size());
+  VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file));
   m_max_size_per_callset = m_per_partition_size/m_vid_mapper->get_num_callsets();
   //Converter processes run independent of loader when num_converter_processes > 0

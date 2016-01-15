@@ -41,7 +41,7 @@ VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
 }
 
 VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
-    unsigned file_idx, VidMapper& vid_mapper, const std::vector<int64_t>& partition_bounds,
+    unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
     size_t max_size_per_callset,
     bool treat_deletions_as_intervals, bool parallel_partitions, bool noupdates, bool close_file)
 {
@@ -118,7 +118,7 @@ bcf_srs_t* VCF2Binary::initialize_reader(bool open_file)
   return reader;
 }
 
-void VCF2Binary::initialize(const std::vector<int64_t>& partition_bounds)
+void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
 {
   assert(m_vid_mapper);
   //Setup local-global mappings
@@ -164,12 +164,11 @@ void VCF2Binary::initialize(const std::vector<int64_t>& partition_bounds)
     initialize_partition(i, partition_bounds);
 }
 
-void VCF2Binary::initialize_partition(unsigned idx, const std::vector<int64_t>& partition_bounds)
+void VCF2Binary::initialize_partition(unsigned idx, const std::vector<ColumnRange>& partition_bounds)
 {
   auto& column_interval_info = m_partitions[idx];
-  column_interval_info.m_column_interval_begin = partition_bounds[idx];
-  column_interval_info.m_column_interval_end = (idx < partition_bounds.size()-1u)
-    ? partition_bounds[idx+1u]-1 : INT64_MAX;
+  column_interval_info.m_column_interval_begin = partition_bounds[idx].first;
+  column_interval_info.m_column_interval_end = partition_bounds[idx].second;
   //If parallel partitions, each interval gets its own reader
   if(m_parallel_partitions)
     column_interval_info.m_reader = initialize_reader(!m_close_file);

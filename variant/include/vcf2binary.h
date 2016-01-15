@@ -101,7 +101,7 @@ class VCF2Binary
 {
   public:
     VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
-        unsigned file_idx, VidMapper& vid_mapper, const std::vector<int64_t>& partition_bounds,
+        unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
         size_t max_size_per_callset,
         bool treat_deletions_as_intervals, bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
     //Delete default copy constructor as it is incorrect
@@ -112,8 +112,8 @@ class VCF2Binary
     void clear();
     //Initialization functions
     bcf_srs_t* initialize_reader(bool open_file);
-    void initialize(const std::vector<int64_t>& partition_bounds);
-    void initialize_partition(unsigned idx, const std::vector<int64_t>& partition_bounds );
+    void initialize(const std::vector<ColumnRange>& partition_bounds);
+    void initialize_partition(unsigned idx, const std::vector<ColumnRange>& partition_bounds );
     /*
      * Set order of enabled callsets
      */

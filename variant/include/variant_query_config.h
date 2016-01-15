@@ -7,9 +7,6 @@
 
 #define UNDEFINED_NUM_ROWS_VALUE 0xFFFFFFFFFFFFFFFFull
 
-typedef std::pair<int64_t, int64_t> ColumnRange;
-bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);
-
 //Out of bounds query exception
 class OutOfBoundsQueryException : public std::exception {
   public:

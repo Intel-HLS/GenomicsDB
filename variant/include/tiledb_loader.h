@@ -71,10 +71,13 @@ class VCF2TileDBLoaderConverterBase
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
     int64_t get_column_partition_end() const
     {
-      if(static_cast<unsigned>(m_idx)+1u < m_column_partition_begin_values.size())
-        return m_column_partition_begin_values[m_idx+1u]-1;
-      else
-        return INT64_MAX;
+      assert(static_cast<unsigned>(m_idx) < m_column_partition_bounds.size());
+      return m_column_partition_bounds[m_idx].second;
+    }
+    int64_t get_column_partition_begin() const
+    {
+      assert(static_cast<unsigned>(m_idx) < m_column_partition_bounds.size());
+      return m_column_partition_bounds[m_idx].first;
     }
     void clear();
   protected:
@@ -96,14 +99,14 @@ class VCF2TileDBLoaderConverterBase
     std::string m_vid_mapping_filename;
     //callset mapping file - if defined in upper level config file
     std::string m_callset_mapping_file;
-    //Partition begin values
-    std::vector<int64_t> m_column_partition_begin_values;
     //Ping-pong buffers
     //Note that these buffers may remain at size 0, if the ping pong buffers are owned by a different object
     std::vector<std::vector<uint8_t>> m_ping_pong_buffers;
     //Data structure for exchanging info between loader and converter
     //Note that these buffers may remain at size 0, if the exchanges are owned by a different object
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
+    //Partition begin,end values
+    std::vector<ColumnRange> m_column_partition_bounds;
 };
 
 class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
