@@ -380,9 +380,11 @@ class FileBasedVidMapper : public VidMapper
 {
   public:
     FileBasedVidMapper() : VidMapper() { ; }
-    FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="");
+    FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
+        const int64_t limit_callset_row_idx=INT64_MAX);
   private:
     void parse_callsets_file(const std::string& filename);
+    int64_t m_limit_callset_row_idx;
 };
 
 #endif

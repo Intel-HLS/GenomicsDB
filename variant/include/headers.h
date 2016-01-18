@@ -19,6 +19,7 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <omp.h>
 
 typedef std::pair<int64_t, int64_t> ColumnRange;
 bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);

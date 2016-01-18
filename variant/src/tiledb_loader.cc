@@ -2,6 +2,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
+#include "timer.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2TileDBException(#X);
 
@@ -89,18 +90,32 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
     m_treat_deletions_as_intervals = json_doc["treat_deletions_as_intervals"].GetBool();
   else
     m_treat_deletions_as_intervals = false;
-  //Circular buffers - 3 needed in non-standalone converter mode
-  resize_circular_buffers(3u);
-  //Exchange structure
-  m_owned_exchanges.resize(2u);
   //callset mapping file - check if defined in upper level json
   m_callset_mapping_file = "";
   if(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString())
     m_callset_mapping_file = json_doc["callset_mapping_file"].GetString();
+  //Ignore callsets with row idx > specified value
+  m_limit_callset_row_idx = INT64_MAX;
+  if(json_doc.HasMember("limit_callset_row_idx"))
+    m_limit_callset_row_idx = json_doc["limit_callset_row_idx"].GetInt64();
   //Produce combined vcf
   m_produce_combined_vcf = false;
   if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
     m_produce_combined_vcf = true;
+  //#vcf files to process in parallel
+  m_num_parallel_vcf_files = 1;
+  if(json_doc.HasMember("num_parallel_vcf_files"))
+    m_num_parallel_vcf_files = json_doc["num_parallel_vcf_files"].GetInt();
+  //do ping pong buffering
+  m_do_ping_pong_buffering = true;
+  if(json_doc.HasMember("do_ping_pong_buffering"))
+    m_do_ping_pong_buffering = json_doc["do_ping_pong_buffering"].GetBool();
+  //Size circular buffers - 3 needed in non-standalone converter mode
+  auto num_circular_buffers = m_do_ping_pong_buffering ? 3u : 1u;
+  auto num_exchanges = m_do_ping_pong_buffering ? 2u : 1u;
+  resize_circular_buffers(num_circular_buffers);
+  //Exchange structure
+  m_owned_exchanges.resize(num_exchanges);
 }
 
 void VCF2TileDBLoaderConverterBase::clear()
@@ -123,7 +138,8 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   {
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
-    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file));
+    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
+          m_limit_callset_row_idx));
     //2 entries sufficient
     resize_circular_buffers(2u);
     //Buffer "pointers"
@@ -302,9 +318,14 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
             curr_exchange.m_all_tiledb_row_idx_vec_response);
       curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = idx_offset - begin_idx_offset;
     }
-#pragma omp parallel for default(shared)
+  //Set upper bound on #files to process in parallel
+#pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files)
   for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
+  {
+    //#pragma omp critical
+    //std::cerr << "Thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
     m_vcf2binary_handlers[i].read_next_batch(m_cell_data_buffers, m_partition_batch, false);
+  }
   curr_exchange.m_is_serviced = true;
 }
 
@@ -348,7 +369,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   m_converter = 0;
   clear();
   VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
-  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file));
+  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
+        m_limit_callset_row_idx));
   m_max_size_per_callset = m_per_partition_size/m_vid_mapper->get_num_callsets();
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
@@ -388,11 +410,13 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
           new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals)));
 }
 
-#include "omp.h"
 void VCF2TileDBLoader::read_all()
 {
   auto num_exchanges = m_owned_exchanges.size();
   auto exchange_counter = num_exchanges-1u;
+  //Timers
+  Timer fetch_timer;
+  Timer load_timer;
   while(true)
   {
     auto done=false;
@@ -400,29 +424,42 @@ void VCF2TileDBLoader::read_all()
     auto load_exchange_counter = exchange_counter;
     //For row idx requested, reserve entries
     reserve_entries_in_circular_buffer(fetch_exchange_counter);
-#pragma omp parallel sections default(shared)
+#pragma omp parallel sections default(shared) num_threads(m_do_ping_pong_buffering ? 2 : 1)
     {
 #pragma omp section
       {
+        //#pragma omp critical
+        //std::cerr << "Fetch thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
+        fetch_timer.start();
         m_converter->read_next_batch(fetch_exchange_counter);
+        if(!m_do_ping_pong_buffering)
+          advance_write_idxs(fetch_exchange_counter);
+        fetch_timer.stop();
       }
 #pragma omp section
       {
+        //#pragma omp critical
+        //std::cerr << "Load thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
+        load_timer.start();
 #ifdef PRODUCE_CSV_CELLS
         done = dump_latest_buffer(load_exchange_counter, std::cout);
 #endif
 #ifdef PRODUCE_BINARY_CELLS
         done = produce_cells_in_column_major_order(load_exchange_counter);
 #endif
+        load_timer.stop();
       }
     }
-    advance_write_idxs(fetch_exchange_counter);
+    if(m_do_ping_pong_buffering)
+      advance_write_idxs(fetch_exchange_counter);
     if(done)
       break;
     exchange_counter = (exchange_counter+1u)%num_exchanges;
   }
   for(auto op : m_operators)
     op->finish(get_column_partition_end());
+  fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
+  load_timer.print_cumulative("Combining cells", std::cerr);
 }
 
 void VCF2TileDBLoader::reserve_entries_in_circular_buffer(unsigned exchange_idx)

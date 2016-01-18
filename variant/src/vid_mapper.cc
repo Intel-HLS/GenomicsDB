@@ -213,7 +213,8 @@ void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema) const
 //FileBasedVidMapper code
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
-FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file)
+FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
+    const int64_t limit_callset_row_idx)
   : VidMapper()
 {
   rapidjson::Document json_doc;
@@ -221,6 +222,7 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  m_limit_callset_row_idx = limit_callset_row_idx;
   //Callset info parsing
   if(callset_mapping_file != "")
     parse_callsets_file(callset_mapping_file);
@@ -333,7 +335,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     const rapidjson::Value& callsets_dict = json_doc["callsets"];
     //callsets is a dictionary of name:info key-value pairs
     VERIFY_OR_THROW(callsets_dict.IsObject());
-    auto num_callsets = callsets_dict.MemberCount();
+    auto num_callsets = (m_limit_callset_row_idx == INT64_MAX) ? callsets_dict.MemberCount() :
+      std::min<int64_t>(callsets_dict.MemberCount(), m_limit_callset_row_idx+1);
     m_row_idx_to_info.resize(num_callsets);
     std::string callset_name;
     for(auto b=callsets_dict.MemberBegin(), e=callsets_dict.MemberEnd();b!=e;++b)
@@ -344,6 +347,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       VERIFY_OR_THROW(callset_info_dict.IsObject());    //must be dict
       VERIFY_OR_THROW(callset_info_dict.HasMember("row_idx"));
       int64_t row_idx = callset_info_dict["row_idx"].GetInt64();
+      if(row_idx > m_limit_callset_row_idx)
+        continue;
       int64_t file_idx = -1;
       if(callset_info_dict.HasMember("filename"))
       {

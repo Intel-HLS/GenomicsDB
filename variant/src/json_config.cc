@@ -192,6 +192,9 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
       m_reference_genome = v.GetString();
     }
   }
+  //Output format - if arg not empty
+  if(output_format == "" && m_json.HasMember("vcf_output_format"))
+    output_format = m_json["vcf_output_format"].GetString(); 
   vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
 }
 

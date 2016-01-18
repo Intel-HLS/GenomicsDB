@@ -99,6 +99,8 @@ class VCF2TileDBLoaderConverterBase
     std::string m_vid_mapping_filename;
     //callset mapping file - if defined in upper level config file
     std::string m_callset_mapping_file;
+    //Limit callset row idx to this value
+    int64_t m_limit_callset_row_idx;
     //Ping-pong buffers
     //Note that these buffers may remain at size 0, if the ping pong buffers are owned by a different object
     std::vector<std::vector<uint8_t>> m_ping_pong_buffers;
@@ -107,6 +109,10 @@ class VCF2TileDBLoaderConverterBase
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
     //Partition begin,end values
     std::vector<ColumnRange> m_column_partition_bounds;
+    //#VCF files to open/process in parallel
+    int m_num_parallel_vcf_files;
+    //do ping-pong buffering
+    bool m_do_ping_pong_buffering;
 };
 
 class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
