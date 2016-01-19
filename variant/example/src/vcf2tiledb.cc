@@ -30,7 +30,9 @@ main(int argc, char** argv)
 #endif
   //Loader object
   VCF2TileDBLoader loader(argv[1], my_world_mpi_rank);
+#ifdef HTSDIR
   loader.read_all();
+#endif
 #ifdef USE_GPERFTOOLS
   ProfilerStop();
 #endif

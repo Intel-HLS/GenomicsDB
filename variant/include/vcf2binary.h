@@ -10,30 +10,7 @@
 #include "vid_mapper.h"
 #include "column_partition_batch.h"
 #include "htslib/synced_bcf_reader.h"
-#include "special_values.h"
 #include "gt_common.h"
-
-//template function for obtaining TileDB null value
-template<class T>
-inline T get_tiledb_null_value();
-
-template<>
-inline char get_tiledb_null_value<char>() { return NULL_CHAR; }
-
-template<>
-inline int get_tiledb_null_value<int>() { return NULL_INT; }
-
-template<>
-inline int64_t get_tiledb_null_value<int64_t>() { return NULL_INT64_T; }
-
-template<>
-inline size_t get_tiledb_null_value<size_t>() { return NULL_SIZE_T; }
-
-template<>
-inline float get_tiledb_null_value<float>() { return NULL_FLOAT; }
-
-template<>
-inline double get_tiledb_null_value<double>() { return NULL_DOUBLE; }
 
 //Exceptions thrown 
 class VCF2BinaryException : public std::exception {

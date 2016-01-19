@@ -127,6 +127,7 @@ void VCF2TileDBLoaderConverterBase::clear()
   m_owned_exchanges.clear();
 }
 
+#ifdef HTSDIR
 VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int idx, VidMapper* vid_mapper, 
     std::vector<std::vector<uint8_t>>* buffers, std::vector<LoaderConverterMessageExchange>* exchange_vector)
   : VCF2TileDBLoaderConverterBase(config_filename, idx)
@@ -361,12 +362,15 @@ void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream
     }
   }
 }
+#endif
 
 //Loader functions
 VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx)
 {
+#ifdef HTSDIR
   m_converter = 0;
+#endif
   clear();
   VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
@@ -388,7 +392,9 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
       for(auto i=0ll;i<m_vid_mapper->get_num_callsets();++i)
         x.m_all_tiledb_row_idx_vec_request[x.get_idx_offset_for_converter(0)+i] = i;
     }
+#ifdef HTSDIR
     m_converter = new VCF2TileDBConverter(config_filename, idx, m_vid_mapper, &m_ping_pong_buffers, &m_owned_exchanges);
+#endif
   }
   //Allocate buffers
   for(auto i=0u;i<m_ping_pong_buffers.size();++i)
@@ -404,12 +410,19 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_pq_vector[i].m_offset = get_buffer_start_offset_for_row_idx(i);
     m_rows_not_in_pq[i] = i;
   }
-  //Operators
   if(m_produce_combined_vcf)
+  {
+#ifdef HTSDIR
+    //Operators
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
           new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals)));
+#else
+    throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
+#endif
+  }
 }
 
+#ifdef HTSDIR
 void VCF2TileDBLoader::read_all()
 {
   auto num_exchanges = m_owned_exchanges.size();
@@ -461,6 +474,7 @@ void VCF2TileDBLoader::read_all()
   fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
   load_timer.print_cumulative("Combining cells", std::cerr);
 }
+#endif
 
 void VCF2TileDBLoader::reserve_entries_in_circular_buffer(unsigned exchange_idx)
 {

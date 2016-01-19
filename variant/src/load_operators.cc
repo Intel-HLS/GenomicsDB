@@ -1,6 +1,7 @@
 #include "load_operators.h"
 #include "json_config.h"
 
+#ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
     bool handle_spanning_deletions)
   : LoaderOperatorBase(), m_operator(0), m_query_processor(0), m_schema(0)
@@ -73,3 +74,4 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
   m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
       m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
 }
+#endif

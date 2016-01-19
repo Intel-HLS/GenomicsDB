@@ -1,3 +1,5 @@
+#ifdef HTSDIR
+
 #include "vcf2binary.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
@@ -36,6 +38,7 @@ VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
   m_reader = other.m_reader;
   other.m_reader = 0;
 }
+
 
 VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
     unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
@@ -709,3 +712,5 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
 #endif
   return buffer_full;
 }
+
+#endif //ifdef HTSDIR

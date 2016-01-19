@@ -20,6 +20,7 @@ class LoaderOperatorBase
     virtual void finish(const int64_t column_interval_end) { ; }
 };
 
+#ifdef HTSDIR
 class LoaderCombinedGVCFOperator : public LoaderOperatorBase
 {
   public:
@@ -61,5 +62,6 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     GTProfileStats m_stats;
     GTProfileStats* m_stats_ptr;
 };
+#endif
 
 #endif

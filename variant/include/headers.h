@@ -1,3 +1,6 @@
+#ifndef COMMON_HEADERS_H
+#define COMMON_HEADERS_H
+
 #include <stdio.h>
 #include <typeinfo>
 #include <stdlib.h>
@@ -23,3 +26,5 @@
 
 typedef std::pair<int64_t, int64_t> ColumnRange;
 bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);
+
+#endif

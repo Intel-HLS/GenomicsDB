@@ -115,6 +115,7 @@ class VCF2TileDBLoaderConverterBase
     bool m_do_ping_pong_buffering;
 };
 
+#ifdef HTSDIR
 class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
 {
   public:
@@ -157,6 +158,7 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     //If standalone, points to owned exchanges, else must point to those owned by VCF2TileDBLoader
     std::vector<LoaderConverterMessageExchange*> m_exchanges;
 };
+#endif
 
 class CellPQElement
 {
@@ -199,20 +201,34 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
         if(op)
           delete op;
       clear();
+#ifdef HTSDIR
       if(m_converter)
         delete m_converter;
       m_converter = 0;
+#endif
       delete m_vid_mapper;
       m_vid_mapper = 0;
     }
     void clear();
+#ifdef HTSDIR
     VCF2TileDBConverter* get_converter() { return m_converter; }
+    /*
+     * For non-standalone converter processes, this function will do the read, convert and processing
+     * of all VCF files
+     */
     void read_all();
+#endif
     /*
      * Get the order value at which the given row idx appears
      */
     inline int64_t get_order_for_row_idx(const int64_t row_idx) const
-    { return m_standalone_converter_process ? row_idx : m_converter->get_order_for_row_idx(row_idx); }
+    {
+#ifdef HTSDIR
+      return m_standalone_converter_process ? row_idx : m_converter->get_order_for_row_idx(row_idx);
+#else
+      return row_idx;
+#endif
+    }
     inline int64_t get_buffer_start_offset_for_row_idx(const int64_t row_idx) const
     { return get_order_for_row_idx(row_idx)*m_max_size_per_callset; }
     /*
@@ -228,8 +244,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
     VidMapper* m_vid_mapper;
+#ifdef HTSDIR
     //May be null
     VCF2TileDBConverter* m_converter;
+#endif
     //Circular buffer logic
     std::vector<CircularBufferController> m_row_idx_to_buffer_control;
     //Vector to be used in PQ for producing cells in column major order
