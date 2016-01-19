@@ -362,7 +362,7 @@ $(TILEDB_CMD_OBJ_DIR)/%.o: $(TILEDB_CMD_SRC_DIR)/%.cc
 $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 	@mkdir -p $(TILEDB_CMD_BIN_DIR)
 	@echo "Creating $@"
-	@$(CXX) $(LINKFLAGS) -fopenmp $(MPI_LIB_PATHS) $(MPI_LIB) \
+	@$(CXX) $(LINKFLAGS) $(MPI_LIB_PATHS) $(MPI_LIB) \
                 -o $@ $^ $(LDFLAGS)
 
 # --- Cleaning --- #
