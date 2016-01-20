@@ -110,6 +110,10 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   m_do_ping_pong_buffering = true;
   if(json_doc.HasMember("do_ping_pong_buffering"))
     m_do_ping_pong_buffering = json_doc["do_ping_pong_buffering"].GetBool();
+  //Offload VCF output processing
+  m_offload_vcf_output_processing = false;
+  if(json_doc.HasMember("offload_vcf_output_processing"))
+    m_offload_vcf_output_processing = m_do_ping_pong_buffering && json_doc["offload_vcf_output_processing"].GetBool();
   //Size circular buffers - 3 needed in non-standalone converter mode
   auto num_circular_buffers = m_do_ping_pong_buffering ? 3u : 1u;
   auto num_exchanges = m_do_ping_pong_buffering ? 2u : 1u;
@@ -294,9 +298,8 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     int64_t local_file_idx = -1;
     m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
     assert(local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
-    //Advance write idx
-    //If non-standalone converter, advance read idx also
-    m_partition_batch[partition_idx].activate_file(local_file_idx, !m_standalone_converter_process);
+    //Activate file - enable fetch flag and reserve entry in circular buffer
+    m_partition_batch[partition_idx].activate_file(local_file_idx);
   }
   //Compute offsets in buffer if standalone, otherwise maintain offsets computed during initialization
   if(m_standalone_converter_process)
@@ -325,8 +328,13 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
   {
     //#pragma omp critical
     //std::cerr << "Thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
+    //Also advances circular buffer idx
     m_vcf2binary_handlers[i].read_next_batch(m_cell_data_buffers, m_partition_batch, false);
   }
+  //For non-standalone converter processes, must simply advance read idx
+  if(!m_standalone_converter_process)
+    for(auto& partition_batch : m_partition_batch)
+      partition_batch.advance_read_idxs();
   curr_exchange.m_is_serviced = true;
 }
 
@@ -430,6 +438,9 @@ void VCF2TileDBLoader::read_all()
   //Timers
   Timer fetch_timer;
   Timer load_timer;
+  Timer flush_output_timer;
+  const auto num_parallel_omp_sections = 1 + (m_do_ping_pong_buffering ? 1 : 0) +
+    (m_offload_vcf_output_processing && m_do_ping_pong_buffering ? 1 : 0);
   while(true)
   {
     auto done=false;
@@ -437,7 +448,9 @@ void VCF2TileDBLoader::read_all()
     auto load_exchange_counter = exchange_counter;
     //For row idx requested, reserve entries
     reserve_entries_in_circular_buffer(fetch_exchange_counter);
-#pragma omp parallel sections default(shared) num_threads(m_do_ping_pong_buffering ? 2 : 1)
+    for(auto op : m_operators)
+      op->pre_operate_sequential();
+#pragma omp parallel sections default(shared) num_threads(num_parallel_omp_sections)
     {
 #pragma omp section
       {
@@ -462,17 +475,33 @@ void VCF2TileDBLoader::read_all()
 #endif
         load_timer.stop();
       }
+#pragma omp section
+      if(m_offload_vcf_output_processing)
+      {
+        flush_output_timer.start();
+        for(auto op : m_operators)
+          op->flush_output();
+        flush_output_timer.stop();
+      }
     }
     if(m_do_ping_pong_buffering)
       advance_write_idxs(fetch_exchange_counter);
+    for(auto op : m_operators)
+      op->post_operate_sequential();
     if(done)
+    {
+      //Final flush output
+      for(auto op : m_operators)
+        op->flush_output();
       break;
+    }
     exchange_counter = (exchange_counter+1u)%num_exchanges;
   }
   for(auto op : m_operators)
     op->finish(get_column_partition_end());
   fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
   load_timer.print_cumulative("Combining cells", std::cerr);
+  flush_output_timer.print_cumulative("Flush output", std::cerr);
 }
 #endif
 

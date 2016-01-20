@@ -7,6 +7,12 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   : LoaderOperatorBase(), m_operator(0), m_query_processor(0), m_schema(0)
 {
   clear();
+  //Parse json configuration
+  rapidjson::Document json_doc;
+  std::ifstream ifs(config_filename.c_str());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  json_doc.Parse(str.c_str());
+  //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
   m_vid_mapper->build_tiledb_array_schema(m_schema);
@@ -18,10 +24,23 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_query_config.set_attributes_to_query(query_attributes);
   m_query_processor->do_query_bookkeeping(*m_schema, m_query_config);
   //Initialize VCF adapter
+  if(json_doc.HasMember("offload_vcf_output_processing") && json_doc["offload_vcf_output_processing"].GetBool())
+  {
+    m_offload_vcf_output_processing = true;
+    //2 entries in circular buffer, max #entries to use in each line_buffer
+    m_buffered_vcf_adapter = new BufferedVCFAdapter(2u, m_vid_mapper->get_num_callsets());
+    m_vcf_adapter = dynamic_cast<VCFAdapter*>(m_buffered_vcf_adapter);
+  }
+  else
+  {
+    m_offload_vcf_output_processing = false;
+    m_vcf_adapter = new VCFAdapter();
+    m_buffered_vcf_adapter = 0;
+  }
   JSONVCFAdapterConfig vcf_adapter_config;
-  vcf_adapter_config.read_from_file(config_filename, m_vcf_adapter);
+  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter);
   //Initialize operator
-  m_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, *m_vid_mapper, m_query_config);
+  m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config);
   //Initialize variant
   m_variant = std::move(Variant(&m_query_config));
   m_variant.resize_based_on_query();
@@ -46,7 +65,6 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
 void LoaderCombinedGVCFOperator::clear()
 {
   m_query_config.clear();
-  m_vcf_adapter.clear();
   m_variant.clear();
   m_tmp_pq_vector.clear();
 }
@@ -70,8 +88,13 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 
 void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
 {
+  assert(!m_offload_vcf_output_processing || m_buffered_vcf_adapter->get_num_entries_with_valid_data() == 0u);
+  pre_operate_sequential();
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;
   m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
       m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
+  post_operate_sequential();
+  flush_output();
 }
+
 #endif

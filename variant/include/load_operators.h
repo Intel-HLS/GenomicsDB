@@ -11,9 +11,22 @@ class LoaderOperatorBase
     LoaderOperatorBase() { ; }
     virtual ~LoaderOperatorBase() { ; }
     /*
+     * Function that is called before the parallel section takes over, but inside the operational loop
+     */
+    virtual void pre_operate_sequential() { ; }
+    /*
      * Virtual function that must be overridden by sub-classes
      */
     virtual void operate(const void* cell_ptr) = 0;
+    /*
+     * Called within parallel sections - useful if the output needs to be flushed by a thread
+     * not in the critical path
+     */
+    virtual void flush_output() { ; }
+    /*
+     * Function that is called after the parallel section, but inside the operational loop
+     */
+    virtual void post_operate_sequential() { ; }
     /*
      * Called at the end - the argument is the column interval end limit
      */
@@ -36,8 +49,19 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
         delete m_operator;
       if(m_cell)
         delete m_cell;
+      delete m_vcf_adapter;
     }
     virtual void operate(const void* cell_ptr);
+    virtual void flush_output()
+    {
+      if(m_offload_vcf_output_processing)
+        m_buffered_vcf_adapter->do_output();
+    }
+    virtual void post_operate_sequential()
+    {
+      if(m_offload_vcf_output_processing)
+        m_buffered_vcf_adapter->advance_write_idx();
+    }
     virtual void finish(const int64_t column_interval_end);
     void clear();
   private:
@@ -45,7 +69,11 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     VariantQueryProcessor* m_query_processor;
     const VidMapper* m_vid_mapper;
     VariantQueryConfig m_query_config;
-    VCFAdapter m_vcf_adapter;
+    //Configuration for VCF adapter
+    bool m_offload_vcf_output_processing;
+    VCFAdapter* m_vcf_adapter;
+    BufferedVCFAdapter* m_buffered_vcf_adapter; //points to same object as above
+    //Operator that produces combined VCF record
     BroadCombinedGVCFOperator* m_operator;
     Variant m_variant;
     Cell* m_cell;

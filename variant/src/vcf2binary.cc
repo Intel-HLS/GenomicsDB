@@ -303,8 +303,8 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
   //Close file handles if needed
   if(m_parallel_partitions && close_file)
     bcf_sr_remove_reader(vcf_partition.m_reader, 0);
-  //Caller must set to true to force fetch for this partition-file batch again
-  partition_file_batch.m_fetch = false;
+  //Advance write idx for partition_file_batch
+  partition_file_batch.advance_write_idx();
 }
 
 inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf1_t* line)

@@ -3,54 +3,6 @@
 
 #include "headers.h"
 
-class CircularBufferController
-{
-  public:
-    CircularBufferController(unsigned num_entries)
-    {
-      m_num_entries = num_entries;
-      m_num_entries_with_valid_data = 0u;
-      m_num_reserved_entries = 0u;
-      m_curr_write_idx = num_entries-1u;
-      m_curr_read_idx = 0u;
-    }
-    //Advance write idx - increase #valid entries, decrease 
-    inline void advance_write_idx(bool unreserve=false)
-    {
-      m_curr_write_idx = (m_curr_write_idx+1u)%m_num_entries;
-      assert(m_num_entries_with_valid_data < m_num_entries);
-      ++m_num_entries_with_valid_data;
-      if(unreserve)
-      {
-        assert(m_num_reserved_entries > 0u);
-        --m_num_reserved_entries;
-      }
-    }
-    //Reserves an entry without marking it as valid
-    void reserve_entry()   { ++m_num_reserved_entries; }
-    inline void advance_read_idx()
-    {
-      m_curr_read_idx = (m_curr_read_idx+1u)%m_num_entries;
-      assert(m_num_entries_with_valid_data > 0u);
-      --m_num_entries_with_valid_data;
-    }
-    inline unsigned get_num_entries_with_valid_data() const
-    { return m_num_entries_with_valid_data; }
-    inline unsigned get_num_empty_entries() const
-    { return m_num_entries - m_num_entries_with_valid_data - m_num_reserved_entries; }
-    //Get idx
-    inline unsigned get_write_idx() const { return m_curr_write_idx; }
-    inline unsigned get_read_idx() const { return m_curr_read_idx; }
-  protected:
-    //Points to latest entry with valid data
-    unsigned m_curr_write_idx;
-    //Points to entry being read currently
-    unsigned m_curr_read_idx;
-    unsigned m_num_entries;
-    unsigned m_num_entries_with_valid_data;
-    unsigned m_num_reserved_entries;
-};
-
 class ColumnPartitionFileBatch : public CircularBufferController
 {
   public:
@@ -75,6 +27,19 @@ class ColumnPartitionFileBatch : public CircularBufferController
     {
       m_buffer_offset = offset;
       offset += m_num_callsets*max_size_per_callset;
+    }
+    //Advance circular buffer controls
+    void advance_write_idx()
+    {
+      //Caller must set to true to force fetch for this partition-file batch again
+      m_fetch = false;
+      CircularBufferController::advance_write_idx(true);
+    }
+    //Only advance if there is really something to advance
+    void advance_read_idx()
+    {
+      if(get_num_entries_with_valid_data())
+        CircularBufferController::advance_read_idx();
     }
     //Members
     bool m_fetch;
@@ -105,7 +70,7 @@ class ColumnPartitionBatch
     /*
      * Requests that new data be fetched for current column partition for the files for which m_fetch=true
      */
-    bool activate_file(int64_t file_idx, bool forward_read_idx)
+    bool activate_file(int64_t file_idx)
     {
       assert(static_cast<size_t>(file_idx) < m_file_batches.size());
       auto& file_batch = m_file_batches[file_idx];
@@ -113,14 +78,20 @@ class ColumnPartitionBatch
       {
         //set fetch
         file_batch.m_fetch = true;
-        //Advance circular buffer idx
-        file_batch.advance_write_idx();
-        if(forward_read_idx)
-          file_batch.advance_read_idx();
+        //reserve entry in circular buffer
+        file_batch.reserve_entry();
         return true;
       }
       else
         return false;
+    }
+    /*
+     * Just advance read idx of members
+     * */
+    void advance_read_idxs()
+    {
+      for(auto& file_batch : m_file_batches)
+        file_batch.advance_read_idx();
     }
     /*
      * Specifies that for the next batch, the files with m_fetch=true are to be read

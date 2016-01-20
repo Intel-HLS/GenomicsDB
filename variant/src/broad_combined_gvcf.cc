@@ -31,8 +31,6 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
   assert(curr_contig_flag);
   switch_contig();
-  //GATK combined GVCF does not care about QUAL value
-  m_bcf_out->qual = get_bcf_missing_value<float>();
   //vector of char*, to avoid frequent reallocs()
   m_alleles_pointer_buffer.resize(100u);
   //INFO fields
@@ -242,6 +240,8 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //position
   m_bcf_out->rid = m_curr_contig_hdr_idx;
   m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
+  //GATK combined GVCF does not care about QUAL value
+  m_bcf_out->qual = get_bcf_missing_value<float>();
   //Update alleles
   auto& ref_allele = dynamic_cast<VariantFieldString*>(m_remapped_variant.get_common_field(0u).get())->get();
   if(ref_allele.length() == 1u && ref_allele[0] == 'N')
@@ -263,7 +263,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_INFO_fields(variant);
   //FORMAT fields
   handle_FORMAT_fields(variant);
-  m_vcf_adapter->print_bcf_line(m_bcf_out);
+  m_vcf_adapter->handoff_output_bcf_line(m_bcf_out);
 }
 
 void BroadCombinedGVCFOperator::switch_contig()

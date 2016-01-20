@@ -113,6 +113,8 @@ class VCF2TileDBLoaderConverterBase
     int m_num_parallel_vcf_files;
     //do ping-pong buffering
     bool m_do_ping_pong_buffering;
+    //Offload VCF output processing to another thread
+    bool m_offload_vcf_output_processing;
 };
 
 #ifdef HTSDIR

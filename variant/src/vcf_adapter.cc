@@ -86,4 +86,75 @@ void VCFAdapter::print_header()
   bcf_hdr_write(m_output_fptr, m_template_vcf_hdr);
 }
 
+BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries)
+  : VCFAdapter(), CircularBufferController(num_circular_buffers)
+{
+  clear();
+  m_line_buffers.resize(num_circular_buffers);
+  m_num_valid_entries.resize(num_circular_buffers);
+  for(auto i=0u;i<m_num_valid_entries.size();++i)
+    m_num_valid_entries[i] = 0u;
+  //Initialize buffers
+  for(auto& line_buffer : m_line_buffers)
+    resize_line_buffer(line_buffer, max_num_entries);
+}
+
+BufferedVCFAdapter::~BufferedVCFAdapter()
+{
+  for(auto& line_buffer : m_line_buffers)
+    for(auto& line : line_buffer)
+      bcf_destroy(line);
+  clear();
+}
+
+void BufferedVCFAdapter::clear()
+{
+  m_line_buffers.clear();
+  m_num_valid_entries.clear();
+}
+
+void BufferedVCFAdapter::handoff_output_bcf_line(bcf1_t*& line)
+{
+  auto write_idx = get_write_idx();
+  auto& line_buffer = m_line_buffers[write_idx];
+  //Need to resize buffer - non-common case
+  if(m_num_valid_entries[write_idx] >= line_buffer.size())
+    resize_line_buffer(line_buffer, 2u*line_buffer.size()+1u);
+  assert(m_num_valid_entries[write_idx] < line_buffer.size());
+  std::swap<bcf1_t*>(line, line_buffer[m_num_valid_entries[write_idx]]);
+  ++(m_num_valid_entries[write_idx]);
+}
+
+void BufferedVCFAdapter::resize_line_buffer(std::vector<bcf1_t*>& line_buffer, unsigned new_size)
+{
+  if(new_size <= line_buffer.size())     //never reduce
+    return;
+  auto curr_idx = line_buffer.size();
+  line_buffer.resize(new_size);
+  for(auto i=curr_idx;i<line_buffer.size();++i)
+    line_buffer[i] = bcf_init();
+}
+
+void BufferedVCFAdapter::advance_write_idx()
+{
+  //Advance if something was written
+  if(m_num_valid_entries[get_write_idx()])
+    CircularBufferController::advance_write_idx();
+}
+
+void BufferedVCFAdapter::do_output()
+{
+  if(get_num_entries_with_valid_data() == 0u)
+    return;
+  auto read_idx = get_read_idx();
+  assert(m_num_valid_entries[read_idx] <= m_line_buffers[read_idx].size());
+  for(auto i=0u;i<m_num_valid_entries[read_idx];++i)
+  {
+    assert(m_line_buffers[read_idx][i]);
+    bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
+  }
+  m_num_valid_entries[read_idx] = 0u;
+  advance_read_idx();
+}
+
 #endif //ifdef HTSDIR
