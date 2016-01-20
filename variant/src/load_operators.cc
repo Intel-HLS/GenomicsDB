@@ -3,7 +3,7 @@
 
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
-    bool handle_spanning_deletions)
+    bool handle_spanning_deletions, int partition_idx)
   : LoaderOperatorBase(), m_operator(0), m_query_processor(0), m_schema(0)
 {
   clear();
@@ -38,7 +38,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
     m_buffered_vcf_adapter = 0;
   }
   JSONVCFAdapterConfig vcf_adapter_config;
-  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter);
+  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, "", partition_idx);
   //Initialize operator
   m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config);
   //Initialize variant

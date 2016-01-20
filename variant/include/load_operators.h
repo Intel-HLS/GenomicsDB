@@ -37,7 +37,8 @@ class LoaderOperatorBase
 class LoaderCombinedGVCFOperator : public LoaderOperatorBase
 {
   public:
-    LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename, bool handle_spanning_deletions);
+    LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename, bool handle_spanning_deletions,
+        int partition_idx);
     virtual ~LoaderCombinedGVCFOperator()
     {
       clear();
