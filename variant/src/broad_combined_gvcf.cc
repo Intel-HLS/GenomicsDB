@@ -199,6 +199,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
   if(valid_DP_found || valid_DP_FORMAT_found)
   {
     int sum_INFO_DP = 0;
+    auto found_one_valid_DP_FORMAT = false;
     for(auto j=0ull;j<m_remapped_variant.get_num_calls();++j)
     {
       int dp_info_val = valid_DP_found ? int_vec[j] : get_bcf_missing_value<int>();
@@ -216,9 +217,11 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           dp_info_val = dp_format_val;
       }
       m_DP_FORMAT_vector[j] = dp_format_val;
+      found_one_valid_DP_FORMAT = is_bcf_valid_value<int>(dp_format_val) || found_one_valid_DP_FORMAT;
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
-    bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
+    if(found_one_valid_DP_FORMAT)
+      bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
     //If valid DP INFO field found, add to INFO list
     if(valid_DP_found)
       bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "DP", &sum_INFO_DP, 1);

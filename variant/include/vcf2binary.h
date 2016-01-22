@@ -24,6 +24,30 @@ class VCF2BinaryException : public std::exception {
     std::string msg_;
 };
 
+//Wrapper around VCF's file I/O functions
+//Capability of using index only during seek to minimize memory consumption
+class VCFReader
+{
+  public:
+    VCFReader();
+    ~VCFReader();
+    void initialize(const char* filename, const char* regions, bool open_file);
+    void add_reader();
+    void remove_reader();
+    bcf_hdr_t* get_header() { return m_hdr; }
+    bcf1_t* get_line() { return m_is_line_valid ? m_line : 0; }
+    void seek_read_advance(const char* contig, const int pos, bool discard_index);
+    void read_and_advance();
+  private:
+    bcf_srs_t* m_indexed_reader;
+    htsFile* m_fptr;
+    std::string m_filename;
+    bcf_hdr_t* m_hdr;
+    bcf1_t* m_line;
+    kstring_t m_buffer;
+    bool m_is_line_valid;
+};
+
 class VCFColumnPartition
 {
   friend class VCF2Binary;
@@ -45,7 +69,7 @@ class VCFColumnPartition
     ~VCFColumnPartition()
     {
       if(m_reader)
-        bcf_sr_destroy(m_reader);
+        delete m_reader;
       m_begin_buffer_offset_for_local_callset.clear();
       m_last_full_line_end_buffer_offset_for_local_callset.clear();
       m_buffer_offset_for_local_callset.clear();
@@ -57,8 +81,8 @@ class VCFColumnPartition
   protected:
     int64_t m_column_interval_begin;
     int64_t m_column_interval_end;
-    //Synced VCF reader
-    bcf_srs_t* m_reader;
+    //VCFReader
+    VCFReader* m_reader;
     //Position in contig from which to fetch next batch of cells
     int m_local_contig_idx;
     int64_t m_contig_position;  //position in contig (0-based)
@@ -83,7 +107,8 @@ class VCF2Binary
     VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
         unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
         size_t max_size_per_callset,
-        bool treat_deletions_as_intervals, bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false, bool discard_index=false);
     //Delete default copy constructor as it is incorrect
     VCF2Binary(const VCF2Binary& other) = delete;
     //Define move constructor explicitly
@@ -91,7 +116,6 @@ class VCF2Binary
     ~VCF2Binary();
     void clear();
     //Initialization functions
-    bcf_srs_t* initialize_reader(bool open_file);
     void initialize(const std::vector<ColumnRange>& partition_bounds);
     void initialize_partition(unsigned idx, const std::vector<ColumnRange>& partition_bounds );
     /*
@@ -137,6 +161,7 @@ class VCF2Binary
     bool m_noupdates;
     bool m_close_file;
     bool m_treat_deletions_as_intervals;
+    bool m_discard_index;
     std::string m_vcf_filename;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
@@ -144,7 +169,7 @@ class VCF2Binary
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
     //Common reader when m_parallel_partitions==false
-    bcf_srs_t* m_reader;
+    VCFReader* m_reader;
     std::string m_regions;
     //Local callset idx to tiledb row idx
     std::vector<int64_t> m_local_callset_idx_to_tiledb_row_idx;

@@ -91,6 +91,8 @@ class VCF2TileDBLoaderConverterBase
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
     bool m_produce_combined_vcf;
+    //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
+    bool m_discard_vcf_index;
     unsigned m_num_entries_in_circular_buffer;
     int m_num_converter_processes;
     int64_t m_per_partition_size;

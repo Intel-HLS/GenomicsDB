@@ -102,6 +102,10 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   m_produce_combined_vcf = false;
   if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
     m_produce_combined_vcf = true;
+  //Control whether VCF indexes should be discarded to save memory
+  m_discard_vcf_index = true;
+  if(json_doc.HasMember("discard_vcf_index"))
+    m_discard_vcf_index = json_doc["discard_vcf_index"].GetBool();
   //#vcf files to process in parallel
   m_num_parallel_vcf_files = 1;
   if(json_doc.HasMember("num_parallel_vcf_files"))
@@ -219,7 +223,8 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
       m_vcf2binary_handlers.emplace_back( 
           file_info.m_name, m_vcf_fields, i, *m_vid_mapper, m_column_partition_bounds,
           m_max_size_per_callset,
-          m_treat_deletions_as_intervals, false, false, false
+          m_treat_deletions_as_intervals,
+          false, false, false, m_discard_vcf_index
           );
     }
   }
@@ -235,7 +240,8 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
       m_vcf2binary_handlers.emplace_back(
           file_info.m_name, m_vcf_fields, i, *m_vid_mapper, partition_bounds,
           m_max_size_per_callset,
-          m_treat_deletions_as_intervals, false, false, false
+          m_treat_deletions_as_intervals,
+          false, false, false, m_discard_vcf_index
           );
     }
   }
@@ -418,6 +424,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_pq_vector[i].m_offset = get_buffer_start_offset_for_row_idx(i);
     m_rows_not_in_pq[i] = i;
   }
+#ifdef PRODUCE_BINARY_CELLS
   if(m_produce_combined_vcf)
   {
 #ifdef HTSDIR
@@ -428,6 +435,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
 #endif
   }
+#endif //ifdef PRODUCE_BINARY_CELLS
 }
 
 #ifdef HTSDIR
