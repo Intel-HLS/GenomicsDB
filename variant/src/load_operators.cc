@@ -3,7 +3,7 @@
 
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
-    bool handle_spanning_deletions, int partition_idx)
+    bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
   : LoaderOperatorBase(), m_operator(0), m_query_processor(0), m_schema(0)
 {
   clear();
@@ -46,6 +46,8 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_variant.resize_based_on_query();
   //Cell
   m_cell = new Cell(m_schema, m_query_config.get_query_attributes_schema_idxs(), 0, true);
+  //Partition bounds
+  m_partition = partition_range;
   //PQ elements
   m_tmp_pq_vector.resize(m_query_config.get_num_rows_to_query());
   //Position elements
@@ -71,12 +73,28 @@ void LoaderCombinedGVCFOperator::clear()
 
 void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 {
-  if(m_current_start_position < 0)      //un-initialized
+  auto coords = reinterpret_cast<const int64_t*>(cell_ptr);
+  auto column_value = coords[1];
+#ifndef NDEBUG
+  auto ptr = reinterpret_cast<const uint8_t*>(cell_ptr);
+  //END value is after cooords and cell_size
+  ptr += 2*sizeof(int64_t)+sizeof(size_t);
+  auto end_value = *(reinterpret_cast<const int64_t*>(ptr));
+  //Must cross partition bound
+  assert(end_value >= m_partition.first && column_value <= m_partition.second);
+#endif
+  //Either un-initialized or VariantCall interval starts before/at partition begin value
+  if(m_current_start_position < 0 || column_value <= m_partition.first)
   {
-    auto coords = reinterpret_cast<const int64_t*>(cell_ptr);
-    m_current_start_position = coords[1];
-    m_variant.set_column_interval(m_current_start_position, m_current_start_position);
+    m_current_start_position = column_value;
+    m_variant.set_column_interval(column_value, column_value);
   }
+  else  //column_value > m_partition.first, check if m_current_start_position < m_partition.first
+    if(m_current_start_position < m_partition.first)
+    {
+      m_current_start_position = m_partition.first;
+      m_variant.set_column_interval(m_current_start_position, m_current_start_position);
+    }
   m_query_processor->scan_handle_cell(m_query_config, 0u,
       m_variant, *m_operator, *m_cell, cell_ptr,
       m_end_pq, m_tmp_pq_vector,
@@ -90,6 +108,12 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
 {
   assert(!m_offload_vcf_output_processing || m_buffered_vcf_adapter->get_num_entries_with_valid_data() == 0u);
   pre_operate_sequential();
+  //Fix start and next_start positions if necessary
+  if(m_current_start_position < m_partition.first)
+  {
+    m_current_start_position = m_partition.first;
+    m_variant.set_column_interval(m_current_start_position, m_current_start_position);
+  }
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;
   m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
       m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);

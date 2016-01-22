@@ -38,7 +38,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
 {
   public:
     LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename, bool handle_spanning_deletions,
-        int partition_idx);
+        int partition_idx, const ColumnRange& partition_range);
     virtual ~LoaderCombinedGVCFOperator()
     {
       clear();
@@ -78,6 +78,8 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     BroadCombinedGVCFOperator* m_operator;
     Variant m_variant;
     Cell* m_cell;
+    //Column interval bounds
+    ColumnRange m_partition;
     //PQ and aux structures
     VariantCallEndPQ m_end_pq;
     std::vector<VariantCall*> m_tmp_pq_vector;

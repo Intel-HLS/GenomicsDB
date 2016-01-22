@@ -430,7 +430,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
 #ifdef HTSDIR
     //Operators
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
-          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx)));
+          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx, m_column_partition_bounds[m_idx])));
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
 #endif
