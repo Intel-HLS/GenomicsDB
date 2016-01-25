@@ -175,6 +175,7 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
     bool parallel_partitions, bool noupdates, bool close_file, bool discard_index)
 {
   m_reader = 0;
+  m_histogram = 0;
   clear();
   m_vcf_filename = vcf_filename;
   m_vcf_fields = &vcf_fields;
@@ -215,6 +216,8 @@ VCF2Binary::VCF2Binary(VCF2Binary&& other)
   m_partitions = std::move(other.m_partitions);
   m_reader = other.m_reader;
   other.m_reader = 0;
+  m_histogram = other.m_histogram;
+  other.m_histogram = 0;
 }
 
 VCF2Binary::~VCF2Binary()
@@ -226,6 +229,9 @@ VCF2Binary::~VCF2Binary()
   if(m_reader)
     delete m_reader;
   m_reader = 0;
+  if(m_histogram)
+    delete m_histogram;
+  m_histogram = 0;
 }
 
 void VCF2Binary::clear()
@@ -841,6 +847,31 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   if(buffer_full) return true;
 #endif
   return buffer_full;
+}
+
+void VCF2Binary::create_histogram_for_vcf(uint64_t max_histogram_range, unsigned num_bins)
+{
+  if(m_histogram)
+    delete m_histogram;
+  m_histogram = new UniformHistogram(0, max_histogram_range, num_bins);
+  //Open file handles if needed
+  if(m_close_file)
+    m_reader->add_reader();
+  //Should really have 1 partition only
+  for(auto& vcf_partition : m_partitions)
+  {
+    auto has_data = seek_and_fetch_position(vcf_partition, m_close_file, false);
+    while(has_data)
+    {
+      auto line = m_reader->get_line();
+      int64_t column_idx = vcf_partition.m_contig_tiledb_column_offset + line->pos;
+      for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+        m_histogram->add_interval(column_idx, column_idx);
+      has_data = seek_and_fetch_position(vcf_partition, false, true);
+    }
+  }
+  if(m_close_file)
+    m_reader->remove_reader();
 }
 
 #endif //ifdef HTSDIR

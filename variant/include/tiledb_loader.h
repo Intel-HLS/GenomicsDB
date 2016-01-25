@@ -140,6 +140,7 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
       assert(static_cast<size_t>(row_idx) < m_tiledb_row_idx_to_order.size());
       return m_tiledb_row_idx_to_order[row_idx];
     }
+    void create_and_print_histogram(const std::string& config_filename, std::ostream& fptr=std::cout);
   private:
     void clear();
     void initialize_column_batch_objects();

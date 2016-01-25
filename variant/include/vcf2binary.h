@@ -11,6 +11,7 @@
 #include "column_partition_batch.h"
 #include "htslib/synced_bcf_reader.h"
 #include "gt_common.h"
+#include "histogram.h"
 
 //Exceptions thrown 
 class VCF2BinaryException : public std::exception {
@@ -156,6 +157,11 @@ class VCF2Binary
      */
     template<class FieldType>
     bool tiledb_buffer_print_null(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit);
+    /*
+     * Create histogram
+     */
+    void create_histogram_for_vcf(uint64_t max_histogram_range, unsigned num_bins);
+    UniformHistogram* get_histogram_for_vcf() { return m_histogram; }
   private:
     bool m_parallel_partitions;
     bool m_noupdates;
@@ -182,6 +188,8 @@ class VCF2Binary
     std::vector<VCFColumnPartition> m_partitions;
     //Used by move constructor
     void copy_simple_members(const VCF2Binary& other);
+    //Histogram
+    UniformHistogram* m_histogram;
 };
 
 #endif //ifdef HTSDIR

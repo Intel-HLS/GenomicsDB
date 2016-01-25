@@ -355,7 +355,35 @@ void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream
     }
   }
 }
-#endif
+
+void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_filename, std::ostream& fptr)
+{
+  //Parse json configuration
+  rapidjson::Document json_doc;
+  std::ifstream ifs(config_filename.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  json_doc.Parse(str.c_str());
+  //Histogram parameters
+  VERIFY_OR_THROW(json_doc.HasMember("max_histogram_range") && json_doc["max_histogram_range"].IsInt64());
+  uint64_t max_histogram_range = json_doc["max_histogram_range"].GetInt64();
+  VERIFY_OR_THROW(json_doc.HasMember("num_bins") && json_doc["num_bins"].IsInt64());
+  unsigned num_bins = json_doc["num_bins"].GetInt64();
+  //Combined histogram
+  UniformHistogram* combined_histogram =
+    new UniformHistogram(0ull, max_histogram_range, num_bins);
+#pragma omp declare reduction ( l0_sum_up : UniformHistogram* : omp_out->sum_up_histogram(omp_in) ) \
+  initializer(omp_priv = new UniformHistogram(*omp_orig))
+#pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files) reduction(l0_sum_up : combined_histogram)
+  for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
+  {
+    m_vcf2binary_handlers[i].create_histogram_for_vcf(max_histogram_range, num_bins);
+    combined_histogram->sum_up_histogram(m_vcf2binary_handlers[i].get_histogram_for_vcf());
+  }
+  combined_histogram->print(fptr);
+  delete combined_histogram;
+}
+#endif //ifdef HTSLIB
 
 //Loader functions
 VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
