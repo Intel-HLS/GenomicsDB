@@ -7,13 +7,13 @@ void Histogram::clear()
 
 void Histogram::print(std::ostream& fptr) const
 {
-  fptr << "Histogram: { "; 
+  fptr << "Histogram: [\n"; 
   for(auto b=this->begin(), e = this->end();b!=e;++b)
   {
     if((*b) != 0)
-      fptr << "[" << b.get_lo() <<","<<b.get_hi()<<"]:"<<*b << ", ";
+      fptr << b.get_lo() <<","<<b.get_hi()<<","<< *b << "\n";
   }
-  fptr << " }\n";
+  fptr << "]\n";
 }
 
 void Histogram::add_value(uint64_t value)
@@ -101,7 +101,7 @@ UniformHistogram::UniformHistogram(uint64_t lo, uint64_t hi, unsigned num_interv
 {
   m_lo = lo;
   m_hi = hi;
-  m_size_of_bin = (hi - lo)/num_intervals;
+  m_size_of_bin = (hi - lo + 1 + (num_intervals-1))/num_intervals;      //compute ceil
   m_histogram_bins.resize(num_intervals);
   for(auto i=0u;i<num_intervals;++i)
     m_histogram_bins[i] = 0;

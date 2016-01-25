@@ -111,7 +111,7 @@ class UniformHistogram : public Histogram
     uint64_t get_hi(unsigned bin_idx) const
     {
       assert(bin_idx < m_histogram_bins.size());
-      return m_lo + (bin_idx+1)*m_size_of_bin;
+      return m_lo + (bin_idx+1)*m_size_of_bin - 1;
     }
     void sum_up_histogram(const UniformHistogram& other);
     void sum_up_histogram(const UniformHistogram* other) { sum_up_histogram(*other); }
