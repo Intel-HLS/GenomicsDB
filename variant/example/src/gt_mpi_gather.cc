@@ -354,8 +354,8 @@ int main(int argc, char *argv[]) {
         break;
     }
     ASSERT(json_config_ptr);
-    workspace = json_config_ptr->m_workspace;
-    array_name = json_config_ptr->m_array_name;
+    workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
+    array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
   }
   else
   {

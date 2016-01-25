@@ -48,31 +48,7 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   json_doc.Parse(str.c_str());
   //Column partitions
   VERIFY_OR_THROW(json_doc.HasMember("column_partitions"));
-  {
-    auto& column_partitions_dict = json_doc["column_partitions"];
-    //column_partitions_dict itself a dictionary of the form { "0" : { "begin" : <value> } }
-    VERIFY_OR_THROW(column_partitions_dict.IsObject());
-    m_column_partition_bounds.resize(column_partitions_dict.MemberCount());
-    auto partition_idx = 0u;
-    for(auto b=column_partitions_dict.MemberBegin(), e=column_partitions_dict.MemberEnd();b!=e;++b,++partition_idx)
-    {
-      const auto& curr_obj = *b;
-      //{ "begin" : <Val> }
-      const auto& curr_partition_info_dict = curr_obj.value;
-      VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-      VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-      m_column_partition_bounds[partition_idx].first = curr_partition_info_dict["begin"].GetInt64();
-      m_column_partition_bounds[partition_idx].second = INT64_MAX;
-      if(curr_partition_info_dict.HasMember("end"))
-        m_column_partition_bounds[partition_idx].second = curr_partition_info_dict["end"].GetInt64();
-    }
-    //Sort in ascending order
-    std::sort(m_column_partition_bounds.begin(), m_column_partition_bounds.end(), ColumnRangeCompare);
-    //Set end value if not valid
-    for(auto i=0ull;i+1u<m_column_partition_bounds.size();++i)
-      if(m_column_partition_bounds[i].second >= m_column_partition_bounds[i+1u].first)
-        m_column_partition_bounds[i].second = m_column_partition_bounds[i+1u].first-1;
-  }
+  m_json_config_base.read_from_file(config_filename);
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(json_doc.HasMember("vid_mapping_file"));
   m_vid_mapping_filename = json_doc["vid_mapping_file"].GetString();
@@ -130,7 +106,6 @@ void VCF2TileDBLoaderConverterBase::clear()
 {
   m_vid_mapping_filename.clear();
   m_callset_mapping_file.clear();
-  m_column_partition_bounds.clear();
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
 }
@@ -162,7 +137,6 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   }
   else
   {
-    VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
     m_vid_mapper = vid_mapper;
     VERIFY_OR_THROW(m_vid_mapper);
     //Buffer maintained external to converter, only maintain pointers
@@ -221,7 +195,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
       auto global_file_idx = global_file_idx_vec[i];
       auto& file_info = m_vid_mapper->get_file_info(global_file_idx);
       m_vcf2binary_handlers.emplace_back( 
-          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, m_column_partition_bounds,
+          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, m_json_config_base.get_sorted_column_partitions(),
           m_max_size_per_callset,
           m_treat_deletions_as_intervals,
           false, false, false, m_discard_vcf_index
@@ -232,7 +206,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
   {
     //Same process as loader - must read all files
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
-    auto partition_bounds=std::vector<ColumnRange>(1u, m_column_partition_bounds[m_idx]);
+    auto partition_bounds=std::vector<ColumnRange>(1u, m_json_config_base.get_column_partition(m_idx));
     for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
     {
       auto global_file_idx = i;
@@ -276,7 +250,8 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   }
   //If standalone converter process, initialize for all partitions
   //Else only allocate single column partition idx corresponding to the loader
-  auto num_column_partitions = m_standalone_converter_process ? m_column_partition_bounds.size() : 1u;
+  auto num_column_partitions = m_standalone_converter_process ? m_json_config_base.get_sorted_column_partitions().size()
+    : 1u;
   for(auto i=0u;i<num_column_partitions;++i)
     m_partition_batch.emplace_back(i, m_max_size_per_callset, num_callsets_in_file, m_num_entries_in_circular_buffer);
   m_num_callsets_owned = 0;
@@ -386,7 +361,6 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   m_converter = 0;
 #endif
   clear();
-  VERIFY_OR_THROW(static_cast<size_t>(m_idx) < m_column_partition_bounds.size());
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
         m_limit_callset_row_idx));
   m_max_size_per_callset = m_per_partition_size/m_vid_mapper->get_num_callsets();
@@ -430,7 +404,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
 #ifdef HTSDIR
     //Operators
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
-          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx, m_column_partition_bounds[m_idx])));
+          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx,
+            m_json_config_base.get_column_partition(m_idx))));
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
 #endif

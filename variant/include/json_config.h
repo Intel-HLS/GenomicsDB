@@ -24,24 +24,43 @@ class RunConfigException : public std::exception {
 class JSONConfigBase
 {
   public:
-    JSONConfigBase() { ; }
+    JSONConfigBase()
+    {
+      m_single_array_name = false;
+      m_single_workspace_path = false;
+      m_single_query_column_ranges_vector = false;
+      m_column_partitions_specified = false;
+      m_single_query_row_ranges_vector = false;
+      m_scan_whole_array = false;
+      clear();
+    }
+    void clear();
     void read_from_file(const std::string& filename);
+    const std::string& get_workspace(const int rank) const;
+    const std::string& get_array_name(const int rank) const;
+    ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
+    const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
   protected:
+    bool m_single_workspace_path;
+    bool m_single_array_name;
+    bool m_single_query_column_ranges_vector;
+    bool m_column_partitions_specified;
+    bool m_single_query_row_ranges_vector;
+    bool m_scan_whole_array;
     rapidjson::Document m_json;
+    std::vector<std::string> m_workspaces;
+    std::vector<std::string> m_array_names;
+    std::vector<std::vector<ColumnRange>> m_column_ranges;
+    std::vector<std::vector<RowRange>> m_row_ranges;
+    std::vector<std::string> m_attributes;
+    std::vector<ColumnRange> m_sorted_column_partitions;
 };
 
 class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
-    JSONBasicQueryConfig() : JSONConfigBase()
-    {
-      m_workspace = "";
-      m_array_name = "";
-    }
+    JSONBasicQueryConfig() : JSONConfigBase()  { }
     void read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank=0);
-  public:
-    std::string m_workspace;
-    std::string m_array_name;
 };
 
 #ifdef HTSDIR

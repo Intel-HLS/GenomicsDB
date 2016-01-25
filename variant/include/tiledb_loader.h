@@ -5,6 +5,7 @@
 #include "column_partition_batch.h"
 #include "vcf2binary.h"
 #include "load_operators.h"
+#include "json_config.h"
 
 //Exceptions thrown 
 class VCF2TileDBException : public std::exception{
@@ -71,13 +72,11 @@ class VCF2TileDBLoaderConverterBase
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
     int64_t get_column_partition_end() const
     {
-      assert(static_cast<unsigned>(m_idx) < m_column_partition_bounds.size());
-      return m_column_partition_bounds[m_idx].second;
+      return m_json_config_base.get_column_partition(m_idx).second;
     }
     int64_t get_column_partition_begin() const
     {
-      assert(static_cast<unsigned>(m_idx) < m_column_partition_bounds.size());
-      return m_column_partition_bounds[m_idx].first;
+      return m_json_config_base.get_column_partition(m_idx).first;
     }
     void clear();
   protected:
@@ -109,14 +108,14 @@ class VCF2TileDBLoaderConverterBase
     //Data structure for exchanging info between loader and converter
     //Note that these buffers may remain at size 0, if the exchanges are owned by a different object
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
-    //Partition begin,end values
-    std::vector<ColumnRange> m_column_partition_bounds;
     //#VCF files to open/process in parallel
     int m_num_parallel_vcf_files;
     //do ping-pong buffering
     bool m_do_ping_pong_buffering;
     //Offload VCF output processing to another thread
     bool m_offload_vcf_output_processing;
+    //Common json fields
+    JSONConfigBase m_json_config_base;
 };
 
 #ifdef HTSDIR
