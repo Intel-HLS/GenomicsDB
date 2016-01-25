@@ -225,17 +225,19 @@ void JSONConfigBase::read_from_file(const std::string& filename)
 
 const std::string& JSONConfigBase::get_workspace(const int rank) const
 {
+  VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
+     && ("Workspace not defined for rank "+std::to_string(rank)).c_str());
   if(m_single_workspace_path)
     return m_workspaces[0];
-  VERIFY_OR_THROW(static_cast<size_t>(rank) < m_workspaces.size());
   return m_workspaces[rank];
 }
 
 const std::string& JSONConfigBase::get_array_name(const int rank) const
 {
+  VERIFY_OR_THROW((m_single_array_name || static_cast<size_t>(rank) < m_array_names.size())
+      && ("Could not find array for rank "+std::to_string(rank)).c_str());
   if(m_single_array_name)
     return m_array_names[0];
-  VERIFY_OR_THROW(static_cast<size_t>(rank) < m_array_names.size());
   return m_array_names[rank];
 }
 

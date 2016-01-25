@@ -5,6 +5,18 @@
 #include "query_variants.h"
 #include "broad_combined_gvcf.h" 
 
+//Exceptions thrown
+class LoadOperatorException : public std::exception {
+  public:
+    LoadOperatorException(const std::string m="") : msg_("LoadOperatorException : "+m) { ; }
+    ~LoadOperatorException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 class LoaderOperatorBase
 {
   public:
@@ -31,6 +43,33 @@ class LoaderOperatorBase
      * Called at the end - the argument is the column interval end limit
      */
     virtual void finish(const int64_t column_interval_end) { ; }
+};
+
+class LoaderArrayWriter : public LoaderOperatorBase
+{
+  public:
+    LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank);
+    virtual ~LoaderArrayWriter()
+    {
+      if(m_schema)
+        delete m_schema;
+      if(m_storage_manager)
+        delete m_storage_manager;
+    }
+    virtual void operate(const void* cell_ptr)
+    {
+      assert(m_storage_manager);
+      m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
+    }
+    virtual void finish(const int64_t column_interval_end)
+    {
+      if(m_storage_manager && m_array_descriptor >= 0)
+        m_storage_manager->close_array(m_array_descriptor);
+    }
+  private:
+    StorageManager* m_storage_manager;
+    ArraySchema* m_schema;
+    int m_array_descriptor;
 };
 
 #ifdef HTSDIR

@@ -1,6 +1,41 @@
 #include "load_operators.h"
 #include "json_config.h"
 
+#define VERIFY_OR_THROW(X) if(!(X)) throw LoadOperatorException(#X);
+
+LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
+  : LoaderOperatorBase(), m_schema(0), m_storage_manager(0), m_array_descriptor(-1)
+{
+  //Parse json configuration
+  rapidjson::Document json_doc;
+  std::ifstream ifs(config_filename.c_str());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  json_doc.Parse(str.c_str());
+  //recreate array flag
+  bool recreate_array = (json_doc.HasMember("delete_and_create_tiledb_array")
+      && json_doc["delete_and_create_tiledb_array"].GetBool()) ? true : false;
+  JSONConfigBase json_config;
+  json_config.read_from_file(config_filename);
+  auto workspace = json_config.get_workspace(rank);
+  auto array_name = json_config.get_array_name(rank);
+  //Schema
+  id_mapper->build_tiledb_array_schema(m_schema, true, array_name);
+  //Storage manager
+  m_storage_manager = new StorageManager(workspace);
+  auto mode = recreate_array ? "w" : "a";
+  //Check if array already exists
+  m_array_descriptor = m_storage_manager->open_array(array_name, mode);
+  //Array does not exist - define it first
+  if(m_array_descriptor < 0)
+  {
+    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema) == TILEDB_OK
+        && "Could not define TileDB array");
+    //Open array in write mode
+    m_array_descriptor = m_storage_manager->open_array(array_name, "w");
+  }
+  VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
+}
+
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
     bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
@@ -15,7 +50,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
-  m_vid_mapper->build_tiledb_array_schema(m_schema);
+  m_vid_mapper->build_tiledb_array_schema(m_schema, false);
   m_query_processor = new VariantQueryProcessor(*m_schema);
   //Initialize query config
   std::vector<std::string> query_attributes(m_schema->attribute_num());

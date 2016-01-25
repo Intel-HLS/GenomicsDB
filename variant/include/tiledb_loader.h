@@ -7,7 +7,7 @@
 #include "load_operators.h"
 #include "json_config.h"
 
-//Exceptions thrown 
+//Exceptions thrown
 class VCF2TileDBException : public std::exception{
   public:
     VCF2TileDBException(const std::string m="") : msg_("VCF2TileDBException : "+m) { ; }
@@ -90,6 +90,7 @@ class VCF2TileDBLoaderConverterBase
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
     bool m_produce_combined_vcf;
+    bool m_produce_tiledb_array;
     //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
     bool m_discard_vcf_index;
     unsigned m_num_entries_in_circular_buffer;

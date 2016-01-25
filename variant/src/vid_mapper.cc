@@ -148,7 +148,8 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   }
 }
 
-void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema) const
+void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, bool compress_fields, const std::string array_name)
+  const
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
   auto dim_domains = std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, 100000000000ll } });        //100B
@@ -204,9 +205,13 @@ void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema) const
   }
   //COORDS
   types.push_back(&(typeid(int64_t)));
+  //For compression
   //no compression - empty vector
   std::vector<CompressionType> compression;
-  array_schema = new ArraySchema("tmp", attribute_names, dim_names, dim_domains, types, num_vals, compression,
+  if(compress_fields)
+    for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
+      compression.push_back(CompressionType::GZIP);
+  array_schema = new ArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression,
         ArraySchema::CO_COLUMN_MAJOR);
 }
 

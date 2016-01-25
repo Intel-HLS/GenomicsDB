@@ -110,7 +110,7 @@ void VCFReader::read_and_advance()
   if(m_fptr)    //normal file handle - no index
   {
     //Handle VCFs and BCFs differently since the indexed reader handles file pointers differently
-    if(m_fptr->format.format == vcf)
+    if(m_fptr->format.format == htsExactFormat::vcf)
     {
       //Since m_fptr is obtained from an indexed reader, use bgzf_getline function
       auto status = bgzf_getline(hts_get_bgzfp(m_fptr), '\n', &m_buffer);

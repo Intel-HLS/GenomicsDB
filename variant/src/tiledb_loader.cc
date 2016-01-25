@@ -78,6 +78,10 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   m_produce_combined_vcf = false;
   if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
     m_produce_combined_vcf = true;
+  //Produce TileDB array
+  m_produce_tiledb_array = false;
+  if(json_doc.HasMember("produce_tiledb_array") && json_doc["produce_tiledb_array"].GetBool())
+    m_produce_tiledb_array = true;
   //Control whether VCF indexes should be discarded to save memory
   m_discard_vcf_index = true;
   if(json_doc.HasMember("discard_vcf_index"))
@@ -408,8 +412,11 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
             m_json_config_base.get_column_partition(m_idx))));
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
-#endif
+#endif //ifdef HTSDIR
   }
+  if(m_produce_tiledb_array)
+    m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
+          new LoaderArrayWriter(m_vid_mapper, config_filename, m_idx)));
 #endif //ifdef PRODUCE_BINARY_CELLS
 }
 
