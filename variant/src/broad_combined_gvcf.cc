@@ -235,7 +235,23 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   GA4GHOperator::operate(variant, query_config);
   //Moved to new contig
   if(m_remapped_variant.get_column_begin() >= m_next_contig_begin_position)
+  {
+    std::string contig_name;
+    int64_t contig_position;
+    auto status = m_vid_mapper->get_contig_location(m_remapped_variant.get_column_begin(), contig_name, contig_position);
+    if(status)
+    {
+      int64_t contig_begin_position = m_remapped_variant.get_column_begin() - contig_position;
+      if(contig_begin_position != m_next_contig_begin_position)
+      {
+        m_next_contig_name = std::move(contig_name);
+        m_next_contig_begin_position = contig_begin_position;
+      }
+    }
+    else
+      throw BroadCombinedGVCFException("Unknown contig for position "+std::to_string(m_remapped_variant.get_column_begin()));
     switch_contig();
+  }
   //clear out
   bcf_clear(m_bcf_out);
   //If no valid FORMAT fields exist, this value is never set
