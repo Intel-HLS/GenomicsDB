@@ -41,7 +41,8 @@ VCFReader::~VCFReader()
   free(m_buffer.s);
 }
 
-void VCFReader::initialize(const char* filename, const char* regions, bool open_file)
+void VCFReader::initialize(const char* filename, const char* regions,
+    const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, bool open_file)
 {
   assert(m_indexed_reader == 0);
   m_indexed_reader = bcf_sr_init();
@@ -59,6 +60,74 @@ void VCFReader::initialize(const char* filename, const char* regions, bool open_
     m_hdr = bcf_hdr_read(m_fptr);
     bcf_close(m_fptr);
     m_fptr = 0;
+  }
+  //Add lines in the header for fields that are missing in the VCF, but requested in the input config JSON file
+  //Only look at INFO and FORMAT fields
+  for(auto field_type_idx=BCF_HL_INFO;field_type_idx<=BCF_HL_FMT;++field_type_idx)
+  {
+    assert(static_cast<size_t>(field_type_idx) < vcf_field_names.size());
+    for(auto j=0u;j<vcf_field_names[field_type_idx].size();++j)
+    {
+      const auto& field_name = vcf_field_names[field_type_idx][j];
+      auto field_idx = bcf_hdr_id2int(m_hdr, BCF_DT_ID, field_name.c_str());
+      //bcf_hdr_idinfo_exists handles negative field idx
+      auto idinfo_exists = bcf_hdr_idinfo_exists(m_hdr, field_type_idx, field_idx);
+      //Field not found
+      if(idinfo_exists == 0)
+      {
+        std::string header_line = "##";
+        header_line += (field_type_idx == BCF_HL_INFO ? "INFO" : "FORMAT");
+        header_line += "=<ID="+field_name+",Type=";
+        //GT is weird
+        if(field_type_idx == BCF_HL_FMT && field_name == "GT")
+          header_line += "String,Number=1,Description=\"Genotype\"";
+        else
+        {
+          assert(id_mapper->get_field_info(field_name));
+          auto field_info = *(id_mapper->get_field_info(field_name));
+          switch(field_info.m_bcf_ht_type)
+          {
+            case BCF_HT_INT:
+              header_line += "Integer";
+              break;
+            case BCF_HT_REAL:
+              header_line += "Float";
+              break;
+            default:
+              throw VCF2BinaryException("Field type "+std::to_string(field_info.m_bcf_ht_type)+" not handled");
+              break;
+          }
+          header_line += ",Number=";
+          switch(field_info.m_length_descriptor)
+          {
+            case BCF_VL_FIXED:
+              header_line += std::to_string(field_info.m_num_elements);
+              break;
+            case BCF_VL_VAR:
+              header_line += ".";
+              break;
+            case BCF_VL_A:
+              header_line += "A";
+              break;
+            case BCF_VL_R:
+              header_line += "R";
+              break;
+            case BCF_VL_G:
+              header_line += "G";
+              break;
+            default:
+              throw VCF2BinaryException("Unhandled field length descriptor "+std::to_string(field_info.m_length_descriptor));
+              break;
+          }
+          header_line += ",Description=\""+field_name+"\"";
+        }
+        header_line += ">";
+        int line_length = 0;
+        auto hrec = bcf_hdr_parse_line(m_hdr, header_line.c_str(), &line_length);
+        bcf_hdr_add_hrec(m_hdr, hrec);
+        bcf_hdr_sync(m_hdr);
+      }
+    }
   }
 }
 
@@ -287,7 +356,7 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   if(!m_parallel_partitions)
   {
     m_reader = new VCFReader();
-    m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), !m_close_file);
+    m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
   }
   //Initialize partition info
   m_partitions.resize(partition_bounds.size());
@@ -304,7 +373,7 @@ void VCF2Binary::initialize_partition(unsigned idx, const std::vector<ColumnRang
   if(m_parallel_partitions)
   {
     column_interval_info.m_reader = new VCFReader();
-    column_interval_info.m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), !m_close_file);
+    column_interval_info.m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
   }
   else
     column_interval_info.m_reader = m_reader;
@@ -631,8 +700,9 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size()
       && local_callset_idx < bcf_hdr_nsamples(hdr));
   auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
-  //FIXME: handle missing fields gracefully
-  VERIFY_OR_THROW(field_idx >= 0);
+  //This should always pass as missing fields are added to the header during initialization
+  //Check left in for safety
+  VERIFY_OR_THROW(field_idx >= 0 && bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx));
   //FIXME: special length descriptors
   auto length_descriptor = is_GT_field ? BCF_VL_P : bcf_hdr_id2length(hdr, field_type_idx, field_idx);
   auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
@@ -806,8 +876,8 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
       if(field_type_idx == BCF_HL_INFO && field_name == "END")   //ignore END field
         continue;
       auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
-      //FIXME: handle missing fields gracefully
-      VERIFY_OR_THROW(field_idx >= 0);
+      //Should always pass - left in for safety
+      VERIFY_OR_THROW(field_idx >= 0 && bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx));
       auto field_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
       //Because GT is encoded type string in VCF - total nonsense
       //FIXME: avoid strings

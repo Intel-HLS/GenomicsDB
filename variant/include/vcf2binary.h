@@ -32,7 +32,8 @@ class VCFReader
   public:
     VCFReader();
     ~VCFReader();
-    void initialize(const char* filename, const char* regions, bool open_file);
+    void initialize(const char* filename, const char* regions,
+        const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, bool open_file);
     void add_reader();
     void remove_reader();
     bcf_hdr_t* get_header() { return m_hdr; }

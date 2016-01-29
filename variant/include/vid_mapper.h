@@ -96,6 +96,8 @@ class FieldInfo
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
+      m_type_info = 0;
+      m_bcf_ht_type = BCF_HT_VOID;
       m_length_descriptor = BCF_VL_FIXED;
       m_num_elements = 1;
     }
@@ -108,7 +110,10 @@ class FieldInfo
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;
+    //Type info
     const std::type_info* m_type_info;
+    int m_bcf_ht_type;
+    //Length descriptors
     int m_length_descriptor;
     int m_num_elements;
 };
@@ -312,6 +317,26 @@ class VidMapper
       }
     }
     /*
+     * Given a global field idx, return field info
+     */
+    inline const FieldInfo& get_field_info(int field_idx) const
+    {
+      assert(static_cast<size_t>(field_idx) < m_field_idx_to_info.size());
+      return m_field_idx_to_info[field_idx];
+    }
+    /*
+     * Given a field name, return FieldInfo ptr
+     * If field is not found, return 0
+     */
+    inline const FieldInfo* get_field_info(const std::string& name) const
+    {
+      int field_idx = -1;
+      auto status = get_global_field_idx(name, field_idx);
+      if(!status)
+        return 0;
+      return &(get_field_info(field_idx));
+    }
+    /*
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
@@ -360,6 +385,7 @@ class VidMapper
     //Static members
     static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
     static std::unordered_map<std::string, const std::type_info*> m_typename_string_to_typeinfo;
+    static std::unordered_map<std::string, int> m_typename_string_to_bcf_ht_type;
 };
 
 //Exceptions thrown 

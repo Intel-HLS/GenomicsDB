@@ -24,6 +24,13 @@ std::unordered_map<std::string, const std::type_info*> VidMapper::m_typename_str
       {"char", &(typeid(char))}
       });
 
+std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type =
+  std::unordered_map<std::string, int>({
+      {"int", BCF_HT_INT},
+      {"float", BCF_HT_REAL},
+      {"char", BCF_HT_STR}
+      });
+
 void VidMapper::clear()
 {
   m_callset_name_to_row_idx.clear();
@@ -290,9 +297,16 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       VERIFY_OR_THROW(field_info_dict.IsObject());
       //Field type - int, char etc
       VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
-      auto iter = VidMapper::m_typename_string_to_typeinfo.find(field_info_dict["type"].GetString());
-      VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_typeinfo.end() && "Unhandled field type");
-      m_field_idx_to_info[field_idx].m_type_info = (*iter).second;
+      {
+        auto iter = VidMapper::m_typename_string_to_typeinfo.find(field_info_dict["type"].GetString());
+        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_typeinfo.end() && "Unhandled field type");
+        m_field_idx_to_info[field_idx].m_type_info = (*iter).second;
+      }
+      {
+        auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_info_dict["type"].GetString());
+        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end() && "Unhandled field type");
+        m_field_idx_to_info[field_idx].m_bcf_ht_type = (*iter).second;
+      }
       if(field_info_dict.HasMember("vcf_field_class"))
       {
         //Array which specifies whether field if INFO, FORMAT, FILTER etc

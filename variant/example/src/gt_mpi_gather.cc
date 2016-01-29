@@ -113,7 +113,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #endif
   //Gather all serialized lengths (in bytes) at root
   std::vector<uint64_t> lengths_vector(num_mpi_processes, 0ull); 
-  ASSERT(MPI_Gather(&serialized_length, 1, MPI_UINT64_T, &(lengths_vector[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPI_Gather(&serialized_length, 1, MPI_UNSIGNED_LONG_LONG, &(lengths_vector[0]), 1, MPI_UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
   //Total size of gathered data (valid at root only)
   auto total_serialized_size = 0ull;
   //Buffer to receive all gathered data, will be resized at root
@@ -160,9 +160,9 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     std::cerr << "Starting MPIGather at root into buffer of size "<<((double)receive_buffer.size())/MegaByte<<"\n";
 #endif
 #ifdef USE_BIGMPI
-  ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #else
-  ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #endif
 #if VERBOSE>0
   if(my_world_mpi_rank == 0)
