@@ -79,6 +79,12 @@ template<class T>
 inline T get_bcf_missing_value();
 
 template<>
+inline int8_t get_bcf_missing_value<int8_t>() { return bcf_int8_missing; }
+
+template<>
+inline int16_t get_bcf_missing_value<int16_t>() { return bcf_int16_missing; }
+
+template<>
 inline int get_bcf_missing_value<int>() { return bcf_int32_missing; }
 
 template<>
@@ -105,6 +111,12 @@ inline char get_bcf_missing_value<char>() { return bcf_str_missing; }
 //Template function that return bcf vector_end value
 template<class T>
 inline T get_bcf_vector_end_value();
+
+template<>
+inline int8_t get_bcf_vector_end_value<int8_t>() { return bcf_int8_vector_end; }
+
+template<>
+inline int16_t get_bcf_vector_end_value<int16_t>() { return bcf_int16_vector_end; }
 
 template<>
 inline int get_bcf_vector_end_value<int>() { return bcf_int32_vector_end; }
@@ -144,7 +156,7 @@ template<>
 inline bool is_bcf_vector_end_value(const float val) { return bcf_float_is_vector_end(val); }
 
 template<class T>
-inline bool is_bcf_valid_value(T val) { return !is_bcf_missing_value(val) && !is_bcf_vector_end_value(val); }
+inline bool is_bcf_valid_value(const T val) { return !is_bcf_missing_value(val) && !is_bcf_vector_end_value(val); }
 
 //template function for obtaining TileDB null value
 template<class T>

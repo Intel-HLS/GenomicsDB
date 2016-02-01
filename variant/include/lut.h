@@ -249,6 +249,30 @@ class LUTBase
 
 };
 
+
+template<bool inputs_2_merged_LUT_is_input_ordered, bool merged_2_inputs_LUT_is_input_ordered>
+class GoldLUTTemplate
+: public LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>
+{
+  public:
+    GoldLUTTemplate(int64_t numInputGVCFs, int64_t numEntries)
+      : LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>(numInputGVCFs, numEntries)
+    { }
+    void clear()
+    { LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::clear(); }
+    inline void resize_luts_if_needed(int64_t numInputGVCFs, int64_t numEntries)
+    {
+      LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::resize_luts_if_needed(
+          numInputGVCFs, numEntries); 
+    }
+    inline int64_t get_gold_idx_for_test(int64_t inputGVCFIdx, int64_t inputIdx)
+    { return LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::get_merged_idx_for_input(inputGVCFIdx, inputIdx); }
+    inline int64_t get_test_idx_for_gold(int64_t inputGVCFIdx, int64_t goldIdx)
+    { return LUTBase<inputs_2_merged_LUT_is_input_ordered, merged_2_inputs_LUT_is_input_ordered>::get_input_idx_for_merged(inputGVCFIdx, goldIdx); }
+};
+
+using GoldLUT = GoldLUTTemplate<true, true>;
+
 /**
  * @brief LUT class for storing mappings between allele vectors in the merged file and input VCF files
  * Since the #alleles per site is expected to be small, this class sets the number of fields to 10. This makes any subsequent re-allocations

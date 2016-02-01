@@ -188,7 +188,7 @@ MPI_INCLUDE_PATHS = -I$(MPI_INCLUDE_DIR)
 MPI_LIB_PATHS = -L$(MPI_LIB_DIR)
 
 # --- Libs --- #
-MPI_LIB = -lmpi
+MPI_LIB =
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)

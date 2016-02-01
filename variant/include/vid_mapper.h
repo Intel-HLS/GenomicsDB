@@ -351,6 +351,18 @@ class VidMapper
       return m_contig_idx_to_info[contig_idx];
     }
     /*
+     * Given a contig name, find the info
+     * Return true if valid contig info found, else false
+     */
+    inline bool get_contig_info(const std::string& contig_name, ContigInfo& info) const
+    {
+      auto iter = m_contig_name_to_idx.find(contig_name);
+      if(iter == m_contig_name_to_idx.end())
+        return false;
+      info = get_contig_info((*iter).second);
+      return true;
+    }
+    /*
      * Add a contig.
      * If column_offset==-1, produce the correct column offset.
      * Else, use the provided value
