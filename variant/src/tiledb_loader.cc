@@ -262,7 +262,7 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   for(auto x : num_callsets_in_file)
     m_num_callsets_owned += x;
   //Update row idx to ordering
-  m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_num_callsets_owned, -1ll));
+  m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_vid_mapper->get_num_callsets(), -1ll));
   int64_t order = 0ll;
   for(const auto& x : m_vcf2binary_handlers)
     x.set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
@@ -281,7 +281,9 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     assert(static_cast<size_t>(idx_offset+i) < all_partitions_tiledb_row_idx_vec.size());
     auto row_idx = all_partitions_tiledb_row_idx_vec[idx_offset+i];
     int64_t local_file_idx = -1;
-    m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
+    //For non-standalone converters, global_file_idx == local_file_idx
+    auto status = m_standalone_converter_process ? m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx)
+      : m_vid_mapper->get_global_file_idx_for_row(row_idx, local_file_idx);
     assert(local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
     //Activate file - enable fetch flag and reserve entry in circular buffer
     m_partition_batch[partition_idx].activate_file(local_file_idx);

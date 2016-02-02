@@ -421,9 +421,17 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         if(found)
         {
           m_file_idx_to_info[global_file_idx].m_owner_idx = owner_idx;
-          m_file_idx_to_info[global_file_idx].m_local_file_idx = m_owner_idx_to_file_idx_vec[owner_idx].size();
           m_owner_idx_to_file_idx_vec[owner_idx].push_back(global_file_idx);
         }
+      }
+      //Sort files by global_file_idx
+      std::sort(m_owner_idx_to_file_idx_vec[owner_idx].begin(), m_owner_idx_to_file_idx_vec[owner_idx].end());
+      //Set local idx in file idx to info struct
+      for(auto i=0u;i<m_owner_idx_to_file_idx_vec[owner_idx].size();++i)
+      {
+        auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][i];
+        assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
+        m_file_idx_to_info[global_file_idx].m_local_file_idx = i;
       }
     }
   }
