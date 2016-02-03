@@ -68,6 +68,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //vector of field pointers used for handling remapped fields when dealing with spanning deletions
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
+    //Allowed bases
+    static const std::unordered_set<char> m_legal_bases;
 };
 
 #endif //ifdef HTSDIR
