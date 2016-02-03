@@ -492,6 +492,113 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
   fptr << "}\n";
 }
 
+void print_field(std::ostream& fptr, const std::vector<Variant>& variants, 
+                 const std::vector<uint64_t>& starts, const std::vector<uint64_t>& ends,
+                 const unsigned& field_type, unsigned attribute_index = 0) {
+  auto first_valid = true;
+
+  for (int worker_idx = 0; worker_idx < starts.size(); ++worker_idx)
+  {
+    for (int i = starts[worker_idx]; i < ends[worker_idx]; ++i)
+    {
+      const auto& variant = variants[i];
+      for(const auto& call : variant)
+      {
+        if(!first_valid)
+          fptr << ",";
+        else
+        {
+          first_valid = false;
+        }
+        switch(field_type) {
+          case INDICES_IDX:
+            fptr << call.get_row_idx();
+            break;
+          case START_IDX:
+            fptr << call.get_column_begin();
+            break;
+          case END_IDX:
+            fptr << call.get_column_end();
+            break;
+          case ATTRIBUTE_IDX:
+            call.print_Cotton_JSON(fptr, attribute_index);
+            break;
+          default:
+            assert(0);
+        }
+      }
+    }
+  }
+}
+
+void print_positions_json(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config,
+                          const std::vector<uint64_t>& query_column_lengths, const std::vector<uint64_t>& total_variants) {
+  assert(query_config.is_bookkeeping_done());
+  std::string indent = "    ";
+  auto num_partitions = total_variants.size();
+  auto num_column_intervals = query_config.get_num_column_intervals();
+  fptr << "{\n";
+  std::vector<uint64_t> ends(num_partitions, 0ull);
+  std::vector<uint64_t> starts(num_partitions, 0ull);
+  for (auto query_column_idx = 0; query_column_idx < num_column_intervals; ++query_column_idx)
+  {
+    auto query_start = query_config.get_column_begin(query_column_idx);
+    auto query_end   = query_config.get_column_end(query_column_idx);
+
+    fptr << "\"" << query_start << "_" << query_end << "\" : {\n";
+
+    uint64_t start  = 0;
+    uint64_t aggregated_worker_offset = 0;
+    for (auto worker_idx = 0; worker_idx < num_partitions; ++worker_idx)
+    {
+      // lengh asumes start is at 0, but with multiple workers start is offset,
+      // so add the total length of variants from the previous worker
+      ends[worker_idx] = start + query_column_lengths[(worker_idx * num_column_intervals) + query_column_idx];
+      // Add Offset to start idx with the length from previous column
+      if (query_column_idx > 0)
+      {
+        start += query_column_lengths[(worker_idx * num_column_intervals) + (query_column_idx - 1)];
+      }
+      starts[worker_idx] = start;
+      // Update start to the start of the variant idx for the next worker
+      aggregated_worker_offset += total_variants[worker_idx];
+      start = aggregated_worker_offset;
+    }
+
+    fptr << indent + "\"indices\" : [ ";
+    print_field(fptr, variants, starts, ends, INDICES_IDX);
+    fptr << " ],\n";
+
+    fptr << indent + "\"start\" : [ ";
+    print_field(fptr, variants, starts, ends, START_IDX);
+    fptr << " ],\n";
+
+    fptr << indent + "\"end\" : [ ";
+    print_field(fptr, variants, starts, ends, END_IDX);
+    fptr << " ],\n";
+
+    //other attributes, start from 1 as the first queried attribute is always END
+    for(auto i=1u;i<query_config.get_num_queried_attributes();++i)
+    {
+      fptr << indent + "\"" + query_config.get_query_attribute_name(i) + "\" : [ ";
+      print_field(fptr, variants, starts, ends, ATTRIBUTE_IDX, i);
+      fptr << " ]";
+      if(i+1u >= query_config.get_num_queried_attributes())       //last query, no comma
+        fptr << "\n";
+      else
+        fptr << ",\n";
+    }
+    // Close data for current query position
+    fptr << "}\n";
+    if (query_column_idx < num_column_intervals - 1)
+    {
+      fptr << ",";
+    }
+  }
+  // Close the JSON
+  fptr << "}\n";
+}
+
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
     std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
 {
@@ -668,10 +775,11 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
 }
 
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr, bool output_directly)
+    std::ostream& fptr, const std::vector<uint64_t>& query_column_lengths, const std::vector<uint64_t>& total_variants, bool output_directly)
 {
   static const std::unordered_map<std::string, unsigned> format_2_enum = {
     { "Cotton-JSON", COTTON_JSON_OUTPUT_FORMAT_IDX },
+    { "Positions-JSON", POSITIONS_JSON_OUTPUT_FORMAT_IDX },
     { "GA4GH", GA4GH_OUTPUT_FORMAT_IDX }
   };
   unsigned output_format_idx = DEFAULT_OUTPUT_FORMAT_IDX;
@@ -687,6 +795,9 @@ void print_variants(const std::vector<Variant>& variants, const std::string& out
   {
     case COTTON_JSON_OUTPUT_FORMAT_IDX:
       print_Cotton_JSON(optr, variants, query_config);
+      break;
+    case POSITIONS_JSON_OUTPUT_FORMAT_IDX:
+      print_positions_json(optr, variants, query_config, query_column_lengths, total_variants);
       break;
     case DEFAULT_OUTPUT_FORMAT_IDX:
     default:

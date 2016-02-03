@@ -72,14 +72,21 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #endif
   //Variants vector
   std::vector<Variant> variants;
+  auto num_column_intervals = query_config.get_num_column_intervals();
+  std::vector<uint64_t> query_column_lengths(num_column_intervals, 0ull);
+  uint64_t total_variants = 0ull;
   //Perform query if not root or !skip_query_on_root
   if(my_world_mpi_rank != 0 || !skip_query_on_root)
   {
 #ifdef DO_PROFILING
     timer.start();
 #endif
-    for(auto i=0u;i<query_config.get_num_column_intervals();++i)
+    for(auto i=0u;i<query_config.get_num_column_intervals();++i) {
       qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants, 0, stats_ptr);
+      query_column_lengths[i] = variants.size();
+    }
+    total_variants = variants.size();
+
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_TILEDB_QUERY_RANGE_IDX);
@@ -164,6 +171,13 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #else
   ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #endif
+  std::vector<uint64_t> gathered_query_column_lengths(num_mpi_processes*num_column_intervals);
+  ASSERT(MPI_Gather(&(query_column_lengths[0]), num_column_intervals, MPI_UINT64_T,
+        &(gathered_query_column_lengths[0]), num_column_intervals, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  std::vector<uint64_t> gathered_total_variants(num_mpi_processes);
+  ASSERT(MPI_Gather(&total_variants, 1, MPI_UINT64_T,
+        &(gathered_total_variants[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+
 #if VERBOSE>0
   if(my_world_mpi_rank == 0)
     std::cerr << "Completed MPI_Gather\n";
@@ -192,7 +206,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
     timer.start();
 #endif
-    print_variants(variants, output_format, query_config, std::cout);
+    print_variants(variants, output_format, query_config, std::cout, gathered_query_column_lengths, gathered_total_variants);
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
