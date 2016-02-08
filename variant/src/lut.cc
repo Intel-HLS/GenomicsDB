@@ -81,3 +81,6 @@ template class LUTBase<false,false>;
 //explicit initialization to avoid link errors
 template class MergedAllelesIdxLUT<true,true>;
 
+//explicit initialization to avoid link errors
+template class GoldLUTTemplate<true, true>;
+
