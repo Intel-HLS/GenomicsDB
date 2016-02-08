@@ -851,8 +851,8 @@ main(int argc, char** argv)
         test.print_line();
         break;    //because common contigs are handled first
       } 
-      //Both have entries in common_contigs, gold is at lower contig idx
-      if(gold.m_line->rid < lut_gold_contig_idx)
+      //Both have entries in common_contigs, gold is at "lower" contig
+      if(std::string(bcf_hdr_id2name(gold.m_hdr, gold.m_line->rid)) < std::string(bcf_hdr_id2name(gold.m_hdr, lut_gold_contig_idx)))
       {
         std::cerr << "ERROR: Gold vcf has extra line(s) - printing the first extra line\n";
         gold.print_line();
@@ -997,6 +997,20 @@ main(int argc, char** argv)
     else
       break;    //either no more data or moved to contigs not present in the other file
   }
+  have_data = test.m_line && gold.m_line;
+  //Print error for the case where one of them has run out of lines
+  if(!have_data)
+    if(test.m_line)
+    {
+      std::cerr << "ERROR: Test vcf has extra line(s) - printing the first extra line\n";
+      test.print_line();
+    }
+    else
+      if(gold.m_line)
+      {
+        std::cerr << "ERROR: Gold vcf has extra line(s) - printing the first extra line\n";
+        gold.print_line();
+      }
   if(vid_mapper)
     delete vid_mapper;
   MPI_Finalize();
