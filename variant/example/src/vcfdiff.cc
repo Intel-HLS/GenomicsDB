@@ -5,6 +5,7 @@
 #include "json_config.h"
 
 double g_threshold = 1e-5; //fp comparison threshold
+uint64_t g_num_callsets = INT64_MAX;
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCFDiffException(#X);
     
@@ -99,13 +100,14 @@ void VCFDiffFile::setup_lut(const std::set<std::string>& gold_set, const std::se
   }
 }
 
-void VCFDiffFile::setup_luts(const VCFDiffFile& gold)
+void VCFDiffFile::setup_luts(const VCFDiffFile& gold, const bool use_callsets_file_for_samples)
 {
-  if(gold.m_samples != m_samples)
+  if(!use_callsets_file_for_samples && gold.m_samples != m_samples)
     throw VCFDiffException("ERROR: Sample names in the 2 file headers are different - cannot perform any further comparisons");
   setup_lut(gold.m_contigs, m_contigs, BCF_DT_CTG, m_contigs_lut, gold);
   setup_lut(gold.m_fields, m_fields, BCF_DT_ID, m_fields_lut, gold);
-  setup_lut(gold.m_samples, m_samples, BCF_DT_SAMPLE, m_samples_lut, gold);
+  if(!use_callsets_file_for_samples)
+    setup_lut(gold.m_samples, m_samples, BCF_DT_SAMPLE, m_samples_lut, gold);
   m_fields_in_gold_line.resize(std::max(gold.m_fields.size(), m_fields.size()));
   m_fields_in_test_line.resize(std::max(gold.m_fields.size(), m_fields.size()));
   reset_field_to_line_idx_mapping();
@@ -739,6 +741,11 @@ void construct_regions_for_partitions(const std::string& loader_json_filename, V
   std::string callset_mapping_file = (json.HasMember("callset_mapping_file") && json["callset_mapping_file"].IsString())
     ? json["callset_mapping_file"].GetString() : "";
   vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(json["vid_mapping_file"].GetString(), callset_mapping_file));
+  //Limit #callsets
+  if(json.HasMember("limit_callset_row_idx") && json["limit_callset_row_idx"].IsInt64())
+    g_num_callsets = json["limit_callset_row_idx"].GetInt64() + 1;
+  else
+    g_num_callsets = vid_mapper->get_num_callsets();
   //Get partitions
   json_config_base.read_from_file(loader_json_filename);
   auto column_interval = json_config_base.get_column_partition(rank);
@@ -768,6 +775,51 @@ void construct_regions_for_partitions(const std::string& loader_json_filename, V
     regions.pop_back();
 }
 
+enum ArgsIdxEnum
+{
+  ARGS_USE_CALLSETS_FILE_FOR_SAMPLE_IDX=1000
+};
+
+void setup_samples_lut(const std::string& test_to_gold_callset_map_file, VCFDiffFile& gold, VCFDiffFile& test, const VidMapper* vid_mapper)
+{
+  //Parse JSON
+  std::ifstream ifs(test_to_gold_callset_map_file.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  rapidjson::Document json;
+  json.Parse(str.c_str());
+  VERIFY_OR_THROW(json.HasMember("test_to_gold_callset_map") && json["test_to_gold_callset_map"].IsObject());
+  const auto& callset_map = json["test_to_gold_callset_map"];
+  //if(vid_mapper->get_num_callsets() != callset_map.MemberCount())
+    //throw VCFDiffException("ERROR: Mismatch in the #samples in the callsets JSON file and test-to-gold callset mapping file. Callsets JSON has "
+        //+std::to_string(vid_mapper->get_num_callsets())+" samples while mapping file has "+std::to_string(callset_map.MemberCount())+
+        //" - cannot perform any further comparisons");
+  //Everyone should have the same number of samples
+  if(g_num_callsets != bcf_hdr_nsamples(gold.m_hdr))
+    throw VCFDiffException("ERROR: Mismatch in the #samples in the gold VCF and the callsets JSON file. Gold has "+
+        std::to_string(bcf_hdr_nsamples(gold.m_hdr))+" samples while callsets JSON has "+std::to_string(g_num_callsets)+
+        " - cannot perform any further comparisons");
+  if(g_num_callsets != bcf_hdr_nsamples(test.m_hdr))
+    throw VCFDiffException("ERROR: Mismatch in the #samples in the test VCF and the callsets JSON file. Test has "+
+        std::to_string(bcf_hdr_nsamples(test.m_hdr))+" samples while callsets JSON has "+std::to_string(g_num_callsets)+
+        " - cannot perform any further comparisons");
+  auto num_samples_found = 0u;
+  for(auto b=callset_map.MemberBegin(), e=callset_map.MemberEnd();b!=e;++b)
+  {
+    VERIFY_OR_THROW((*b).value.IsString());
+    auto test_sample_name = (*b).name.GetString();
+    auto gold_sample_name = (*b).value.GetString();
+    auto gold_sample_idx = bcf_hdr_id2int(gold.m_hdr, BCF_DT_SAMPLE, gold_sample_name);
+    auto test_sample_idx = bcf_hdr_id2int(test.m_hdr, BCF_DT_SAMPLE, test_sample_name);
+    if(gold_sample_idx >= 0 && test_sample_idx >= 0)
+    {
+      test.m_samples_lut.add_input_merged_idx_pair(0, test_sample_idx, gold_sample_idx);
+      ++num_samples_found;
+    }
+  }
+  VERIFY_OR_THROW(num_samples_found == g_num_callsets && "Test-to-gold callset mapping file does not have mapping for all samples");
+}
+
 main(int argc, char** argv)
 {
 #ifdef HTSDIR
@@ -785,11 +837,13 @@ main(int argc, char** argv)
     {"threshold",1,0,'t'},
     {"regions",1,0,'r'},
     {"loader-config",1,0,'j'},
-    {"process-rank",1,0,'p'}
+    {"process-rank",1,0,'p'},
+    {"test_to_gold_callset_map_file",1,0, ARGS_USE_CALLSETS_FILE_FOR_SAMPLE_IDX}
   };
   int c = -1;
   std::string regions = "";
   std::string loader_json_filename = "";
+  std::string test_to_gold_callset_map_file = "";
   while((c=getopt_long(argc, argv, "t:r:j:p:", long_options, NULL)) >= 0)
   {
     switch(c)
@@ -806,6 +860,9 @@ main(int argc, char** argv)
       case 'p':
         my_world_mpi_rank = strtoll(optarg, 0, 10);
         break;
+      case ARGS_USE_CALLSETS_FILE_FOR_SAMPLE_IDX:
+        test_to_gold_callset_map_file = std::move(std::string(optarg));
+        break;
       default:
         throw VCFDiffException(std::string("Unknown argument: ")+argv[optind-1]);
         break;
@@ -818,15 +875,20 @@ main(int argc, char** argv)
   }
   VCFDiffFile gold(argv[optind]); 
   VCFDiffFile test(argv[optind+1]);
+  auto use_loader_json_file = (loader_json_filename.length() && regions.length() == 0u);
   //Setup luts
-  test.setup_luts(gold);
+  test.setup_luts(gold, use_loader_json_file && (test_to_gold_callset_map_file.length() > 0u));
   //Loader input json - compare partitions created by vcf2tiledb
   VidMapper* vid_mapper = 0;
   JSONConfigBase json_config_base;
   int64_t column_partition_begin = -1ll;
-  if(loader_json_filename.length() && regions.length() == 0u)
+  if(use_loader_json_file)
+  {
     construct_regions_for_partitions(loader_json_filename, vid_mapper, json_config_base, my_world_mpi_rank,
         gold, test, regions);
+    if(test_to_gold_callset_map_file.length())
+      setup_samples_lut(test_to_gold_callset_map_file, gold, test, vid_mapper);
+  }
   //Regions
   set_regions(gold, test, regions);
   bool have_data = test.m_line && gold.m_line;

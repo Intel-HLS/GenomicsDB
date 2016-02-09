@@ -29,7 +29,7 @@ class VCFDiffFile
     ~VCFDiffFile();
     void setup_lut(const std::set<std::string>& gold_set, const std::set<std::string>& test_set,
         const int bcf_dt_type, GoldLUT& lut, const VCFDiffFile& gold);
-    void setup_luts(const VCFDiffFile& gold);
+    void setup_luts(const VCFDiffFile& gold, const bool use_callsets_file_for_samples);
     void set_regions_and_open_file();
     void seek_and_read(const int rid, const int pos);
     void read_and_advance();
