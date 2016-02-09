@@ -8,7 +8,7 @@ double g_threshold = 1e-5; //fp comparison threshold
 uint64_t g_num_callsets = INT64_MAX;
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCFDiffException(#X);
-    
+
 VCFDiffFile::VCFDiffFile(const std::string& filename, const std::string& regions)
 : m_samples_lut(1u, 1u), m_fields_lut(1u, 1u), m_contigs_lut(1u, 1u)
 {
@@ -52,7 +52,7 @@ VCFDiffFile::VCFDiffFile(const std::string& filename, const std::string& regions
   for(auto i=0;i<bcf_hdr_nsamples(m_hdr);++i)
     if(m_samples.find(bcf_hdr_int2id(m_hdr, BCF_DT_SAMPLE, i)) == m_samples.end())
       m_samples.insert(bcf_hdr_int2id(m_hdr, BCF_DT_SAMPLE, i));
-  m_samples_lut.resize_luts_if_needed(1u, m_samples.size()); 
+  m_samples_lut.resize_luts_if_needed(1u, m_samples.size());
 }
 
 VCFDiffFile::~VCFDiffFile()
@@ -232,7 +232,7 @@ bool bcf_is_empty_field(const bcf_hdr_t* hdr, const bcf1_t* line, const int bcf_
   auto num_elements_per_sample = GET_NUM_ELEMENTS(line, bcf_field_type, idx);
   auto total_num_elements = (bcf_field_type == BCF_HL_FMT) ? num_elements_per_sample*bcf_hdr_nsamples(hdr) : num_elements_per_sample;
   switch(GET_FIELD_BT_TYPE(line, bcf_field_type, idx))
-  { 
+  {
     case BCF_BT_INT8:
       {
         auto ptr = GET_DATA_PTR<const int8_t*>(line, bcf_field_type, idx, 0, num_elements_per_sample);
@@ -430,7 +430,7 @@ bool VCFDiffFile::compare_unequal_fields(const bcf_hdr_t* gold_hdr, const bcf1_t
       if(bcf_hdr_id2type(gold_hdr, bcf_field_type, gold_field_idx) == BCF_HT_FLAG)
         continue;
       //Big switch
-      auto field_bt_type_combo = GET_FIELD_BT_TYPE(gold_line, bcf_field_type, i)  << 8 | 
+      auto field_bt_type_combo = GET_FIELD_BT_TYPE(gold_line, bcf_field_type, i)  << 8 |
           GET_FIELD_BT_TYPE(m_line, bcf_field_type, test_line_field_pos_idx);
       auto field_vector_diff = false;
       switch(field_bt_type_combo)
@@ -577,8 +577,8 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
   }
   error_message += (diff_FILTER_flag ? "FILTER list different\n" : "");
   diff_line_flag = diff_FILTER_flag || diff_line_flag;
-  //INFO fields 
-  auto  diff_INFO_fields = compare_unequal_fields(gold_hdr, gold_line, BCF_HL_INFO, error_message); 
+  //INFO fields
+  auto  diff_INFO_fields = compare_unequal_fields(gold_hdr, gold_line, BCF_HL_INFO, error_message);
   diff_line_flag = diff_INFO_fields || diff_line_flag;
   //FORMAT fields
   auto diff_FORMAT_fields = compare_unequal_fields(gold_hdr, gold_line, BCF_HL_FMT, error_message);
@@ -832,7 +832,7 @@ main(int argc, char** argv)
   //Get my world rank
   int my_world_mpi_rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
-  static struct option long_options[] = 
+  static struct option long_options[] =
   {
     {"threshold",1,0,'t'},
     {"regions",1,0,'r'},
@@ -873,7 +873,7 @@ main(int argc, char** argv)
     std::cerr << "Needs 2 VCF files as input <gold> <test>\n";
     exit(-1);
   }
-  VCFDiffFile gold(argv[optind]); 
+  VCFDiffFile gold(argv[optind]);
   VCFDiffFile test(argv[optind+1]);
   auto use_loader_json_file = (loader_json_filename.length() && regions.length() == 0u);
   //Setup luts
@@ -892,10 +892,15 @@ main(int argc, char** argv)
   //Regions
   set_regions(gold, test, regions);
   bool have_data = test.m_line && gold.m_line;
+  //Control variables
+  int curr_gold_contig_idx_in_vid = -1;
+  ContigInfo info;
+  auto both_must_have_valid_lines = false;
   while(have_data)
   {
-    auto lut_gold_contig_idx = test.m_contigs_lut.get_gold_idx_for_test(0, test.m_line->rid); 
+    auto lut_gold_contig_idx = test.m_contigs_lut.get_gold_idx_for_test(0, test.m_line->rid);
     auto lut_test_contig_idx = test.m_contigs_lut.get_test_idx_for_gold(0, gold.m_line->rid);
+    both_must_have_valid_lines = false;
     //Different contig
     while(have_data && gold.m_line->rid != lut_gold_contig_idx)
     {
@@ -907,12 +912,12 @@ main(int argc, char** argv)
         break;    //because common contigs are handled first
       }
       //test has reached a contig not in gold
-      if(GoldLUT::is_missing_value(lut_gold_contig_idx)) 
+      if(GoldLUT::is_missing_value(lut_gold_contig_idx))
       {
         std::cerr << "ERROR: Test vcf has extra line(s) - printing the first extra line\n";
         test.print_line();
         break;    //because common contigs are handled first
-      } 
+      }
       //Both have entries in common_contigs, gold is at "lower" contig
       if(std::string(bcf_hdr_id2name(gold.m_hdr, gold.m_line->rid)) < std::string(bcf_hdr_id2name(gold.m_hdr, lut_gold_contig_idx)))
       {
@@ -960,11 +965,14 @@ main(int argc, char** argv)
         //Check if variant is before or after the specified interval
         if(vid_mapper)
         {
-          ContigInfo info;
-          auto status = vid_mapper->get_contig_info(bcf_hdr_id2name(gold.m_hdr, gold.m_line->rid), info);
-          //Variant starts before column partition
-          if(status)
+          if(curr_gold_contig_idx_in_vid != gold.m_line->rid)
           {
+            auto status = vid_mapper->get_contig_info(bcf_hdr_id2name(gold.m_hdr, gold.m_line->rid), info);
+            curr_gold_contig_idx_in_vid = status ? gold.m_line->rid : -1;
+          }
+          if(curr_gold_contig_idx_in_vid == gold.m_line->rid)
+          {
+            //Variant starts before column partition
             if((info.m_tiledb_column_offset + static_cast<int64_t>(gold.m_line->pos)) <
                 json_config_base.get_column_partition(my_world_mpi_rank).first)
               before_begin = true;
@@ -1009,7 +1017,10 @@ main(int argc, char** argv)
               //test contains deletion and gold contains spanning deletion, advance test
               if(test.m_line->rlen > 1 && (test.m_line->d.var_type|VCF_INDEL)
                   && (gold.m_line->d.var_type|VCF_SPANNING_DELETION) && test.m_line->pos <= gold.m_line->pos)
+              {
                 test.read_and_advance();
+                both_must_have_valid_lines = before_begin;      //if !before_begin, then error message is already printed
+              }
               else
                 gold.read_and_advance();
             }
@@ -1019,7 +1030,10 @@ main(int argc, char** argv)
                 //gold contains deletion and test contains spanning deletion, advance gold
                 if(gold.m_line->rlen > 1 && (gold.m_line->d.var_type|VCF_INDEL)
                     && (test.m_line->d.var_type|VCF_SPANNING_DELETION) && gold.m_line->pos <= test.m_line->pos)
+                {
                   gold.read_and_advance();
+                  both_must_have_valid_lines = before_begin;      //if !before_begin, then error message is already printed
+                }
                 else
                   test.read_and_advance();
               }
@@ -1027,6 +1041,7 @@ main(int argc, char** argv)
               {
                 gold.read_and_advance();
                 test.read_and_advance();
+                both_must_have_valid_lines = true;
               }
           }
         }
@@ -1038,6 +1053,7 @@ main(int argc, char** argv)
         {
           gold.read_and_advance();
           test.read_and_advance();
+          both_must_have_valid_lines = true;
         }
         else    //must be partial_overlap
         {
@@ -1051,6 +1067,7 @@ main(int argc, char** argv)
             {
               gold.read_and_advance();
               test.read_and_advance();
+              both_must_have_valid_lines = true;
             }
         }
       }
@@ -1060,19 +1077,32 @@ main(int argc, char** argv)
       break;    //either no more data or moved to contigs not present in the other file
   }
   have_data = test.m_line && gold.m_line;
-  //Print error for the case where one of them has run out of lines
+  //Print error for the case where one of them has run out of lines, but the other has lines
   if(!have_data)
-    if(test.m_line)
+  {
+    for(auto i=0u;i<2u;++i)
     {
-      std::cerr << "ERROR: Test vcf has extra line(s) - printing the first extra line\n";
-      test.print_line();
-    }
-    else
-      if(gold.m_line)
+      auto& diff_ref = (i == 0u) ? gold : test;
+      auto name = (i == 0u) ? "Gold" : "Test";
+      if(diff_ref.m_line)
       {
-        std::cerr << "ERROR: Gold vcf has extra line(s) - printing the first extra line\n";
-        gold.print_line();
+        if(both_must_have_valid_lines)
+        {
+          std::cerr << "ERROR: "<< name << " vcf has extra line(s) - printing the first extra line\n";
+          diff_ref.print_line();
+        }
+        else
+        {
+          diff_ref.read_and_advance();
+          if(diff_ref.m_line)
+          {
+            std::cerr << "ERROR: "<< name << " vcf has extra line(s) - printing the first extra line\n";
+            diff_ref.print_line();
+          }
+        }
       }
+    }
+  }
   if(vid_mapper)
     delete vid_mapper;
   MPI_Finalize();
