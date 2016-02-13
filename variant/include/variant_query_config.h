@@ -30,6 +30,7 @@ class VariantQueryConfig : public QueryConfig
       m_done_bookkeeping = false;
       m_query_all_rows = true;
       m_num_rows_in_array = UNDEFINED_NUM_ROWS_VALUE;
+      m_smallest_row_idx = 0;
       m_first_normal_field_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
     }
     void clear()
@@ -89,7 +90,11 @@ class VariantQueryConfig : public QueryConfig
     /*
      * Used by QueryProcessor to set number of rows if all rows need to be queried.
      */
-    void set_num_rows_in_array(uint64_t num_rows) { m_num_rows_in_array = num_rows; }
+    void set_num_rows_in_array(uint64_t num_rows, const uint64_t smallest_row_idx)
+    {
+      m_num_rows_in_array = num_rows;
+      m_smallest_row_idx = smallest_row_idx;
+    }
     /*
      * Initialize map between array row to query row
      */
@@ -121,6 +126,7 @@ class VariantQueryConfig : public QueryConfig
       assert(!m_query_all_rows || (m_num_rows_in_array != UNDEFINED_NUM_ROWS_VALUE));
       return m_query_all_rows ? m_num_rows_in_array : m_query_rows.size();
     }
+    inline int64_t get_smallest_row_idx_in_array() const { return m_smallest_row_idx; }
     inline uint64_t get_num_rows_in_array() const
     {
       assert(m_num_rows_in_array != UNDEFINED_NUM_ROWS_VALUE);
@@ -133,18 +139,18 @@ class VariantQueryConfig : public QueryConfig
     inline int64_t get_array_row_idx_for_query_row_idx(uint64_t idx) const
     {
       assert(idx < get_num_rows_to_query());
-      return m_query_all_rows ? idx : m_query_rows[idx];
+      return m_query_all_rows ? (idx+m_smallest_row_idx) : m_query_rows[idx];
     }
     /*
      * Index in m_query_rows for given array row idx
      */
     inline uint64_t get_query_row_idx_for_array_row_idx(int64_t row_idx) const
     {
-      assert(row_idx >= 0 && row_idx < get_num_rows_in_array());
+      assert(row_idx >= m_smallest_row_idx && (row_idx-m_smallest_row_idx) < get_num_rows_in_array());
       if(m_query_all_rows)
-        return row_idx;
-      assert(row_idx < m_array_row_idx_to_query_row_idx.size());
-      return m_array_row_idx_to_query_row_idx[row_idx];
+        return row_idx - m_smallest_row_idx;
+      assert((row_idx-m_smallest_row_idx) < m_array_row_idx_to_query_row_idx.size());
+      return m_array_row_idx_to_query_row_idx[row_idx-m_smallest_row_idx];
     }
     /*
      * Check if this row is being queried or no
@@ -211,6 +217,7 @@ class VariantQueryConfig : public QueryConfig
     std::vector<uint64_t> m_array_row_idx_to_query_row_idx;
     /*Set by query processor*/
     uint64_t m_num_rows_in_array;
+    int64_t m_smallest_row_idx;
     /*Column ranges to query*/
     std::vector<ColumnRange> m_query_column_intervals;
 };

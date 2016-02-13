@@ -19,7 +19,14 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   auto workspace = json_config.get_workspace(rank);
   auto array_name = json_config.get_array_name(rank);
   //Schema
-  id_mapper->build_tiledb_array_schema(m_schema, true, array_name);
+  bool row_based_partitioning = (json_doc.HasMember("row_based_partitioning") && json_doc["row_based_partitioning"].GetBool());
+  RowRange row_partition(0, id_mapper->get_num_callsets()-1);
+  if(row_based_partitioning)
+  {
+    row_partition = json_config.get_row_partition(rank);
+    row_partition.second = std::min(row_partition.second, static_cast<int64_t>(id_mapper->get_num_callsets()-1));
+  }
+  id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, true);
   //Storage manager
   m_storage_manager = new StorageManager(workspace);
   auto mode = recreate_array ? "w" : "a";
@@ -50,7 +57,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
-  m_vid_mapper->build_tiledb_array_schema(m_schema, false);
+  m_vid_mapper->build_tiledb_array_schema(m_schema, "", false, RowRange(0, id_mapper->get_num_callsets()-1), false);
   m_query_processor = new VariantQueryProcessor(*m_schema);
   //Initialize query config
   std::vector<std::string> query_attributes(m_schema->attribute_num());

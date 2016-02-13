@@ -155,11 +155,14 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   }
 }
 
-void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, bool compress_fields, const std::string array_name)
+void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
+    const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields)
   const
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
-  auto dim_domains = std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, 100000000000ll } });        //100B
+  auto dim_domains = row_based_partitioning ?
+    std::vector<std::pair<double, double>>({ {row_range.first, row_range.second}, {0, INT64_MAX}})
+    : std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, INT64_MAX } });
   std::vector<std::string> attribute_names;
   std::vector<const std::type_info*> types;
   std::vector<int> num_vals;
@@ -220,6 +223,22 @@ void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, bool compr
       compression.push_back(CompressionType::GZIP);
   array_schema = new ArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression,
         ArraySchema::CO_COLUMN_MAJOR);
+}
+
+void VidMapper::verify_file_partitioning() const
+{
+  auto unassigned_files = false;
+  for(auto file_idx=0ull;file_idx<m_file_idx_to_info.size();++file_idx)
+  {
+    auto& file_info = m_file_idx_to_info[file_idx];
+    if(file_info.m_owner_idx < 0)
+    {
+      std::cerr << "File " << file_info.m_name << " is not assigned to any partition\n";
+      unassigned_files = true;
+    }
+  }
+  if(unassigned_files)
+    throw FileBasedVidMapperException("Found files that are not assigned to any partition");
 }
 
 //FileBasedVidMapper code

@@ -282,6 +282,7 @@ class VidMapper
       assert(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
       return m_owner_idx_to_file_idx_vec[owner_idx];
     }
+    void verify_file_partitioning() const;
     /*
      * Given a contig name, return global contig idx
      */
@@ -340,8 +341,8 @@ class VidMapper
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
-    void build_tiledb_array_schema(ArraySchema*& array_schema, bool compress_attributes, const std::string array_name="")
-      const;
+    void build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
+        const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
     /*
      * Given a global contig idx, return contig info
      */

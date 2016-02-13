@@ -70,13 +70,17 @@ class VCF2TileDBLoaderConverterBase
 {
   public:
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
-    int64_t get_column_partition_end() const
+    inline int64_t get_column_partition_end() const
     {
-      return m_json_config_base.get_column_partition(m_idx).second;
+      return m_row_based_partitioning ? INT64_MAX : m_json_config_base.get_column_partition(m_idx).second;
     }
-    int64_t get_column_partition_begin() const
+    inline int64_t get_column_partition_begin() const
     {
-      return m_json_config_base.get_column_partition(m_idx).first;
+      return m_row_based_partitioning ? 0 : m_json_config_base.get_column_partition(m_idx).first;
+    }
+    inline ColumnRange get_column_partition() const
+    {
+      return m_row_based_partitioning ? ColumnRange(0, INT64_MAX) : m_json_config_base.get_column_partition(m_idx);
     }
     void clear();
   protected:
@@ -85,12 +89,14 @@ class VCF2TileDBLoaderConverterBase
       m_num_entries_in_circular_buffer = num_entries;
       m_ping_pong_buffers.resize(num_entries);
     }
+    void determine_num_callsets_owned(const VidMapper* vid_mapper, const bool from_loader);
   protected:
     int m_idx;
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
     bool m_produce_combined_vcf;
     bool m_produce_tiledb_array;
+    bool m_row_based_partitioning;
     //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
     bool m_discard_vcf_index;
     unsigned m_num_entries_in_circular_buffer;
@@ -117,6 +123,12 @@ class VCF2TileDBLoaderConverterBase
     bool m_offload_vcf_output_processing;
     //Common json fields
     JSONConfigBase m_json_config_base;
+    //#callsets owned by this entity
+    int64_t m_num_callsets_owned;
+    //One entry for every owned file - contains #callsets per owned file
+    std::vector<int64_t> m_num_callsets_in_owned_file;
+    //Row idxs for callsets owned by this entity - may not be initialized
+    std::vector<int64_t> m_owned_row_idx_vec;
 };
 
 #ifdef HTSDIR
@@ -146,12 +158,11 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     void initialize_column_batch_objects();
     void initialize_vcf2binary_objects();
   private:
-    int64_t m_num_callsets_owned;
     VidMapper* m_vid_mapper;
     //One per partition
     std::vector<ColumnPartitionBatch> m_partition_batch;
     //Vector of vector of strings, outer vector corresponds to FILTER, INFO, FORMAT
-    std::vector<std::vector<std::string>> m_vcf_fields; 
+    std::vector<std::vector<std::string>> m_vcf_fields;
     //One per VCF file
     std::vector<VCF2Binary> m_vcf2binary_handlers;
     //Ordering of TileDB row idx for this converter - determined by the order of m_vcf2binary_handlers
@@ -235,7 +246,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 #endif
     }
     inline int64_t get_buffer_start_offset_for_row_idx(const int64_t row_idx) const
-    { return get_order_for_row_idx(row_idx)*m_max_size_per_callset; }
+    {
+      assert(get_order_for_row_idx(row_idx) >= 0 && get_order_for_row_idx(row_idx) < m_num_callsets_owned);
+      return get_order_for_row_idx(row_idx)*m_max_size_per_callset;
+    }
     /*
      * Debug dumper
      * Return true if no more data available
@@ -254,7 +268,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     VCF2TileDBConverter* m_converter;
 #endif
     //Circular buffer logic
-    std::vector<CircularBufferController> m_row_idx_to_buffer_control;
+    std::vector<CircularBufferController> m_order_idx_to_buffer_control;
     //Vector to be used in PQ for producing cells in column major order
     std::vector<CellPQElement> m_pq_vector;
     TileDBColumnMajorPQ m_column_major_pq;

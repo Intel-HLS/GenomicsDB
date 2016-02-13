@@ -38,8 +38,9 @@ void VariantQueryConfig::invalidate_array_row_idx_to_query_row_idx_map(bool all_
   else
     for(auto i=0ull;i<get_num_rows_to_query();++i)
     {
-      assert(get_array_row_idx_for_query_row_idx(i) >=0 && get_array_row_idx_for_query_row_idx(i) < m_array_row_idx_to_query_row_idx.size());
-      m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)] = UNDEFINED_NUM_ROWS_VALUE;
+      assert(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx
+          && (get_array_row_idx_for_query_row_idx(i)-m_smallest_row_idx) < m_array_row_idx_to_query_row_idx.size());
+      m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)-m_smallest_row_idx] = UNDEFINED_NUM_ROWS_VALUE;
     }
 }
 
@@ -48,13 +49,23 @@ void VariantQueryConfig::setup_array_row_idx_to_query_row_idx_map()
   if(m_query_all_rows)  //if querying all rows, don't even bother setting up map
     return;
   m_array_row_idx_to_query_row_idx.resize(get_num_rows_in_array());
-  invalidate_array_row_idx_to_query_row_idx_map(true); 
+  invalidate_array_row_idx_to_query_row_idx_map(true);
+  //Some queried row idxs may be out of bounds - ignore them
+  //This is done by creating a tmp_vector
+  std::vector<int64_t> tmp_vector(m_query_rows.size());
+  auto valid_rows_idx = 0ull;
   for(auto i=0ull;i<m_query_rows.size();++i)
   {
-    if(get_array_row_idx_for_query_row_idx(i) < 0 || get_array_row_idx_for_query_row_idx(i) >= get_num_rows_in_array())
-      throw OutOfBoundsQueryException("Queried row index "+std::to_string(m_query_rows[i])+" is out of bounds");
-    m_array_row_idx_to_query_row_idx[m_query_rows[i]] = i;
+    //Within bounds
+    if(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx &&
+        get_array_row_idx_for_query_row_idx(i) < get_num_rows_in_array()+m_smallest_row_idx)
+    {
+      m_array_row_idx_to_query_row_idx[m_query_rows[i]-m_smallest_row_idx] = valid_rows_idx;
+      tmp_vector[valid_rows_idx++] = m_query_rows[i];
+    }
   }
+  tmp_vector.resize(valid_rows_idx);
+  m_query_rows = std::move(tmp_vector);
 }
 
 void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
@@ -72,12 +83,22 @@ void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
     setup_array_row_idx_to_query_row_idx_map();
   }
   //setup mapping for newly querid rows
+  //Some queried row idxs may be out of bounds - ignore them
+  //This is done by creating a tmp_vector
+  std::vector<int64_t> tmp_vector(m_query_rows.size());
+  auto valid_rows_idx = 0ull;
   for(auto i=0ull;i<m_query_rows.size();++i)
   {
-    if(m_query_rows[i] < 0 || m_query_rows[i] >= get_num_rows_in_array())
-      throw OutOfBoundsQueryException("Queried row index "+std::to_string(m_query_rows[i])+" is out of bounds");
-    m_array_row_idx_to_query_row_idx[m_query_rows[i]] = i;
+    //Within bounds
+    if(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx &&
+        get_array_row_idx_for_query_row_idx(i) < get_num_rows_in_array()+m_smallest_row_idx)
+    {
+      m_array_row_idx_to_query_row_idx[m_query_rows[i]-m_smallest_row_idx] = valid_rows_idx;
+      tmp_vector[valid_rows_idx++] = m_query_rows[i];
+    }
   }
+  tmp_vector.resize(valid_rows_idx);
+  m_query_rows = std::move(tmp_vector);
 }
 
 void VariantQueryConfig::update_rows_to_query_to_all_rows()
