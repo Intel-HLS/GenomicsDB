@@ -115,20 +115,18 @@ void JSONConfigBase::read_from_file(const std::string& filename)
     else        //Must have column_partitions
     {
       m_column_partitions_specified = true;
-      //column_partitions_dict itself a dictionary of the form { "0" : { "begin" : <value> } }
-      auto& column_partitions_dict = m_json["column_partitions"];
-      VERIFY_OR_THROW(column_partitions_dict.IsObject());
-      m_sorted_column_partitions.resize(column_partitions_dict.MemberCount());
-      m_column_ranges.resize(column_partitions_dict.MemberCount());
-      auto partition_idx = 0u;
+      //column_partitions_array itself is an array of the form [ { "begin" : <value> }, { "begin":<value>} ]
+      auto& column_partitions_array = m_json["column_partitions"];
+      VERIFY_OR_THROW(column_partitions_array.IsArray());
+      m_sorted_column_partitions.resize(column_partitions_array.Size());
+      m_column_ranges.resize(column_partitions_array.Size());
       std::unordered_map<int64_t, unsigned> begin_to_idx;
       auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
       auto array_name_string = m_single_array_name ? m_array_names[0] : "";
-      for(auto b=column_partitions_dict.MemberBegin(), e=column_partitions_dict.MemberEnd();b!=e;++b,++partition_idx)
+      for(rapidjson::SizeType partition_idx=0;partition_idx<column_partitions_array.Size();++partition_idx)
       {
-        const auto& curr_obj = *b;
         //{ "begin" : <Val> }
-        const auto& curr_partition_info_dict = curr_obj.value;
+        const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
         VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
         VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
         m_column_ranges[partition_idx].resize(1);      //only 1 std::pair
@@ -140,15 +138,15 @@ void JSONConfigBase::read_from_file(const std::string& filename)
           std::swap<int64_t>(m_column_ranges[partition_idx][0].first, m_column_ranges[partition_idx][0].second);
         if(curr_partition_info_dict.HasMember("workspace"))
         {
-          if(column_partitions_dict.MemberCount() > m_workspaces.size())
-            m_workspaces.resize(column_partitions_dict.MemberCount(), workspace_string);
+          if(column_partitions_array.Size() > m_workspaces.size())
+            m_workspaces.resize(column_partitions_array.Size(), workspace_string);
           m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
           m_single_workspace_path = false;
         }
         if(curr_partition_info_dict.HasMember("array"))
         {
-          if(column_partitions_dict.MemberCount() >= m_array_names.size())
-            m_array_names.resize(column_partitions_dict.MemberCount(), array_name_string);
+          if(column_partitions_array.Size() >= m_array_names.size())
+            m_array_names.resize(column_partitions_array.Size(), array_name_string);
           m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
           m_single_array_name = false;
         }
@@ -409,25 +407,20 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   //VCF output could also be specified in column partitions
   if(m_json.HasMember("column_partitions"))
   {
-    //column_partitions_dict itself a dictionary of the form { "0" : { "begin" : <value> } }
-    auto& column_partitions_dict = m_json["column_partitions"];
-    VERIFY_OR_THROW(column_partitions_dict.IsObject());
-    if(rank < column_partitions_dict.MemberCount())
+    //column_partitions_array is an array of the form [ { "begin" : <value> }, {"begin":<value>} ]
+    auto& column_partitions_array = m_json["column_partitions"];
+    VERIFY_OR_THROW(column_partitions_array.IsArray());
+    if(rank < column_partitions_array.Size())
     {
-      auto partition_idx = 0;
-      for(auto b=column_partitions_dict.MemberBegin(), e=column_partitions_dict.MemberEnd();b!=e;++b,++partition_idx)
-        if(partition_idx == rank)
-        {
-          //*b if of the form (key, value) -- "0" : {"begin": x}
-          auto& curr_partition_info_dict = (*b).value;
-          VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-          if(curr_partition_info_dict.HasMember("vcf_output_filename"))
-          {
-            VERIFY_OR_THROW(curr_partition_info_dict["vcf_output_filename"].IsString());
-            m_vcf_output_filename = curr_partition_info_dict["vcf_output_filename"].GetString();
-          }
-        }
+      // {"begin": x}
+      auto& curr_partition_info_dict = column_partitions_array[static_cast<rapidjson::SizeType>(rank)];
+      VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
+      VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+      if(curr_partition_info_dict.HasMember("vcf_output_filename"))
+      {
+        VERIFY_OR_THROW(curr_partition_info_dict["vcf_output_filename"].IsString());
+        m_vcf_output_filename = curr_partition_info_dict["vcf_output_filename"].GetString();
+      }
     }
   }
   //Reference genome
