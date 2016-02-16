@@ -64,7 +64,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
     JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0);
 };
 
 #ifdef HTSDIR

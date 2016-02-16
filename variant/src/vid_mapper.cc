@@ -301,7 +301,7 @@ void VidMapper::verify_file_partitioning() const
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
 FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
-    const int64_t limit_callset_row_idx)
+    const int64_t limit_callset_row_idx, const bool callsets_file_required)
   : VidMapper()
 {
   rapidjson::Document json_doc;
@@ -315,8 +315,9 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     parse_callsets_file(callset_mapping_file);
   else
   {
-    VERIFY_OR_THROW(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString());
-    parse_callsets_file(json_doc["callset_mapping_file"].GetString());
+    VERIFY_OR_THROW(!callsets_file_required || (json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString()));
+    if(callsets_file_required || json_doc.HasMember("callset_mapping_file"))
+      parse_callsets_file(json_doc["callset_mapping_file"].GetString());
   }
   //Contig info parsing
   VERIFY_OR_THROW(json_doc.HasMember("contigs"));

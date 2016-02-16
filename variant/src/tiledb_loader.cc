@@ -176,7 +176,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
     m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
-          m_limit_callset_row_idx));
+          m_limit_callset_row_idx, true));
     m_vid_mapper->verify_file_partitioning();
     //2 entries sufficient
     resize_circular_buffers(2u);
@@ -423,7 +423,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
 #endif
   clear();
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
-        m_limit_callset_row_idx));
+        m_limit_callset_row_idx, true));
   //partition files
   if(m_row_based_partitioning)
     m_vid_mapper->build_file_partitioning(idx, m_json_config_base.get_row_partition(idx));

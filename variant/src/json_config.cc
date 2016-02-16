@@ -317,7 +317,7 @@ ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned 
   return m_column_ranges[fixed_rank][idx];
 }
 
-void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, const int rank)
+void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank)
 {
 
   JSONConfigBase::read_from_file(filename);
@@ -362,6 +362,41 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   //Attributes
   VERIFY_OR_THROW(m_attributes.size() && "Attributes to query not specified");
   query_config.set_attributes_to_query(m_attributes);
+  //Callset mapping file and vid file
+  if(id_mapper && JSONBasicQueryConfig::m_json.HasMember("vid_mapping_file"))
+  {
+    //Over-ride callset mapping file in top-level config if necessary
+    std::string callset_mapping_file="";
+    if(JSONBasicQueryConfig::m_json.HasMember("callset_mapping_file"))
+    {
+      const rapidjson::Value& v = JSONBasicQueryConfig::m_json["callset_mapping_file"];
+      //Could be array - one for each process
+      if(v.IsArray())
+      {
+        VERIFY_OR_THROW(rank < v.Size());
+        VERIFY_OR_THROW(v[rank].IsString());
+        callset_mapping_file = v[rank].GetString();
+      }
+      else
+      {
+        VERIFY_OR_THROW(v.IsString());
+        callset_mapping_file = v.GetString();
+      }
+    }
+    const rapidjson::Value& v = JSONBasicQueryConfig::m_json["vid_mapping_file"];
+    //Could be array - one for each process
+    if(v.IsArray())
+    {
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
+      (*id_mapper) = std::move(FileBasedVidMapper(v[rank].GetString(), callset_mapping_file, INT64_MAX, false));
+    }
+    else //or single string for all processes
+    {
+      VERIFY_OR_THROW(v.IsString());
+      (*id_mapper) = std::move(FileBasedVidMapper(v.GetString(), callset_mapping_file, INT64_MAX, false));
+    }
+  }
 }
    
 #ifdef HTSDIR
@@ -457,42 +492,9 @@ void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, Vari
         VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
         std::string output_format, const int rank)
 {
-  JSONBasicQueryConfig::read_from_file(filename, query_config, rank);
+  JSONBasicQueryConfig::read_from_file(filename, query_config, &id_mapper, rank);
   JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank);
-  //Over-ride callset mapping file in top-level config if necessary
-  std::string callset_mapping_file="";
-  if(JSONBasicQueryConfig::m_json.HasMember("callset_mapping_file"))
-  {
-    const rapidjson::Value& v = JSONBasicQueryConfig::m_json["callset_mapping_file"];
-    //Could be array - one for each process
-    if(v.IsArray())
-    {
-      VERIFY_OR_THROW(rank < v.Size());
-      VERIFY_OR_THROW(v[rank].IsString());
-      callset_mapping_file = v[rank].GetString();
-    }
-    else
-    {
-      VERIFY_OR_THROW(v.IsString());
-      callset_mapping_file = v.GetString();
-    }
-  }
   //contig and callset id mapping
   VERIFY_OR_THROW(JSONBasicQueryConfig::m_json.HasMember("vid_mapping_file"));
-  {
-    const rapidjson::Value& v = JSONBasicQueryConfig::m_json["vid_mapping_file"];
-    //Could be array - one for each process
-    if(v.IsArray())
-    {
-      VERIFY_OR_THROW(rank < v.Size());
-      VERIFY_OR_THROW(v[rank].IsString());
-      id_mapper = std::move(FileBasedVidMapper(v[rank].GetString(), callset_mapping_file));
-    }
-    else //or single string for all processes
-    {
-      VERIFY_OR_THROW(v.IsString());
-      id_mapper = std::move(FileBasedVidMapper(v.GetString(), callset_mapping_file));
-    }
-  }
 }
 #endif
