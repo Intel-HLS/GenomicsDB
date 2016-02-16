@@ -282,6 +282,7 @@ class VidMapper
       assert(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
       return m_owner_idx_to_file_idx_vec[owner_idx];
     }
+    void build_file_partitioning(const int partition_idx, const RowRange row_partition);
     void verify_file_partitioning() const;
     /*
      * Given a contig name, return global contig idx
@@ -395,6 +396,7 @@ class VidMapper
     std::vector<FileInfo> m_file_idx_to_info;
     //owner idx to file_idx vector
     std::vector<std::vector<int64_t>> m_owner_idx_to_file_idx_vec;
+    void sort_and_assign_local_file_idxs_for_partition(const int owner_idx);
     //Static members
     static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
     static std::unordered_map<std::string, const std::type_info*> m_typename_string_to_typeinfo;
@@ -406,6 +408,17 @@ class FileBasedVidMapperException : public std::exception {
   public:
     FileBasedVidMapperException(const std::string m="") : msg_("FileBasedVidMapperException : "+m) { ; }
     ~FileBasedVidMapperException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
+class VidMapperException : public std::exception {
+  public:
+    VidMapperException(const std::string m="") : msg_("VidMapperException : "+m) { ; }
+    ~VidMapperException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
     const char* what() const noexcept { return msg_.c_str(); }

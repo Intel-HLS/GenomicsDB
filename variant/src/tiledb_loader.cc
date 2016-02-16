@@ -424,7 +424,10 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
   clear();
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
         m_limit_callset_row_idx));
-  if(m_row_based_partitioning || m_standalone_converter_process)
+  //partition files
+  if(m_row_based_partitioning)
+    m_vid_mapper->build_file_partitioning(idx, m_json_config_base.get_row_partition(idx));
+  if(m_standalone_converter_process)
     m_vid_mapper->verify_file_partitioning();
   determine_num_callsets_owned(m_vid_mapper, true);
   m_max_size_per_callset = m_per_partition_size/m_num_callsets_owned;

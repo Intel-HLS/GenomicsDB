@@ -31,6 +31,8 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
       {"char", BCF_HT_STR}
       });
 
+#define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
+
 void VidMapper::clear()
 {
   m_callset_name_to_row_idx.clear();
@@ -225,6 +227,56 @@ void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, const std:
         ArraySchema::CO_COLUMN_MAJOR);
 }
 
+void VidMapper::build_file_partitioning(const int partition_idx, const RowRange row_partition)
+{
+  if(static_cast<size_t>(partition_idx) >= m_owner_idx_to_file_idx_vec.size())
+    m_owner_idx_to_file_idx_vec.resize(partition_idx+1);
+  m_owner_idx_to_file_idx_vec[partition_idx].clear();
+  auto max_row_idx = std::min<int64_t>(row_partition.second, get_num_callsets()-1);
+  std::unordered_set<int64_t> files_set;
+  for(auto row_idx=row_partition.first;row_idx<=max_row_idx;++row_idx)
+  {
+    VERIFY_OR_THROW(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+    auto file_idx = m_row_idx_to_info[row_idx].m_file_idx;
+    VERIFY_OR_THROW(file_idx >= 0 && static_cast<size_t>(file_idx) < m_file_idx_to_info.size());
+    if(files_set.find(file_idx) == files_set.end())
+    {
+      auto& file_info = m_file_idx_to_info[file_idx];
+      file_info.m_owner_idx = partition_idx;
+      m_owner_idx_to_file_idx_vec[partition_idx].push_back(file_idx);
+      auto& local_row_idx_pairs_vec = file_info.m_local_tiledb_row_idx_pairs;
+      auto last_valid_idx = -1ll;
+      //Check if any callset within this file is outside the row partition
+      for(auto i=0ull;i<local_row_idx_pairs_vec.size();++i)
+      {
+        //within range
+        if(local_row_idx_pairs_vec[i].second >= row_partition.first && local_row_idx_pairs_vec[i].second <= row_partition.second)
+        {
+          ++last_valid_idx;
+          if(i > static_cast<uint64_t>(last_valid_idx))
+            std::swap(local_row_idx_pairs_vec[last_valid_idx], local_row_idx_pairs_vec[i]);
+        }
+      }
+      local_row_idx_pairs_vec.resize(last_valid_idx+1);
+      files_set.insert(file_idx);
+    }
+  }
+  sort_and_assign_local_file_idxs_for_partition(partition_idx);
+}
+
+void VidMapper::sort_and_assign_local_file_idxs_for_partition(const int owner_idx)
+{
+  //Sort files by global_file_idx
+  std::sort(m_owner_idx_to_file_idx_vec[owner_idx].begin(), m_owner_idx_to_file_idx_vec[owner_idx].end());
+  //Set local idx in file idx to info struct
+  for(auto i=0u;i<m_owner_idx_to_file_idx_vec[owner_idx].size();++i)
+  {
+    auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][i];
+    assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
+    m_file_idx_to_info[global_file_idx].m_local_file_idx = i;
+  }
+}
+
 void VidMapper::verify_file_partitioning() const
 {
   auto unassigned_files = false;
@@ -242,6 +294,10 @@ void VidMapper::verify_file_partitioning() const
 }
 
 //FileBasedVidMapper code
+#ifdef VERIFY_OR_THROW
+#undef VERIFY_OR_THROW
+#endif
+
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
 FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
@@ -443,15 +499,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
           m_owner_idx_to_file_idx_vec[owner_idx].push_back(global_file_idx);
         }
       }
-      //Sort files by global_file_idx
-      std::sort(m_owner_idx_to_file_idx_vec[owner_idx].begin(), m_owner_idx_to_file_idx_vec[owner_idx].end());
-      //Set local idx in file idx to info struct
-      for(auto i=0u;i<m_owner_idx_to_file_idx_vec[owner_idx].size();++i)
-      {
-        auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][i];
-        assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
-        m_file_idx_to_info[global_file_idx].m_local_file_idx = i;
-      }
+      sort_and_assign_local_file_idxs_for_partition(owner_idx);
     }
   }
 }
