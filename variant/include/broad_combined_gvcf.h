@@ -5,18 +5,19 @@
 
 #include "variant_operations.h"
 #include "vcf_adapter.h"
+#include "vid_mapper.h"
 
 typedef std::tuple<unsigned, unsigned, unsigned> INFO_tuple_type;
 typedef std::tuple<unsigned, unsigned, unsigned> FORMAT_tuple_type;
 
 //Exceptions thrown 
-class BroadCombinedGVCFException {
+class BroadCombinedGVCFException : public std::exception {
   public:
     BroadCombinedGVCFException(const std::string m="") : msg_("Broad combine GVCFs exception : "+m) { ; }
     ~BroadCombinedGVCFException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };
@@ -28,7 +29,7 @@ class BroadCombinedGVCFException {
 class BroadCombinedGVCFOperator : public GA4GHOperator
 {
   public:
-    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VariantQueryConfig& query_config);
+    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config);
     ~BroadCombinedGVCFOperator()
     {
       bcf_destroy(m_bcf_out);
@@ -43,6 +44,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
   private:
     const VariantQueryConfig* m_query_config;
     VCFAdapter* m_vcf_adapter;
+    const VidMapper* m_vid_mapper;
     bcf1_t* m_bcf_out;
     bcf_hdr_t* m_vcf_hdr;
     //Contig info
@@ -66,6 +68,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //vector of field pointers used for handling remapped fields when dealing with spanning deletions
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
+    //Allowed bases
+    static const std::unordered_set<char> m_legal_bases;
 };
 
 #endif //ifdef HTSDIR

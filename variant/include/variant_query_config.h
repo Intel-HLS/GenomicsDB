@@ -7,17 +7,14 @@
 
 #define UNDEFINED_NUM_ROWS_VALUE 0xFFFFFFFFFFFFFFFFull
 
-typedef std::pair<int64_t, int64_t> ColumnRange;
-bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);
-
 //Out of bounds query exception
-class OutOfBoundsQueryException {
+class OutOfBoundsQueryException : public std::exception {
   public:
     OutOfBoundsQueryException(const std::string m="Out of bounds query exception") : msg_(m) { ; }
     ~OutOfBoundsQueryException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };

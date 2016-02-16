@@ -15,22 +15,24 @@
 #define BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<1>(X))
 #define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<2>(X))
 
+//Static member
+const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
 
-BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VariantQueryConfig& query_config) 
+BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
+    const VariantQueryConfig& query_config) 
 : GA4GHOperator(query_config)
 {
   clear();
   m_query_config = &query_config;
   //Initialize VCF structs
   m_vcf_adapter = &vcf_adapter;
+  m_vid_mapper = &id_mapper;
   m_vcf_hdr = vcf_adapter.get_vcf_header();
   m_bcf_out = bcf_init();
   //Get contig info for position 0, store curr contig in next_contig and call switch_contig function to do all the setup
-  auto curr_contig_flag = m_vcf_adapter->get_contig_location(0, m_next_contig_name, m_next_contig_begin_position);
+  auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
   assert(curr_contig_flag);
   switch_contig();
-  //GATK combined GVCF does not care about QUAL value
-  m_bcf_out->qual = get_bcf_missing_value<float>();
   //vector of char*, to avoid frequent reallocs()
   m_alleles_pointer_buffer.resize(100u);
   //INFO fields
@@ -58,18 +60,32 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   if(BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u]) != GVCF_DP_IDX)
     throw BroadCombinedGVCFException("Last queried FORMAT field should be DP, instead it is "
         +g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u])]);
-  //Sanity checks - all required fields must be queried
-  for(auto& tuple : m_INFO_fields_vec)
-    if(!query_config.is_defined_query_idx_for_known_field_enum((BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple))))
-      throw BroadCombinedGVCFException("Field "+g_known_variant_field_names[BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple)]+" not specified as part of query");
-  for(auto& tuple : m_FORMAT_fields_vec)
-    if(!query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
-      throw BroadCombinedGVCFException("Field "+g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple)]+" not specified as part of query");
+  //Discard fields not part of the query
+  auto last_valid_idx = 0u;
+  for(auto i=0u;i<m_INFO_fields_vec.size();++i)
+  {
+    auto& tuple = m_INFO_fields_vec[i];
+    if(query_config.is_defined_query_idx_for_known_field_enum((BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple))))
+      m_INFO_fields_vec[last_valid_idx++] = tuple;
+  }
+  m_INFO_fields_vec.resize(last_valid_idx);
+  //Same for FORMAT
+  last_valid_idx = 0u;
+  for(auto i=0u;i<m_FORMAT_fields_vec.size();++i)
+  {
+    auto& tuple = m_FORMAT_fields_vec[i];
+    if(query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
+      m_FORMAT_fields_vec[last_valid_idx++] = tuple;
+  }
+  m_FORMAT_fields_vec.resize(last_valid_idx);
   //Add samples to template header
+  std::string callset_name;
   for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
   {
     auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
-    bcf_hdr_add_sample(m_vcf_hdr, m_vcf_adapter->get_sample_name_for_idx(row_idx));
+    auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
+    assert(status);
+    bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
   }
   bcf_hdr_sync(m_vcf_hdr);
   m_vcf_adapter->print_header();
@@ -185,6 +201,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
   if(valid_DP_found || valid_DP_FORMAT_found)
   {
     int sum_INFO_DP = 0;
+    auto found_one_valid_DP_FORMAT = false;
     for(auto j=0ull;j<m_remapped_variant.get_num_calls();++j)
     {
       int dp_info_val = valid_DP_found ? int_vec[j] : get_bcf_missing_value<int>();
@@ -202,9 +219,11 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           dp_info_val = dp_format_val;
       }
       m_DP_FORMAT_vector[j] = dp_format_val;
+      found_one_valid_DP_FORMAT = is_bcf_valid_value<int>(dp_format_val) || found_one_valid_DP_FORMAT;
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
-    bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
+    if(found_one_valid_DP_FORMAT)
+      bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
     //If valid DP INFO field found, add to INFO list
     if(valid_DP_found)
       bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "DP", &sum_INFO_DP, 1);
@@ -219,12 +238,12 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //Moved to new contig
   if(m_remapped_variant.get_column_begin() >= m_next_contig_begin_position)
   {
-    int64_t contig_position;
     std::string contig_name;
-    auto status = m_vcf_adapter->get_contig_location(m_remapped_variant.get_column_begin(), contig_name, contig_position);
+    int64_t contig_position;
+    auto status = m_vid_mapper->get_contig_location(m_remapped_variant.get_column_begin(), contig_name, contig_position);
     if(status)
     {
-      auto contig_begin_position = m_remapped_variant.get_column_begin() - contig_position;
+      int64_t contig_begin_position = m_remapped_variant.get_column_begin() - contig_position;
       if(contig_begin_position != m_next_contig_begin_position)
       {
         m_next_contig_name = std::move(contig_name);
@@ -232,18 +251,26 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
       }
     }
     else
-      throw BroadCombinedGVCFException("No contig found for position "+std::to_string(m_remapped_variant.get_column_begin()));
+      throw BroadCombinedGVCFException("Unknown contig for position "+std::to_string(m_remapped_variant.get_column_begin()));
     switch_contig();
   }
   //clear out
   bcf_clear(m_bcf_out);
+  //If no valid FORMAT fields exist, this value is never set
+  m_bcf_out->n_sample = bcf_hdr_nsamples(m_vcf_hdr);
   //position
   m_bcf_out->rid = m_curr_contig_hdr_idx;
   m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
+  //GATK combined GVCF does not care about QUAL value
+  m_bcf_out->qual = get_bcf_missing_value<float>();
   //Update alleles
   auto& ref_allele = dynamic_cast<VariantFieldString*>(m_remapped_variant.get_common_field(0u).get())->get();
   if(ref_allele.length() == 1u && ref_allele[0] == 'N')
+  {
     ref_allele[0] = m_vcf_adapter->get_reference_base_at_position(m_curr_contig_name.c_str(), m_bcf_out->pos);
+    if(BroadCombinedGVCFOperator::m_legal_bases.find(ref_allele[0]) == BroadCombinedGVCFOperator::m_legal_bases.end())
+      ref_allele[0] = 'N';
+  }
   const auto& alt_alleles = dynamic_cast<VariantFieldALTData*>(m_remapped_variant.get_common_field(1u).get())->get();
   auto total_num_merged_alleles = alt_alleles.size() + 1u;      //+1 for REF
   if(total_num_merged_alleles > m_alleles_pointer_buffer.size())
@@ -261,7 +288,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_INFO_fields(variant);
   //FORMAT fields
   handle_FORMAT_fields(variant);
-  m_vcf_adapter->print_bcf_line(m_bcf_out);
+  m_vcf_adapter->handoff_output_bcf_line(m_bcf_out);
 }
 
 void BroadCombinedGVCFOperator::switch_contig()
@@ -269,8 +296,7 @@ void BroadCombinedGVCFOperator::switch_contig()
   m_curr_contig_name = std::move(m_next_contig_name);
   m_curr_contig_begin_position = m_next_contig_begin_position;
   m_curr_contig_hdr_idx = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_CTG, m_curr_contig_name.c_str());
-  auto next_contig_flag = m_vcf_adapter->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
-  assert(next_contig_flag);
+  auto next_contig_flag = m_vid_mapper->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
 }
 
 //Modifies original Variant object
@@ -298,28 +324,35 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       //Need to find deletion allele with lowest PL value - this deletion allele is mapped to "*" allele
       auto lowest_deletion_allele_idx = -1;
       int lowest_PL_value = INT_MAX;
-      auto& PL_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX)->get();
+      auto PL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX);
       auto has_NON_REF = false;
-      for(auto i=0u;i<alt_alleles.size();++i)
+      //PL field exists
+      if(PL_field_ptr)
       {
-        auto allele_idx = i+1;  //+1 for REF
-        if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+        auto& PL_vector = PL_field_ptr->get();
+        for(auto i=0u;i<alt_alleles.size();++i)
         {
-          unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
-          assert(gt_idx < PL_vector.size());
-          if(PL_vector[gt_idx] < lowest_PL_value)
+          auto allele_idx = i+1;  //+1 for REF
+          if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
           {
-            lowest_PL_value = PL_vector[gt_idx];
-            lowest_deletion_allele_idx = allele_idx;
+            unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
+            assert(gt_idx < PL_vector.size());
+            if(PL_vector[gt_idx] < lowest_PL_value)
+            {
+              lowest_PL_value = PL_vector[gt_idx];
+              lowest_deletion_allele_idx = allele_idx;
+            }
           }
+          else
+            if(IS_NON_REF_ALLELE(alt_alleles[i]))
+            {
+              m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
+              has_NON_REF = true;
+            }
         }
-        else
-          if(IS_NON_REF_ALLELE(alt_alleles[i]))
-          {
-            m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
-            has_NON_REF = true;
-          }
       }
+      else      //PL field is not queried, simply use the first ALT allele
+        lowest_deletion_allele_idx = 1;
       assert(lowest_deletion_allele_idx >= 1);    //should be an ALT allele
       //first ALT allele in reduced list is *
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, lowest_deletion_allele_idx, 1); 

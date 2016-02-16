@@ -156,10 +156,15 @@ int BINFile::open(const std::string& filename,
 
   // Calculate file size
   int fd = ::open(filename_.c_str(), O_RDONLY);
-  struct stat st;
-  fstat(fd, &st);
-  file_size_ = st.st_size;
-  ::close(fd);
+  if(fd >= 0)
+  {
+    struct stat st;
+    fstat(fd, &st);
+    file_size_ = st.st_size;
+    ::close(fd);
+  }
+  else
+    file_size_ = 0;
 
   if(file_size_ == 0)
     eof_ = true;

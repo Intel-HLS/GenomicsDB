@@ -15,13 +15,13 @@ enum GTSchemaVersionEnum
 };
 
 //Exceptions thrown 
-class InconsistentQueryOptionsException {
+class InconsistentQueryOptionsException : public std::exception {
   public:
     InconsistentQueryOptionsException(const std::string m="") : msg_("InconsistentQueryOptionsException : "+m) { ; }
     ~InconsistentQueryOptionsException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };
@@ -92,6 +92,11 @@ class VariantQueryProcessor : public QueryProcessor {
      * with.
      */
     VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name);
+    /*
+     * This constructor is useful when there is no StorageManager. This happens when loading and querying are 
+     * combined and the data does not exist on disk as TileDB arrays
+     */
+    VariantQueryProcessor(const ArraySchema& array_schema);
     void clear();
     /**
      * When querying, setup bookkeeping structures first 
@@ -105,9 +110,27 @@ class VariantQueryProcessor : public QueryProcessor {
         const int ad,
         const VariantQueryConfig& query_config, unsigned column_interval_idx,
         std::vector<Variant>& variants, GA4GHPagingInfo* paging_info=0, GTProfileStats* stats=0) const;
+    /*
+     * Scans column interval, aligns intervals and runs operate
+     */
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
         unsigned column_interval_idx=0u, bool handle_spanning_deletions=false) const;
+    /*
+     * Deal with next cell in forward iteration in a scan
+     * */
+    bool scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
+        Variant& variant, SingleVariantOperatorBase& variant_operator,
+        Cell& cell, const void* cell_ptr,
+        VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
+        int64_t& current_start_position, int64_t& next_start_position,
+        uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
+        GTProfileStats* stats_ptr) const;
+    /** Called by scan_and_operate to handle all ranges for given set of cells */
+    void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
+        const VariantQueryConfig& queryConfig, Variant& variant,
+        SingleVariantOperatorBase& variant_operator,
+        int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
     //while scan breaks up the intervals, iterate does not
     void iterate_over_cells(
         const int ad,
@@ -153,15 +176,12 @@ class VariantQueryProcessor : public QueryProcessor {
     void initialize_version(const ArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
     void register_field_creators(const ArraySchema& array_schema);
+    /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
+    void initialize();
     /**
      * Initialized field length info
      */
     static void initialize_length_descriptor(unsigned idx);
-    /** Called by scan_and_operate to handle all ranges for given set of cells */
-    void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
-        const VariantQueryConfig& queryConfig, Variant& variant,
-        SingleVariantOperatorBase& variant_operator,
-        int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
     /** Fills a row of the input genotyping column with the proper info. */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,

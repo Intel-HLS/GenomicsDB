@@ -91,7 +91,7 @@ void VariantQueryConfig::update_rows_to_query_to_all_rows()
 
 void VariantQueryConfig::reorder_query_fields()
 {
-  auto special_field_names = vector<string>{ "END", "ALT" };
+  auto special_field_names = vector<string>{ "END", "REF", "ALT" };
   m_first_normal_field_query_idx = 0u;
   for(auto i=0u;i<special_field_names.size();++i)
   {

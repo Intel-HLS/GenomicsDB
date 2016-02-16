@@ -6,11 +6,17 @@
 #ifndef HTSLIB_VCF_LITE_H
 #define HTSLIB_VCF_LITE_H
 
+#include "special_values.h"
+
 #ifdef HTSDIR   //Use htslib's headers
 
 #include "htslib/vcf.h"
 
 #else
+
+#define BCF_HL_FLT  0 // header line : FLT = filter
+#define BCF_HL_INFO 1
+#define BCF_HL_FMT  2
 
 #define BCF_VL_FIXED 0 // variable length
 #define BCF_VL_VAR   1
@@ -73,6 +79,12 @@ template<class T>
 inline T get_bcf_missing_value();
 
 template<>
+inline int8_t get_bcf_missing_value<int8_t>() { return bcf_int8_missing; }
+
+template<>
+inline int16_t get_bcf_missing_value<int16_t>() { return bcf_int16_missing; }
+
+template<>
 inline int get_bcf_missing_value<int>() { return bcf_int32_missing; }
 
 template<>
@@ -101,6 +113,12 @@ template<class T>
 inline T get_bcf_vector_end_value();
 
 template<>
+inline int8_t get_bcf_vector_end_value<int8_t>() { return bcf_int8_vector_end; }
+
+template<>
+inline int16_t get_bcf_vector_end_value<int16_t>() { return bcf_int16_vector_end; }
+
+template<>
 inline int get_bcf_vector_end_value<int>() { return bcf_int32_vector_end; }
 
 template<>
@@ -125,6 +143,42 @@ template<>
 inline char get_bcf_vector_end_value<char>() { return bcf_str_vector_end; }
 
 template<class T>
-inline bool is_bcf_valid_value(T val) { return (val != get_bcf_missing_value<T>() && val != get_bcf_vector_end_value<T>()); }
+inline bool is_bcf_missing_value(const T val) { return val == get_bcf_missing_value<T>(); }
+
+template<class T>
+inline bool is_bcf_vector_end_value(const T val) { return val == get_bcf_vector_end_value<T>(); }
+
+//for float, equality is not an adequate check
+template<>
+inline bool is_bcf_missing_value(const float val) { return bcf_float_is_missing(val); }
+
+template<>
+inline bool is_bcf_vector_end_value(const float val) { return bcf_float_is_vector_end(val); }
+
+template<class T>
+inline bool is_bcf_valid_value(const T val) { return !is_bcf_missing_value(val) && !is_bcf_vector_end_value(val); }
+
+//template function for obtaining TileDB null value
+template<class T>
+inline T get_tiledb_null_value();
+
+template<>
+inline char get_tiledb_null_value<char>() { return NULL_CHAR; }
+
+template<>
+inline int get_tiledb_null_value<int>() { return NULL_INT; }
+
+template<>
+inline int64_t get_tiledb_null_value<int64_t>() { return NULL_INT64_T; }
+
+template<>
+inline size_t get_tiledb_null_value<size_t>() { return NULL_SIZE_T; }
+
+template<>
+inline float get_tiledb_null_value<float>() { return NULL_FLOAT; }
+
+template<>
+inline double get_tiledb_null_value<double>() { return NULL_DOUBLE; }
+
 
 #endif

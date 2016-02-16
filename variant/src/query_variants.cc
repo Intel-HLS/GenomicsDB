@@ -192,6 +192,23 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
   m_ad = storage_manager->open_array(array_name, "r");
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
+  initialize();
+}
+
+VariantQueryProcessor::VariantQueryProcessor(const ArraySchema& array_schema)
+  : QueryProcessor(0)
+{
+  //initialize static members
+  if(!VariantQueryProcessor::m_are_static_members_initialized)
+    VariantQueryProcessor::initialize_static_members();
+  clear();
+  m_array_schema = &array_schema;
+  initialize();
+}
+
+void VariantQueryProcessor::initialize()
+{
+  assert(m_array_schema);
   //Initialize versioning information
   initialize_version(*m_array_schema); 
   //Register creators in factory
@@ -211,13 +228,6 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     min_end_point = num_calls_with_deletions ? current_start_position : min_end_point;
     //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
-    //Set REF to N if the call interval is split in the middle
-    if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX))
-      for(Variant::valid_calls_iterator iter=variant.begin();iter!=variant.end();++iter)
-      {
-        auto& curr_call = *iter;
-        assert(curr_call.get_column_begin() <= current_start_position);
-      }
     variant_operator.operate(variant, query_config);
     //The following intervals have been completely processed
     while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
@@ -253,7 +263,7 @@ void VariantQueryProcessor::scan_and_operate(
   Variant variant(&query_config);
   variant.resize_based_on_query();
   //Number of calls with deletions
-  uint64_t num_calls_with_deletions = 0;
+  uint64_t num_calls_with_deletions = 0; 
   //Used when deletions have to be treated as intervals and the PQ needs to be emptied
   std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Scan only queried interval, not whole array
@@ -301,61 +311,10 @@ void VariantQueryProcessor::scan_and_operate(
   for(;!(forward_iter->end());++(*forward_iter))
   {
     auto* cell_ptr = **forward_iter;
-    //Coordinates are at the start of the cell
-    auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
-    //If only interval requested and end of interval crossed, exit loop
-    if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+    auto end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell, cell_ptr,
+        end_pq, tmp_pq_buffer, current_start_position, next_start_position, num_calls_with_deletions, handle_spanning_deletions, stats_ptr);
+    if(end_loop)
       break;
-    if(next_coord[1] != current_start_position) //have found cell with next gVCF position, handle accumulated values
-    {
-      next_start_position = next_coord[1];
-      assert(next_coord[1] > current_start_position);
-      handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
-          next_start_position, false, num_calls_with_deletions);
-      assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
-      //Set new start for next interval
-      current_start_position = next_start_position;
-      variant.set_column_interval(current_start_position, current_start_position);
-      //Do not reset variant as some of the Calls that are long intervals might still be valid 
-    }
-    //Accumulate cells with position == current_start_position
-    //Include only if row is part of query
-    if(query_config.is_queried_array_row_idx(next_coord[0]))
-    {
-      cell.set_cell(cell_ptr);
-      auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
-      //Overlapping intervals for current call - spans across next position
-      //Have to ignore rest of this interval - overwrite with the new info from the cell
-      if(curr_call.is_valid() && curr_call.get_column_end() >= next_coord[1])
-      {
-        //Have to cycle through priority queue and remove this call
-        auto found_curr_call = false;
-        auto num_entries_in_tmp_pq_buffer = 0ull;
-        while(!end_pq.empty() && !found_curr_call)
-        {
-          auto top_call = end_pq.top();
-          if(top_call == &curr_call)
-            found_curr_call = true;
-          else
-          {
-            assert(num_entries_in_tmp_pq_buffer < query_config.get_num_rows_to_query());
-            tmp_pq_buffer[num_entries_in_tmp_pq_buffer++] = top_call;
-          }
-          end_pq.pop();
-        }
-        assert(found_curr_call);
-        for(auto i=0ull;i<num_entries_in_tmp_pq_buffer;++i)
-          end_pq.push(tmp_pq_buffer[i]);
-        //Reduce #calls with deletions 
-        assert(num_calls_with_deletions > 0u);
-        --num_calls_with_deletions;
-      }
-      gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
-      end_pq.push(&curr_call);
-      if(handle_spanning_deletions && curr_call.contains_deletion())
-        ++num_calls_with_deletions;
-      assert(end_pq.size() <= query_config.get_num_rows_to_query());
-    }
   }
   auto completed_iter = (forward_iter->end() || (query_config.get_num_column_intervals()==0u)) ? true : false;
   next_start_position =  completed_iter ? 0 //iterator end, don't care about next
@@ -363,6 +322,72 @@ void VariantQueryProcessor::scan_and_operate(
   //handle last interval
   handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
   delete forward_iter;
+}
+
+bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
+    Variant& variant, SingleVariantOperatorBase& variant_operator,
+    Cell& cell, const void* cell_ptr,
+    VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
+    int64_t& current_start_position, int64_t& next_start_position,
+    uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
+    GTProfileStats* stats_ptr) const
+{
+  //Coordinates are at the start of the cell
+  auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
+  //If only interval requested and end of interval crossed, then done
+  if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+    return true;
+  if(next_coord[1] != current_start_position) //have found cell with next gVCF position, handle accumulated values
+  {
+    next_start_position = next_coord[1];
+    assert(next_coord[1] > current_start_position);
+    handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
+        next_start_position, false, num_calls_with_deletions);
+    assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
+    //Set new start for next interval
+    current_start_position = next_start_position;
+    variant.set_column_interval(current_start_position, current_start_position);
+    //Do not reset variant as some of the Calls that are long intervals might still be valid 
+  }
+  //Accumulate cells with position == current_start_position
+  //Include only if row is part of query
+  if(query_config.is_queried_array_row_idx(next_coord[0]))
+  {
+    cell.set_cell(cell_ptr);
+    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+    //Overlapping intervals for current call - spans across next position
+    //Have to ignore rest of this interval - overwrite with the new info from the cell
+    if(curr_call.is_valid() && curr_call.get_column_end() >= next_coord[1])
+    {
+      //Have to cycle through priority queue and remove this call
+      auto found_curr_call = false;
+      auto num_entries_in_tmp_pq_buffer = 0ull;
+      while(!end_pq.empty() && !found_curr_call)
+      {
+        auto top_call = end_pq.top();
+        if(top_call == &curr_call)
+          found_curr_call = true;
+        else
+        {
+          assert(num_entries_in_tmp_pq_buffer < query_config.get_num_rows_to_query());
+          tmp_pq_buffer[num_entries_in_tmp_pq_buffer++] = top_call;
+        }
+        end_pq.pop();
+      }
+      assert(found_curr_call);
+      for(auto i=0ull;i<num_entries_in_tmp_pq_buffer;++i)
+        end_pq.push(tmp_pq_buffer[i]);
+      //Reduce #calls with deletions 
+      assert(num_calls_with_deletions > 0u);
+      --num_calls_with_deletions;
+    }
+    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
+    end_pq.push(&curr_call);
+    if(handle_spanning_deletions && curr_call.contains_deletion())
+      ++num_calls_with_deletions;
+    assert(end_pq.size() <= query_config.get_num_rows_to_query());
+  }
+  return false;
 }
 
 void VariantQueryProcessor::iterate_over_cells(

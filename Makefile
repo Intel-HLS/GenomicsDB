@@ -7,11 +7,16 @@ OS := $(shell uname)
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-CFLAGS = -fopenmp
+CFLAGS=
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
-LINKFLAGS=-fopenmp
+LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)
 LDFLAGS=-lz
+
+ifdef OPENMP
+  CFLAGS+=-fopenmp
+endif
+LINKFLAGS+=-fopenmp
 
 # --- Debug/Release mode handler --- #
 BUILD ?= debug 
@@ -51,11 +56,6 @@ CPPFLAGS=-std=c++11 -fPIC \
       $(LFS_CFLAGS) $(CFLAGS)
 
 #HTSDIR=../../htslib
-
-ifdef BCFTOOLSDIR
-    CPPFLAGS+=-I$(BCFTOOLSDIR) -DBCFTOOLSDIR
-    LDFLAGS+=-Wl,-Bstatic -L$(BCFTOOLSDIR) -lbcftools -Wl,-Bdynamic -lpthread -lz -lm -ldl -lsqlite3
-endif
 
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
@@ -175,10 +175,6 @@ MANPAGES_HTML_DIR = manpages/html
 MPI_INCLUDE_DIR := .
 MPI_LIB_DIR := .
 
-# Directories for the OpenMP files
-OPENMP_INCLUDE_DIR = .
-OPENMP_LIB_DIR = .
-
 STATIC_LINK_CORE_LIBRARY=-Wl,-Bstatic -L$(CORE_BIN_DIR)/ -lcore -Wl,-Bdynamic
 STATIC_LINK_VARIANT_LIBRARY=-Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant -Wl,-Bdynamic
 
@@ -190,12 +186,9 @@ VARIANT_INCLUDE_PATHS = -I$(VARIANT_INCLUDE_DIR)
 EXAMPLE_INCLUDE_PATHS = -I$(EXAMPLE_INCLUDE_DIR)
 MPI_INCLUDE_PATHS = -I$(MPI_INCLUDE_DIR)
 MPI_LIB_PATHS = -L$(MPI_LIB_DIR)
-OPENMP_INCLUDE_PATHS = -L$(OPENMP_INCLUDE_DIR)
-OPENMP_LIB_PATHS = -L$(OPENMP_LIB_DIR)
 
 # --- Libs --- #
-MPI_LIB = -lmpi
-OPENMP_LIB = -fopenmp 
+MPI_LIB =
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -300,7 +293,7 @@ clean: clean_core clean_libtiledb clean_tiledb_cmd clean_gtest \
 $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) -c $< -o $@
 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
@@ -369,7 +362,7 @@ $(TILEDB_CMD_OBJ_DIR)/%.o: $(TILEDB_CMD_SRC_DIR)/%.cc
 $(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
 	@mkdir -p $(TILEDB_CMD_BIN_DIR)
 	@echo "Creating $@"
-	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+	@$(CXX) $(LINKFLAGS) $(MPI_LIB_PATHS) $(MPI_LIB) \
                 -o $@ $^ $(LDFLAGS)
 
 # --- Cleaning --- #
@@ -401,7 +394,7 @@ clean_tiledb_cmd:
 # $(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
 #	@mkdir -p $(LA_BIN_DIR)
 #	@echo "Creating example_transpose"
-#	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+#	@$(CXX) $(MPI_LIB_PATHS) $(MPI_LIB) \
 #               -o $@ $^
 
 # --- Cleaning --- #
@@ -421,7 +414,7 @@ clean_tiledb_cmd:
 $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
@@ -455,7 +448,7 @@ clean_variant:
 # $(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
 # 	@mkdir -p $(RVMA_BIN_DIR)
 # 	@echo "Creating simple_test"
-# 	@$(CXX) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) $(MPI_LIB_PATHS) $(MPI_LIB) \
+# 	@$(CXX) $(MPI_LIB_PATHS) $(MPI_LIB) \
 #                -o $@ $^
 
 # --- Cleaning --- #
@@ -475,7 +468,7 @@ clean_variant:
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@) 
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) $(OPENMP_INCLUDE_PATHS) \
+	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) -c $< -o $@
 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)

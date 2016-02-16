@@ -3,7 +3,7 @@
 #include <getopt.h>
 #include <mpi.h>
 #include "libtiledb_variant.h"
-#include "run_config.h"
+#include "json_config.h"
 #include "timer.h"
 #include "broad_combined_gvcf.h"
 
@@ -120,7 +120,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #endif
   //Gather all serialized lengths (in bytes) at root
   std::vector<uint64_t> lengths_vector(num_mpi_processes, 0ull); 
-  ASSERT(MPI_Gather(&serialized_length, 1, MPI_UINT64_T, &(lengths_vector[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPI_Gather(&serialized_length, 1, MPI_UNSIGNED_LONG_LONG, &(lengths_vector[0]), 1, MPI_UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
   //Total size of gathered data (valid at root only)
   auto total_serialized_size = 0ull;
   //Buffer to receive all gathered data, will be resized at root
@@ -167,9 +167,9 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     std::cerr << "Starting MPIGather at root into buffer of size "<<((double)receive_buffer.size())/MegaByte<<"\n";
 #endif
 #ifdef USE_BIGMPI
-  ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPIX_Gatherv_x(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #else
-  ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UINT8_T, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UINT8_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #endif
   std::vector<uint64_t> gathered_query_column_lengths(num_mpi_processes*num_column_intervals);
   ASSERT(MPI_Gather(&(query_column_lengths[0]), num_column_intervals, MPI_UINT64_T,
@@ -232,12 +232,13 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   }
 }
 
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, VCFAdapter& vcf_adapter,
+#if defined(HTSDIR)
+void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config,
+    VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   Timer timer;
-  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, query_config);
+  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config);
   timer.start();
   qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
   timer.stop();
@@ -338,36 +339,37 @@ int main(int argc, char *argv[]) {
   }
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
+  FileBasedVidMapper id_mapper;
 #ifdef HTSDIR
   VCFAdapter vcf_adapter;
 #endif
   //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
   if(json_config_file != "")
   {
-    RunConfig* run_config_ptr = 0;
-    RunConfig range_query_run_config;
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-    VCFAdapterRunConfig scan_run_config;
+    JSONBasicQueryConfig* json_config_ptr = 0;
+    JSONBasicQueryConfig range_query_config;
+#if defined(HTSDIR)
+    JSONVCFAdapterQueryConfig scan_config;
 #endif
     switch(command_idx)
     {
       case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-        scan_run_config.read_from_file(json_config_file, query_config, vcf_adapter, output_format, my_world_mpi_rank);
-        run_config_ptr = static_cast<RunConfig*>(&scan_run_config);
+#if defined(HTSDIR)
+        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, id_mapper, output_format, my_world_mpi_rank);
+        json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
-        std::cerr << "Cannot produce Broad's combined GVCF without htslib and bcftools. Re-compile with HTSDIR and BCFTOOLSDIR variables set\n";
+        std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
         exit(-1);
 #endif
         break;
       default:
-        range_query_run_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
-        run_config_ptr = &range_query_run_config;
+        range_query_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+        json_config_ptr = &range_query_config;
         break;
     }
-    ASSERT(run_config_ptr);
-    workspace = run_config_ptr->m_workspace;
-    array_name = run_config_ptr->m_array_name;
+    ASSERT(json_config_ptr);
+    workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
+    array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
   }
   else
   {
@@ -414,8 +416,9 @@ int main(int argc, char *argv[]) {
       run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR) && defined(BCFTOOLSDIR)
-      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+#if defined(HTSDIR)
+      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper),
+          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
       break;
     case COMMAND_PRODUCE_HISTOGRAM:
