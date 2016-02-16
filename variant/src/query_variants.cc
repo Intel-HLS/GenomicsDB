@@ -479,7 +479,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema
   const std::vector<std::pair<double, double> >& dim_domains =
       array_schema.dim_domains();
   uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
-  query_config.set_num_rows_in_array(row_num);
+  query_config.set_num_rows_in_array(row_num, static_cast<int64_t>(dim_domains[0].first));
   query_config.setup_array_row_idx_to_query_row_idx_map();
   //Bounds checking for query
   for(auto i=0u;i<query_config.get_num_column_intervals();++i)
@@ -514,7 +514,7 @@ void VariantQueryProcessor::gt_get_column_interval(
   uint64_t start_variant_idx = variants.size();
   //Will be used later in the function to produce Variants with one CallSet
   VariantQueryConfig subset_query_config(query_config);
-  vector<int64_t> subset_rows = vector<int64_t>(1u, 0);
+  vector<int64_t> subset_rows = vector<int64_t>(1u, query_config.get_smallest_row_idx_in_array());
   subset_query_config.update_rows_to_query(subset_rows);  //only 1 row, row 0
   //Structure that helps merge multiple Calls into a single variant if the GA4GH specific merging
   //conditions are satisfied
@@ -883,7 +883,7 @@ unsigned int VariantQueryProcessor::gt_initialize_reverse_iter(
   //Num attributes in query
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign reverse iterator
-  vector<int64_t> query_range = { static_cast<int64_t>(query_config.get_num_rows_in_array()-1u), column };
+  vector<int64_t> query_range = { static_cast<int64_t>(query_config.get_smallest_row_idx_in_array()+query_config.get_num_rows_in_array()-1u), column };
   reverse_iter = get_storage_manager()->rbegin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs(), false);
   return num_queried_attributes - 1;
 }
@@ -898,9 +898,9 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
   //Num attributes in query
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign forward iterator
-  //FIXME: No longer binary search?
-  vector<int64_t> query_range = { 0ll, static_cast<int64_t>(query_config.get_num_rows_in_array()),
-    column, 10000000000ull };
+  vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
+    static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
+    column, INT64_MAX };
   forward_iter = get_storage_manager()->begin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
   return num_queried_attributes - 1;
 }

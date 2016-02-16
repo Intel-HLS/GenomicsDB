@@ -14,6 +14,8 @@ void JSONConfigBase::clear()
   m_column_ranges.clear();
   m_row_ranges.clear();
   m_attributes.clear();
+  m_sorted_column_partitions.clear();
+  m_sorted_row_partitions.clear();
 }
 
 void JSONConfigBase::read_from_file(const std::string& filename)
@@ -62,8 +64,8 @@ void JSONConfigBase::read_from_file(const std::string& filename)
       m_single_array_name = true;
     }
   }
-  VERIFY_OR_THROW(m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions")
-      || m_json.HasMember("scan_full"));
+  //VERIFY_OR_THROW(m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions")
+  //|| m_json.HasMember("scan_full"));
   if(m_json.HasMember("scan_full"))
     m_scan_whole_array = true;
   else
@@ -169,6 +171,8 @@ void JSONConfigBase::read_from_file(const std::string& filename)
       }
     }
   }
+  VERIFY_OR_THROW((!m_json.HasMember("query_row_ranges") || !m_json.HasMember("row_partitions")) &&
+      "Cannot use both \"query_row_ranges\" and \"row_partitions\" simultaneously");
   //Query rows
   //Example:  [ [ [0,5], 45 ], [ 76, 87 ] ]
   //This means that rank 0 will query rows: [0-5] and [45-45] and rank 1 will have
@@ -209,6 +213,62 @@ void JSONConfigBase::read_from_file(const std::string& filename)
       }
     }
   }
+  else
+    if(m_json.HasMember("row_partitions"))
+    {
+      m_row_partitions_specified = true;
+      //row_partitions value itself is an array [ { "begin" : <value> } } ]
+      auto& row_partitions_array = m_json["row_partitions"];
+      VERIFY_OR_THROW(row_partitions_array.IsArray());
+      m_sorted_row_partitions.resize(row_partitions_array.Size());
+      m_row_ranges.resize(row_partitions_array.Size());
+      std::unordered_map<int64_t, unsigned> begin_to_idx;
+      auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
+      auto array_name_string = m_single_array_name ? m_array_names[0] : "";
+      for(rapidjson::SizeType partition_idx=0u;partition_idx<row_partitions_array.Size();++partition_idx)
+      {
+        const auto& curr_partition_info_dict = row_partitions_array[partition_idx];
+        VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
+        VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+        m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
+        m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
+        m_row_ranges[partition_idx][0].second = INT64_MAX;
+        if(curr_partition_info_dict.HasMember("end"))
+          m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
+        if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
+          std::swap<int64_t>(m_row_ranges[partition_idx][0].first, m_row_ranges[partition_idx][0].second);
+        if(curr_partition_info_dict.HasMember("workspace"))
+        {
+          if(row_partitions_array.Size() > m_workspaces.size())
+            m_workspaces.resize(row_partitions_array.Size(), workspace_string);
+          m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
+          m_single_workspace_path = false;
+        }
+        if(curr_partition_info_dict.HasMember("array"))
+        {
+          if(row_partitions_array.Size() >= m_array_names.size())
+            m_array_names.resize(row_partitions_array.Size(), array_name_string);
+          m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
+          m_single_array_name = false;
+        }
+        //Mapping from begin pos to index
+        begin_to_idx[m_row_ranges[partition_idx][0].first] = partition_idx;
+        m_sorted_row_partitions[partition_idx].first = m_row_ranges[partition_idx][0].first;
+        m_sorted_row_partitions[partition_idx].second = m_row_ranges[partition_idx][0].second;
+      }
+      //Sort in ascending order
+      std::sort(m_sorted_row_partitions.begin(), m_sorted_row_partitions.end(), ColumnRangeCompare);
+      //Set end value if not valid
+      for(auto i=0ull;i+1u<m_sorted_row_partitions.size();++i)
+      {
+        VERIFY_OR_THROW(m_sorted_row_partitions[i].first != m_sorted_row_partitions[i+1u].first
+            && "Cannot have two row partitions with the same begin value");
+        if(m_sorted_row_partitions[i].second >= m_sorted_row_partitions[i+1u].first)
+          m_sorted_row_partitions[i].second = m_sorted_row_partitions[i+1u].first-1;
+        auto idx = begin_to_idx[m_sorted_row_partitions[i].first];
+        m_row_ranges[idx][0].second = m_sorted_row_partitions[i].second;
+      }
+    }
   if(m_json.HasMember("query_attributes"))
   {
     const rapidjson::Value& q1 = m_json["query_attributes"];
@@ -239,6 +299,14 @@ const std::string& JSONConfigBase::get_array_name(const int rank) const
   if(m_single_array_name)
     return m_array_names[0];
   return m_array_names[rank];
+}
+
+RowRange JSONConfigBase::get_row_partition(const int rank, const unsigned idx) const
+{
+  auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
+  VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_row_ranges.size());
+  VERIFY_OR_THROW(idx < m_row_ranges[fixed_rank].size());
+  return m_row_ranges[fixed_rank][idx];
 }
 
 ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned idx) const
