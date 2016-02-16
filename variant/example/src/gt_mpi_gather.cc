@@ -72,9 +72,8 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #endif
   //Variants vector
   std::vector<Variant> variants;
-  auto num_column_intervals = query_config.get_num_column_intervals();
+  uint64_t num_column_intervals = query_config.get_num_column_intervals();
   std::vector<uint64_t> query_column_lengths(num_column_intervals, 0ull);
-  uint64_t total_variants = 0ull;
   //Perform query if not root or !skip_query_on_root
   if(my_world_mpi_rank != 0 || !skip_query_on_root)
   {
@@ -85,7 +84,6 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
       qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants, 0, stats_ptr);
       query_column_lengths[i] = variants.size();
     }
-    total_variants = variants.size();
 
 #ifdef DO_PROFILING
     timer.stop();
@@ -171,12 +169,30 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #else
   ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #endif
-  std::vector<uint64_t> gathered_query_column_lengths(num_mpi_processes*num_column_intervals);
-  ASSERT(MPI_Gather(&(query_column_lengths[0]), num_column_intervals, MPI_UINT64_T,
-        &(gathered_query_column_lengths[0]), num_column_intervals, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
-  std::vector<uint64_t> gathered_total_variants(num_mpi_processes);
-  ASSERT(MPI_Gather(&total_variants, 1, MPI_UINT64_T,
-        &(gathered_total_variants[0]), 1, MPI_UINT64_T, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+  std::vector<uint64_t> gathered_num_column_intervals(num_mpi_processes);
+  ASSERT(MPI_Gather(&num_column_intervals, 1, MPI_UNSIGNED_LONG_LONG,
+        &(gathered_num_column_intervals[0]), 1, MPI_UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+
+  uint64_t total_columns = 0ull;
+  if(my_world_mpi_rank == 0) {
+    for (auto i = 0; i < recvcounts.size(); ++i) {
+      // Reuse the displs and recvcounts vectors declared for variants serialization
+      displs[i] = total_columns;
+      total_columns += gathered_num_column_intervals[i];
+      recvcounts[i] = gathered_num_column_intervals[i];
+    }
+  }
+
+  std::vector<uint64_t> gathered_query_column_lengths(total_columns);
+#ifdef USE_BIGMPI
+  ASSERT(MPIX_Gatherv_x(&(query_column_lengths[0]), num_column_intervals, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_query_column_lengths[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#else
+  ASSERT(MPI_Gatherv(&(query_column_lengths[0]), num_column_intervals, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_query_column_lengths[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#endif
 
 #if VERBOSE>0
   if(my_world_mpi_rank == 0)
@@ -206,7 +222,8 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
     timer.start();
 #endif
-    print_variants(variants, output_format, query_config, std::cout, gathered_query_column_lengths, gathered_total_variants);
+    print_variants(variants, output_format, query_config, std::cout,
+      gathered_query_column_lengths, gathered_num_column_intervals);
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
