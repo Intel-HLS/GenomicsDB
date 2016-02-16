@@ -47,16 +47,14 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& 
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
   //Row based partitioning
-  m_row_based_partitioning = false;
-  if(json_doc.HasMember("row_based_partitioning") && json_doc["row_based_partitioning"].IsBool())
-    m_row_based_partitioning = json_doc["row_based_partitioning"].GetBool();
+  m_json_config_base.read_from_file(config_filename);
+  m_row_based_partitioning = m_json_config_base.is_partitioned_by_row();
   if(m_row_based_partitioning) //Row based partitioning
   {
     VERIFY_OR_THROW(json_doc.HasMember("row_partitions"));
   }
   else //Column partitions - if no row based partitioning (default: column partitioning)
     VERIFY_OR_THROW(json_doc.HasMember("column_partitions"));
-  m_json_config_base.read_from_file(config_filename);
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(json_doc.HasMember("vid_mapping_file"));
   m_vid_mapping_filename = json_doc["vid_mapping_file"].GetString();

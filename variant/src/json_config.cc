@@ -217,7 +217,7 @@ void JSONConfigBase::read_from_file(const std::string& filename)
     if(m_json.HasMember("row_partitions"))
     {
       m_row_partitions_specified = true;
-      //row_partitions value itself is an array [ { "begin" : <value> } } ]
+      //row_partitions value itself is an array [ { "begin" : <value> } ]
       auto& row_partitions_array = m_json["row_partitions"];
       VERIFY_OR_THROW(row_partitions_array.IsArray());
       m_sorted_row_partitions.resize(row_partitions_array.Size());
@@ -281,6 +281,8 @@ void JSONConfigBase::read_from_file(const std::string& filename)
       m_attributes[i] = std::move(std::string(q2.GetString()));
     }
   }
+  m_row_based_partitioning = m_json.HasMember("row_based_partitioning") && m_json["row_based_partitioning"].IsBool()
+    && m_json["row_based_partitioning"].GetBool();
 }
 
 const std::string& JSONConfigBase::get_workspace(const int rank) const
