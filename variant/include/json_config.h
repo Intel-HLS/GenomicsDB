@@ -33,6 +33,7 @@ class JSONConfigBase
       m_single_query_row_ranges_vector = false;
       m_row_partitions_specified = false;
       m_scan_whole_array = false;
+      m_row_based_partitioning = false;
       clear();
     }
     void clear();
@@ -42,6 +43,7 @@ class JSONConfigBase
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
+    bool is_partitioned_by_row() const { return m_row_based_partitioning; }
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -50,6 +52,7 @@ class JSONConfigBase
     bool m_single_query_row_ranges_vector;
     bool m_row_partitions_specified;
     bool m_scan_whole_array;
+    bool m_row_based_partitioning;
     rapidjson::Document m_json;
     std::vector<std::string> m_workspaces;
     std::vector<std::string> m_array_names;
@@ -64,7 +67,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
     JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, int rank=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0);
 };
 
 #ifdef HTSDIR
