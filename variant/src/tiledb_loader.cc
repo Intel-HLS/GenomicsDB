@@ -232,7 +232,6 @@ void VCF2TileDBConverter::clear()
   m_vcf_fields.clear();
   m_vcf2binary_handlers.clear();
   m_exchanges.clear();
-  VCF2TileDBLoaderConverterBase::clear();
 }
 
 void VCF2TileDBConverter::initialize_vcf2binary_objects()
