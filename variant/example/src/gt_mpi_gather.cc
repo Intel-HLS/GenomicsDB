@@ -58,8 +58,9 @@ auto g_timer_names = std::vector<std::string>
 #define ASSERT(X) assert(X)
 #endif
 
-void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const std::string& output_format,
-    int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
+//id_mapper could be NULL - use for contig/callset name mapping only if non-NULL
+void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const VidMapper* id_mapper,
+    const std::string& output_format, int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
@@ -326,6 +327,7 @@ int main(int argc, char *argv[]) {
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
   FileBasedVidMapper id_mapper;
+  VidMapper* id_mapper_ptr = 0;
 #ifdef HTSDIR
   VCFAdapter vcf_adapter;
 #endif
@@ -349,8 +351,9 @@ int main(int argc, char *argv[]) {
 #endif
         break;
       default:
-        range_query_config.read_from_file(json_config_file, query_config, my_world_mpi_rank);
+        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank);
         json_config_ptr = &range_query_config;
+        id_mapper_ptr = static_cast<VidMapper*>(&id_mapper);
         break;
     }
     ASSERT(json_config_ptr);
@@ -399,7 +402,8 @@ int main(int argc, char *argv[]) {
   switch(command_idx)
   {
     case COMMAND_RANGE_QUERY:
-      run_range_query(qp, query_config, output_format, num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+      run_range_query(qp, query_config, id_mapper_ptr, output_format,
+          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
