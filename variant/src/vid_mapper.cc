@@ -475,29 +475,24 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
   //File partitioning info
   if(json_doc.HasMember("file_division"))
   {
-    const rapidjson::Value& file_division_dict = json_doc["file_division"];
-    //is a dictionary: owner_idx:list 
-    VERIFY_OR_THROW(file_division_dict.IsObject());
-    std::string owner_idx_str;
-    char* endptr = 0;
-    m_owner_idx_to_file_idx_vec.resize(file_division_dict.MemberCount());
-    for(auto b=file_division_dict.MemberBegin(), e=file_division_dict.MemberEnd();b!=e;++b)
+    const auto& file_division_array = json_doc["file_division"];
+    //is an array
+    VERIFY_OR_THROW(file_division_array.IsArray());
+    m_owner_idx_to_file_idx_vec.resize(file_division_array.Size());
+    for(rapidjson::SizeType owner_idx=0;owner_idx<file_division_array.Size();++owner_idx)
     {
-      const auto& curr_obj = *b;
-      owner_idx_str = curr_obj.name.GetString();
-      auto owner_idx  = strtol(owner_idx_str.c_str(), &endptr, 10);
-      VERIFY_OR_THROW(endptr != owner_idx_str.c_str());
-      VERIFY_OR_THROW(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
-      auto& files_array = curr_obj.value;
+      auto& files_array = file_division_array[owner_idx];
       VERIFY_OR_THROW(files_array.IsArray());
+      std::unordered_set<int64_t> files_set;
       for(rapidjson::SizeType i=0;i<files_array.Size();++i)
       {
         int64_t global_file_idx;
         auto found = get_global_file_idx(files_array[i].GetString(), global_file_idx);
-        if(found)
+        if(found && files_set.find(global_file_idx) == files_set.end())
         {
           m_file_idx_to_info[global_file_idx].m_owner_idx = owner_idx;
           m_owner_idx_to_file_idx_vec[owner_idx].push_back(global_file_idx);
+          files_set.insert(global_file_idx);
         }
       }
       sort_and_assign_local_file_idxs_for_partition(owner_idx);
