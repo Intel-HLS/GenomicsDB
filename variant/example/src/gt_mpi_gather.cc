@@ -223,7 +223,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
     timer.start();
 #endif
-    print_variants(variants, output_format, query_config, std::cout,
+    print_variants(variants, output_format, query_config, std::cout, id_mapper,
       gathered_query_column_lengths, gathered_num_column_intervals);
 #ifdef DO_PROFILING
     timer.stop();

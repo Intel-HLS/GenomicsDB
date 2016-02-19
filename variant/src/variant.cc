@@ -492,10 +492,15 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
   fptr << "}\n";
 }
 
-void print_field(std::ostream& fptr, const std::vector<Variant>& variants, 
-                 const std::vector<uint64_t>& starts, const std::vector<uint64_t>& ends,
-                 const unsigned& field_type, unsigned attribute_index = 0) {
+void print_field(std::ostream& fptr,
+                const std::vector<Variant>& variants,
+                const std::vector<uint64_t>& starts,
+                const std::vector<uint64_t>& ends,
+                const ContigInfo* contig_info,
+                const unsigned& field_type,
+                unsigned attribute_index = 0) {
   auto first_valid = true;
+  int64_t tile_position;
 
   for (int worker_idx = 0; worker_idx < starts.size(); ++worker_idx)
   {
@@ -515,10 +520,18 @@ void print_field(std::ostream& fptr, const std::vector<Variant>& variants,
             fptr << call.get_row_idx();
             break;
           case START_IDX:
-            fptr << call.get_column_begin();
+            tile_position = call.get_column_begin();
+            assert(tile_position >= contig_info->m_tiledb_column_offset);
+            assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
+            // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+            fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
           case END_IDX:
-            fptr << call.get_column_end();
+            tile_position = call.get_column_end();
+            assert(tile_position >= contig_info->m_tiledb_column_offset);
+            assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
+            // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+            fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
           case ATTRIBUTE_IDX:
             call.print_Cotton_JSON(fptr, attribute_index);
@@ -531,26 +544,30 @@ void print_field(std::ostream& fptr, const std::vector<Variant>& variants,
   }
 }
 
-void print_fields(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config,
-                 const std::vector<uint64_t>& starts, const std::vector<uint64_t>& ends) {
+void print_fields(std::ostream& fptr,
+                  const std::vector<Variant>& variants,
+                  const VariantQueryConfig& query_config,
+                  const std::vector<uint64_t>& starts,
+                  const std::vector<uint64_t>& ends,
+                  const ContigInfo* contig_info) {
   std::string indent = "    ";
   fptr << indent + "\"indices\" : [ ";
-  print_field(fptr, variants, starts, ends, INDICES_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, INDICES_IDX);
   fptr << " ],\n";
 
   fptr << indent + "\"start\" : [ ";
-  print_field(fptr, variants, starts, ends, START_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, START_IDX);
   fptr << " ],\n";
 
   fptr << indent + "\"end\" : [ ";
-  print_field(fptr, variants, starts, ends, END_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, END_IDX);
   fptr << " ],\n";
 
   //other attributes, start from 1 as the first queried attribute is always END
   for(auto i=1u;i<query_config.get_num_queried_attributes();++i)
   {
     fptr << indent + "\"" + query_config.get_query_attribute_name(i) + "\" : [ ";
-    print_field(fptr, variants, starts, ends, ATTRIBUTE_IDX, i);
+    print_field(fptr, variants, starts, ends, contig_info, ATTRIBUTE_IDX, i);
     fptr << " ]";
     if(i+1u >= query_config.get_num_queried_attributes())       //last query, no comma
       fptr << "\n";
@@ -559,19 +576,67 @@ void print_fields(std::ostream& fptr, const std::vector<Variant>& variants, cons
   }
 }
 
-void print_positions_json(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config,
-                          const std::vector<uint64_t>& query_column_lengths, const std::vector<uint64_t>& num_column_intervals) {
+void print_positions_json_split_by_row(std::ostream& fptr,
+                                      const std::vector<Variant>& variants,
+                                      const VariantQueryConfig& query_config,
+                                      const std::vector<uint64_t>& query_column_lengths,
+                                      const std::vector<uint64_t>& num_column_intervals,
+                                      const VidMapper* id_mapper) {
   // This function works only when the tile db instances are split by samples
   assert(query_config.is_bookkeeping_done());
   auto num_partitions = num_column_intervals.size();
   auto num_queried_columns = query_config.get_num_column_intervals();
-  fptr << "{\n";
   std::vector<uint64_t> ends(num_partitions, 0ull);
   std::vector<uint64_t> starts(num_partitions, 0ull);
+  ContigInfo contig_info;
+  std::string contig_name;
+  std::string prev_contig_name;
+  int64_t start_position;
+  int64_t end_position;
+  auto last_position_in_contig = false;
+  fptr << "{\n";
   for (auto query_column_idx = 0; query_column_idx < num_queried_columns; ++query_column_idx)
   {
     auto query_start = query_config.get_column_begin(query_column_idx);
     auto query_end   = query_config.get_column_end(query_column_idx);
+
+    if (!(id_mapper->get_contig_location(query_start, contig_name, start_position) &&
+             id_mapper->get_contig_location(query_start, contig_name, end_position) )) 
+    {
+      throw VidMapperException("print_positions_json_split_by_row: Invalid position ");
+    }
+    // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+    ++start_position;
+    ++end_position;
+
+    // Check if the contig has changed then close the braces and add the contig
+    if (prev_contig_name.size() == 0)
+    {
+      // This is the first time we will be printing contig information
+      fptr << "\"" << contig_name << "\": {\n";
+      prev_contig_name = contig_name;
+      // Initialize contig_info 
+      if (!id_mapper->get_contig_info(contig_name, contig_info))
+      {
+        throw VidMapperException("print_positions_json_split_by_row: Invalid contig name : " + contig_name );
+      }
+    }
+    else if (prev_contig_name.compare(contig_name) != 0)
+    {
+      fptr << "},\n";
+      fptr << "\"" << contig_name << "\": {\n";
+      prev_contig_name = contig_name;
+      // Update contig_info for the new contig
+      if (!id_mapper->get_contig_info(contig_name, contig_info))
+      {
+        throw VidMapperException("print_positions_json_split_by_row: Invalid contig name : " + contig_name );
+      }
+    }
+    else {
+      // We are in the same contig as before
+      // Add a , and output the next queried position in query
+      fptr << ",\n";
+    }
 
     uint64_t start  = 0;
     uint64_t aggregated_worker_offset = 0;
@@ -590,15 +655,18 @@ void print_positions_json(std::ostream& fptr, const std::vector<Variant>& varian
       aggregated_worker_offset += query_column_lengths[num_column_intervals[worker_idx] - 1];
       start = aggregated_worker_offset;
     }
-    fptr << "\"" << query_start << "_" << query_end << "\" : {\n";
-    print_fields(fptr, variants, query_config, starts, ends);
+    fptr << "\"" << start_position;
+    if (start_position != end_position)
+    {
+      fptr  << "_" << end_position;
+    }
+    fptr << "\" : {\n";
+    print_fields(fptr, variants, query_config, starts, ends, &contig_info);
     // Close data for current query position
     fptr << "}\n";
-    if (query_column_idx < num_queried_columns - 1)
-    {
-      fptr << ",";
-    }
   }
+  // Close the Contig level
+  fptr << "}\n";
   // Close the JSON
   fptr << "}\n";
 }
@@ -778,8 +846,14 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
   return newly_inserted;
 }
 
-void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr, const std::vector<uint64_t>& query_column_lengths, const std::vector<uint64_t>& num_column_intervals, bool output_directly)
+void print_variants(const std::vector<Variant>& variants, 
+                    const std::string& output_format, 
+                    const VariantQueryConfig& query_config, 
+                    std::ostream& fptr, 
+                    const VidMapper* id_mapper,
+                    const std::vector<uint64_t>& query_column_lengths, 
+                    const std::vector<uint64_t>& num_column_intervals, 
+                    bool output_directly)
 {
   static const std::unordered_map<std::string, unsigned> format_2_enum = {
     { "Cotton-JSON", COTTON_JSON_OUTPUT_FORMAT_IDX },
@@ -801,7 +875,7 @@ void print_variants(const std::vector<Variant>& variants, const std::string& out
       print_Cotton_JSON(optr, variants, query_config);
       break;
     case POSITIONS_JSON_OUTPUT_FORMAT_IDX:
-      print_positions_json(optr, variants, query_config, query_column_lengths, num_column_intervals);
+      print_positions_json_split_by_row(optr, variants, query_config, query_column_lengths, num_column_intervals, id_mapper);
       break;
     case DEFAULT_OUTPUT_FORMAT_IDX:
     default:

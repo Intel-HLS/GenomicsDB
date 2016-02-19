@@ -6,6 +6,7 @@
 #include "variant_field_data.h"
 #include "variant_query_config.h"
 #include "known_field_info.h"
+#include "vid_mapper.h"
 
 /*
  * Class that stores info that helps determine whether 2 VariantCalls should be
@@ -751,15 +752,19 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
  * Prints variants in requested format
  */
 void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr=std::cout,
+    std::ostream& fptr=std::cout, const VidMapper* id_mapper = NULL,
     const std::vector<uint64_t>& query_column_lengths = std::vector<uint64_t>(), const std::vector<uint64_t>& total_variants = std::vector<uint64_t>(),
     bool output_directly=false);
 
 /* 
  * Print variants with the start and end position for queries as keys and rest is same as Cotton JSON
  */
-void print_positions_json(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config,
-                          const std::vector<uint64_t>& query_column_lengths, const std::vector<uint64_t>& total_variants);
+void print_positions_json_split_by_row(std::ostream& fptr,
+                                      const std::vector<Variant>& variants,
+                                      const VariantQueryConfig& query_config,
+                                      const std::vector<uint64_t>& query_column_lengths,
+                                      const std::vector<uint64_t>& num_column_intervals,
+                                      const VidMapper* id_mapper);
 
 /*
  * Copies field from src to dst. Optimized to reduce #re-allocations
