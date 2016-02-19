@@ -555,11 +555,11 @@ void print_fields(std::ostream& fptr,
   print_field(fptr, variants, starts, ends, contig_info, INDICES_IDX);
   fptr << " ],\n";
 
-  fptr << indent + "\"start\" : [ ";
+  fptr << indent + "\"POSITION\" : [ ";
   print_field(fptr, variants, starts, ends, contig_info, START_IDX);
   fptr << " ],\n";
 
-  fptr << indent + "\"end\" : [ ";
+  fptr << indent + "\"END\" : [ ";
   print_field(fptr, variants, starts, ends, contig_info, END_IDX);
   fptr << " ],\n";
 
