@@ -585,7 +585,5 @@ void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, Vari
 {
   JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
   JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank);
-  //contig and callset id mapping
-  VERIFY_OR_THROW(JSONBasicQueryConfig::m_json.HasMember("vid_mapping_file"));
 }
 #endif
