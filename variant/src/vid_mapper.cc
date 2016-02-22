@@ -414,6 +414,7 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       }
     }
   } 
+  m_is_initialized = true;
 }
 
 void FileBasedVidMapper::parse_callsets_file(const std::string& filename)

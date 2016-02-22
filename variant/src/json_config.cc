@@ -279,8 +279,6 @@ void JSONConfigBase::read_from_file(const std::string& filename)
       m_attributes[i] = std::move(std::string(q2.GetString()));
     }
   }
-  m_row_based_partitioning = m_json.HasMember("row_based_partitioning") && m_json["row_based_partitioning"].IsBool()
-    && m_json["row_based_partitioning"].GetBool();
 }
 
 const std::string& JSONConfigBase::get_workspace(const int rank) const
@@ -315,6 +313,49 @@ ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned 
   VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_column_ranges.size());
   VERIFY_OR_THROW(idx < m_column_ranges[fixed_rank].size());
   return m_column_ranges[fixed_rank][idx];
+}
+
+std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(FileBasedVidMapper* id_mapper, const int rank)
+{
+  std::string vid_mapping_file="";
+  std::string callset_mapping_file="";
+  //Callset mapping file and vid file
+  if(m_json.HasMember("vid_mapping_file"))
+  {
+    //Over-ride callset mapping file in top-level config if necessary
+    if(m_json.HasMember("callset_mapping_file"))
+    {
+      const rapidjson::Value& v = m_json["callset_mapping_file"];
+      //Could be array - one for each process
+      if(v.IsArray())
+      {
+        VERIFY_OR_THROW(rank < v.Size());
+        VERIFY_OR_THROW(v[rank].IsString());
+        callset_mapping_file = v[rank].GetString();
+      }
+      else
+      {
+        VERIFY_OR_THROW(v.IsString());
+        callset_mapping_file = v.GetString();
+      }
+    }
+    const rapidjson::Value& v = m_json["vid_mapping_file"];
+    //Could be array - one for each process
+    if(v.IsArray())
+    {
+      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(v[rank].IsString());
+      vid_mapping_file = v[rank].GetString();
+    }
+    else //or single string for all processes
+    {
+      VERIFY_OR_THROW(v.IsString());
+      vid_mapping_file = v.GetString();
+    }
+  }
+  if(id_mapper)
+    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, INT64_MAX, false));
+  return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank)
@@ -362,41 +403,96 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   //Attributes
   VERIFY_OR_THROW(m_attributes.size() && "Attributes to query not specified");
   query_config.set_attributes_to_query(m_attributes);
-  //Callset mapping file and vid file
-  if(id_mapper && JSONBasicQueryConfig::m_json.HasMember("vid_mapping_file"))
+  get_vid_mapping_filename(id_mapper, rank);
+}
+
+//Loader config functions
+JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
+{
+  m_standalone_converter_process = false;
+  m_treat_deletions_as_intervals = false;
+  m_produce_combined_vcf = false;
+  m_produce_tiledb_array = false;
+  m_row_based_partitioning = false;
+  //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
+  m_discard_vcf_index = true;
+  m_num_entries_in_circular_buffer = 1;
+  m_num_converter_processes = 0;
+  m_per_partition_size = 0;
+  m_max_size_per_callset = 0;
+  //Limit callset row idx to this value
+  m_limit_callset_row_idx = INT64_MAX;
+  //#VCF files to open/process in parallel
+  m_num_parallel_vcf_files = 1;
+  //do ping-pong buffering
+  m_do_ping_pong_buffering = true;
+  //Offload VCF output processing to another thread
+  m_offload_vcf_output_processing = false;
+  m_vid_mapping_filename = "";
+  m_callset_mapping_file = "";
+}
+
+void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
+{
+  JSONConfigBase::read_from_file(filename);
+  //Check for row based partitioning - default column based
+  m_row_based_partitioning = m_json.HasMember("row_based_partitioning") && m_json["row_based_partitioning"].IsBool()
+    && m_json["row_based_partitioning"].GetBool();
+  if(m_row_based_partitioning) //Row based partitioning
   {
-    //Over-ride callset mapping file in top-level config if necessary
-    std::string callset_mapping_file="";
-    if(JSONBasicQueryConfig::m_json.HasMember("callset_mapping_file"))
-    {
-      const rapidjson::Value& v = JSONBasicQueryConfig::m_json["callset_mapping_file"];
-      //Could be array - one for each process
-      if(v.IsArray())
-      {
-        VERIFY_OR_THROW(rank < v.Size());
-        VERIFY_OR_THROW(v[rank].IsString());
-        callset_mapping_file = v[rank].GetString();
-      }
-      else
-      {
-        VERIFY_OR_THROW(v.IsString());
-        callset_mapping_file = v.GetString();
-      }
-    }
-    const rapidjson::Value& v = JSONBasicQueryConfig::m_json["vid_mapping_file"];
-    //Could be array - one for each process
-    if(v.IsArray())
-    {
-      VERIFY_OR_THROW(rank < v.Size());
-      VERIFY_OR_THROW(v[rank].IsString());
-      (*id_mapper) = std::move(FileBasedVidMapper(v[rank].GetString(), callset_mapping_file, INT64_MAX, false));
-    }
-    else //or single string for all processes
-    {
-      VERIFY_OR_THROW(v.IsString());
-      (*id_mapper) = std::move(FileBasedVidMapper(v.GetString(), callset_mapping_file, INT64_MAX, false));
-    }
+    VERIFY_OR_THROW(m_json.HasMember("row_partitions"));
   }
+  else //Column partitions - if no row based partitioning (default: column partitioning)
+  {
+    VERIFY_OR_THROW(m_json.HasMember("column_partitions"));
+  }
+  //Buffer size per column partition
+  VERIFY_OR_THROW(m_json.HasMember("size_per_column_partition"));
+  m_per_partition_size = m_json["size_per_column_partition"].GetInt64();
+  //Obtain number of converters
+  m_num_converter_processes = 0;
+  if(m_json.HasMember("num_converter_processes") && !m_row_based_partitioning)
+    m_num_converter_processes = m_json["num_converter_processes"].GetInt64();
+  //Converter processes run independent of loader when num_converter_processes > 0
+  m_standalone_converter_process = (m_num_converter_processes && !m_row_based_partitioning) ? true : false;
+  //treat deletions as intervals
+  if(m_json.HasMember("treat_deletions_as_intervals"))
+    m_treat_deletions_as_intervals = m_json["treat_deletions_as_intervals"].GetBool();
+  else
+    m_treat_deletions_as_intervals = false;
+  //Ignore callsets with row idx > specified value
+  m_limit_callset_row_idx = INT64_MAX;
+  if(m_json.HasMember("limit_callset_row_idx"))
+    m_limit_callset_row_idx = m_json["limit_callset_row_idx"].GetInt64();
+  //Produce combined vcf
+  m_produce_combined_vcf = false;
+  if(m_json.HasMember("produce_combined_vcf") && m_json["produce_combined_vcf"].GetBool())
+    m_produce_combined_vcf = true;
+  //Produce TileDB array
+  m_produce_tiledb_array = false;
+  if(m_json.HasMember("produce_tiledb_array") && m_json["produce_tiledb_array"].GetBool())
+    m_produce_tiledb_array = true;
+  //Control whether VCF indexes should be discarded to save memory
+  m_discard_vcf_index = true;
+  if(m_json.HasMember("discard_vcf_index"))
+    m_discard_vcf_index = m_json["discard_vcf_index"].GetBool();
+  //#vcf files to process in parallel
+  m_num_parallel_vcf_files = 1;
+  if(m_json.HasMember("num_parallel_vcf_files"))
+    m_num_parallel_vcf_files = m_json["num_parallel_vcf_files"].GetInt();
+  //do ping pong buffering
+  m_do_ping_pong_buffering = true;
+  if(m_json.HasMember("do_ping_pong_buffering"))
+    m_do_ping_pong_buffering = m_json["do_ping_pong_buffering"].GetBool();
+  //Offload VCF output processing
+  m_offload_vcf_output_processing = false;
+  if(m_json.HasMember("offload_vcf_output_processing"))
+    m_offload_vcf_output_processing = m_do_ping_pong_buffering && m_json["offload_vcf_output_processing"].GetBool();
+  //Must have path to vid_mapping_file
+  VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
+  auto filename_pair = get_vid_mapping_filename(id_mapper, rank);
+  m_vid_mapping_filename = std::move(filename_pair.first);
+  m_callset_mapping_file = std::move(filename_pair.second);
 }
    
 #ifdef HTSDIR
@@ -484,10 +580,10 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper& id_mapper,
+        VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
         std::string output_format, const int rank)
 {
-  JSONBasicQueryConfig::read_from_file(filename, query_config, &id_mapper, rank);
+  JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
   JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank);
   //contig and callset id mapping
   VERIFY_OR_THROW(JSONBasicQueryConfig::m_json.HasMember("vid_mapping_file"));

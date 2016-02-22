@@ -37,75 +37,13 @@ void LoaderConverterMessageExchange::initialize_from_loader(int64_t all_callsets
 }
 
 VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx)
+  : JSONLoaderConfig()
 {
   clear();
   m_idx = idx;
-  //Parse json configuration
-  rapidjson::Document json_doc;
-  std::ifstream ifs(config_filename.c_str());
-  VERIFY_OR_THROW(ifs.is_open());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
-  //Row based partitioning
-  m_json_config_base.read_from_file(config_filename);
-  m_row_based_partitioning = m_json_config_base.is_partitioned_by_row();
-  if(m_row_based_partitioning) //Row based partitioning
-  {
-    VERIFY_OR_THROW(json_doc.HasMember("row_partitions"));
-  }
-  else //Column partitions - if no row based partitioning (default: column partitioning)
-    VERIFY_OR_THROW(json_doc.HasMember("column_partitions"));
-  //Must have path to vid_mapping_file
-  VERIFY_OR_THROW(json_doc.HasMember("vid_mapping_file"));
-  m_vid_mapping_filename = json_doc["vid_mapping_file"].GetString();
-  //Buffer size per column partition
-  VERIFY_OR_THROW(json_doc.HasMember("size_per_column_partition"));
-  m_per_partition_size = json_doc["size_per_column_partition"].GetInt64();
-  //Obtain number of converters
-  m_num_converter_processes = 0;
-  if(json_doc.HasMember("num_converter_processes") && !m_row_based_partitioning)
-    m_num_converter_processes = json_doc["num_converter_processes"].GetInt64();
-  //Converter processes run independent of loader when num_converter_processes > 0
-  m_standalone_converter_process = (m_num_converter_processes && !m_row_based_partitioning) ? true : false;
-  //treat deletions as intervals
-  if(json_doc.HasMember("treat_deletions_as_intervals"))
-    m_treat_deletions_as_intervals = json_doc["treat_deletions_as_intervals"].GetBool();
-  else
-    m_treat_deletions_as_intervals = false;
-  //callset mapping file - check if defined in upper level json
-  m_callset_mapping_file = "";
-  if(json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString())
-    m_callset_mapping_file = json_doc["callset_mapping_file"].GetString();
-  //Ignore callsets with row idx > specified value
-  m_limit_callset_row_idx = INT64_MAX;
-  if(json_doc.HasMember("limit_callset_row_idx"))
-    m_limit_callset_row_idx = json_doc["limit_callset_row_idx"].GetInt64();
-  //Produce combined vcf
-  m_produce_combined_vcf = false;
-  if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
-    m_produce_combined_vcf = true;
+  JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
   if(m_produce_combined_vcf && m_row_based_partitioning)
     throw VCF2TileDBException("Cannot partition by rows and produce combined gVCF");
-  //Produce TileDB array
-  m_produce_tiledb_array = false;
-  if(json_doc.HasMember("produce_tiledb_array") && json_doc["produce_tiledb_array"].GetBool())
-    m_produce_tiledb_array = true;
-  //Control whether VCF indexes should be discarded to save memory
-  m_discard_vcf_index = true;
-  if(json_doc.HasMember("discard_vcf_index"))
-    m_discard_vcf_index = json_doc["discard_vcf_index"].GetBool();
-  //#vcf files to process in parallel
-  m_num_parallel_vcf_files = 1;
-  if(json_doc.HasMember("num_parallel_vcf_files"))
-    m_num_parallel_vcf_files = json_doc["num_parallel_vcf_files"].GetInt();
-  //do ping pong buffering
-  m_do_ping_pong_buffering = true;
-  if(json_doc.HasMember("do_ping_pong_buffering"))
-    m_do_ping_pong_buffering = json_doc["do_ping_pong_buffering"].GetBool();
-  //Offload VCF output processing
-  m_offload_vcf_output_processing = false;
-  if(json_doc.HasMember("offload_vcf_output_processing"))
-    m_offload_vcf_output_processing = m_do_ping_pong_buffering && json_doc["offload_vcf_output_processing"].GetBool();
   //Size circular buffers - 3 needed in non-standalone converter mode
   auto num_circular_buffers = m_do_ping_pong_buffering ? 3u : 1u;
   auto num_exchanges = m_do_ping_pong_buffering ? 2u : 1u;
@@ -250,7 +188,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
       m_vcf2binary_handlers.emplace_back( 
           file_info.m_name, m_vcf_fields, i, *m_vid_mapper, 
           m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
-          : m_json_config_base.get_sorted_column_partitions(),
+          : get_sorted_column_partitions(),
           m_max_size_per_callset,
           m_treat_deletions_as_intervals,
           false, false, false, m_discard_vcf_index
@@ -280,7 +218,7 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
 {
   //If standalone converter process, initialize for all partitions
   //Else only allocate single column partition idx corresponding to the loader
-  auto num_column_partitions = m_standalone_converter_process ? m_json_config_base.get_sorted_column_partitions().size()
+  auto num_column_partitions = m_standalone_converter_process ? get_sorted_column_partitions().size()
     : 1u;
   for(auto i=0u;i<num_column_partitions;++i)
     m_partition_batch.emplace_back(i, m_max_size_per_callset, m_num_callsets_in_owned_file, m_num_entries_in_circular_buffer);
@@ -423,7 +361,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
         m_limit_callset_row_idx, true));
   //partition files
   if(m_row_based_partitioning)
-    m_vid_mapper->build_file_partitioning(idx, m_json_config_base.get_row_partition(idx));
+    m_vid_mapper->build_file_partitioning(idx, get_row_partition(idx));
   if(m_standalone_converter_process)
     m_vid_mapper->verify_file_partitioning();
   determine_num_callsets_owned(m_vid_mapper, true);
