@@ -350,6 +350,10 @@ class VidMapper
     void build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
         const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
     /*
+     * Get num contigs
+     */
+    inline unsigned get_num_contigs() const { return m_contig_idx_to_info.size(); }
+    /*
      * Given a global contig idx, return contig info
      */
     inline const ContigInfo& get_contig_info(const int contig_idx) const
