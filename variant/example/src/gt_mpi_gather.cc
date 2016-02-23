@@ -59,9 +59,11 @@ auto g_timer_names = std::vector<std::string>
 #endif
 
 //id_mapper could be NULL - use for contig/callset name mapping only if non-NULL
-void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const VidMapper* id_mapper,
+void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const VidMapper& id_mapper,
     const std::string& output_format, int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
+  //Check if id_mapper is initialized before using it
+  //if(id_mapper.is_initialized())
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
   //Performance measurements
@@ -302,6 +304,7 @@ int main(int argc, char *argv[]) {
     {"output-format",1,0,'O'},
     {"workspace",1,0,'w'},
     {"json-config",1,0,'j'},
+    {"loader-json-config",1,0,'l'},
     {"segment-size",1,0,'s'},
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
@@ -315,10 +318,11 @@ int main(int argc, char *argv[]) {
   std::string workspace = "";
   std::string array_name = "";
   std::string json_config_file = "";
+  std::string loader_json_config_file = "";
   bool skip_query_on_root = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
-  while((c=getopt_long(argc, argv, "j:w:A:p:O:s:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
@@ -350,6 +354,9 @@ int main(int argc, char *argv[]) {
       case 'j':
         json_config_file = std::move(std::string(optarg));
         break;
+      case 'l':
+        loader_json_config_file = std::move(std::string(optarg));
+        break;
       default:
         std::cerr << "Unknown command line argument\n";
         exit(-1);
@@ -357,8 +364,9 @@ int main(int argc, char *argv[]) {
   }
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
+  //Vid mapping
   FileBasedVidMapper id_mapper;
-  VidMapper* id_mapper_ptr = 0;
+  auto file_id_mapper_ptr = &id_mapper;
 #ifdef HTSDIR
   VCFAdapter vcf_adapter;
 #endif
@@ -370,11 +378,19 @@ int main(int argc, char *argv[]) {
 #if defined(HTSDIR)
     JSONVCFAdapterQueryConfig scan_config;
 #endif
+    //If loader JSON passed as argument, initialize id_mapper from this file
+    if(loader_json_config_file.length())
+    {
+      JSONLoaderConfig loader_config;
+      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+      //Do not initialize FileBasedVidMapper from the query JSON
+      file_id_mapper_ptr = 0;
+    }
     switch(command_idx)
     {
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, id_mapper, output_format, my_world_mpi_rank);
+        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, file_id_mapper_ptr, output_format, my_world_mpi_rank);
         json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
         std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
@@ -382,9 +398,8 @@ int main(int argc, char *argv[]) {
 #endif
         break;
       default:
-        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank);
+        range_query_config.read_from_file(json_config_file, query_config, file_id_mapper_ptr, my_world_mpi_rank);
         json_config_ptr = &range_query_config;
-        id_mapper_ptr = static_cast<VidMapper*>(&id_mapper);
         break;
     }
     ASSERT(json_config_ptr);
@@ -433,7 +448,7 @@ int main(int argc, char *argv[]) {
   switch(command_idx)
   {
     case COMMAND_RANGE_QUERY:
-      run_range_query(qp, query_config, id_mapper_ptr, output_format,
+      run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
           num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:

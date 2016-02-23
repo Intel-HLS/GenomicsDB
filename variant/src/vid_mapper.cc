@@ -304,9 +304,11 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     const int64_t limit_callset_row_idx, const bool callsets_file_required)
   : VidMapper()
 {
+  VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
   rapidjson::Document json_doc;
   std::ifstream ifs(filename.c_str());
-  VERIFY_OR_THROW(ifs.is_open());
+  if(!ifs.is_open())
+    throw FileBasedVidMapperException((std::string("Could not open vid mapping file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
   m_limit_callset_row_idx = limit_callset_row_idx;
@@ -414,13 +416,16 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       }
     }
   } 
+  m_is_initialized = true;
 }
 
 void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
 {
+  VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
   rapidjson::Document json_doc;
   std::ifstream ifs(filename.c_str());
-  VERIFY_OR_THROW(ifs.is_open());
+  if(!ifs.is_open())
+    throw FileBasedVidMapperException((std::string("Could not open callsets file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
   uint64_t num_files = 0ull;

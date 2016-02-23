@@ -125,8 +125,13 @@ class FieldInfo
 class VidMapper
 {
   public:
-    VidMapper() { clear(); }
+    VidMapper()
+    {
+      clear();
+      m_is_initialized = false;
+    }
     void clear();
+    inline bool is_initialized() const { return m_is_initialized; }
     /*
      * Given a position in a flattened 'address' space [TileDB column idx], get the contig_name and location
      * in the contig [0-based]
@@ -345,6 +350,10 @@ class VidMapper
     void build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
         const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
     /*
+     * Get num contigs
+     */
+    inline unsigned get_num_contigs() const { return m_contig_idx_to_info.size(); }
+    /*
      * Given a global contig idx, return contig info
      */
     inline const ContigInfo& get_contig_info(const int contig_idx) const
@@ -379,6 +388,8 @@ class VidMapper
      */
     int64_t add_callset(const std::string& callset_name, const int64_t row_idx=-1) { ; }
   protected:
+    //Is initialized
+    bool m_is_initialized;
     //callset mappings
     std::unordered_map<std::string, int64_t> m_callset_name_to_row_idx;
     std::vector<CallSetInfo> m_row_idx_to_info;

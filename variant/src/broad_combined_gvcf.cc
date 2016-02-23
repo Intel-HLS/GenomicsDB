@@ -23,6 +23,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
 : GA4GHOperator(query_config)
 {
   clear();
+  if(!id_mapper.is_initialized())
+    throw BroadCombinedGVCFException("Id mapper is not initialized");
   m_query_config = &query_config;
   //Initialize VCF structs
   m_vcf_adapter = &vcf_adapter;
@@ -78,6 +80,21 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       m_FORMAT_fields_vec[last_valid_idx++] = tuple;
   }
   m_FORMAT_fields_vec.resize(last_valid_idx);
+  //Add missing contig names to template header
+  for(auto i=0u;i<m_vid_mapper->get_num_contigs();++i)
+  {
+    auto& contig_info = m_vid_mapper->get_contig_info(i);
+    auto& contig_name = contig_info.m_name;
+    if(bcf_hdr_name2id(m_vcf_hdr, contig_name.c_str()) < 0)
+    {
+      std::string contig_vcf_line = std::string("##contig=<ID=")+contig_name+",length="
+        +std::to_string(contig_info.m_length)+">";
+      int line_length = 0;
+      auto hrec = bcf_hdr_parse_line(m_vcf_hdr, contig_vcf_line.c_str(), &line_length);
+      bcf_hdr_add_hrec(m_vcf_hdr, hrec);
+      bcf_hdr_sync(m_vcf_hdr);
+    }
+  }
   //Add samples to template header
   std::string callset_name;
   for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)

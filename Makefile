@@ -50,8 +50,13 @@ endif
 
 # MPI compiler for C++
 #MPIPATH = #/opt/mpich/dev/intel/default/bin/
-CC  = $(MPIPATH)mpicc
-CXX = $(MPIPATH)mpicxx
+ifdef MPIPATH
+    CC  = $(MPIPATH)/mpicc
+    CXX = $(MPIPATH)/mpicxx
+else
+    CC  = mpicc
+    CXX = mpicxx
+endif
 CPPFLAGS=-std=c++11 -fPIC \
       $(LFS_CFLAGS) $(CFLAGS)
 

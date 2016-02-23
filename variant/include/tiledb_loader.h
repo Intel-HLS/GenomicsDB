@@ -66,22 +66,19 @@ class LoaderConverterMessageExchange
     std::vector<int64_t> m_idx_offset_per_division;
 };
 
-class VCF2TileDBLoaderConverterBase
+class VCF2TileDBLoaderConverterBase : public JSONLoaderConfig
 {
   public:
     VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
     inline int64_t get_column_partition_end() const
     {
-      return m_row_based_partitioning ? INT64_MAX : m_json_config_base.get_column_partition(m_idx).second;
+      return JSONLoaderConfig::get_column_partition(m_idx).second;
     }
     inline int64_t get_column_partition_begin() const
     {
-      return m_row_based_partitioning ? 0 : m_json_config_base.get_column_partition(m_idx).first;
+      return JSONLoaderConfig::get_column_partition(m_idx).first;
     }
-    inline ColumnRange get_column_partition() const
-    {
-      return m_row_based_partitioning ? ColumnRange(0, INT64_MAX) : m_json_config_base.get_column_partition(m_idx);
-    }
+    inline ColumnRange get_column_partition() const { return JSONLoaderConfig::get_column_partition(m_idx); }
     void clear();
   protected:
     void resize_circular_buffers(unsigned num_entries)
@@ -92,37 +89,12 @@ class VCF2TileDBLoaderConverterBase
     void determine_num_callsets_owned(const VidMapper* vid_mapper, const bool from_loader);
   protected:
     int m_idx;
-    bool m_standalone_converter_process;
-    bool m_treat_deletions_as_intervals;
-    bool m_produce_combined_vcf;
-    bool m_produce_tiledb_array;
-    bool m_row_based_partitioning;
-    //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
-    bool m_discard_vcf_index;
-    unsigned m_num_entries_in_circular_buffer;
-    int m_num_converter_processes;
-    int64_t m_per_partition_size;
-    int64_t m_max_size_per_callset;
-    //Vid mapping file
-    std::string m_vid_mapping_filename;
-    //callset mapping file - if defined in upper level config file
-    std::string m_callset_mapping_file;
-    //Limit callset row idx to this value
-    int64_t m_limit_callset_row_idx;
     //Ping-pong buffers
     //Note that these buffers may remain at size 0, if the ping pong buffers are owned by a different object
     std::vector<std::vector<uint8_t>> m_ping_pong_buffers;
     //Data structure for exchanging info between loader and converter
     //Note that these buffers may remain at size 0, if the exchanges are owned by a different object
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
-    //#VCF files to open/process in parallel
-    int m_num_parallel_vcf_files;
-    //do ping-pong buffering
-    bool m_do_ping_pong_buffering;
-    //Offload VCF output processing to another thread
-    bool m_offload_vcf_output_processing;
-    //Common json fields
-    JSONConfigBase m_json_config_base;
     //#callsets owned by this entity
     int64_t m_num_callsets_owned;
     //One entry for every owned file - contains #callsets per owned file
