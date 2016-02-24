@@ -7,7 +7,8 @@ OS := $(shell uname)
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-CFLAGS=-Wreturn-type #-Wsign-compare
+#FIXME: should remove the no-sign-compare flag
+CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-sign-compare
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)

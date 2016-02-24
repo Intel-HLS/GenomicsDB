@@ -105,7 +105,7 @@ double ExpressionNode::evaluate(const std::map<std::string,
     assert(left_ != NULL); // At least one child must exist
     
     // Retrieve left and right results
-    double left_result, right_result;
+    double left_result, right_result = 0;
     left_result = left_->evaluate(var_values);
     if(right_ != NULL)
       right_result = right_->evaluate(var_values);

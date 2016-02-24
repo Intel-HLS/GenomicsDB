@@ -71,6 +71,7 @@ int create_directory(const std::string& dirname) {
   // If the directory does not exist, create it
   if(!is_dir(dirname))  
     return mkdir(dirname.c_str(), S_IRWXU);
+  return 0;
 }
 
 void delete_directory(const std::string& dirname)  {
@@ -507,8 +508,8 @@ std::pair<bool, bool> overlap(const T* r1, const T* r2, int dim_num) {
     full[j] = false;
     if(r1[2*j] >= r2[2*j] && r1[2*j+1] <= r2[2*j+1])
       full[j] = true;
-    else if(r2[2*j] >= r1[2*j] && r2[2*j] <= r1[2*j+1] || 
-            r2[2*j+1] >= r1[2*j] && r2[2*j+1] <= r1[2*j+1])
+    else if((r2[2*j] >= r1[2*j] && r2[2*j] <= r1[2*j+1]) ||
+            (r2[2*j+1] >= r1[2*j] && r2[2*j+1] <= r1[2*j+1]))
       partial[j] = true;
   }
 

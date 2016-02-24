@@ -5,7 +5,7 @@
 #include "json_config.h"
 
 double g_threshold = 1e-5; //fp comparison threshold
-uint64_t g_num_callsets = INT64_MAX;
+int64_t g_num_callsets = INT64_MAX;
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCFDiffException(#X);
 
