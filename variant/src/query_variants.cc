@@ -113,7 +113,7 @@ void VariantQueryProcessor::initialize_known(const ArraySchema& schema)
 {
   //Initialize schema idx <--> known_field_enum mapping
   m_schema_idx_to_known_variant_field_enum_LUT.resize_luts_if_needed(schema.attribute_num(), GVCF_NUM_KNOWN_FIELDS);
-  for(auto i=0u;i<schema.attribute_num();++i)
+  for(auto i=0;i<schema.attribute_num();++i)
   {
     auto iter = g_known_variant_field_name_to_enum.find(schema.attribute_name(i));
     if(iter != g_known_variant_field_name_to_enum.end())
@@ -131,7 +131,7 @@ void VariantQueryProcessor::initialize_v1(const ArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v1_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
-  for(auto i=0u;i<schema.attribute_num();++i)
+  for(auto i=0;i<schema.attribute_num();++i)
     if(v1_fields.find(schema.attribute_name(i)) != v1_fields.end())
     {
       //set schema version
@@ -145,7 +145,7 @@ void VariantQueryProcessor::initialize_v2(const ArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v2_fields = std::unordered_set<std::string>{ "GT", "PS" };
-  for(auto i=0u;i<schema.attribute_num();++i)
+  for(auto i=0;i<schema.attribute_num();++i)
     if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
     {
       //set schema version
@@ -166,7 +166,7 @@ void VariantQueryProcessor::initialize_version(const ArraySchema& schema)
 void VariantQueryProcessor::register_field_creators(const ArraySchema& schema)
 {
   m_field_factory.resize(schema.attribute_num());
-  for(auto i=0u;i<schema.attribute_num();++i)
+  for(auto i=0;i<schema.attribute_num();++i)
   {
     const type_info* curr_type_info = (schema.type(i));
     type_index t = type_index(*curr_type_info);
@@ -230,7 +230,7 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     variant.set_column_interval(current_start_position, min_end_point);
     variant_operator.operate(variant, query_config);
     //The following intervals have been completely processed
-    while(!end_pq.empty() && end_pq.top()->get_column_end() == min_end_point)
+    while(!end_pq.empty() && static_cast<int64_t>(end_pq.top()->get_column_end()) == min_end_point)
     {
       auto top_element = end_pq.top();
       if(top_element->contains_deletion())
@@ -335,7 +335,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
   //Coordinates are at the start of the cell
   auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
   //If only interval requested and end of interval crossed, then done
-  if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+  if(query_config.get_num_column_intervals() > 0 && next_coord[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
     return true;
   if(next_coord[1] != current_start_position) //have found cell with next gVCF position, handle accumulated values
   {
@@ -343,7 +343,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     assert(next_coord[1] > current_start_position);
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
         next_start_position, false, num_calls_with_deletions);
-    assert(end_pq.empty() || end_pq.top()->get_column_end() >= next_start_position);  //invariant
+    assert(end_pq.empty() || static_cast<int64_t>(end_pq.top()->get_column_end()) >= next_start_position);  //invariant
     //Set new start for next interval
     current_start_position = next_start_position;
     variant.set_column_interval(current_start_position, current_start_position);
@@ -357,7 +357,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
     //Overlapping intervals for current call - spans across next position
     //Have to ignore rest of this interval - overwrite with the new info from the cell
-    if(curr_call.is_valid() && curr_call.get_column_end() >= next_coord[1])
+    if(curr_call.is_valid() && static_cast<int64_t>(curr_call.get_column_end()) >= next_coord[1])
     {
       //Have to cycle through priority queue and remove this call
       auto found_curr_call = false;
@@ -420,7 +420,7 @@ void VariantQueryProcessor::iterate_over_cells(
     //Coordinates are at the start of the cell
     auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
     //If only interval requested and end of interval crossed, exit loop
-    if(query_config.get_num_column_intervals() > 0 && next_coord[1] > query_config.get_column_end(column_interval_idx))
+    if(query_config.get_num_column_intervals() > 0 && next_coord[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
       break;
     cell.set_cell(cell_ptr);
     gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
@@ -567,7 +567,6 @@ void VariantQueryProcessor::gt_get_column_interval(
     Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
     //Used for paging
     auto last_column_idx = start_column_forward_sweep;
-    auto last_row_idx = 0ull;
     //Num handled variants - if beginning from same column as end of last page, get from paging info
     //else, reset to 0
     auto num_last_column_variants_handled_after_curr_page = paging_info ? 
@@ -614,7 +613,6 @@ void VariantQueryProcessor::gt_get_column_interval(
         //Check if page limit hit
         PAGE_END_CHECK_LOGIC
       }
-      last_row_idx = curr_row_idx;
       last_column_idx = curr_column_idx;
     }
 #if VERBOSE>0
@@ -693,7 +691,7 @@ void VariantQueryProcessor::gt_get_column(
     // If next cell is not on the right of col, and 
     // The rowIdx is being queried and
     // The row/call is uninitialized (uninvestigated) in the Variant
-    if(next_coord[1] <= col && query_config.is_queried_array_row_idx(next_coord[0]))
+    if(next_coord[1] <= static_cast<int64_t>(col) && query_config.is_queried_array_row_idx(next_coord[0]))
     {
       auto curr_query_row_idx = query_config.get_query_row_idx_for_array_row_idx(next_coord[0]);
       auto& curr_call = variant.get_call(curr_query_row_idx);

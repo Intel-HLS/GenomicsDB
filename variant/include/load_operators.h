@@ -67,9 +67,9 @@ class LoaderArrayWriter : public LoaderOperatorBase
         m_storage_manager->close_array(m_array_descriptor);
     }
   private:
-    StorageManager* m_storage_manager;
-    ArraySchema* m_schema;
     int m_array_descriptor;
+    ArraySchema* m_schema;
+    StorageManager* m_storage_manager;
 };
 
 #ifdef HTSDIR

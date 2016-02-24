@@ -49,8 +49,8 @@ class RemappedVariant : public RemappedDataWrapperBase
     {}
     virtual void* put_address(uint64_t input_call_idx, unsigned allele_or_gt_idx);
   private:
-    unsigned m_queried_field_idx;
     Variant* m_variant;
+    unsigned m_queried_field_idx;
 };
 
 class VariantOperations

@@ -123,7 +123,7 @@ class ColumnPartitionBatch
     {
       if(recompute)
         update_num_completed_files();
-      return m_num_completed == m_file_batches.size();
+      return m_num_completed == static_cast<int64_t>(m_file_batches.size());
     }
     /*
      * Get file batch
@@ -143,7 +143,7 @@ class ColumnPartitionBatch
   private:
     void set_num_callsets_in_file(int64_t file_idx, int64_t num_callsets)
     {
-      assert(file_idx < m_file_batches.size());
+      assert(file_idx < static_cast<int64_t>(m_file_batches.size()));
       auto& curr_file_batch = m_file_batches[file_idx];
       curr_file_batch.m_num_callsets = num_callsets;
       m_total_num_callsets += num_callsets;

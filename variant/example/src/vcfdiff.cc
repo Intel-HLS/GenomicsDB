@@ -332,7 +332,6 @@ bool VCFDiffFile::compare_unequal_vector(const bcf_hdr_t* gold_hdr, const bcf1_t
   if((length_descriptor == BCF_VL_G || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_A)
     && (num_test_elements != num_gold_elements || m_diff_alleles_flag))
     return true;
-  auto diff_values = false;
   for(auto j=0;j<num_samples;++j)
   {
     int lut_test_sample_idx = (bcf_field_type == BCF_HL_INFO) ? 0 : m_samples_lut.get_test_idx_for_gold(0, j);
@@ -820,7 +819,7 @@ void setup_samples_lut(const std::string& test_to_gold_callset_map_file, VCFDiff
   VERIFY_OR_THROW(num_samples_found == g_num_callsets && "Test-to-gold callset mapping file does not have mapping for all samples");
 }
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 #ifdef HTSDIR
   //Initialize MPI environment
@@ -881,7 +880,6 @@ main(int argc, char** argv)
   //Loader input json - compare partitions created by vcf2tiledb
   VidMapper* vid_mapper = 0;
   JSONConfigBase json_config_base;
-  int64_t column_partition_begin = -1ll;
   if(use_loader_json_file)
   {
     construct_regions_for_partitions(loader_json_filename, vid_mapper, json_config_base, my_world_mpi_rank,

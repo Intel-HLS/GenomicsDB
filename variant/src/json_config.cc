@@ -329,7 +329,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
       //Could be array - one for each process
       if(v.IsArray())
       {
-        VERIFY_OR_THROW(rank < v.Size());
+        VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
         VERIFY_OR_THROW(v[rank].IsString());
         callset_mapping_file = v[rank].GetString();
       }
@@ -343,7 +343,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
     //Could be array - one for each process
     if(v.IsArray())
     {
-      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
       vid_mapping_file = v[rank].GetString();
     }
@@ -508,7 +508,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     //vcf_header_filename could be an array, one vcf_header_filename location for every rank
     if(v.IsArray())
     {
-      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
       m_vcf_header_filename = v[rank].GetString();
     }
@@ -525,7 +525,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     //vcf_output_filename could be an array, one vcf_output_filename location for every rank
     if(v.IsArray())
     {
-      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
       m_vcf_output_filename = v[rank].GetString();
     }
@@ -543,7 +543,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     //column_partitions_array is an array of the form [ { "begin" : <value> }, {"begin":<value>} ]
     auto& column_partitions_array = m_json["column_partitions"];
     VERIFY_OR_THROW(column_partitions_array.IsArray());
-    if(rank < column_partitions_array.Size())
+    if(rank < static_cast<int>(column_partitions_array.Size()))
     {
       // {"begin": x}
       auto& curr_partition_info_dict = column_partitions_array[static_cast<rapidjson::SizeType>(rank)];
@@ -563,7 +563,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     //reference_genome could be an array, one reference_genome location for every rank
     if(v.IsArray())
     {
-      VERIFY_OR_THROW(rank < v.Size());
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
       m_reference_genome = v[rank].GetString();
     }

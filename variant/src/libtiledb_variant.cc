@@ -50,7 +50,6 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
-    StorageManager *sm = f.getStorageManager(workspace);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
@@ -68,7 +67,6 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
-    StorageManager *sm = f.getStorageManager(workspace);
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
@@ -159,10 +157,12 @@ extern "C" void test_C_pointers(Variant& variant)
                         break;
                 }
                 if(allocated)
+                {
                   if(size > 1)
                     delete[] ptr;
                   else
                     delete ptr;
+                }
             }
         }
     }

@@ -7,7 +7,7 @@ OS := $(shell uname)
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-CFLAGS=
+CFLAGS=-Wreturn-type #-Wsign-compare
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)

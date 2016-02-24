@@ -253,7 +253,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_deletions(variant, query_config);
   GA4GHOperator::operate(variant, query_config);
   //Moved to new contig
-  if(m_remapped_variant.get_column_begin() >= m_next_contig_begin_position)
+  if(static_cast<int64_t>(m_remapped_variant.get_column_begin()) >= m_next_contig_begin_position)
   {
     std::string contig_name;
     int64_t contig_position;
@@ -313,7 +313,7 @@ void BroadCombinedGVCFOperator::switch_contig()
   m_curr_contig_name = std::move(m_next_contig_name);
   m_curr_contig_begin_position = m_next_contig_begin_position;
   m_curr_contig_hdr_idx = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_CTG, m_curr_contig_name.c_str());
-  auto next_contig_flag = m_vid_mapper->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
+  m_vid_mapper->get_next_contig_location(m_next_contig_begin_position, m_next_contig_name, m_next_contig_begin_position);
 }
 
 //Modifies original Variant object

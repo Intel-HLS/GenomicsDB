@@ -403,7 +403,6 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
 {
   assert(query_config.is_bookkeeping_done());
   fptr << "{\n";
-  bool first = true;
   std::string indent = "    ";
   //Row idxs
   {
@@ -498,7 +497,6 @@ void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_co
   if(query_row_idx_in_order.size() == 0u)
     return;
   uint64_t last_column_idx = paging_info ? paging_info->get_last_column() : 0u;
-  uint64_t last_row_idx = 0u;
   auto num_last_column_variants_handled_after_curr_page = 0u;
   bool stop_inserting_new_variants = false;
   //Reverse order as gt_get_column uses reverse iterators
@@ -516,7 +514,6 @@ void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_co
         stop_inserting_new_variants); 
     //If paging, complex logic for checking page end 
     PAGE_END_CHECK_LOGIC 
-    last_row_idx = curr_row_idx;
     last_column_idx = curr_column_idx;
   }
 }

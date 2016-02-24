@@ -97,6 +97,7 @@ class UniformHistogram : public Histogram
   public:
     //[lo, hi)
     UniformHistogram(uint64_t lo, uint64_t hi, unsigned num_intervals);
+    virtual ~UniformHistogram() = default;
     unsigned get_bin_idx_for_value(uint64_t value) const 
     {
       unsigned bin_idx = (value - m_lo)/m_size_of_bin;

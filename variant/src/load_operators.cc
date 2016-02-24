@@ -4,7 +4,7 @@
 #define VERIFY_OR_THROW(X) if(!(X)) throw LoadOperatorException(#X);
 
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
-  : LoaderOperatorBase(), m_schema(0), m_storage_manager(0), m_array_descriptor(-1)
+  : LoaderOperatorBase(), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
 {
   //Parse json configuration
   rapidjson::Document json_doc;
@@ -46,7 +46,7 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
     bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
-  : LoaderOperatorBase(), m_operator(0), m_query_processor(0), m_schema(0)
+  : LoaderOperatorBase(), m_schema(0), m_query_processor(0), m_operator(0)
 {
   clear();
   //Parse json configuration

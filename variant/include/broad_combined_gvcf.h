@@ -30,7 +30,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
 {
   public:
     BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config);
-    ~BroadCombinedGVCFOperator()
+    virtual ~BroadCombinedGVCFOperator()
     {
       bcf_destroy(m_bcf_out);
       clear();

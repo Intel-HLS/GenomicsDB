@@ -453,7 +453,6 @@ void VCF2Binary::read_next_batch(std::vector<uint8_t>& buffer, VCFColumnPartitio
   //Open file handles if needed
   if(m_parallel_partitions && m_close_file)
     vcf_partition.m_reader->add_reader();
-  auto* hdr = vcf_partition.m_reader->get_header();
   //Setup buffer offsets first 
   for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
   {
@@ -598,6 +597,7 @@ bool VCF2Binary::seek_and_fetch_position(VCFColumnPartition& vcf_partition, bool
       }
     }
   }
+  return false;
 }
 
 #ifdef PRODUCE_BINARY_CELLS
@@ -631,7 +631,7 @@ inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_
 template<>
 inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, char* val, bool print_sep)
 {
-  tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
+  return tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
 }
 
 //specialization for std::string type
@@ -650,7 +650,7 @@ inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_
 template<>
 inline bool VCF2Binary::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, std::string& val, bool print_sep)
 {
-  tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
+  return tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
 }
 
 template<class FieldType>
@@ -720,7 +720,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     if(length_descriptor != BCF_VL_FIXED)
       buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0);
     else        //fixed length field - fill with NULL values
-      for(auto i=0;i<field_length;++i)
+      for(auto i=0u;i<field_length;++i)
       {
         buffer_full = buffer_full || tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer_offset_limit);
         if(buffer_full) return true;
@@ -770,22 +770,16 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[enabled_callsets_idx];
   const int64_t line_begin_buffer_offset = vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[enabled_callsets_idx];
   int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[enabled_callsets_idx];
-  assert(line_begin_buffer_offset >= begin_buffer_offset && line_begin_buffer_offset <= begin_buffer_offset + size_per_callset);
-  assert(buffer_offset >= begin_buffer_offset && buffer_offset <= begin_buffer_offset + size_per_callset);
+  assert(line_begin_buffer_offset >= begin_buffer_offset && line_begin_buffer_offset <= static_cast<int64_t>(begin_buffer_offset + size_per_callset));
+  assert(buffer_offset >= begin_buffer_offset && buffer_offset <= static_cast<int64_t>(begin_buffer_offset + size_per_callset));
   assert(buffer_offset >= line_begin_buffer_offset);
   const int64_t buffer_offset_limit = begin_buffer_offset + size_per_callset;
   bool buffer_full = false;
-  auto curr_cell_begin_offset = buffer_offset;
   //Row
   int64_t row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
   if(row_idx < 0) return false;
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, row_idx, false);
   if(buffer_full) return true;
-//#ifdef PRODUCE_CSV_CELLS
-  ////For CSV cells, no comma at the beginning of the cell - shift left and reduce offset
-  //memmove(&(buffer[curr_cell_begin_offset]), &(buffer[curr_cell_begin_offset+sizeof(char)]), buffer_offset-curr_cell_begin_offset-sizeof(char));
-  //buffer_offset -= sizeof(char);
-//#endif
   //Column
   int64_t column_idx = vcf_partition.m_contig_tiledb_column_offset + line->pos;
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, column_idx);
@@ -860,7 +854,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   if(buffer_full) return true;
   for(auto i=0;i<line->d.n_flt;++i)
   {
-    assert(line->d.flt[i] < m_local_field_idx_to_global_field_idx.size());
+    assert(line->d.flt[i] < static_cast<int64_t>(m_local_field_idx_to_global_field_idx.size()));
     buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
         m_local_field_idx_to_global_field_idx[line->d.flt[i]]);
     if(buffer_full) return true;
@@ -935,7 +929,7 @@ void VCF2Binary::create_histogram_for_vcf(uint64_t max_histogram_range, unsigned
     {
       auto line = m_reader->get_line();
       int64_t column_idx = vcf_partition.m_contig_tiledb_column_offset + line->pos;
-      for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+      for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
         m_histogram->add_interval(column_idx, column_idx);
       has_data = seek_and_fetch_position(vcf_partition, false, true);
     }

@@ -33,6 +33,7 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
     auto allele_j = alt_alleles_only ?  j+1u : j;
     auto input_j_allele = alleles_LUT.get_input_idx_for_merged(input_call_idx, allele_j);
     if (CombineAllelesLUT::is_missing_value(input_j_allele))	//no mapping found for current allele in input gvcf
+    {
       if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
       {
         *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = (missing_value);
@@ -40,6 +41,7 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
       }
       else //input contains NON_REF allele, use its idx
         input_j_allele = input_non_reference_allele_idx;
+    }
     assert(!alt_alleles_only || input_j_allele > 0u);   //if only ALT alleles are used, then input_j_allele must be non-0
     auto input_j = alt_alleles_only ? input_j_allele-1u : input_j_allele;
     *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = 
@@ -146,7 +148,6 @@ bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, con
   for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
   {
     auto& curr_call = *iter;
-    auto call_idx = iter.get_call_idx_in_variant();
     auto& field_ptr = curr_call.get_field(query_idx);
     //Valid field
     if(field_ptr.get() && field_ptr->is_valid())
@@ -177,7 +178,6 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
   for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
   {
     auto& curr_call = *iter;
-    auto call_idx = iter.get_call_idx_in_variant();
     auto& field_ptr = curr_call.get_field(query_idx);
     //Valid field
     if(field_ptr.get() && field_ptr->is_valid())
@@ -207,7 +207,6 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
   for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
   {
     auto& curr_call = *iter;
-    auto call_idx = iter.get_call_idx_in_variant();
     auto& field_ptr = curr_call.get_field(query_idx);
     //Valid field
     if(field_ptr.get() && field_ptr->is_valid())
