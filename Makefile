@@ -12,7 +12,7 @@ CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)
-LDFLAGS=-lz
+LDFLAGS=-lz -lrt
 
 ifdef OPENMP
   CFLAGS+=-fopenmp
