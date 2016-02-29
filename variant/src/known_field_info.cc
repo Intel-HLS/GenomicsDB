@@ -27,7 +27,9 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "AN",
     "AC",
     "GT",
-    "PS"
+    "PS",
+    "PGT",
+    "PID"
 };
 //Known field name to enum
 std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
@@ -169,6 +171,10 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
     case GVCF_SB_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
       g_known_field_enum_to_info[idx].m_num_elements = 4u;
+      break;
+    case GVCF_PGT_IDX:
+    case GVCF_PID_IDX:
+      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
       break;
     default:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;

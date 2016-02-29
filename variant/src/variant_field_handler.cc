@@ -211,11 +211,7 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
     //Valid field
     if(field_ptr.get() && field_ptr->is_valid())
     {
-      //Must always be vector<DataType>
-      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
-      assert(ptr); 
-      assert((ptr->get()).size() > 0u);
-      max_elements_per_call = std::max<unsigned>(max_elements_per_call, (ptr->get()).size());
+      max_elements_per_call = std::max<unsigned>(max_elements_per_call, field_ptr->length());
       ++valid_idx;
     }
   }
@@ -235,13 +231,9 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
     //Valid field in a valid call
     if(curr_call.is_valid() && field_ptr.get() && field_ptr->is_valid())
     {
-      //Must always be vector<DataType>
-      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
-      assert(ptr); 
-      const std::vector<DataType>& curr_data = ptr->get();
-      assert(curr_data.size() > 0u);
-      memcpy(&(m_extended_field_vector[extended_field_vector_idx]), &(curr_data[0]), curr_data.size()*sizeof(DataType));
-      num_elements_inserted = curr_data.size();
+      assert(field_ptr->get_raw_pointer());
+      memcpy(&(m_extended_field_vector[extended_field_vector_idx]), field_ptr->get_raw_pointer(), field_ptr->length()*sizeof(DataType));
+      num_elements_inserted = field_ptr->length();
       extended_field_vector_idx += num_elements_inserted;
     }
     if(num_elements_inserted == 0u) //no elements inserted, insert missing value first
