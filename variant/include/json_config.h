@@ -61,11 +61,14 @@ class JSONConfigBase
     std::vector<RowRange> m_sorted_row_partitions;
 };
 
+class JSONLoaderConfig;
+
 class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
     JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
+    void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
 };
 
 class JSONLoaderConfig : public JSONConfigBase

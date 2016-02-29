@@ -70,6 +70,9 @@ void JSONConfigBase::read_from_file(const std::string& filename)
     m_scan_whole_array = true;
   else
   {
+    VERIFY_OR_THROW((m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions") ||
+      m_json.HasMember("query_row_ranges") || m_json.HasMember("row_partitions")) &&
+      "Must have one of \"query_column_ranges\" or \"column_partitions\" or \"query_row_ranges\" or \"row_partitions\"");
     VERIFY_OR_THROW((!m_json.HasMember("query_column_ranges") || !m_json.HasMember("column_partitions")) &&
         "Cannot use both \"query_column_ranges\" and \"column_partitions\" simultaneously");
     //Query columns
@@ -112,7 +115,7 @@ void JSONConfigBase::read_from_file(const std::string& filename)
         }
       }
     }
-    else        //Must have column_partitions
+    else if (m_json.HasMember("column_partitions"))
     {
       m_column_partitions_specified = true;
       //column_partitions_array itself is an array of the form [ { "begin" : <value> }, { "begin":<value>} ]
@@ -358,10 +361,50 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
   return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
-void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank)
+void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, const int rank)
+{
+  if (!loader_config)
+  {
+    return;
+  }
+  // Update workspace if it is not provided in query json
+  if (!m_json.HasMember("workspace"))
+  {
+    // Set as single workspace
+    m_single_workspace_path = true;
+    m_workspaces.push_back(loader_config->get_workspace(rank));
+  }
+  // Update array if it is not provided in query json
+  if (!m_json.HasMember("array"))
+  {
+    // Set as single array
+    m_single_array_name = true;
+    m_array_names.push_back(loader_config->get_array_name(rank));
+  }
+  // Check if the partitioning is column-based, if so, pick the column corresponding to the rank
+  // and update the m_column_ranges when the query is of type m_single_query_column_ranges_vector
+  if (loader_config->is_partitioned_by_column() && m_single_query_column_ranges_vector)
+  {
+    ColumnRange my_rank_loader_column_range = loader_config->get_column_partition(rank);
+    std::vector<ColumnRange> my_rank_queried_columns;
+    for(auto queried_column : m_column_ranges[0])
+    {
+      if (queried_column.first >= my_rank_loader_column_range.first &&
+          queried_column.first < my_rank_loader_column_range.second)
+      {
+        my_rank_queried_columns.emplace_back(queried_column);
+      }
+    }
+    m_column_ranges[0] = std::move(my_rank_queried_columns);
+  }
+}
+
+void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
 
   JSONConfigBase::read_from_file(filename);
+  // Update from loader_config_file
+  update_from_loader(loader_config, rank);
   //Workspace
   VERIFY_OR_THROW(m_workspaces.size() && "No workspace specified");
   VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
