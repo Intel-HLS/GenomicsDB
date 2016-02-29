@@ -468,7 +468,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         auto idx_in_file = 0ll;
         if(callset_info_dict.HasMember("idx_in_file"))
           idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
-        assert(file_idx < m_file_idx_to_info.size());
+        assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
         m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
       }
       m_callset_name_to_row_idx[callset_name] = row_idx;

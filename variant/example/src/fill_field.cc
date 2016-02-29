@@ -1,6 +1,6 @@
 #include "query_variants.h"
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
   if(argc < 4)
     assert(0 && "Needs 3 args <workspace> <array_name> <position> [<end>]");

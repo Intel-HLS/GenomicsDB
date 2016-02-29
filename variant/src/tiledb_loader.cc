@@ -246,7 +246,7 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     auto status = (m_standalone_converter_process || m_row_based_partitioning)
       ? m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx)
       : m_vid_mapper->get_global_file_idx_for_row(row_idx, local_file_idx);
-    assert(local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
+    assert(status && local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
     //Activate file - enable fetch flag and reserve entry in circular buffer
     m_partition_batch[partition_idx].activate_file(local_file_idx);
   }
@@ -572,7 +572,7 @@ bool VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& o
 
 bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
 {
-  assert(row_idx >= 0 && row_idx < m_vid_mapper->get_num_callsets());
+  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper->get_num_callsets()));
   auto order = get_order_for_row_idx(row_idx);
   assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
   auto& buffer_control = m_order_idx_to_buffer_control[order];
@@ -597,7 +597,7 @@ bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
 
 bool VCF2TileDBLoader::read_next_cell_from_buffer(const int64_t row_idx)
 {
-  assert(row_idx >= 0 && row_idx < m_vid_mapper->get_num_callsets());
+  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper->get_num_callsets()));
   auto order = get_order_for_row_idx(row_idx);
   assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
   //curr position is valid

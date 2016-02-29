@@ -187,6 +187,7 @@ bool Tile::is_del(int64_t pos) {
     const double* v = static_cast<const double*>(cell);
     return (*v  == DEL_DOUBLE);
   }
+  return false; //should never come here
 }
 
 bool Tile::is_null(int64_t pos) {
@@ -218,6 +219,7 @@ bool Tile::is_null(int64_t pos) {
     const double* v = static_cast<const double*>(cell);
     return (*v  == NULL_DOUBLE);
   }
+  return false; //should never come here
 }
 
 Tile::MBR Tile::mbr() const {

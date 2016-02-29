@@ -477,7 +477,7 @@ std::pair<const char*, size_t> ArraySchema::serialize() const {
     offset += sizeof(double);
   }
   // Copy types_
-  char type; 
+  char type = 0;
   for(int i=0; i<=attribute_num_; i++) {
     if(*types_[i] == typeid(char))
       type = CHAR;
@@ -1188,7 +1188,7 @@ int ArraySchema::deserialize_csv(std::string array_schema_str) {
                 << " The capacity must be a positive integer.\n";
       return -1;
     }
-    sscanf(s.c_str(), "%lld", &capacity); 
+    sscanf(s.c_str(), "%lld", reinterpret_cast<long long int*>(&capacity));
   } else {
     capacity = AS_CAPACITY;
   }
@@ -1629,6 +1629,7 @@ bool ArraySchema::advance_coords(T* coords, const T* range) const {
                  " not supported yet.\n";
     exit(-1);
   }
+  return false;
 }
 
 int64_t ArraySchema::cell_id_hilbert(const void* coords) const {
@@ -1639,7 +1640,8 @@ int64_t ArraySchema::cell_id_hilbert(const void* coords) const {
   else if(*(types_[attribute_num_]) == typeid(float))
     return cell_id_hilbert(static_cast<const float*>(coords));  
   else if(*(types_[attribute_num_]) == typeid(double))
-    return cell_id_hilbert(static_cast<const double*>(coords));  
+    return cell_id_hilbert(static_cast<const double*>(coords));
+  return -1;    //should never reach here
 }
 
 template<typename T>
@@ -2088,6 +2090,7 @@ bool ArraySchema::precedes(const void* coords_A,
   } else {
     assert(0); // The code must never reach this point
   }
+  return false;
 }
 
 template<class T>
@@ -2136,6 +2139,7 @@ bool ArraySchema::precedes(const T* coords_A,
   } else { // it should never reach this point
     assert(0);
   }
+  return false;
 }
 
 void ArraySchema::print() const {
@@ -2259,6 +2263,7 @@ bool ArraySchema::succeeds(const void* coords_A,
   } else {
     assert(0); // The code must never reach this point
   }
+  return false;
 }
 
 template<class T>
@@ -2307,6 +2312,7 @@ bool ArraySchema::succeeds(const T* coords_A,
   } else { // it should never reach this point
     assert(0);
   }
+  return false;
 }
 
 int64_t ArraySchema::tile_id(const void* coords) const {
@@ -2320,6 +2326,7 @@ int64_t ArraySchema::tile_id(const void* coords) const {
     return tile_id(static_cast<const float*>(coords)); 
   else if(type == &typeid(double))
     return tile_id(static_cast<const double*>(coords)); 
+  return -1;    //should never reach here
 }
 
 template<class T>
@@ -2333,6 +2340,7 @@ int64_t ArraySchema::tile_id(const T* coords) const {
     return tile_id_column_major<T>(coords);
   else if(tile_order_ == ArraySchema::TO_HILBERT)
     return tile_id_hilbert<T>(coords);
+  return -1;    //should never reach here
 }
 
 int64_t ArraySchema::tile_id_column_major(const void* coords) const {
@@ -2344,6 +2352,7 @@ int64_t ArraySchema::tile_id_column_major(const void* coords) const {
     return tile_id_column_major(static_cast<const float*>(coords));  
   else if(*(types_[attribute_num_]) == typeid(double))
     return tile_id_column_major(static_cast<const double*>(coords));  
+  return -1;    //should never reach here
 }
 
 template<typename T>
@@ -2369,6 +2378,7 @@ int64_t ArraySchema::tile_id_hilbert(const void* coords) const {
     return tile_id_hilbert(static_cast<const float*>(coords));  
   else if(*(types_[attribute_num_]) == typeid(double))
     return tile_id_hilbert(static_cast<const double*>(coords));  
+  return -1;    //should never reach here
 }
 
 template<typename T>
@@ -2393,6 +2403,7 @@ int64_t ArraySchema::tile_id_row_major(const void* coords) const {
     return tile_id_row_major(static_cast<const float*>(coords));  
   else if(*(types_[attribute_num_]) == typeid(double))
     return tile_id_row_major(static_cast<const double*>(coords));  
+  return -1;    //should never reach here
 }
 
 template<typename T>
@@ -2671,7 +2682,7 @@ size_t ArraySchema::compute_cell_size(int i) const {
     return VAR_SIZE;
 
   // Fixed-sized cell
-  size_t size;
+  size_t size = 0;
   
   // Attributes
   if(i < attribute_num_) {
@@ -2777,6 +2788,7 @@ size_t ArraySchema::compute_type_size(int i) const {
     return sizeof(float);
   else if(types_[i] == &typeid(double))
     return sizeof(double);
+  return -1;    //should never reach here
 }
 
 std::pair<ArraySchema::AttributeIds, ArraySchema::AttributeIds>

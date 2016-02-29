@@ -163,7 +163,7 @@ void CSVLine::operator<<(char value) {
 template<>
 void CSVLine::operator<<(size_t value) {
   char s[CSV_MAX_DIGITS];
-  sprintf(s, "%u", value); 
+  sprintf(s, "%zu", value);
   append(s, ::strlen(s) + 1);
 }
 
@@ -177,7 +177,7 @@ void CSVLine::operator<<(int value) {
 template<>
 void CSVLine::operator<<(int64_t value) {
   char s[CSV_MAX_DIGITS];
-  sprintf(s, "%lld", value); 
+  sprintf(s, "%lld", static_cast<long long int>(value));
   append(s, ::strlen(s) + 1);
 }
 
@@ -259,7 +259,7 @@ bool CSVLine::operator>>(size_t& value) {
     else if(*value_ == DEL_VALUE) // Value deleted
       value = DEL_SIZE_T;
     else 
-      sscanf(value_, "%u", &value);
+      sscanf(value_, "%zu", &value);
 
     ++pos_;
     return true;
@@ -278,7 +278,7 @@ bool CSVLine::operator>>(int64_t& value) {
     else if(*value_ == DEL_VALUE) // Value deleted
       value = DEL_INT64_T;
     else 
-      sscanf(value_, "%lld", &value);
+      sscanf(value_, "%lld", reinterpret_cast<long long int*>(&value));
 
     ++pos_;
     return true;

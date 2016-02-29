@@ -211,7 +211,7 @@ void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::ve
     const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx)
 {
   assert(input_GT.size() == output_GT.size());
-  for(auto i=0;i<input_GT.size();++i)
+  for(auto i=0u;i<input_GT.size();++i)
   {
     if(is_tiledb_missing_value<int>(input_GT[i]))
       output_GT[i] = input_GT[i];
@@ -406,7 +406,6 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   m_remapped_variant.deep_copy_simple_members(variant);
   //Setup code for re-ordering PL/AD etc field elements in m_remapped_variant
   unsigned num_merged_alleles = m_merged_alt_alleles.size()+1u;        //+1 for REF allele
-  unsigned num_genotypes = (num_merged_alleles*(num_merged_alleles+1u))/2u;
   //Known fields that need to be re-mapped
   for(auto query_field_idx : m_remapped_fields_query_idxs)
   {
@@ -565,6 +564,7 @@ bool ColumnHistogramOperator::equi_partition_and_print_bins(uint64_t num_bins, s
     i = j;
   }
   fptr << "\n";
+  return true;
 }
 
 void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)

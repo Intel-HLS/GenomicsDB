@@ -340,7 +340,7 @@ bool CSVFile::read_segment() {
   }
 
   // Read the new lines
-  size_t bytes_read;
+  size_t bytes_read = 0;
   if(compression_ == NO_COMPRESSION) 
     bytes_read = read(fd_, buffer_+bytes_to_copy, bytes_to_be_read);
   else if(compression_ == GZIP)

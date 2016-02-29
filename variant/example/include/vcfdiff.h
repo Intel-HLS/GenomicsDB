@@ -56,12 +56,12 @@ class VCFDiffFile
     int64_t m_num_lines_read;
     bcf_hdr_t* m_hdr;
     bcf1_t* m_line;
-    std::set<std::string> m_contigs;
-    std::set<std::string> m_fields;
     std::set<std::string> m_samples;
-    GoldLUT m_contigs_lut;
-    GoldLUT m_fields_lut;
+    std::set<std::string> m_fields;
+    std::set<std::string> m_contigs;
     GoldLUT m_samples_lut;
+    GoldLUT m_fields_lut;
+    GoldLUT m_contigs_lut;
     //Fields in the line
     std::vector<int> m_fields_in_gold_line;
     std::vector<int> m_fields_in_test_line;

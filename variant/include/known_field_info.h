@@ -32,6 +32,8 @@ enum KnownVariantFieldsEnum
   GVCF_AC_IDX,
   GVCF_GT_IDX,
   GVCF_PS_IDX,
+  GVCF_PGT_IDX,
+  GVCF_PID_IDX,
   GVCF_NUM_KNOWN_FIELDS
 };
 

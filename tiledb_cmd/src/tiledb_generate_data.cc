@@ -221,7 +221,7 @@ int parse_options(
               << " The number of cells must be a non-negative integer.\n";
     return -1;
   } else {
-    sscanf(cell_num_str.c_str(), "%lld", &cell_num); 
+    sscanf(cell_num_str.c_str(), "%lld", reinterpret_cast<long long int*>(&cell_num));
   }
 
   // Get seed  

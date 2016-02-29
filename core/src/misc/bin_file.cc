@@ -333,6 +333,7 @@ bool BINFile::operator>>(Cell& cell) {
 
 bool BINFile::operator<<(const Cell& cell) {
   write(cell.cell(), cell.cell_size());
+  return true;  //do not know whether this is correct
 }
 
 /******************************************************
@@ -342,7 +343,7 @@ bool BINFile::operator<<(const Cell& cell) {
 ssize_t BINFile::flush_buffer() {
   assert(fd_ != -1 || fdz_ != NULL);
 
-  ssize_t bytes_written;
+  ssize_t bytes_written = 0;
   if(compression_ == NO_COMPRESSION) 
     bytes_written = ::write(fd_, buffer_, buffer_offset_);
   else if(compression_ == GZIP)  
@@ -396,7 +397,7 @@ ssize_t BINFile::read_segment() {
     buffer_ = new char[segment_size_];
 
   // Read the new lines
-  size_t bytes_read;
+  size_t bytes_read = 0;
   if(compression_ == NO_COMPRESSION) 
     bytes_read = ::read(fd_, buffer_, segment_size_);
   else if(compression_ == GZIP)

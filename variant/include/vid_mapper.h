@@ -173,7 +173,7 @@ class VidMapper
      */
     bool get_global_file_idx_for_row(int64_t row_idx, int64_t& file_idx) const
     {
-      if(row_idx >= m_row_idx_to_info.size())
+      if(row_idx >= static_cast<int64_t>(m_row_idx_to_info.size()))
         return false;
       file_idx = m_row_idx_to_info[row_idx].m_file_idx;
       return (file_idx < 0) ? false : true;
@@ -216,7 +216,7 @@ class VidMapper
       if(iter != m_filename_to_idx.end())
       {
         auto file_idx = (*iter).second;
-        assert(file_idx < m_file_idx_to_info.size());
+        assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
         for(const auto& pair : m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs)
         {
           assert(static_cast<size_t>(pair.first) < row_idx_vec.size());
@@ -236,7 +236,7 @@ class VidMapper
      */
     bool get_local_tiledb_row_idx_vec(const int64_t file_idx, std::vector<int64_t>& row_idx_vec) const
     {
-      assert(file_idx < m_file_idx_to_info.size());
+      assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
       for(const auto& pair : m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs)
       {
         assert(static_cast<size_t>(pair.first) < row_idx_vec.size());
@@ -258,7 +258,7 @@ class VidMapper
       else
       {
         auto file_idx = (*iter).second;
-        assert(file_idx < m_file_idx_to_info.size());
+        assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
         num_callsets = m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs.size();
         return true;
       }
@@ -373,20 +373,6 @@ class VidMapper
       info = get_contig_info((*iter).second);
       return true;
     }
-    /*
-     * Add a contig.
-     * If column_offset==-1, produce the correct column offset.
-     * Else, use the provided value
-     * Returns contig offset.
-     */
-    int64_t add_contig(const std::string& contig_name, const int64_t length, const int64_t column_offset=-1) { ; }
-    /*
-     * Add a callset.
-     * If row_idx==-1, produce the correct row_idx
-     * Else, use the provided value
-     * Returns row idx.
-     */
-    int64_t add_callset(const std::string& callset_name, const int64_t row_idx=-1) { ; }
   protected:
     //Is initialized
     bool m_is_initialized;

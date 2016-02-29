@@ -146,10 +146,10 @@ class VariantQueryConfig : public QueryConfig
      */
     inline uint64_t get_query_row_idx_for_array_row_idx(int64_t row_idx) const
     {
-      assert(row_idx >= m_smallest_row_idx && (row_idx-m_smallest_row_idx) < get_num_rows_in_array());
+      assert(row_idx >= m_smallest_row_idx && (row_idx-m_smallest_row_idx) < static_cast<int64_t>(get_num_rows_in_array()));
       if(m_query_all_rows)
         return row_idx - m_smallest_row_idx;
-      assert((row_idx-m_smallest_row_idx) < m_array_row_idx_to_query_row_idx.size());
+      assert((row_idx-m_smallest_row_idx) < static_cast<int64_t>(m_array_row_idx_to_query_row_idx.size()));
       return m_array_row_idx_to_query_row_idx[row_idx-m_smallest_row_idx];
     }
     /*

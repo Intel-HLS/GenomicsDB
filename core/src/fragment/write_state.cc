@@ -316,7 +316,7 @@ void WriteState::write_cell_sorted(const void* cell) {
   size_t coords_size = array_schema_->cell_size(attribute_num);
   bool regular = array_schema_->has_regular_tiles();
   const char* c_cell = static_cast<const char*>(cell);
-  int64_t tile_id;
+  int64_t tile_id = -1;
   size_t cell_offset, attr_size;
   int64_t capacity; // only for irregular tiles
   std::vector<size_t> attr_sizes;

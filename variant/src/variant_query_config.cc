@@ -39,7 +39,7 @@ void VariantQueryConfig::invalidate_array_row_idx_to_query_row_idx_map(bool all_
     for(auto i=0ull;i<get_num_rows_to_query();++i)
     {
       assert(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx
-          && (get_array_row_idx_for_query_row_idx(i)-m_smallest_row_idx) < m_array_row_idx_to_query_row_idx.size());
+          && (get_array_row_idx_for_query_row_idx(i)-m_smallest_row_idx) < static_cast<int64_t>(m_array_row_idx_to_query_row_idx.size()));
       m_array_row_idx_to_query_row_idx[get_array_row_idx_for_query_row_idx(i)-m_smallest_row_idx] = UNDEFINED_NUM_ROWS_VALUE;
     }
 }
@@ -58,7 +58,7 @@ void VariantQueryConfig::setup_array_row_idx_to_query_row_idx_map()
   {
     //Within bounds
     if(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx &&
-        get_array_row_idx_for_query_row_idx(i) < get_num_rows_in_array()+m_smallest_row_idx)
+        get_array_row_idx_for_query_row_idx(i) < static_cast<int64_t>(get_num_rows_in_array()+m_smallest_row_idx))
     {
       m_array_row_idx_to_query_row_idx[m_query_rows[i]-m_smallest_row_idx] = valid_rows_idx;
       tmp_vector[valid_rows_idx++] = m_query_rows[i];
@@ -91,7 +91,7 @@ void VariantQueryConfig::update_rows_to_query(const std::vector<int64_t>& rows)
   {
     //Within bounds
     if(get_array_row_idx_for_query_row_idx(i) >= m_smallest_row_idx &&
-        get_array_row_idx_for_query_row_idx(i) < get_num_rows_in_array()+m_smallest_row_idx)
+        get_array_row_idx_for_query_row_idx(i) < static_cast<int64_t>(get_num_rows_in_array()+m_smallest_row_idx))
     {
       m_array_row_idx_to_query_row_idx[m_query_rows[i]-m_smallest_row_idx] = valid_rows_idx;
       tmp_vector[valid_rows_idx++] = m_query_rows[i];

@@ -33,7 +33,7 @@ class QueryConfig
     inline bool is_schema_idx_defined_for_query_idx(unsigned idx) const
     {
       assert(idx < m_query_attributes_schema_idxs.size());
-      return (m_query_attributes_schema_idxs[idx] != UNDEFINED_ATTRIBUTE_IDX_VALUE);
+      return (m_query_attributes_schema_idxs[idx] != static_cast<int>(UNDEFINED_ATTRIBUTE_IDX_VALUE));
     }
     /**
      * Set TileDB array schema attribute idx (schemaIdx) for the queried attribute idx
