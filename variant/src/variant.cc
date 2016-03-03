@@ -399,105 +399,14 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config) 
   fptr << " }\n";
 }
 
-void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config)
-{
-  assert(query_config.is_bookkeeping_done());
-  fptr << "{\n";
-  std::string indent = "    ";
-  //Row idxs
-  {
-    auto first_valid = true;
-    fptr << indent + "\"indices\" : [ ";
-    for(const auto& variant : variants)
-    {
-      for(const auto& call : variant)
-      {
-        if(!first_valid)
-          fptr << "," << call.get_row_idx();
-        else
-        {
-          fptr << call.get_row_idx();
-          first_valid = false;
-        }
-      }
-    }
-    fptr << " ],\n";
-  }
-  //Start
-  {
-    auto first_valid = true;
-    fptr << indent + "\"start\" : [ ";
-    for(const auto& variant : variants)
-    {
-      for(const auto& call : variant)
-      {
-        if(!first_valid)
-          fptr << "," << call.get_column_begin();
-        else
-        {
-          fptr << call.get_column_begin();
-          first_valid = false;
-        }
-      }
-    }
-    fptr << " ],\n";
-  }
-  //END
-  {
-    auto first_valid = true;
-    fptr << indent + "\"end\" : [ ";
-    for(const auto& variant : variants)
-    {
-      for(const auto& call : variant)
-      {
-        if(!first_valid)
-          fptr << "," << call.get_column_end();
-        else
-        {
-          fptr << call.get_column_end();
-          first_valid = false;
-        }
-      }
-    }
-    fptr << " ],\n";
-  }
-  //other attributes, start from 1 as the first queried attribute is always END
-  for(auto i=1u;i<query_config.get_num_queried_attributes();++i)
-  {
-    auto first_valid = true;
-    fptr << indent + "\"" + query_config.get_query_attribute_name(i) + "\" : [ ";
-    for(const auto& variant : variants)
-    {
-      for(const auto& call : variant)
-      {
-        if(!first_valid)
-        {
-          fptr << ",";
-          call.print_Cotton_JSON(fptr, i);
-        }
-        else
-        {
-          call.print_Cotton_JSON(fptr, i);
-          first_valid = false;
-        }
-      }
-    }
-    fptr << " ]";
-    if(i+1u >= query_config.get_num_queried_attributes())       //last query, no comma
-      fptr << "\n";
-    else
-      fptr << ",\n";
-  }
-  fptr << "}\n";
-}
-
 void print_field(std::ostream& fptr,
                 const std::vector<Variant>& variants,
                 const std::vector<uint64_t>& starts,
                 const std::vector<uint64_t>& ends,
                 const ContigInfo* contig_info,
                 const unsigned& field_type,
-                unsigned attribute_index = 0) {
+                unsigned attribute_index = 0) 
+{
   auto first_valid = true;
   int64_t tile_position;
 
@@ -511,9 +420,7 @@ void print_field(std::ostream& fptr,
         if(!first_valid)
           fptr << ",";
         else
-        {
           first_valid = false;
-        }
         switch(field_type) {
           case INDICES_IDX:
             fptr << call.get_row_idx();
@@ -548,7 +455,8 @@ void print_fields(std::ostream& fptr,
                   const VariantQueryConfig& query_config,
                   const std::vector<uint64_t>& starts,
                   const std::vector<uint64_t>& ends,
-                  const ContigInfo* contig_info) {
+                  const ContigInfo* contig_info) 
+{
   std::string indent = "    ";
   fptr << indent + "\"indices\" : [ ";
   print_field(fptr, variants, starts, ends, contig_info, INDICES_IDX);
@@ -575,6 +483,31 @@ void print_fields(std::ostream& fptr,
   }
 }
 
+void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config, const VidMapper* id_mapper)
+{
+  assert(query_config.is_bookkeeping_done());
+  std::string contig_name;
+  int64_t contig_position;
+  ContigInfo contig_info;
+
+  // Currently Cotton-JSON is called only on single position queries
+  if (!id_mapper->get_contig_location(query_config.get_column_begin(0), contig_name, contig_position))
+  {
+    throw VidMapperException("print_and_update_contig_position: Invalid position ");
+  }
+  // Initialize contig_info
+  if (!id_mapper->get_contig_info(contig_name, contig_info))
+  {
+    throw VidMapperException("print_and_update_contig_position: Invalid contig name : " + contig_name );
+  }
+
+  fptr << "{\n";
+  std::vector<uint64_t> starts(1, 0);
+  std::vector<uint64_t> ends(1, variants.size());
+  print_fields(fptr, variants, query_config, starts, ends, &contig_info);
+  fptr << "}\n";
+}
+
 void print_and_update_contig_position(std::ostream& fptr,
                                       const int64_t& query_start,
                                       const int64_t& query_end,
@@ -586,7 +519,7 @@ void print_and_update_contig_position(std::ostream& fptr,
                                       const VidMapper* id_mapper)
 {
   if (!(id_mapper->get_contig_location(query_start, contig_name, start_position) &&
-           id_mapper->get_contig_location(query_start, contig_name, end_position) ))
+           id_mapper->get_contig_location(query_end, contig_name, end_position) ))
   {
     throw VidMapperException("print_and_update_contig_position: Invalid position ");
   }
@@ -938,7 +871,7 @@ void print_variants(const std::vector<Variant>& variants,
   switch(output_format_idx)
   {
     case COTTON_JSON_OUTPUT_FORMAT_IDX:
-      print_Cotton_JSON(optr, variants, query_config);
+      print_Cotton_JSON(optr, variants, query_config, id_mapper);
       break;
     case POSITIONS_JSON_OUTPUT_FORMAT_IDX:
       if (is_partitioned_by_column)

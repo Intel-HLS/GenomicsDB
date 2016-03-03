@@ -747,7 +747,7 @@ enum VaritantPrintTypesEnum
 /*
  * JSON as required by John and Cotton
  */
-void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config);
+void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config, const VidMapper* id_mapper);
 /*
  * Prints variants in requested format
  */
