@@ -727,8 +727,8 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
     field_ptr = std::move(m_field_factory.Create(schema_idx)); 
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   //For known fields, check length descriptors - default FIXED
-  length_descriptor = BCF_VL_FIXED;
-  num_elements = 1u;
+  num_elements = m_array_schema->val_num(schema_idx);
+  length_descriptor = (num_elements == VAR_SIZE) ? BCF_VL_VAR : BCF_VL_FIXED;
   if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
   {
     length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
