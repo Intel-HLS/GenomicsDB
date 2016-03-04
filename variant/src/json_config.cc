@@ -18,7 +18,7 @@ void JSONConfigBase::clear()
   m_sorted_row_partitions.clear();
 }
 
-void JSONConfigBase::read_from_file(const std::string& filename)
+void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper)
 {
   std::ifstream ifs(filename.c_str());
   VERIFY_OR_THROW(ifs.is_open());
@@ -104,11 +104,48 @@ void JSONConfigBase::read_from_file(const std::string& filename)
             m_column_ranges[i][j].first = q3[0u].GetInt64();
             m_column_ranges[i][j].second = q3[1u].GetInt64();
           }
-          else //single position
+          else if (q3.IsInt64()) //single position in Tile DB format
           {
-            VERIFY_OR_THROW(q3.IsInt64());
             m_column_ranges[i][j].first = q3.GetInt64();
             m_column_ranges[i][j].second = q3.GetInt64();
+          }
+          else if (q3.IsString()) // Query is for entire contig
+          {
+            ContigInfo contig_info;
+            std::string contig_name = q3.GetString();
+            assert(id_mapper != 0);
+            if (!id_mapper->get_contig_info(contig_name, contig_info))
+              throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
+            m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset;
+            m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
+          }
+          else // This MUST be a dictionary of the form "contig" : position or "contig" : [start, end]
+          {
+            VERIFY_OR_THROW(q3.IsObject());
+            VERIFY_OR_THROW(q3.MemberCount() == 1);
+            auto itr = q3.MemberBegin();
+            std::string contig_name = itr->name.GetString();
+            ContigInfo contig_info;
+            assert(id_mapper != 0);
+            if (!id_mapper->get_contig_info(contig_name, contig_info))
+              throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
+            const rapidjson::Value& contig_position = itr->value;
+            if (contig_position.IsArray())
+            {
+              VERIFY_OR_THROW(contig_position.Size() == 2);
+              VERIFY_OR_THROW(contig_position[0u].IsInt64());
+              VERIFY_OR_THROW(contig_position[1u].IsInt64());
+              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+              m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset + contig_position[0u].GetInt64() - 1;
+              m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_position[1u].GetInt64() - 1;
+            }
+            else // single position
+            {
+              VERIFY_OR_THROW(contig_position.IsInt64());
+              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+              m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset + contig_position.GetInt64() - 1;
+              m_column_ranges[i][j].second = m_column_ranges[i][j].first;
+            }
           }
           if(m_column_ranges[i][j].first > m_column_ranges[i][j].second)
             std::swap<int64_t>(m_column_ranges[i][j].first, m_column_ranges[i][j].second);
@@ -364,9 +401,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
 void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, const int rank)
 {
   if (!loader_config)
-  {
     return;
-  }
   // Update workspace if it is not provided in query json
   if (!m_json.HasMember("workspace"))
   {
@@ -389,11 +424,8 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
     std::vector<ColumnRange> my_rank_queried_columns;
     for(auto queried_column : m_column_ranges[0])
     {
-      if (queried_column.first >= my_rank_loader_column_range.first &&
-          queried_column.first < my_rank_loader_column_range.second)
-      {
+      if (queried_column.first >= my_rank_loader_column_range.first && queried_column.first < my_rank_loader_column_range.second)
         my_rank_queried_columns.emplace_back(queried_column);
-      }
     }
     m_column_ranges[0] = std::move(my_rank_queried_columns);
   }
@@ -401,8 +433,11 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
-
-  JSONConfigBase::read_from_file(filename);
+  if (id_mapper && !id_mapper->is_initialized())
+  {
+    get_vid_mapping_filename(id_mapper, rank);
+  }
+  JSONConfigBase::read_from_file(filename, id_mapper);
   // Update from loader_config_file
   update_from_loader(loader_config, rank);
   //Workspace
@@ -446,7 +481,6 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   //Attributes
   VERIFY_OR_THROW(m_attributes.size() && "Attributes to query not specified");
   query_config.set_attributes_to_query(m_attributes);
-  get_vid_mapping_filename(id_mapper, rank);
 }
 
 //Loader config functions

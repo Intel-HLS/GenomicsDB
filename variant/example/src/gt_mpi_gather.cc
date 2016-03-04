@@ -424,7 +424,7 @@ int main(int argc, char *argv[]) {
 #endif
         break;
       default:
-        range_query_config.read_from_file(json_config_file, query_config, file_id_mapper_ptr, my_world_mpi_rank, &loader_config);
+        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, &loader_config);
         json_config_ptr = &range_query_config;
         break;
     }

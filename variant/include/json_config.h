@@ -36,7 +36,7 @@ class JSONConfigBase
       clear();
     }
     void clear();
-    void read_from_file(const std::string& filename);
+    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0);
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;

@@ -429,14 +429,14 @@ void print_field(std::ostream& fptr,
             tile_position = call.get_column_begin();
             assert(tile_position >= contig_info->m_tiledb_column_offset);
             assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
-            // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+            // Adding 1 as TileDB is 0-based and genomics (VCF) is 1-based
             fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
           case END_IDX:
             tile_position = call.get_column_end();
             assert(tile_position >= contig_info->m_tiledb_column_offset);
             assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
-            // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+            // Adding 1 as TileDB is 0-based and genomics (VCF) is 1-based
             fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
           case ATTRIBUTE_IDX:
@@ -492,14 +492,10 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
 
   // Currently Cotton-JSON is called only on single position queries
   if (!id_mapper->get_contig_location(query_config.get_column_begin(0), contig_name, contig_position))
-  {
     throw VidMapperException("print_and_update_contig_position: Invalid position ");
-  }
   // Initialize contig_info
   if (!id_mapper->get_contig_info(contig_name, contig_info))
-  {
     throw VidMapperException("print_and_update_contig_position: Invalid contig name : " + contig_name );
-  }
 
   fptr << "{\n";
   std::vector<uint64_t> starts(1, 0);
@@ -523,7 +519,7 @@ void print_and_update_contig_position(std::ostream& fptr,
   {
     throw VidMapperException("print_and_update_contig_position: Invalid position ");
   }
-  // Adding 1 as TileDB is 0-based and genomics (VCF) is 0-based
+  // Adding 1 as TileDB is 0-based and genomics (VCF) is 1-based
   ++start_position;
   ++end_position;
 
