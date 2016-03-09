@@ -64,7 +64,7 @@ class VariantFieldBase
       m_valid = false;
     }
     virtual ~VariantFieldBase() = default;
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements) = 0;
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter) = 0;
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
@@ -118,11 +118,13 @@ class VariantFieldData : public VariantFieldBase
       : VariantFieldBase()
     { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
     {
       auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
-      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
+      //attr_iter will have consumed the length field internally
+      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
     }
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
     {
@@ -180,11 +182,13 @@ class VariantFieldData<std::string> : public VariantFieldBase
     { m_subclass_type = VARIANT_FIELD_STRING; }
     virtual ~VariantFieldData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
     {
       auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
-      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
+      //attr_iter will have consumed the length field internally
+      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
     }
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
     {
@@ -276,11 +280,13 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
     {
       auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
-      binary_deserialize(base_ptr, offset, length_descriptor, num_elements); 
+      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
+      //attr_iter will have consumed the length field internally
+      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
     }
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
     {
@@ -410,11 +416,13 @@ class VariantFieldALTData : public VariantFieldBase
         s.clear();
       m_data.clear();
     }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
     {
       auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
-      binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
+      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
+      //attr_iter will have consumed the length field internally
+      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
     }
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
     {

@@ -12,13 +12,15 @@ BufferVariantCell::BufferVariantCell(const ArraySchema& array_schema, const Vari
   //Resize vectors
   m_field_ptrs.resize(m_query_config->get_num_queried_attributes());
   m_field_element_sizes.resize(m_query_config->get_num_queried_attributes());
+  m_field_length_descriptors.resize(m_query_config->get_num_queried_attributes());
   m_field_lengths.resize(m_query_config->get_num_queried_attributes());
   for(auto i=0u;i<m_query_config->get_num_queried_attributes();++i)
   {
     auto schema_idx = m_query_config->get_schema_idx_for_query_idx(i);
     auto type_index = std::type_index(*(m_array_schema->type(schema_idx)));
     m_field_element_sizes[i] = VariantFieldTypeUtil::size(type_index);
-    m_field_lengths[i] = m_array_schema->val_num(schema_idx);
+    m_field_length_descriptors[i] = m_array_schema->val_num(schema_idx);
+    m_field_lengths[i] = m_field_length_descriptors[i];
   }
 }
 
@@ -26,6 +28,7 @@ void BufferVariantCell::clear()
 {
   m_field_ptrs.clear();
   m_field_element_sizes.clear();
+  m_field_length_descriptors.clear();
   m_field_lengths.clear();
 }
 
@@ -40,14 +43,15 @@ void BufferVariantCell::set_cell(const void* ptr)
 #endif
   for(auto i=0u;i<m_field_ptrs.size();++i)
   {
-    m_field_ptrs[i] = m_cell_ptr + offset;
-    auto length = m_field_lengths[i];
+    auto length = m_field_length_descriptors[i];
     //check if variable length field - read length from buffer
     if(length == VAR_SIZE)
     {
       length = *(reinterpret_cast<const int*>(m_cell_ptr+offset));
+      m_field_lengths[i] = length;
       offset += sizeof(int);
     }
+    m_field_ptrs[i] = m_cell_ptr + offset;      //field pointer points to region in buffer AFTER the length
     offset += (length*m_field_element_sizes[i]);
   }
 #ifdef DEBUG

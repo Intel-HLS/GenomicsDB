@@ -762,7 +762,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
   fill_field_prep(field_ptr, schema_idx, length_descriptor, num_elements);
   //This function might mark the field as invalid - some fields are  determined to be invalid only
   //after accessing the data and comparing to NULL_* values
-  field_ptr->copy_data_from_tile(attr_iter, length_descriptor, num_elements);
+  field_ptr->copy_data_from_tile(attr_iter);
 }
 
 void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQueryConfig& query_config,
