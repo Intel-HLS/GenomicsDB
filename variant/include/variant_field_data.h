@@ -287,6 +287,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
       //attr_iter will have consumed the length field internally
       binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
+      m_length_descriptor = attr_iter.is_variable_length_field() ? BCF_VL_VAR : BCF_VL_FIXED;
     }
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
     {

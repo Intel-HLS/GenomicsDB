@@ -25,6 +25,7 @@ class BufferVariantCell
        template<typename T=void>
        inline const T* operator*() const { return m_ptr->get_field_ptr_for_query_idx<T>(m_idx); }
        inline int get_field_length() const { return m_ptr->get_field_length(m_idx); }
+       inline bool is_variable_length_field() const { return m_ptr->is_variable_length_field(m_idx); }
        inline const FieldsIter& operator++()
        {
          ++m_idx;
@@ -53,6 +54,11 @@ class BufferVariantCell
     {
       assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
       return m_field_length_descriptors[query_idx];
+    }
+    inline bool is_variable_length_field(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
+      return (m_field_length_descriptors[query_idx] == VAR_SIZE);
     }
     FieldsIter begin() const { return FieldsIter(this, 0ull); }
     FieldsIter end() const { return FieldsIter(this, m_field_ptrs.size()); }
