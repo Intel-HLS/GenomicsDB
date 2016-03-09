@@ -87,7 +87,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_variant = std::move(Variant(&m_query_config));
   m_variant.resize_based_on_query();
   //Cell
-  m_cell = new Cell(m_schema, m_query_config.get_query_attributes_schema_idxs(), 0, true);
+  m_cell = new BufferVariantCell(*m_schema, m_query_config);
   //Partition bounds
   m_partition = partition_range;
   //PQ elements

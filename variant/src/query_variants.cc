@@ -309,7 +309,7 @@ void VariantQueryProcessor::scan_and_operate(
   ArrayConstCellIterator<int64_t>* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
   //Cell object that will be used for iterating over attributes
-  Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+  BufferVariantCell cell(*m_array_schema, query_config);
   //If uninitialized, store first column idx of forward scan in current_start_position
   if(current_start_position < 0 && !(forward_iter->end()))
   {
@@ -340,7 +340,7 @@ void VariantQueryProcessor::scan_and_operate(
 
 bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
     Variant& variant, SingleVariantOperatorBase& variant_operator,
-    Cell& cell, const void* cell_ptr,
+    BufferVariantCell& cell, const void* cell_ptr,
     VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
     int64_t& current_start_position, int64_t& next_start_position,
     uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
@@ -424,7 +424,7 @@ void VariantQueryProcessor::iterate_over_cells(
   ArrayConstCellIterator<int64_t>* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
   //Cell object that will be used for iterating over attributes
-  Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+  BufferVariantCell cell(*m_array_schema, query_config);
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
@@ -578,7 +578,7 @@ void VariantQueryProcessor::gt_get_column_interval(
     std::cerr << " to " << query_config.get_column_end(column_interval_idx) << std::endl;
 #endif
     //Cell object that will be used for iterating over attributes
-    Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+    BufferVariantCell cell(*m_array_schema, query_config);
     //Used for paging
     auto last_column_idx = start_column_forward_sweep;
     //Num handled variants - if beginning from same column as end of last page, get from paging info
@@ -690,7 +690,7 @@ void VariantQueryProcessor::gt_get_column(
   uint64_t filled_rows = 0;
   uint64_t num_valid_rows = 0;
   //Cell object that will be re-used
-  Cell cell(m_array_schema, query_config.get_query_attributes_schema_idxs(), 0, true);
+  BufferVariantCell cell(*m_array_schema, query_config);
   // Fill the genotyping column
   while(!(reverse_iter->end()) && filled_rows < query_config.get_num_rows_to_query()) {
 #ifdef DO_PROFILING
@@ -752,7 +752,7 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
 }
 
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
-    const CellConstAttrIterator& attr_iter,
+    const BufferVariantCell::FieldsIter& attr_iter,
     const unsigned num_ALT_alleles, const unsigned ploidy,
     unsigned schema_idx
     ) const
@@ -817,7 +817,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
-    const Cell& cell, GTProfileStats* stats) const {
+    const BufferVariantCell& cell, GTProfileStats* stats) const {
   #if VERBOSE>1
     std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
   #endif
@@ -829,7 +829,7 @@ void VariantQueryProcessor::gt_fill_row(
   curr_call.set_contains_deletion(false);
   // First check if the row contains valid data, i.e., check whether the interval intersects with the current queried interval
   assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
-  auto* END_ptr = cell[query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX)].operator const int64_t*();
+  auto* END_ptr = cell.get_field_ptr_for_query_idx<int64_t>(query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX));
   auto END_v = *END_ptr; 
   if(END_v < static_cast<int64_t>(variant.get_column_begin())) {
     curr_call.mark_valid(false);  //The interval in this cell stops before the current variant's start column

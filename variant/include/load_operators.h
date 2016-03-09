@@ -116,7 +116,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     //Operator that produces combined VCF record
     BroadCombinedGVCFOperator* m_operator;
     Variant m_variant;
-    Cell* m_cell;
+    BufferVariantCell* m_cell;
     //Column interval bounds
     ColumnRange m_partition;
     //PQ and aux structures

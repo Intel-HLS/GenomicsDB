@@ -6,6 +6,7 @@
 #include "variant_query_config.h"
 #include "variant.h"
 #include "variant_operations.h"
+#include "variant_cell.h"
 
 enum GTSchemaVersionEnum
 {
@@ -121,7 +122,7 @@ class VariantQueryProcessor {
      * */
     bool scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, SingleVariantOperatorBase& variant_operator,
-        Cell& cell, const void* cell_ptr,
+        BufferVariantCell& cell, const void* cell_ptr,
         VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
         int64_t& current_start_position, int64_t& next_start_position,
         uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
@@ -192,7 +193,7 @@ class VariantQueryProcessor {
     /** Fills a row of the input genotyping column with the proper info. */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
-        const Cell& cell, GTProfileStats* stats) const;
+        const BufferVariantCell& cell, GTProfileStats* stats) const;
     /** 
      * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
@@ -221,7 +222,7 @@ class VariantQueryProcessor {
      * @param num_ALT_alleles - number of ALT alleles:can be 0, if the current field does not use this info
      * @schema_idx The idx of the attribute in the schema of the current array 
      */
-    void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr, const CellConstAttrIterator& attr_iter,
+    void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr, const BufferVariantCell::FieldsIter& attr_iter,
         const unsigned num_ALT_alleles, const unsigned ploidy,
         const unsigned schema_idx
         ) const;

@@ -4,8 +4,19 @@
 #include <memory>
 #include "headers.h"
 #include "gt_common.h"
-#include "cell_const_attr_iterator.h"
+#include "variant_cell.h"
 #include "special_values.h"
+
+class UnknownAttributeTypeException : public std::exception {
+  public:
+    UnknownAttributeTypeException(const std::string m="Unknown type of queried attribute") : msg_(m) { ; }
+    ~UnknownAttributeTypeException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
 
 enum VariantFieldTypeEnum
 {
@@ -22,17 +33,18 @@ enum VariantFieldTypeEnum
 };
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 
-class UnknownAttributeTypeException {
+class VariantFieldTypeUtil
+{
   public:
-    UnknownAttributeTypeException(const std::string m="Unknown type of queried attribute") : msg_(m) { ; }
-    ~UnknownAttributeTypeException() { ; }
-    // ACCESSORS
-    /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
-  private:
-    std::string msg_;
+    static size_t size(VariantFieldTypeEnum enum_val);
+    static size_t size(const std::type_index& type_index)
+    {
+      auto iter = g_variant_field_type_index_to_enum.find(type_index);
+      if(iter == g_variant_field_type_index_to_enum.end())
+        throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
+      return size((*iter).second);
+    }
 };
-
 
 template<class T>
 bool is_tiledb_missing_value(const T value);
@@ -52,7 +64,7 @@ class VariantFieldBase
       m_valid = false;
     }
     virtual ~VariantFieldBase() = default;
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements) = 0;
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements) = 0;
     virtual void clear() { ; }
     virtual void print(std::ostream& fptr) const { ; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
@@ -82,7 +94,7 @@ class VariantFieldBase
     void set_valid(bool value) { m_valid = value; }
     bool is_valid() const { return m_valid; }
   protected:
-    enum VariantFieldTypesEnum
+    enum VariantFieldClassTypeEnum
     {
       VARIANT_FIELD_BASE=0u,
       VARIANT_FIELD_DATA,
@@ -106,9 +118,9 @@ class VariantFieldData : public VariantFieldBase
       : VariantFieldBase()
     { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
       binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
     }
@@ -168,9 +180,9 @@ class VariantFieldData<std::string> : public VariantFieldBase
     { m_subclass_type = VARIANT_FIELD_STRING; }
     virtual ~VariantFieldData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
       binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
     }
@@ -264,9 +276,9 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
       binary_deserialize(base_ptr, offset, length_descriptor, num_elements); 
     }
@@ -398,9 +410,9 @@ class VariantFieldALTData : public VariantFieldBase
         s.clear();
       m_data.clear();
     }
-    virtual void copy_data_from_tile(const CellConstAttrIterator&  attr_iter, unsigned length_descriptor, unsigned num_elements)
+    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter, unsigned length_descriptor, unsigned num_elements)
     {
-      auto base_ptr = (*attr_iter).operator const char*(); //const char*
+      auto base_ptr = attr_iter.operator*<char>(); //const char*
       uint64_t offset = 0ull;
       binary_deserialize(base_ptr, offset, length_descriptor, num_elements);
     }
