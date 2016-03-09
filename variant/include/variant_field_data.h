@@ -2,8 +2,7 @@
 #define VARIANT_FIELD_DATA_H
 
 #include <memory>
-#include <unordered_map>
-#include "query_field_data.h"
+#include "headers.h"
 #include "gt_common.h"
 #include "cell_const_attr_iterator.h"
 #include "special_values.h"
@@ -23,6 +22,18 @@ enum VariantFieldTypeEnum
 };
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 
+class UnknownAttributeTypeException {
+  public:
+    UnknownAttributeTypeException(const std::string m="Unknown type of queried attribute") : msg_(m) { ; }
+    ~UnknownAttributeTypeException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const std::string& what() const { return msg_; }
+  private:
+    std::string msg_;
+};
+
+
 template<class T>
 bool is_tiledb_missing_value(const T value);
 
@@ -32,11 +43,10 @@ bool is_tiledb_missing_value(const T value);
 /*
  * Base class for variant field data - not sure whether I will add any functionality here
  */
-class VariantFieldBase : public QueryFieldData
+class VariantFieldBase
 {
   public:
     VariantFieldBase() 
-      : QueryFieldData()
     {
       m_subclass_type = VARIANT_FIELD_BASE;
       m_valid = false;

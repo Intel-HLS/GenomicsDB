@@ -39,7 +39,6 @@
 #include "expression_tree.h"
 #include "storage_manager.h"
 #include "tiledb_error.h"
-#include "query_config.h"
 
 /** 
  * This class implements the query processor module, which is responsible
@@ -90,14 +89,6 @@ class QueryProcessor {
       const std::vector<double>& range,
       const std::string& result_array_name,
       const std::vector<std::string>& attribute_names) const;
-  /**
-   * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
-   */
-  void obtain_TileDB_attribute_idxs(const ArraySchema& array_schema, QueryConfig& queryConfig) const;
-  /**
-   * Return StorageManager object
-   */
-  const StorageManager* get_storage_manager() const { return storage_manager_; }
 
  private:
   // PRIVATE ATTRIBUTES

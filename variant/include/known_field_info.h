@@ -3,8 +3,6 @@
 
 #include "gt_common.h"
 #include "variant_field_data.h"
-#include "query_config.h"
-
 
 //Should be identical to the vector m_known_variant_field_names, see file known_field_info.cc
 enum KnownVariantFieldsEnum

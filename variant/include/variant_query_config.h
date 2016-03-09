@@ -1,11 +1,9 @@
 #ifndef VARIANT_QUERY_CONFIG_H
 #define VARIANT_QUERY_CONFIG_H
 
-#include "query_config.h"
+#include "headers.h"
 #include "lut.h"
 #include "known_field_info.h"
-
-#define UNDEFINED_NUM_ROWS_VALUE 0xFFFFFFFFFFFFFFFFull
 
 //Out of bounds query exception
 class OutOfBoundsQueryException : public std::exception {
@@ -19,11 +17,21 @@ class OutOfBoundsQueryException : public std::exception {
     std::string msg_;
 };
 
-class VariantQueryConfig : public QueryConfig
+class UnknownQueryAttributeException {
+  public:
+    UnknownQueryAttributeException(const std::string m="Invalid queried attribute") : msg_(m) { ; }
+    ~UnknownQueryAttributeException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const std::string& what() const { return msg_; }
+  private:
+    std::string msg_;
+};
+
+class VariantQueryConfig
 {
   public:
     VariantQueryConfig()
-      : QueryConfig()
     {
       clear();
       m_query_idx_known_variant_field_enum_LUT.reset_luts();
@@ -35,11 +43,72 @@ class VariantQueryConfig : public QueryConfig
     }
     void clear()
     {
-      QueryConfig::clear();
+      m_query_attributes_names.clear();
+      m_query_attributes_schema_idxs.clear();
+      m_query_attribute_name_to_query_idx.clear();
       m_query_rows.clear();
       m_query_column_intervals.clear();
       m_array_row_idx_to_query_row_idx.clear();
     }
+    /**
+     * Function that specifies which attributes to query from each cell
+     */
+    void set_attributes_to_query(const std::vector<std::string>& attributeNames);
+    /**
+     * Function used by query processor to add extra attributes to query
+     */
+    void add_attribute_to_query(const std::string& name, unsigned schema_idx);
+    /**
+     * Check whether attribute is defined
+     */
+    inline bool is_schema_idx_defined_for_query_idx(unsigned idx) const
+    {
+      assert(idx < m_query_attributes_schema_idxs.size());
+      return (m_query_attributes_schema_idxs[idx] != static_cast<int>(UNDEFINED_ATTRIBUTE_IDX_VALUE));
+    }
+    /**
+     * Set TileDB array schema attribute idx (schemaIdx) for the queried attribute idx
+     */
+    void set_schema_idx_for_query_idx(unsigned idx, unsigned schemaIdx)
+    {
+      assert(idx < m_query_attributes_schema_idxs.size());
+      m_query_attributes_schema_idxs[idx] = schemaIdx;
+    }
+    /**
+     * Get TileDB array schema attribute idx for the queried attribute idx
+     */
+    inline unsigned get_schema_idx_for_query_idx(unsigned idx) const
+    {
+      assert(idx < m_query_attributes_schema_idxs.size());
+      return m_query_attributes_schema_idxs[idx];
+    }
+    /**
+     * Get idx in the query for given attribute name
+     */
+    inline bool get_query_idx_for_name(const std::string& name, unsigned& idx) const
+    {
+      auto iter = m_query_attribute_name_to_query_idx.find(name);
+      if(iter != m_query_attribute_name_to_query_idx.end())
+      {
+        idx = (*iter).second;
+        return true;
+      }
+      else
+        return false;
+    }
+    /**
+     * Get name for idx
+     */
+    inline std::string get_query_attribute_name(unsigned idx) const
+    {
+      assert(idx < m_query_attributes_schema_idxs.size());
+      return m_query_attributes_names[idx];
+    }
+    /**
+     * Get number of attributes in query
+     */
+    inline unsigned get_num_queried_attributes() const { return m_query_attributes_names.size(); }
+    inline const std::vector<int>& get_query_attributes_schema_idxs() const { return m_query_attributes_schema_idxs; }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
      */
@@ -203,6 +272,12 @@ class VariantQueryConfig : public QueryConfig
      * @param all_rows if true, invalidates all mappings, else invalidates mapping for rows in m_query_rows only
      */
     void invalidate_array_row_idx_to_query_row_idx_map(bool all_rows);
+    //Query attribute names
+    std::vector<std::string> m_query_attributes_names;
+    //Query attribute schema idxs
+    std::vector<int> m_query_attributes_schema_idxs;
+    //Map from query name to index in m_query_attributes_names/m_query_attributes_schema_idxs
+    std::unordered_map<std::string, unsigned> m_query_attribute_name_to_query_idx;
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;
     //Idx in m_query_attributes_names with the first common attribute - see reorder_query_fields();

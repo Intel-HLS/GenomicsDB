@@ -83,7 +83,7 @@ class GTProfileStats {
 /*
  * Child class of QueryProcessor customized to handle variants
  */
-class VariantQueryProcessor : public QueryProcessor {
+class VariantQueryProcessor {
 
   public:
     /** 
@@ -162,7 +162,14 @@ class VariantQueryProcessor : public QueryProcessor {
     } 
     int get_array_descriptor() const { return m_ad; }
     const ArraySchema& get_array_schema() const { return *m_array_schema; }
-
+    /**
+     * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
+     */
+    void obtain_TileDB_attribute_idxs(const ArraySchema& array_schema, VariantQueryConfig& queryConfig) const;
+    /**
+     * Return StorageManager object
+     */
+    const StorageManager* get_storage_manager() const { return m_storage_manager; }
   private:
     /*initialize all known info about variants*/
     void initialize_known(const ArraySchema& array_schema);
@@ -226,6 +233,10 @@ class VariantQueryProcessor : public QueryProcessor {
      */
     void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
         unsigned& length_descriptor, unsigned& num_elements) const;
+    /*
+     * Storage manager
+     */
+    const StorageManager* m_storage_manager;
     /**
      * Variables to store versioning information about array schema
      */

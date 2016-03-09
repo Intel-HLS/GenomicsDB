@@ -183,12 +183,12 @@ void VariantQueryProcessor::register_field_creators(const ArraySchema& schema)
 }
 
 VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name)
-: QueryProcessor(storage_manager)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
     VariantQueryProcessor::initialize_static_members();
   clear();
+  m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, "r");
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
@@ -196,12 +196,12 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
 }
 
 VariantQueryProcessor::VariantQueryProcessor(const ArraySchema& array_schema)
-  : QueryProcessor(0)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
     VariantQueryProcessor::initialize_static_members();
   clear();
+  m_storage_manager = 0;
   m_array_schema = &array_schema;
   initialize();
 }
@@ -213,6 +213,20 @@ void VariantQueryProcessor::initialize()
   initialize_version(*m_array_schema); 
   //Register creators in factory
   register_field_creators(*m_array_schema);
+}
+
+void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const ArraySchema& schema, VariantQueryConfig& queryConfig) const
+{
+  for(auto i=0u;i<schema.attribute_num();++i)
+  {
+    const auto& name = schema.attribute_name(i);
+    unsigned query_idx = 0u;
+    if(queryConfig.get_query_idx_for_name(name, query_idx))
+      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+  }
+  for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
+    if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
+      throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));
 }
 
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
@@ -432,7 +446,7 @@ void VariantQueryProcessor::iterate_over_cells(
 void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema,
     VariantQueryConfig& query_config) const
 {
-  QueryProcessor::obtain_TileDB_attribute_idxs(array_schema, query_config);
+  obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
   unsigned END_schema_idx = 
           m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_END_IDX);

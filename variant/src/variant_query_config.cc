@@ -9,6 +9,22 @@ bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y)
   return (x.first < y.first);
 }
 
+void VariantQueryConfig::add_attribute_to_query(const string& name, unsigned schema_idx)
+{
+  if(m_query_attribute_name_to_query_idx.find(name) == m_query_attribute_name_to_query_idx.end())
+  {
+    m_query_attributes_names.push_back(name);
+    m_query_attributes_schema_idxs.push_back(schema_idx);
+    m_query_attribute_name_to_query_idx[name] = m_query_attributes_names.size()-1;
+  }
+}
+
+void VariantQueryConfig::set_attributes_to_query(const vector<string>& attributeNames)
+{
+  for(auto i=0u;i<attributeNames.size();++i)
+    add_attribute_to_query(attributeNames[i], UNDEFINED_ATTRIBUTE_IDX_VALUE);
+}
+
 void VariantQueryConfig::set_rows_to_query(const vector<int64_t>& rowIdxVec)
 {
   m_query_rows.resize(rowIdxVec.size());

@@ -24,6 +24,7 @@
 #include <fstream>
 #include <functional>
 #include <omp.h>
+#include <typeindex>
 
 typedef std::pair<int64_t, int64_t> ColumnRange;
 typedef std::pair<int64_t, int64_t> RowRange;
