@@ -55,21 +55,40 @@ class LoaderArrayWriter : public LoaderOperatorBase
         delete m_schema;
       if(m_storage_manager)
         delete m_storage_manager;
+#ifdef DUPLICATE_CELL_AT_END
+      for(auto ptr : m_end_point_cell_copies)
+        free(ptr);
+      m_end_point_cell_copies.clear();
+#endif
     }
-    virtual void operate(const void* cell_ptr)
-    {
-      assert(m_storage_manager);
-      m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
-    }
-    virtual void finish(const int64_t column_interval_end)
-    {
-      if(m_storage_manager && m_array_descriptor >= 0)
-        m_storage_manager->close_array(m_array_descriptor);
-    }
+    virtual void operate(const void* cell_ptr);
+    virtual void finish(const int64_t column_interval_end);
   private:
     int m_array_descriptor;
     ArraySchema* m_schema;
     StorageManager* m_storage_manager;
+#ifdef DUPLICATE_CELL_AT_END
+    //Copy of cells to store at the end position
+    std::vector<uint8_t*> m_end_point_cell_copies;
+    //Mimics behavior of program heap for cell copies - minimizes number of frees/reallocations
+    std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>> m_memory_manager;
+    //For use in priority queue
+    typedef struct
+    {
+      int64_t m_row;
+      int64_t m_column;
+      size_t m_idx_in_cell_copies_vector;
+    } CellWrapper;
+    struct ColumnMajorCellCompareGT 
+    {
+      bool operator()(const CellWrapper& a, const CellWrapper& b) const
+      {
+        return ((a.m_column > b.m_column) || (a.m_column == b.m_column && a.m_row > b.m_row));
+      }
+    };
+    //top() points to Cell in m_end_point_cell_wrapper_vector which contains the cell with the smallest end point
+    std::priority_queue<CellWrapper, std::vector<CellWrapper>, ColumnMajorCellCompareGT> m_end_point_cell_wrapper_pq;
+#endif
 };
 
 #ifdef HTSDIR

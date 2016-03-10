@@ -68,6 +68,10 @@ ifdef HTSDIR
     LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
+ifdef DUPLICATE_CELL_AT_END
+    CPPFLAGS += -DDUPLICATE_CELL_AT_END
+endif
+
 ifdef RAPIDJSON_INCLUDE_DIR
     CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 endif
