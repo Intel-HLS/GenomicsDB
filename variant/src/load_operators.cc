@@ -125,39 +125,30 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
     auto& last_element = tmp_wrapper_vector.back();
     auto idx_in_vector = last_element.m_idx_in_cell_copies_vector;
     auto copy_ptr = m_cell_copies[idx_in_vector];
-    //Note that the element found could be a begin cell or END cell
-    //FIXME: control should never get inside the if statement - but I am not 100% sure
-    if(last_element.m_end_column > last_element.m_begin_column) //begin cell - update END value
+    //Should always be an END copy cell - why? Because if this is a valid begin cell, then
+    //m_begin_column < column_begin and the cell would have been written to disk by the loop over
+    //the PQ above
+    if(last_element.m_end_column < last_element.m_begin_column) //end copy, update co-ordinate
     {
-      //The only way a begin cell is still in the PQ is if its begin value == column_begin-1
-      //If < (column_begin-1), the loop over PQ above would have written it to disk
-      assert(last_element.m_begin_column == column_begin-1);
-      assert(last_element.m_end_column == m_last_end_position_for_row[row]);
-      last_element.m_end_column = column_begin-1;
-      //END is after co-ordinates and cell_size
-      *(reinterpret_cast<int64_t*>(copy_ptr+2*sizeof(int64_t)+sizeof(size_t))) = last_element.m_end_column;
-      m_cell_wrapper_pq.push(last_element);
-    }
-    else
-      if(last_element.m_end_column < last_element.m_begin_column) //end copy, update co-ordinate
+      assert(last_element.m_begin_column == m_last_end_position_for_row[row]);
+      last_element.m_begin_column = column_begin-1;
+      //if the END copy still is at a column > its begin position, then write to disk
+      //Due to the way the loop over the PQ operates above, this END copy cell is the next cell to go to disk
+      //If the END copy cell is at column == its begin position, then after truncation, the copy has become a 
+      //single position cell and there is no need to write the END copy
+      if(last_element.m_begin_column != last_element.m_end_column)
       {
-        assert(last_element.m_begin_column == m_last_end_position_for_row[row]);
-        last_element.m_begin_column = column_begin-1;
-        //has become a single position cell after truncating - no need to write END copy
-        if(last_element.m_begin_column == last_element.m_end_column)
-          m_memory_manager.push(idx_in_vector); //"free" memory
-        else    //retain END copy in PQ, update cell buffer
-        {
-          //column is second co-ordinate
-          //FIXME: this will go to the top of the PQ when pushed and hence, can be directly written to disk here
-          *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = last_element.m_begin_column;
-          m_cell_wrapper_pq.push(last_element);
-        }
+        //column is second co-ordinate
+        *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = last_element.m_begin_column;
+        m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, reinterpret_cast<const void*>(copy_ptr));
       }
-      else      //begin == end and begin>=column_begin, incorrect input data
-        throw LoadOperatorException(std::string("ERROR: two cells in incorrect order found\nPrevious cell: ")+
-            std::to_string(last_element.m_row)+", "+std::to_string(last_element.m_begin_column)+"\nNew cell: "+
-            std::to_string(row)+", "+std::to_string(column_begin));
+      m_memory_manager.push(idx_in_vector); //"free" memory
+    }
+    else      //m_begin_column>=m_end_column>=column_begin, incorrect input data
+      throw LoadOperatorException(std::string("ERROR: two cells in incorrect order found\nPrevious cell: ")+
+          std::to_string(last_element.m_row)+", "+std::to_string(last_element.m_begin_column)+", "+
+          std::to_string(last_element.m_end_column)+
+          "\nNew cell: "+std::to_string(row)+", "+std::to_string(column_begin));
   }
   size_t idx_in_vector = 0ull;
   if(m_memory_manager.empty())        //no free entries, need to allocate a new block
