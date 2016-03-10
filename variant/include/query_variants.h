@@ -190,10 +190,18 @@ class VariantQueryProcessor {
      * Initialized field length info
      */
     static void initialize_length_descriptor(unsigned idx);
-    /** Fills a row of the input genotyping column with the proper info. */
+    /*
+     * Fills a row of the input genotyping column with the proper info.
+     * When cells are duplicated at the END, the flag traverse_end_copies controls whether END copies should be
+     * traversed or begin copies
+     */
     void gt_fill_row(
         Variant& variant, int64_t row, int64_t column, const VariantQueryConfig& query_config,
-        const BufferVariantCell& cell, GTProfileStats* stats) const;
+        const BufferVariantCell& cell, GTProfileStats* stats
+#ifdef DUPLICATE_CELL_AT_END
+        , bool traverse_end_copies=false
+#endif
+        ) const;
     /** 
      * Initializes reverse iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.

@@ -38,8 +38,9 @@ void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats,
     VariantOperations::do_dummy_genotyping(copy, output_stream);
   }
 #endif
+  variant.print(output_stream, &query_config);
   //Do dummy genotyping operation
-  VariantOperations::do_dummy_genotyping(variant, output_stream);
+  //VariantOperations::do_dummy_genotyping(variant, output_stream);
 }
 
 int main(int argc, char** argv) {

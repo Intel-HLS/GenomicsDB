@@ -62,6 +62,12 @@ class BufferVariantCell
     }
     FieldsIter begin() const { return FieldsIter(this, 0ull); }
     FieldsIter end() const { return FieldsIter(this, m_field_ptrs.size()); }
+    int64_t get_begin_column() const
+    {
+      assert(m_cell_ptr);
+      //column is second co-ordinate
+      return *(reinterpret_cast<const int64_t*>(m_cell_ptr+sizeof(int64_t)));
+    }
   private:
     const ArraySchema* m_array_schema;
     const VariantQueryConfig* m_query_config;
