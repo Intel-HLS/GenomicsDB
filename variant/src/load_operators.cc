@@ -6,9 +6,6 @@
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
   : LoaderOperatorBase(), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
 {
-#ifdef DUPLICATE_CELL_AT_END
-  m_end_point_cell_copies.clear();
-#endif
   //Parse json configuration
   rapidjson::Document json_doc;
   std::ifstream ifs(config_filename.c_str());
@@ -44,7 +41,39 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   }
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
+#ifdef DUPLICATE_CELL_AT_END
+  m_cell_copies.clear();
+  m_last_end_position_for_row.resize(id_mapper->get_num_callsets(), -1ll);
+#endif
 }
+
+#ifdef DUPLICATE_CELL_AT_END
+void LoaderArrayWriter::write_top_element_to_disk()
+{
+  //Copy not reference
+  CellWrapper top_element = m_cell_wrapper_pq.top();
+  m_cell_wrapper_pq.pop();
+  auto idx_in_vector = top_element.m_idx_in_cell_copies_vector;
+  m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor,
+      reinterpret_cast<const void*>(m_cell_copies[idx_in_vector]));
+  //If this is a begin cell and spans multiple columns, retain this copy for the END in the PQ
+  if(top_element.m_end_column > top_element.m_begin_column)
+  {
+    //swap begin/end
+    std::swap<int64_t>(top_element.m_begin_column, top_element.m_end_column);
+    //Update co-ordinate and END in the cell buffer
+    auto* copy_ptr = m_cell_copies[idx_in_vector];
+    //column is second co-ordinate
+    *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = top_element.m_begin_column;
+    //END is after co-ordinates and cell_size
+    *(reinterpret_cast<int64_t*>(copy_ptr+2*sizeof(int64_t)+sizeof(size_t))) = top_element.m_end_column;
+    //Add to PQ again
+    m_cell_wrapper_pq.push(top_element);
+  }
+  else  //no need to keep this cell anymore, free "heap"
+    m_memory_manager.push(idx_in_vector);
+}
+#endif
 
 void LoaderArrayWriter::operate(const void* cell_ptr)
 {
@@ -55,77 +84,116 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
   auto row = *(reinterpret_cast<const int64_t*>(ptr));
   //column is second co-ordinate
   auto column_begin = *(reinterpret_cast<const int64_t*>(ptr+sizeof(int64_t)));
-  //Must check if some end position copies of previous cells have smaller column value
-  CellWrapper curr_cell_wrapper({row, column_begin, 0ull});
-  ColumnMajorCellCompareGT cmp_op;
-  while(!m_end_point_cell_wrapper_pq.empty())
-  {
-    auto top_element = m_end_point_cell_wrapper_pq.top();
-    //if curr_cell is AFTER the top_element, write the top_element to disk
-    if(cmp_op(curr_cell_wrapper, top_element))
-    {
-      m_end_point_cell_wrapper_pq.pop();
-      auto idx_in_vector = top_element.m_idx_in_cell_copies_vector;
-      m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, 
-          reinterpret_cast<const void*>(m_end_point_cell_copies[idx_in_vector]));
-      //free "heap"
-      m_memory_manager.push(idx_in_vector);
-    }
-    else //curr_cell <= top, break out of loop
-      break;
-  }
-#endif //ifdef DUPLICATE_CELL_AT_END
-  m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
-#ifdef DUPLICATE_CELL_AT_END
   //END is after co-ordinates and cell_size
   auto column_end = *(reinterpret_cast<const int64_t*>(ptr+2*sizeof(int64_t)+sizeof(size_t)));
-  assert(column_end >= column_begin);
-  if(column_end != column_begin)
+  assert(column_end >= column_begin && static_cast<size_t>(row) < m_last_end_position_for_row.size());
+  //cell size is after co-ordinates
+  auto cell_size = *(reinterpret_cast<const size_t*>(ptr+2*sizeof(int64_t)));
+  //Reason: the whole setup works only if the intervals for a given row/sample are non-overlapping. This
+  //property must be enforced by the loader
+  //We maintain the last END value seen for every row - if the new cell has a begin
+  // <= last END, then we truncate the END to column_begin-1 and write out the END copy cell
+  //However, we must ensure that the copy cell with the truncated END respects column order
+  //Hence, we only write to disks those cells (and END cell copies) which are less than (row+1, column_begin-1)
+  //That way a truncated cell copy will be inserted at the correct position
+  //Note that this increases memory consumption and run-time as every cell needs to be copied here
+  CellWrapper curr_cell_wrapper({row+1, column_begin-1, -1, 0ull});
+  ColumnMajorCellCompareGT cmp_op_GT;
+  //Loop till (row+1, column_begin-1) > PQ top and write the top element to disk
+  while(!m_cell_wrapper_pq.empty() && cmp_op_GT(curr_cell_wrapper, m_cell_wrapper_pq.top()))
+    write_top_element_to_disk();
+  //Check whether the last END value for this row overlaps current cell
+  //If yes, must flush the entry from the PQ, update its co-ordinate to be column_begin-1 and insert into PQ again
+  //Hopefully, entering this if statement is NOT the common case
+  if(m_last_end_position_for_row[row] >= column_begin)
   {
-    //cell size is after co-ordinates
-    auto cell_size = *(reinterpret_cast<const size_t*>(ptr+2*sizeof(int64_t)));
-    size_t idx_in_vector = 0ull;
-    if(m_memory_manager.empty())        //no free entries, need to allocate a new block
+    std::vector<CellWrapper> tmp_wrapper_vector;
+    auto found_element = false;
+    while(!m_cell_wrapper_pq.empty() && !found_element)
     {
-      idx_in_vector = m_end_point_cell_copies.size();
-      m_end_point_cell_copies.push_back(static_cast<uint8_t*>(malloc(cell_size)));
+      auto& top_ref = m_cell_wrapper_pq.top();
+      if(top_ref.m_row == row)
+        found_element = true;
+      tmp_wrapper_vector.push_back(top_ref);
+      m_cell_wrapper_pq.pop();
     }
-    else        //free entry
+    assert(found_element && tmp_wrapper_vector.size() > 0u);
+    //Handle the last element separately
+    for(auto i=0ull;i+1u<tmp_wrapper_vector.size();++i)
+      m_cell_wrapper_pq.push(tmp_wrapper_vector[i]);
+    //The cell corresponding to this row
+    auto& last_element = tmp_wrapper_vector.back();
+    auto idx_in_vector = last_element.m_idx_in_cell_copies_vector;
+    auto copy_ptr = m_cell_copies[idx_in_vector];
+    //Note that the element found could be a begin cell or END cell
+    //FIXME: control should never get inside the if statement - but I am not 100% sure
+    if(last_element.m_end_column > last_element.m_begin_column) //begin cell - update END value
     {
-      idx_in_vector = m_memory_manager.top();
-      m_memory_manager.pop();
-      //realloc to new size
-      m_end_point_cell_copies[idx_in_vector] = static_cast<uint8_t*>(realloc(m_end_point_cell_copies[idx_in_vector], cell_size));
+      //The only way a begin cell is still in the PQ is if its begin value == column_begin-1
+      //If < (column_begin-1), the loop over PQ above would have written it to disk
+      assert(last_element.m_begin_column == column_begin-1);
+      assert(last_element.m_end_column == m_last_end_position_for_row[row]);
+      last_element.m_end_column = column_begin-1;
+      //END is after co-ordinates and cell_size
+      *(reinterpret_cast<int64_t*>(copy_ptr+2*sizeof(int64_t)+sizeof(size_t))) = last_element.m_end_column;
+      m_cell_wrapper_pq.push(last_element);
     }
-    VERIFY_OR_THROW(m_end_point_cell_copies[idx_in_vector] && "Memory allocation failed while creating copy of cell");
-    memcpy(m_end_point_cell_copies[idx_in_vector], ptr, cell_size);
-    //Update the cell wrapper structure
-    curr_cell_wrapper.m_column = column_end;
-    curr_cell_wrapper.m_idx_in_cell_copies_vector = idx_in_vector;
-    //set column to END and END to co-ordinate
-    auto* copy_ptr = m_end_point_cell_copies[idx_in_vector];
-    //column is second co-ordinate
-    *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = column_end; 
-    //END is after co-ordinates and cell_size
-    *(reinterpret_cast<int64_t*>(copy_ptr+2*sizeof(int64_t)+sizeof(size_t))) = column_begin;
-    //insert CellWrapper pointer into PQ
-    m_end_point_cell_wrapper_pq.push(curr_cell_wrapper);
+    else
+      if(last_element.m_end_column < last_element.m_begin_column) //end copy, update co-ordinate
+      {
+        assert(last_element.m_begin_column == m_last_end_position_for_row[row]);
+        last_element.m_begin_column = column_begin-1;
+        //has become a single position cell after truncating - no need to write END copy
+        if(last_element.m_begin_column == last_element.m_end_column)
+          m_memory_manager.push(idx_in_vector); //"free" memory
+        else    //retain END copy in PQ, update cell buffer
+        {
+          //column is second co-ordinate
+          //FIXME: this will go to the top of the PQ when pushed and hence, can be directly written to disk here
+          *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = last_element.m_begin_column;
+          m_cell_wrapper_pq.push(last_element);
+        }
+      }
+      else      //begin == end and begin>=column_begin, incorrect input data
+        throw LoadOperatorException(std::string("ERROR: two cells in incorrect order found\nPrevious cell: ")+
+            std::to_string(last_element.m_row)+", "+std::to_string(last_element.m_begin_column)+"\nNew cell: "+
+            std::to_string(row)+", "+std::to_string(column_begin));
   }
-#endif  //ifdef DUPLICATE_CELL_AT_END
+  size_t idx_in_vector = 0ull;
+  if(m_memory_manager.empty())        //no free entries, need to allocate a new block
+  {
+    idx_in_vector = m_cell_copies.size();
+    m_cell_copies.push_back(static_cast<uint8_t*>(malloc(cell_size)));
+  }
+  else        //free entry
+  {
+    idx_in_vector = m_memory_manager.top();
+    m_memory_manager.pop();
+    //realloc to new size
+    m_cell_copies[idx_in_vector] = static_cast<uint8_t*>(realloc(m_cell_copies[idx_in_vector], cell_size));
+  }
+  VERIFY_OR_THROW(m_cell_copies[idx_in_vector] && "Memory allocation failed while creating copy of cell");
+  memcpy(m_cell_copies[idx_in_vector], ptr, cell_size);
+  //Update the cell wrapper structure
+  curr_cell_wrapper.m_row = row;
+  curr_cell_wrapper.m_begin_column = column_begin;
+  curr_cell_wrapper.m_end_column = column_end;
+  curr_cell_wrapper.m_idx_in_cell_copies_vector = idx_in_vector;
+  //insert CellWrapper pointer into PQ
+  m_cell_wrapper_pq.push(curr_cell_wrapper);
+  //Update last END value seen
+  m_last_end_position_for_row[row] = column_end;
+#else //ifdef DUPLICATE_CELL_AT_END
+  m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
+#endif //ifdef DUPLICATE_CELL_AT_END
 }
 
 void LoaderArrayWriter::finish(const int64_t column_interval_end)
 {
 #ifdef DUPLICATE_CELL_AT_END
   //some cells may be left in the PQ, write them to disk
-  while(!m_end_point_cell_wrapper_pq.empty())
-  {
-    auto top_element = m_end_point_cell_wrapper_pq.top();
-    m_end_point_cell_wrapper_pq.pop();
-    auto idx_in_vector = top_element.m_idx_in_cell_copies_vector;
-    m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, 
-        reinterpret_cast<const void*>(m_end_point_cell_copies[idx_in_vector]));
-  }
+  while(!m_cell_wrapper_pq.empty())
+    write_top_element_to_disk();
 #endif
   if(m_storage_manager && m_array_descriptor >= 0)
     m_storage_manager->close_array(m_array_descriptor);

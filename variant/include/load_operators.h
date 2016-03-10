@@ -56,9 +56,9 @@ class LoaderArrayWriter : public LoaderOperatorBase
       if(m_storage_manager)
         delete m_storage_manager;
 #ifdef DUPLICATE_CELL_AT_END
-      for(auto ptr : m_end_point_cell_copies)
+      for(auto ptr : m_cell_copies)
         free(ptr);
-      m_end_point_cell_copies.clear();
+      m_cell_copies.clear();
 #endif
     }
     virtual void operate(const void* cell_ptr);
@@ -68,26 +68,34 @@ class LoaderArrayWriter : public LoaderOperatorBase
     ArraySchema* m_schema;
     StorageManager* m_storage_manager;
 #ifdef DUPLICATE_CELL_AT_END
-    //Copy of cells to store at the end position
-    std::vector<uint8_t*> m_end_point_cell_copies;
+    /*
+     * Function that writes top element from the PQ to disk
+     * If the top element is a begin cell that spans multiple columns, create an END copy
+     * and add to PQ again
+     */
+    void write_top_element_to_disk();
+    //Copy of cell buffers
+    std::vector<uint8_t*> m_cell_copies;
     //Mimics behavior of program heap for cell copies - minimizes number of frees/reallocations
     std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>> m_memory_manager;
     //For use in priority queue
     typedef struct
     {
       int64_t m_row;
-      int64_t m_column;
+      int64_t m_begin_column;
+      int64_t m_end_column;
       size_t m_idx_in_cell_copies_vector;
     } CellWrapper;
     struct ColumnMajorCellCompareGT 
     {
       bool operator()(const CellWrapper& a, const CellWrapper& b) const
       {
-        return ((a.m_column > b.m_column) || (a.m_column == b.m_column && a.m_row > b.m_row));
+        return ((a.m_begin_column > b.m_begin_column) || (a.m_begin_column == b.m_begin_column && a.m_row > b.m_row));
       }
     };
-    //top() points to Cell in m_end_point_cell_wrapper_vector which contains the cell with the smallest end point
-    std::priority_queue<CellWrapper, std::vector<CellWrapper>, ColumnMajorCellCompareGT> m_end_point_cell_wrapper_pq;
+    std::vector<int64_t> m_last_end_position_for_row;
+    //top() contains CellWrapper with the smallest cell in column major order 
+    std::priority_queue<CellWrapper, std::vector<CellWrapper>, ColumnMajorCellCompareGT> m_cell_wrapper_pq;
 #endif
 };
 
