@@ -2,14 +2,14 @@
 
 #include "libtiledb_variant.h"
 
-StorageManager *Factory::getStorageManager(std::string &workspace) {
+VariantStorageManager *Factory::getStorageManager(std::string &workspace) {
   if( workspace.compare(this->workspace) != 0 ) {
       if( sm != NULL ) {
           clear();
       }
       // Create storage manager
       // The input is the path to its workspace (the path must exist).
-      sm = new StorageManager(workspace);
+      sm = new VariantStorageManager(workspace);
       this->workspace = workspace;
       // Set reset_qp flag since the sm object has changed
       reset_qp = true;

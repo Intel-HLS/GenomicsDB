@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   }
   // Create storage manager
   // The input is the path to its workspace (the path must exist).
-  StorageManager sm(cl.m_workspace);
+  VariantStorageManager sm(cl.m_workspace);
   std::ostream& output_stream = cl.m_output_fstream.is_open() ? cl.m_output_fstream : std::cout;
   // Create query processor
   // The first input is the path to its workspace (the path must exist).

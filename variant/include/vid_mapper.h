@@ -2,8 +2,8 @@
 #define VID_MAPPER_HD
 
 #include "headers.h"
-#include "array_schema.h"
 #include "vcf.h"
+#include "variant_array_schema.h"
 
 inline bool contig_offset_idx_pair_cmp(const std::pair<int64_t, int>& first, const std::pair<int64_t, int>& second)
 {
@@ -347,7 +347,7 @@ class VidMapper
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
-    void build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
+    void build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
         const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
     /*
      * Get num contigs

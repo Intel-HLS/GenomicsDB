@@ -109,7 +109,7 @@ void VariantQueryProcessor::initialize_static_members()
   VariantQueryProcessor::m_are_static_members_initialized = true;
 }
 
-void VariantQueryProcessor::initialize_known(const ArraySchema& schema)
+void VariantQueryProcessor::initialize_known(const VariantArraySchema& schema)
 {
   //Initialize schema idx <--> known_field_enum mapping
   m_schema_idx_to_known_variant_field_enum_LUT.resize_luts_if_needed(schema.attribute_num(), GVCF_NUM_KNOWN_FIELDS);
@@ -121,13 +121,13 @@ void VariantQueryProcessor::initialize_known(const ArraySchema& schema)
   }
 }
 
-void VariantQueryProcessor::initialize_v0(const ArraySchema& schema)
+void VariantQueryProcessor::initialize_v0(const VariantArraySchema& schema)
 {
   m_GT_schema_version = GT_SCHEMA_V0;
 }
 
 //Added AF,AN and AC fields
-void VariantQueryProcessor::initialize_v1(const ArraySchema& schema)
+void VariantQueryProcessor::initialize_v1(const VariantArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v1_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
@@ -141,7 +141,7 @@ void VariantQueryProcessor::initialize_v1(const ArraySchema& schema)
 }
 
 //Added GT and PS fields
-void VariantQueryProcessor::initialize_v2(const ArraySchema& schema)
+void VariantQueryProcessor::initialize_v2(const VariantArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v2_fields = std::unordered_set<std::string>{ "GT", "PS" };
@@ -154,7 +154,7 @@ void VariantQueryProcessor::initialize_v2(const ArraySchema& schema)
     }
 }
 
-void VariantQueryProcessor::initialize_version(const ArraySchema& schema)
+void VariantQueryProcessor::initialize_version(const VariantArraySchema& schema)
 {
   initialize_known(schema);
   //Initialize to v0 schema by default
@@ -163,7 +163,7 @@ void VariantQueryProcessor::initialize_version(const ArraySchema& schema)
   initialize_v2(schema);
 }
 
-void VariantQueryProcessor::register_field_creators(const ArraySchema& schema)
+void VariantQueryProcessor::register_field_creators(const VariantArraySchema& schema)
 {
   m_field_factory.resize(schema.attribute_num());
   for(auto i=0;i<schema.attribute_num();++i)
@@ -182,7 +182,7 @@ void VariantQueryProcessor::register_field_creators(const ArraySchema& schema)
   }
 }
 
-VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name)
+VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
@@ -190,19 +190,20 @@ VariantQueryProcessor::VariantQueryProcessor(StorageManager* storage_manager, co
   clear();
   m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, "r");
+  m_array_schema = new VariantArraySchema(0);
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
   initialize();
 }
 
-VariantQueryProcessor::VariantQueryProcessor(const ArraySchema& array_schema)
+VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_schema)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
     VariantQueryProcessor::initialize_static_members();
   clear();
   m_storage_manager = 0;
-  m_array_schema = &array_schema;
+  m_array_schema = new VariantArraySchema(array_schema);
   initialize();
 }
 
@@ -215,7 +216,7 @@ void VariantQueryProcessor::initialize()
   register_field_creators(*m_array_schema);
 }
 
-void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const ArraySchema& schema, VariantQueryConfig& queryConfig) const
+void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
   for(auto i=0u;i<schema.attribute_num();++i)
   {
@@ -459,7 +460,7 @@ void VariantQueryProcessor::iterate_over_cells(
   delete forward_iter;
 }
 
-void VariantQueryProcessor::do_query_bookkeeping(const ArraySchema& array_schema,
+void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
     VariantQueryConfig& query_config) const
 {
   obtain_TileDB_attribute_idxs(array_schema, query_config);
@@ -976,7 +977,7 @@ unsigned int VariantQueryProcessor::gt_initialize_reverse_iter(
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   //Assign reverse iterator
   vector<int64_t> query_range = { static_cast<int64_t>(query_config.get_smallest_row_idx_in_array()+query_config.get_num_rows_in_array()-1u), column };
-  reverse_iter = get_storage_manager()->rbegin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs(), false);
+  reverse_iter = get_storage_manager()->rbegin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs(), false);
   return num_queried_attributes - 1;
 }
 
@@ -993,7 +994,7 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
   vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
     static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
     column, INT64_MAX };
-  forward_iter = get_storage_manager()->begin<int64_t>(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
+  forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
   return num_queried_attributes - 1;
 }
 

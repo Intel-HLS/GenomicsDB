@@ -28,7 +28,7 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   }
   id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, true);
   //Storage manager
-  m_storage_manager = new StorageManager(workspace);
+  m_storage_manager = new VariantStorageManager(workspace);
   auto mode = recreate_array ? "w" : "a";
   //Check if array already exists
   m_array_descriptor = m_storage_manager->open_array(array_name, mode);

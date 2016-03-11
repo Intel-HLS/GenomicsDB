@@ -1,8 +1,9 @@
 #ifndef QUERY_VARIANTS_H
 #define QUERY_VARIANTS_H
 
-#include "query_processor.h"
 #include "gt_common.h"
+#include "variant_storage_manager.h"
+#include "variant_array_schema.h"
 #include "variant_query_config.h"
 #include "variant.h"
 #include "variant_operations.h"
@@ -92,17 +93,23 @@ class VariantQueryProcessor {
      * its data. The storage manager is the module the query processor interefaces 
      * with.
      */
-    VariantQueryProcessor(StorageManager* storage_manager, const std::string& array_name);
+    VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name);
     /*
-     * This constructor is useful when there is no StorageManager. This happens when loading and querying are 
+     * This constructor is useful when there is no VariantStorageManager. This happens when loading and querying are 
      * combined and the data does not exist on disk as TileDB arrays
      */
-    VariantQueryProcessor(const ArraySchema& array_schema);
+    VariantQueryProcessor(const VariantArraySchema& array_schema);
+    ~VariantQueryProcessor()
+    {
+      if(m_array_schema)
+        delete m_array_schema;
+      m_array_schema = 0;
+    }
     void clear();
     /**
      * When querying, setup bookkeeping structures first 
      */
-    void do_query_bookkeeping(const ArraySchema& array_schema,
+    void do_query_bookkeeping(const VariantArraySchema& array_schema,
         VariantQueryConfig& query_config) const;
     /*
      * Equivalent of gt_get_column, but for interval
@@ -162,28 +169,28 @@ class VariantQueryProcessor {
       return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
     } 
     int get_array_descriptor() const { return m_ad; }
-    const ArraySchema& get_array_schema() const { return *m_array_schema; }
+    const VariantArraySchema& get_array_schema() const { return *m_array_schema; }
     /**
      * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
      */
-    void obtain_TileDB_attribute_idxs(const ArraySchema& array_schema, VariantQueryConfig& queryConfig) const;
+    void obtain_TileDB_attribute_idxs(const VariantArraySchema& array_schema, VariantQueryConfig& queryConfig) const;
     /**
-     * Return StorageManager object
+     * Return VariantStorageManager object
      */
-    const StorageManager* get_storage_manager() const { return m_storage_manager; }
+    const VariantStorageManager* get_storage_manager() const { return m_storage_manager; }
   private:
     /*initialize all known info about variants*/
-    void initialize_known(const ArraySchema& array_schema);
+    void initialize_known(const VariantArraySchema& array_schema);
     /*Initialize schema version v0 info*/
-    void initialize_v0(const ArraySchema& array_schema);
+    void initialize_v0(const VariantArraySchema& array_schema);
     /*Check and initialize schema version v1 info*/
-    void initialize_v1(const ArraySchema& array_schema);
+    void initialize_v1(const VariantArraySchema& array_schema);
     /*Check and initialize schema version v2 info*/
-    void initialize_v2(const ArraySchema& array_schema);
+    void initialize_v2(const VariantArraySchema& array_schema);
     /*Initialize versioning information based on schema*/
-    void initialize_version(const ArraySchema& array_schema);
+    void initialize_version(const VariantArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
-    void register_field_creators(const ArraySchema& array_schema);
+    void register_field_creators(const VariantArraySchema& array_schema);
     /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
     void initialize();
     /**
@@ -243,9 +250,9 @@ class VariantQueryProcessor {
     void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
         unsigned& length_descriptor, unsigned& num_elements) const;
     /*
-     * Storage manager
+     * VariantStorage manager
      */
-    const StorageManager* m_storage_manager;
+    const VariantStorageManager* m_storage_manager;
     /**
      * Variables to store versioning information about array schema
      */
@@ -262,7 +269,7 @@ class VariantQueryProcessor {
      * Array descriptor and schema
      */
     int m_ad;
-    const ArraySchema* m_array_schema;
+    VariantArraySchema* m_array_schema;
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized

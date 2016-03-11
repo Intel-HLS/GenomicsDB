@@ -2,7 +2,7 @@
 #define VARIANT_CELL_H
 
 #include "headers.h"
-#include "array_schema.h"
+#include "variant_array_schema.h"
 
 class VariantQueryConfig;
 /*
@@ -36,7 +36,7 @@ class BufferVariantCell
         size_t m_idx;
     };
   public:
-    BufferVariantCell(const ArraySchema& array_schema, const VariantQueryConfig& query_config);
+    BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config);
     void clear();
     void set_cell(const void* ptr);
     template<typename T=void>
@@ -69,7 +69,7 @@ class BufferVariantCell
       return *(reinterpret_cast<const int64_t*>(m_cell_ptr+sizeof(int64_t)));
     }
   private:
-    const ArraySchema* m_array_schema;
+    const VariantArraySchema* m_array_schema;
     const VariantQueryConfig* m_query_config;
     const uint8_t* m_cell_ptr;
     std::vector<const void*> m_field_ptrs;

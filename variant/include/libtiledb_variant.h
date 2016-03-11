@@ -2,7 +2,7 @@
 
 class Factory {
   private:
-    StorageManager *sm;
+    VariantStorageManager *sm;
     VariantQueryProcessor *qp;
 
     // path to TileDb workspace
@@ -32,7 +32,7 @@ class Factory {
     GTProfileStats stats;
 
     // Get functions that do lazy initialization of the Tile DB Objects
-    StorageManager *getStorageManager(std::string &workspace);
+    VariantStorageManager *getStorageManager(std::string &workspace);
     VariantQueryProcessor *getVariantQueryProcessor(std::string &workspace, 
                                                     const std::string& array_name);
 };

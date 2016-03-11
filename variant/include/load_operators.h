@@ -4,6 +4,7 @@
 #include "vid_mapper.h"
 #include "query_variants.h"
 #include "broad_combined_gvcf.h" 
+#include "variant_storage_manager.h"
 
 //Exceptions thrown
 class LoadOperatorException : public std::exception {
@@ -65,13 +66,13 @@ class LoaderArrayWriter : public LoaderOperatorBase
     virtual void finish(const int64_t column_interval_end);
   private:
     int m_array_descriptor;
-    ArraySchema* m_schema;
-    StorageManager* m_storage_manager;
+    VariantArraySchema* m_schema;
+    VariantStorageManager* m_storage_manager;
 #ifdef DUPLICATE_CELL_AT_END
     /*
      * Function that writes top element from the PQ to disk
      * If the top element is a begin cell that spans multiple columns, create an END copy
-     * and add to PQ again
+     * and adds to PQ again
      */
     void write_top_element_to_disk();
     //Copy of cell buffers
@@ -132,7 +133,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     virtual void finish(const int64_t column_interval_end);
     void clear();
   private:
-    ArraySchema* m_schema;
+    VariantArraySchema* m_schema;
     VariantQueryProcessor* m_query_processor;
     const VidMapper* m_vid_mapper;
     VariantQueryConfig m_query_config;

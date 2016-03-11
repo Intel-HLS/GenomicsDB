@@ -410,7 +410,7 @@ int main(int argc, char *argv[]) {
   std::cerr << "Segment size: "<<segment_size<<" bytes\n";
 #endif
   /*Create storage manager*/
-  StorageManager sm(workspace, segment_size);
+  VariantStorageManager sm(workspace, segment_size);
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
   qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
