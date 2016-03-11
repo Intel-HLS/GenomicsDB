@@ -395,11 +395,16 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
       assert(num_calls_with_deletions > 0u);
       --num_calls_with_deletions;
     }
+    curr_call.reset_for_new_interval();
     gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
-    end_pq.push(&curr_call);
-    if(handle_spanning_deletions && curr_call.contains_deletion())
-      ++num_calls_with_deletions;
-    assert(end_pq.size() <= query_config.get_num_rows_to_query());
+    //When cells are duplicated at the END, then the VariantCall object need not be valid
+    if(curr_call.is_valid())
+    {
+      end_pq.push(&curr_call);
+      if(handle_spanning_deletions && curr_call.contains_deletion())
+        ++num_calls_with_deletions;
+      assert(end_pq.size() <= query_config.get_num_rows_to_query());
+    }
   }
   return false;
 }
@@ -437,8 +442,12 @@ void VariantQueryProcessor::iterate_over_cells(
     if(query_config.get_num_column_intervals() > 0 && next_coord[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
       break;
     cell.set_cell(cell_ptr);
+    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+    curr_call.reset_for_new_interval();
     gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
-    variant_operator.operate(variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0])), query_config);
+    //When cells are duplicated at the END, then the VariantCall object need not be valid
+    if(curr_call.is_valid())
+      variant_operator.operate(curr_call, query_config);
   }
   delete forward_iter;
 }
@@ -544,13 +553,21 @@ void VariantQueryProcessor::gt_get_column_interval(
   {
     Variant interval_begin_variant(&query_config);
     interval_begin_variant.resize_based_on_query();
-    //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
+    //If cells are duplicated, no claim can be made  on the order in which cells are traversed since
+    //the order of END cells has no bearing on the order of begin values
+    //If not duplicated, row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
     vector<uint64_t> query_row_idx_in_order = vector<uint64_t>(query_config.get_num_rows_to_query(), UNDEFINED_NUM_ROWS_VALUE);
 #if VERBOSE>0
     std::cerr << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
 #endif
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats, &query_row_idx_in_order);
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats,
+#ifdef DUPLICATE_CELL_AT_END
+        0
+#else
+        &query_row_idx_in_order
+#endif
+        );
     //This interval contains many Calls, likely un-aligned (no common start/end). Split this variant 
     //into multiple Variants, each containing calls that are satisfy the GA4GH properties for merging calls
     interval_begin_variant.move_calls_to_separate_variants(query_config, variants, query_row_idx_in_order,
@@ -615,17 +632,22 @@ void VariantQueryProcessor::gt_get_column_interval(
         subset_query_config.update_rows_to_query(subset_rows);
         tmp_variant.resize_based_on_query();
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
+        tmp_variant.reset_for_new_interval();
         tmp_variant.get_call(0u).set_row_idx(curr_row_idx); //set row idx
         tmp_variant.set_column_interval(curr_column_idx, curr_column_idx);
         //Set contents of cell 
         cell.set_cell(cell_ptr);
         gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, stats);
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
-        //Move call to variants vector, creating new Variant if necessary
-        auto newly_inserted = move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant,
-            stop_inserting_new_variants);
-        //Check if page limit hit
-        PAGE_END_CHECK_LOGIC
+        //When cells are duplicated at the END, then the VariantCall object need not be valid
+        if(tmp_variant.get_call(0).is_valid())
+        {
+          //Move call to variants vector, creating new Variant if necessary
+          auto newly_inserted = move_call_to_variant_vector(subset_query_config, tmp_variant.get_call(0), variants, call_info_2_variant,
+              stop_inserting_new_variants);
+          //Check if page limit hit
+          PAGE_END_CHECK_LOGIC
+        }
       }
       last_column_idx = curr_column_idx;
     }
@@ -868,7 +890,11 @@ void VariantQueryProcessor::gt_fill_row(
   //If this is an END cell, then its begin value is guaranteed to be before the query_column_value. This
   //is because if the begin is AFTER query_column_value, then the begin cell would have been traversed first
   //by gt_get_column and the curr_call would already be marked initialized and invalid.
-  if(traverse_end_copies && cell_begin_value <= END_v && cell_begin_value > query_column_value)
+  //
+  //When traverse_end_copies == false, we are doing a forward traversal and any END copies of cells
+  //should be returned as invalid (and must be handled by the caller)
+  if((traverse_end_copies && cell_begin_value <= END_v && cell_begin_value > query_column_value)
+      || (!traverse_end_copies && cell_begin_value > END_v))
 #else
   //When no duplicate cells are present and the reverse iterator is used, if the cell ends before the query column,
   //mark the cell as initialized but invalid as the row has no valid data for this query position

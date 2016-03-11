@@ -494,13 +494,29 @@ void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants,
 void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
     std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
 {
+#ifdef DUPLICATE_CELL_AT_END
+  //no ordering exists in query_row_idx_in_order - do a column major sort first
+  query_row_idx_in_order.resize(get_num_calls());
+  //iterate over valid calls
+  auto valid_call_idx = 0ull;
+  for(auto iter=begin();iter!=end();++iter,++valid_call_idx)
+    query_row_idx_in_order[valid_call_idx] = iter.get_call_idx_in_variant();
+  query_row_idx_in_order.resize(valid_call_idx);
+  std::sort(query_row_idx_in_order.begin(), query_row_idx_in_order.end(), VariantCallIdxColumnMajorLT(this));
+#else
   if(query_row_idx_in_order.size() == 0u)
     return;
+#endif
   uint64_t last_column_idx = paging_info ? paging_info->get_last_column() : 0u;
   auto num_last_column_variants_handled_after_curr_page = 0u;
   bool stop_inserting_new_variants = false;
+#ifdef DUPLICATE_CELL_AT_END
+  //Sorted in column major order - so normal order
+  for(auto i=0ull;i<query_row_idx_in_order.size();++i)
+#else
   //Reverse order as gt_get_column uses reverse iterators
   for(int64_t i=query_row_idx_in_order.size()-1;i>=0;--i)
+#endif
   {
     auto query_row_idx = query_row_idx_in_order[i];
     assert(query_row_idx < get_num_calls());

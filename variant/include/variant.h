@@ -528,6 +528,22 @@ class Variant
     std::vector<unsigned> m_common_fields_query_idxs;
 };
 
+//Comparator for sorting VariantCall idxs in column major order
+class VariantCallIdxColumnMajorLT
+{
+  public:
+    VariantCallIdxColumnMajorLT(const Variant* variant) : m_variant(variant) { }
+    bool operator() (const int64_t i, const int64_t j) const
+    {
+      auto& call_i = m_variant->get_call(i);
+      auto& call_j = m_variant->get_call(j);
+      return (call_i.get_column_begin() < call_j.get_column_begin() ||
+          (call_i.get_column_begin() == call_j.get_column_begin() && call_i.get_row_idx() < call_j.get_row_idx()));
+    }
+  private:
+    const Variant* m_variant;
+};
+
 //GA4GH page token exception
 class InvalidGA4GHPageTokenException : public std::exception {
   public:
