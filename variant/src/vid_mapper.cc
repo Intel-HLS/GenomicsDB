@@ -157,7 +157,7 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   }
 }
 
-void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, const std::string array_name,
+void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
     const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields)
   const
 {
@@ -223,8 +223,7 @@ void VidMapper::build_tiledb_array_schema(ArraySchema*& array_schema, const std:
   if(compress_fields)
     for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
       compression.push_back(CompressionType::GZIP);
-  array_schema = new ArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression,
-        ArraySchema::CO_COLUMN_MAJOR);
+  array_schema = new VariantArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression);
 }
 
 void VidMapper::build_file_partitioning(const int partition_idx, const RowRange row_partition)

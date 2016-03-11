@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   }
   // Create storage manager
   // The input is the path to its workspace (the path must exist).
-  StorageManager sm(cl.m_workspace);
+  VariantStorageManager sm(cl.m_workspace);
   // Create query processor
   VariantQueryProcessor qp(&sm, cl.m_array_name);
   //Setup query config

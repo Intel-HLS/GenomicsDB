@@ -4,6 +4,7 @@
 #include "vid_mapper.h"
 #include "query_variants.h"
 #include "broad_combined_gvcf.h" 
+#include "variant_storage_manager.h"
 
 //Exceptions thrown
 class LoadOperatorException : public std::exception {
@@ -59,7 +60,7 @@ class LoaderArrayWriter : public LoaderOperatorBase
     virtual void operate(const void* cell_ptr)
     {
       assert(m_storage_manager);
-      m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
+      m_storage_manager->write_cell_sorted(m_array_descriptor, cell_ptr);
     }
     virtual void finish(const int64_t column_interval_end)
     {
@@ -68,8 +69,8 @@ class LoaderArrayWriter : public LoaderOperatorBase
     }
   private:
     int m_array_descriptor;
-    ArraySchema* m_schema;
-    StorageManager* m_storage_manager;
+    VariantArraySchema* m_schema;
+    VariantStorageManager* m_storage_manager;
 };
 
 #ifdef HTSDIR
@@ -105,7 +106,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     virtual void finish(const int64_t column_interval_end);
     void clear();
   private:
-    ArraySchema* m_schema;
+    VariantArraySchema* m_schema;
     VariantQueryProcessor* m_query_processor;
     const VidMapper* m_vid_mapper;
     VariantQueryConfig m_query_config;

@@ -2,7 +2,7 @@
 #include "variant_field_data.h"
 #include "variant_query_config.h"
 
-BufferVariantCell::BufferVariantCell(const ArraySchema& array_schema, const VariantQueryConfig& query_config)
+BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config)
 {
   clear();
   m_array_schema = &array_schema;

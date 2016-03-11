@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   if(cl.m_do_scan)
   {
     // Create storage manager
-    StorageManager sm_opt(cl.m_workspace);
+    VariantStorageManager sm_opt(cl.m_workspace);
     // Create query processor
     VariantQueryProcessor qp(&sm_opt, cl.m_array_name);
     //Setup query
@@ -74,23 +74,13 @@ int main(int argc, char** argv) {
   }
   else
   {
-#if 0
-    //Compute "optimal" segment size
-    const ArraySchema& array_schema = ad_gVCF->array_schema();
-    const std::vector<std::pair<double, double> >& dim_domains =
-      array_schema.dim_domains();
-    uint64_t total_num_samples = dim_domains[0].second - dim_domains[0].first + 1;
-    //double expected_num_tiles_per_query =  0.92 + 0.005*total_num_samples;
-    //if(expected_num_tiles_per_query < 1)
-    //expected_num_tiles_per_query = 1;
-#endif
     double expected_num_tiles_per_query = 1;
     uint64_t segment_size = expected_num_tiles_per_query*60000;
     //uint64_t segment_size = 8192;
     if(segment_size > SEGMENT_SIZE)
       segment_size = SEGMENT_SIZE;
     //Create new objects
-    StorageManager sm_opt(cl.m_workspace, segment_size);
+    VariantStorageManager sm_opt(cl.m_workspace, segment_size);
     // Create query processor
     VariantQueryProcessor qp(&sm_opt, cl.m_array_name);
     //Stats struct

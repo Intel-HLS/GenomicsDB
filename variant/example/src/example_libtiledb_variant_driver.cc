@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
     //Local TileDB structures
     /*Create storage manager*/
-    StorageManager sm(workspace);
+    VariantStorageManager sm(workspace);
     /*Create query processor*/
     VariantQueryProcessor qp(&sm, array_name);
 
