@@ -6,7 +6,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,874 +31,714 @@
  * This file implements the StorageManager class.
  */
 
-#include "const_cell_iterator.h"
-#include "special_values.h"
 #include "storage_manager.h"
-#include "tiledb_error.h"
-#include "utils.h"
-#include <algorithm>
-#include <assert.h>
-#include <dirent.h>
+#include <cassert>
+#include <cstring>
 #include <fcntl.h>
 #include <iostream>
-#include <sstream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <string>
 #include <sys/stat.h>
-#include <typeinfo>
+#include <unistd.h>
+#include <utils.h>
 
-/******************************************************
-************* CONSTRUCTORS & DESTRUCTORS **************
-******************************************************/
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
 
-StorageManager::StorageManager(const std::string& path, 
-                               size_t segment_size)
-    : segment_size_(segment_size), arrays_(NULL) {
-  // Success code
-  err_ = TILEDB_OK;
+#if VERBOSE == 1
+#  define PRINT_ERROR(x) std::cerr << "[TileDB] Error: " << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB] Warning: " \
+                                     << x << ".\n"
+#elif VERBOSE == 2
+#  define PRINT_ERROR(x) std::cerr << "[TileDB::StorageManager] Error: " \
+                                   << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB::StorageManager] Warning: " \
+                                     << x << ".\n"
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#  define PRINT_WARNING(x) do { } while(0) 
+#endif
 
-  if(!is_dir(path)) {
-    std::cerr << ERROR_MSG_HEADER 
-              << " Workspace directory '" << path << "' does not exist.\n";
-    err_ = TILEDB_EDNEXIST;
-    return;
-  }
+/* ****************************** */
+/*   CONSTRUCTORS & DESTRUCTORS   */
+/* ****************************** */
 
-  // Set workspace
-  set_workspace(path);
-
-  // Create directories
-  int rc;
-  if(!is_dir(workspace_)) {
-    rc = create_directory(workspace_);
-    if(rc) {
-      std::cerr << ERROR_MSG_HEADER
-                << " Cannot create directory '" << workspace_ << "'.\n";
-      err_ = TILEDB_EDNCREAT;
-      return;
-    }
-  }
-  std::string tmpdir = workspace_ + "/" + TEMP + "/";
-  if(!is_dir(tmpdir)) {
-    rc = create_directory(tmpdir);
-    if(rc) {
-      std::cerr << ERROR_MSG_HEADER
-                << " Cannot create directory '" << tmpdir << "'.\n";
-      err_ = TILEDB_EDNCREAT;
-      return;
-    }
-  }
-
-  // Set maximum size for write state
-  write_state_max_size_ = WRITE_STATE_MAX_SIZE;
-
-  // Initializes the structure that holds the open arrays
-  arrays_ = new Array*[MAX_OPEN_ARRAYS]; 
-  for(int i=0; i<MAX_OPEN_ARRAYS; ++i)
-    arrays_[i] = NULL;
+StorageManager::StorageManager(const char* config_filename) {
+  // Set configuration parameters
+  if(config_set(config_filename) == TILEDB_SM_ERR)
+    config_set_default();
 }
 
 StorageManager::~StorageManager() {
-  if (arrays_ != NULL) {
-    for(int i=0; i<MAX_OPEN_ARRAYS; ++i) {
-      if(arrays_[i] != NULL)
-        close_array(i);
-    }
-    delete [] arrays_;
-  }
 }
 
-/******************************************************
-********************* ACCESSORS ************************
-******************************************************/
+/* ****************************** */
+/*           WORKSPACE            */
+/* ****************************** */
 
-int StorageManager::err() const {
-  return err_;
-}
-
-/******************************************************
-********************* MUTATORS ************************
-******************************************************/
-
-void StorageManager::set_segment_size(size_t segment_size) {
-  segment_size_ = segment_size;
-}
-
-/******************************************************
-****************** ARRAY FUNCTIONS ********************
-******************************************************/
-
-bool StorageManager::array_defined(const std::string& array_name) const {
-  std::string filename = workspace_ + "/" + array_name + "/" + 
-                         ARRAY_SCHEMA_FILENAME;
-
-  int fd = open(filename.c_str(), O_RDONLY);
-
-  if(fd == -1) {
-    return false;
-  } else {
-    close(fd);
-    return true;
-  }
-}
-
-int StorageManager::clear_array(const std::string& array_name) {
-// TODO: more error messages
-
-  // Check if the array is defined
-  if(!array_defined(array_name)) {
-    std::cerr << ERROR_MSG_HEADER 
-              << " Array '" + array_name + "' is not defined.\n";
-    return TILEDB_ENDEFARR;
+int StorageManager::workspace_create(const std::string& dir) const {
+  // Check if the group is inside a workspace or another group
+  std::string parent_dir = ::parent_dir(dir);
+  if(is_workspace(parent_dir) || 
+     is_group(parent_dir) ||
+     is_array(parent_dir) ||
+     is_metadata(parent_dir)) {
+    PRINT_ERROR("The workspace cannot be contained in another workspace, "
+                "group, array or metadata directory");
+    return TILEDB_SM_ERR;
   }
 
-  // Close the array if it is open 
-  OpenArrays::iterator it = open_arrays_.find(array_name);
-  if(it != open_arrays_.end())
-    forced_close_array(it->second);
 
-  // Delete the entire array directory
-  std::string dirname = workspace_ + "/" + array_name + "/";
-  std::string filename; 
+  // Create group directory
+  if(create_dir(dir) != TILEDB_UT_OK)  
+    return TILEDB_SM_ERR;
 
-  struct dirent *next_file;
-  DIR* dir = opendir(dirname.c_str());
-  std::string fragments_filename = std::string(FRAGMENT_TREE_FILENAME) + 
-                                   BOOK_KEEPING_FILE_SUFFIX;
-  std::string array_schema_filename = std::string(ARRAY_SCHEMA_FILENAME);
+  // Create workspace file
+  if(create_workspace_file(dir) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
+
+  // TODO: Create master catalog
+
+  // Success
+  return TILEDB_SM_OK;
+}
+
+/* ****************************** */
+/*             GROUP              */
+/* ****************************** */
+
+int StorageManager::group_create(const std::string& dir) const {
+  // Check if the group is inside a workspace or another group
+  std::string parent_dir = ::parent_dir(dir);
+  if(!is_workspace(parent_dir) && !is_group(parent_dir)) {
+    PRINT_ERROR("The group must be contained in a workspace "
+                "or another group");
+    return TILEDB_SM_ERR;
+  }
+
+  // Create group directory
+  if(create_dir(dir) != TILEDB_UT_OK)  
+    return TILEDB_SM_ERR;
+
+  // Create group file
+  if(create_group_file(dir) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
+
+  // Success
+  return TILEDB_SM_OK;
+}
+
+/* ****************************** */
+/*             ARRAY              */
+/* ****************************** */
+
+int StorageManager::array_create(const ArraySchemaC* array_schema_c) const {
+  // Initialize array schema
+  ArraySchema* array_schema = new ArraySchema();
+  if(array_schema->init(array_schema_c) != TILEDB_AS_OK) {
+    delete array_schema;
+    return TILEDB_SM_ERR;
+  }
+
+  // Get real array directory name
+  std::string dir = array_schema->array_name();
+  std::string parent_dir = ::parent_dir(dir);
+
+  // Check if the array directory is contained in a workspace, group or array
+  if(!is_workspace(parent_dir) && 
+     !is_group(parent_dir)) {
+    PRINT_ERROR(std::string("Cannot create array; Directory '") + parent_dir + 
+                "' must be a TileDB workspace or group");
+    return TILEDB_SM_ERR;
+  }
+
+  // Create array with the new schema
+  int rc = array_create(array_schema);
   
-  // If the directory does not exist, exit
-  if(dir == NULL) {
-    std::cerr << ERROR_MSG_HEADER 
-              << " Cannot open directory '" + dirname + "'.\n";
-    return TILEDB_EFILE;
+  // Clean up
+  delete array_schema;
+
+  // Return
+  if(rc == TILEDB_AS_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
+
+int StorageManager::array_create(const ArraySchema* array_schema) const {
+  // Check array schema
+  if(array_schema == NULL) {
+    PRINT_ERROR("Cannot create array; Empty array schema");
+    return TILEDB_SM_ERR;
   }
-
-  while((next_file = readdir(dir))) {
-    if(strcmp(next_file->d_name, ".") == 0 ||
-       strcmp(next_file->d_name, "..") == 0 ||
-       strcmp(next_file->d_name, array_schema_filename.c_str()) == 0)
-      continue;
-    if(strcmp(next_file->d_name, fragments_filename.c_str()) == 0)  {
-      filename = dirname + next_file->d_name;
-      remove(filename.c_str());
-    }
-    else {  // It is a fragment directory
-      delete_directory(dirname + next_file->d_name);
-    }
-  } 
-  
-  closedir(dir);
-
-  return TILEDB_OK;
-}
-
-void StorageManager::close_array(int ad) {
-  if(arrays_[ad] == NULL)
-    return;
-
-  open_arrays_.erase(arrays_[ad]->array_schema()->array_name());
-  delete arrays_[ad];
-  arrays_[ad] = NULL;
-}
-
-int StorageManager::define_array(const ArraySchema* array_schema) {
-  // For easy reference
-  const std::string& array_name = array_schema->array_name();
-  std::string err_msg;
-
-  // Delete array if it exists
-  if(array_defined(array_name)) 
-    delete_array(array_name); 
 
   // Create array directory
-  std::string dir_name = workspace_ + "/" + array_name + "/"; 
-  create_directory(dir_name);
+  std::string dir = array_schema->array_name();
+  if(create_dir(dir) == TILEDB_UT_ERR) 
+    return TILEDB_SM_ERR;
 
-  // Open file
-  std::string filename = dir_name + ARRAY_SCHEMA_FILENAME; 
-  remove(filename.c_str());
-  int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
-  if(fd == -1) 
-    return -1;
+  // Open array schema file
+  std::string filename = dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME; 
+  int fd = ::open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
+  if(fd == -1) {
+    PRINT_ERROR(std::string("Cannot create array; ") + strerror(errno));
+    return TILEDB_SM_ERR;
+  }
 
   // Serialize array schema
-  std::pair<const char*, size_t> ret = array_schema->serialize();
-  const char* buffer = ret.first;
-  size_t buffer_size = ret.second; 
+  void* array_schema_bin;
+  size_t array_schema_bin_size;
+  if(array_schema->serialize(array_schema_bin, array_schema_bin_size) !=
+     TILEDB_AS_OK)
+    return TILEDB_SM_ERR;
 
   // Store the array schema
-  write(fd, buffer, buffer_size); 
+  ssize_t bytes_written = ::write(fd, array_schema_bin, array_schema_bin_size);
+  if(bytes_written != array_schema_bin_size) {
+    PRINT_ERROR(std::string("Cannot create array; ") + strerror(errno));
+    free(array_schema_bin);
+    return TILEDB_SM_ERR;
+  }
 
-  delete [] buffer;
-  close(fd);
+  // Clean up
+  free(array_schema_bin);
+  if(::close(fd)) {
+    PRINT_ERROR(std::string("Cannot create array; ") + strerror(errno));
+    return TILEDB_SM_ERR;
+  }
 
-  return TILEDB_OK;
+  // Success
+  return TILEDB_SM_OK;
 }
 
-int StorageManager::delete_array(const std::string& array_name) {
-  // Check if the array is defined
-  if(!array_defined(array_name)) {
-    std::cerr << ERROR_MSG_HEADER 
-              << " Array '" + array_name + "' is not defined.\n";
-    return TILEDB_ENDEFARR;
+int StorageManager::array_init(
+    Array*& array,
+    const char* dir,
+    int mode,
+    const void* range,
+    const char** attributes,
+    int attribute_num)  const {
+  // Load array schema
+  ArraySchema* array_schema;
+  if(array_load_schema(dir, array_schema) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
+
+  // Create Array object
+  array = new Array();
+  int rc = array->init(array_schema, mode, attributes, attribute_num, range);
+
+  // Return
+  if(rc != TILEDB_AR_OK) {
+    delete array;
+    array = NULL;
+    return TILEDB_SM_ERR;
+  } else {
+    return TILEDB_SM_OK;
   }
+}
 
-  // Close the array if it is open 
-  OpenArrays::iterator it = open_arrays_.find(array_name);
-  if(it != open_arrays_.end())
-    forced_close_array(it->second);
+int StorageManager::array_iterator_init(
+    ArrayIterator*& array_iterator,
+    const char* dir,
+    const void* range,
+    const char** attributes,
+    int attribute_num,
+    void** buffers,
+    size_t* buffer_sizes)  const {
+  // Load array schema
+  ArraySchema* array_schema;
+  if(array_load_schema(dir, array_schema) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
 
-  // Delete the entire array directory
-  std::string dirname = workspace_ + "/" + array_name + "/";
-  std::string filename; 
-  std::string fragments_filename = std::string(FRAGMENT_TREE_FILENAME) + 
-                                   BOOK_KEEPING_FILE_SUFFIX;
-  std::string array_schema_filename = std::string(ARRAY_SCHEMA_FILENAME);
-
-  struct dirent *next_file;
-  DIR* dir = opendir(dirname.c_str());
-  
-  // If the directory does not exist, exit
-  if(dir == NULL) {
-    std::cerr << ERROR_MSG_HEADER 
-              << " Cannot open directory '" + dirname + "'.\n";
-    return TILEDB_EFILE;
-  }
-
-  // TODO: more error handling here
-  while((next_file = readdir(dir))) {
-    if(strcmp(next_file->d_name, ".") == 0 ||
-       strcmp(next_file->d_name, "..") == 0)
-      continue;
-    if(strcmp(next_file->d_name, fragments_filename.c_str()) == 0 ||
-       strcmp(next_file->d_name, array_schema_filename.c_str()) == 0) {
-      filename = dirname + next_file->d_name;
-      remove(filename.c_str());
-    }
-    else {  // It is a fragment directory
-      delete_directory(dirname + next_file->d_name);
-    }
+  // Create Array object
+  Array* array = new Array();
+  if(array->init(array_schema, TILEDB_READ, attributes, attribute_num, range) !=
+     TILEDB_AR_OK) {
+    delete array;
+    array_iterator = NULL;
+    return TILEDB_SM_ERR;
   } 
-  
-  closedir(dir);
-  rmdir(dirname.c_str());
 
-  return TILEDB_OK;
+  // Create ArrayIterator object
+  array_iterator = new ArrayIterator();
+  if(array_iterator->init(array, buffers, buffer_sizes) != TILEDB_AIT_OK) {
+    delete array;
+    delete array_iterator;
+    array_iterator = NULL;
+    return TILEDB_SM_ERR;
+  } 
+
+  // Success
+  return TILEDB_SM_OK;
 }
 
-void StorageManager::forced_close_array(int ad) {
-  if(arrays_[ad] == NULL)
-    return;
+int StorageManager::metadata_iterator_init(
+    MetadataIterator*& metadata_iterator,
+    const char* dir,
+    const char** attributes,
+    int attribute_num,
+    void** buffers,
+    size_t* buffer_sizes)  const {
+  // Load array schema
+  ArraySchema* array_schema;
+  if(metadata_load_schema(dir, array_schema) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
 
-  const std::string& array_name = arrays_[ad]->array_schema()->array_name();
+  // Create Array object
+  Metadata* metadata = new Metadata();
+  if(metadata->init(
+         array_schema, 
+         TILEDB_METADATA_READ, 
+         attributes, 
+         attribute_num) !=
+     TILEDB_MT_OK) {
+    delete metadata;
+    metadata_iterator = NULL;
+    return TILEDB_SM_ERR;
+  } 
 
-  arrays_[ad]->forced_close();
-  open_arrays_.erase(array_name);
-  delete arrays_[ad];
-  arrays_[ad] = NULL;
+  // Create ArrayIterator object
+  metadata_iterator = new MetadataIterator();
+  if(metadata_iterator->init(metadata, buffers, buffer_sizes) != TILEDB_MIT_OK) {
+    delete metadata;
+    delete metadata_iterator;
+    metadata_iterator = NULL;
+    return TILEDB_SM_ERR;
+  } 
+
+  // Success
+  return TILEDB_SM_OK;
 }
 
-int StorageManager::get_array_schema(
-    int ad, const ArraySchema*& array_schema) const {
-std::string err_msg;
+int StorageManager::array_reinit_subarray(
+    Array* array,
+    const void* subarray)  const {
+  int rc = array->reinit_subarray(subarray);
 
- // TODO: Remove err_msg
-
-  if(arrays_[ad] == NULL) {
-    err_msg = "Array is not open.";
-    return -1;
-  }
-
-  array_schema = arrays_[ad]->array_schema();
-  return TILEDB_OK;
+  // Return
+  if(rc != TILEDB_AR_OK) 
+    return TILEDB_SM_ERR;
+  else
+    return TILEDB_SM_OK;
 }
 
-int StorageManager::get_array_schema(
-    const std::string& array_name, 
+
+int StorageManager::array_finalize(Array* array) const {
+  // If the array is NULL, do nothing
+  if(array == NULL)
+    return TILEDB_SM_OK;
+
+  // Finalize array
+  int rc = array->finalize();
+  delete array;
+
+  // Return
+  if(rc == TILEDB_AR_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
+
+int StorageManager::array_iterator_finalize(
+    ArrayIterator* array_iterator) const {
+  // If the array iterator is NULL, do nothing
+  if(array_iterator == NULL)
+    return TILEDB_SM_OK;
+
+  // Finalize array
+  int rc = array_iterator->finalize();
+  delete array_iterator;
+
+  // Return
+  if(rc == TILEDB_AIT_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
+
+int StorageManager::metadata_iterator_finalize(
+    MetadataIterator* metadata_iterator) const {
+  // If the metadata iterator is NULL, do nothing
+  if(metadata_iterator == NULL)
+    return TILEDB_SM_OK;
+
+  // Finalize array
+  int rc = metadata_iterator->finalize();
+  delete metadata_iterator;
+
+  // Return
+  if(rc == TILEDB_MIT_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
+
+int StorageManager::array_load_schema(
+    const char* dir,
     ArraySchema*& array_schema) const {
-  // Open file
-  std::string filename = workspace_ + "/" + array_name + "/" + 
-                         ARRAY_SCHEMA_FILENAME;
-  int fd = open(filename.c_str(), O_RDONLY);
-  if(fd == -1) {
-    if(!is_file(filename.c_str())) {
-      std::cerr << ERROR_MSG_HEADER 
-               << " Undefined array '" << array_name << "'.\n";
-      return TILEDB_ENDEFARR;
-    } else {
-      std::cerr << ERROR_MSG_HEADER 
-               << " Cannot open file '" << filename << "'.\n";
-      return TILEDB_EFILE;
-    }
+  // Get real array path
+  std::string real_dir = ::real_dir(dir);
+
+  // Check if array exists
+  if(!is_array(real_dir)) {
+    PRINT_ERROR(std::string("Cannot load array schema; Array '") + real_dir + 
+                "' does not exist");
+    return TILEDB_SM_ERR;
   }
 
-  // The schema to be returned
-  array_schema = new ArraySchema();
+  // Open array schema file
+  std::string filename = real_dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME;
+  int fd = ::open(filename.c_str(), O_RDONLY);
+  if(fd == -1) {
+    PRINT_ERROR("Cannot load schema; File opening error");
+    return TILEDB_SM_ERR;
+  }
 
   // Initialize buffer
   struct stat st;
   fstat(fd, &st);
   ssize_t buffer_size = st.st_size;
   if(buffer_size == 0) {
-    std::cerr << ERROR_MSG_HEADER 
-             << " File '" << filename << "' is empty.\n";
-    return TILEDB_EFILE;
+    PRINT_ERROR("Cannot load array schema; Empty array schema file");
+    return TILEDB_SM_ERR;
   }
-  char* buffer = new char[buffer_size];
+  void* buffer = malloc(buffer_size);
 
   // Load array schema
-  ssize_t bytes_read = read(fd, buffer, buffer_size);
+  ssize_t bytes_read = ::read(fd, buffer, buffer_size);
   if(bytes_read != buffer_size) {
-    // Clean up
-    delete [] buffer;
-    std::cerr << ERROR_MSG_HEADER 
-             << " Cannot read schema from file '" << filename << "'.\n";
-    return TILEDB_EFILE;
+    PRINT_ERROR("Cannot load array schema; File reading error");
+    free(buffer);
+    return TILEDB_SM_ERR;
   } 
-  array_schema->deserialize(buffer, buffer_size);
+
+  // Initialize array schema
+  array_schema = new ArraySchema();
+  if(array_schema->deserialize(buffer, buffer_size) == TILEDB_AS_ERR) {
+    free(buffer);
+    delete array_schema;
+    return TILEDB_SM_ERR;
+  }
 
   // Clean up
-  delete [] buffer;
-  int rc = close(fd);
-  if(rc != 0) {
-    std::cerr << ERROR_MSG_HEADER 
-             << " Cannot close file '" << filename << "'.\n";
-    return TILEDB_EFILE;
+  free(buffer);
+  if(::close(fd)) {
+    delete array_schema;
+    PRINT_ERROR("Cannot load array schema; File closing error");
+    return TILEDB_SM_ERR;
   }
 
-  return TILEDB_OK;
+  // Success
+  return TILEDB_SM_OK;
 }
 
-void StorageManager::get_version() {
-  std::cout << "TileDB StorageManager Version 0.1\n";
-}
+int StorageManager::array_write(
+    Array* array,
+    const void** buffers,
+    const size_t* buffer_sizes) const {
+  // Sanity check
+  if(array == NULL) {
+    PRINT_ERROR("Cannot write to array; Invalid array pointer");
+    return TILEDB_SM_ERR;
+  }
 
-int StorageManager::open_array(
-    const std::string& array_name, const char* mode) {
-  // Proper checks
-  int err = check_on_open_array(array_name, mode);
-  if(err == -1)
-    return -1;
-
-  // Get array mode
-  Array::Mode array_mode;
-  if(strcmp(mode, "w") == 0)
-    array_mode = Array::WRITE;
-  else if(strcmp(mode, "a") == 0) 
-    array_mode = Array::APPEND;
-  else if(strcmp(mode, "r") == 0)
-    array_mode = Array::READ;
+  // Write array
+  if(array->write(buffers, buffer_sizes) != TILEDB_AR_OK) 
+    return TILEDB_SM_ERR;
   else
-    return -1; // TODO: better error here
+    return TILEDB_SM_OK;
+}
 
-  // If in write mode, delete the array if it exists
-  if(array_mode == Array::WRITE) 
-    clear_array(array_name); 
+int StorageManager::array_read(
+    Array* array,
+    void** buffers,
+    size_t* buffer_sizes) const {
+  // Sanity check
+  if(array == NULL) {
+    PRINT_ERROR("Cannot read from array; Invalid array pointer");
+    return TILEDB_SM_ERR;
+  }
 
-  // Initialize an Array object
+  if(array->read(buffers, buffer_sizes) == TILEDB_AR_ERR) 
+    return TILEDB_SM_ERR;
+  else
+    return TILEDB_SM_OK;
+}
+
+/* ****************************** */
+/*             COMMON             */
+/* ****************************** */
+
+int StorageManager::clear(const std::string& dir) const {
+  // TODO
+}
+
+int StorageManager::delete_entire(const std::string& dir) const {
+  // TODO
+}
+
+int StorageManager::move(
+    const std::string& old_dir,
+    const std::string& new_dir) const {
+  // TODO
+}
+
+/* ****************************** */
+/*         PRIVATE METHODS        */
+/* ****************************** */
+
+int StorageManager::config_set(const char* config_filename) {
+  // TODO
+
+  return TILEDB_SM_OK;
+} 
+
+void StorageManager::config_set_default() {
+  // TODO
+} 
+
+int StorageManager::create_group_file(const std::string& dir) const {
+  std::string filename = std::string(dir) + "/" + TILEDB_GROUP_FILENAME;
+  int fd = ::open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
+  if(fd == -1 || ::close(fd)) {
+    PRINT_ERROR(std::string("Failed to create group file; ") +
+                strerror(errno));
+    return TILEDB_SM_ERR;
+  }
+
+  return TILEDB_SM_OK;
+}
+
+int StorageManager::create_workspace_file(const std::string& dir) const {
+  std::string filename = std::string(dir) + "/" + TILEDB_WORKSPACE_FILENAME;
+  int fd = ::open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
+  if(fd == -1 || ::close(fd)) {
+    PRINT_ERROR(std::string("Failed to create workspace file; ") +
+                strerror(errno));
+    return TILEDB_SM_ERR;
+  }
+
+  return TILEDB_SM_OK;
+}
+
+/* ****************************** */
+/*            METADATA            */
+/* ****************************** */
+
+int StorageManager::metadata_create(
+    const MetadataSchemaC* metadata_schema_c) const {
+  // Initialize array schema
+  ArraySchema* array_schema = new ArraySchema();
+  if(array_schema->init(metadata_schema_c) != TILEDB_AS_OK) {
+    delete array_schema;
+    return TILEDB_SM_ERR;
+  }
+
+  // Get real array directory name
+  std::string dir = array_schema->array_name();
+  std::string parent_dir = ::parent_dir(dir);
+
+  // Check if the array directory is contained in a workspace, group or array
+  if(!is_workspace(parent_dir) && 
+     !is_group(parent_dir) &&
+     !is_array(parent_dir)) {
+    PRINT_ERROR(std::string("Cannot create metadata; Directory '") + parent_dir + 
+                "' must be a TileDB workspace, group, or array");
+    return TILEDB_SM_ERR;
+  }
+
+  // Create array with the new schema
+  int rc = metadata_create(array_schema);
+  
+  // Clean up
+  delete array_schema;
+
+  // Return
+  if(rc == TILEDB_AS_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
+
+int StorageManager::metadata_create(const ArraySchema* array_schema) const {
+  // Check metadata schema
+  if(array_schema == NULL) {
+    PRINT_ERROR("Cannot create metadata; Empty metadata schema");
+    return TILEDB_SM_ERR;
+  }
+
+  // Create array directory
+  std::string dir = array_schema->array_name();
+  if(create_dir(dir) == TILEDB_UT_ERR) 
+    return TILEDB_SM_ERR;
+
+  // Open metadata schema file
+  std::string filename = dir + "/" + TILEDB_METADATA_SCHEMA_FILENAME; 
+  int fd = ::open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
+  if(fd == -1) {
+    PRINT_ERROR(std::string("Cannot create metadata; ") + strerror(errno));
+    return TILEDB_SM_ERR;
+  }
+
+  // Serialize metadata schema
+  void* array_schema_bin;
+  size_t array_schema_bin_size;
+  if(array_schema->serialize(array_schema_bin, array_schema_bin_size) !=
+     TILEDB_AS_OK)
+    return TILEDB_SM_ERR;
+
+  // Store the array schema
+  ssize_t bytes_written = ::write(fd, array_schema_bin, array_schema_bin_size);
+  if(bytes_written != array_schema_bin_size) {
+    PRINT_ERROR(std::string("Cannot create metadata; ") + strerror(errno));
+    free(array_schema_bin);
+    return TILEDB_SM_ERR;
+  }
+
+  // Clean up
+  free(array_schema_bin);
+  if(::close(fd)) {
+    PRINT_ERROR(std::string("Cannot create metadata; ") + strerror(errno));
+    return TILEDB_SM_ERR;
+  }
+
+  // Success
+  return TILEDB_SM_OK;
+}
+
+int StorageManager::metadata_init(
+    Metadata*& metadata,
+    const char* dir,
+    int mode,
+    const char** attributes,
+    int attribute_num)  const {
+  // Load array schema
   ArraySchema* array_schema;
-  get_array_schema(array_name, array_schema);
-  Array* array = new Array(workspace_, segment_size_,
-                           write_state_max_size_,
-                           array_schema, array_mode);
+  if(metadata_load_schema(dir, array_schema) != TILEDB_SM_OK)
+    return TILEDB_SM_ERR;
 
-  // If the array is in write or append mode, initialize a new fragment
-  if(array_mode == Array::WRITE || array_mode == Array::APPEND)
-    array->new_fragment();
+  // Create Array object
+  metadata = new Metadata();
+  int rc = metadata->init(array_schema, mode, attributes, attribute_num);
 
-  // Stores the Array object and returns an array descriptor
-  int ad = store_array(array);
-
-  // Maximum open arrays reached
-  if(ad == -1) {
-    delete array; 
-// TODO    err_msg = std::string("Cannot open array' ") + array_name +
-//              "'. Maximum open arrays reached.";
-    return -1;
-  }
-
-  // Keep track of the opened array
-  open_arrays_[array_name] = ad;
-
-  return ad;
-}
-
-/******************************************************
-******************* CELL FUNCTIONS ********************
-******************************************************/
-
-template<class T>
-ArrayConstCellIterator<T>* StorageManager::begin(
-    int ad) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstCellIterator<T>(arrays_[ad]);
-}
-
-template<class T>
-ArrayConstCellIterator<T>* StorageManager::begin(
-    int ad, const std::vector<int>& attribute_ids) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstCellIterator<T>(arrays_[ad], attribute_ids);
-}
-
-template<class T>
-ArrayConstCellIterator<T>* StorageManager::begin(
-    int ad, const T* range) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstCellIterator<T>(arrays_[ad], range);
-}
-
-template<class T>
-ArrayConstCellIterator<T>* StorageManager::begin(
-    int ad, const T* range, const std::vector<int>& attribute_ids) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstCellIterator<T>(arrays_[ad], range, attribute_ids);
-}
-
-template<class T>
-ArrayConstDenseCellIterator<T>* StorageManager::begin_dense(
-    int ad) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-
-  return new ArrayConstDenseCellIterator<T>(arrays_[ad]);
-}
-
-template<class T>
-ArrayConstDenseCellIterator<T>* StorageManager::begin_dense(
-    int ad, const std::vector<int>& attribute_ids) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-
-  return new ArrayConstDenseCellIterator<T>(arrays_[ad], attribute_ids);
-}
-
-template<class T>
-ArrayConstDenseCellIterator<T>* StorageManager::begin_dense(
-    int ad, const T* range) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-
-  return new ArrayConstDenseCellIterator<T>(arrays_[ad], range);
-}
-
-template<class T>
-ArrayConstDenseCellIterator<T>* StorageManager::begin_dense(
-    int ad, const T* range, const std::vector<int>& attribute_ids) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-
-  return new ArrayConstDenseCellIterator<T>(arrays_[ad], range, attribute_ids);
-}
-
-template<class T>
-ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
-    int ad) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstReverseCellIterator<T>(arrays_[ad]);
-}
-
-template<class T>
-ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
-    int ad, const std::vector<int>& attribute_ids) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstReverseCellIterator<T>(arrays_[ad], attribute_ids);
-}
-
-template<class T>
-ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
-    int ad, const T* multi_D_obj, bool range) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstReverseCellIterator<T>(arrays_[ad], multi_D_obj, range);
-}
-
-template<class T>
-ArrayConstReverseCellIterator<T>* StorageManager::rbegin(
-    int ad, const T* multi_D_obj, 
-    const std::vector<int>& attribute_ids,
-    bool range) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
-  assert(arrays_[ad]->mode() == Array::READ);
-  assert(!arrays_[ad]->empty());
-
-  return new ArrayConstReverseCellIterator<T>(
-                 arrays_[ad], multi_D_obj, attribute_ids, range);
-}
-
-void StorageManager::read_cells(int ad, const void* range, 
-                                const std::vector<int>& attribute_ids,
-                                void*& cells, size_t& cells_size) const {
-  // For easy reference
-  int attribute_num = arrays_[ad]->array_schema()->attribute_num();
-  const std::type_info& coords_type = 
-      *(arrays_[ad]->array_schema()->type(attribute_num));
-
-  if(coords_type == typeid(int))
-    read_cells<int>(ad, static_cast<const int*>(range), 
-                    attribute_ids, cells, cells_size);
-  else if(coords_type == typeid(int64_t))
-    read_cells<int64_t>(ad, static_cast<const int64_t*>(range), 
-                        attribute_ids, cells, cells_size);
-  else if(coords_type == typeid(float))
-    read_cells<float>(ad, static_cast<const float*>(range), 
-                      attribute_ids, cells, cells_size);
-  else if(coords_type == typeid(double))
-    read_cells<double>(ad, static_cast<const double*>(range), 
-                       attribute_ids, cells, cells_size);
-}
-
-template<class T>
-void StorageManager::read_cells(int ad, const T* range, 
-                                const std::vector<int>& attribute_ids,
-                                void*& cells, size_t& cells_size) const {
-  // Initialization
-  size_t cell_size;          // Single cell
-  cells_size = 0;            // All cells collectively
-  size_t buffer_size = segment_size_;
-  cells = malloc(buffer_size);
-
-  // Prepare cell iterator
-  ArrayConstCellIterator<T>* cell_it = begin<T>(ad, range, attribute_ids);
-
-  // Write cells into the CSV file
-  for(; !cell_it->end(); ++(*cell_it)) { 
-    // Expand buffer
-    if(cells_size == buffer_size) {
-      expand_buffer(cells, buffer_size);
-      buffer_size *= 2;
-    } 
-
-    // Retrieve cell size
-    cell_size = cell_it->cell_size();
-    memcpy(static_cast<char*>(cells) + cells_size, **cell_it, cell_size);
-    cells_size += cell_size;
+  // Return
+  if(rc != TILEDB_MT_OK) {
+    delete metadata;
+    metadata = NULL;
+    return TILEDB_SM_ERR;
+  } else {
+    return TILEDB_SM_OK;
   }
 }
 
-template<class T>
-void StorageManager::write_cell(int ad, const void* cell) const {
-  assert(ad >= 0 && ad < MAX_OPEN_ARRAYS);
-  assert(arrays_[ad] != NULL);
+int StorageManager::metadata_load_schema(
+    const char* dir,
+    ArraySchema*& array_schema) const {
+  // Get real array path
+  std::string real_dir = ::real_dir(dir);
 
-  arrays_[ad]->write_cell<T>(cell);
-}
-
-template<class T>
-void StorageManager::write_cell_sorted(int ad, const void* cell) const {
-  arrays_[ad]->write_cell_sorted<T>(cell); 
-}
-
-void StorageManager::write_cells(
-    int ad, const void* cells, size_t cells_size) const {
-  // For easy reference
-  int attribute_num = arrays_[ad]->array_schema()->attribute_num();
-  const std::type_info& coords_type = 
-      *(arrays_[ad]->array_schema()->type(attribute_num));
-
-  if(coords_type == typeid(int))
-    write_cells<int>(ad, cells, cells_size);
-  else if(coords_type == typeid(int64_t))
-    write_cells<int64_t>(ad, cells, cells_size);
-  else if(coords_type == typeid(float))
-    write_cells<float>(ad, cells, cells_size);
-  else if(coords_type == typeid(double))
-    write_cells<double>(ad, cells, cells_size);
-}
-
-template<class T>
-void StorageManager::write_cells(
-    int ad, const void* cells, size_t cells_size) const {
-  ConstCellIterator cell_it(cells, cells_size, arrays_[ad]->array_schema());
-
-  for(; !cell_it.end(); ++cell_it) 
-    write_cell<T>(ad, *cell_it);
-}
-
-void StorageManager::write_cells_sorted(
-    int ad, const void* cells, size_t cells_size) const {
-  // For easy reference
-  int attribute_num = arrays_[ad]->array_schema()->attribute_num();
-  const std::type_info& coords_type = 
-      *(arrays_[ad]->array_schema()->type(attribute_num));
-
-  if(coords_type == typeid(int))
-    write_cells_sorted<int>(ad, cells, cells_size);
-  else if(coords_type == typeid(int64_t))
-    write_cells_sorted<int64_t>(ad, cells, cells_size);
-  else if(coords_type == typeid(float))
-    write_cells_sorted<float>(ad, cells, cells_size);
-  else if(coords_type == typeid(double))
-    write_cells_sorted<double>(ad, cells, cells_size);
-}
-
-template<class T>
-void StorageManager::write_cells_sorted(
-    int ad, const void* cells, size_t cells_size) const {
-  ConstCellIterator cell_it(cells, cells_size, arrays_[ad]->array_schema());
-
-  for(; !cell_it.end(); ++cell_it) 
-    write_cell_sorted<T>(ad, *cell_it);
-}
-
-/******************************************************
-***************** PRIVATE FUNCTIONS *******************
-******************************************************/
-
-int StorageManager::check_on_open_array(
-    const std::string& array_name, const char* mode) const {
-  // Check if the array is defined
-  if(!array_defined(array_name)) {
-    // TODO err_msg = std::string("Array '") + array_name + "' is not defined.";
-    return -1;
+  // Check if metadata exists
+  if(!is_metadata(real_dir)) {
+    PRINT_ERROR(std::string("Cannot load metadata schema; Metadata '") + real_dir + 
+                "' does not exist");
+    return TILEDB_SM_ERR;
   }
 
-  // Check mode
-  if(invalid_array_mode(mode)) {
-    // TODO err_msg = std::string("Invalid mode '") + mode + "'."; 
-    return -1;
+  // Open array schema file
+  std::string filename = real_dir + "/" + TILEDB_METADATA_SCHEMA_FILENAME;
+  int fd = ::open(filename.c_str(), O_RDONLY);
+  if(fd == -1) {
+    PRINT_ERROR("Cannot load metadata schema; File opening error");
+    return TILEDB_SM_ERR;
   }
 
-  // Check if array is already open
-  if(open_arrays_.find(array_name) != open_arrays_.end()) {
-    // TODO err_msg = std::string("Array '") + array_name + "' already open."; 
-    return -1;
+  // Initialize buffer
+  struct stat st;
+  fstat(fd, &st);
+  ssize_t buffer_size = st.st_size;
+  if(buffer_size == 0) {
+    PRINT_ERROR("Cannot load metadata schema; Empty metadata schema file");
+    return TILEDB_SM_ERR;
+  }
+  void* buffer = malloc(buffer_size);
+
+  // Load array schema
+  ssize_t bytes_read = ::read(fd, buffer, buffer_size);
+  if(bytes_read != buffer_size) {
+    PRINT_ERROR("Cannot load metadata schema; File reading error");
+    free(buffer);
+    return TILEDB_SM_ERR;
+  } 
+
+  // Initialize array schema
+  array_schema = new ArraySchema();
+  if(array_schema->deserialize(buffer, buffer_size) == TILEDB_AS_ERR) {
+    free(buffer);
+    delete array_schema;
+    return TILEDB_SM_ERR;
   }
 
-  return TILEDB_OK;
-}
-
-bool StorageManager::invalid_array_mode(const char* mode) const {
-  if(strcmp(mode, "r") && strcmp(mode, "w") && strcmp(mode, "a"))
-    return true;
-  else 
-    return false;
-}
-
-inline
-void StorageManager::set_workspace(const std::string& path) {
-  workspace_ = absolute_path(path);
-
-  assert(is_dir(workspace_));
-
-  if(!ends_with(workspace_, "/"))
-    workspace_ += "/";
-
-  workspace_ += "StorageManager";
-
-  return;
-}
-
-int StorageManager::store_array(Array* array) {
-  int ad = -1;
-
-  for(int i=0; i<MAX_OPEN_ARRAYS; ++i) {
-    if(arrays_[i] == NULL) {
-      ad = i; 
-      break;
-    }
+  // Clean up
+  free(buffer);
+  if(::close(fd)) {
+    delete array_schema;
+    PRINT_ERROR("Cannot load metadata schema; File closing error");
+    return TILEDB_SM_ERR;
   }
 
-  if(ad != -1) 
-    arrays_[ad] = array;
-
-  return ad;
+  // Success
+  return TILEDB_SM_OK;
 }
 
-// Explicit template instantiations
-template ArrayConstCellIterator<int>*
-StorageManager::begin<int>(int ad) const;
-template ArrayConstCellIterator<int64_t>*
-StorageManager::begin<int64_t>(int ad) const;
-template ArrayConstCellIterator<float>*
-StorageManager::begin<float>(int ad) const;
-template ArrayConstCellIterator<double>*
-StorageManager::begin<double>(int ad) const;
+int StorageManager::metadata_finalize(Metadata* metadata) const {
+  // If the array is NULL, do nothing
+  if(metadata == NULL)
+    return TILEDB_SM_OK;
 
-template ArrayConstCellIterator<int>*
-StorageManager::begin<int>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<int64_t>*
-StorageManager::begin<int64_t>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<float>*
-StorageManager::begin<float>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<double>*
-StorageManager::begin<double>(
-    int ad, const std::vector<int>& attribute_ids) const;
+  // Finalize array
+  int rc = metadata->finalize();
+  delete metadata;
 
-template ArrayConstCellIterator<int>*
-StorageManager::begin<int>(int ad, const int* range) const;
-template ArrayConstCellIterator<int64_t>*
-StorageManager::begin<int64_t>(int ad, const int64_t* range) const;
-template ArrayConstCellIterator<float>*
-StorageManager::begin<float>(int ad, const float* range) const;
-template ArrayConstCellIterator<double>*
-StorageManager::begin<double>(int ad, const double* range) const;
+  // Return
+  if(rc == TILEDB_MT_OK)
+    return TILEDB_SM_OK;
+  else
+    return TILEDB_SM_ERR;
+}
 
-template ArrayConstCellIterator<int>*
-StorageManager::begin<int>(
-    int ad, const int* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<int64_t>*
-StorageManager::begin<int64_t>(
-    int ad, const int64_t* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<float>*
-StorageManager::begin<float>(
-    int ad, const float* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstCellIterator<double>*
-StorageManager::begin<double>(
-    int ad, const double* range, const std::vector<int>& attribute_ids) const;
+int StorageManager::metadata_write(
+    Metadata* metadata,
+    const char* keys,
+    size_t keys_size,
+    const void** buffers,
+    const size_t* buffer_sizes) const {
+  // Sanity check
+  if(metadata == NULL) {
+    PRINT_ERROR("Cannot write to metadata; Invalid metadata pointer");
+    return TILEDB_SM_ERR;
+  }
 
-template ArrayConstDenseCellIterator<int>*
-StorageManager::begin_dense<int>(int ad) const;
-template ArrayConstDenseCellIterator<int64_t>*
-StorageManager::begin_dense<int64_t>(int ad) const;
-template ArrayConstDenseCellIterator<float>*
-StorageManager::begin_dense<float>(int ad) const;
-template ArrayConstDenseCellIterator<double>*
-StorageManager::begin_dense<double>(int ad) const;
+  // Write metadata
+  if(metadata->write(keys, keys_size, buffers, buffer_sizes) != TILEDB_MT_OK) 
+    return TILEDB_SM_ERR;
+  else
+    return TILEDB_SM_OK;
+}
 
-template ArrayConstDenseCellIterator<int>*
-StorageManager::begin_dense<int>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<int64_t>*
-StorageManager::begin_dense<int64_t>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<float>*
-StorageManager::begin_dense<float>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<double>*
-StorageManager::begin_dense<double>(
-    int ad, const std::vector<int>& attribute_ids) const;
+int StorageManager::metadata_read(
+    Metadata* metadata,
+    const char* key,
+    void** buffers,
+    size_t* buffer_sizes) const {
+  // Sanity check
+  if(metadata == NULL) {
+    PRINT_ERROR("Cannot read from metadata; Invalid metadata pointer");
+    return TILEDB_SM_ERR;
+  }
 
-template ArrayConstDenseCellIterator<int>*
-StorageManager::begin_dense<int>(int ad, const int* range) const;
-template ArrayConstDenseCellIterator<int64_t>*
-StorageManager::begin_dense<int64_t>(int ad, const int64_t* range) const;
-template ArrayConstDenseCellIterator<float>*
-StorageManager::begin_dense<float>(int ad, const float* range) const;
-template ArrayConstDenseCellIterator<double>*
-StorageManager::begin_dense<double>(int ad, const double* range) const;
-
-template ArrayConstDenseCellIterator<int>*
-StorageManager::begin_dense<int>(
-    int ad, const int* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<int64_t>*
-StorageManager::begin_dense<int64_t>(
-    int ad, const int64_t* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<float>*
-StorageManager::begin_dense<float>(
-    int ad, const float* range, const std::vector<int>& attribute_ids) const;
-template ArrayConstDenseCellIterator<double>*
-StorageManager::begin_dense<double>(
-    int ad, const double* range, const std::vector<int>& attribute_ids) const;
-
-template ArrayConstReverseCellIterator<int>*
-StorageManager::rbegin<int>(int ad) const;
-template ArrayConstReverseCellIterator<int64_t>*
-StorageManager::rbegin<int64_t>(int ad) const;
-template ArrayConstReverseCellIterator<float>*
-StorageManager::rbegin<float>(int ad) const;
-template ArrayConstReverseCellIterator<double>*
-StorageManager::rbegin<double>(int ad) const;
-
-template ArrayConstReverseCellIterator<int>*
-StorageManager::rbegin<int>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstReverseCellIterator<int64_t>*
-StorageManager::rbegin<int64_t>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstReverseCellIterator<float>*
-StorageManager::rbegin<float>(
-    int ad, const std::vector<int>& attribute_ids) const;
-template ArrayConstReverseCellIterator<double>*
-StorageManager::rbegin<double>(
-    int ad, const std::vector<int>& attribute_ids) const;
-
-template ArrayConstReverseCellIterator<int>*
-StorageManager::rbegin<int>(
-    int ad, const int* multi_D_obj, bool is_range) const;
-template ArrayConstReverseCellIterator<int64_t>*
-StorageManager::rbegin<int64_t>(
-    int ad, const int64_t* multi_D_obj, bool is_range) const;
-template ArrayConstReverseCellIterator<float>*
-StorageManager::rbegin<float>(
-    int ad, const float* multi_D_obj, bool is_range) const;
-template ArrayConstReverseCellIterator<double>*
-StorageManager::rbegin<double>(
-    int ad, const double* multi_D_obj, bool is_range) const;
-
-template ArrayConstReverseCellIterator<int>*
-StorageManager::rbegin<int>(
-    int ad, const int* multi_D_obj, 
-    const std::vector<int>& attribute_ids,
-    bool is_range) const;
-template ArrayConstReverseCellIterator<int64_t>*
-StorageManager::rbegin<int64_t>(
-    int ad, const int64_t* multi_D_obj, 
-    const std::vector<int>& attribute_ids,
-    bool is_range) const;
-template ArrayConstReverseCellIterator<float>*
-StorageManager::rbegin<float>(
-    int ad, const float* multi_D_obj, 
-    const std::vector<int>& attribute_ids,
-    bool is_range) const;
-template ArrayConstReverseCellIterator<double>*
-StorageManager::rbegin<double>(
-    int ad, const double* multi_D_obj, 
-    const std::vector<int>& attribute_ids,
-    bool is_range) const;
-
-template void StorageManager::write_cell<int>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell<int64_t>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell<float>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell<double>(
-    int ad, const void* cell) const;
-
-template void StorageManager::write_cell_sorted<int>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell_sorted<int64_t>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell_sorted<float>(
-    int ad, const void* cell) const;
-template void StorageManager::write_cell_sorted<double>(
-    int ad, const void* cell) const;
+  if(metadata->read(key, buffers, buffer_sizes) != TILEDB_MT_OK) 
+    return TILEDB_SM_ERR;
+  else
+    return TILEDB_SM_OK;
+}
 

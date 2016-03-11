@@ -6,7 +6,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,149 +31,148 @@
  * This file defines class Array. 
  */
 
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef __ARRAY_H__
+#define __ARRAY_H__
 
-#include "array_const_cell_iterator.h"
-#include "array_const_dense_cell_iterator.h"
-#include "array_const_reverse_cell_iterator.h"
+#include "array_read_state.h"
+#include "array_schema.h"
+#include "constants.h"
 #include "fragment.h"
-#include <inttypes.h>
-#include <vector>
-#include <string>
 
+/* ********************************* */
+/*             CONSTANTS             */
+/* ********************************* */
+
+#define TILEDB_AR_OK     0
+#define TILEDB_AR_ERR   -1
+
+class ArrayReadState;
 class Fragment;
 
-/**  An array is a collection of Fragment objects. */
+/**
+ * Manages an array object. This is typically used for writing to and reading
+ * from a TileDB array.
+ */
 class Array {
  public:
-  // TYPE DEFINITIONS
-  /** An array can be opened in READ, WRITE or APPEND mode. */
-  enum Mode {READ, WRITE, APPEND};
-  /** Mnemonic: (level, number of nodes) */
-  typedef std::pair<int, int> FragmentTreeLevel;
-  /** Menmonic <(level, number of nodes), ...> */
-  typedef std::vector<FragmentTreeLevel> FragmentTree;
-
   // CONSTRUCTORS & DESTRUCTORS
+  
   /** Constructor. */
-  Array(const std::string& workspace_, size_t segment_size, 
-        size_t write_state_max_size,
-        const ArraySchema* array_schema, Mode mode); 
+  Array();
+
   /** Destructor. */
-  ~Array(); 
+  ~Array();
 
   // ACCESSORS
-  /** Returns the array name. */
-  const std::string& array_name() const; 
+
+  // TODO
+  bool overflow(int attribute_id) const;
+
   /** Returns the array schema. */
   const ArraySchema* array_schema() const;
-  /** Returns a tile iterator for the input fragment and attribute. */
-  FragmentConstTileIterator begin(int fragment_id, int attribute_id) const;
-  /** Checks if the array is empty. */
-  bool empty() const; 
-  /** Returns the number of fragments. */
-  int fragment_num() const;
-  /** Returns the array mode. */
-  Mode mode() const;
-  /** Returns a reverse tile iterator for the input fragment and attribute. */
-  FragmentConstReverseTileIterator rbegin(
-      int fragment_id, int attribute_id) const;
 
-  //  MUTATORS
-  /** 
-   * Forces the array to close, during abnormal execution. If the array was
-   * opened in write or append mode, the last fragment is deleted (since
-   * its creation procedure was interrupted). 
-   */
-  void forced_close();
-  /** Initializes a new fragment. */
-  void new_fragment();
-  /**  
-   * Writes a cell to the array. It takes as input a cell and its size. 
-   * The cell has the following format: The coordinates
-   * appear first, and then the attribute values in the same order
-   * as the attributes are defined in the array schema.
-   */
-  template<class T>
-  void write_cell(const void* cell) const; 
-  /** Writes a cell into the array, respecting the global cell order. */ 
-  template<class T>
-  void write_cell_sorted(const void* cell);
+  /** Returns the attribute ids the array focuses on. */
+  const std::vector<int>& attribute_ids() const;
+
+  // TODO
+  std::vector<Fragment*> fragments() const;
+
+  // TODO
+  int fragment_num() const;
+
+  /** Returns the array mode. */
+  int mode() const;
+
+  /** Returns the range in which the array is constrained. */
+  const void* range() const;
+
+  // TODO
+  int read(void** buffers, size_t* buffer_sizes); 
+
+  // MUTATORS
  
+  /**
+   * Initializes an array object.
+   *
+   * @param array_schema The schema of the array.
+   * @param mode The mode of the array. It must be one of the following:
+   *    - TILEDB_WRITE 
+   *    - TILEDB_WRITE_UNSORTED 
+   *    - TILEDB_READ 
+   *    - TILEDB_READ_REVERSE 
+   * @param range The range in which the array read/write will be constrained.
+   * @param attributes A subset of the array attributes the read/write will be
+   *     constrained.
+   * @param attribute_num The number of the input attributes.
+   * @return TILEDB_AR_OK on success, and TILEDB_AR_ERR on error.
+   */
+  int init(
+      const ArraySchema* array_schema, 
+      int mode,
+      const char** attributes,
+      int attribute_num,
+      const void* range);
+
+  // TODO
+  int reinit_subarray(const void* subarray);
+
+  /**
+   * Finalizes the array.
+   *
+   * @return TILEDB_AR_OK on success, and TILEDB_AR_ERR on error.
+   */
+  int finalize();
+
+  // TODO
+  int write(const void** buffers, const size_t* buffer_sizes); 
+
  private:
   // PRIVATE ATTRIBUTES
+
   /** The array schema. */
   const ArraySchema* array_schema_;
+  // TODO
+  ArrayReadState* array_read_state_;
+  /** 
+   * The ids of the attributes the array is initialized with. Note that the
+   * array may be initialized with a subset of attributes when writing or
+   * reading.
+   */
+  std::vector<int> attribute_ids_;
   /** The array fragments. */
   std::vector<Fragment*> fragments_;
-  /** The fragment tree of the array (book-keeping about all fragments). */
-  FragmentTree fragment_tree_;  
-  /** The mode in which the array was opened. */
-  Mode mode_;
-  /** The next fragment sequence. */
-  int64_t next_fragment_seq_;
-  /** The segment size. */
-  size_t segment_size_;
-  /** The workspace where the array data are created. */
-  std::string workspace_; 
-  /** Max memory size of the write state when creating an array fragment. */
-  size_t write_state_max_size_;
+  /** 
+   * The array mode. It must be one of the following:
+   *    - TILEDB_WRITE 
+   *    - TILEDB_WRITE_UNSORTED 
+   *    - TILEDB_READ 
+   *    - TILEDB_READ_REVERSE 
+   */
+  int mode_;
+  /**
+   * The range in which the array is constrained. Note that the type of the
+   * range must be the same as the type of the array coordinates.
+   */
+  void* range_;
 
   // PRIVATE METHODS
-  /** Closes all the array fragments. */
-  void close_fragments();
+  
   /** 
-   * Consolidates fragments based on the consolidation step defined in the
-   * array schema. 
+   * Returns a new fragment name, which is in the form: <br>
+   * .__<process_id>_<current_timestamp>
+   *
+   * Note that this is a temporary name, initiated by a new write process.
+   * After the new fragmemt is finalized, the array will change its name
+   * by removing the leading '.' character. Moreover, the fragment name
+   * may change later by a consolidation process.
    */
-  void consolidate();
-  /** 
-   * Consolidates the array fragments using the eager algorithm. Specifically,
-   * it always consolidates the (two) existing fragments.
-   */
-  void consolidate_eagerly();
-  /** 
-   * Consolidates the array fragments using the eager algorithm. Specifically,
-   * it always consolidates the (two) existing fragments.
-   */
-  template<class T>
-  void consolidate_eagerly();
-  /** 
-   * Consolidates the array fragments using the lazy algorithm. Specifically,
-   * it always consolidates the latest c fragments, where c is the
-   * consolidation step.
-   */
-  void consolidate_lazily();
-  /** 
-   * Consolidates the array fragments using the lazy algorithm. Specifically,
-   * it always consolidates the latest c fragments, where c is the
-   * consolidation step.
-   */
-  template<class T>
-  void consolidate_lazily();
-  /** Deletes the i-th fragment from the array. */
-  void delete_fragment(int i);
-  /** Deletes all fragments in the array. */
-  void delete_fragments();
-  /** Deletes the fragments whose ids are included in the input. */
-  void delete_fragments(const std::vector<int>& fragment_ids);
-  /** 
-   * Flushes the fragment tree, i.e., the book-keeping structure about the
-   * array fragments, to the disk.
-   */
-  void flush_fragment_tree();
-  /** Returns all the existing fragment names. */
-  std::vector<std::string> get_fragment_names() const;
-  /** 
-   * Loads the fragment tree, i.e., the book-keeping structure about the
-   * array fragments.
-   */
-  void load_fragment_tree();
-  /** Returns true if consolidation must take place. */
-  bool must_consolidate();
-  /** Opens all the existing array fragments. */
-  void open_fragments();
+  std::string new_fragment_name() const;
+
+  // TODO
+  int open_fragments();
+
+  // TODO
+  void sort_fragment_names(std::vector<std::string>& fragment_names) const;
 };
 
 #endif

@@ -31,373 +31,848 @@
  * This file implements the BookKeeping class.
  */
 
-#include "bin_file.h"
 #include "book_keeping.h"
 #include "utils.h"
-#include <assert.h>
+#include <cassert>
+#include <cstring>
 #include <fcntl.h>
 #include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <zlib.h>
 
-/******************************************************
-************ CONSTRUCTORS & DESTRUCTORS ***************
-******************************************************/
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
 
-BookKeeping::BookKeeping(
-    const ArraySchema* array_schema,
-    const std::string* fragment_name,
-    const std::string* workspace) 
-    : array_schema_(array_schema), 
-      fragment_name_(fragment_name),
-      workspace_(workspace) {
+#if VERBOSE == 1
+#  define PRINT_ERROR(x) std::cerr << "[TileDB] Error: " << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB] Warning: " \
+                                     << x << ".\n"
+#elif VERBOSE == 2
+#  define PRINT_ERROR(x) std::cerr << "[TileDB::BookKeeping] Error: " \
+                                   << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB::BookKeeping] Warning: " \
+                                     << x << ".\n"
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#  define PRINT_WARNING(x) do { } while(0) 
+#endif
+
+/* ****************************** */
+/*   CONSTRUCTORS & DESTRUCTORS   */
+/* ****************************** */
+
+BookKeeping::BookKeeping(const Fragment* fragment)
+    : fragment_(fragment) {
+  domain_ = NULL;
+  non_empty_domain_ = NULL;
 }
 
 BookKeeping::~BookKeeping() {
-  // For easy reference
-  int64_t tile_num = mbrs_.size();
- 
-  for(int64_t i=0; i<tile_num; ++i) {
-    if(bounding_coordinates_[i].first != NULL) {
-      free(bounding_coordinates_[i].first);
-      bounding_coordinates_[i].first = NULL;
-    }
+  if(domain_ != NULL)
+    free(domain_);
 
-    if(bounding_coordinates_[i].second != NULL) {
-      free(bounding_coordinates_[i].second);
-      bounding_coordinates_[i].second = NULL;
-    }
+  if(non_empty_domain_ != NULL)
+    free(non_empty_domain_);
 
-    if(mbrs_[i] != NULL) {
-      free(mbrs_[i]);
-      mbrs_[i] = NULL;
-    }
-  }
+  for(int i=0; i<mbrs_.size(); ++i)
+    free(mbrs_[i]);
 
-  bounding_coordinates_.clear();
-  mbrs_.clear();
-  offsets_.clear(); 
+  for(int i=0; i<bounding_coords_.size(); ++i)
+    free(bounding_coords_[i]);
 }
 
-/******************************************************
-******************** ACCESSORS ************************
-******************************************************/
+/* ****************************** */
+/*             ACCESSORS          */
+/* ****************************** */
 
-Tile::BoundingCoordinatesPair 
-BookKeeping::bounding_coordinates(int64_t pos) const {
-  assert(pos >= 0 && pos < bounding_coordinates_.size());
-
-  return bounding_coordinates_[pos];
+const std::vector<void*>& BookKeeping::bounding_coords() const {
+  return bounding_coords_;
 }
 
-Tile::MBR BookKeeping::mbr(int64_t pos) const {
-  assert(pos >= 0 && pos < mbrs_.size());
-
-  return mbrs_[pos];
+int64_t BookKeeping::last_tile_cell_num() const {
+  return last_tile_cell_num_;
 }
 
-int64_t BookKeeping::offset(int attribute_id, int64_t pos) const {
-  return offsets_[attribute_id][pos];
+const std::vector<void*>& BookKeeping::mbrs() const {
+  return mbrs_;
 }
 
-int64_t BookKeeping::tile_id(int64_t pos) const {
-  assert(pos >= 0 && pos < mbrs_.size());
+const void* BookKeeping::domain() const {
+  return domain_;
+}
 
-  if(array_schema_->has_irregular_tiles())
-    return pos;
-  else 
-    return array_schema_->tile_id(bounding_coordinates_[pos].first);
+const void* BookKeeping::non_empty_domain() const {
+  return non_empty_domain_;
 }
 
 int64_t BookKeeping::tile_num() const {
-  return mbrs_.size();
-}
+  if(fragment_->dense()) {
+    // For easy reference
+    const ArraySchema* array_schema = fragment_->array()->array_schema();
 
-size_t BookKeeping::tile_size(int attribute_id, int64_t pos) const {
-  assert(tile_num() > 0);
-  assert(pos >= 0 && pos < tile_num());
-
-  if(pos == tile_num() - 1) {
-    const std::string& array_name = array_schema_->array_name();
-    const std::string& attribute_name = 
-        array_schema_->attribute_name(attribute_id);
-    std::string filename = *workspace_ + "/" + array_name + "/" +
-                           *fragment_name_ + "/" +
-                           attribute_name + TILE_DATA_FILE_SUFFIX;
-    return file_size(filename) - offsets_[attribute_id][pos]; 
-  } else {
-    return offsets_[attribute_id][pos+1] - offsets_[attribute_id][pos]; 
-  } 
-}
-
-/******************************************************
-******************** MUTATORS *************************
-******************************************************/
-
-void BookKeeping::commit() {
-  // Do nothing if the book keeping files exist
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         BOUNDING_COORDINATES_FILENAME + 
-                         BOOK_KEEPING_FILE_SUFFIX;
-
-  if(is_file(filename)) 
-    return;
-
-  commit_offsets();
-  commit_bounding_coordinates();
-  commit_mbrs();
-}
-
-void BookKeeping::init() {
-  int attribute_num = array_schema_->attribute_num();
-
-  offsets_.resize(attribute_num+1);
-  for(int i=0; i<=attribute_num; ++i)
-    offsets_[i].push_back(0);
-}
-
-void BookKeeping::load() {
-  load_mbrs();
-  load_bounding_coordinates();
-  load_offsets();
-}
-
-/******************************************************
-****************** PRIVATE METHODS ********************
-******************************************************/
-
-// FILE FORMAT:
-// tile#1_lower_dim#1(T) tile#1_lower_dim#2(T) ... 
-// tile#1_upper_dim#1(T) tile#1_upper_dim#2(T) ... 
-// tile#2_lower_dim#1(T) tile#2_lower_dim#2(T) ... 
-// tile#2_upper_dim#1(T) tile#2_upper_dim#2(T) ...
-// ... 
-// NOTE: T is the type of the dimensions of this array
-void BookKeeping::commit_bounding_coordinates() {
-  // For easy reference
-  int attribute_num = array_schema_->attribute_num();
-  int64_t tile_num = mbrs_.size();
-
-  if(tile_num == 0)
-    return;
-
-  size_t coords_size = array_schema_->cell_size(attribute_num);
-
-  // Prepare filename
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         BOUNDING_COORDINATES_FILENAME + 
-                         BOOK_KEEPING_FILE_SUFFIX;
-
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "w"); 
-
-  // Write to file
-  for(int64_t i=0; i<tile_num; ++i) {
-    // Lower bounding coordinates
-    bin_file->write(bounding_coordinates_[i].first, coords_size);
-    // Upper bounding coordinates
-    bin_file->write(bounding_coordinates_[i].second, coords_size);
+    return array_schema->tile_num(domain_);
+  } else { 
+    return mbrs_.size();
   }
-
-  delete bin_file;
 }
 
-// FILE FORMAT:
-// MBR#1_dim#1_low(T) MBR#1_dim#1_high(T) ...
-// MBR#1_dim#2_low(T) MBR#1_dim#2_high(T) ...
-// ...
-// MBR#2_dim#1_low(T) MBR#2_dim#1_high(T) ...
-// ...
-// NOTE: T is the type of the dimensions of this array
-void BookKeeping::commit_mbrs() {
-  // For easy reference
-  int64_t tile_num = mbrs_.size();
-  int attribute_num = array_schema_->attribute_num();
-
-  if(tile_num == 0)
-    return;
-
-  size_t coords_size = array_schema_->cell_size(attribute_num);
-
-  // prepare file name
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         MBRS_FILENAME + BOOK_KEEPING_FILE_SUFFIX;
-
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "w"); 
-
-  // Write to file
-  for(int64_t i=0; i<tile_num; ++i) 
-    bin_file->write(mbrs_[i], 2 * coords_size);
-
-  delete bin_file;
+const std::vector<std::vector<size_t> >& BookKeeping::tile_offsets() const {
+  return tile_offsets_;
 }
 
-// FILE FORMAT:
-// tile#1_of_attribute#1_offset(int64_t)
-// tile#2_of_attribute#1_offset(int64_t)
-// ...
-// tile#1_of_attribute#2_offset(int64_t)
-// tile#2_of_attribute#2_offset(int64_t)
-// ...
-// NOTE: Do not forget the extra coordinate attribute
-void BookKeeping::commit_offsets() {
+const std::vector<std::vector<size_t> >& BookKeeping::tile_var_offsets() const {
+  return tile_var_offsets_;
+}
+
+const std::vector<std::vector<size_t> >& BookKeeping::tile_var_sizes() const {
+  return tile_var_sizes_;
+}
+
+/* ****************************** */
+/*             MUTATORS           */
+/* ****************************** */
+
+void BookKeeping::append_bounding_coords(const void* bounding_coords) {
   // For easy reference
-  int64_t tile_num = mbrs_.size();
-  int attribute_num = array_schema_->attribute_num();
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t bounding_coords_size = 2*array_schema->coords_size();
 
-  // Prepare file name
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         OFFSETS_FILENAME + BOOK_KEEPING_FILE_SUFFIX;
+  // Copy and append MBR
+  void* new_bounding_coords = malloc(bounding_coords_size);
+  memcpy(new_bounding_coords, bounding_coords, bounding_coords_size);
+  bounding_coords_.push_back(new_bounding_coords);
+}
 
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "w"); 
+void BookKeeping::append_mbr(const void* mbr) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t mbr_size = 2*array_schema->coords_size();
 
-  // Write to the file
-  // TODO: This could be optimized a bit
-  for(int i=0; i<=attribute_num; ++i) {
-    for(int j=0; j<tile_num; ++j) 
-      bin_file->write(&offsets_[i][j], sizeof(int64_t));
-  }
+  // Copy and append MBR
+  void* new_mbr = malloc(mbr_size);
+  memcpy(new_mbr, mbr, mbr_size);
+  mbrs_.push_back(new_mbr);
+}
+
+void BookKeeping::append_tile_offset(
+    int attribute_id,
+    size_t step) {
+  tile_offsets_[attribute_id].push_back(next_tile_offsets_[attribute_id]);
+  size_t new_offset = tile_offsets_[attribute_id].back() + step;
+  next_tile_offsets_[attribute_id] = new_offset;  
+}
+
+void BookKeeping::append_tile_var_offset(
+    int attribute_id,
+    size_t step) {
+  tile_var_offsets_[attribute_id].push_back(
+      next_tile_var_offsets_[attribute_id]);
+  size_t new_offset = tile_var_offsets_[attribute_id].back() + step;
+  next_tile_var_offsets_[attribute_id] = new_offset;  
+}
+
+void BookKeeping::append_tile_var_size(
+    int attribute_id,
+    size_t size) {
+  tile_var_sizes_[attribute_id].push_back(size);
+}
+
+int BookKeeping::init(const void* non_empty_domain) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+
+  // Sanity check
+  assert(non_empty_domain_ == NULL);
+  assert(domain_ == NULL);
+
+  // Set non-empty domain
+  size_t domain_size = 2*array_schema->coords_size();
+  non_empty_domain_ = malloc(domain_size);
+  if(non_empty_domain == NULL) 
+    memcpy(non_empty_domain_, array_schema->domain(), domain_size);
+  else
+    memcpy(non_empty_domain_, non_empty_domain, domain_size);
   
-  delete bin_file;
+  // Set expanded domain
+  domain_ = malloc(domain_size);
+  memcpy(domain_, non_empty_domain_, domain_size);
+  array_schema->expand_domain(domain_);
+
+  // Set last tile cell number
+  last_tile_cell_num_ = 0;
+
+  // Initialize tile offsets
+  tile_offsets_.resize(attribute_num+1);
+  next_tile_offsets_.resize(attribute_num+1);
+  for(int i=0; i<attribute_num+1; ++i)
+    next_tile_offsets_[i] = 0;
+
+  // Initialize variable tile offsets
+  tile_var_offsets_.resize(attribute_num);
+  next_tile_var_offsets_.resize(attribute_num);
+  for(int i=0; i<attribute_num; ++i)
+    next_tile_var_offsets_[i] = 0;
+
+  // Initialize variable tile sizes
+  tile_var_sizes_.resize(attribute_num);
+
+  // Success
+  return TILEDB_BK_OK;
 }
 
-// FILE FORMAT:
-// tile#1_lower_dim#1(T) tile#1_lower_dim#2(T) ... 
-// tile#1_upper_dim#1(T) tile#1_upper_dim#2(T) ... 
-// tile#2_lower_dim#1(T) tile#2_lower_dim#2(T) ... 
-// tile#2_upper_dim#1(T) tile#2_upper_dim#2(T) ...
-// ... 
-// NOTE: T is the type of the dimensions of this array
-void BookKeeping::load_bounding_coordinates() {
-  // For easy reference
-  int attribute_num = array_schema_->attribute_num();
-  int64_t tile_num = mbrs_.size();
-  assert(tile_num != 0);
-  size_t coords_size = array_schema_->cell_size(attribute_num);
- 
+/* FORMAT:
+ * domain_size(size_t) non_empty_domain(void*)  
+ * mbr_num(int64_t)
+ * mbr_#1(void*) mbr_#2(void*) ... 
+ * bounding_coords_num(int64_t)
+ * bounding_coords_#1(void*) bounding_coords_#2(void*) ...
+ * tile_offsets_attr#0_num(int64_t)
+ * tile_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_offsets_attr#<attribute_num>_num(int64_t)
+ * tile_offsets_attr#<attribute_num>_#1(size_t) 
+ *     tile_offsets_attr#<attribute_num>_#2 ...
+ * tile_var_offsets_attr#0_num(int64_t)
+ * tile_var_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_var_offsets_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_offsets_attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_offsets_attr#<attribute_num-1>_#2 ...
+ * tile_var_sizes_attr#0_num(int64_t)
+ * tile_var_sizes_attr#0_#1(size_t) tile_sizes_attr#0_#2 ...
+ * ...
+ * tile_var_sizes_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_sizes__attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_sizes_attr#<attribute_num-1>_#2 ...
+ * last_tile_cell_num(int64_t)
+ */
+int BookKeeping::load() {
   // Prepare file name
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         BOUNDING_COORDINATES_FILENAME + 
-                         BOOK_KEEPING_FILE_SUFFIX;
+  std::string filename = fragment_->fragment_name() + "/" +
+                         TILEDB_BOOK_KEEPING_FILENAME + 
+                         TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
 
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "r"); 
-
-  // Initializations
-  bounding_coordinates_.resize(tile_num);
-  void* coords;
-  ssize_t bytes_read;
-
-  // Load bounding coordinates
-  for(int64_t i=0; i<tile_num; ++i) {
-    coords = malloc(coords_size);
-    bytes_read = bin_file->read(coords, coords_size);
-    assert(bytes_read == coords_size);
-    bounding_coordinates_[i].first = coords; 
-    coords = malloc(coords_size);
-    bytes_read = bin_file->read(coords, coords_size);
-    assert(bytes_read == coords_size);
-    bounding_coordinates_[i].second = coords; 
+  // Open book-keeping file
+  gzFile fd = gzopen(filename.c_str(), "rb");
+  if(fd == NULL) {
+    PRINT_ERROR("Cannot load book-keeping; Cannot open file");
+    return TILEDB_BK_ERR;
   }
 
-  // Correctness check
-  void* dummy = malloc(1); 
-  bytes_read = bin_file->read(dummy, 1);
-  assert(bytes_read == 0);
-  free(dummy);
-
-  // Clean up
-  delete bin_file;
-}
-
-// FILE FORMAT:
-// MBR#1_dim#1_low(T) MBR#1_dim#1_high(T) ...
-// MBR#1_dim#2_low(T) MBR#1_dim#2_high(T) ...
-// ...
-// MBR#2_dim#1_low(T) MBR#2_dim#1_high(T) ...
-// ...
-// NOTE: T is the type of the dimensions of this array
-void BookKeeping::load_mbrs() {
-  // For easy reference
-  int attribute_num = array_schema_->attribute_num();
-  size_t coords_size = array_schema_->cell_size(attribute_num);
- 
-  // Prepare file name
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         MBRS_FILENAME + BOOK_KEEPING_FILE_SUFFIX;
-
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "r"); 
+  // Load non-empty domain
+  if(load_non_empty_domain(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
 
   // Load MBRs
-  void* mbr;
-  ssize_t bytes_read;
-  do {
-    mbr = malloc(2 * coords_size);
-    bytes_read = bin_file->read(mbr, 2 * coords_size);
+  if(load_mbrs(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
 
-    if(bytes_read == 0) { 
-      free(mbr);
-    } else {
-      assert(bytes_read == 2 * coords_size);
-      mbrs_.push_back(mbr);
-    }
-  } while (bytes_read != 0);
+  // Load bounding coordinates
+  if(load_bounding_coords(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
 
+  // Load tile offsets
+  if(load_tile_offsets(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
 
-  // Clean up
-  delete bin_file;
+  // Load variable tile offsets
+  if(load_tile_var_offsets(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Load variable tile sizes
+  if(load_tile_var_sizes(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Load tile offsets
+  if(load_last_tile_cell_num(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Close file
+  if(gzclose(fd) != Z_OK) {
+    PRINT_ERROR("Cannot load book-keeping; Cannot close file");
+    return TILEDB_BK_ERR;
+  }
+
+  // Success
+  return TILEDB_BK_OK;
 }
 
-// FILE FORMAT:
-// tile#1_of_attribute#1_offset(int64_t)
-// tile#2_of_attribute#1_offset(int64_t)
-// ...
-// tile#1_of_attribute#2_offset(int64_t)
-// tile#2_of_attribute#2_offset(int64_t)
-// ...
-// NOTE: Do not forget the extra coordinate attribute
-void BookKeeping::load_offsets() {
+void BookKeeping::set_last_tile_cell_num(int64_t cell_num) {
+  last_tile_cell_num_ = cell_num;
+}
+
+/* ****************************** */
+/*               MISC             */
+/* ****************************** */
+
+/* FORMAT:
+ * domain_size(size_t) non_empty_domain(void*)  
+ * mbr_num(int64_t)
+ * mbr_#1(void*) mbr_#2(void*) ... 
+ * bounding_coords_num(int64_t)
+ * bounding_coords_#1(void*) bounding_coords_#2(void*) ...
+ * tile_offsets_attr#0_num(int64_t)
+ * tile_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_offsets_attr#<attribute_num>_num(int64_t)
+ * tile_offsets_attr#<attribute_num>_#1(size_t) 
+ *     tile_offsets_attr#<attribute_num>_#2 ...
+ * tile_var_offsets_attr#0_num(int64_t)
+ * tile_var_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_var_offsets_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_offsets_attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_offsets_attr#<attribute_num-1>_#2 ...
+ * tile_var_sizes_attr#0_num(int64_t)
+ * tile_var_sizes_attr#0_#1(size_t) tile_sizes_attr#0_#2 ...
+ * ...
+ * tile_var_sizes_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_sizes__attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_sizes_attr#<attribute_num-1>_#2 ...
+ * last_tile_cell_num(int64_t)
+ */
+int BookKeeping::finalize() {
+  // Nothing to do in READ mode
+  int mode = fragment_->array()->mode();
+  if(mode == TILEDB_READ || mode == TILEDB_READ_REVERSE)
+    return TILEDB_BK_OK;
+
+  // Do nothing if the fragment directory does not exist (fragment empty) 
+  std::string fragment_name = fragment_->fragment_name();
+  if(!is_dir(fragment_name))
+    return TILEDB_BK_OK;
+
+  // Prepare file name 
+  std::string filename = fragment_name + "/" +
+                         TILEDB_BOOK_KEEPING_FILENAME + 
+                         TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
+
+  // Open book-keeping file
+  gzFile fd = gzopen(filename.c_str(), "wb");
+  if(fd == NULL) {
+    PRINT_ERROR("Cannot finalize book-keeping; Cannot open file");
+    return TILEDB_BK_ERR;
+  }
+  
+  // Write non-empty domain
+  if(flush_non_empty_domain(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write MBRs
+  if(flush_mbrs(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write bounding coordinates
+  if(flush_bounding_coords(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write tile offsets
+  if(flush_tile_offsets(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write variable tile offsets
+  if(flush_tile_var_offsets(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write variable tile sizes
+  if(flush_tile_var_sizes(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Write tile offsets
+  if(flush_last_tile_cell_num(fd) != TILEDB_BK_OK)
+    return TILEDB_BK_ERR;
+
+  // Close file
+  if(gzclose(fd) != Z_OK) {
+    PRINT_ERROR("Cannot finalize book-keeping; Cannot close file");
+    return TILEDB_BK_ERR;
+  }
+
+  // Success
+  return TILEDB_BK_OK;  
+}
+
+/* ****************************** */
+/*        PRIVATE METHODS         */
+/* ****************************** */
+
+/* FORMAT:
+ * bounding_coords_num(int64_t)
+ * bounding_coords_#1(void*) bounding_coords_#2(void*) ...
+ */
+int BookKeeping::flush_bounding_coords(gzFile fd) const {
   // For easy reference
-  int attribute_num = array_schema_->attribute_num();
-  int64_t tile_num = mbrs_.size();
-  assert(tile_num != 0);
- 
-  // Prepare file name
-  std::string filename = *workspace_ + "/" + array_schema_->array_name() + "/" +
-                         *fragment_name_ + "/" +
-                         OFFSETS_FILENAME + BOOK_KEEPING_FILE_SUFFIX;
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t bounding_coords_size = 2*array_schema->coords_size();
+  int64_t bounding_coords_num = bounding_coords_.size();
 
-  // Open file
-  BINFile* bin_file = new BINFile(filename, "r"); 
+  if(gzwrite(fd, &bounding_coords_num, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot finalize book-keeping; Writing number of bounding "
+                "coordinates failed");
+    return TILEDB_BK_ERR;
+  }
 
-  // Load offsets
-  offsets_.resize(attribute_num+1);
-  ssize_t bytes_read;
-  for(int i=0; i<=attribute_num; ++i) {
-    offsets_[i].resize(tile_num);
-    for(int j=0; j<tile_num; ++j) {
-      bytes_read = bin_file->read(&offsets_[i][j], sizeof(int64_t));
-      assert(bytes_read == sizeof(int64_t));
+  for(int i=0; i<bounding_coords_num; ++i) {
+    if(gzwrite(fd, bounding_coords_[i], bounding_coords_size) != 
+       bounding_coords_size) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing bounding coordinates "
+                  "failed");
+      return TILEDB_BK_ERR;
+    }
+  } 
+
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * last_tile_cell_num(int64_t) 
+ */
+int BookKeeping::flush_last_tile_cell_num(gzFile fd) const {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int64_t cell_num_per_tile = 
+      fragment_->dense() ? array_schema->cell_num_per_tile() :
+                           array_schema->capacity();
+
+  // Handle the case of zero
+  int64_t last_tile_cell_num = 
+      (last_tile_cell_num_ == 0) ? cell_num_per_tile : last_tile_cell_num_;
+
+  if(gzwrite(fd, &last_tile_cell_num, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot finalize book-keeping; Writing last tile cell "
+                "number failed");
+    return TILEDB_BK_ERR;
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * mbr_num(int64_t)
+ * mbr_#1(void*) mbr_#2(void*) ... 
+ */
+int BookKeeping::flush_mbrs(gzFile fd) const {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t mbr_size = 2*array_schema->coords_size();
+  int64_t mbr_num = mbrs_.size();
+
+  if(gzwrite(fd, &mbr_num, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot finalize book-keeping; Writing number of MBRs failed");
+    return TILEDB_BK_ERR;
+  }
+
+  for(int i=0; i<mbr_num; ++i) {
+    if(gzwrite(fd, mbrs_[i], mbr_size) != mbr_size) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing MBR failed");
+      return TILEDB_BK_ERR;
+    }
+  } 
+
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * domain_size(size_t) non_empty_domain(void*)  
+ */
+int BookKeeping::flush_non_empty_domain(gzFile fd) const {
+  size_t domain_size = (non_empty_domain_ == NULL) ? 0 : 
+      fragment_->array()->array_schema()->coords_size() * 2;
+
+  if(gzwrite(fd, &domain_size, sizeof(size_t)) != sizeof(size_t)) {
+    PRINT_ERROR("Cannot finalize book-keeping; Writing domain size failed");
+    return TILEDB_BK_ERR;
+  }
+
+  if(non_empty_domain_ != NULL) {
+    if(gzwrite(fd, non_empty_domain_, domain_size) != domain_size) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing domain failed");
+      return TILEDB_BK_ERR;
     }
   }
 
-  // Correctness check
-  void* dummy = malloc(1); 
-  bytes_read = bin_file->read(dummy, 1);
-  assert(bytes_read == 0);
-  free(dummy);
-
-  // Clean up
-  delete bin_file;
+  // Success
+  return TILEDB_BK_OK;
 }
 
+/* FORMAT:
+ * tile_offsets_attr#0_num(int64_t)
+ * tile_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_offsets_attr#<attribute_num>_num(int64_t)
+ * tile_offsets_attr#<attribute_num>_#1 
+ * tile_offsets_attr#<attribute_num>_#2 ...
+ */
+int BookKeeping::flush_tile_offsets(gzFile fd) const {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_offsets_num;
+
+  // Write tile offsets for each attribute
+  for(int i=0; i<attribute_num+1; ++i) {
+    // Write number of offsets
+    tile_offsets_num = tile_offsets_[i].size(); 
+    if(gzwrite(fd, &tile_offsets_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing number of "
+                  "tile offsets failed");
+      return TILEDB_BK_ERR;
+    }
+
+    if(tile_offsets_num == 0)
+      continue;
+
+    // Write tile offsets
+    if(gzwrite(fd, &tile_offsets_[i][0], tile_offsets_num * sizeof(size_t)) !=
+       tile_offsets_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing tile offsets failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * tile_var_offsets_attr#0_num(int64_t)
+ * tile_var_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_var_offsets_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_offsets_attr#<attribute_num-1>_#1 
+ *     tile_offsets_attr#<attribute_num-1>_#2 ...
+ */
+int BookKeeping::flush_tile_var_offsets(gzFile fd) const {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_var_offsets_num;
+
+  // Write tile offsets for each attribute
+  for(int i=0; i<attribute_num; ++i) {
+    // Write number of offsets
+    tile_var_offsets_num = tile_var_offsets_[i].size(); 
+    if(gzwrite(fd, &tile_var_offsets_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing number of "
+                  "variable tile offsets failed");
+      return TILEDB_BK_ERR;
+    }
+
+    if(tile_var_offsets_num == 0)
+      continue;
+
+    // Write tile offsets
+    if(gzwrite(
+           fd,  
+           &tile_var_offsets_[i][0], 
+           tile_var_offsets_num * sizeof(size_t)) !=
+       tile_var_offsets_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing variable tile "
+                  "offsets failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+ 
+/* FORMAT:
+ * tile_var_sizes_attr#0_num(int64_t)
+ * tile_var_sizes_attr#0_#1(size_t) tile_sizes_attr#0_#2 ...
+ * ...
+ * tile_var_sizes_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_sizes__attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_sizes_attr#<attribute_num-1>_#2 ...
+ */
+int BookKeeping::flush_tile_var_sizes(gzFile fd) const {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_var_sizes_num;
+
+  // Write tile sizes for each attribute
+  for(int i=0; i<attribute_num; ++i) {
+    // Write number of sizes
+    tile_var_sizes_num = tile_var_sizes_[i].size(); 
+    if(gzwrite(fd, &tile_var_sizes_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing number of "
+                  "variable tile sizes failed");
+      return TILEDB_BK_ERR;
+    }
+
+    if(tile_var_sizes_num == 0)
+      continue;
+
+    // Write tile sizes
+    if(gzwrite(
+           fd,  
+           &tile_var_sizes_[i][0], 
+           tile_var_sizes_num * sizeof(size_t)) !=
+       tile_var_sizes_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot finalize book-keeping; Writing variable tile "
+                  "sizes failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * bounding_coords_num(int64_t)
+ * bounding_coords_#1(void*) bounding_coords_#2(void*) ...
+ */
+int BookKeeping::load_bounding_coords(gzFile fd) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t bounding_coords_size = 2*array_schema->coords_size();
+
+  // Get number of bounding coordinates
+  int64_t bounding_coords_num;
+  if(gzread(fd, &bounding_coords_num, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot load book-keeping; Reading number of "
+                "bounding coordinates failed");
+    return TILEDB_BK_ERR;
+  }
+
+  // Get bounding coordinates
+  void* bounding_coords;
+  bounding_coords_.resize(bounding_coords_num);
+  for(int64_t i=0; i<bounding_coords_num; ++i) {
+    bounding_coords = malloc(bounding_coords_size);
+    if(gzread(fd, bounding_coords, bounding_coords_size) != 
+       bounding_coords_size) {
+      PRINT_ERROR("Cannot load book-keeping; Reading bounding coordinates "
+                  "failed");
+      free(bounding_coords);
+      return TILEDB_BK_ERR;
+    }
+    bounding_coords_[i] = bounding_coords;
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * last_tile_cell_num(int64_t)  
+ */
+int BookKeeping::load_last_tile_cell_num(gzFile fd) {
+  // Get last tile cell number
+  if(gzread(fd, &last_tile_cell_num_, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot load book-keeping; Reading last tile cell "
+                "number failed");
+    return TILEDB_BK_ERR;
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * mbr_num(int64_t)
+ * mbr_#1(void*) mbr_#2(void*) ... mbr_#<mbr_num>(void*)
+ */
+int BookKeeping::load_mbrs(gzFile fd) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  size_t mbr_size = 2*array_schema->coords_size();
+
+  // Get number of MBRs
+  int64_t mbr_num;
+  if(gzread(fd, &mbr_num, sizeof(int64_t)) != sizeof(int64_t)) {
+    PRINT_ERROR("Cannot load book-keeping; Reading number of MBRs failed");
+    return TILEDB_BK_ERR;
+  }
+
+  // Get MBRs
+  void* mbr;
+  mbrs_.resize(mbr_num);
+  for(int64_t i=0; i<mbr_num; ++i) {
+    mbr = malloc(mbr_size);
+    if(gzread(fd, mbr, mbr_size) != mbr_size) {
+      PRINT_ERROR("Cannot load book-keeping; Reading MBR failed");
+      free(mbr);
+      return TILEDB_BK_ERR;
+    }
+    mbrs_[i] = mbr;
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * domain_size(size_t) non_empty_domain(void*)  
+ */
+int BookKeeping::load_non_empty_domain(gzFile fd) {
+  // Get domain size
+  size_t domain_size;
+  if(gzread(fd, &domain_size, sizeof(size_t)) != sizeof(size_t)) {
+    PRINT_ERROR("Cannot load book-keeping; Reading domain size failed");
+    return TILEDB_BK_ERR;
+  }
+
+  // Get non-empty domain
+  if(domain_size == 0) {
+    non_empty_domain_ = NULL;
+  } else {
+    non_empty_domain_ = malloc(domain_size);
+    if(gzread(fd, non_empty_domain_, domain_size) != domain_size) {
+      PRINT_ERROR("Cannot load book-keeping; Reading domain failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Get expanded domain
+  if(non_empty_domain_ == NULL) {
+    domain_ = NULL;
+  } else { 
+    domain_ = malloc(domain_size);
+    const ArraySchema* array_schema = fragment_->array()->array_schema();
+    memcpy(domain_, non_empty_domain_, domain_size);
+    array_schema->expand_domain(domain_);
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * tile_offsets_attr#0_num(int64_t)
+ * tile_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_offsets_attr#<attribute_num>_num(int64_t)
+ * tile_offsets_attr#<attribute_num>_#1 
+ * tile_offsets_attr#<attribute_num>_#2 ...
+ */
+int BookKeeping::load_tile_offsets(gzFile fd) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_offsets_num;
+
+  // Allocate tile offsets
+  tile_offsets_.resize(attribute_num+1);
+
+  // For all attributes, get the tile offsets
+  for(int i=0; i<attribute_num+1; ++i) {
+    // Get number of tile offsets
+    if(gzread(fd, &tile_offsets_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading number of tile "
+                  "offsets failed");
+      return TILEDB_BK_ERR;
+    }
+ 
+    if(tile_offsets_num == 0)
+      continue;
+
+    // Get tile offsets
+    tile_offsets_[i].resize(tile_offsets_num);
+    if(gzread(fd, &tile_offsets_[i][0], tile_offsets_num * sizeof(size_t)) != 
+       tile_offsets_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading tile offsets failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * tile_var_offsets_attr#0_num(int64_t)
+ * tile_var_offsets_attr#0_#1 tile_offsets_attr#0_#2 ...
+ * ...
+ * tile_var_offsets_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_offsets_attr#<attribute_num-1>_#1 
+ *     tile_offsets_attr#<attribute_num-1>_#2 ...
+ */
+int BookKeeping::load_tile_var_offsets(gzFile fd) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_var_offsets_num;
+
+  // Allocate tile offsets
+  tile_var_offsets_.resize(attribute_num);
+
+  // For all attributes, get the variable tile offsets
+  for(int i=0; i<attribute_num; ++i) {
+    // Get number of tile offsets
+    if(gzread(fd, &tile_var_offsets_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading number of variable tile "
+                  "offsets failed");
+      return TILEDB_BK_ERR;
+    }
+ 
+    if(tile_var_offsets_num == 0)
+      continue;
+
+    // Get variable tile offsets
+    tile_var_offsets_[i].resize(tile_var_offsets_num);
+    if(gzread(
+           fd, 
+           &tile_var_offsets_[i][0], 
+           tile_var_offsets_num * sizeof(size_t)) != 
+       tile_var_offsets_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading variable tile "
+                  "offsets failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}
+
+/* FORMAT:
+ * tile_var_sizes_attr#0_num(int64_t)
+ * tile_var_sizes_attr#0_#1(size_t) tile_sizes_attr#0_#2 ...
+ * ...
+ * tile_var_sizes_attr#<attribute_num-1>_num(int64_t)
+ * tile_var_sizes__attr#<attribute_num-1>_#1(size_t) 
+ *     tile_var_sizes_attr#<attribute_num-1>_#2 ...
+ */
+int BookKeeping::load_tile_var_sizes(gzFile fd) {
+  // For easy reference
+  const ArraySchema* array_schema = fragment_->array()->array_schema();
+  int attribute_num = array_schema->attribute_num();
+  int64_t tile_var_sizes_num;
+
+  // Allocate tile sizes
+  tile_var_sizes_.resize(attribute_num);
+
+  // For all attributes, get the variable tile sizes
+  for(int i=0; i<attribute_num; ++i) {
+    // Get number of tile sizes
+    if(gzread(fd, &tile_var_sizes_num, sizeof(int64_t)) != sizeof(int64_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading number of variable tile "
+                  "sizes failed");
+      return TILEDB_BK_ERR;
+    }
+ 
+    if(tile_var_sizes_num == 0)
+      continue;
+
+    // Get variable tile sizes
+    tile_var_sizes_[i].resize(tile_var_sizes_num);
+    if(gzread(
+           fd, 
+           &tile_var_sizes_[i][0], 
+           tile_var_sizes_num * sizeof(size_t)) != 
+       tile_var_sizes_num * sizeof(size_t)) {
+      PRINT_ERROR("Cannot load book-keeping; Reading variable tile "
+                  "sizes failed");
+      return TILEDB_BK_ERR;
+    }
+  }
+
+  // Success
+  return TILEDB_BK_OK;
+}

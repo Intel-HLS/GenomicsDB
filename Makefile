@@ -4,6 +4,20 @@
 
 OS := $(shell uname)
 
+# Configuration flags
+CONFIG_FLAGS =
+
+# Use of mmap function for reading
+USE_MMAP =
+
+ifeq ($(USE_MMAP),)
+  USE_MMAP = 1
+endif
+
+ifeq ($(USE_MMAP),1)
+  CONFIG_FLAGS += -D_TILEDB_USE_MMAP
+endif
+
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
@@ -12,18 +26,18 @@ CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)
-LDFLAGS=-lz -lrt
+LDFLAGS=-lz -lrt -lcrypto
 
 ifdef OPENMP
   CFLAGS+=-fopenmp
 endif
 LINKFLAGS+=-fopenmp
 
-# --- Debug/Release mode handler --- #
-BUILD ?= debug 
+# --- Debug/Release/Verbose mode handler --- #
+BUILD ?= debug
+VERBOSE ?= 2
 
 ifeq ($(BUILD),debug)
-# CFLAGS += -DDEBUG -Wall -O0 -g
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
 endif
@@ -44,13 +58,7 @@ ifeq ($(GNU_PARALLEL),1)
   CFLAGS += -DGNU_PARALLEL
 endif
 
-# --- Compilers --- #
-
-# C++ compiler
-# CXX = g++ 
-
 # MPI compiler for C++
-#MPIPATH = #/opt/mpich/dev/intel/default/bin/
 ifdef MPIPATH
     CC  = $(MPIPATH)/mpicc
     CXX = $(MPIPATH)/mpicxx
@@ -59,18 +67,14 @@ else
     CXX = mpicxx
 endif
 CPPFLAGS=-std=c++11 -fPIC \
-      $(LFS_CFLAGS) $(CFLAGS)
-
-#HTSDIR=../../htslib
+      $(LFS_CFLAGS) $(CFLAGS) $(CONFIG_FLAGS)
 
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
     LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
 endif
 
-ifdef DUPLICATE_CELL_AT_END
-    CPPFLAGS += -DDUPLICATE_CELL_AT_END
-endif
+CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
 ifdef RAPIDJSON_INCLUDE_DIR
     CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
@@ -81,7 +85,17 @@ ifdef USE_BIGMPI
     LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
 endif
 
-SOFLAGS=-shared -Wl,-soname=
+ifeq ($(VERBOSE),0)
+  CFLAGS += -DNVERBOSE
+endif
+
+ifneq ($(VERBOSE),0)
+  CFLAGS += -DVERBOSE=$(VERBOSE)
+endif
+
+# --- Set library path to Google Test shared objects --- #
+LDFLAGS += -L$(PWD)/3rdparty/gtest/lib
+LDFLAGS += -Wl,-R$(PWD)/3rdparty/gtest/lib `$$ORIGIN`
 
 ifdef DO_PROFILING
     CPPFLAGS+=-DDO_PROFILING
@@ -90,7 +104,7 @@ endif
 ifdef USE_GPERFTOOLS
     GPERFTOOLSDIR ?= /home/karthikg/softwares/gperftools-2.2/install/
     CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
-    LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind 
+    LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind
 endif
 
 ifdef VERBOSE
@@ -124,62 +138,41 @@ ifeq ($(BUILD),release)
   CORE_LIB_DIR = $(CORE_LIB_REL_DIR)
 endif
 
-# Directories for the command-line-based frontend of TileDB
-TILEDB_CMD_INCLUDE_DIR = tiledb_cmd/include
-TILEDB_CMD_SRC_DIR = tiledb_cmd/src
-TILEDB_CMD_OBJ_DEB_DIR = tiledb_cmd/obj/debug
-TILEDB_CMD_BIN_DEB_DIR = tiledb_cmd/bin/debug
-ifeq ($(BUILD),debug)
-  TILEDB_CMD_OBJ_DIR = $(TILEDB_CMD_OBJ_DEB_DIR)
-  TILEDB_CMD_BIN_DIR = $(TILEDB_CMD_BIN_DEB_DIR)
-endif
-TILEDB_CMD_OBJ_REL_DIR = tiledb_cmd/obj/release
-TILEDB_CMD_BIN_REL_DIR = tiledb_cmd/bin/release
-ifeq ($(BUILD),release)
-  TILEDB_CMD_OBJ_DIR = $(TILEDB_CMD_OBJ_REL_DIR)
-  TILEDB_CMD_BIN_DIR = $(TILEDB_CMD_BIN_REL_DIR)
-endif
-
 #Variant dir
 VARIANT_INCLUDE_DIR = variant/include
 VARIANT_SRC_DIR = variant/src
 VARIANT_OBJ_DIR = variant/obj
 VARIANT_BIN_DIR = variant/bin
-EXAMPLE_INCLUDE_DIR = variant/example/include
-EXAMPLE_SRC_DIR = variant/example/src
-EXAMPLE_OBJ_DIR = variant/example/obj
-EXAMPLE_BIN_DIR = variant/example/bin
+VARIANT_EXAMPLE_INCLUDE_DIR = variant/example/include
+VARIANT_EXAMPLE_SRC_DIR = variant/example/src
+VARIANT_EXAMPLE_OBJ_DIR = variant/example/obj
+VARIANT_EXAMPLE_BIN_DIR = variant/example/bin
 
-# Directories of Google Test
-GTEST_DIR = gtest
-GTEST_INCLUDE_DIR = gtest/include
-GTEST_SRC_DIR = gtest/src
-GTEST_OBJ_DIR = gtest/obj
-GTEST_BIN_DIR = gtest/bin
+# Directories for the examples
+EXAMPLES_INCLUDE_DIR = examples/include
+EXAMPLES_SRC_DIR = examples/src
+EXAMPLES_OBJ_DEB_DIR = examples/obj/debug
+EXAMPLES_BIN_DEB_DIR = examples/bin/debug
+ifeq ($(BUILD),debug)
+  EXAMPLES_OBJ_DIR = $(EXAMPLES_OBJ_DEB_DIR)
+  EXAMPLES_BIN_DIR = $(EXAMPLES_BIN_DEB_DIR)
+endif
+EXAMPLES_OBJ_REL_DIR = examples/obj/release
+EXAMPLES_BIN_REL_DIR = examples/bin/release
+ifeq ($(BUILD),release)
+  EXAMPLES_OBJ_DIR = $(EXAMPLES_OBJ_REL_DIR)
+  EXAMPLES_BIN_DIR = $(EXAMPLES_BIN_REL_DIR)
+endif
 
 # Directories for TileDB tests
+GTEST_INCLUDE_DIR = 3rdparty/gtest/include
+TEST_SRC_SUBDIRS = $(wildcard test/src/*)
 TEST_SRC_DIR = test/src
 TEST_OBJ_DIR = test/obj
 TEST_BIN_DIR = test/bin
 
-# Directories for Linear Algebra applications
-LA_INCLUDE_DIR = la/include
-LA_SRC_DIR = la/src
-LA_OBJ_DIR = la/obj
-LA_BIN_DIR = la/bin
-
-# Directories for distributed applications
-RVMA_INCLUDE_DIR = rvma/include
-RVMA_SRC_DIR     = rvma/src
-RVMA_OBJ_DIR     = rvma/obj
-RVMA_BIN_DIR     = rvma/bin
-
 # Directory for Doxygen documentation
 DOXYGEN_DIR = doxygen
-
-# Manpages directories
-MANPAGES_MAN_DIR = manpages/man
-MANPAGES_HTML_DIR = manpages/html
 
 # Directories for the MPI files - not necessary if mpicxx used.
 MPI_INCLUDE_DIR := .
@@ -190,15 +183,14 @@ STATIC_LINK_VARIANT_LIBRARY=-Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant 
 
 # --- Paths --- #
 CORE_INCLUDE_PATHS = $(addprefix -I, $(CORE_INCLUDE_SUBDIRS))
-TILEDB_CMD_INCLUDE_PATHS = -I$(TILEDB_CMD_INCLUDE_DIR)
-LA_INCLUDE_PATHS = -I$(LA_INCLUDE_DIR)
+TEST_INCLUDE_PATHS = $(addprefix -I, $(CORE_INCLUDE_SUBDIRS)) \
+                     -I$(GTEST_INCLUDE_DIR)
+
+EXAMPLES_INCLUDE_PATHS = -I$(EXAMPLES_INCLUDE_DIR)
 VARIANT_INCLUDE_PATHS = -I$(VARIANT_INCLUDE_DIR)
-EXAMPLE_INCLUDE_PATHS = -I$(EXAMPLE_INCLUDE_DIR)
+VARIANT_EXAMPLE_INCLUDE_PATHS = -I$(VARIANT_EXAMPLE_INCLUDE_DIR)
 MPI_INCLUDE_PATHS = -I$(MPI_INCLUDE_DIR)
 MPI_LIB_PATHS = -L$(MPI_LIB_DIR)
-
-# --- Libs --- #
-MPI_LIB =
 
 # --- File Extensions --- #
 ifeq ($(OS), Darwin)
@@ -210,68 +202,50 @@ endif
 # --- Files --- #
 
 # Files of the TileDB core
-CORE_INCLUDE := $(foreach D,$(CORE_INCLUDE_SUBDIRS),$D/*.h) 
+CORE_INCLUDE := $(foreach D,$(CORE_INCLUDE_SUBDIRS),$D/*.h)
 CORE_SRC := $(wildcard $(foreach D,$(CORE_SRC_SUBDIRS),$D/*.cc))
 CORE_OBJ := $(patsubst $(CORE_SRC_DIR)/%.cc, $(CORE_OBJ_DIR)/%.o, $(CORE_SRC))
-
-# Files of the TileDB command-line-based frontend
-TILEDB_CMD_INCLUDE := $(wildcard $(TILEDB_CMD_INCLUDE_DIR)/*.h)
-TILEDB_CMD_SRC := $(wildcard $(TILEDB_CMD_SRC_DIR)/*.cc)
-TILEDB_CMD_OBJ := $(patsubst $(TILEDB_CMD_SRC_DIR)/%.cc,\
-                             $(TILEDB_CMD_OBJ_DIR)/%.o, $(TILEDB_CMD_SRC))
-TILEDB_CMD_BIN := $(patsubst $(TILEDB_CMD_SRC_DIR)/%.cc,\
-                             $(TILEDB_CMD_BIN_DIR)/%, $(TILEDB_CMD_SRC)) 
 
 VARIANT_INCLUDE := $(wildcard $(VARIANT_INCLUDE_DIR)/*.h)
 VARIANT_SRC := $(wildcard $(VARIANT_SRC_DIR)/*.cc)
 VARIANT_OBJ := $(patsubst $(VARIANT_SRC_DIR)/%.cc, $(VARIANT_OBJ_DIR)/%.o, $(VARIANT_SRC))
-EXAMPLE_INCLUDE := $(wildcard $(EXAMPLE_INCLUDE_DIR)/*.h)
-EXAMPLE_SRC := $(wildcard $(EXAMPLE_SRC_DIR)/*.cc)
-EXAMPLE_OBJ := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_OBJ_DIR)/%.o, $(EXAMPLE_SRC))
-EXAMPLE_BIN := $(patsubst $(EXAMPLE_SRC_DIR)/%.cc, $(EXAMPLE_BIN_DIR)/%, $(EXAMPLE_SRC))
+VARIANT_EXAMPLE_INCLUDE := $(wildcard $(VARIANT_EXAMPLE_INCLUDE_DIR)/*.h)
+VARIANT_EXAMPLE_SRC := $(wildcard $(VARIANT_EXAMPLE_SRC_DIR)/*.cc)
+VARIANT_EXAMPLE_OBJ := $(patsubst $(VARIANT_EXAMPLE_SRC_DIR)/%.cc, $(VARIANT_EXAMPLE_OBJ_DIR)/%.o, $(VARIANT_EXAMPLE_SRC))
+VARIANT_EXAMPLE_BIN := $(patsubst $(VARIANT_EXAMPLE_SRC_DIR)/%.cc, $(VARIANT_EXAMPLE_BIN_DIR)/%, $(VARIANT_EXAMPLE_SRC))
 
-# Files of the Google Test
-GTEST_INCLUDE := $(wildcard $(GTEST_INCLUDE_DIR)/*.h)
-GTEST_OBJ := $(patsubst $(GTEST_SRC_DIR)/%.cc, $(GTEST_OBJ_DIR)/%.o,\
-                        $(GTEST_SRC))
+# Files of the examples
+EXAMPLES_INCLUDE := $(wildcard $(EXAMPLES_INCLUDE_DIR)/*.h)
+EXAMPLES_SRC := $(wildcard $(EXAMPLES_SRC_DIR)/*.cc)
+EXAMPLES_OBJ := $(patsubst $(EXAMPLES_SRC_DIR)/%.cc,\
+                             $(EXAMPLES_OBJ_DIR)/%.o, $(EXAMPLES_SRC))
+EXAMPLES_BIN := $(patsubst $(EXAMPLES_SRC_DIR)/%.cc,\
+                             $(EXAMPLES_BIN_DIR)/%, $(EXAMPLES_SRC))
 
 # Files of the TileDB tests
-TEST_SRC := $(wildcard $(TEST_SRC_DIR)/*.cc)
+TEST_SRC := $(wildcard $(foreach D,$(TEST_SRC_SUBDIRS),$D/*.cc))
 TEST_OBJ := $(patsubst $(TEST_SRC_DIR)/%.cc, $(TEST_OBJ_DIR)/%.o, $(TEST_SRC))
-
-# Files of the Linear Algebra applications
-LA_SRC := $(wildcard $(LA_SRC_DIR)/*.cc)
-LA_OBJ := $(patsubst $(LA_SRC_DIR)/%.cc, $(LA_OBJ_DIR)/%.o, $(LA_SRC))
-LA_BIN := $(patsubst $(LA_SRC_DIR)/%.cc, $(LA_BIN_DIR)/%, $(LA_SRC))
-
-# Files of the distributed applications
-RVMA_SRC := $(wildcard $(RVMA_SRC_DIR)/*.c)
-RVMA_OBJ := $(patsubst $(RVMA_SRC_DIR)/%.c, $(RVMA_OBJ_DIR)/%.o, $(RVMA_SRC))
-RVMA_BIN := $(patsubst $(RVMA_SRC_DIR)/%.c, $(RVMA_BIN_DIR)/%, $(RVMA_SRC))
 
 # Files for the HTML version of the Manpages
 MANPAGES_MAN := $(wildcard $(MANPAGES_MAN_DIR)/*)
 MANPAGES_HTML := $(patsubst $(MANPAGES_MAN_DIR)/%,\
-                            $(MANPAGES_HTML_DIR)/%.html, $(MANPAGES_MAN)) 
+                            $(MANPAGES_HTML_DIR)/%.html, $(MANPAGES_MAN))
 
 ###################
 # General Targets #
 ###################
 
-.PHONY: core gtest test doc clean_core clean_gtest variant example \
-        clean_test clean_tiledb_cmd clean_la clean_variant clean_example clean
+.PHONY: core examples check doc clean_core \
+        clean_check clean_examples \
+        clean variant example clean_variant clean_variant_example
 
-all: core libtiledb tiledb_cmd gtest test variant example 
+all: core libtiledb examples variant variant_example
 
-core: $(CORE_OBJ) 
+core: $(CORE_OBJ)
 
 libtiledb: core $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT)
 
-tiledb_cmd: core $(TILEDB_CMD_OBJ) $(TILEDB_CMD_BIN)
-
-la: core $(LA_OBJ) $(LA_BIN_DIR)/example_transpose
-
-rvma: core $(RVMA_OBJ) #$(RVMA_BIN_DIR)/simple_test
+examples: core $(EXAMPLES_OBJ) $(EXAMPLES_BIN)
 
 html: $(MANPAGES_HTML)
 
@@ -283,14 +257,14 @@ endif
 
 variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.a
 
-example: $(EXAMPLE_BIN) $(EXAMPLE_OBJ)
+variant_example: $(VARIANT_EXAMPLE_BIN) $(VARIANT_EXAMPLE_OBJ)
 
-gtest: $(GTEST_OBJ_DIR)/gtest-all.o
+check: libtiledb $(TEST_BIN_DIR)/tiledb_test
+	@echo "Running TileDB tests"
+	@$(TEST_BIN_DIR)/tiledb_test
 
-test: $(TEST_OBJ)
-
-clean: clean_core clean_libtiledb clean_tiledb_cmd clean_gtest \
-       clean_test clean_doc clean_variant clean_example 
+clean: clean_core clean_libtiledb \
+       clean_check clean_doc clean_examples clean_variant clean_variant_example
 
 ########
 # Core #
@@ -301,7 +275,7 @@ clean: clean_core clean_libtiledb clean_tiledb_cmd clean_gtest \
 -include $(CORE_OBJ:%.o=%.d)
 
 $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
-	@mkdir -p $(dir $@) 
+	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
 	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) -c $< -o $@
@@ -312,7 +286,7 @@ $(CORE_OBJ_DIR)/%.o: $(CORE_SRC_DIR)/%.cc
 
 # --- Cleaning --- #
 
-clean_core: 
+clean_core:
 	@echo 'Cleaning core'
 	@rm -rf $(CORE_OBJ_DEB_DIR)/* $(CORE_OBJ_REL_DIR)/* \
                 $(CORE_BIN_DEB_DIR)/* $(CORE_BIN_REL_DIR)/*
@@ -350,18 +324,19 @@ clean_libtiledb:
 	@rm -rf $(CORE_LIB_DEB_DIR)/* $(CORE_LIB_REL_DIR)/*
 
 ##############
-# TileDB_cmd #
+#  Examples  #
 ##############
 
 # --- Compilation and dependency genration --- #
 
--include $(TILEDB_CMD_OBJ:.o=.d)
+-include $(EXAMPLES_OBJ:.o=.d)
 
-$(TILEDB_CMD_OBJ_DIR)/%.o: $(TILEDB_CMD_SRC_DIR)/%.cc
-	@mkdir -p $(TILEDB_CMD_OBJ_DIR)
+$(EXAMPLES_OBJ_DIR)/%.o: $(EXAMPLES_SRC_DIR)/%.cc
+	@mkdir -p $(EXAMPLES_OBJ_DIR)
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(TILEDB_CMD_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(TILEDB_CMD_INCLUDE_PATHS) \
+	@$(CXX) $(EXAMPLES_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< \
+         $(ZLIB) $(OPENSSLLIB) -o $@
+	@$(CXX) -MM $(EXAMPLES_INCLUDE_PATHS) \
                     $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
@@ -369,49 +344,17 @@ $(TILEDB_CMD_OBJ_DIR)/%.o: $(TILEDB_CMD_SRC_DIR)/%.cc
 
 # --- Linking --- #
 
-$(TILEDB_CMD_BIN_DIR)/%: $(TILEDB_CMD_OBJ_DIR)/%.o $(CORE_OBJ)
-	@mkdir -p $(TILEDB_CMD_BIN_DIR)
+$(EXAMPLES_BIN_DIR)/%: $(EXAMPLES_OBJ_DIR)/%.o $(CORE_OBJ)
+	@mkdir -p $(EXAMPLES_BIN_DIR)
 	@echo "Creating $@"
-	@$(CXX) $(LINKFLAGS) $(MPI_LIB_PATHS) $(MPI_LIB) \
-                -o $@ $^ $(LDFLAGS)
+	@$(CXX) $(LINKFLAGS) -o $@ $^ $(LDFLAGS) 
 
 # --- Cleaning --- #
 
-clean_tiledb_cmd:
-	@echo 'Cleaning tiledb_cmd'
-	@rm -f $(TILEDB_CMD_OBJ_DEB_DIR)/* $(TILEDB_CMD_OBJ_REL_DIR)/* \
-               $(TILEDB_CMD_BIN_DEB_DIR)/* $(TILEDB_CMD_BIN_REL_DIR)/*
- 
-######
-# LA #
-######
-
-# --- Compilation and dependency genration --- #
-
-# -include $(LA_OBJ:.o=.d)
-
-# $(LA_OBJ_DIR)/%.o: $(LA_SRC_DIR)/%.cc
-# 	@test -d $(LA_OBJ_DIR) || mkdir -p $(LA_OBJ_DIR)
-# 	@echo "Compiling $<"
-# 	@$(CXX) $(CPPFLAGS) $(LA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-# 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(LA_INCLUDE_PATHS) $< > $(@:.o=.d)
-# 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-# 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-# 	@rm -f $(@:.o=.d.tmp)
-
-# --- Linking --- #
-
-# $(LA_BIN_DIR)/example_transpose: $(LA_OBJ) $(CORE_OBJ)
-#	@mkdir -p $(LA_BIN_DIR)
-#	@echo "Creating example_transpose"
-#	@$(CXX) $(MPI_LIB_PATHS) $(MPI_LIB) \
-#               -o $@ $^
-
-# --- Cleaning --- #
-
-# clean_la:
-#	@echo 'Cleaning la'
-#	@rm -f $(LA_OBJ_DIR)/* $(LA_BIN_DIR)/* 
+clean_examples:
+	@echo 'Cleaning examples'
+	@rm -f $(EXAMPLES_OBJ_DEB_DIR)/* $(EXAMPLES_OBJ_REL_DIR)/* \
+               $(EXAMPLES_BIN_DEB_DIR)/* $(EXAMPLES_BIN_REL_DIR)/*
 
 ###############
 # Variant specific part of TileDB #
@@ -422,7 +365,7 @@ clean_tiledb_cmd:
 -include $(VARIANT_OBJ:.o=.d)
 
 $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
-	@mkdir -p $(dir $@) 
+	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
 	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
                 $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
@@ -436,114 +379,81 @@ $(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
 	ar rcs $@ $^
 
 clean_variant:
-	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/* 
+	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/*
 
-########
-# RVMA #
-########
-
-# --- Compilation and dependency genration --- #
-
-# -include $(RVMA_OBJ:.o=.d)
-
-# $(RVMA_OBJ_DIR)/%.o: $(RVMA_SRC_DIR)/%.c
-# 	@test -d $(RVMA_OBJ_DIR) || mkdir -p $(RVMA_OBJ_DIR)
-# 	@echo "Compiling $<"
-# 	@$(CXX) $(CPPFLAGS) $(RVMA_INCLUDE_PATHS) $(CORE_INCLUDE_PATHS) -c $< -o $@
-# 	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(RVMA_INCLUDE_PATHS) $< > $(@:.o=.d)
-# 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-# 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-# 	@rm -f $(@:.o=.d.tmp)
-
-# $(RVMA_BIN_DIR)/simple_test: $(RVMA_OBJ) $(CORE_OBJ)
-# 	@mkdir -p $(RVMA_BIN_DIR)
-# 	@echo "Creating simple_test"
-# 	@$(CXX) $(MPI_LIB_PATHS) $(MPI_LIB) \
-#                -o $@ $^
-
-# --- Cleaning --- #
-
-# clean_rvma:
-#	@echo 'Cleaning RVMA'
-#	@rm -f $(RVMA_OBJ_DIR)/* $(RVMA_BIN_DIR)/*
-
-############
-# Examples #
-############
+####################
+# Variant examples #
+####################
 
 # --- Compilation and dependency genration --- #
 
--include $(EXAMPLE_OBJ:.o=.d)
+-include $(VARIANT_EXAMPLE_OBJ:.o=.d)
 
-$(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_SRC_DIR)/%.cc
-	@mkdir -p $(dir $@) 
+$(VARIANT_EXAMPLE_OBJ_DIR)/%.o: $(VARIANT_EXAMPLE_SRC_DIR)/%.cc
+	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
 	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
-                $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
+                $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
 #Linking
-$(EXAMPLE_BIN_DIR)/%: $(EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
-	@test -d $(EXAMPLE_BIN_DIR) || mkdir -p $(EXAMPLE_BIN_DIR)
+$(VARIANT_EXAMPLE_BIN_DIR)/%: $(VARIANT_EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
+	@test -d $(VARIANT_EXAMPLE_BIN_DIR) || mkdir -p $(VARIANT_EXAMPLE_BIN_DIR)
 	$(CXX) $(LINKFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
 
-clean_example:
-	rm -f $(EXAMPLE_OBJ_DIR)/* $(EXAMPLE_BIN_DIR)/* 
-
-###############
-# Google Test #
-###############
-
-# --- Compilation --- #
-
-$(GTEST_OBJ_DIR)/gtest-all.o: gtest/src/gtest-all.cc \
-                              $(wildcard gtest/include/gtest/*.h)
-	@test -d $(GTEST_OBJ_DIR) || mkdir -p $(GTEST_OBJ_DIR)
-	@echo "Compiling $<"
-	@$(CXX) -isystem $(GTEST_INCLUDE_DIR) -I$(GTEST_DIR) \
-                -pthread -c $< -o $@
-
-# --- Cleaning --- #
-
-clean_gtest:
-	@echo "Cleaning gtest"
-	@rm -f $(GTEST_OBJ_DIR)/* $(GTEST_BIN_DIR)/* 
+clean_variant_example:
+	rm -f $(VARIANT_EXAMPLE_OBJ_DIR)/* $(VARIANT_EXAMPLE_BIN_DIR)/*
 
 ################
 # TileDB Tests #
 ################
 
-# Coming up soon...
+# --- Compilation and dependency genration --- #
+
+-include $(TEST_OBJ:.o=.d)
+
+$(TEST_OBJ_DIR)/%.o: $(TEST_SRC_DIR)/%.cc
+	@mkdir -p $(dir $@)
+	@echo "Compiling $<"
+	@$(CXX) $(TEST_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) -MM $(TEST_INCLUDE_PATHS) \
+                    $(CORE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
+	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
+	@rm -f $(@:.o=.d.tmp)
+
+# --- Linking --- #
+
+$(TEST_BIN_DIR)/tiledb_test: $(TEST_OBJ) $(CORE_OBJ)
+	@mkdir -p $(TEST_BIN_DIR)
+	@echo "Creating test_cmd"
+	@$(CXX) $(LDFLAGS) $(OPENMP_LIB_PATHS) $(OPENMP_LIB) \
+			$(MPI_LIB_PATHS) $(MPI_LIB) \
+      -o $@ $^ $(ZLIB) $(OPENSSLLIB) -lgtest -lgtest_main
 
 # --- Cleaning --- #
 
-clean_test:
-	@echo "Cleaning test"
-	@rm -f $(TEST_OBJ_DIR)/* $(TEST_BIN_DIR)/* 
+clean_check:
+	@echo "Cleaning check"
+	@rm -rf $(TEST_OBJ_DIR) $(TEST_BIN_DIR)
 
 ################################
 # Documentation (with Doxygen) #
 ################################
 
-doxyfile.inc: $(CORE_INCLUDE) $(TILEDB_CMD_INCLUDE) $(LA_INCLUDE)
+doxyfile.inc: $(CORE_INCLUDE)
 	@echo 'Creating Doxygen documentation'
 	@echo INPUT = $(DOXYGEN_DIR)/mainpage.dox $(CORE_INCLUDE) \
-                      $(TILEDB_CMD_INCLUDE) $(LA_INCLUDE) > doxyfile.inc
+	    > doxyfile.inc
 	@echo FILE_PATTERNS = *.h >> doxyfile.inc
 	@doxygen Doxyfile.mk > Doxyfile.log 2>&1
-
-$(MANPAGES_HTML_DIR)/%.html: $(MANPAGES_MAN_DIR)/%
-	@echo 'Converting $< to HTML'
-	@mkdir -p $(MANPAGES_HTML_DIR)
-	@man2html $< > $@
 
 # --- Cleaning --- #
 
 clean_doc:
 	@echo "Cleaning documentation"
 	@rm -f doxyfile.inc
-	@rm -f $(MANPAGES_HTML)
 

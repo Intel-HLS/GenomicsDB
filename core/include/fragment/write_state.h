@@ -6,7 +6,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,306 +31,355 @@
  * This file defines class WriteState. 
  */
 
-#ifndef WRITE_STATE_H
-#define WRITE_STATE_H
+#ifndef __WRITE_STATE_H__
+#define __WRITE_STATE_H__
 
-#include "array_schema.h"
 #include "book_keeping.h"
-#include "tile.h"
+#include "fragment.h"
+#include <vector>
 #include <iostream>
 
-/** Initial buffer size (in bytes). It will keep on doubling. */
-#define BUFFER_INITIAL_SIZE 40000
+/* ********************************* */
+/*             CONSTANTS             */
+/* ********************************* */
+
+#define TILEDB_WS_OK     0
+#define TILEDB_WS_ERR   -1
+
+class BookKeeping;
 
 /** Stores the state necessary when writing cells to a fragment. */
 class WriteState {
  public:
-  // TYPE DEFINITIONS & DECLARATIONS
-  /** Mnemonic: [attribute_id] --> segment */
-  typedef std::vector<void*> Segments;
-  /** Mnemonic: [attribute_id] --> segment_utilziation */
-  typedef std::vector<size_t> SegmentUtilization;
-  struct Cell;
-  struct CellWithId;
-  struct CellWith2Ids;  
-  template<typename T> struct SmallerCol;
-  template<typename T> struct SmallerColWithId;
-  template<typename T> struct SmallerRow;
-  template<typename T> struct SmallerRowWithId;
-  template<typename T> struct SmallerWith2Ids;
+  // TYPE DEFINITIONS
+
+  /** Custom comparator in cell sorting. */
+  template<typename T> class SmallerIdCol;
+  /** Custom comparator in cell sorting. */
+  template<typename T> class SmallerIdRow;
+  /** Custom comparator in cell sorting. */
+  template<class T> class SmallerRow;
+  /** Custom comparator in cell sorting. */
+  template<class T> class SmallerCol;
 
   // CONSTRUCTORS & DESTRUCTORS
-  /** Constructor. */
-  WriteState(
-      const ArraySchema* array_schema, 
-      const std::string* fragment_name,
-      const std::string* temp_dirname,
-      const std::string* workspace,
-      BookKeeping* book_keeping,
-      size_t segment_size,
-      size_t write_state_max_size);  
+
+  /** 
+   * Constructor. 
+   *
+   * @param fragment The fragment the write state belongs to.
+   */
+  WriteState(const Fragment* fragment, BookKeeping* book_keeping);
+
   /** Destructor. */
   ~WriteState();
 
-  // ACCESSORS
-  /** Returns the number of cells currently in the write state. */
-  int64_t cell_num() const;
+  // WRITE FUNCTIONS
+  
+  // TODO
+  int write(
+      const void** buffers, 
+      const size_t* buffer_sizes);
 
-  // MUTATORS
-  /** Flushes the write state onto the disk. */
-  void flush();
-  /**  
-   * Writes a cell to the write state. It takes as input a cell and its size
-   * The cell has the following format: The coordinates
-   * appear first, and then the attribute values in the same order
-   * as the attributes are defined in the array schema.
-   */
-  template<class T>
-  void write_cell(const void* cell);
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries no ids.
-   */
-  template<class T>
-  void write_cell_sorted(const void* cell); 
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries a single (tile) id.
-   */
-  template<class T>
-  void write_cell_sorted_with_id(const void* cell); 
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries a tile and a cell id.
-   */
-  template<class T>
-  void write_cell_sorted_with_2_ids(const void* cell); 
+  // MISC
+
+  // TODO 
+  int finalize();
 
  private:
   // PRIVATE ATTRIBUTES
-  /** The array schema. */
-  const ArraySchema* array_schema_;
-  /** The array book-keeping structures. */
+
+  /** The book-keeping structure of the fragment the write state belongs to. */
   BookKeeping* book_keeping_;
-  /** The bounding coordinates of the currently populated tile. */
-  Tile::BoundingCoordinatesPair bounding_coordinates_;
-  /** Buffers that store the cells. */
-  std::vector<void*> buffers_;
-  /** Sizes of buffers that store the cells. */
-  std::vector<size_t> buffers_sizes_;
-  /** Utilization of buffers that store the cells. */
-  std::vector<size_t> buffers_utilization_;
-  /** Stores logical cells. */
-  std::vector<Cell> cells_;
-  /** Stores logical cells. */
-  std::vector<CellWithId> cells_with_id_;
-  /** Stores logical cells. */
-  std::vector<CellWith2Ids> cells_with_2_ids_;
-  /** The number of cell in the tile currently being populated. */
-  int64_t cell_num_;
-  /** 
-   * Keeping track of the offsets of the attribute files (plus coordinates),
-   * when writing cells in a sorted manner to create the tiles.
+  /** The first and last coordinates of the tile currently being populated. */
+  void* bounding_coords_;
+  /**  
+   * The current buffer offsets of the variable-sized attributes in their 
+   * respective files.
    */
-  std::vector<int64_t> file_offsets_;
-  /** The fragment name. */
-  const std::string* fragment_name_;
-  /** Temporary buffer used in GZIP compression. */
-  void* gz_buffer_;
-  /** 
-   * Stores one GZIP segment per attribute. A GZIP segment is essentially a
-   * buffer for the cells of exactly one tile of an attribute. Upon finishing
-   * writing the cells of each tile, the payload of this buffer gets GZIP'ed
-   * and flushed into the actual corresponding segment (which will periodically
-   * get flushed to the attribute file on the disk.
-   */
-  Segments gz_segments_;
-  /** Stores the GZIP segment utilization. */
-  SegmentUtilization gz_segment_utilization_;
-  /** The MBR of the currently populated tile. */
+  std::vector<size_t> buffer_var_offsets_;
+  /** The fragment the write state belongs to. */
+  const Fragment* fragment_;
+  /** The MBR of the tile currently being populated. */
   void* mbr_;
-  /** Stores the offset in the run buffer for the next write. */
-  size_t run_offset_;
-  /** Total memory consumption of the current run. */
-  size_t run_size_;
-  /** Counts the number of sorted runs. */
-  int runs_num_;
-  /** The segment size. */
-  size_t segment_size_;
-  /** Stores one segment per attribute. */
-  Segments segments_;
-  /** Stores the segment utilization. */
-  SegmentUtilization segment_utilization_;
-  /** Temporary directory name. */
-  const std::string* temp_dirname_;
-  /** The id of the tile being currently populated. */
-  int64_t tile_id_;
-  /** The workspace. */
-  const std::string* workspace_; 
-  /** Max memory size of the write state when creating an array fragment. */
-  size_t write_state_max_size_;
+  /** The number of cells written in the current tile for each attribute. */
+  std::vector<int64_t> tile_cell_num_;
+  /** Internal buffers used in the case of compression. */
+  std::vector<void*> tiles_;
+  /** Offsets of the current tiles inside the files. */
+  std::vector<size_t> tiles_var_file_offsets_;
+  /** Offsets to the internal variable tile buffers. */
+  std::vector<size_t> tiles_var_offsets_;
+  /** Internal buffers used in the case of compression for variable tiles. */
+  std::vector<void*> tiles_var_;
+  /** 
+   * Sizes of internal buffers used in the case of compression for variable 
+   * tiles. 
+   */
+  std::vector<size_t> tiles_var_sizes_;
+  /** Internal buffer used in the case of compression. */
+  void* tile_compressed_;
+  /** Allocated size for internal buffer used in the case of compression. */
+  size_t tile_compressed_allocated_size_;
+  /** Offsets to the internal tile buffers used in compression. */
+  std::vector<size_t> tile_offsets_;
 
   // PRIVATE METHODS
-  /** 
-   * Appends an attribute value to the corresponding GZIP segment (see 
-   * WriteState::gz_segments_), and returns (by reference) the (potentially 
-   * variable) attribute value size. This is invoked when the attribute requires
-   * GZIP compression. 
-   */
-  void append_attribute_value_to_gz_segment(const char* attr, int attribute_id,
-                                            size_t& attr_size);
-  /** 
-   * Appends an attribute value to the corresponding segment, and returns (by
-   * reference) the (potentially variable) attribute value size. This is invoked
-   * when the attribute does not require compression. 
-   */
-  void append_attribute_value_to_segment(const char* attr, int attribute_id,
-                                         size_t& attr_size);
-  /** 
-   * Appends an attribute value to the corresponding buffer and eventually the
-   * corresponding file. It returns (by reference) the (potentially variable) 
-   * attribute value size. 
-   */
-  void append_attribute_value(const char* attr, int attribute_id,
-                              size_t& attr_size);
-  /** 
-   * Appends the coordinates to the corresponding buffer and eventually the 
-   * corresponding file. 
-   */
-  void append_coordinates(const char* coords);
-  /** 
-   * Appends the coordinates to the corresponding GZIP segment (see 
-   * WriteState::gz_segments_). This is invoked when the coordinates require 
-   * GZIP compression. 
-   */
-  void append_coordinates_to_gz_segment(const char* coords);
-  /** 
-   * Appends the coordinates to the corresponding segment. This is invoked when
-   * the coordinates do not require compression. 
-   */
-  void append_coordinates_to_segment(const char* coords);
-  /** Copies a cell in the buffers of the write state. */
-  void* copy_cell(const void* cell, size_t cell_size);
-  /** Sorts and writes the last run on the disk. */
-  void finalize_last_run();
-  /** 
-   * Compresses the contents of gz_segments_[attribute_id], flushes the 
-   * compressed data to segments_[attribute_id], and returns the size of the 
-   * flushed (compressed data).
-   */
-  void flush_gz_segment_to_segment(int attribute_id, size_t& flushed);
-  /** Flushes a segment to its corresponding file. */
-  void flush_segment(int attribute_id);
-  /** Flushes all segments to their corresponding files. */
-  void flush_segments();
-  /** Writes a sorted run on the disk. */
-  void flush_sorted_run();
-  /** Writes a sorted run on the disk. */
-  void flush_sorted_run_with_id();
-  /** Writes a sorted run on the disk. */
-  void flush_sorted_run_with_2_ids();
-  /** 
-   * Writes the info about the lastly populated tile to the book keeping
-   * structures. In case compression is used for some attributes, it
-   * compresses the tile data held in gz_segments_ and flushes them
-   * to the corresponding segments_, updating properly the file offsets
-   * in book-keeping. 
-   */
-  void flush_tile_info_to_book_keeping();
-  /** Makes tiles from existing sorted runs, stored in dirname. */
-  void make_tiles(const std::string& dirname);
-  /** Makes tiles from existing sorted runs, stored in dirname. */
-  template<class T>
-  void make_tiles(const std::string& dirname);
-  /** Makes tiles from existing sorted runs, stored in dirname. */
-  template<class T>
-  void make_tiles_with_id(const std::string& dirname);
-  /** Makes tiles from existing sorted runs, stored in dirname. */
-  template<class T>
-  void make_tiles_with_2_ids(const std::string& dirname);
-  /** Sorts a run in main memory. */
-  void sort_run();
-  /** Sorts a run in main memory. */
-  void sort_run_with_id();
-  /** Sorts a run in main memory. */
-  void sort_run_with_2_ids();
 
-  /**
-   * Updates the info of the currently populated tile with the input
-   * coordinates,  tile id, and sizes of all attribute values in the cell. 
-   */
+  // TODO
+  int compress_and_write_tile(int attribute_id);
+
+  // TODO
+  int compress_and_write_tile_var(int attribute_id);
+
+  // TODO
   template<class T>
-  void update_tile_info(const T* coords, int64_t tile_id, 
-                        const std::vector<size_t>& attr_sizes);
-};
+  void expand_mbr(const T* coords);
 
-/**  A logical cell. */
-struct WriteState::Cell {
-  /** The cell buffer. */ 
-  void* cell_; 
-};
+  // TODO
+  void shift_var_offsets(
+      int attribute_id,
+      size_t buffer_var_size,
+      const void* buffer,
+      size_t buffer_size,
+      void* shifted_buffer);
 
-/** A logical cell with a tile or cell id. */
-struct WriteState::CellWithId {
-  /** The cell buffer. */ 
-  void* cell_; 
-  /** An id. */
-  int64_t id_;
-};
+  // TODO
+  void sort_cell_pos(
+      const void* buffer, 
+      size_t buffer_size,
+      std::vector<int64_t>& cell_pos) const;
 
-/** A logical cell with a tile and a cell id. */
-struct WriteState::CellWith2Ids {
-  /** The cell buffer. */ 
-  void* cell_; 
-  /** A tile id. */
-  int64_t tile_id_;
-  /** A cell id. */
-  int64_t cell_id_;
+  // TODO
+  template<class T>
+  void sort_cell_pos(
+      const void* buffer, 
+      size_t buffer_size,
+      std::vector<int64_t>& cell_pos) const;
+
+  // TODO
+  void update_book_keeping(const void* buffer, size_t buffer_size);
+
+  // TODO
+  template<class T>
+  void update_book_keeping(const void* buffer, size_t buffer_size);
+
+  // TODO
+  void update_tile_cell_num(int attribute_id, int64_t buffer_cell_num);
+
+  // TODO
+  int write_dense(
+      const void** buffers, 
+      const size_t* buffer_sizes);
+
+  // TODO
+  int write_dense_attr(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_dense_attr_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_dense_attr_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_dense_attr_var(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_dense_attr_var_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_dense_attr_var_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_sparse(
+      const void** buffers, 
+      const size_t* buffer_sizes);
+
+  // TODO
+  int write_sparse_attr(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_sparse_attr_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_sparse_attr_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size);
+
+  // TODO
+  int write_sparse_attr_var(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_sparse_attr_var_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_sparse_attr_var_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size);
+
+  // TODO
+  int write_sparse_unsorted(
+      const void** buffers, 
+      const size_t* buffer_sizes);
+
+  // TODO
+  int write_sparse_unsorted_attr(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_sparse_unsorted_attr_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_sparse_unsorted_attr_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_sparse_unsorted_attr_var(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_sparse_unsorted_attr_var_cmp_none(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_sparse_unsorted_attr_var_cmp_gzip(
+      int attribute_id,
+      const void* buffer, 
+      size_t buffer_size,
+      const void* buffer_var, 
+      size_t buffer_var_size,
+      const std::vector<int64_t>& cell_pos);
+
+  // TODO
+  int write_last_tile();
 };
 
 /** Wrapper of comparison function for sorting cells. */
-template<typename T>
-struct WriteState::SmallerCol {
+template<class T>
+class WriteState::SmallerIdRow {
+ public:
   /** Constructor. */
-  SmallerCol(int dim_num) { dim_num_ = dim_num; }
+  SmallerIdRow(const T* buffer, int dim_num, const std::vector<int64_t>& ids) 
+      : buffer_(buffer),
+        dim_num_(dim_num),
+        ids_(ids) { }
 
   /** Comparison operator. */
-  bool operator () (const Cell& a, const Cell& b) {
-    const T* coords_a = static_cast<const T*>(a.cell_);
-    const T* coords_b = static_cast<const T*>(b.cell_);
-
-    for(int i=dim_num_-1; i>=0; --i) 
-      if(coords_a[i] < coords_b[i]) 
-        return true;
-      else if(coords_a[i] > coords_b[i]) 
-        return false;
-      // else coords_a[i] == coords_b[i] --> continue
-
-    return false;
-  }
-
-  /** Number of dimension. */
-  int dim_num_;
-};
-
-/** Wrapper of comparison function for sorting cells. */
-template<typename T>
-struct WriteState::SmallerColWithId {
-  /** Constructor. */
-  SmallerColWithId(int dim_num) { dim_num_ = dim_num; }
-
-  /** Comparison operator. */
-  bool operator () (const CellWithId& a, 
-                    const CellWithId& b) {
-    if(a.id_ < b.id_)
+  bool operator () (int64_t a, int64_t b) {
+    if(ids_[a] < ids_[b])
       return true;
 
-    if(a.id_ > b.id_)
+    if(ids_[a] > ids_[b])
       return false;
 
     // a.id_ == b.id_ --> check coordinates
-    const T* coords_a = static_cast<const T*>(a.cell_);
-    const T* coords_b = static_cast<const T*>(b.cell_);
+    const T* coords_a = &buffer_[a * dim_num_];
+    const T* coords_b = &buffer_[b * dim_num_];
+
+    for(int i=0; i<dim_num_; ++i) 
+      if(coords_a[i] < coords_b[i]) 
+        return true;
+      else if(coords_a[i] > coords_b[i]) 
+        return false;
+      // else coords_a[i] == coords_b[i] --> continue
+
+    return false;
+  }
+
+ private:
+  /** Cell buffer. */
+  const T* buffer_;
+  /** Number of dimensions. */
+  int dim_num_;
+  /** The cell ids. */
+  const std::vector<int64_t>& ids_;
+};
+
+/** Wrapper of comparison function for sorting cells. */
+template<class T>
+class WriteState::SmallerIdCol {
+ public:
+  /** Constructor. */
+  SmallerIdCol(const T* buffer, int dim_num, const std::vector<int64_t>& ids) 
+      : buffer_(buffer),
+        dim_num_(dim_num),
+        ids_(ids) { }
+
+  /** Comparison operator. */
+  bool operator () (int64_t a, int64_t b) {
+    if(ids_[a] < ids_[b])
+      return true;
+
+    if(ids_[a] > ids_[b])
+      return false;
+
+    // a.id_ == b.id_ --> check coordinates
+    const T* coords_a = &buffer_[a * dim_num_];
+    const T* coords_b = &buffer_[b * dim_num_];
 
     for(int i=dim_num_-1; i>=0; --i) 
       if(coords_a[i] < coords_b[i]) 
@@ -342,22 +391,61 @@ struct WriteState::SmallerColWithId {
     return false;
   }
 
+ private:
+  /** Cell buffer. */
+  const T* buffer_;
+  /** Number of dimensions. */
+  int dim_num_;
+  /** The cell ids. */
+  const std::vector<int64_t>& ids_;
+};
+
+/** Wrapper of comparison function for sorting cells. */
+template<class T>
+class WriteState::SmallerRow {
+ public:
+  /** Constructor. */
+  SmallerRow(const T* buffer, int dim_num) 
+      : buffer_(buffer),
+        dim_num_(dim_num) { }
+
+  /** Comparison operator. */
+  bool operator () (int64_t a, int64_t b) {
+    const T* coords_a = &buffer_[a * dim_num_];
+    const T* coords_b = &buffer_[b * dim_num_];
+
+    for(int i=0; i<dim_num_; ++i) 
+      if(coords_a[i] < coords_b[i]) 
+        return true;
+      else if(coords_a[i] > coords_b[i]) 
+        return false;
+      // else coords_a[i] == coords_b[i] --> continue
+
+    return false;
+  }
+
+ private:
+  /** Cell buffer. */
+  const T* buffer_;
   /** Number of dimensions. */
   int dim_num_;
 };
 
 /** Wrapper of comparison function for sorting cells. */
-template<typename T>
-struct WriteState::SmallerRow {
+template<class T>
+class WriteState::SmallerCol {
+ public:
   /** Constructor. */
-  SmallerRow(int dim_num) { dim_num_ = dim_num; }
+  SmallerCol(const T* buffer, int dim_num) 
+      : buffer_(buffer),
+        dim_num_(dim_num) { }
 
   /** Comparison operator. */
-  bool operator () (const Cell& a, const Cell& b) {
-    const T* coords_a = static_cast<const T*>(a.cell_);
-    const T* coords_b = static_cast<const T*>(b.cell_);
+  bool operator () (int64_t a, int64_t b) {
+    const T* coords_a = &buffer_[a * dim_num_];
+    const T* coords_b = &buffer_[b * dim_num_];
 
-    for(int i=0; i<dim_num_; ++i) 
+    for(int i=dim_num_-1; i>=0; --i) 
       if(coords_a[i] < coords_b[i]) 
         return true;
       else if(coords_a[i] > coords_b[i]) 
@@ -367,81 +455,10 @@ struct WriteState::SmallerRow {
     return false;
   }
 
-  /** Number of dimension. */
-  int dim_num_;
-};
-
-/** Wrapper of comparison function for sorting cells. */
-template<typename T>
-struct WriteState::SmallerRowWithId {
-  /** Constructor. */
-  SmallerRowWithId(int dim_num) { dim_num_ = dim_num; }
-
-  /** Comparison operator. */
-  bool operator () (const CellWithId& a, 
-                    const CellWithId& b) {
-
-    if(a.id_ < b.id_)
-      return true;
-
-    if(a.id_ > b.id_)
-      return false;
-
-    // a.id_ == b.id_ --> check coordinates
-    const T* coords_a = static_cast<const T*>(a.cell_);
-    const T* coords_b = static_cast<const T*>(b.cell_);
-
-    for(int i=0; i<dim_num_; ++i) 
-      if(coords_a[i] < coords_b[i]) 
-        return true;
-      else if(coords_a[i] > coords_b[i]) 
-        return false;
-      // else coords_a[i] == coords_b[i] --> continue
-
-    return false;
-  }
-
-  /** Number of dimension. */
-  int dim_num_;
-};
-
-/** Wrapper of comparison function for sorting cells. */
-template<typename T>
-struct WriteState::SmallerWith2Ids {
-  /** Constructor. */
-  SmallerWith2Ids(int dim_num) { dim_num_ = dim_num; }
-
-  /** Comparison operator. */
-  bool operator () (const CellWith2Ids& a, 
-                    const CellWith2Ids& b) {
-    if(a.tile_id_ < b.tile_id_)
-      return true;
-
-    if(a.tile_id_ > b.tile_id_)
-      return false;
-
-    if(a.cell_id_ < b.cell_id_)
-      return true;
-
-    if(a.cell_id_ > b.cell_id_)
-      return false;
-
-    // a.tile_id_ == b.tile_id_ && 
-    // a.cell_id_ == b.cell_id_     --> check coordinates (row major)
-    const T* coords_a = static_cast<const T*>(a.cell_);
-    const T* coords_b = static_cast<const T*>(b.cell_);
-
-    for(int i=0; i<dim_num_; ++i) 
-      if(coords_a[i] < coords_b[i]) 
-        return true;
-      else if(coords_a[i] > coords_b[i]) 
-        return false;
-      // else coords_a[i] == coords_b[i] --> continue
-
-    return false;
-  }
-
-  /** Number of dimension. */
+ private:
+  /** Cell buffer. */
+  const T* buffer_;
+  /** Number of dimensions. */
   int dim_num_;
 };
 

@@ -20,7 +20,6 @@ doxyfile.inc
 doxygen_sqlite3.db
 doxygen/html/
 doxygen/latex/
-manpages/html/
 rvma/obj/
 rvma/bin/
 doc/*
@@ -30,3 +29,10 @@ doc/*
 *.d
 /variant/example/bin
 test_inputs
+my_workspace*
+.directory
+examples/bin/*
+examples/obj/*
+*temp*
+.project
+.cproject

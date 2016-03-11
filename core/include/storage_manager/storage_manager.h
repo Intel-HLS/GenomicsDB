@@ -6,7 +6,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,307 +28,239 @@
  * 
  * @section DESCRIPTION
  *
- * This file defines class StorageManager. 
+ * This file defines class StorageManager.  
  */  
 
-#ifndef STORAGE_MANAGER_H
-#define STORAGE_MANAGER_H
+#ifndef __STORAGE_MANAGER_H__
+#define __STORAGE_MANAGER_H__
 
 #include "array.h"
+#include "array_iterator.h"
 #include "array_schema.h"
-#include "fragment.h"
-#include "tile.h"
-#include "tiledb_error.h"
-#include "utils.h"
-#include <unistd.h>
-#include <vector>
+#include "array_schema_c.h"
+#include "metadata.h"
+#include "metadata_iterator.h"
+#include "metadata_schema_c.h"
 #include <string>
-#include <map>
-#include <limits>
-#include <set>
 
-class ArraySchema;
-template<class T> class ArrayConstCellIterator;
-template<class T> class ArrayConstDenseCellIterator;
-template<class T> class ArrayConstReverseCellIterator;
-class Array;
+/* ********************************* */
+/*             CONSTANTS             */
+/* ********************************* */
+
+// Return codes
+#define TILEDB_SM_OK        0
+#define TILEDB_SM_ERR      -1
 
 /** 
- * A storage manager object is responsible for storing/fetching tiles to/from 
- * the disk. It maintains book-keeping structures in main memory to efficiently
- * locate the tile data on disk. 
+ * The Storage Manager is the most important module of TileDB, which is
+ * repsonsible pretty much for everything.
  */
 class StorageManager {
  public: 
-  // TYPE DEFINITIONS
-  /** Mnemonic: [array_name + "_" + array_name] --> array_descriptor */
-  typedef std::map<std::string, int> OpenArrays;
+  // CONSTRUCTORS & DESTRUCTORS  
 
-  // CONSTRUCTORS & DESTRUCTORS
-  /**
-   * Upon its creation, a storage manager object needs a workspace path. The 
-   * latter is a folder in the disk where the storage manager creates all the 
-   * tile and book-keeping data. Note that the input path must 
-   * exist. If the workspace folder exists, the function does nothing, 
-   * otherwise it creates it. The segment size determines the amount of data 
-   * exchanged in an I/O operation between the disk and the main memory. 
-   * The MPI handler takes care of the MPI communication in the distributed
-   * setting where there are multiple TileDB processes runnign simultaneously.
-   */
-  StorageManager(const std::string& path, 
-                 size_t segment_size = SEGMENT_SIZE);
-  /** When a storage manager object is deleted, it closes all open arrays. */
+  /** Constructor. */
+  StorageManager(const char* config_filename);
+
+  /** Destructor. */
   ~StorageManager();
 
-  // ACCESSORS
-  /**
-   * Returns the current error code. It is TILEDB_OK upon success.
-   */
-  int err() const;
+  // WORKSPACE
 
-  // MUTATORS
-  /** Changes the default segment size. */
-  void set_segment_size(size_t segment_size);
-   
-  // ARRAY FUNCTIONS
-  /** Returns true if the array has been defined. */
-  bool array_defined(const std::string& array_name) const;
-  /** Deletes all the fragments of an array. The array remains defined. */
-  int clear_array(const std::string& array_name);
-  /** Closes an array. */
-  void close_array(int ad);
-  /** Defines an array (stores its array schema). */
-  int define_array(const ArraySchema* array_schema);
-  /** It deletes an array (regardless of whether it is open or not). */
-  int delete_array(const std::string& array_name);
-  /** 
-   * Forces an array to close. This is done during abnormal execution. 
-   * If the array was opened in write or append mode, the last fragment
-   * must be deleted (since it was not properly loaded).
-   */
-  void forced_close_array(int ad);
-  /** Returns the schema of an array. The input is an array descriptor. */
-  int get_array_schema(
-      int ad, const ArraySchema*& array_schema) const;
-  /** Returns the schema of an array. */
-  int get_array_schema(
-      const std::string& array_name, 
-      ArraySchema*& array_schema) const;
-  /** Prints the version of the storage manager to the standard output. */
-  static void get_version();
-  /** 
-   * Opens an array in the input mode. It returns an 'array descriptor',
-   * which is used in subsequent array operations. Currently, the following
-   * modes are supported:
-   *
-   * "r": Read mode
-   *
-   * "w": Write mode (if the array exists, it is deleted)
-   *
-   * "a": Append mode
-   */
-  int open_array(const std::string& array_name, const char* mode);
+  // TODO
+  int workspace_create(const std::string& dir) const; 
 
-  // CELL FUNCTIONS
-  /** Takes as input an array descriptor and returns a cell iterator. */
-  template<class T>
-  ArrayConstCellIterator<T>* begin(int ad) const;
-  /** 
-   * Takes as input an array descriptor and a list of attribute ids. It returns
-   * a cell iterator that iterates over the specified attributes.
-   */
-  template<class T>
-  ArrayConstCellIterator<T>* begin(
-      int ad, const std::vector<int>& attribute_ids) const;
-  /** 
-   * Takes as input an array descriptor and a range. It returns a cell iterator
-   * that iterates only over the cells whose coordinates lie within the input 
-   * range (following the global cell order).    
-   */
-  template<class T>
-  ArrayConstCellIterator<T>* begin(
-      int ad, const T* range) const;
-  /** 
-   * Takes as input an array descriptor, a range, and a list of attribute
-   * ids. It returns a cell iterator that iterates only over the cells
-   * whose coordinates lie within the input range (following the global cell
-   * order), and only on the specified attributes.
-   */
-  template<class T>
-  ArrayConstCellIterator<T>* begin(
-      int ad, const T* range,
-      const std::vector<int>& attribute_ids) const;
-  /** Takes as input an array descriptor and returns a dense cell iterator. */
-  template<class T>
-  ArrayConstDenseCellIterator<T>* begin_dense(int ad) const;
-  /** 
-   * Takes as input an array descriptor and a list of attribute ids. It returns
-   * a dense cell iterator that iterates over the specified attributes.
-   */
-  template<class T>
-  ArrayConstDenseCellIterator<T>* begin_dense(
-      int ad, const std::vector<int>& attribute_ids) const;
-  /** 
-   * Takes as input an array descriptor and a range. It returns a dense cell 
-   * iterator that iterates only over the cells whose coordinates lie within 
-   * the input range (following the global cell order).    
-   */
-  template<class T>
-  ArrayConstDenseCellIterator<T>* begin_dense(
-      int ad, const T* range) const;
-  /** 
-   * Takes as input an array descriptor, a range, and a list of attribute
-   * ids. It returns a dense cell iterator that iterates only over the cells
-   * whose coordinates lie within the input range (following the global cell
-   * order), and only on the specified attributes.
-   */
-  template<class T>
-  ArrayConstDenseCellIterator<T>* begin_dense(
-      int ad, const T* range,
-      const std::vector<int>& attribute_ids) const;
-  /** Takes as input an array descriptor and returns a cell iterator. */
-  template<class T>
-  ArrayConstReverseCellIterator<T>* rbegin(int ad) const;
-  /** 
-   * Takes as input an array descriptor and a list of attribute ids. It returns
-   * a cell iterator that iterates over the specified attributes.
-   */
-  template<class T>
-  ArrayConstReverseCellIterator<T>* rbegin(
-      int ad, const std::vector<int>& attribute_ids) const;
-  /** 
-   * Takes as input an array descriptor, a multi-dimensional object, and a flag
-   * that indicates if the multi-dimensional object is a range or a single 
-   * element. If it is a range, it returns a cell iterator that iterates only 
-   * over the cells whose coordinates lie within the input  range (following the
-   * If it is a single cell, the iterator iterates over all cells that lie on
-   * or before the input along global cell order.    
-   */
-  template<class T>
-  ArrayConstReverseCellIterator<T>* rbegin(
-      int ad, const T* multi_D_obj, bool is_range = true) const;
-  /** 
-   * Takes as input an array descriptor, a multi-dimensional object, and a flag
-   * that indicates if the multi-dimensional object is a range or a single 
-   * element. If it is a range, it returns a cell iterator that iterates only 
-   * over the cells whose coordinates lie within the input range (following the
-   * If it is a single cell, the iterator iterates over all cells that lie on
-   * or before the input along global cell order. This iterator returns cells 
-   * that have values only on the input attributes.
-   */
-  template<class T>
-  ArrayConstReverseCellIterator<T>* rbegin(
-      int ad, const T* multi_D_obj,
-      const std::vector<int>& attribute_ids,
-      bool is_range = true) const;
+  // GROUP
 
   /**
-   * Takes as input an array descriptor and a multi-dimensional range, and 
-   * returns the cells whose coordinates fall inside the range, as well as
-   * their collective size in bytes (last two arguments).
+   * Creates a new group.
+   *
+   * @param dir The name of the directory of the group. Note that the parent
+   *      of this directory must be a TileDB workspace or group.
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
    */
-  void read_cells(int ad, const void* range, 
-                  const std::vector<int>& attribute_ids,
-                  void*& cells, size_t& cells_size) const;
+  int group_create(const std::string& dir) const; 
+
+  // ARRAY
+
   /**
-   * Takes as input an array descriptor and a multi-dimensional range, and 
-   * returns the cells whose coordinates fall inside the range, as well as
-   * their collective size in bytes (last two arguments).
+   * Creates an array.
+   *
+   * @param array_schema_c A C-style array schema object.
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
    */
-  template<class T>
-  void read_cells(int ad, const T* range, 
-                  const std::vector<int>& attribute_ids,
-                  void*& cells, size_t& cells_size) const;
-  /**  
-   * Writes a cell to an array. It takes as input an array descriptor, and
-   * a cell pointer. The cell has the following format: The coordinates
-   * appear first, and then the attribute values in the same order
-   * as the attributes are defined in the array schema.
-   */
-  template<class T>
-  void write_cell(int ad, const void* cell) const; 
-  /**  
-   * Writes a cell to an array. It takes as input an array descriptor, and
-   * a cell pointer. The cell has the following format: The coordinates
-   * appear first, and then the attribute values in the same order
-   * as the attributes are defined in the array schema. This function
-   * is used only when it is guaranteed that the cells are written
-   * respecting the global cell order as specified in the array schema.
-   */
-  template<class T>
-  void write_cell_sorted(int ad, const void* cell) const; 
-  /**  
-   * Writes a set of cells to an array. It takes as input an array descriptor,
-   * and a pointer to cells, which are serialized one after the other. Each cell
-   * has the following format: The coordinates appear first, and then the
-   * attribute values in the same order as the attributes are defined in the
-   * array schema.
-   */
-  void write_cells(int ad, const void* cells, size_t cells_size) const; 
-  /**  
-   * Writes a set of cells to an array. It takes as input an array descriptor,
-   * and a pointer to cells, which are serialized one after the other. Each cell
-   * has the following format: The coordinates appear first, and then the
-   * attribute values in the same order as the attributes are defined in the
-   * array schema.
-   */
-  template<class T>
-  void write_cells(int ad, const void* cells, size_t cells_size) const; 
+  int array_create(const ArraySchemaC* array_schema_c) const; 
 
-  /**  
-   * Writes a set of cells to an array. It takes as input an array descriptor,
-   * and a pointer to cells, which are serialized one after the other. Each cell
-   * has the following format: The coordinates appear first, and then the
-   * attribute values in the same order as the attributes are defined in the
-   * array schema. This function is used only when it is guaranteed that the
-   * cells are written respecting the global cell order as specified in the
-   * array schema.
+  /**
+   * Creates an array.
+   *
+   * @param array_schema A C++-style array schema object.
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
    */
-  void write_cells_sorted(int ad, const void* cells, size_t cells_size) const; 
-  /**  
-   * Writes a set of cells to an array. It takes as input an array descriptor,
-   * and a pointer to cells, which are serialized one after the other. Each cell
-   * has the following format: The coordinates appear first, and then the
-   * attribute values in the same order as the attributes are defined in the
-   * array schema. This function is used only when it is guaranteed that the
-   * cells are written respecting the global cell order as specified in the
-   * array schema.
-   */
-  template<class T>
-  void write_cells_sorted(int ad, const void* cells, size_t cells_size) const; 
+  int array_create(const ArraySchema* array_schema) const; 
 
- private: 
-  // PRIVATE ATTRIBUTES
-  /** Stores all the open arrays. */
-  Array** arrays_; 
-  /** Error code (0 on success). */
-  int err_;
-  /** Keeps track of the descriptors of the currently open arrays. */
-  OpenArrays open_arrays_;
-  /** 
-   * Determines the amount of data that can be exchanged between the 
-   * hard disk and the main memory in a single I/O operation. 
+  /**
+   * Initializes an array object.
+   *
+   * @param array The array object to be initialized.
+   * @param dir The directory of the array to be initialized.
+   * @param mode The mode of the array. It must be one of the following:
+   *    - TILEDB_WRITE 
+   *    - TILEDB_WRITE_UNSORTED 
+   *    - TILEDB_READ 
+   *    - TILEDB_READ_REVERSE 
+   * @param range The range in which the array read/write will be constrained.
+   * @param attributes A subset of the array attributes the read/write will be
+   *     constrained.
+   * @param attribute_num The number of the input attributes.
+   * @return TILEDB_SM_OK on success, and TILEDB_SM_ERR on error.
    */
-  size_t segment_size_;
+  int array_init(
+      Array*& array,
+      const char* dir,
+      int mode, 
+      const void* range,
+      const char** attributes,
+      int attribute_num) const;
+
+  // TODO
+  int array_iterator_init(
+      ArrayIterator*& array_it,
+      const char* dir,
+      const void* range,
+      const char** attributes,
+      int attribute_num,
+      void** buffers,
+      size_t* buffer_sizes) const;
+
+  // TODO
+  int metadata_iterator_init(
+      MetadataIterator*& metadata_it,
+      const char* dir,
+      const char** attributes,
+      int attribute_num,
+      void** buffers,
+      size_t* buffer_sizes) const;
+
+  // TODO
+  int array_reinit_subarray(
+      Array* array,
+      const void* range) const;
+
+  // TODO
+  int metadata_init(
+      Metadata*& metadata,
+      const char* dir,
+      int mode, 
+      const char** attributes,
+      int attribute_num) const;
+
+
   /** 
-   * Is a folder in the disk where the storage manager creates 
-   * all the array data (i.e., tile and index files). 
+   * Finalizes an array. 
+   *
+   * @param array The array to be finalized.
+   * @return TILEDB_SM_OK on success, and TILEDB_SM_ERR on error.
    */
-  std::string workspace_;
-  /** Max memory size of the write state when creating an array fragment. */
-  size_t write_state_max_size_;
-  
+  int array_finalize(Array* array) const;
+
+  // TODO
+  int array_iterator_finalize(ArrayIterator* array_iterator) const;
+
+  // TODO
+  int metadata_iterator_finalize(MetadataIterator* metadata_iterator) const;
+
+  /**
+   * Loads the schema of an array from the disk.
+   *
+   * @param dir The directory of the array.
+   * @param array_schema The schema to be loaded.
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
+   */
+  int array_load_schema(const char* dir, ArraySchema*& array_schema) const;
+
+  // TODO
+  int array_write(
+      Array* array,
+      const void** buffers, 
+      const size_t* buffer_sizes) const;
+
+  // TODO
+  int array_read(
+      Array* array,
+      void** buffers, 
+      size_t* buffer_sizes) const;
+
+  // COMMON
+  // TODO
+  int clear(const std::string& dir) const;
+
+  // TODO
+  int delete_entire(const std::string& dir) const;
+
+  // TODO
+  int move(const std::string& old_dir, const std::string& new_dir) const;
+
+  // METADATA
+
+  // TODO
+  int metadata_create(const MetadataSchemaC* metadata_schema_c) const; 
+
+  // TODO
+  int metadata_create(const ArraySchema* array_schema) const; 
+
+  // TODO
+  int metadata_load_schema(const char* dir, ArraySchema*& array_schema) const;
+
+  // TODO
+  int metadata_finalize(Metadata* array) const;
+
+  // TODO
+  int metadata_write(
+      Metadata* metadata,
+      const char* keys,
+      size_t keys_size,
+      const void** buffers, 
+      const size_t* buffer_sizes) const;
+
+  // TODO
+  int metadata_read(
+      Metadata* metadata,
+      const char* key,
+      void** buffers, 
+      size_t* buffer_sizes) const;
+
+ private:
   // PRIVATE METHODS
-  /** Checks when opening an array. */
-  int check_on_open_array(
-      const std::string& array_name, 
-      const char* mode) const;
-  /** Checks the validity of the array mode. */
-  bool invalid_array_mode(const char* mode) const;
-  /** Simply sets the workspace. */
-  void set_workspace(const std::string& path);
-  /** Stores an array object and returns an array descriptor. */
-  int store_array(Array* array);
+
+  /** 
+   * It sets the TileDB configuration parameters from a file.
+   *
+   * @param config_filename The name of the configuration file.
+   *     Each line in the file correspond to a single parameter, and should
+   *     be in the form <parameter> <value> (i.e., space-separated).
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
+   */
+  int config_set(const char* config_filename);
+
+  /** 
+   * Sets the TileDB configuration parameters to default values. This is called
+   * if config_set() fails. 
+   *
+   * @return void
+   */
+  void config_set_default();
+
+  /**
+   * Creates a special group file inside the group directory.
+   *
+   * @param dir The group directory.
+   * @return TILEDB_SM_OK for success, and TILEDB_SM_ERR for error.
+   */
+  int create_group_file(const std::string& dir) const;
+
+  // TODO
+  int create_workspace_file(const std::string& dir) const;
 }; 
 
 #endif

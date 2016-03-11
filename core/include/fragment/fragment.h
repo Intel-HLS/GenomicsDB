@@ -6,7 +6,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,122 +31,221 @@
  * This file defines class Fragment. 
  */
 
-#ifndef FRAGMENT_H
-#define FRAGMENT_H
+#ifndef __FRAGMENT_H__
+#define __FRAGMENT_H__
 
+#include "array.h"
 #include "array_schema.h"
 #include "book_keeping.h"
-#include "fragment_const_tile_iterator.h"
-#include "fragment_const_reverse_tile_iterator.h"
+#include "constants.h"
 #include "read_state.h"
-#include "tile.h"
 #include "write_state.h"
-#include <string>
+#include <vector>
 
-class FragmentConstTileIterator;
-class FragmentConstReverseTileIterator;
+/* ********************************* */
+/*             CONSTANTS             */
+/* ********************************* */
+
+#define TILEDB_FG_OK     0
+#define TILEDB_FG_ERR   -1
+
+class Array;
+class BookKeeping;
 class ReadState;
+class WriteState;
 
-/** Contains information about a fragment. */
+/** Contains information about an array fragment. */
 class Fragment {
  public:
+  // TYPE DEFINITIONS
+
+  // TODO
+  typedef std::pair<int64_t, int64_t> CellPosRange;
+  // TODO
+  typedef std::pair<int, int64_t> FragmentInfo;
+  // TODO
+  typedef std::pair<FragmentInfo, CellPosRange> FragmentCellPosRange;
+  // TODO
+  typedef std::vector<FragmentCellPosRange> FragmentCellPosRanges;
+  // TODO
+  typedef std::pair<FragmentInfo, void*> FragmentCellRange;
+  // TODO
+  typedef std::vector<FragmentCellRange> FragmentCellRanges;
+
   // CONSTRUCTORS & DESTRUCTORS
-  /** Constructor. */
-  Fragment(const std::string& workspace, size_t segment_size,
-           size_t write_state_max_size,
-           const ArraySchema* array_schema, const std::string& fragment_name);
+  
+  /** 
+   * Constructor. 
+   *
+   * @param array The array the fragment belongs to.
+   */
+  Fragment(const Array* array);
   /** Destructor. */
   ~Fragment();
 
   // ACCESSORS
-  /** Returns the array schema. */ 
-  const ArraySchema* array_schema() const; 
-  /** Begin tile iterator. */
-  FragmentConstTileIterator begin(int attribute_id) const;
-  /** Returns the bounding coordinates of the tile at the input position. */
-  Tile::BoundingCoordinatesPair bounding_coordinates(int64_t pos) const;
+
+  // TODO
+  void* mbr(int64_t pos) const;
+
+  // TODO
+  bool overlaps() const;
+  
+  /** Returns the array the fragment belongs to. */
+  const Array* array() const;
+
+  // TODO
+  int64_t cell_num_per_tile() const;
+
+  /** Returns true if the fragment is dense, and false if it is sparse. */
+  bool dense() const;
+
   /** Returns the fragment name. */
-  const std::string& fragment_name() const; 
-  /** Returns a tile for a given attribute and tile position. */
-  Tile* get_tile_by_pos(int attribute_id, int64_t pos) const;  
-  /** Returns the MBR of the tile at the input position. */
-  Tile::MBR mbr(int64_t pos) const;
-  /** Begin reverse tile iterator. */
-  FragmentConstReverseTileIterator rbegin(int attribute_id) const;
-  /** 
-   * Returns a tile for a given attribute and tile position, when traversing
-   * tiles in reverse order. This is important so that the segments are
-   * retrieved from the disk such that the tile that triggeres the 
-   * segment retrieval appears in the end of the segment, rather than
-   * in the beginning. 
-   */
-  Tile* rget_tile_by_pos(int attribute_id, int64_t pos) const;  
+  const std::string& fragment_name() const;
 
-  /** Returns the number of tiles in the fragment. */ 
-  int64_t tile_num() const;
+  // TODO
+  template<class T>
+  void compute_fragment_cell_ranges(
+      const FragmentInfo& fragment_info,
+      FragmentCellRanges& fragment_cell_ranges) const;
 
-  // MUTATORS
-  /** Clears the book keeping structures from main memory. */
-  void clear_book_keeping();
-  /** Clears the write state. */
-  void clear_write_state();
-  /** 
-   * Writes the book keeping structures on the disk, but does not clear
-   * them from main memory. 
-   */
-  void commit_book_keeping();
-  /** Flushes the write state onto the disk. */
-  void flush_write_state();
-  /** 
-   * Initializes the read state of the fragment (i.e., prepares it for 
-   * reading).
-   */
-  void init_read_state();
-  /**  
-   * Writes a cell to the fragment. It takes as input a cell and its size. 
-   * The cell has the following format: The coordinates
-   * appear first, and then the attribute values in the same order
-   * as the attributes are defined in the array schema.
-   */
+  // TODO
+  const void* get_global_tile_coords() const;
+
+  // TODO
+  int read(void** buffers, size_t* buffer_sizes);
+
+  // TODO
+  bool overflow(int attribute_id) const;
+
+  // TODO
+  size_t tile_size(int attribute_id) const;
+
+  // TODO
+  ReadState* read_state() const;
+
+  // TODO
   template<class T>
-  void write_cell(const void* cell) const; 
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries no ids.
-   */
+  bool max_overlap(const T* max_overlap_range) const;
+
+  // TODO
   template<class T>
-  void write_cell_sorted(const void* cell); 
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries a single (tile) id.
-   */
+  int copy_cell_range(
+      int attribute_id,
+      int tile_i,
+      void* buffer,
+      size_t buffer_size,
+      size_t& buffer_offset,
+      const CellPosRange& cell_pos_range);
+
+  // TODO
   template<class T>
-  void write_cell_sorted_with_id(const void* cell); 
-  /** 
-   * Writes a cell into the fragment, respecting the global cell order. 
-   * The input cell carries a tile and a cell id.
-   */
+  int copy_cell_range_var(
+      int attribute_id,
+      int tile_i,
+      void* buffer,
+      size_t buffer_size,
+      size_t& buffer_offset,
+      void* buffer_var,
+      size_t buffer_var_size,
+      size_t& buffer_var_offset,
+      const CellPosRange& cell_pos_range);
+
+  //MUTATORS
+
+  // TODO
   template<class T>
-  void write_cell_sorted_with_2_ids(const void* cell); 
+  bool coords_exist(int64_t tile_i, const T* coords);
+
+  // TODO
+  template<class T>
+  void tile_done(int attribute_id);
+
+  // TODO
+  void reset_overflow();
+
+  /**
+   * Computes the next tile that overlaps with the range given in Array::init.
+   * Applicable only when the read is applied on multipled fragments.
+   *
+   * @return void 
+   */
+  void get_next_overlapping_tile_mult();
+
+// TODO
+  template<class T>
+  int get_cell_pos_ranges_sparse(
+      const FragmentInfo& fragment_info,
+      const T* tile_domain,
+      const T* cell_range,
+      FragmentCellPosRanges& fragment_cell_pos_ranges);
+
+  // TODO
+  void get_bounding_coords(void* bounding_coords) const;
+
+  // TODO
+  template<class T>
+  void get_next_overlapping_tile_sparse();
+
+  // TODO
+  int64_t overlapping_tiles_num() const;
+
+  // TODO
+  template<class T>
+  int get_first_two_coords(
+      int tile_i,
+      T* start_coords,
+      T* first_coords,
+      T* second_coords);
+
+  // TODO
+  template<class T>
+  int get_first_coords_after(
+      int tile_i,
+      T* start_coords_before,
+      T* first_coords);
+
+  // TODO
+  int init(const std::string& fragment_name, const void* range);
+
+  // TODO
+  void reinit_read_state();
+
+  // TODO
+  int write(const void** buffers, const size_t* buffer_sizes);
+
+  // TODO
+  bool full_domain() const;
+
+  // MISC
+  
+  // TODO
+  int finalize();
  
  private:
   // PRIVATE ATTRIBUTES
-  /** The array schema (see ArraySchema). */
-  const ArraySchema* array_schema_;
-  /** The book-keeping structures. */
+  /** The array the fragment belongs to. */
+  const Array* array_;
+  /** A book-keeping structure. */
   BookKeeping* book_keeping_;
+  // TODO
+  bool dense_;
   /** The fragment name. */
   std::string fragment_name_;
-  /** The read state. */ 
+  /** True if this fragment covers the full array domain. */
+  bool full_domain_;
+  /** A read state structure. */
   ReadState* read_state_;
-  /** The segment size */
-  size_t segment_size_;
-  /** Temporary directory. */
-  std::string temp_dirname_;
-  /** The workspace where the array data are created. */
-  std::string workspace_; 
-  /** The write state. */ 
+  /** A write state structure. */
   WriteState* write_state_;
+
+  // PRIVATE METHODS
+  /** 
+   * Changes the temporary fragment name into a stable one.
+   *
+   * @return TILEDB_FG_OK for success, and TILEDB_FG_ERR for error.
+   */
+  int rename_fragment();
 };
 
 #endif

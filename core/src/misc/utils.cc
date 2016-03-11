@@ -1,12 +1,12 @@
 /**
- * @file   tile.cc
+ * @file   utils.cc
  * @author Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * @section LICENSE
  *
  * The MIT License
  *
- * Copyright (c) 2014 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,231 +31,329 @@
  * This file implements useful (global) functions.
  */
 
-#include "special_values.h"
+#include "constants.h"
 #include "utils.h"
 #include <algorithm>
-#include <assert.h>
-#include <ctype.h>
+#include <cassert>
+#include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <set>
+#include <sys/mman.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <typeinfo>
 
-bool ends_with(const std::string& value, const std::string& ending) {
-  if (ending.size() > value.size())
-    return false;
-  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
+
+#if VERBOSE == 1
+#  define PRINT_ERROR(x) std::cerr << "[TileDB] Error: " << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB] Warning: " \
+                                     << x << ".\n"
+#elif VERBOSE == 2
+#  define PRINT_ERROR(x) std::cerr << "[TileDB::utils] Error: " \
+                                   << x << ".\n" 
+#  define PRINT_WARNING(x) std::cerr << "[TileDB::utils] Warning: " \
+                                     << x << ".\n"
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#  define PRINT_WARNING(x) do { } while(0) 
+#endif
+
+template<class T>
+bool empty_value(T value) {
+  if(&typeid(T) == &typeid(int))
+    return value == T(TILEDB_EMPTY_INT32);
+  else if(&typeid(T) == &typeid(int64_t))
+    return value == T(TILEDB_EMPTY_INT64);
+  else if(&typeid(T) == &typeid(float))
+    return value == T(TILEDB_EMPTY_FLOAT32);
+  else if(&typeid(T) == &typeid(double))
+    return value == T(TILEDB_EMPTY_FLOAT64);
 }
 
-std::string absolute_path(const std::string& path) {
-  if(path[0] == '~') 
-    return std::string(getenv("HOME")) + path.substr(1, path.size()-1);
-  else
-    return path;
+void adjacent_slashes_dedup(std::string& value) {
+  value.erase(std::unique(value.begin(), value.end(), both_slashes),
+              value.end()); 
+}
+
+bool both_slashes(char a, char b) {
+  return a == '/' && b == '/';
 }
 
 template<class T>
-void convert(const double* a, T* b, int size) {
-  for(int i=0; i<size; ++i) {
-    b[i] = T(a[i]);
+bool cell_in_range(const T* cell, const T* range, int dim_num) {
+  for(int i=0; i<dim_num; ++i) {
+    if(cell[i] < range[2*i] || cell[i] > range[2*i+1])
+      return false;
   }
+  
+  return true;
 }
 
-int create_directory(const std::string& dirname) {
-  // If the directory does not exist, create it
-  if(!is_dir(dirname))  
-    return mkdir(dirname.c_str(), S_IRWXU);
+template<class T>
+int64_t cell_num_in_range(const T* range, int dim_num) {
+  int64_t cell_num = 1;
+
+  for(int i=0; i<dim_num; ++i)
+    cell_num *= range[2*i+1] - range[2*i] + 1;
+
+  return cell_num;
+}
+
+template<class T> 
+int cmp_col_order(
+    const T* coords_a,
+    const T* coords_b,
+    int dim_num) {
+  for(int i=dim_num-1; i>=0; --i) {
+    // a precedes b
+    if(coords_a[i] < coords_b[i])
+      return -1;
+    // b precedes a
+    else if(coords_a[i] > coords_b[i])
+      return 1;
+  }
+
+  // a and b are equal
   return 0;
 }
 
-void delete_directory(const std::string& dirname)  {
-  std::string filename; 
+template<class T> 
+int cmp_col_order(
+    int64_t id_a,
+    const T* coords_a,
+    int64_t id_b,
+    const T* coords_b,
+    int dim_num) {
+  // a precedes b
+  if(id_a < id_b)
+    return -1;
 
-  struct dirent *next_file;
-  DIR* dir = opendir(dirname.c_str());
-  
-  // If the directory does not exist, exit
-  if(dir == NULL)
-    return;
+  // b precedes a
+  if(id_a > id_b)
+    return 1;
 
-  while((next_file = readdir(dir))) {
-    if(strcmp(next_file->d_name, ".") == 0 ||
-       strcmp(next_file->d_name, "..") == 0)
-      continue;
-    filename = dirname + "/" + next_file->d_name;
-    remove(filename.c_str());
-  } 
-  
-  closedir(dir);
-  rmdir(dirname.c_str());
+  for(int i=dim_num-1; i>=0; --i) {
+    // a precedes b
+    if(coords_a[i] < coords_b[i])
+      return -1;
+    // b precedes a
+    else if(coords_a[i] > coords_b[i])
+      return 1;
+  }
+
+  // a and b are equal
+  return 0;
 }
 
-template<class T>
-bool duplicates(const std::vector<T>& v) {
-  std::set<T> s(v.begin(), v.end());
+template<class T> 
+int cmp_row_order(
+    const T* coords_a,
+    const T* coords_b,
+    int dim_num) {
+  for(int i=0; i<dim_num; ++i) {
+    // a precedes b
+    if(coords_a[i] < coords_b[i])
+      return -1;
+    // b precedes a
+    else if(coords_a[i] > coords_b[i])
+      return 1;
+  }
 
-  return s.size() != v.size(); 
+  // a and b are equal
+  return 0;
 }
 
-void expand_buffer(void*& buffer, size_t size) {
-  void* temp = malloc(2*size);
-  memcpy(temp, buffer, size);
-  free(buffer);
-  buffer = temp;
+template<class T> 
+int cmp_row_order(
+    int64_t id_a,
+    const T* coords_a,
+    int64_t id_b,
+    const T* coords_b,
+    int dim_num) {
+  // a precedes b
+  if(id_a < id_b)
+    return -1;
+
+  // b precedes a
+  if(id_a > id_b)
+    return 1;
+
+  for(int i=0; i<dim_num; ++i) {
+    // a precedes b
+    if(coords_a[i] < coords_b[i])
+      return -1;
+    // b precedes a
+    else if(coords_a[i] > coords_b[i])
+      return 1;
+  }
+
+  // a and b are equal
+  return 0;
 }
 
-bool empty_directory(const std::string& dirname)  {
-  struct dirent *next_file;
-  DIR* dir = opendir(dirname.c_str());
-  
-  // If the directory does not exist, exit
-  if(dir == NULL)
-    return true;
+int create_dir(const std::string& dir) {
+  // Get real directory path
+  std::string real_dir = ::real_dir(dir);
 
-  int n = 0;
-
-  while((next_file = readdir(dir))) {
-    if(strcmp(next_file->d_name, ".") == 0 ||
-       strcmp(next_file->d_name, "..") == 0)
-      continue;
-    n = 1;
-    break;
-  } 
-  
-  closedir(dir);
-
-  return (n == 0) ? true : false;
-}
-
-void expand_mbr(const void* coords, void* mbr,
-                const std::type_info* type, int dim_num) {
-  if(*type == typeid(int)) 
-    expand_mbr(static_cast<const int*>(coords), 
-               static_cast<int*>(mbr), dim_num);
-  else if(*type == typeid(int64_t)) 
-    expand_mbr(static_cast<const int64_t*>(coords), 
-               static_cast<int64_t*>(mbr), dim_num);
-  else if(*type == typeid(float)) 
-    expand_mbr(static_cast<const float*>(coords), 
-               static_cast<float*>(mbr), dim_num);
-  else if(*type == typeid(double)) 
-    expand_mbr(static_cast<const double*>(coords), 
-               static_cast<double*>(mbr), dim_num);
-}
-
-template<class T>
-void expand_mbr(const T* coords, T* mbr, int dim_num) {
-  if(mbr == NULL) { 
-    mbr = new T[2*dim_num];
-
-    for(int i=0; i<dim_num; ++i) {
-      mbr[2*i] = coords[i]; 
-      mbr[2*i+1] = coords[i]; 
+  // If the directory does not exist, create it
+  if(!is_dir(real_dir)) { 
+    if(mkdir(real_dir.c_str(), S_IRWXU)) {
+      PRINT_ERROR(std::string("Cannot create directory '") + real_dir + "'; " + 
+                  strerror(errno));
+      return TILEDB_UT_ERR;
+    } else {
+      return TILEDB_UT_OK;
     }
   } else {
-    for(int i=0; i<dim_num; ++i) {
-      // Update lower bound on dimension i
-      if(mbr[2*i] > coords[i])
-        mbr[2*i] = coords[i];
-
-      // Update upper bound on dimension i
-      if(mbr[2*i+1] < coords[i])
-        mbr[2*i+1] = coords[i];   
-    }	
+    PRINT_ERROR(std::string("Cannot create directory '") + real_dir +
+                "'; Directory already exists"); 
+    return TILEDB_UT_ERR;
   }
 }
 
-size_t file_size(const std::string& filename) {
-  // Open file
-  int fd = open(filename.c_str(), O_RDONLY);
-  assert(fd != -1);
+int create_fragment_file(const std::string& dir) {
+  std::string filename = std::string(dir) + "/" + TILEDB_FRAGMENT_FILENAME;
+  int fd = ::open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU);
+  if(fd == -1 || ::close(fd)) {
+    PRINT_ERROR(std::string("Failed to create fragment file; ") +
+                strerror(errno));
+    return TILEDB_UT_ERR;
+  }
 
-  // Get size
+  return TILEDB_UT_OK;
+}
+
+std::string current_dir() {
+  std::string dir = "";
+  char* path = getcwd(NULL,0);
+
+
+  if(path != NULL) {
+    dir = path;
+    free(path);
+  }
+
+  return dir; 
+}
+
+int expand_buffer(void*& buffer, size_t& buffer_allocated_size) {
+  buffer_allocated_size *= 2;
+  buffer = realloc(buffer, buffer_allocated_size);
+  
+  if(buffer == NULL)
+    return TILEDB_UT_ERR;
+  else
+    return TILEDB_UT_OK;
+}
+
+template<class T>
+void expand_mbr(T* mbr, const T* coords, int dim_num) {
+  for(int i=0; i<dim_num; ++i) {
+    // Update lower bound on dimension i
+    if(mbr[2*i] > coords[i])
+      mbr[2*i] = coords[i];
+
+    // Update upper bound on dimension i
+    if(mbr[2*i+1] < coords[i])
+      mbr[2*i+1] = coords[i];   
+  }	
+} 
+
+off_t file_size(const std::string& filename) {
+  int fd = open(filename.c_str(), O_RDONLY);
+  if(fd == -1) {
+    PRINT_ERROR("Cannot get file size; File opening error");
+    return TILEDB_UT_ERR;
+  }
+
   struct stat st;
   fstat(fd, &st);
-  size_t size = st.st_size;
-
-  // Close file
+  off_t file_size = st.st_size;
+  
   close(fd);
 
-  return size;
+  return file_size;
 }
 
-std::string get_date() {
-  time_t timer;
-  char buffer[26];
-  struct tm* tm_info;
-  
-  time(&timer);
-  tm_info = localtime(&timer);
-
-  strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
-
-  return std::string(buffer);
-}
-
-std::vector<std::string> get_filenames(const std::string& dirname) {
-  std::vector<std::string> filenames; 
-  std::string filename;
-
+std::vector<std::string> get_dirs(const std::string& dir) {
+  std::vector<std::string> dirs;
+  std::string new_dir; 
   struct dirent *next_file;
-  DIR* dir = opendir(dirname.c_str());
-  
-  // If the directory does not exist, exit
-  if(dir == NULL)
-    return filenames;
+  DIR* c_dir = opendir(dir.c_str());
 
-  while((next_file = readdir(dir))) {
-    if(strcmp(next_file->d_name, ".") == 0 ||
-       strcmp(next_file->d_name, "..") == 0)
+  if(c_dir == NULL) 
+    return std::vector<std::string>();
+
+  while((next_file = readdir(c_dir))) {
+    if(!strcmp(next_file->d_name, ".") ||
+       !strcmp(next_file->d_name, "..") ||
+       !is_dir(dir + "/" + next_file->d_name))
       continue;
-    filename = dirname + "/" + next_file->d_name;
-    if(is_file(filename))
-      filenames.push_back(next_file->d_name);
+    new_dir = dir + "/" + next_file->d_name;
+    dirs.push_back(new_dir);
   } 
-  
-  closedir(dir);
 
-  return filenames;
+  // Close array directory  
+  closedir(c_dir);
+
+  // Return
+  return dirs;
 }
 
-void tiledb_gzip(unsigned char* in, size_t in_size,
-          unsigned char* out, size_t avail_out, size_t& out_size) {
-  int ret;
+ssize_t gzip(
+    unsigned char* in, 
+    size_t in_size,
+    unsigned char* out, 
+    size_t out_size) {
+
+  ssize_t ret;
   unsigned have;
   z_stream strm;
-  
+ 
   // Allocate deflate state
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
   ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
-  assert(ret == Z_OK); // TODO: Error messages here
+
+  if(ret != Z_OK) {
+    PRINT_ERROR("Cannot compress with GZIP");
+    (void)deflateEnd(&strm);
+    return TILEDB_UT_ERR;
+  }
 
   // Compress
   strm.next_in = in;
   strm.next_out = out;
   strm.avail_in = in_size;
-  strm.avail_out = avail_out;
+  strm.avail_out = out_size;
   ret = deflate(&strm, Z_FINISH);
-  assert(ret != Z_STREAM_ERROR);
-  assert(strm.avail_in == 0);
 
   // Clean up
   (void)deflateEnd(&strm);
 
-  // Calculate size of compressed data
-  out_size = avail_out - strm.avail_out; 
+  // Return 
+  if(ret == Z_STREAM_ERROR || strm.avail_in != 0) {
+    PRINT_ERROR("Cannot compress with GZIP");
+    return TILEDB_UT_ERR;
+  } else {
+    // Return size of compressed data
+    return out_size - strm.avail_out; 
+  }
 }
 
-void gunzip(unsigned char* in, size_t in_size,
-            unsigned char* out, size_t avail_out, size_t& out_size) {
+int gunzip(
+    unsigned char* in, 
+    size_t in_size,
+    unsigned char* out, 
+    size_t avail_out, 
+    size_t& out_size) {
   int ret;
   unsigned have;
   z_stream strm;
@@ -267,55 +365,101 @@ void gunzip(unsigned char* in, size_t in_size,
   strm.avail_in = 0;
   strm.next_in = Z_NULL;
   ret = inflateInit(&strm);
-  assert(ret == Z_OK); // TODO: Error messages here
 
-  // Compress
+  if(ret != Z_OK) {
+    PRINT_ERROR("Cannot decompress with GZIP");
+    return TILEDB_UT_ERR;
+  }
+
+  // Decompress
   strm.next_in = in;
   strm.next_out = out;
   strm.avail_in = in_size;
   strm.avail_out = avail_out;
   ret = inflate(&strm, Z_FINISH);
-  assert(ret != Z_STREAM_ERROR);
-  assert(ret == Z_STREAM_END);
+
+  if(ret == Z_STREAM_ERROR || ret != Z_STREAM_END) {
+    PRINT_ERROR("Cannot decompress with GZIP");
+    return TILEDB_UT_ERR;
+  }
 
   // Clean up
   (void)inflateEnd(&strm);
 
   // Calculate size of compressed data
   out_size = avail_out - strm.avail_out; 
+
+  // Success
+  return TILEDB_UT_OK;
 }
 
-void init_mbr(const void* coords, void*& mbr,
-              const std::type_info* type, int dim_num) {
-  if(*type == typeid(int)) 
-    init_mbr(static_cast<const int*>(coords), 
-             static_cast<int*>(mbr), dim_num);
-  else if(*type == typeid(int64_t)) 
-    init_mbr(static_cast<const int64_t*>(coords), 
-             static_cast<int64_t*>(mbr), dim_num);
-  else if(*type == typeid(float)) 
-    init_mbr(static_cast<const float*>(coords), 
-             static_cast<float*>(mbr), dim_num);
-  else if(*type == typeid(double)) 
-    init_mbr(static_cast<const double*>(coords), 
-             static_cast<double*>(mbr), dim_num);
+int gunzip_unknown_output_size(
+    unsigned char* in, 
+    size_t in_size,
+    void*& out, 
+    size_t& avail_out, 
+    size_t& out_size) {
+  int ret;
+  unsigned have;
+  z_stream strm;
+  unsigned char chunk[TILEDB_GZIP_CHUNK_SIZE];
+  size_t inflated_bytes;
+  
+  // Allocate deflate state
+  strm.zalloc = Z_NULL;
+  strm.zfree = Z_NULL;
+  strm.opaque = Z_NULL;
+  strm.avail_in = 0;
+  strm.next_in = Z_NULL;
+  ret = inflateInit(&strm);
+
+  if(ret != Z_OK) {
+    PRINT_ERROR("Cannot decompress with GZIP");
+    return TILEDB_UT_ERR;
+  }
+
+  // Decompress
+  strm.next_in = in;
+  strm.avail_in = in_size;
+  out_size = 0;
+
+  do {
+    strm.next_out = chunk;
+    strm.avail_out = TILEDB_GZIP_CHUNK_SIZE;
+    ret = inflate(&strm, Z_FINISH);
+
+    if(ret == Z_STREAM_ERROR) {
+      PRINT_ERROR("Cannot decompress with GZIP");
+      return TILEDB_UT_ERR;
+    }
+
+    inflated_bytes = TILEDB_GZIP_CHUNK_SIZE - strm.avail_out;
+
+    if(inflated_bytes != 0) {
+      if(out_size + inflated_bytes > avail_out)
+        expand_buffer(out, avail_out);
+
+      memcpy(
+          static_cast<char*>(out) + out_size,
+          chunk,
+          inflated_bytes);
+
+      out_size += inflated_bytes;
+    }
+  } while(strm.avail_out == 0);
+
+  // Clean up
+  (void)inflateEnd(&strm);
+
+  // Success
+  return TILEDB_UT_OK;
 }
 
 template<class T>
-void init_mbr(const T* coords, T* mbr, int dim_num) {
-  for(int i=0; i<dim_num; ++i) {
-    mbr[2*i] = coords[i]; 
-    mbr[2*i+1] = coords[i]; 
-  }
-}
+bool has_duplicates(const std::vector<T>& v) {
+  std::set<T> s(v.begin(), v.end());
 
-template<class T>
-bool inside_range(const T* point, const T* range, int dim_num) {
-  for(int i=0; i<dim_num; ++i) {
-    if(point[i] < range[2*i] || point[i] > range[2*i+1])
-      return false;
-  }
-  return true;
+  return s.size() != v.size(); 
 }
 
 template<class T>
@@ -330,73 +474,50 @@ bool intersect(const std::vector<T>& v1, const std::vector<T>& v2) {
   return intersect.size() != 0; 
 }
 
-template<>
-bool is_del(char v) {
-  return v == DEL_CHAR;
-}
-
-template<>
-bool is_del(int v) {
-  return v == DEL_INT;
-}
-
-template<>
-bool is_del(int64_t v) {
-  return v == DEL_INT64_T;
-}
-
-template<>
-bool is_del(float v) {
-  return v == DEL_FLOAT;
-}
-
-template<>
-bool is_del(double v) {
-  return v == DEL_DOUBLE;
-}
-
-bool is_dir(const std::string& dirname) {
-  std::string path = absolute_path(dirname);
-
-  struct stat st;
-  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
-}
-
-bool is_file(const std::string& filename) {
-  std::string path = absolute_path(filename);
-
-  struct stat st;
-  return (stat(path.c_str(), &st) == 0)  && !S_ISDIR(st.st_mode);
-}
-
-bool is_integer(const char* s) {
-  int i=0;
-  if(s[0] == '+' || s[0] == '-')
-    i = 1; // Skip the first character if it is the sign
-
-  for(; s[i] != '\0'; ++i) {
-    if(!isdigit(s[i]))
-      return false;
-  }
-
-  return true;
-}
-
-bool is_non_negative_integer(const char* s) {
-  int i=0;
-
-  if(s[0] == '-')
+bool is_array(const std::string& dir) {
+  // Check existence
+  if(is_dir(dir) && 
+     is_file(dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME)) 
+    return true;
+  else
     return false;
+}
 
-  if(s[0] == '+')
-    i = 1; // Skip the first character if it is the sign
+bool is_metadata(const std::string& dir) {
+  // Check existence
+  if(is_dir(dir) && 
+     is_file(dir + "/" + TILEDB_METADATA_SCHEMA_FILENAME)) 
+    return true;
+  else
+    return false;
+}
 
-  for(; s[i] != '\0'; ++i) {
-    if(!isdigit(s[i]))
-      return false;
-  }
+bool is_dir(const std::string& dir) {
+  struct stat st;
+  return stat(dir.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
 
-  return true;
+bool is_file(const std::string& file) {
+  struct stat st;
+  return (stat(file.c_str(), &st) == 0)  && !S_ISDIR(st.st_mode);
+}
+
+bool is_fragment(const std::string& dir) {
+  // Check existence
+  if(is_dir(dir) && 
+     is_file(dir + "/" + TILEDB_FRAGMENT_FILENAME)) 
+    return true;
+  else
+    return false;
+}
+
+bool is_group(const std::string& dir) {
+  // Check existence
+  if(is_dir(dir) && 
+     is_file(dir + "/" + TILEDB_GROUP_FILENAME)) 
+    return true;
+  else
+    return false;
 }
 
 bool is_positive_integer(const char* s) {
@@ -419,218 +540,407 @@ bool is_positive_integer(const char* s) {
   return true;
 }
 
-template<>
-bool is_null(char v) {
-  return v == NULL_CHAR;
-}
-
-template<>
-bool is_null(int v) {
-  return v == NULL_INT;
-}
-
-template<>
-bool is_null(int64_t v) {
-  return v == NULL_INT64_T;
-}
-
-template<>
-bool is_null(float v) {
-  return v == NULL_FLOAT;
-}
-
-template<>
-bool is_null(double v) {
-  return v == NULL_DOUBLE;
-}
-
-bool is_real(const char* s) {
-  bool decimal_point_seen = false;
-  int i=0;
-  if(s[0] == '+' || s[0] == '-')
-    i = 1; // Skip the first character if it is the sign
-
-  for(; s[i] != '\0'; ++i) {
-    if(s[i] == '.') {
-      if(!decimal_point_seen) 
-        decimal_point_seen = true;
-      else
-        return false;
-    } else if(!isdigit(s[i]))
+template<class T>
+bool is_unary_range(const T* range, int dim_num) {
+  for(int i=0; i<dim_num; ++i)  
+    if(range[2*i] != range[2*i+1])
       return false;
-  }
 
   return true;
 }
 
-bool is_valid_name(const char* s) {
-  for(int i=0; s[i] != '\0'; ++i) {
-    if(!isalnum(s[i]) && s[i] != '_')
-      return false;
-  }
-
-  return true;
+bool is_workspace(const std::string& dir) {
+  // Check existence
+  if(is_dir(dir) && 
+     is_file(dir + "/" + TILEDB_WORKSPACE_FILENAME)) 
+    return true;
+  else
+    return false;
 }
 
-void log_error(const std::string& err_msg) {
-  int fd = open(ERROR_LOG_FILENAME, O_WRONLY | O_APPEND | O_CREAT | O_SYNC,  
-                S_IRWXU);
-  assert(fd != -1);
-  if(fd == -1)
+std::string parent_dir(const std::string& dir) {
+  // Get real dir
+  std::string real_dir = ::real_dir(dir);
+
+  // Start from the end of the string
+  int pos = real_dir.size() - 1;
+
+  // Skip the potential last '/'
+  if(real_dir[pos] == '/')
+    --pos;
+
+  // Scan backwords until you find the next '/'
+  while(pos > 0 && real_dir[pos] != '/')
+    --pos;
+
+  return real_dir.substr(0, pos); 
+}
+
+void purge_dots_from_path(std::string& path) {
+  // For easy reference
+  size_t path_size = path.size(); 
+
+  // Trivial case
+  if(path_size == 0 || path == "/")
     return;
 
-  std::string date = get_date();
-  std::string log = std::string("[") + date + "] " + err_msg + "\n";
-  write(fd, log.c_str(), log.size());
+  // It expects an absolute path
+  assert(path[0] == '/');
 
-  close(fd);
-}
+  // Tokenize
+  const char* token_c_str = path.c_str() + 1;
+  std::vector<std::string> tokens, final_tokens;
+  std::string token;
 
-template<class T>
-bool no_duplicates(const std::vector<T>& v) {
-  std::set<T> s(v.begin(), v.end());
-
-  return s.size() == v.size(); 
-}
-
-template<class T>
-std::pair<bool, bool> overlap(const T* r1, const T* r2, int dim_num) {
-  // Overlap type per dimension
-  bool* partial = new bool[dim_num];
-  bool* full = new bool[dim_num];
-
-  bool overlap = true; // True if the inputs overlap (partially or fully)
-  bool full_overlap = true; // True if the inputs fully overlap   
-
-  // Determine overlap per dimension
-  for(int j=0; j<dim_num; ++j) {
-    partial[j] = false;
-    full[j] = false;
-    if(r1[2*j] >= r2[2*j] && r1[2*j+1] <= r2[2*j+1])
-      full[j] = true;
-    else if((r2[2*j] >= r1[2*j] && r2[2*j] <= r1[2*j+1]) ||
-            (r2[2*j+1] >= r1[2*j] && r2[2*j+1] <= r1[2*j+1]))
-      partial[j] = true;
-  }
-
-  // Determine overlap
-  for(int j=0; j<dim_num; j++) {
-    if(!partial[j] && !full[j]) {
-      overlap = false;
-      break;
+  for(int i=1; i<path_size; ++i) {
+    if(path[i] == '/') {
+      path[i] = '\0';
+      token = token_c_str;
+      if(token != "")
+        tokens.push_back(token); 
+      token_c_str = path.c_str() + i + 1;
     }
+  }
+  token = token_c_str;
+  if(token != "")
+    tokens.push_back(token); 
+
+  // Purge dots
+  for(int i=0; i<tokens.size(); ++i) {
+    if(tokens[i] == ".") { // Skip single dots
+      continue;
+    } else if(tokens[i] == "..") {
+      if(final_tokens.size() == 0) {
+        // Invalid path
+        path = "";
+        return;
+      } else {
+        final_tokens.pop_back();
+      }
+    } else {
+      final_tokens.push_back(tokens[i]);
+    }
+  } 
+
+  // Assemble final path
+  path = "/";
+  for(int i=0; i<final_tokens.size(); ++i) 
+    path += ((i != 0) ? "/" : "") + final_tokens[i]; 
+}
+
+int read_from_file(
+    const std::string& filename,
+    off_t offset,
+    void* buffer,
+    size_t length) {
+  // Open file
+  int fd = open(filename.c_str(), O_RDONLY);
+  if(fd == -1) {
+    PRINT_ERROR("Cannot read from file; File opening error");
+    return TILEDB_UT_ERR;
+  }
+
+  // Read
+  lseek(fd, offset, SEEK_SET); 
+  ssize_t bytes_read = ::read(fd, buffer, length);
+  if(bytes_read != length) {
+    PRINT_ERROR("Cannot read from file; File reading error");
+    return TILEDB_UT_ERR;
+  }
   
-    if(partial[j])
-      full_overlap = false;
+  // Close file
+  if(close(fd)) {
+    PRINT_ERROR("Cannot read from file; File closing error");
+    return TILEDB_UT_ERR;
   }
 
-  delete [] partial;
-  delete [] full;
-
-  return std::pair<bool, bool>(overlap, full_overlap);
+  // Success
+  return TILEDB_UT_OK;
 }
 
-template<class T>
-std::vector<T> rdedup(const std::vector<T>& v) {
-  std::vector<T> deduped_v;
-  int v_size = v.size();
-  std::set<T> s;
-  bool* dup = new bool[v_size];
+int read_from_file_with_mmap(
+    const std::string& filename,
+    off_t offset,
+    void* buffer,
+    size_t length) {
+  // Calculate offset considering the page size
+  size_t page_size = sysconf(_SC_PAGE_SIZE);
+  off_t start_offset = (offset / page_size) * page_size;
+  size_t extra_offset = offset - start_offset;
+  size_t new_length = length + extra_offset;
 
-  for(int i=v_size-1; i>=0; --i) {
-    dup[i] = false;
-    if(s.find(v[i]) == s.end()) 
-      s.insert(v[i]);
-    else
-      dup[i] = true;
+  // Open file
+  int fd = open(filename.c_str(), O_RDONLY);
+  if(fd == -1) {
+    PRINT_ERROR("Cannot read from file; File opening error");
+    return TILEDB_UT_ERR;
+  }
+ 
+  // Map
+  void* addr = 
+      mmap(NULL, new_length, PROT_READ, MAP_SHARED, fd, start_offset);
+  if(addr == MAP_FAILED) {
+    PRINT_ERROR("Cannot read from file; Memory map error");
+    return TILEDB_UT_ERR;
   }
 
-  for(int i=0; i<v_size; ++i) 
-    if(!dup[i])
-      deduped_v.push_back(v[i]);
+  // Give advice for sequential access
+  if(madvise(addr, new_length, MADV_SEQUENTIAL)) {
+    PRINT_ERROR("Cannot read from file; Memory advice error");
+    return TILEDB_UT_ERR;
+  }
 
-  delete [] dup; 
+  // Copy bytes 
+  memcpy(buffer, static_cast<char*>(addr) + extra_offset, length);
 
-  return deduped_v; 
+  // Close file
+  if(close(fd)) {
+    PRINT_ERROR("Cannot read from file; File closing error");
+    return TILEDB_UT_ERR;
+  }
+
+  // Unmap
+  if(munmap(addr, new_length)) {
+    PRINT_ERROR("Cannot read from file; Memory unmap error");
+    return TILEDB_UT_ERR;
+  }
+
+  // Success
+  return TILEDB_UT_OK;
 }
 
-template<class T>
-std::vector<T> sort_dedup(const std::vector<T>& v) {
-  std::set<T> s(v.begin(), v.end());
-  std::vector<T> deduped_v(s.begin(), s.end());
+std::string real_dir(const std::string& dir) {
+  // Initialize current, home and root
+  std::string current = current_dir();
+  std::string home = getenv("HOME");
+  std::string root = "/";
 
-  return deduped_v; 
+  // Easy cases
+  if(dir == "" || dir == "." || dir == "./")
+    return current;
+  else if(dir == "~")
+    return home;
+  else if(dir == "/")
+    return root; 
+
+  // Other cases
+  std::string ret_dir;
+  if(starts_with(dir, "/"))
+    ret_dir = root + dir;
+  else if(starts_with(dir, "~/"))
+    ret_dir = home + dir.substr(1, dir.size()-1);
+  else if(starts_with(dir, "./"))
+    ret_dir = current + dir.substr(1, dir.size()-1);
+  else 
+    ret_dir = current + "/" + dir;
+
+  adjacent_slashes_dedup(ret_dir);
+  purge_dots_from_path(ret_dir);
+
+  return ret_dir;
+}
+
+bool starts_with(const std::string& value, const std::string& prefix) {
+  if (prefix.size() > value.size())
+    return false;
+  return std::equal(prefix.begin(), prefix.end(), value.begin());
+}
+
+int write_to_file(
+    const char* filename,
+    const void* buffer,
+    size_t buffer_size) {
+  // Open file
+  int fd = open(
+      filename, 
+      O_WRONLY | O_APPEND | O_CREAT | O_SYNC, 
+      S_IRWXU);
+  if(fd == -1) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Append attribute data to the file
+  ssize_t bytes_written = ::write(fd, buffer, buffer_size);
+  if(bytes_written != buffer_size) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Close file
+  if(close(fd)) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Success 
+  return TILEDB_UT_OK;
+}
+
+int write_to_file_cmp_gzip(
+    const char* filename,
+    const void* buffer,
+    size_t buffer_size) {
+  // Open file
+  gzFile fd = gzopen(filename, "wb");
+  if(fd == NULL) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Append attribute data to the file
+  ssize_t bytes_written = gzwrite(fd, buffer, buffer_size);
+  if(bytes_written != buffer_size) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Close file
+  if(gzclose(fd)) {
+    PRINT_ERROR(std::string("Cannot write to file '") + filename + "'");
+    return TILEDB_UT_ERR;
+  }
+
+  // Success 
+  return TILEDB_UT_OK;
 }
 
 // Explicit template instantiations
-template void convert<int>(const double* a, int* b, int size);
-template void convert<int64_t>(const double* a, int64_t* b, int size);
-template void convert<float>(const double* a, float* b, int size);
-template void convert<double>(const double* a, double* b, int size);
-
-template bool duplicates<char>(const std::vector<char>& v);
-template bool duplicates<int>(const std::vector<int>& v);
-template bool duplicates<int64_t>(const std::vector<int64_t>& v);
-template bool duplicates<float>(const std::vector<float>& v);
-template bool duplicates<double>(const std::vector<double>& v);
-template bool duplicates<std::string>(const std::vector<std::string>& v);
-
-template void expand_mbr<int>(
-    const int* coords, int* mbr, int dim_num);
-template void expand_mbr<int64_t>(
-    const int64_t* coords, int64_t* mbr, int dim_num);
-template void expand_mbr<float>(
-    const float* coords, float* mbr, int dim_num);
-template void expand_mbr<double>(
-    const double* coords, double* mbr, int dim_num);
-
-template void init_mbr<int>(
-    const int* coords, int* mbr, int dim_num);
-template void init_mbr<int64_t>(
-    const int64_t* coords, int64_t* mbr, int dim_num);
-template void init_mbr<float>(
-    const float* coords, float* mbr, int dim_num);
-template void init_mbr<double>(
-    const double* coords, double* mbr, int dim_num);
+template bool has_duplicates<std::string>(const std::vector<std::string>& v);
 
 template bool intersect<std::string>(
     const std::vector<std::string>& v1,
     const std::vector<std::string>& v2);
 
-template bool no_duplicates<char>(const std::vector<char>& v);
-template bool no_duplicates<int>(const std::vector<int>& v);
-template bool no_duplicates<int64_t>(const std::vector<int64_t>& v);
-template bool no_duplicates<float>(const std::vector<float>& v);
-template bool no_duplicates<double>(const std::vector<double>& v);
-template bool no_duplicates<std::string>(const std::vector<std::string>& v);
+template int64_t cell_num_in_range<int>(const int* range, int dim_num);
+template int64_t cell_num_in_range<int64_t>(const int64_t* range, int dim_num);
+template int64_t cell_num_in_range<float>(const float* range, int dim_num);
+template int64_t cell_num_in_range<double>(const double* range, int dim_num);
 
-template std::pair<bool, bool> overlap<int>(
-    const int* r1, const int* r2, int dim_num);
-template std::pair<bool, bool> overlap<int64_t>(
-    const int64_t* r1, const int64_t* r2, int dim_num);
-template std::pair<bool, bool> overlap<float>(
-    const float* r1, const float* r2, int dim_num);
-template std::pair<bool, bool> overlap<double>(
-    const double* r1, const double* r2, int dim_num);
+template void expand_mbr<int>(
+    int* mbr, 
+    const int* coords, 
+    int dim_num);
+template void expand_mbr<int64_t>(
+    int64_t* mbr, 
+    const int64_t* coords, 
+    int dim_num);
+template void expand_mbr<float>(
+    float* mbr, 
+    const float* coords, 
+    int dim_num);
+template void expand_mbr<double>(
+    double* mbr, 
+    const double* coords, 
+    int dim_num);
 
-template bool inside_range<int>(
-    const int* point, const int* range, int dim_num);
-template bool inside_range<int64_t>(
-    const int64_t* point, const int64_t* range, int dim_num);
-template bool inside_range<float>(
-    const float* point, const float* range, int dim_num);
-template bool inside_range<double>(
-    const double* point, const double* range, int dim_num);
+template bool is_unary_range<int>(const int* range, int dim_num);
+template bool is_unary_range<int64_t>(const int64_t* range, int dim_num);
+template bool is_unary_range<float>(const float* range, int dim_num);
+template bool is_unary_range<double>(const double* range, int dim_num);
 
-template std::vector<char> rdedup(const std::vector<char>& v);
-template std::vector<int> rdedup(const std::vector<int>& v);
-template std::vector<int64_t> rdedup(const std::vector<int64_t>& v);
-template std::vector<float> rdedup(const std::vector<float>& v);
-template std::vector<double> rdedup(const std::vector<double>& v);
+template int cmp_col_order<int>(
+    const int* coords_a,
+    const int* coords_b,
+    int dim_num);
+template int cmp_col_order<int64_t>(
+    const int64_t* coords_a,
+    const int64_t* coords_b,
+    int dim_num);
+template int cmp_col_order<float>(
+    const float* coords_a,
+    const float* coords_b,
+    int dim_num);
+template int cmp_col_order<double>(
+    const double* coords_a,
+    const double* coords_b,
+    int dim_num);
 
-template std::vector<char> sort_dedup(const std::vector<char>& v);
-template std::vector<int> sort_dedup(const std::vector<int>& v);
-template std::vector<int64_t> sort_dedup(const std::vector<int64_t>& v);
-template std::vector<float> sort_dedup(const std::vector<float>& v);
-template std::vector<double> sort_dedup(const std::vector<double>& v);
+template int cmp_col_order<int>(
+    int64_t id_a,
+    const int* coords_a,
+    int64_t id_b,
+    const int* coords_b,
+    int dim_num);
+template int cmp_col_order<int64_t>(
+    int64_t id_a,
+    const int64_t* coords_a,
+    int64_t id_b,
+    const int64_t* coords_b,
+    int dim_num);
+template int cmp_col_order<float>(
+    int64_t id_a,
+    const float* coords_a,
+    int64_t id_b,
+    const float* coords_b,
+    int dim_num);
+template int cmp_col_order<double>(
+    int64_t id_a,
+    const double* coords_a,
+    int64_t id_b,
+    const double* coords_b,
+    int dim_num);
 
+template int cmp_row_order<int>(
+    const int* coords_a,
+    const int* coords_b,
+    int dim_num);
+template int cmp_row_order<int64_t>(
+    const int64_t* coords_a,
+    const int64_t* coords_b,
+    int dim_num);
+template int cmp_row_order<float>(
+    const float* coords_a,
+    const float* coords_b,
+    int dim_num);
+template int cmp_row_order<double>(
+    const double* coords_a,
+    const double* coords_b,
+    int dim_num);
+
+template int cmp_row_order<int>(
+    int64_t id_a,
+    const int* coords_a,
+    int64_t id_b,
+    const int* coords_b,
+    int dim_num);
+template int cmp_row_order<int64_t>(
+    int64_t id_a,
+    const int64_t* coords_a,
+    int64_t id_b,
+    const int64_t* coords_b,
+    int dim_num);
+template int cmp_row_order<float>(
+    int64_t id_a,
+    const float* coords_a,
+    int64_t id_b,
+    const float* coords_b,
+    int dim_num);
+template int cmp_row_order<double>(
+    int64_t id_a,
+    const double* coords_a,
+    int64_t id_b,
+    const double* coords_b,
+    int dim_num);
+
+template bool cell_in_range<int>(
+    const int* cell,
+    const int* range,
+    int dim_num);
+template bool cell_in_range<int64_t>(
+    const int64_t* cell,
+    const int64_t* range,
+    int dim_num);
+template bool cell_in_range<float>(
+    const float* cell,
+    const float* range,
+    int dim_num);
+template bool cell_in_range<double>(
+    const double* cell,
+    const double* range,
+    int dim_num);
+
+template bool empty_value<int>(int value);
+template bool empty_value<int64_t>(int64_t value);
+template bool empty_value<float>(float value);
+template bool empty_value<double>(double value);

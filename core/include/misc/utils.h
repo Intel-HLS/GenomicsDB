@@ -31,165 +31,327 @@
  * This file contains useful (global) functions.
  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
-#include <set>
+/* ********************************* */
+/*             CONSTANTS            */
+/* ********************************* */
+
+// Return codes
+#define TILEDB_UT_OK     0
+#define TILEDB_UT_ERR   -1
+
 #include <string>
 #include <vector>
-#include <typeinfo>
 
-/* **************** */
-/*    ENUM TYPES    */
-/* **************** */
-
-/** The compression type. */
-enum CompressionType {RLE, GZIP, LZ, NO_COMPRESSION};
-
-/** Returns true if string `value` ends with string `ending`. */
-bool ends_with(const std::string& value, const std::string& ending);
-
-/** Replaces '~' in the input path with the corresponding absolute path. */
-std::string absolute_path(const std::string& path);
-
-/** Converts the values of a into the data type of b and stores them in b. */
+// TODO
 template<class T>
-void convert(const double* a, T* b, int size);
+bool empty_value(T value);
 
-/** Creates a directory. Returns 0 on success and an error code on error.  */
-int create_directory(const std::string& dirname);
+/**  
+ * Deduplicates adjacent '/' characters in the input.
+ *
+ * @param value The string to be deduped.
+ * @return void. 
+ */
+void adjacent_slashes_dedup(std::string& value);
+
+/**
+ * Checks if both inputs represent the '/' character. This is an auxiliary
+ * function to adjacent_slashes_dedup().
+ */
+bool both_slashes(char a, char b);
+
+/** Returns true if the input cell is inside the input range. */
+template<class T>
+bool cell_in_range(const T* cell, const T* range, int dim_num);
 
 /** 
- * Deletes a directory (along with its files). 
- * Note: It does not work recursively for nested directories.
+ * Returns the number of cells in the input range. 
+ *
+ * @param range The input range.
+ * @param dim_num The number of dimensions of the range.
+ * @return The number of cells in the input range.
  */
-void delete_directory(const std::string& dirname);
+template<class T>
+int64_t cell_num_in_range(const T* range, int dim_num);
+
+// TODO: 
+// -1 if a precedes b
+// +1 if b precedes a
+// 0 if a is equal to b
+template<class T>
+int cmp_col_order(
+    const T* coords_a, 
+    const T* coords_b, 
+    int dim_num); 
+
+// TODO: 
+// -1 if a precedes b
+// +1 if b precedes a
+// 0 if a is equal to b
+template<class T>
+int cmp_col_order(
+    int64_t id_a,
+    const T* coords_a, 
+    int64_t id_b,
+    const T* coords_b, 
+    int dim_num);
+
+// TODO: 
+// -1 if a precedes b
+// +1 if b precedes a
+// 0 if a is equal to b
+template<class T>
+int cmp_row_order(
+    const T* coords_a, 
+    const T* coords_b, 
+    int dim_num); 
+
+// TODO: 
+// -1 if a precedes b
+// +1 if b precedes a
+// 0 if a is equal to b
+template<class T>
+int cmp_row_order(
+    int64_t id_a, 
+    const T* coords_a, 
+    int64_t id_b, 
+    const T* coords_b, 
+    int dim_num); 
+
+/**
+ * Creates a new directory.
+ *
+ * @param dir The name of the directory to be created.
+ * @return TILEDB_UT_OK upon success, and TILEDB_UT_ERR upon failure. 
+ */
+int create_dir(const std::string& dir);
+
+// TODO
+int create_fragment_file(const std::string& dir);
+
+/** 
+ * Returns the directory where the program is executed. 
+ *
+ * @return The directory where the program is executed.
+ */
+std::string current_dir();
+
+/** 
+ * Doubles the size of the buffer.
+ *
+ * @param buffer The buffer to be expanded. 
+ * @param buffer_allocated_size The original allocated size of the buffer.
+ *     After the function call, the size doubles.
+ * @param return TILEDB_UT_OK for success, and TILEDB_UT_ERR for error.
+ */
+int expand_buffer(void*& buffer, size_t& buffer_allocated_size);
+
+// TODO
+template<class T>
+void expand_mbr(T* mbr, const T* coords, int dim_num);
+
+/** Returns the size of the input file and TILEDB_UT_ERR for error. */
+off_t file_size(const std::string& filename);
+
+/** Returns the names of the directories inside the input directory. */
+std::vector<std::string> get_dirs(const std::string& dir);
+
+/** 
+ * GZIPs the input buffer and stores the result in the output buffer, returning
+ * the size of compressed data. 
+ *
+ * @param in The input buffer.
+ * @param in_size The size of the input buffer.
+ * @param out The output buffer.
+ * @param avail_out_size The available size in the output buffer.
+ * @return The size of compressed data.
+ */
+ssize_t gzip(
+    unsigned char* in, 
+    size_t in_size, 
+    unsigned char* out, 
+    size_t out_size);
+
+/** 
+ * decompresses the gziped input buffer and stores the result in the output 
+ * buffer, of maximum size avail_out. it also stores the decompressed data 
+ * size into out_size.
+ */
+int gunzip(
+    unsigned char* in, 
+    size_t in_size, 
+    unsigned char* out, 
+    size_t avail_out, 
+    size_t& out_size);
+
+// TODO
+int gunzip_unknown_output_size(
+    unsigned char* in, 
+    size_t in_size, 
+    void*& out, 
+    size_t& avail_out, 
+    size_t& out_size);
 
 /** Returns true if there are duplicates in the input vector. */
 template<class T>
-bool duplicates(const std::vector<T>& v);
-
-/** True if the directory is empty or not existent. */
-bool empty_directory(const std::string& dirname);
-
-/** Expands the input MBR with the input coordinates. */
-void expand_mbr(const void* coords, void* mbr,
-                const std::type_info* type, int dim_num);
-
-/** Expands the input MBR with the input coordinates. */
-template<class T>
-void expand_mbr(const T* coords, T* mbr, int dim_num);
-
-/** Doubles the size of the buffer. The original size is given as input. */
-void expand_buffer(void*& buffer, size_t size);
-
-/** Returns the size of the input file. */
-size_t file_size(const std::string& filename);
-
-/** Returns a string storing the current date in format YYYY-MM-DD HH:MM:SS. */
-std::string get_date();
-
-/** Returns a list with the names of all files in the input directory. */
-std::vector<std::string> get_filenames(const std::string& dirname);
-
-/** 
- * GZIPs the input buffer and stores the result in the output buffer,
- * of maximum size avail_out. It also stores the compressed data size 
- * into out_size.
- */
-void tiledb_gzip(unsigned char* in, size_t in_size, 
-          unsigned char* out, size_t avail_out, size_t& out_size);
-
-/** 
- * Decompresses the GZIPed input buffer and stores the result in the output 
- * buffer, of maximum size avail_out. It also stores the decompressed data 
- * size into out_size.
- */
-void gunzip(unsigned char* in, size_t in_size, 
-            unsigned char* out, size_t avail_out, size_t& out_size);
-
-
-/** Initializes the input MBR with the input coordinates. */
-void init_mbr(const void* coords, void*& mbr,
-              const std::type_info* type, int dim_num);
-
-/** Expands the input MBR with the input coordinates. */
-template<class T>
-void init_mbr(const T* coords, T* mbr, int dim_num);
-
-/** True if the point lies inside the range. */
-template<class T>
-bool inside_range(const T* point, const T* range, int dim_num);
+bool has_duplicates(const std::vector<T>& v);
 
 /** Returns true if the input vectors have common elements. */
 template<class T>
 bool intersect(const std::vector<T>& v1, const std::vector<T>& v2);
 
-/** True if the input is a del value (i.e., represents deletion). */
-template<class T>
-bool is_del(T v);
+ /**
+ * Checks if the input directory is an array.
+ *
+ * @param dir The directory to be checked.
+ * @return True if the directory is an array, and false otherwise.
+ */
+bool is_array(const std::string& dir);
 
-/** Returns true if the input is an existing directory. */ 
-bool is_dir(const std::string& dirname);
+// TODO
+bool is_metadata(const std::string& dir);
 
-/** Returns true if the input is an existing file. */ 
-bool is_file(const std::string& filename);
+/** 
+ * Checks if the input is an existing directory. 
+ *
+ * @param dir The directory to be checked.
+ * @return *True* if *dir* is an existing directory, and *false* otherwise.
+ */ 
+bool is_dir(const std::string& dir);
 
-/** Returns true if the input string is an integer number. */
-bool is_integer(const char* s);
+/** 
+ * Checks if the input is an existing file. 
+ *
+ * @param file The file to be checked.
+ * @return *True* if *file* is an existing file, and *false* otherwise.
+ */ 
+bool is_file(const std::string& file);
 
-/** Returns true if the input string is a non-negative integer number. */
-bool is_non_negative_integer(const char* s);
+/**
+ * Checks if the input directory is a fragment.
+ *
+ * @param dir The directory to be checked.
+ * @return True if the directory is a fragment, and false otherwise.
+ */
+bool is_fragment(const std::string& dir);
+
+/**
+ * Checks if the input directory is a group.
+ *
+ * @param dir The directory to be checked.
+ * @return True if the directory is a group, and false otherwise.
+ */
+bool is_group(const std::string& dir);
 
 /** Returns true if the input string is a positive (>0) integer number. */
 bool is_positive_integer(const char* s);
 
-/** True if the input is a null value. */
+/** Returns true if the range contains a single element. */
 template<class T>
-bool is_null(T v);
+bool is_unary_range(const T* range, int dim_num);
+
+/**
+ * Checks if the input directory is a workspace.
+ *
+ * @param dir The directory to be checked.
+ * @return True if the directory is a workspace, and false otherwise.
+ */
+bool is_workspace(const std::string& dir);
 
 /** 
- * Returns true if the input string is a positive real number.
- * NOTE: scientific notation is currently not supported. 
+ * Returns the parent directory of the input directory. 
+ *
+ * @param dir The input directory.
+ * @return The parent directory of the input directory.
  */
-bool is_real(const char* s);
+std::string parent_dir(const std::string& dir);
+
+/**
+ * It takes as input an **absolute** path, and returns it in its conicalized
+ * form, after appropriately replacing "./" and "../" in the path.
+ *
+ * @param path The input path passed by reference, which will be modified
+ *     by the function to hold the canonicalized absolute path. Note that the
+ *     path must be absolute, otherwise the function fails. In case of error
+ *     (e.g., if "../" are not properly used in *path*, or if *path* is not
+ *     absolute), the function sets the empty string (i.e., "") to *path*.
+ * @return void
+ */
+void purge_dots_from_path(std::string& path);
+
+/**
+ * Reads data from a file into a buffer.
+ *
+ * @param filename The name of the file
+ * @param offset The offset in the file from which the read will start.
+ * @param buffer The buffer into which the data will be written.
+ * @param length The size of the data to be read from the file.
+ */
+int read_from_file(
+    const std::string& filaname,
+    off_t offset,
+    void* buffer,
+    size_t length);
+
+/**
+ * Reads data from a file into a buffer, using memory map (mmap).
+ *
+ * @param filename The name of the file
+ * @param offset The offset in the file from which the read will start.
+ * @param buffer The buffer into which the data will be written.
+ * @param length The size of the data to be read from the file.
+ */
+int read_from_file_with_mmap(
+    const std::string& filaname,
+    off_t offset,
+    void* buffer,
+    size_t length);
+
+/**
+ * Returns the absolute canonicalized directory path of the input directory.
+ *
+ * @param The input directory to be canonicalized.
+ * @return The absolute canonicalized directory path of the input directory.
+ */
+std::string real_dir(const std::string& dir);
 
 /** 
- * True if the input is a valid name, i.e., it contains only alphanumerics
- * and potentially '_'.
+ * Checks if a string starts with a certain prefix.
+ *
+ * @param value The base string.
+ * @param prefix The prefix string to be tested.
+ * @return *True* if *value* starts with the *prefix* and *false* otherwise. 
  */
-bool is_valid_name(const char* s);
+bool starts_with(const std::string& value, const std::string& prefix);
 
-/** Appends the input message to the error log file. */
- void log_error(const std::string& err_msg);
-
-/** Returns true if there are no duplicates in the input vector. */
-template<class T>
-bool no_duplicates(const std::vector<T>& v);
 
 /** 
- * Checks the overlap between two ranges of dimensionality dim_num. 
- * Returns a pair where the first boolean indicates whether there is
- * an overlap or not, whereas the second indicates if the overlap
- * is full or not (in case the first is true).
+ * Write the input buffer to a file.
+ * 
+ * @param filename The name of the file.
+ * @param buffer The input buffer.
+ * @param buffer_size The size of the input buffer.
+ * @return 0 on success, and -1 on error.
  */
-template<class T>
-std::pair<bool, bool> overlap(const T* r1, const T* r2, int dim_num);
-
-/** Returns true if the input path is an existing directory. */ 
-bool path_exists(const std::string& path);
-
-/** 
- * Returns a new vector that is deduplicated version of the input. The 
- * deduplication starts from the end of the input (i.e., in reverse).
- */
-template<class T>
-std::vector<T> rdedup(const std::vector<T>& v); 
+int write_to_file(
+    const char* filename,
+    const void* buffer, 
+    size_t buffer_size);
 
 /** 
- * Returns a new vector that is the sorted, deduplicated version of the input.
+ * Write the input buffer to a file, compressed with GZIP.
+ * 
+ * @param filename The name of the file.
+ * @param buffer The input buffer.
+ * @param buffer_size The size of the input buffer.
+ * @return 0 on success, and -1 on error.
  */
-template<class T>
-std::vector<T> sort_dedup(const std::vector<T>& v); 
+int write_to_file_cmp_gzip(
+    const char* filename,
+    const void* buffer, 
+    size_t buffer_size);
 
 #endif
