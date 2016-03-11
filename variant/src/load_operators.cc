@@ -54,7 +54,7 @@ void LoaderArrayWriter::write_top_element_to_disk()
   CellWrapper top_element = m_cell_wrapper_pq.top();
   m_cell_wrapper_pq.pop();
   auto idx_in_vector = top_element.m_idx_in_cell_copies_vector;
-  m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor,
+  m_storage_manager->write_cell_sorted(m_array_descriptor,
       reinterpret_cast<const void*>(m_cell_copies[idx_in_vector]));
   //If this is a begin cell and spans multiple columns, retain this copy for the END in the PQ
   if(top_element.m_end_column > top_element.m_begin_column)
@@ -140,7 +140,7 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
       {
         //column is second co-ordinate
         *(reinterpret_cast<int64_t*>(copy_ptr+sizeof(int64_t))) = last_element.m_begin_column;
-        m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, reinterpret_cast<const void*>(copy_ptr));
+        m_storage_manager->write_cell_sorted(m_array_descriptor, reinterpret_cast<const void*>(copy_ptr));
       }
       m_memory_manager.push(idx_in_vector); //"free" memory
     }
@@ -175,7 +175,7 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
   //Update last END value seen
   m_last_end_position_for_row[row] = column_end;
 #else //ifdef DUPLICATE_CELL_AT_END
-  m_storage_manager->write_cell_sorted<int64_t>(m_array_descriptor, cell_ptr);
+  m_storage_manager->write_cell_sorted(m_array_descriptor, cell_ptr);
 #endif //ifdef DUPLICATE_CELL_AT_END
 }
 
