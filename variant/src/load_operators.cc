@@ -284,6 +284,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       m_current_start_position = m_partition.first;
       m_variant.set_column_interval(m_current_start_position, m_current_start_position);
     }
+  m_cell->set_cell(cell_ptr);
   m_query_processor->scan_handle_cell(m_query_config, 0u,
       m_variant, *m_operator, *m_cell, cell_ptr,
       m_end_pq, m_tmp_pq_vector,

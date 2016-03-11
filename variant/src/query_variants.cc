@@ -325,6 +325,14 @@ void VariantQueryProcessor::scan_and_operate(
   for(;!(forward_iter->end());++(*forward_iter))
   {
     auto* cell_ptr = **forward_iter;
+    cell.set_cell(cell_ptr);
+#ifdef DUPLICATE_CELL_AT_END
+    //Ignore cell copies at END positions
+    auto cell_column_value = cell.get_begin_column();
+    auto END_v = *(cell.get_field_ptr_for_query_idx<int64_t>(query_config.get_query_idx_for_known_field_enum(GVCF_END_IDX)));
+    if(cell_column_value > END_v)
+      continue;
+#endif
     auto end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell, cell_ptr,
         end_pq, tmp_pq_buffer, current_start_position, next_start_position, num_calls_with_deletions, handle_spanning_deletions, stats_ptr);
     if(end_loop)
@@ -367,7 +375,6 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
   //Include only if row is part of query
   if(query_config.is_queried_array_row_idx(next_coord[0]))
   {
-    cell.set_cell(cell_ptr);
     auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
     //Overlapping intervals for current call - spans across next position
     //Have to ignore rest of this interval - overwrite with the new info from the cell
