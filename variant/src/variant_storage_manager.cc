@@ -4,8 +4,8 @@
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantStorageManagerException(#X);
 
 const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_to_int = {
-  { "r", TILEDB_READ },
-  { "w", TILEDB_WRITE }
+  { "r", TILEDB_ARRAY_READ },
+  { "w", TILEDB_ARRAY_WRITE }
 };
 
 //VariantArrayCellIterator functions
@@ -25,7 +25,7 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
     m_buffers.emplace_back(buffer_size);
   }
   //Co-ordinates
-  attribute_names[attribute_ids.size()] = TILEDB_COORDS_NAME;
+  attribute_names[attribute_ids.size()] = TILEDB_COORDS;
   m_buffers.emplace_back(buffer_size);
   //Initialize pointers to buffers
   m_buffer_pointers.resize(m_buffers.size());
@@ -74,7 +74,7 @@ VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, c
 : m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(schema), m_tiledb_array(tiledb_array)
 {
   //If writing, allocate buffers
-  if(mode == TILEDB_WRITE || mode == TILEDB_WRITE_UNSORTED)
+  if(mode == TILEDB_ARRAY_WRITE || mode == TILEDB_ARRAY_WRITE_UNSORTED)
   {
     m_buffers.clear();
     for(auto i=0ull;i<schema.attribute_num();++i)
