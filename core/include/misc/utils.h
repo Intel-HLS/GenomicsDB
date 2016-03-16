@@ -45,6 +45,10 @@
 #include <string>
 #include <vector>
 
+
+// TODO
+int delete_dir(const std::string& dirname);
+
 // TODO
 template<class T>
 bool empty_value(T value);
@@ -139,6 +143,7 @@ int create_fragment_file(const std::string& dir);
  */
 std::string current_dir();
 
+
 /** 
  * Doubles the size of the buffer.
  *
@@ -158,6 +163,9 @@ off_t file_size(const std::string& filename);
 
 /** Returns the names of the directories inside the input directory. */
 std::vector<std::string> get_dirs(const std::string& dir);
+
+/** Returns the names of the fragments inside the input directory. */
+std::vector<std::string> get_fragment_dirs(const std::string& dir);
 
 /** 
  * GZIPs the input buffer and stores the result in the output buffer, returning

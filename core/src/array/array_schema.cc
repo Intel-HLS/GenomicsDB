@@ -92,6 +92,15 @@ ArraySchema::~ArraySchema() {
 /*            ACCESSORS           */
 /* ****************************** */
 
+int ArraySchema::var_attribute_num() const {
+  int var_attribute_num = 0;
+  for(int i=0; i<attribute_num_; ++i)
+    if(var_size(i))
+      ++var_attribute_num;
+
+  return var_attribute_num;
+}
+
 void ArraySchema::array_schema_export(ArraySchemaC* array_schema_c) const {
   // set array name
   size_t array_name_len = array_name_.size(); 
@@ -209,7 +218,7 @@ const std::string& ArraySchema::attribute(int attribute_id) const {
 
 int ArraySchema::attribute_id(const std::string& attribute) const {
   // Special case - coordinates
-  if(attribute == TILEDB_COORDS_NAME)
+  if(attribute == TILEDB_COORDS)
     return attribute_num_;
 
   for(int i=0; i<attribute_num_; ++i) {
@@ -369,7 +378,7 @@ void ArraySchema::print() const {
     std::cout << "\t" << ((i==attribute_num_) ? "Coordinates"  
                                               : attributes_[i]) 
                       << ": ";
-    if(cell_sizes_[i] == TILEDB_VAR_NUM)
+    if(cell_sizes_[i] == TILEDB_VAR_SIZE)
       std::cout << "var\n"; 
     else
       std::cout << cell_sizes_[i] << "\n"; 
@@ -641,7 +650,7 @@ int ArraySchema::type(int i) const {
 }
 
 bool ArraySchema::var_size(int attribute_id) const {
-  return cell_sizes_[attribute_id] == TILEDB_VAR_NUM; 
+  return cell_sizes_[attribute_id] == TILEDB_VAR_SIZE; 
 }
 
 /* ****************************** */
@@ -804,7 +813,7 @@ int ArraySchema::deserialize(
   }
   assert(offset == buffer_size); 
   // Add extra coordinate attribute
-  attributes_.push_back(TILEDB_COORDS_NAME);
+  attributes_.push_back(TILEDB_COORDS);
   // Set cell sizes
   cell_sizes_.resize(attribute_num_+1);
   for(int i=0; i<= attribute_num_; ++i) 
@@ -891,10 +900,10 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
     attributes[i] = (char*) malloc(attribute_len+1);
     strcpy(attributes[i], metadata_schema_c->attributes_[i]);
   }
-  attribute_len = strlen(TILEDB_KEY_NAME);
+  attribute_len = strlen(TILEDB_KEY);
   attributes[metadata_schema_c->attribute_num_] = 
       (char*) malloc(attribute_len+1);
-  strcpy(attributes[metadata_schema_c->attribute_num_],TILEDB_KEY_NAME);
+  strcpy(attributes[metadata_schema_c->attribute_num_],TILEDB_KEY);
   array_schema_c.attributes_ = attributes; 
   array_schema_c.attribute_num_ = metadata_schema_c->attribute_num_ + 1;
 
@@ -1028,7 +1037,7 @@ int ArraySchema::set_attributes(
   attribute_num_ = attribute_num;
 
   // Append extra coordinates name
-  attributes_.push_back(TILEDB_COORDS_NAME);
+  attributes_.push_back(TILEDB_COORDS);
 
   // Check for duplicate attribute names
   if(has_duplicates(attributes_)) {
@@ -1879,6 +1888,10 @@ int64_t ArraySchema::tile_id(const T* cell_coords) const {
   const T* domain = static_cast<const T*>(domain_);
   const T* tile_extents = static_cast<const T*>(tile_extents_);
 
+  // Trivial case
+  if(tile_extents == NULL)
+    return 0;
+
   // Calculate tile coordinates
   T* tile_coords = new T[dim_num_];   
   for(int i=0; i<dim_num_; ++i)
@@ -1987,7 +2000,7 @@ size_t ArraySchema::compute_cell_size(int i) const {
 
   // Variable-sized cell
   if(i<attribute_num_ && val_num_[i] == TILEDB_VAR_NUM)
-    return TILEDB_VAR_NUM;
+    return TILEDB_VAR_SIZE;
 
   // Fixed-sized cell
   size_t size;

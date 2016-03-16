@@ -1115,7 +1115,6 @@ int ArrayReadState::get_next_cell_ranges_sparse() {
   } else { 
     // Subsequent invocations: get next overallping tiles for the processed
     // fragments
-    done_ = true;
     for(int i=0; i<fragment_num; ++i) { 
       T* fragment_bounding_coords = 
           static_cast<T*>(fragment_bounding_coords_[i]);
@@ -1127,10 +1126,17 @@ int ArrayReadState::get_next_cell_ranges_sparse() {
         fragments[i]->get_next_overlapping_tile_sparse<T>();
         if(fragments[i]->overlaps()) {
           fragments[i]->get_bounding_coords(fragment_bounding_coords_[i]);
-          done_ = false;
         } else {
           fragment_bounding_coords_[i] = NULL;
         }
+      }
+    }
+
+    done_ = true;
+    for(int i=0; i<fragment_num; ++i) { 
+      if(fragment_bounding_coords_[i] != NULL) {
+        done_ = false;
+        break;
       }
     }
 
@@ -1361,7 +1367,7 @@ void ArrayReadState::compute_max_overlap_range() {
   int cell_order = array_schema->cell_order();
   const T* tile_extents = static_cast<const T*>(array_schema->tile_extents());
   const T* global_domain = static_cast<const T*>(array_schema->domain());
-  const T* range = static_cast<const T*>(array_->range());
+  const T* range = static_cast<const T*>(array_->subarray());
 
   T tile_coords;
   T* max_overlap_range = static_cast<T*>(max_overlap_range_);
@@ -1448,7 +1454,7 @@ void ArrayReadState::init_range_global_tile_coords() {
   size_t coords_size = array_schema->coords_size();
   const T* domain = static_cast<const T*>(array_schema->domain());
   const T* tile_extents = static_cast<const T*>(array_schema->tile_extents());
-  const T* range = static_cast<const T*>(array_->range());
+  const T* range = static_cast<const T*>(array_->subarray());
 
   // Sanity check
   assert(tile_extents != NULL);

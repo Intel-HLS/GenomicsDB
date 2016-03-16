@@ -71,6 +71,10 @@ Metadata::~Metadata() {
 /*           ACCESSORS            */
 /* ****************************** */
 
+bool Metadata::overflow(int attribute_id) const {
+  return array_->overflow(attribute_id);
+}
+
 const ArraySchema* Metadata::array_schema() const {
   return array_->array_schema();
 }
@@ -118,7 +122,7 @@ int Metadata::read(const char* key, void** buffers, size_t* buffer_sizes) {
   } 
 
   // Re-init sub array
-  if(array_->reinit_subarray(subarray) != TILEDB_AR_OK)
+  if(array_->reset_subarray(subarray) != TILEDB_AR_OK)
     return TILEDB_MT_ERR;
 
   // Read from array
@@ -132,6 +136,58 @@ int Metadata::read(const char* key, void** buffers, size_t* buffer_sizes) {
 /* ****************************** */
 /*            MUTATORS            */
 /* ****************************** */
+
+int Metadata::consolidate() {
+  if(array_->consolidate() != TILEDB_AR_OK)
+    return TILEDB_MT_ERR;
+  else
+    return TILEDB_MT_OK;
+}
+
+int Metadata::reset_attributes(
+    const char** attributes,
+    int attribute_num) {
+  // Set attributes
+  const ArraySchema* array_schema = array_->array_schema();
+  char** array_attributes;
+  int array_attribute_num;
+  if(attributes == NULL) {
+    array_attribute_num =  
+        (mode_ == TILEDB_METADATA_WRITE) ? array_schema->attribute_num() + 1 
+                                        : array_schema->attribute_num();
+    array_attributes = new char*[array_attribute_num];
+    for(int i=0; i<array_attribute_num; ++i) {
+      const char* attribute = array_schema->attribute(i).c_str();
+      size_t attribute_len = strlen(attribute);
+      array_attributes[i] = new char[attribute_len+1];
+      strcpy(array_attributes[i], attribute);
+    } 
+  } else {
+    array_attribute_num = 
+        (mode_ == TILEDB_METADATA_WRITE) ? attribute_num + 1 
+                                        : attribute_num;
+    array_attributes = new char*[array_attribute_num];
+    for(int i=0; i<attribute_num; ++i) {
+      size_t attribute_len = strlen(attributes[i]);
+      array_attributes[i] = new char[attribute_len+1];
+      strcpy(array_attributes[i], attributes[i]);
+    }
+    if(mode_ == TILEDB_METADATA_WRITE) {
+      size_t attribute_len = strlen(TILEDB_COORDS);
+      array_attributes[array_attribute_num] = new char[attribute_len+1];
+      strcpy(array_attributes[array_attribute_num], TILEDB_COORDS);
+    }
+  }
+
+  // Clean up
+  for(int i=0; i<array_attribute_num; ++i) 
+    delete [] array_attributes[i];
+  delete [] array_attributes;
+
+  // Success
+  return TILEDB_MT_OK;
+
+}
 
 int Metadata::init(
     const ArraySchema* array_schema,
@@ -148,7 +204,7 @@ int Metadata::init(
   // Set mode
   mode_ = mode;
   int array_mode = (mode == TILEDB_METADATA_READ) 
-                    ? TILEDB_READ : TILEDB_WRITE_UNSORTED;
+                    ? TILEDB_ARRAY_READ : TILEDB_ARRAY_WRITE_UNSORTED;
 
   // Set attributes
   char** array_attributes;
@@ -175,9 +231,9 @@ int Metadata::init(
       strcpy(array_attributes[i], attributes[i]);
     }
     if(mode == TILEDB_METADATA_WRITE) {
-      size_t attribute_len = strlen(TILEDB_COORDS_NAME);
+      size_t attribute_len = strlen(TILEDB_COORDS);
       array_attributes[array_attribute_num] = new char[attribute_len+1];
-      strcpy(array_attributes[array_attribute_num], TILEDB_COORDS_NAME);
+      strcpy(array_attributes[array_attribute_num], TILEDB_COORDS);
     }
   }
 
@@ -361,13 +417,13 @@ void Metadata::prepare_array_buffers(
       array_buffers[array_buffer_i] = coords;
       array_buffer_sizes[array_buffer_i] = coords_size;
       ++array_buffer_i;
-    } else if(attribute_ids[i] == attribute_num-1) { // Keys
-      array_buffers[array_buffer_i] = keys_offsets;
-      array_buffer_sizes[array_buffer_i] = keys_offsets_size;
-      ++array_buffer_i;
-      array_buffers[array_buffer_i] = keys;
-      array_buffer_sizes[array_buffer_i] = keys_size;
-      ++array_buffer_i;
+//    } else if(attribute_ids[i] == attribute_num-1) { // Keys
+//     array_buffers[array_buffer_i] = keys_offsets;
+//      array_buffer_sizes[array_buffer_i] = keys_offsets_size;
+//      ++array_buffer_i;
+//      array_buffers[array_buffer_i] = keys;
+//      array_buffer_sizes[array_buffer_i] = keys_size;
+//      ++array_buffer_i;
     } else { // Any other attribute 
       array_buffers[array_buffer_i] = buffers[buffer_i];
       array_buffer_sizes[array_buffer_i] = buffer_sizes[buffer_i];

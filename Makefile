@@ -173,6 +173,7 @@ TEST_BIN_DIR = test/bin
 
 # Directory for Doxygen documentation
 DOXYGEN_DIR = doxygen
+DOXYGEN_MAINPAGE = $(DOXYGEN_DIR)/mainpage.dox
 
 # Directories for the MPI files - not necessary if mpicxx used.
 MPI_INCLUDE_DIR := .

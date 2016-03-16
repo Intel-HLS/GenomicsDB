@@ -1,12 +1,11 @@
 /**
  * @file   fragment.cc
- * @author Stavros Papadopoulos <stavrosp@csail.mit.edu>
  *
  * @section LICENSE
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2015 Stavros Papadopoulos <stavrosp@csail.mit.edu>
+ * @copyright Copyright (c) 2016 MIT and Intel Corp.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +37,9 @@
 #include <cstring>
 #include <iostream>
 
+
+
+
 /* ****************************** */
 /*             MACROS             */
 /* ****************************** */
@@ -55,6 +57,9 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #  define PRINT_WARNING(x) do { } while(0) 
 #endif
+
+
+
 
 /* ****************************** */
 /*   CONSTRUCTORS & DESTRUCTORS   */
@@ -77,6 +82,9 @@ Fragment::~Fragment() {
   if(book_keeping_ != NULL)
     delete book_keeping_;
 }
+
+
+
 
 /* ****************************** */
 /*            ACCESSORS           */
@@ -138,8 +146,8 @@ const void* Fragment::get_global_tile_coords() const {
 
 int Fragment::read(void** buffers, size_t* buffer_sizes) {
   // Sanity check
-  if(array_->range() == NULL) {
-    PRINT_ERROR("Cannot read from fragment; Invalid range");
+  if(array_->subarray() == NULL) {
+    PRINT_ERROR("Cannot read from fragment; Invalid subarray");
     return TILEDB_BK_ERR;
   }
 
@@ -294,13 +302,21 @@ void Fragment::get_bounding_coords(void* bounding_coords) const {
   read_state_->get_bounding_coords(bounding_coords);
 }
 
-int Fragment::init(const std::string& fragment_name, const void* range) {
-  // Set fragment name
+int Fragment::mode() const {
+  return mode_;
+}
+
+int Fragment::init(
+    const std::string& fragment_name, 
+    int mode,
+    const void* range) {
+  // Set fragment name and mode
   fragment_name_ = fragment_name;
+  mode_ = mode;
 
   // Check if the array is dense or not
-  if(array_->mode() == TILEDB_WRITE || 
-     array_->mode() == TILEDB_WRITE_UNSORTED) {
+  if(mode == TILEDB_ARRAY_WRITE || 
+     mode == TILEDB_ARRAY_WRITE_UNSORTED) {
     dense_ = true;
     // Check the attributes given upon initialization
     const std::vector<int>& attribute_ids = array_->attribute_ids();
@@ -315,15 +331,13 @@ int Fragment::init(const std::string& fragment_name, const void* range) {
   } else { // The array mode is TILEDB_READ or TILEDB_READ_REVERSE 
     // The coordinates file should not exist
     dense_ = !is_file(
-                fragment_name_ + "/" + TILEDB_COORDS_NAME + TILEDB_FILE_SUFFIX);
+                fragment_name_ + "/" + TILEDB_COORDS + TILEDB_FILE_SUFFIX);
   }
-
-  // For easy referece
-  int mode = array_->mode();
 
   // Initialize book-keeping and write state
   book_keeping_ = new BookKeeping(this);
-  if(mode == TILEDB_WRITE || mode == TILEDB_WRITE_UNSORTED) {
+  if(mode == TILEDB_ARRAY_WRITE || 
+     mode == TILEDB_ARRAY_WRITE_UNSORTED) {
     read_state_ = NULL;
     if(book_keeping_->init(range) != TILEDB_BK_OK) {
       delete book_keeping_;
@@ -332,7 +346,7 @@ int Fragment::init(const std::string& fragment_name, const void* range) {
       return TILEDB_FG_ERR;
     }
     write_state_ = new WriteState(this, book_keeping_);
-  } else if(mode == TILEDB_READ || mode == TILEDB_READ_REVERSE) {
+  } else if(mode == TILEDB_ARRAY_READ) {
     write_state_ = NULL;
     if(book_keeping_->load() != TILEDB_BK_OK) {
       delete book_keeping_;
@@ -376,9 +390,12 @@ int Fragment::finalize() {
     assert(book_keeping_ != NULL);  
     int rc_ws = write_state_->finalize();
     int rc_bk = book_keeping_->finalize();
-    int rc_rn = rename_fragment();
-    int rc_cf = create_fragment_file(fragment_name_);
-      return TILEDB_WS_ERR;
+    int rc_rn = TILEDB_FG_OK;
+    int rc_cf = TILEDB_FG_OK;
+    if(is_dir(fragment_name_)) {
+      rc_rn = rename_fragment();
+      rc_cf = create_fragment_file(fragment_name_);
+    }
     if(rc_ws != TILEDB_WS_OK || rc_bk != TILEDB_BK_OK || 
        rc_rn != TILEDB_FG_OK || rc_cf != TILEDB_UT_OK)
       return TILEDB_FG_ERR;
@@ -396,7 +413,7 @@ int Fragment::finalize() {
 
 int Fragment::rename_fragment() {
   // Do nothing in READ mode
-  if(array_->mode() == TILEDB_READ || array_->mode() == TILEDB_READ_REVERSE)
+  if(mode_ == TILEDB_ARRAY_READ)
     return TILEDB_FG_OK;
 
   std::string parent_dir = ::parent_dir(fragment_name_);
