@@ -35,7 +35,7 @@ LINKFLAGS+=-fopenmp
 
 # --- Debug/Release/Verbose mode handler --- #
 BUILD ?= debug
-VERBOSE ?= 2
+VERBOSE ?= 0
 
 ifeq ($(BUILD),debug)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
