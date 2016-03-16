@@ -79,6 +79,7 @@ class VariantArraySchema
     inline const std::vector<std::string>& dim_names() const { return m_dim_names; }
     inline const std::type_index& dim_type() const { return m_dim_type; }
     inline const int dim_compression_type() const { return m_dim_compression_type; }
+    inline const size_t dim_size_in_bytes() const { return m_dim_size_in_bytes; }
   private:
     std::string m_array_name;
     int m_cell_order;
@@ -90,6 +91,7 @@ class VariantArraySchema
     std::vector<std::string> m_dim_names;
     std::type_index m_dim_type;
     int m_dim_compression_type;
+    size_t m_dim_size_in_bytes;
 };
 
 #endif

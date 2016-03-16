@@ -1,4 +1,5 @@
 #include "variant_array_schema.h"
+#include "variant_field_data.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantArraySchemaException(#X);
 
@@ -35,5 +36,6 @@ VariantArraySchema::VariantArraySchema(const std::string& array_name,
   m_dim_domains = dim_domains;
   m_dim_type = std::type_index(types[types.size()-1u]);
   m_dim_compression_type = compression[compression.size()-1u];
+  m_dim_size_in_bytes = m_dim_names.size()*VariantFieldTypeUtil::size(m_dim_type);
 }
 

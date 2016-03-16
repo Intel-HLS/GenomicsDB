@@ -2,43 +2,32 @@
 #include "variant_field_data.h"
 #include "variant_query_config.h"
 
+BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema)
+{
+  clear();
+  m_array_schema = &array_schema;
+  resize(array_schema.attribute_num());
+  for(auto i=0u;i<array_schema.attribute_num();++i)
+    update_field_info(i, i);
+}
+
 BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config)
 {
   clear();
   m_array_schema = &array_schema;
   assert(query_config.is_bookkeeping_done());
-  //Resize vectors
-  m_field_ptrs.resize(query_config.get_num_queried_attributes());
-  m_field_element_sizes.resize(query_config.get_num_queried_attributes());
-  m_field_length_descriptors.resize(query_config.get_num_queried_attributes());
-  m_field_lengths.resize(query_config.get_num_queried_attributes());
+  resize(query_config.get_num_queried_attributes());
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
-  {
-    auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
-    auto type_index = m_array_schema->type(schema_idx);
-    m_field_element_sizes[i] = VariantFieldTypeUtil::size(type_index);
-    m_field_length_descriptors[i] = m_array_schema->val_num(schema_idx);
-    m_field_lengths[i] = m_field_length_descriptors[i];
-  }
+    update_field_info(i, query_config.get_schema_idx_for_query_idx(i));
 }
 
 BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema, const std::vector<int>& attribute_ids)
 {
   clear();
   m_array_schema = &array_schema;
-  //Resize vectors
-  m_field_ptrs.resize(attribute_ids.size());
-  m_field_element_sizes.resize(attribute_ids.size());
-  m_field_length_descriptors.resize(attribute_ids.size());
-  m_field_lengths.resize(attribute_ids.size());
+  resize(attribute_ids.size());
   for(auto i=0u;i<attribute_ids.size();++i)
-  {
-    auto schema_idx = attribute_ids[i];
-    auto type_index = m_array_schema->type(schema_idx);
-    m_field_element_sizes[i] = VariantFieldTypeUtil::size(type_index);
-    m_field_length_descriptors[i] = m_array_schema->val_num(schema_idx);
-    m_field_lengths[i] = m_field_length_descriptors[i];
-  }
+    update_field_info(i, attribute_ids[i]);
 }
 
 void BufferVariantCell::clear()
@@ -48,6 +37,24 @@ void BufferVariantCell::clear()
   m_field_length_descriptors.clear();
   m_field_lengths.clear();
   m_row_idx = m_begin_column_idx = -1ll;
+}
+
+void BufferVariantCell::resize(const size_t num_fields)
+{
+  //Resize vectors
+  m_field_ptrs.resize(num_fields);
+  m_field_element_sizes.resize(num_fields);
+  m_field_length_descriptors.resize(num_fields);
+  m_field_lengths.resize(num_fields);
+}
+    
+void BufferVariantCell::update_field_info(const int query_idx, const int schema_idx)
+{
+  assert(static_cast<const size_t>(query_idx) < m_field_ptrs.size());
+  auto type_index = m_array_schema->type(schema_idx);
+  m_field_element_sizes[query_idx] = VariantFieldTypeUtil::size(type_index);
+  m_field_length_descriptors[query_idx] = m_array_schema->val_num(schema_idx);
+  m_field_lengths[query_idx] = m_field_length_descriptors[query_idx];
 }
 
 void BufferVariantCell::set_cell(const void* ptr)

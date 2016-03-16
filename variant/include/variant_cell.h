@@ -36,6 +36,7 @@ class BufferVariantCell
         size_t m_idx;
     };
   public:
+    BufferVariantCell(const VariantArraySchema& array_schema);
     BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config);
     BufferVariantCell(const VariantArraySchema& array_schema, const std::vector<int>& attribute_ids);
     void clear();
@@ -55,6 +56,11 @@ class BufferVariantCell
     {
       assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
       return m_field_lengths[query_idx];
+    }
+    inline size_t get_field_size_in_bytes(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
+      return m_field_lengths[query_idx]*m_field_element_sizes[query_idx];
     }
     inline void set_field_length(const int query_idx, const int length)
     {
@@ -85,6 +91,9 @@ class BufferVariantCell
       m_row_idx = row;
       m_begin_column_idx = begin_column;
     }
+  private:
+    void resize(const size_t num_fields);
+    void update_field_info(const int query_idx, const int schema_idx);
   private:
     const VariantArraySchema* m_array_schema;
     std::vector<const void*> m_field_ptrs;
