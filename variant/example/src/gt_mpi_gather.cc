@@ -19,14 +19,16 @@ enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
   ARGS_IDX_PRODUCE_BROAD_GVCF,
-  ARGS_IDX_PRODUCE_HISTOGRAM
+  ARGS_IDX_PRODUCE_HISTOGRAM,
+  ARGS_IDX_DEBUG_PRINT
 };
 
 enum CommandsEnum
 {
   COMMAND_RANGE_QUERY=0,
   COMMAND_PRODUCE_BROAD_GVCF,
-  COMMAND_PRODUCE_HISTOGRAM
+  COMMAND_PRODUCE_HISTOGRAM,
+  COMMAND_DEBUG_PRINT
 };
 
 #define MegaByte (1024*1024)
@@ -235,6 +237,12 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
 }
 #endif
 
+void debug_print(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config)
+{
+  VariantCallPrintOperator printer;
+  qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, 0u);
+}
+
 void produce_column_histogram(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, uint64_t bin_size,
     const std::vector<uint64_t>& num_equi_load_bins)
 {
@@ -278,6 +286,7 @@ int main(int argc, char *argv[]) {
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
     {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
+    {"debug-print",0,0,ARGS_IDX_DEBUG_PRINT},
     {"array",1,0,'A'},
     {0,0,0,0},
   };
@@ -322,6 +331,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'j':
         json_config_file = std::move(std::string(optarg));
+        break;
+      case ARGS_IDX_DEBUG_PRINT:
+        command_idx = COMMAND_DEBUG_PRINT;
         break;
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
@@ -393,6 +405,9 @@ int main(int argc, char *argv[]) {
         break;
       case COMMAND_PRODUCE_HISTOGRAM:
         break;  //no attributes
+      case COMMAND_DEBUG_PRINT:
+        query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
+        break;
       default:
         query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
         break;
@@ -428,6 +443,9 @@ int main(int argc, char *argv[]) {
       break;
     case COMMAND_PRODUCE_HISTOGRAM:
       produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
+      break;
+    case COMMAND_DEBUG_PRINT:
+      debug_print(qp, query_config);
       break;
   }
 #ifdef USE_GPERFTOOLS

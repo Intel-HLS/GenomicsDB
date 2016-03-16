@@ -1,11 +1,13 @@
 #include "variant_storage_manager.h"
 #include "variant_field_data.h"
+#include <sys/stat.h>
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantStorageManagerException(#X);
 
 const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_to_int = {
   { "r", TILEDB_ARRAY_READ },
-  { "w", TILEDB_ARRAY_WRITE }
+  { "w", TILEDB_ARRAY_WRITE },
+  { "a", TILEDB_ARRAY_WRITE }
 };
 
 //VariantArrayCellIterator functions
@@ -144,6 +146,23 @@ void VariantArrayInfo::write_cell(const void* ptr)
 }
 
 //VariantStorageManager functions
+VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size)
+{
+  m_workspace = workspace;
+  m_segment_size = segment_size;
+  /*Initialize context with default params*/
+  tiledb_ctx_init(&m_tiledb_ctx, NULL);
+  //Create workspace if it does not exist
+  struct stat st;
+  auto status = stat(workspace.c_str(), &st);
+  //Exists and is not a directory
+  if(status >= 0 && !S_ISDIR(st.st_mode))
+    throw VariantStorageManagerException(std::string("Workspace path ")+workspace+" exists and is not a directory");
+  //Doesn't exist, create workspace
+  if(status < 0)
+    VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
+}
+
 int VariantStorageManager::open_array(const std::string& array_name, const char* mode)
 {
   auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
@@ -166,10 +185,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
     return idx;
   }
   else
-  {
-    tiledb_array_finalize(tiledb_array);
     return -1;
-  }
 }
 
 void VariantStorageManager::close_array(const int ad)
@@ -207,6 +223,7 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
   }
   //TileDB C API
   TileDB_ArraySchema array_schema;
+  memset(&array_schema, 0, sizeof(TileDB_ArraySchema));
   tiledb_array_set_schema(
       // The array schema struct
       &array_schema,
@@ -244,7 +261,7 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
       &(compression[0])
   );
   /* Create the array schema */
-  return tiledb_array_create(m_tiledb_ctx, &array_schema); 
+  return tiledb_array_create(m_tiledb_ctx, &array_schema);
 }
 
 int VariantStorageManager::get_array_schema(const int ad, VariantArraySchema* variant_array_schema)
@@ -282,7 +299,7 @@ int VariantStorageManager::get_array_schema(const std::string& array_name, Varia
   attribute_types[coords_idx] = std::type_index(typeid(int64_t));
   compression[coords_idx] = tiledb_array_schema.compression_[coords_idx];
   std::vector<std::string> dim_names(tiledb_array_schema.dim_num_);
-  auto dim_domains = std::vector<std::pair<int64_t,int64_t>>(2u*tiledb_array_schema.dim_num_);
+  auto dim_domains = std::vector<std::pair<int64_t,int64_t>>(tiledb_array_schema.dim_num_);
   auto dim_domains_ptr = reinterpret_cast<const int64_t*>(tiledb_array_schema.domain_);
   for(auto i=0;i<tiledb_array_schema.dim_num_;++i)
   {

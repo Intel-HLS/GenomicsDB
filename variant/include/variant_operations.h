@@ -240,6 +240,18 @@ class ColumnHistogramOperator : public SingleCellOperatorBase
     uint64_t m_bin_size;
 };
 
+class VariantCallPrintOperator : public SingleCellOperatorBase
+{
+  public:
+    VariantCallPrintOperator(std::ostream& fptr=std::cout) : SingleCellOperatorBase(), m_fptr(&fptr) { }
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)
+    {
+      call.print(*m_fptr, &query_config);
+    }
+  private:
+    std::ostream* m_fptr;
+};
+
 /*
  * If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
  */

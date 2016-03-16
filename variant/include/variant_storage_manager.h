@@ -108,19 +108,14 @@ class VariantArrayInfo
 class VariantStorageManager
 {
   public:
-    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u)
-    {
-      m_workspace = workspace;
-      m_segment_size = segment_size;
-      /*Initialize context with default params*/
-      tiledb_ctx_init(&m_tiledb_ctx, NULL);
-    }
+    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u);
     ~VariantStorageManager()
     {
       m_open_arrays_info_vector.clear();
       m_workspace.clear();
        /* Finalize context. */
       tiledb_ctx_finalize(m_tiledb_ctx);
+      free(m_tiledb_ctx);
     }
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;
