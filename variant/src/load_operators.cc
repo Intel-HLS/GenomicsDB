@@ -286,7 +286,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
     }
   m_cell->set_cell(cell_ptr);
   m_query_processor->scan_handle_cell(m_query_config, 0u,
-      m_variant, *m_operator, *m_cell, cell_ptr,
+      m_variant, *m_operator, *m_cell,
       m_end_pq, m_tmp_pq_vector,
       m_current_start_position, m_next_start_position,
       m_num_calls_with_deletions, m_handle_spanning_deletions,

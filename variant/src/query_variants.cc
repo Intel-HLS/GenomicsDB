@@ -168,11 +168,10 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
   m_field_factory.resize(schema.attribute_num());
   for(auto i=0;i<schema.attribute_num();++i)
   {
-    const type_info* curr_type_info = (schema.type(i));
-    type_index t = type_index(*curr_type_info);
+    type_index t = schema.type(i);
     auto iter = VariantQueryProcessor::m_type_index_to_creator.find(t);
     if(iter == VariantQueryProcessor::m_type_index_to_creator.end())
-      throw UnknownAttributeTypeException("Unknown type of schema attribute "+std::string(curr_type_info->name()));
+      throw UnknownAttributeTypeException("Unknown type of schema attribute "+std::string(t.name()));
     //For known fields, check for special creators
     unsigned enumIdx = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(i);
     if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(enumIdx) && KnownFieldInfo::requires_special_creator(enumIdx))
@@ -190,7 +189,7 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
   clear();
   m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, "r");
-  m_array_schema = new VariantArraySchema(0);
+  m_array_schema = new VariantArraySchema();
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
   initialize();
@@ -307,17 +306,14 @@ void VariantQueryProcessor::scan_and_operate(
     start_column = query_config.get_column_begin(column_interval_idx) + 1;
   }
   //Initialize forward scan iterators
-  ArrayConstCellIterator<int64_t>* forward_iter = 0;
+  VariantArrayCellIterator* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
-  //Cell object that will be used for iterating over attributes
-  BufferVariantCell cell(*m_array_schema, query_config);
   //If uninitialized, store first column idx of forward scan in current_start_position
   if(current_start_position < 0 && !(forward_iter->end()))
   {
-    auto* cell_ptr = **forward_iter;
+    auto& cell = **forward_iter;
     //Coordinates are at the start of the cell
-    auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
-    current_start_position = next_coord[1];
+    current_start_position = cell.get_begin_column();
   }
   //Set current column for variant (end is un-important as Calls are used to track end of intervals)
   variant.set_column_interval(current_start_position, current_start_position);
@@ -325,8 +321,7 @@ void VariantQueryProcessor::scan_and_operate(
   int64_t next_start_position = -1ll;
   for(;!(forward_iter->end());++(*forward_iter))
   {
-    auto* cell_ptr = **forward_iter;
-    cell.set_cell(cell_ptr);
+    auto& cell = **forward_iter;
 #ifdef DUPLICATE_CELL_AT_END
     //Ignore cell copies at END positions
     auto cell_column_value = cell.get_begin_column();
@@ -334,7 +329,7 @@ void VariantQueryProcessor::scan_and_operate(
     if(cell_column_value > END_v)
       continue;
 #endif
-    auto end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell, cell_ptr,
+    auto end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell,
         end_pq, tmp_pq_buffer, current_start_position, next_start_position, num_calls_with_deletions, handle_spanning_deletions, stats_ptr);
     if(end_loop)
       break;
@@ -349,21 +344,20 @@ void VariantQueryProcessor::scan_and_operate(
 
 bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
     Variant& variant, SingleVariantOperatorBase& variant_operator,
-    BufferVariantCell& cell, const void* cell_ptr,
+    const BufferVariantCell& cell,
     VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
     int64_t& current_start_position, int64_t& next_start_position,
     uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
     GTProfileStats* stats_ptr) const
 {
-  //Coordinates are at the start of the cell
-  auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
   //If only interval requested and end of interval crossed, then done
-  if(query_config.get_num_column_intervals() > 0 && next_coord[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
+  if(query_config.get_num_column_intervals() > 0 &&
+      cell.get_begin_column() > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
     return true;
-  if(next_coord[1] != current_start_position) //have found cell with next gVCF position, handle accumulated values
+  if(cell.get_begin_column() != current_start_position) //have found cell with next gVCF position, handle accumulated values
   {
-    next_start_position = next_coord[1];
-    assert(next_coord[1] > current_start_position);
+    next_start_position = cell.get_begin_column();
+    assert(cell.get_begin_column() > current_start_position);
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
         next_start_position, false, num_calls_with_deletions);
     assert(end_pq.empty() || static_cast<int64_t>(end_pq.top()->get_column_end()) >= next_start_position);  //invariant
@@ -374,12 +368,12 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
   }
   //Accumulate cells with position == current_start_position
   //Include only if row is part of query
-  if(query_config.is_queried_array_row_idx(next_coord[0]))
+  if(query_config.is_queried_array_row_idx(cell.get_row()))
   {
-    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(cell.get_row()));
     //Overlapping intervals for current call - spans across next position
     //Have to ignore rest of this interval - overwrite with the new info from the cell
-    if(curr_call.is_valid() && static_cast<int64_t>(curr_call.get_column_end()) >= next_coord[1])
+    if(curr_call.is_valid() && static_cast<int64_t>(curr_call.get_column_end()) >= cell.get_begin_column())
     {
       //Have to cycle through priority queue and remove this call
       auto found_curr_call = false;
@@ -404,7 +398,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
       --num_calls_with_deletions;
     }
     curr_call.reset_for_new_interval();
-    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
+    gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
     //When cells are duplicated at the END, then the VariantCall object need not be valid
     if(curr_call.is_valid())
     {
@@ -434,25 +428,21 @@ void VariantQueryProcessor::iterate_over_cells(
   if(query_config.get_num_column_intervals() > 0u)
     start_column = query_config.get_column_begin(column_interval_idx);
   //Initialize forward scan iterators
-  ArrayConstCellIterator<int64_t>* forward_iter = 0;
+  VariantArrayCellIterator* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
-  //Cell object that will be used for iterating over attributes
-  BufferVariantCell cell(*m_array_schema, query_config);
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
   for(;!(forward_iter->end());++(*forward_iter))
   {
-    auto* cell_ptr = **forward_iter;
-    //Coordinates are at the start of the cell
-    auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
+    auto& cell = **forward_iter;
     //If only interval requested and end of interval crossed, exit loop
-    if(query_config.get_num_column_intervals() > 0 && next_coord[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
+    if(query_config.get_num_column_intervals() > 0 &&
+        cell.get_begin_column() > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
       break;
-    cell.set_cell(cell_ptr);
-    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(next_coord[0]));
+    auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(cell.get_row()));
     curr_call.reset_for_new_interval();
-    gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats_ptr);
+    gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
     //When cells are duplicated at the END, then the VariantCall object need not be valid
     if(curr_call.is_valid())
       variant_operator.operate(curr_call, query_config);
@@ -507,8 +497,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     }
   }
   //Set number of rows in the array
-  const std::vector<std::pair<double, double> >& dim_domains =
-      array_schema.dim_domains();
+  auto& dim_domains = array_schema.dim_domains();
   uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
   query_config.set_num_rows_in_array(row_num, static_cast<int64_t>(dim_domains[0].first));
   query_config.setup_array_row_idx_to_query_row_idx_map();
@@ -592,7 +581,7 @@ void VariantQueryProcessor::gt_get_column_interval(
     //If paging, continue at the last column that was handled in the previous page
     start_column_forward_sweep = paging_info ? std::max<uint64_t>(paging_info->get_last_column(), start_column_forward_sweep) 
       : start_column_forward_sweep;
-    ArrayConstCellIterator<int64_t>* forward_iter = 0;
+    VariantArrayCellIterator* forward_iter = 0;
     gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first+1, forward_iter);
     //Used to store single call variants  - one variant per cell
     //Multiple variants could be merged later on
@@ -602,8 +591,6 @@ void VariantQueryProcessor::gt_get_column_interval(
     std::cerr << "[query_variants:gt_get_column_interval] Fetching columns from " << query_config.get_column_begin(column_interval_idx) + 1;
     std::cerr << " to " << query_config.get_column_end(column_interval_idx) << std::endl;
 #endif
-    //Cell object that will be used for iterating over attributes
-    BufferVariantCell cell(*m_array_schema, query_config);
     //Used for paging
     auto last_column_idx = start_column_forward_sweep;
     //Num handled variants - if beginning from same column as end of last page, get from paging info
@@ -622,11 +609,9 @@ void VariantQueryProcessor::gt_get_column_interval(
       //FIXME: in the current implementation, every *iter accesses every attribute
       stats->increment_tmp_counter(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
 #endif
-      auto* cell_ptr = **forward_iter;
-      //Coordinates are at the start of the cell
-      auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
-      curr_row_idx = next_coord[0];
-      curr_column_idx = next_coord[1];
+      auto& cell = **forward_iter;
+      curr_row_idx = cell.get_row();
+      curr_column_idx = cell.get_begin_column();
       if(curr_column_idx > query_config.get_column_end(column_interval_idx))    //Genomic interval begins after end of query interval
         break;
       //Check variants handled in previous page
@@ -643,8 +628,6 @@ void VariantQueryProcessor::gt_get_column_interval(
         tmp_variant.reset_for_new_interval();
         tmp_variant.get_call(0u).set_row_idx(curr_row_idx); //set row idx
         tmp_variant.set_column_interval(curr_column_idx, curr_column_idx);
-        //Set contents of cell 
-        cell.set_cell(cell_ptr);
         gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, stats);
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
         //When cells are duplicated at the END, then the VariantCall object need not be valid
@@ -713,21 +696,12 @@ void VariantQueryProcessor::gt_get_column(
 #ifdef DUPLICATE_CELL_AT_END
   //If cells are duplicated at the end, we only need a forward iterator starting at col
   //i.e. start at the smallest cell with co-ordinate >= col
-  ArrayConstCellIterator<int64_t>* cell_iter = 0;
+  VariantArrayCellIterator* cell_iter = 0;
   gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first, cell_iter);
-#else
-  // Initialize reverse tile iterators
-  // The reverse iterator will start with the cells
-  // of the various attributes that have the largest
-  // id that either intersect with col, or precede col.
-  ArrayConstReverseCellIterator<int64_t>* cell_iter = 0;
-  gt_initialize_reverse_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first, cell_iter);
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
   uint64_t filled_rows = 0;
   uint64_t num_valid_rows = 0;
-  //Cell object that will be re-used
-  BufferVariantCell cell(*m_array_schema, query_config);
   // Fill the genotyping column
   while(!(cell_iter->end()) && filled_rows < query_config.get_num_rows_to_query()) {
 #ifdef DO_PROFILING
@@ -736,28 +710,24 @@ void VariantQueryProcessor::gt_get_column(
     //FIXME: in the current implementation, every *iter accesses every attribute
     stats->increment_tmp_counter(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
 #endif
-    auto* cell_ptr = **cell_iter;
-    //Coordinates are at the start of the cell
-    auto next_coord = reinterpret_cast<const int64_t*>(cell_ptr);
+    auto& cell = **cell_iter;
 #ifdef DUPLICATE_CELL_AT_END
     // If next cell is not on the left of col, and
     // The rowIdx is being queried and
     // The row/call is uninitialized (uninvestigated) in the Variant
-    if(next_coord[1] >= static_cast<int64_t>(col) && query_config.is_queried_array_row_idx(next_coord[0]))
+    if(cell.get_begin_column() >= static_cast<int64_t>(col) && query_config.is_queried_array_row_idx(cell.get_row()))
 #else
     // If next cell is not on the right of col, and
     // The rowIdx is being queried and
     // The row/call is uninitialized (uninvestigated) in the Variant
-    if(next_coord[1] <= static_cast<int64_t>(col) && query_config.is_queried_array_row_idx(next_coord[0]))
+    if(cell.get_begin_column() <= static_cast<int64_t>(col) && query_config.is_queried_array_row_idx(cell.get_row()))
 #endif
     {
-      auto curr_query_row_idx = query_config.get_query_row_idx_for_array_row_idx(next_coord[0]);
+      auto curr_query_row_idx = query_config.get_query_row_idx_for_array_row_idx(cell.get_row());
       auto& curr_call = variant.get_call(curr_query_row_idx);
       if(!(curr_call.is_initialized()))
       {
-        //Set contents of cell 
-        cell.set_cell(cell_ptr);
-        gt_fill_row(variant, next_coord[0], next_coord[1], query_config, cell, stats
+        gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats
 #ifdef DUPLICATE_CELL_AT_END
             , true
 #endif
@@ -796,7 +766,7 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
   unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
   //For known fields, check length descriptors - default FIXED
   num_elements = m_array_schema->val_num(schema_idx);
-  length_descriptor = (num_elements == VAR_SIZE) ? BCF_VL_VAR : BCF_VL_FIXED;
+  length_descriptor = m_array_schema->is_variable_length_field(schema_idx) ? BCF_VL_VAR : BCF_VL_FIXED;
   if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
   {
     length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
@@ -968,25 +938,10 @@ void VariantQueryProcessor::gt_fill_row(
 }
 
 inline
-unsigned int VariantQueryProcessor::gt_initialize_reverse_iter(
-    const int ad,
-    const VariantQueryConfig& query_config, const int64_t column,
-    ArrayConstReverseCellIterator<int64_t>*& reverse_iter) const {
-  assert(query_config.is_bookkeeping_done());
-  //Num attributes in query
-  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
-  //Assign reverse iterator
-  vector<int64_t> query_range = { static_cast<int64_t>(query_config.get_smallest_row_idx_in_array()+query_config.get_num_rows_in_array()-1u), column };
-  reverse_iter = get_storage_manager()->rbegin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs(), false);
-  return num_queried_attributes - 1;
-}
-
-
-inline
 unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
     const int ad,
     const VariantQueryConfig& query_config, const int64_t column,
-    ArrayConstCellIterator<int64_t>*& forward_iter) const {
+    VariantArrayCellIterator*& forward_iter) const {
   assert(query_config.is_bookkeeping_done());
   //Num attributes in query
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
@@ -994,7 +949,7 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
   vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
     static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
     column, INT64_MAX };
-  forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
+  *forward_iter = std::move(get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs()));
   return num_queried_attributes - 1;
 }
 

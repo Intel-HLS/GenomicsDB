@@ -419,7 +419,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       {
         auto& GT_vector = get_known_field<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_GT_IDX)->get();
         for(auto i=0u;i<GT_vector.size();++i)
-          GT_vector[i] = NULL_INT; 
+          GT_vector[i] = get_tiledb_null_value<int>(); 
       }
       //Invalidate INFO fields
       for(const auto& tuple : m_INFO_fields_vec)

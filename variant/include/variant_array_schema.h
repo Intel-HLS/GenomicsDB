@@ -2,76 +2,94 @@
 #define VARIANT_ARRAY_SCHEMA_H
 
 #include "headers.h"
-#include "array_schema.h"
+#include "c_api.h"
+
+//Exceptions thrown 
+class VariantArraySchemaException : public std::exception {
+  public:
+    VariantArraySchemaException(const std::string m="") : msg_("VariantArraySchemaException exception : "+m) { ; }
+    ~VariantArraySchemaException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
+class AttributeInfo
+{
+  public:
+    AttributeInfo() : m_type(typeid(void)) {}
+    int m_idx;
+    int m_length;
+    int m_compression_type;
+    std::string m_name;
+    std::type_index m_type;
+};
 
 class VariantArraySchema
 {
   public:
+    /*
+     * Empty variant schema
+     */
+    VariantArraySchema()
+      : m_dim_type(std::type_index(typeid(int64_t))) { }
     /*
      * Wrapper around ArraySchema for irregular tiles
      */ 
     VariantArraySchema(const std::string& array_name,
         const std::vector<std::string>& attribute_names,
         const std::vector<std::string>& dim_names,
-        const std::vector<std::pair<double, double> >& dim_domains,
-        const std::vector<const std::type_info*>& types,
+        const std::vector<std::pair<int64_t, int64_t> >& dim_domains,
+        const std::vector<std::type_index>& types,
         const std::vector<int>& val_num, 
-        const std::vector<CompressionType> compression,
-        ArraySchema::CellOrder cell_order = ArraySchema::CO_COLUMN_MAJOR,
-        int64_t capacity = AS_CAPACITY,
-        int consolidation_step = AS_CONSOLIDATION_STEP)
-    {
-      m_array_schema = new ArraySchema(array_name, attribute_names, dim_names, dim_domains,
-          types, val_num, compression, cell_order, capacity, consolidation_step);
-      m_owns_schema = true;
-    }
+        const std::vector<int> compression,
+        int cell_order = TILEDB_COL_MAJOR);
     /*
-     * Un-owned array schema constructor
-     */
-    VariantArraySchema(const ArraySchema* array_schema)
+     * Access functions
+     * */
+    inline const std::string& array_name() const { return m_array_name; }
+    inline size_t attribute_num() const { return m_attributes_vector.size(); }
+    inline const std::string& attribute_name(int idx) const
     {
-      m_array_schema = array_schema;
-      m_owns_schema = false;
+      assert(static_cast<size_t>(idx) < m_attributes_vector.size());
+      return m_attributes_vector[idx].m_name;
     }
-    /*
-     * "Copy" constructor
-     */
-    VariantArraySchema(const VariantArraySchema& other)
+    inline const std::type_index& type(int idx) const
     {
-      m_array_schema = other.m_array_schema;
-      m_owns_schema = false;
+      assert(static_cast<size_t>(idx) < m_attributes_vector.size());
+      return m_attributes_vector[idx].m_type;
     }
-    /*
-     * "Assignment" operator
-     */
-    VariantArraySchema& operator=(const VariantArraySchema& other)
+    inline const int val_num(int idx) const
     {
-      if(m_owns_schema && m_array_schema)
-        delete m_array_schema;
-      m_array_schema = other.m_array_schema;
-      m_owns_schema = false;
-      return *this;
+      assert(static_cast<size_t>(idx) < m_attributes_vector.size());
+      return m_attributes_vector[idx].m_length;
     }
-    /*
-     * Destructor
-     */
-    ~VariantArraySchema()
+    inline const bool is_variable_length_field(const int idx) const
     {
-      if(m_owns_schema && m_array_schema)
-        delete m_array_schema;
-      m_array_schema = 0;
-      m_owns_schema = false;
+      return (val_num(idx) == TILEDB_VAR_NUM);
     }
-    inline const ArraySchema* get_array_schema() const { return m_array_schema; }
-    inline int attribute_num() const { return m_array_schema->attribute_num(); }
-    inline const std::string& attribute_name(int idx) const { return m_array_schema->attribute_name(idx); }
-    inline const std::type_info* type(int idx) const { return m_array_schema->type(idx); }
-    inline const int val_num(int idx) const { return m_array_schema->val_num(idx); }
-    inline const std::vector<std::pair<double,double>>& dim_domains() const { return m_array_schema->dim_domains(); }
-    inline const std::string& array_name() const { return m_array_schema->array_name(); }
+    inline const int compression(int idx) const
+    {
+      assert(static_cast<size_t>(idx) < m_attributes_vector.size());
+      return m_attributes_vector[idx].m_compression_type;
+    }
+    inline const std::vector<std::pair<int64_t,int64_t>>& dim_domains() const { return m_dim_domains; }
+    inline const std::vector<std::string>& dim_names() const { return m_dim_names; }
+    inline const std::type_index& dim_type() const { return m_dim_type; }
+    inline const int dim_compression_type() const { return m_dim_compression_type; }
   private:
-    const ArraySchema* m_array_schema;
-    bool m_owns_schema;
+    std::string m_array_name;
+    int m_cell_order;
+    //Attributes info
+    std::vector<AttributeInfo> m_attributes_vector;
+    std::unordered_map<std::string, size_t> m_attribute_name_to_idx;
+    //Dimensions info
+    std::vector<std::pair<int64_t, int64_t>> m_dim_domains;
+    std::vector<std::string> m_dim_names;
+    std::type_index m_dim_type;
+    int m_dim_compression_type;
 };
 
 #endif

@@ -8,6 +8,8 @@
 #include "gperftools/profiler.h"
 #endif
 
+#define SEGMENT_SIZE 10*1024*1024       //10 MB
+
 void GenotypeColumn(VariantQueryProcessor& qp, GTProfileStats* stats, 
     uint64_t column, std::ostream& output_stream, bool do_C_pointer_testing)
 {

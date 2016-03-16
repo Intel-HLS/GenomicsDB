@@ -129,7 +129,7 @@ class VariantQueryProcessor {
      * */
     bool scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant, SingleVariantOperatorBase& variant_operator,
-        BufferVariantCell& cell, const void* cell_ptr,
+        const BufferVariantCell& cell,
         VariantCallEndPQ& end_pq, std::vector<VariantCall*>& tmp_pq_buffer,
         int64_t& current_start_position, int64_t& next_start_position,
         uint64_t& num_calls_with_deletions, bool handle_spanning_deletions,
@@ -210,21 +210,13 @@ class VariantQueryProcessor {
 #endif
         ) const;
     /** 
-     * Initializes reverse iterators for joint genotyping for column col. 
-     * Returns the number of attributes used in joint genotyping.
-     */
-    unsigned int gt_initialize_reverse_iter(
-        const int ad,
-        const VariantQueryConfig& query_config, const int64_t column,
-        ArrayConstReverseCellIterator<int64_t>*& reverse_iter) const;
-    /** 
      * Initializes forward iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
      */
     unsigned int gt_initialize_forward_iter(
         const int ad,
         const VariantQueryConfig& query_config, const int64_t column,
-        ArrayConstCellIterator<int64_t>*& forward_iter) const;
+        VariantArrayCellIterator*& forward_iter) const;
     /*
      * Fill data from tile for attribute query_idx into curr_call
      * @param curr_call  VariantCall object in which data will be stored

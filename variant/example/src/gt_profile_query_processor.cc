@@ -1,6 +1,5 @@
 #include <iostream>
 #include "command_line.h"
-#include "loader.h"
 #include<math.h>
 #include "query_variants.h"
 #include "variant_operations.h"

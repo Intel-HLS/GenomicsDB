@@ -2,6 +2,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
+#include "c_api.h"
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -17,11 +18,11 @@ std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_in
     {"VAR", BCF_VL_VAR}
     });
 
-std::unordered_map<std::string, const std::type_info*> VidMapper::m_typename_string_to_typeinfo =
-  std::unordered_map<std::string, const std::type_info*>({
-      {"int", &(typeid(int))},
-      {"float", &(typeid(float))},
-      {"char", &(typeid(char))}
+std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to_type_index =
+  std::unordered_map<std::string, std::type_index>({
+      {"int", std::type_index(typeid(int))},
+      {"float", std::type_index(typeid(float))},
+      {"char", std::type_index(typeid(char))}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type =
@@ -163,31 +164,31 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
   auto dim_domains = row_based_partitioning ?
-    std::vector<std::pair<double, double>>({ {row_range.first, row_range.second}, {0, INT64_MAX}})
-    : std::vector<std::pair<double,double>>({ {0, get_num_callsets()-1}, {0, INT64_MAX } });
+    std::vector<std::pair<int64_t, int64_t>>({ {row_range.first, row_range.second}, {0, INT64_MAX}})
+    : std::vector<std::pair<int64_t,int64_t>>({ {0, get_num_callsets()-1}, {0, INT64_MAX } });
   std::vector<std::string> attribute_names;
-  std::vector<const std::type_info*> types;
+  std::vector<std::type_index> types;
   std::vector<int> num_vals;
   //END
   attribute_names.push_back("END");
-  types.push_back(&(typeid(int64_t)));
+  types.push_back(std::type_index(typeid(int64_t)));
   num_vals.push_back(1);
   //REF
   attribute_names.push_back("REF");
-  types.push_back(&(typeid(char)));
-  num_vals.push_back(VAR_SIZE);
+  types.push_back(std::type_index(typeid(char)));
+  num_vals.push_back(TILEDB_VAR_NUM);
   //ALT
   attribute_names.push_back("ALT");
-  types.push_back(&(typeid(char)));
-  num_vals.push_back(VAR_SIZE);
+  types.push_back(std::type_index(typeid(char)));
+  num_vals.push_back(TILEDB_VAR_NUM);
   //QUAL
   attribute_names.push_back("QUAL");
-  types.push_back(&(typeid(float)));
+  types.push_back(std::type_index(typeid(float)));
   num_vals.push_back(1);
   //FILTER
   attribute_names.push_back("FILTER");
-  types.push_back(&(typeid(int)));
-  num_vals.push_back(VAR_SIZE);
+  types.push_back(std::type_index(typeid(int)));
+  num_vals.push_back(TILEDB_VAR_NUM);
   //INFO fields
   for(const auto& field_info : m_field_idx_to_info)
   {
@@ -196,8 +197,8 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
     if(field_info.m_is_vcf_INFO_field)
     {
       attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.m_type_info);
-      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : VAR_SIZE);
+      types.push_back(field_info.m_type_index);
+      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : TILEDB_VAR_NUM);
     }
   }
   //FORMAT fields
@@ -211,18 +212,21 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
         attribute_names.push_back(field_info.m_name+"_FORMAT");
       else
         attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.m_type_info);
-      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : VAR_SIZE);
+      types.push_back(field_info.m_type_index);
+      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : TILEDB_VAR_NUM);
     }
   }
   //COORDS
-  types.push_back(&(typeid(int64_t)));
+  types.push_back(std::type_index(typeid(int64_t)));
   //For compression
   //no compression - empty vector
-  std::vector<CompressionType> compression;
+  std::vector<int> compression;
   if(compress_fields)
     for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
-      compression.push_back(CompressionType::GZIP);
+      compression.push_back(TILEDB_GZIP);
+  else
+    for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
+      compression.push_back(TILEDB_NO_COMPRESSION);
   array_schema = new VariantArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression);
 }
 
@@ -375,9 +379,9 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       //Field type - int, char etc
       VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
       {
-        auto iter = VidMapper::m_typename_string_to_typeinfo.find(field_info_dict["type"].GetString());
-        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_typeinfo.end() && "Unhandled field type");
-        m_field_idx_to_info[field_idx].m_type_info = (*iter).second;
+        auto iter = VidMapper::m_typename_string_to_type_index.find(field_info_dict["type"].GetString());
+        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end() && "Unhandled field type");
+        m_field_idx_to_info[field_idx].m_type_index = (*iter).second;
       }
       {
         auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_info_dict["type"].GetString());

@@ -92,11 +92,11 @@ class FieldInfo
 {
   public:
     FieldInfo()
+      : m_type_index(typeid(void))
     {
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
-      m_type_info = 0;
       m_bcf_ht_type = BCF_HT_VOID;
       m_length_descriptor = BCF_VL_FIXED;
       m_num_elements = 1;
@@ -111,7 +111,7 @@ class FieldInfo
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;
     //Type info
-    const std::type_info* m_type_info;
+    std::type_index m_type_index;
     int m_bcf_ht_type;
     //Length descriptors
     int m_length_descriptor;
@@ -396,7 +396,7 @@ class VidMapper
     void sort_and_assign_local_file_idxs_for_partition(const int owner_idx);
     //Static members
     static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
-    static std::unordered_map<std::string, const std::type_info*> m_typename_string_to_typeinfo;
+    static std::unordered_map<std::string, std::type_index> m_typename_string_to_type_index;
     static std::unordered_map<std::string, int> m_typename_string_to_bcf_ht_type;
 };
 

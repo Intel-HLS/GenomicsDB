@@ -37,6 +37,7 @@ class BufferVariantCell
     };
   public:
     BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config);
+    BufferVariantCell(const VariantArraySchema& array_schema, const std::vector<int>& attribute_ids);
     void clear();
     void set_cell(const void* ptr);
     template<typename T=void>
@@ -45,10 +46,25 @@ class BufferVariantCell
       assert(static_cast<size_t>(query_idx) < m_field_ptrs.size());
       return reinterpret_cast<const T*>(m_field_ptrs[query_idx]);
     }
+    inline void set_field_ptr_for_query_idx(const int query_idx, const void* ptr)
+    {
+      assert(static_cast<size_t>(query_idx) < m_field_ptrs.size());
+      m_field_ptrs[query_idx] = ptr;
+    }
     inline int get_field_length(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
       return m_field_lengths[query_idx];
+    }
+    inline void set_field_length(const int query_idx, const int length)
+    {
+      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
+      m_field_lengths[query_idx] = length;
+    }
+    inline void set_field_size_in_bytes(const int query_idx, const size_t bytes)
+    {
+      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
+      m_field_lengths[query_idx] = bytes/m_field_element_sizes[query_idx];
     }
     inline int get_field_length_descriptor(const int query_idx) const
     {
@@ -58,24 +74,26 @@ class BufferVariantCell
     inline bool is_variable_length_field(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
-      return (m_field_length_descriptors[query_idx] == VAR_SIZE);
+      return (m_field_length_descriptors[query_idx] == TILEDB_VAR_NUM);
     }
     FieldsIter begin() const { return FieldsIter(this, 0ull); }
     FieldsIter end() const { return FieldsIter(this, m_field_ptrs.size()); }
-    int64_t get_begin_column() const
+    inline int64_t get_begin_column() const { return m_begin_column_idx; }
+    inline int64_t get_row() const { return m_row_idx; }
+    inline void set_coordinates(const int64_t row, const int64_t begin_column)
     {
-      assert(m_cell_ptr);
-      //column is second co-ordinate
-      return *(reinterpret_cast<const int64_t*>(m_cell_ptr+sizeof(int64_t)));
+      m_row_idx = row;
+      m_begin_column_idx = begin_column;
     }
   private:
     const VariantArraySchema* m_array_schema;
-    const VariantQueryConfig* m_query_config;
-    const uint8_t* m_cell_ptr;
     std::vector<const void*> m_field_ptrs;
     std::vector<size_t> m_field_element_sizes;
     std::vector<int> m_field_length_descriptors;
     std::vector<int> m_field_lengths;
+    //Co-ordinates
+    int64_t m_row_idx;
+    int64_t m_begin_column_idx;
 };
 
 #endif

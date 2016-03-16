@@ -5,7 +5,6 @@
 #include "headers.h"
 #include "gt_common.h"
 #include "variant_cell.h"
-#include "special_values.h"
 
 class UnknownAttributeTypeException : public std::exception {
   public:
@@ -18,21 +17,6 @@ class UnknownAttributeTypeException : public std::exception {
     std::string msg_;
 };
 
-enum VariantFieldTypeEnum
-{
-  VARIANT_FIELD_VOID=0,
-  VARIANT_FIELD_INT,
-  VARIANT_FIELD_INT64_T,
-  VARIANT_FIELD_UNSIGNED,
-  VARIANT_FIELD_UINT64_T,
-  VARIANT_FIELD_FLOAT,
-  VARIANT_FIELD_DOUBLE,
-  VARIANT_FIELD_STRING,
-  VARIANT_FIELD_CHAR,
-  VARIANT_FIELD_NUM_TYPES
-};
-extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
-
 class VariantFieldTypeUtil
 {
   public:
@@ -43,6 +27,21 @@ class VariantFieldTypeUtil
       if(iter == g_variant_field_type_index_to_enum.end())
         throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
       return size((*iter).second);
+    }
+    static int get_tiledb_type_for_variant_field_type(const std::type_index& type_index)
+    {
+      auto iter = g_variant_field_type_index_to_tiledb_type.find(type_index);
+      if(iter == g_variant_field_type_index_to_tiledb_type.end())
+       throw UnknownAttributeTypeException(std::string("No TileDB type found for attribute ")+type_index.name());
+      return (*iter).second;
+    }
+    static std::type_index get_variant_field_type_for_tiledb_type(const int tiledb_type)
+    {
+      assert(static_cast<size_t>(tiledb_type) < g_tiledb_type_to_variant_field_type_index.size());
+      auto type_idx = g_tiledb_type_to_variant_field_type_index[tiledb_type];
+      assert(g_variant_field_type_index_to_tiledb_type.find(type_idx) != g_variant_field_type_index_to_tiledb_type.end()
+          && g_variant_field_type_index_to_tiledb_type[type_idx] == tiledb_type);
+      return type_idx;
     }
 };
 
@@ -205,7 +204,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       memcpy(&(m_data[0]), ptr, num_elements*sizeof(char));
       bool is_missing_flag = true;
       for(auto val : m_data)
-        if(val != NULL_CHAR)
+        if(!is_tiledb_missing_value<char>(val))
         {
           is_missing_flag = false;
           break;
