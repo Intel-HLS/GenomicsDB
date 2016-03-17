@@ -316,7 +316,6 @@ $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT): $(CORE_OBJ)
 	@mkdir -p $(CORE_LIB_DIR)
 	@echo "Creating libtiledb.$(SHLIB_EXT)"
 	@$(CXX) $(SHLIB_FLAGS) $(SONAME) -o $@ $^ $(LDFLAGS)
-	ar rcs $(CORE_LIB_DIR)/libtiledb.a $^
 
 $(CORE_LIB_DIR)/libtiledb.a: $(CORE_OBJ)
 	@mkdir -p $(CORE_LIB_DIR)
