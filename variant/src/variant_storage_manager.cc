@@ -10,6 +10,9 @@ const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_
   { "a", TILEDB_ARRAY_WRITE }
 };
 
+//ceil(buffer_size/field_size)*field_size
+#define GET_ALIGNED_BUFFER_SIZE(buffer_size, field_size) ((((buffer_size)+(field_size)-1u)/(field_size))*(field_size))
+
 //VariantArrayCellIterator functions
 VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size)
@@ -20,15 +23,22 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
   std::vector<const char*> attribute_names(attribute_ids.size()+1u);  //+1 for the COORDS
   for(auto i=0ull;i<attribute_ids.size();++i)
   {
+    //Buffer size must be resized to be a multiple of the field size
+    auto curr_buffer_size = buffer_size;
     attribute_names[i] = variant_array_schema.attribute_name(attribute_ids[i]).c_str();
     //For varible length attributes, need extra buffer for maintaining offsets
     if(variant_array_schema.is_variable_length_field(attribute_ids[i]))
-      m_buffers.emplace_back(buffer_size);
-    m_buffers.emplace_back(buffer_size);
+    {
+      curr_buffer_size = GET_ALIGNED_BUFFER_SIZE(buffer_size, sizeof(size_t));
+      m_buffers.emplace_back(curr_buffer_size);
+    }
+    else
+      curr_buffer_size = GET_ALIGNED_BUFFER_SIZE(buffer_size, m_cell.get_field_size_in_bytes(i));
+    m_buffers.emplace_back(curr_buffer_size);
   }
   //Co-ordinates
   attribute_names[attribute_ids.size()] = TILEDB_COORDS;
-  m_buffers.emplace_back(buffer_size);
+  m_buffers.emplace_back(GET_ALIGNED_BUFFER_SIZE(buffer_size, variant_array_schema.dim_size_in_bytes()));
   //Initialize pointers to buffers
   m_buffer_pointers.resize(m_buffers.size());
   m_buffer_sizes.resize(m_buffers.size());
