@@ -314,7 +314,7 @@ endif
 
 $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT): $(CORE_OBJ)
 	@mkdir -p $(CORE_LIB_DIR)
-	@echo "Creating libtiledb.$(SHLIB_EXT)"
+	@echo "Creating dynamic library libtiledb.$(SHLIB_EXT)"
 	@$(CXX) $(SHLIB_FLAGS) $(SONAME) -o $@ $^ $(LDFLAGS)
 
 $(CORE_LIB_DIR)/libtiledb.a: $(CORE_OBJ)
