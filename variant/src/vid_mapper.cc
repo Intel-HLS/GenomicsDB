@@ -221,12 +221,10 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   //For compression
   //no compression - empty vector
   std::vector<int> compression;
-#ifndef DEBUG
   if(compress_fields)
     for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
       compression.push_back(TILEDB_GZIP);
   else
-#endif
     for(auto i=0u;i<types.size();++i)   //types contains entry for coords also
       compression.push_back(TILEDB_NO_COMPRESSION);
   array_schema = new VariantArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression);

@@ -26,9 +26,12 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
     row_partition = json_config.get_row_partition(rank);
     row_partition.second = std::min(row_partition.second, static_cast<int64_t>(id_mapper->get_num_callsets()-1));
   }
-  id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, true);
+  //default true
+  bool compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array") || json_doc["compress_tiledb_array"].GetBool());
+  id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, compress_tiledb_array);
   //Storage manager
-  m_storage_manager = new VariantStorageManager(workspace);
+  size_t segment_size = json_doc.HasMember("segment_size") ? json_doc["segment_size"].GetInt64() : 10u*1024u*1024u;
+  m_storage_manager = new VariantStorageManager(workspace, segment_size);
   auto mode = recreate_array ? "w" : "a";
   //Check if array already exists
   m_array_descriptor = m_storage_manager->open_array(array_name, mode);
