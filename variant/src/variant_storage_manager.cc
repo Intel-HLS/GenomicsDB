@@ -90,13 +90,16 @@ VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, c
     m_buffers.emplace_back(buffer_size);
     //Initialize pointers to buffers
     m_buffer_pointers.resize(m_buffers.size());
-    m_buffer_sizes.resize(m_buffers.size());
+    m_buffer_offsets.resize(m_buffers.size());
     for(auto i=0ull;i<m_buffers.size();++i)
     {
       m_buffer_pointers[i] = reinterpret_cast<void*>(&(m_buffers[i][0]));
-      m_buffer_sizes[i] = m_buffers[i].size(); //will be modified during a write
+      m_buffer_offsets[i] = 0ull; //will be modified during a write
     }
   }
+#ifdef DEBUG
+  m_last_row = m_last_column = -1;
+#endif
 }
 
 //Move constructor
@@ -112,37 +115,82 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
   other.m_tiledb_array = 0;
   //Move other members
   m_buffers = std::move(other.m_buffers);
-  m_buffer_sizes = std::move(other.m_buffer_sizes);
+  m_buffer_offsets = std::move(other.m_buffer_offsets);
   m_buffer_pointers = std::move(other.m_buffer_pointers);
   for(auto i=0ull;i<m_buffer_pointers.size();++i)
     m_buffer_pointers[i] = reinterpret_cast<void*>(&(m_buffers[i][0]));
+#ifdef DEBUG
+  m_last_row = other.m_last_row;
+  m_last_column = other.m_last_column;
+#endif
 }
 
 void VariantArrayInfo::write_cell(const void* ptr)
 {
   m_cell.set_cell(ptr);
+#ifdef DEBUG
+  assert((m_cell.get_begin_column() > m_last_column) || (m_cell.get_begin_column() == m_last_column && m_cell.get_row() > m_last_row));
+  m_last_row = m_cell.get_row();
+  m_last_column = m_cell.get_begin_column();
+#endif
   auto buffer_idx = 0ull;
+  auto overflow = false;
+  //First check if the current cell will fit into the buffers
   for(auto i=0ull;i<m_schema.attribute_num();++i)
   {
     assert(buffer_idx < m_buffer_pointers.size());
     //Specify offsets in the buffer for variable length fields
     if(m_schema.is_variable_length_field(i))
     {
-      *(const_cast<size_t*>(reinterpret_cast<const size_t*>(m_buffer_pointers[buffer_idx]))) = 0ull;
-      m_buffer_sizes[buffer_idx] = sizeof(size_t);
+      if(m_buffer_offsets[buffer_idx]+sizeof(size_t) > m_buffers[buffer_idx].size())
+      {
+        overflow = true;
+        break;
+      }
       ++buffer_idx;
     }
-    m_buffer_pointers[buffer_idx] = m_cell.get_field_ptr_for_query_idx<void>(i);
-    m_buffer_sizes[buffer_idx] = m_cell.get_field_size_in_bytes(i);
+    if(m_buffer_offsets[buffer_idx]+m_cell.get_field_size_in_bytes(i) > m_buffers[buffer_idx].size())
+    {
+      overflow = true;
+      break;
+    }
+    ++buffer_idx;
+  }
+  //Check if co-ordinates buffer overflows
+  auto coords_buffer_idx = m_buffers.size()-1u;
+  auto coords_size = m_schema.dim_size_in_bytes();
+  overflow = overflow || (m_buffer_offsets[coords_buffer_idx]+coords_size > m_buffers[coords_buffer_idx].size());
+  //write to array and reset sizes
+  if(overflow)
+  {
+    tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+    memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
+  }
+  buffer_idx = 0;
+  for(auto i=0ull;i<m_schema.attribute_num();++i)
+  {
+    assert(buffer_idx < m_buffer_pointers.size());
+    //Specify offsets in the buffer for variable length fields
+    if(m_schema.is_variable_length_field(i))
+    {
+      assert(buffer_idx+1u < m_buffer_offsets.size());
+      assert(m_buffer_offsets[buffer_idx]+sizeof(size_t) <= m_buffers[buffer_idx].size());
+      //Offset buffer - new entry starts after last entry
+      *(reinterpret_cast<size_t*>(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]))) = m_buffer_offsets[buffer_idx+1u];
+      m_buffer_offsets[buffer_idx] += sizeof(size_t);
+      ++buffer_idx;
+    }
+    auto field_size = m_cell.get_field_size_in_bytes(i);
+    assert(m_buffer_offsets[buffer_idx]+field_size <= m_buffers[buffer_idx].size());
+    memcpy(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]), m_cell.get_field_ptr_for_query_idx<void>(i), field_size);
+    m_buffer_offsets[buffer_idx] += field_size;
     ++buffer_idx;
   }
   //Co-ordinates
-  auto coords_buffer_idx = m_buffers.size()-1u;
   assert(buffer_idx == coords_buffer_idx);
-  memcpy(const_cast<void*>(m_buffer_pointers[coords_buffer_idx]), ptr, m_schema.dim_size_in_bytes());
-  m_buffer_sizes[coords_buffer_idx] = m_schema.dim_size_in_bytes();
-  //write to array
-  tiledb_array_write(m_tiledb_array, &(m_buffer_pointers[0]), &(m_buffer_sizes[0]));
+  assert(m_buffer_offsets[coords_buffer_idx]+coords_size <= m_buffers[coords_buffer_idx].size());
+  memcpy(&(m_buffers[coords_buffer_idx][m_buffer_offsets[coords_buffer_idx]]), ptr, coords_size);
+  m_buffer_offsets[coords_buffer_idx] += coords_size;
 }
 
 //VariantStorageManager functions
@@ -181,7 +229,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
     auto idx = m_open_arrays_info_vector.size();
     VariantArraySchema tmp_schema;
     get_array_schema(array_name, &tmp_schema);
-    m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array);
+    m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array, m_segment_size);
     return idx;
   }
   else

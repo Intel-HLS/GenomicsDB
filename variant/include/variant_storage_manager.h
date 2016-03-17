@@ -60,7 +60,7 @@ class VariantArrayInfo
 {
   public:
     VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema, TileDB_Array* tiledb_array,
-        const size_t buffer_size=1u*1024u*1024u); //1MB buffer
+        const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
     //Define move constructor explicitly
@@ -71,6 +71,14 @@ class VariantArrayInfo
     }
     void close_array()
     {
+      //Flush cells in buffer
+      auto coords_buffer_idx = m_buffers.size()-1u;
+      if((m_mode == TILEDB_ARRAY_WRITE || m_mode == TILEDB_ARRAY_WRITE_UNSORTED)
+          && m_buffer_offsets[coords_buffer_idx] > 0ull)
+      {
+        tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+        memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
+      }
       if(m_tiledb_array)
         tiledb_array_finalize(m_tiledb_array);
       m_tiledb_array = 0;
@@ -96,9 +104,13 @@ class VariantArrayInfo
     //Buffers to hold data
     std::vector<std::vector<uint8_t>> m_buffers;
     //Pointers to buffers
-    std::vector<const void*> m_buffer_pointers;
-    //Buffer sizes
-    std::vector<size_t> m_buffer_sizes;
+    std::vector<void*> m_buffer_pointers;
+    //Buffer offsets - byte where next data item needs to be written
+    std::vector<size_t> m_buffer_offsets;
+#ifdef DEBUG
+    int64_t m_last_row;
+    int64_t m_last_column;
+#endif
 };
 
 /*
