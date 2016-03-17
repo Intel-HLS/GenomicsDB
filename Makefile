@@ -244,7 +244,7 @@ all: core libtiledb examples variant variant_example
 
 core: $(CORE_OBJ)
 
-libtiledb: core $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT)
+libtiledb: core $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT) $(CORE_LIB_DIR)/libtiledb.a
 
 examples: core $(EXAMPLES_OBJ) $(EXAMPLES_BIN)
 
@@ -317,6 +317,11 @@ $(CORE_LIB_DIR)/libtiledb.$(SHLIB_EXT): $(CORE_OBJ)
 	@echo "Creating libtiledb.$(SHLIB_EXT)"
 	@$(CXX) $(SHLIB_FLAGS) $(SONAME) -o $@ $^ $(LDFLAGS)
 	ar rcs $(CORE_LIB_DIR)/libtiledb.a $^
+
+$(CORE_LIB_DIR)/libtiledb.a: $(CORE_OBJ)
+	@mkdir -p $(CORE_LIB_DIR)
+	@echo "Creating static library libtiledb.a"
+	@ar rcs $(CORE_LIB_DIR)/libtiledb.a $^
 
 # --- Cleaning --- #
 
