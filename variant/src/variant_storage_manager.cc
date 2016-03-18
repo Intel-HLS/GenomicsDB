@@ -79,15 +79,9 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
   //Co-ordinates
   tiledb_array_iterator_get_value(m_tiledb_array_iterator, m_num_queried_attributes,
         reinterpret_cast<const void**>(&field_ptr), &field_size);
-  assert(field_size == 2u*sizeof(int64_t));
+  assert(field_size == m_variant_array_schema->dim_size_in_bytes());
   auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
   m_cell.set_coordinates(coords_ptr[0], coords_ptr[1]);
-#ifdef DEBUG
-  ++m_num_cells_iterated_over;
-  assert(coords_ptr[1] > m_last_column || (coords_ptr[1] == m_last_column && coords_ptr[0] > m_last_row));
-  m_last_row = coords_ptr[0];
-  m_last_column = coords_ptr[1];
-#endif
   return m_cell;
 }
 

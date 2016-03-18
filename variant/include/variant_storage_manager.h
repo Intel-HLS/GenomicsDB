@@ -28,6 +28,9 @@ class VariantArrayCellIterator
       if(m_tiledb_array_iterator)
         tiledb_array_iterator_finalize(m_tiledb_array_iterator);
       m_tiledb_array_iterator = 0;
+#ifdef DEBUG
+      std::cerr << "#cells traversed "<<m_num_cells_iterated_over<<"\n";
+#endif
     }
     //Delete copy and move constructors
     VariantArrayCellIterator(const VariantArrayCellIterator& other) = delete;
@@ -38,6 +41,22 @@ class VariantArrayCellIterator
     inline const VariantArrayCellIterator& operator++()
     {
       tiledb_array_iterator_next(m_tiledb_array_iterator);
+#ifdef DEBUG
+      if(!end())
+      {
+        ++m_num_cells_iterated_over;
+        //Co-ordinates
+        const uint8_t* field_ptr = 0;
+        size_t field_size = 0u;
+        tiledb_array_iterator_get_value(m_tiledb_array_iterator, m_num_queried_attributes,
+            reinterpret_cast<const void**>(&field_ptr), &field_size);
+        assert(field_size == m_variant_array_schema->dim_size_in_bytes());
+        auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
+        assert(coords_ptr[1] > m_last_column || (coords_ptr[1] == m_last_column && coords_ptr[0] > m_last_row));
+        m_last_row = coords_ptr[0];
+        m_last_column = coords_ptr[1];
+      }
+#endif
       return *this;
     }
     const BufferVariantCell& operator*();
