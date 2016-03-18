@@ -6,6 +6,7 @@
 #include "variant_field_data.h"
 #include "variant_query_config.h"
 #include "known_field_info.h"
+#include "vid_mapper.h"
 
 /*
  * Class that stores info that helps determine whether 2 VariantCalls should be
@@ -746,19 +747,37 @@ bool move_call_to_variant_vector(const VariantQueryConfig& query_config, Variant
 enum VariantOutputFormatEnum
 {
   COTTON_JSON_OUTPUT_FORMAT_IDX=0,
+  POSITIONS_JSON_OUTPUT_FORMAT_IDX,
   GA4GH_OUTPUT_FORMAT_IDX,
   DEFAULT_OUTPUT_FORMAT_IDX
+};
+
+enum VaritantPrintTypesEnum
+{
+    INDICES_IDX = 0,
+    START_IDX,
+    END_IDX,
+    ATTRIBUTE_IDX
 };
 
 /*
  * JSON as required by John and Cotton
  */
-void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config);
+void print_Cotton_JSON(std::ostream& fptr, const std::vector<Variant>& variants, const VariantQueryConfig& query_config, const VidMapper* id_mapper);
 /*
  * Prints variants in requested format
  */
-void print_variants(const std::vector<Variant>& variants, const std::string& output_format, const VariantQueryConfig& query_config,
-    std::ostream& fptr=std::cout, bool output_directly=false);
+void print_variants(const std::vector<Variant>& variants,
+                    const std::string& output_format,
+                    const VariantQueryConfig& query_config,
+                    std::ostream& fptr=std::cout,
+                    const bool is_partitioned_by_column = true,
+                    const VidMapper* id_mapper = 0,
+                    const std::vector<uint64_t>& query_column_lengths = std::vector<uint64_t>(),
+                    const std::vector<uint64_t>& num_column_intervals = std::vector<uint64_t>(),
+                    const std::vector<uint64_t>& queried_column_positions = std::vector<uint64_t>(),
+                    bool output_directly=false);
+
 /*
  * Copies field from src to dst. Optimized to reduce #re-allocations
  * Handles the case where src and/or dst may be null
