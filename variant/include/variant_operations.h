@@ -247,6 +247,7 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)
     {
       call.print(*m_fptr, &query_config);
+      (*m_fptr) << "\n";
     }
   private:
     std::ostream* m_fptr;

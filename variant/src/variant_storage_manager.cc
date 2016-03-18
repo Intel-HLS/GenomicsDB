@@ -58,6 +58,11 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
       const_cast<void**>(&(m_buffer_pointers[0])),
       &(m_buffer_sizes[0]));      
   VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB iterator");
+#ifdef DEBUG
+  m_last_row = -1;
+  m_last_column = -1;
+  m_num_cells_iterated_over = 0ull;
+#endif
 }
 
 const BufferVariantCell& VariantArrayCellIterator::operator*()
@@ -77,6 +82,12 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
   assert(field_size == 2u*sizeof(int64_t));
   auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
   m_cell.set_coordinates(coords_ptr[0], coords_ptr[1]);
+#ifdef DEBUG
+  ++m_num_cells_iterated_over;
+  assert(coords_ptr[1] > m_last_column || (coords_ptr[1] == m_last_column && coords_ptr[0] > m_last_row));
+  m_last_row = coords_ptr[0];
+  m_last_column = coords_ptr[1];
+#endif
   return m_cell;
 }
 

@@ -54,6 +54,11 @@ class VariantArrayCellIterator
     std::vector<const void*> m_buffer_pointers;
     //Buffer sizes
     std::vector<size_t> m_buffer_sizes;
+#ifdef DEBUG
+    int64_t m_last_row;
+    int64_t m_last_column;
+    uint64_t m_num_cells_iterated_over;
+#endif
 };
 
 class VariantArrayInfo
