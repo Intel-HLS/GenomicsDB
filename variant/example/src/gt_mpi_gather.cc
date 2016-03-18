@@ -62,7 +62,7 @@ auto g_timer_names = std::vector<std::string>
 
 //id_mapper could be NULL - use for contig/callset name mapping only if non-NULL
 void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, const VidMapper& id_mapper,
-    const std::string& output_format, int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
+    const std::string& output_format, const bool is_partitioned_by_column, int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   //Check if id_mapper is initialized before using it
   //if(id_mapper.is_initialized())
@@ -77,14 +77,22 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #endif
   //Variants vector
   std::vector<Variant> variants;
+  uint64_t num_column_intervals = query_config.get_num_column_intervals();
+  std::vector<uint64_t> queried_column_positions(num_column_intervals * 2, 0ull);
+  std::vector<uint64_t> query_column_lengths(num_column_intervals, 0ull);
   //Perform query if not root or !skip_query_on_root
   if(my_world_mpi_rank != 0 || !skip_query_on_root)
   {
 #ifdef DO_PROFILING
     timer.start();
 #endif
-    for(auto i=0u;i<query_config.get_num_column_intervals();++i)
+    for(auto i=0u;i<query_config.get_num_column_intervals();++i) {
       qp.gt_get_column_interval(qp.get_array_descriptor(), query_config, i, variants, 0, stats_ptr);
+      query_column_lengths[i] = variants.size();
+      queried_column_positions[i * 2] = query_config.get_column_begin(i);
+      queried_column_positions[i * 2 + 1] = query_config.get_column_end(i);
+    }
+
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_TILEDB_QUERY_RANGE_IDX);
@@ -169,6 +177,54 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #else
   ASSERT(MPI_Gatherv(&(serialized_buffer[0]), serialized_length, MPI_UNSIGNED_CHAR, &(receive_buffer[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
 #endif
+  std::vector<uint64_t> gathered_num_column_intervals(num_mpi_processes);
+  ASSERT(MPI_Gather(&num_column_intervals, 1, MPI_UNSIGNED_LONG_LONG,
+        &(gathered_num_column_intervals[0]), 1, MPI_UNSIGNED_LONG_LONG, 0, MPI_COMM_WORLD) == MPI_SUCCESS);
+
+  uint64_t total_columns = 0ull;
+  if(my_world_mpi_rank == 0) {
+    for (auto i = 0; i < recvcounts.size(); ++i) {
+      // Reuse the displs and recvcounts vectors declared for variants serialization
+      displs[i] = total_columns;
+      total_columns += gathered_num_column_intervals[i];
+      recvcounts[i] = gathered_num_column_intervals[i];
+    }
+  }
+
+  std::vector<uint64_t> gathered_query_column_lengths(total_columns);
+#ifdef USE_BIGMPI
+  ASSERT(MPIX_Gatherv_x(&(query_column_lengths[0]), num_column_intervals, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_query_column_lengths[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#else
+  ASSERT(MPI_Gatherv(&(query_column_lengths[0]), num_column_intervals, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_query_column_lengths[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#endif
+
+  // Update the recvcounts and displs but multiply by 2 because
+  // each column has the start and end query posistion
+  total_columns = 0ull;
+  if(my_world_mpi_rank == 0) {
+    for (auto i = 0; i < recvcounts.size(); ++i) {
+      // Reuse the displs and recvcounts vectors declared for variants serialization
+      displs[i] = total_columns;
+      total_columns += gathered_num_column_intervals[i] * 2;
+      recvcounts[i] = gathered_num_column_intervals[i] * 2;
+    }
+  }
+
+  std::vector<uint64_t> gathered_queried_column_positions(total_columns);
+#ifdef USE_BIGMPI
+  ASSERT(MPIX_Gatherv_x(&(queried_column_positions[0]), num_column_intervals * 2, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_queried_column_positions[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#else
+  ASSERT(MPI_Gatherv(&(queried_column_positions[0]), num_column_intervals * 2, MPI_UNSIGNED_LONG_LONG,
+    &(gathered_queried_column_positions[0]), &(recvcounts[0]), &(displs[0]), MPI_UNSIGNED_LONG_LONG,
+    0, MPI_COMM_WORLD) == MPI_SUCCESS);
+#endif
+
 #if VERBOSE>0
   if(my_world_mpi_rank == 0)
     std::cerr << "Completed MPI_Gather\n";
@@ -197,7 +253,8 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
     timer.get_last_interval_times(timings, TIMER_ROOT_BINARY_DESERIALIZATION_IDX);
     timer.start();
 #endif
-    print_variants(variants, output_format, query_config, std::cout);
+    print_variants(variants, output_format, query_config, std::cout, is_partitioned_by_column, &id_mapper,
+      gathered_query_column_lengths, gathered_num_column_intervals, gathered_queried_column_positions);
 #ifdef DO_PROFILING
     timer.stop();
     timer.get_last_interval_times(timings, TIMER_JSON_PRINTING_IDX);
@@ -347,6 +404,7 @@ int main(int argc, char *argv[]) {
   VariantQueryConfig query_config;
   //Vid mapping
   FileBasedVidMapper id_mapper;
+  JSONLoaderConfig loader_config;
   auto file_id_mapper_ptr = &id_mapper;
 #ifdef HTSDIR
   VCFAdapter vcf_adapter;
@@ -362,7 +420,6 @@ int main(int argc, char *argv[]) {
     //If loader JSON passed as argument, initialize id_mapper from this file
     if(loader_json_config_file.length())
     {
-      JSONLoaderConfig loader_config;
       loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
       //Do not initialize FileBasedVidMapper from the query JSON
       file_id_mapper_ptr = 0;
@@ -379,7 +436,7 @@ int main(int argc, char *argv[]) {
 #endif
         break;
       default:
-        range_query_config.read_from_file(json_config_file, query_config, file_id_mapper_ptr, my_world_mpi_rank);
+        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, &loader_config);
         json_config_ptr = &range_query_config;
         break;
     }
@@ -433,7 +490,7 @@ int main(int argc, char *argv[]) {
   {
     case COMMAND_RANGE_QUERY:
       run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
-          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+          loader_config.is_partitioned_by_column(), num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
