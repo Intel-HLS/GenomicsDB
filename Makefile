@@ -165,7 +165,6 @@ ifeq ($(BUILD),release)
 endif
 
 # Directories for TileDB tests
-GTEST_INCLUDE_DIR = 3rdparty/gtest/include
 TEST_SRC_SUBDIRS = $(wildcard test/src/*)
 TEST_SRC_DIR = test/src
 TEST_OBJ_DIR = test/obj
@@ -184,8 +183,7 @@ STATIC_LINK_VARIANT_LIBRARY=-Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant 
 
 # --- Paths --- #
 CORE_INCLUDE_PATHS = $(addprefix -I, $(CORE_INCLUDE_SUBDIRS))
-TEST_INCLUDE_PATHS = $(addprefix -I, $(CORE_INCLUDE_SUBDIRS)) \
-                     -I$(GTEST_INCLUDE_DIR)
+TEST_INCLUDE_PATHS = $(addprefix -I, $(CORE_INCLUDE_SUBDIRS))
 
 EXAMPLES_INCLUDE_PATHS = -I$(EXAMPLES_INCLUDE_DIR)
 VARIANT_INCLUDE_PATHS = -I$(VARIANT_INCLUDE_DIR)
