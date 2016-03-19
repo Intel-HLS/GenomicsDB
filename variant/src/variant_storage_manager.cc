@@ -258,7 +258,7 @@ void VariantStorageManager::close_array(const int ad)
   m_open_arrays_info_vector[ad].close_array();
 }
 
-int VariantStorageManager::define_array(const VariantArraySchema* variant_array_schema)
+int VariantStorageManager::define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile)
 {
   //Attribute attributes
   std::vector<const char*> attribute_names(variant_array_schema->attribute_num());
@@ -319,12 +319,15 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
       // Tile order (0 means ignore in sparse arrays and default in dense)
       0,
       // Capacity
-      1000,
+      num_cells_per_tile,
       // Compression
       &(compression[0])
   );
   /* Create the array schema */
-  return tiledb_array_create(m_tiledb_ctx, &array_schema);
+  auto status = tiledb_array_create(m_tiledb_ctx, &array_schema);
+  if(status == TILEDB_OK)
+    status = tiledb_array_free_schema(&array_schema);
+  return status;
 }
 
 int VariantStorageManager::get_array_schema(const int ad, VariantArraySchema* variant_array_schema)
@@ -390,8 +393,6 @@ VariantArrayCellIterator* VariantStorageManager::begin(
   VERIFY_OR_THROW(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
       m_open_arrays_info_vector[ad].get_array_name().length());
   auto& curr_elem = m_open_arrays_info_vector[ad];
-  //TODO: is this even needed?
-  //curr_elem.close_array();
   return new VariantArrayCellIterator(m_tiledb_ctx, curr_elem.get_schema(), m_workspace+'/'+curr_elem.get_array_name(),
       range, attribute_ids, m_segment_size);   
 }

@@ -161,7 +161,7 @@ class VariantStorageManager
      */
     int open_array(const std::string& array_name, const char* mode);
     void close_array(const int ad);
-    int define_array(const VariantArraySchema* variant_array_schema);
+    int define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile=1000u);
     /*
      * Load array schema
      */

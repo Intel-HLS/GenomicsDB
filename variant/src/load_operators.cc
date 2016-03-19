@@ -38,7 +38,10 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
   {
-    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema) == TILEDB_OK
+    size_t num_cells_per_tile = 1000u;
+    if(json_doc.HasMember("num_cells_per_tile") && json_doc["num_cells_per_tile"].IsInt64())
+      num_cells_per_tile = json_doc["num_cells_per_tile"].GetInt64();
+    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema, num_cells_per_tile) == TILEDB_OK
         && "Could not define TileDB array");
     //Open array in write mode
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
