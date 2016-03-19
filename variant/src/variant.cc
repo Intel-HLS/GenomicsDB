@@ -410,9 +410,9 @@ void print_field(std::ostream& fptr,
   auto first_valid = true;
   int64_t tile_position;
 
-  for (int worker_idx = 0; worker_idx < starts.size(); ++worker_idx)
+  for (size_t worker_idx = 0; worker_idx < starts.size(); ++worker_idx)
   {
-    for (int i = starts[worker_idx]; i < ends[worker_idx]; ++i)
+    for (uint64_t i = starts[worker_idx]; i < ends[worker_idx]; ++i)
     {
       const auto& variant = variants[i];
       for(const auto& call : variant)
@@ -573,9 +573,9 @@ void print_positions_json_split_by_column(std::ostream& fptr,
   std::vector<uint64_t> starts(1, 0ull);
   // Start the JSON
   fptr << "{\n";
-  for (auto interval = 0; interval < num_column_intervals.size(); ++interval)
+  for (auto interval = 0ull; interval < num_column_intervals.size(); ++interval)
   {
-    for (int i = 0; i < num_column_intervals[interval]; ++i, ++queried_index)
+    for (auto i = 0ull; i < num_column_intervals[interval]; ++i, ++queried_index)
     {
       print_and_update_contig_position(fptr,
                                       queried_column_positions[queried_index * 2],
@@ -627,7 +627,7 @@ void print_positions_json_split_by_row(std::ostream& fptr,
   int64_t start_position;
   int64_t end_position;
   fptr << "{\n";
-  for (auto query_column_idx = 0; query_column_idx < num_queried_columns; ++query_column_idx)
+  for (auto query_column_idx = 0ull; query_column_idx < num_queried_columns; ++query_column_idx)
   {
     auto query_start = query_config.get_column_begin(query_column_idx);
     auto query_end   = query_config.get_column_end(query_column_idx);
@@ -635,7 +635,7 @@ void print_positions_json_split_by_row(std::ostream& fptr,
                               contig_name, prev_contig_name, &contig_info, id_mapper);
     uint64_t start  = 0;
     uint64_t aggregated_worker_offset = 0;
-    for (auto worker_idx = 0; worker_idx < num_partitions; ++worker_idx)
+    for (auto worker_idx = 0ull; worker_idx < num_partitions; ++worker_idx)
     {
       // length assumes start is at 0, but with multiple workers start is offset,
       // so add the total length of variants from the previous worker

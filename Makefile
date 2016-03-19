@@ -37,23 +37,33 @@ ifdef MPIPATH
     CC  = $(MPIPATH)/mpicc
     CXX = $(MPIPATH)/mpicxx
 else
+    MPIPATH=
     CC  = mpicc
     CXX = mpicxx
 endif
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 
+ifndef TILEDB_DIR
+    TILEDB_DIR=dependencies/TileDB
+endif
+CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
+
+ifndef HTSDIR
+    HTSDIR=dependencies/htslib
+endif
+
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
     LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
-    include $(HTSDIR)/htslib.mk
 endif
 
 #In the current version, this is mandatory
 CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
-ifdef RAPIDJSON_INCLUDE_DIR
-    CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
+ifndef RAPIDJSON_INCLUDE_DIR
+    RAPIDJSON_INCLUDE_DIR=dependencies/RapidJSON/include
 endif
+CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
@@ -89,8 +99,8 @@ VARIANT_EXAMPLE_SRC_DIR = variant/example/src
 VARIANT_EXAMPLE_OBJ_DIR = variant/example/obj
 VARIANT_EXAMPLE_BIN_DIR = variant/example/bin
 
-STATIC_LINK_TILEDB_LIBRARY=-Wl,-Bstatic -L$(CORE_BIN_DIR)/ -lcore -Wl,-Bdynamic
-STATIC_LINK_VARIANT_LIBRARY=-Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant -Wl,-Bdynamic
+TILEDB_LDFLAGS= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(BUILD) -ltiledb -Wl,-Bdynamic 
+GENOMICSDB_LDFLAGS= -Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant -Wl,-Bdynamic
 
 # --- Paths --- #
 
@@ -119,7 +129,16 @@ variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.a
 
 variant_example: $(VARIANT_EXAMPLE_BIN) $(VARIANT_EXAMPLE_OBJ)
 
-clean: clean_variant clean_variant_example
+clean: clean_variant clean_variant_example TileDB_clean
+
+$(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a:
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(BUILD) -j 16
+
+TileDB_clean:
+	make -C $(TILEDB_DIR) clean
+
+$(HTSDIR)/libhts.a:
+	make -C $(HTSDIR) -j 16
 
 ###############
 # Variant specific part of TileDB #
@@ -132,14 +151,13 @@ clean: clean_variant clean_variant_example
 $(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
-                $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
-$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(CORE_OBJ) $(VARIANT_OBJ)
+$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(VARIANT_OBJ)
 	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
 	ar rcs $@ $^
 
@@ -157,17 +175,17 @@ clean_variant:
 $(VARIANT_EXAMPLE_OBJ_DIR)/%.o: $(VARIANT_EXAMPLE_SRC_DIR)/%.cc
 	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(CORE_INCLUDE_PATHS) \
-                $(MPI_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(CORE_INCLUDE_PATHS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
+	@$(CXX) $(CPPFLAGS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) -c $< -o $@
+	@$(CXX) $(CPPFLAGS) -MM $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
 	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
 	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
 	@rm -f $(@:.o=.d.tmp)
 
 #Linking
-$(VARIANT_EXAMPLE_BIN_DIR)/%: $(VARIANT_EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a
+$(VARIANT_EXAMPLE_BIN_DIR)/%: $(VARIANT_EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a \
+    $(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a $(HTSDIR)/libhts.a
 	@test -d $(VARIANT_EXAMPLE_BIN_DIR) || mkdir -p $(VARIANT_EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) -o $@ $< $(STATIC_LINK_VARIANT_LIBRARY) $(LDFLAGS)
+	$(CXX) $(LINKFLAGS) -o $@ $< $(GENOMICSDB_LDFLAGS) $(TILEDB_LDFLAGS) $(LDFLAGS)
 
 clean_variant_example:
 	rm -f $(VARIANT_EXAMPLE_OBJ_DIR)/* $(VARIANT_EXAMPLE_BIN_DIR)/*

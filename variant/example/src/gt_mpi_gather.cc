@@ -183,7 +183,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 
   uint64_t total_columns = 0ull;
   if(my_world_mpi_rank == 0) {
-    for (auto i = 0; i < recvcounts.size(); ++i) {
+    for (auto i = 0ull; i < recvcounts.size(); ++i) {
       // Reuse the displs and recvcounts vectors declared for variants serialization
       displs[i] = total_columns;
       total_columns += gathered_num_column_intervals[i];
@@ -206,7 +206,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   // each column has the start and end query posistion
   total_columns = 0ull;
   if(my_world_mpi_rank == 0) {
-    for (auto i = 0; i < recvcounts.size(); ++i) {
+    for (auto i = 0ull; i < recvcounts.size(); ++i) {
       // Reuse the displs and recvcounts vectors declared for variants serialization
       displs[i] = total_columns;
       total_columns += gathered_num_column_intervals[i] * 2;

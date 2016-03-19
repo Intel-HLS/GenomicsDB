@@ -113,7 +113,7 @@ void VariantQueryProcessor::initialize_known(const VariantArraySchema& schema)
 {
   //Initialize schema idx <--> known_field_enum mapping
   m_schema_idx_to_known_variant_field_enum_LUT.resize_luts_if_needed(schema.attribute_num(), GVCF_NUM_KNOWN_FIELDS);
-  for(auto i=0;i<schema.attribute_num();++i)
+  for(auto i=0ull;i<schema.attribute_num();++i)
   {
     auto iter = g_known_variant_field_name_to_enum.find(schema.attribute_name(i));
     if(iter != g_known_variant_field_name_to_enum.end())
@@ -131,7 +131,7 @@ void VariantQueryProcessor::initialize_v1(const VariantArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v1_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
-  for(auto i=0;i<schema.attribute_num();++i)
+  for(auto i=0ull;i<schema.attribute_num();++i)
     if(v1_fields.find(schema.attribute_name(i)) != v1_fields.end())
     {
       //set schema version
@@ -145,7 +145,7 @@ void VariantQueryProcessor::initialize_v2(const VariantArraySchema& schema)
 {
   //Check if any attributes in V2 schema
   const auto v2_fields = std::unordered_set<std::string>{ "GT", "PS" };
-  for(auto i=0;i<schema.attribute_num();++i)
+  for(auto i=0ull;i<schema.attribute_num();++i)
     if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
     {
       //set schema version
@@ -166,7 +166,7 @@ void VariantQueryProcessor::initialize_version(const VariantArraySchema& schema)
 void VariantQueryProcessor::register_field_creators(const VariantArraySchema& schema)
 {
   m_field_factory.resize(schema.attribute_num());
-  for(auto i=0;i<schema.attribute_num();++i)
+  for(auto i=0ull;i<schema.attribute_num();++i)
   {
     type_index t = schema.type(i);
     auto iter = VariantQueryProcessor::m_type_index_to_creator.find(t);
@@ -217,7 +217,7 @@ void VariantQueryProcessor::initialize()
 
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
-  for(auto i=0u;i<schema.attribute_num();++i)
+  for(auto i=0ull;i<schema.attribute_num();++i)
   {
     const auto& name = schema.attribute_name(i);
     unsigned query_idx = 0u;

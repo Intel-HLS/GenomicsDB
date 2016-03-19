@@ -214,7 +214,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_query_processor = new VariantQueryProcessor(*m_schema);
   //Initialize query config
   std::vector<std::string> query_attributes(m_schema->attribute_num());
-  for(auto i=0;i<m_schema->attribute_num();++i)
+  for(auto i=0ull;i<m_schema->attribute_num();++i)
     query_attributes[i] = m_schema->attribute_name(i);
   m_query_config.set_attributes_to_query(query_attributes);
   m_query_processor->do_query_bookkeeping(*m_schema, m_query_config);
