@@ -94,12 +94,13 @@ GENOMICSDB_OBJ_DIR=./obj
 GENOMICSDB_BIN_DIR=./bin
 
 #Header directories
-GENOMICSDB_LIBRARY_INCLUDE_DIRS=variant/include variant/example/include
+GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader include/query_operations include/utils include/vcf \
+    example/include
 CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
 #Using vpath to let Makefile know which directories to search for sources
 #For sources
-vpath %.cc variant/src:variant/example/src
+vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:example/src
 
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
