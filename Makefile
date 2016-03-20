@@ -2,8 +2,6 @@
 # Macros #
 ##########
 
-OS := $(shell uname)
-
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
@@ -11,7 +9,7 @@ CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)
-LDFLAGS=-lz -lrt -lcrypto
+LDFLAGS:=-lz -lrt -lcrypto
 
 ifdef OPENMP
   CFLAGS+=-fopenmp
@@ -43,28 +41,32 @@ else
 endif
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 
+#In the current version, this is mandatory
+CPPFLAGS += -DDUPLICATE_CELL_AT_END
+
+#TileDB source
 ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
 endif
 CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
+LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 
+#htslib
 ifndef HTSDIR
     HTSDIR=dependencies/htslib
 endif
-
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
-    LDFLAGS+=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic
+    LDFLAGS:=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic $(LDFLAGS)
 endif
 
-#In the current version, this is mandatory
-CPPFLAGS += -DDUPLICATE_CELL_AT_END
-
+#RapidJSON - header only library
 ifndef RAPIDJSON_INCLUDE_DIR
     RAPIDJSON_INCLUDE_DIR=dependencies/RapidJSON/include
 endif
 CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 
+#BigMPI - optional
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
     LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
@@ -74,6 +76,7 @@ ifdef DO_PROFILING
     CPPFLAGS+=-DDO_PROFILING
 endif
 
+#Google performance tools library - optional
 ifdef USE_GPERFTOOLS
     ifdef GPERFTOOLSDIR
 	CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
@@ -87,49 +90,85 @@ endif
 
 # --- Directories --- #
 
-#Variant dir
-VARIANT_INCLUDE_DIR = variant/include
-VARIANT_SRC_DIR = variant/src
-VARIANT_OBJ_DIR = variant/obj
-VARIANT_BIN_DIR = variant/bin
+GENOMICSDB_OBJ_DIR=./obj
+GENOMICSDB_BIN_DIR=./bin
 
-#Variant examples
-VARIANT_EXAMPLE_INCLUDE_DIR = variant/example/include
-VARIANT_EXAMPLE_SRC_DIR = variant/example/src
-VARIANT_EXAMPLE_OBJ_DIR = variant/example/obj
-VARIANT_EXAMPLE_BIN_DIR = variant/example/bin
+#Header directories
+GENOMICSDB_LIBRARY_INCLUDE_DIRS=variant/include variant/example/include
+CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
-TILEDB_LDFLAGS= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(BUILD) -ltiledb -Wl,-Bdynamic 
-GENOMICSDB_LDFLAGS= -Wl,-Bstatic -L$(VARIANT_BIN_DIR)/ -ltiledb_variant -Wl,-Bdynamic
+#Using vpath to let Makefile know which directories to search for sources
+#For sources
+vpath %.cc variant/src:variant/example/src
 
-# --- Paths --- #
-
-VARIANT_INCLUDE_PATHS = -I$(VARIANT_INCLUDE_DIR)
-VARIANT_EXAMPLE_INCLUDE_PATHS = -I$(VARIANT_EXAMPLE_INCLUDE_DIR)
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
+vpath %.h %(subst $(SPACE),:,$(GENOMICSDB_LIBRARY_INCLUDE_DIRS)) :
 
 # --- Files --- #
 
-VARIANT_INCLUDE := $(wildcard $(VARIANT_INCLUDE_DIR)/*.h)
-VARIANT_SRC := $(wildcard $(VARIANT_SRC_DIR)/*.cc)
-VARIANT_OBJ := $(patsubst $(VARIANT_SRC_DIR)/%.cc, $(VARIANT_OBJ_DIR)/%.o, $(VARIANT_SRC))
-VARIANT_EXAMPLE_INCLUDE := $(wildcard $(VARIANT_EXAMPLE_INCLUDE_DIR)/*.h)
-VARIANT_EXAMPLE_SRC := $(wildcard $(VARIANT_EXAMPLE_SRC_DIR)/*.cc)
-VARIANT_EXAMPLE_OBJ := $(patsubst $(VARIANT_EXAMPLE_SRC_DIR)/%.cc, $(VARIANT_EXAMPLE_OBJ_DIR)/%.o, $(VARIANT_EXAMPLE_SRC))
-VARIANT_EXAMPLE_BIN := $(patsubst $(VARIANT_EXAMPLE_SRC_DIR)/%.cc, $(VARIANT_EXAMPLE_BIN_DIR)/%, $(VARIANT_EXAMPLE_SRC))
+GENOMICSDB_LIBRARY_SOURCES:= \
+			    vcf_adapter.cc \
+			    json_config.cc \
+			    vid_mapper.cc \
+			    libtiledb_variant.cc \
+			    variant_cell.cc \
+			    variant_query_config.cc \
+			    variant_field_handler.cc \
+			    variant_field_data.cc \
+			    variant.cc \
+			    histogram.cc \
+			    lut.cc \
+			    known_field_info.cc \
+			    vcf2binary.cc \
+			    command_line.cc \
+			    variant_array_schema.cc \
+			    tiledb_loader.cc \
+			    broad_combined_gvcf.cc \
+			    variant_operations.cc \
+			    load_operators.cc \
+			    variant_storage_manager.cc \
+			    query_variants.cc
+
+GENOMICSDB_EXAMPLE_SOURCES:= \
+			    gt_verifier.cc \
+			    example_ga4gh_scan_operator.cc \
+			    vcf2tiledb.cc \
+			    vcfdiff.cc \
+			    example_libtiledb_variant_driver.cc \
+			    vcf_histogram.cc \
+			    gt_profile_query_processor.cc \
+			    gt_example_query_processor.cc \
+			    gt_mpi_gather.cc
+
+ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
+
+GENOMICSDB_LIBRARY_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_SOURCES))
+
+GENOMICSDB_EXAMPLE_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_EXAMPLE_SOURCES))
+GENOMICSDB_EXAMPLE_BIN_FILES := $(patsubst %.cc, $(GENOMICSDB_BIN_DIR)/%, $(GENOMICSDB_EXAMPLE_SOURCES))
+
+ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_OBJ_FILES)
+ALL_GENOMICSDB_HEADER_DEPENDENCIES = $(ALL_GENOMICSDB_OBJ_FILES:%.o=%.d)
+
+GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
+GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.so
+
+#Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
+LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
 
 ###################
 # General Targets #
 ###################
 
-.PHONY: clean variant variant_example clean_variant clean_variant_example
+.PHONY: clean genomicsdb_library 
 
-all: variant variant_example
+all: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY) $(GENOMICSDB_EXAMPLE_BIN_FILES)
 
-variant: $(VARIANT_OBJ) $(VARIANT_BIN_DIR)/libtiledb_variant.a
+genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
-variant_example: $(VARIANT_EXAMPLE_BIN) $(VARIANT_EXAMPLE_OBJ)
-
-clean: clean_variant clean_variant_example TileDB_clean
+clean: TileDB_clean
+	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
 
 $(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a:
 	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(BUILD) -j 16
@@ -137,55 +176,37 @@ $(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a:
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
 
+#htslib library
 $(HTSDIR)/libhts.a:
 	make -C $(HTSDIR) -j 16
 
-###############
-# Variant specific part of TileDB #
-###############
-
 # --- Compilation and dependency genration --- #
 
--include $(VARIANT_OBJ:.o=.d)
+-include $(ALL_GENOMICSDB_HEADER_DEPENDENCIES)
 
-$(VARIANT_OBJ_DIR)/%.o: $(VARIANT_SRC_DIR)/%.cc
-	@mkdir -p $(dir $@)
+#All object files
+$(GENOMICSDB_OBJ_DIR)/%.o: %.cc
+	@mkdir -p $(GENOMICSDB_OBJ_DIR) 
 	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(VARIANT_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(VARIANT_INCLUDE_PATHS) $< > $(@:.o=.d)
-	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-	@rm -f $(@:.o=.d.tmp)
+	@$(CXX) $(CPPFLAGS) -MMD -c $< -o $@
 
-$(VARIANT_BIN_DIR)/libtiledb_variant.a: $(VARIANT_OBJ)
-	@test -d $(VARIANT_BIN_DIR) || mkdir -p $(VARIANT_BIN_DIR)
-	ar rcs $@ $^
+#Library
+$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a: $(GENOMICSDB_LIBRARY_OBJ_FILES)
+	@mkdir -p $(GENOMICSDB_BIN_DIR)
+	@echo "Creating static library $@"
+	@ar rcs $@ $^
 
-clean_variant:
-	rm -f $(VARIANT_OBJ_DIR)/* $(VARIANT_BIN_DIR)/*
+$(GENOMICSDB_BIN_DIR)/libgenomicsdb.so: $(GENOMICSDB_LIBRARY_OBJ_FILES)
+	@mkdir -p $(GENOMICSDB_BIN_DIR)
+	@echo "Creating dynamic library $@"
+	@$(CXX) -shared -o $@ $^
 
-####################
-# Variant examples #
-####################
 
-# --- Compilation and dependency genration --- #
-
--include $(VARIANT_EXAMPLE_OBJ:.o=.d)
-
-$(VARIANT_EXAMPLE_OBJ_DIR)/%.o: $(VARIANT_EXAMPLE_SRC_DIR)/%.cc
-	@mkdir -p $(dir $@)
-	@echo "Compiling $<"
-	@$(CXX) $(CPPFLAGS) $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) -c $< -o $@
-	@$(CXX) $(CPPFLAGS) -MM $(VARIANT_INCLUDE_PATHS) $(VARIANT_EXAMPLE_INCLUDE_PATHS) $< > $(@:.o=.d)
-	@mv -f $(@:.o=.d) $(@:.o=.d.tmp)
-	@sed 's|.*:|$@:|' < $(@:.o=.d.tmp) > $(@:.o=.d)
-	@rm -f $(@:.o=.d.tmp)
+#GenomicsDB examples
 
 #Linking
-$(VARIANT_EXAMPLE_BIN_DIR)/%: $(VARIANT_EXAMPLE_OBJ_DIR)/%.o $(VARIANT_BIN_DIR)/libtiledb_variant.a \
+$(GENOMICSDB_BIN_DIR)/%: $(GENOMICSDB_OBJ_DIR)/%.o $(GENOMICSDB_STATIC_LIBRARY) \
     $(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a $(HTSDIR)/libhts.a
-	@test -d $(VARIANT_EXAMPLE_BIN_DIR) || mkdir -p $(VARIANT_EXAMPLE_BIN_DIR)
-	$(CXX) $(LINKFLAGS) -o $@ $< $(GENOMICSDB_LDFLAGS) $(TILEDB_LDFLAGS) $(LDFLAGS)
-
-clean_variant_example:
-	rm -f $(VARIANT_EXAMPLE_OBJ_DIR)/* $(VARIANT_EXAMPLE_BIN_DIR)/*
+	@mkdir -p $(GENOMICSDB_BIN_DIR)
+	@echo "Linking example $@"
+	@$(CXX) $(LINKFLAGS) -o $@ $< $(LDFLAGS)

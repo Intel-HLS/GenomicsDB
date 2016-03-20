@@ -36,3 +36,4 @@ examples/obj/*
 *temp*
 .project
 .cproject
+bin/*
