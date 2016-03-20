@@ -243,13 +243,21 @@ class ColumnHistogramOperator : public SingleCellOperatorBase
 class VariantCallPrintOperator : public SingleCellOperatorBase
 {
   public:
-    VariantCallPrintOperator(std::ostream& fptr=std::cout) : SingleCellOperatorBase(), m_fptr(&fptr) { }
+    VariantCallPrintOperator(std::ostream& fptr=std::cout, const std::string& indent_prefix="")
+      : SingleCellOperatorBase(), m_fptr(&fptr), m_indent_prefix(indent_prefix)
+      {
+        m_num_calls_printed = 0ull;
+      }
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)
     {
-      call.print(*m_fptr, &query_config);
-      (*m_fptr) << "\n";
+      if(m_num_calls_printed > 0ull)
+        (*m_fptr) << ",\n";
+      call.print(*m_fptr, &query_config, m_indent_prefix);
+      ++m_num_calls_printed;
     }
   private:
+    uint64_t m_num_calls_printed;
+    std::string m_indent_prefix;
     std::ostream* m_fptr;
 };
 

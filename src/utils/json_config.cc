@@ -393,7 +393,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
       vid_mapping_file = v.GetString();
     }
   }
-  if(id_mapper)
+  if(id_mapper && vid_mapping_file.length())
     (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, INT64_MAX, false));
   return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
@@ -433,9 +433,16 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
+  //Need to parse here first because id_mapper initialization in get_vid_mapping_filename() requires
+  //valid m_json object
+  std::ifstream ifs(filename.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  m_json.Parse(str.c_str());
   if (id_mapper && !id_mapper->is_initialized())
   {
     get_vid_mapping_filename(id_mapper, rank);
+    VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided");
   }
   JSONConfigBase::read_from_file(filename, id_mapper);
   // Update from loader_config_file

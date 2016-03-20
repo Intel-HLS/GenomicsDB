@@ -20,7 +20,7 @@ enum ArgsEnum
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
   ARGS_IDX_PRODUCE_BROAD_GVCF,
   ARGS_IDX_PRODUCE_HISTOGRAM,
-  ARGS_IDX_DEBUG_PRINT
+  ARGS_IDX_PRINT_CALLS
 };
 
 enum CommandsEnum
@@ -28,7 +28,7 @@ enum CommandsEnum
   COMMAND_RANGE_QUERY=0,
   COMMAND_PRODUCE_BROAD_GVCF,
   COMMAND_PRODUCE_HISTOGRAM,
-  COMMAND_DEBUG_PRINT
+  COMMAND_PRINT_CALLS
 };
 
 #define MegaByte (1024*1024)
@@ -294,10 +294,15 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
 }
 #endif
 
-void debug_print(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config)
+void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config)
 {
-  VariantCallPrintOperator printer;
+  std::string indent_prefix = "    ";
+  VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix);
+  std::cout << "{\n";
+  std::cout << indent_prefix << "\"variant_calls\": [\n";
   qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, 0u);
+  std::cout << "\n" << indent_prefix << "]\n";
+  std::cout << "}\n";
 }
 
 void produce_column_histogram(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, uint64_t bin_size,
@@ -343,7 +348,7 @@ int main(int argc, char *argv[]) {
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
     {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
-    {"debug-print",0,0,ARGS_IDX_DEBUG_PRINT},
+    {"print-calls",0,0,ARGS_IDX_PRINT_CALLS},
     {"array",1,0,'A'},
     {0,0,0,0},
   };
@@ -389,8 +394,8 @@ int main(int argc, char *argv[]) {
       case 'j':
         json_config_file = std::move(std::string(optarg));
         break;
-      case ARGS_IDX_DEBUG_PRINT:
-        command_idx = COMMAND_DEBUG_PRINT;
+      case ARGS_IDX_PRINT_CALLS:
+        command_idx = COMMAND_PRINT_CALLS;
         break;
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
@@ -462,7 +467,7 @@ int main(int argc, char *argv[]) {
         break;
       case COMMAND_PRODUCE_HISTOGRAM:
         break;  //no attributes
-      case COMMAND_DEBUG_PRINT:
+      case COMMAND_PRINT_CALLS:
         query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
         break;
       default:
@@ -501,8 +506,8 @@ int main(int argc, char *argv[]) {
     case COMMAND_PRODUCE_HISTOGRAM:
       produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
       break;
-    case COMMAND_DEBUG_PRINT:
-      debug_print(qp, query_config);
+    case COMMAND_PRINT_CALLS:
+      print_calls(qp, query_config);
       break;
   }
 #ifdef USE_GPERFTOOLS

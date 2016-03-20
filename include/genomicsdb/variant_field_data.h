@@ -220,7 +220,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
     }
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
-    virtual void print(std::ostream& fptr) const { fptr << m_data; }
+    virtual void print(std::ostream& fptr) const { fptr << "\"" << m_data << "\""; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { fptr << "\"" << m_data << "\"" ; }
     virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
     {

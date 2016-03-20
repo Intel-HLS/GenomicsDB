@@ -194,7 +194,7 @@ class VariantCall
       return static_cast<const VariantFieldTy*>(raw_ptr);
     }
     /** print **/
-    void print(std::ostream& stream, const VariantQueryConfig* query_config=0) const;
+    void print(std::ostream& stream, const VariantQueryConfig* query_config=0, const std::string& indent_prefix="") const;
     /* 
      * Print JSON for Cotton
      */
@@ -424,7 +424,7 @@ class Variant
     /* Return query config */
     const VariantQueryConfig* get_query_config() const { return m_query_config; }
     /** print **/
-    void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0) const;
+    void print(std::ostream& stream=std::cout, const VariantQueryConfig* query_config=0, const std::string& indent_prefix="") const;
     /*
      * Binary serialize into buffer
      */
