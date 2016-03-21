@@ -31,10 +31,6 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   m_vid_mapper = &id_mapper;
   m_vcf_hdr = vcf_adapter.get_vcf_header();
   m_bcf_out = bcf_init();
-  //Get contig info for position 0, store curr contig in next_contig and call switch_contig function to do all the setup
-  auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
-  assert(curr_contig_flag);
-  switch_contig();
   //vector of char*, to avoid frequent reallocs()
   m_alleles_pointer_buffer.resize(100u);
   //INFO fields
@@ -97,6 +93,10 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       bcf_hdr_sync(m_vcf_hdr);
     }
   }
+  //Get contig info for position 0, store curr contig in next_contig and call switch_contig function to do all the setup
+  auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
+  assert(curr_contig_flag);
+  switch_contig();
   //Add samples to template header
   std::string callset_name;
   for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
