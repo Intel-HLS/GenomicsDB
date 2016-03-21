@@ -23,11 +23,19 @@ VERBOSE ?= 0
 ifeq ($(BUILD),debug)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
+  TILEDB_BUILD:=debug
+endif
+
+ifeq ($(BUILD),debug-coverage)
+  CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG --coverage
+  LINKFLAGS+=-g -gdwarf-2 -g3 --coverage
+  TILEDB_BUILD:=debug
 endif
 
 ifeq ($(BUILD),release)
   CFLAGS += -DNDEBUG -O3 -fvisibility=hidden
   LINKFLAGS+=-O3
+  TILEDB_BUILD:=release
 endif
 
 # MPI compiler for C++
@@ -49,7 +57,7 @@ ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
 endif
 CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
-LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
+LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 
 #htslib
 ifndef HTSDIR
@@ -171,8 +179,8 @@ genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 clean: TileDB_clean
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
 
-$(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a:
-	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(BUILD) -j 16
+$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j 16
 
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
@@ -207,7 +215,7 @@ $(GENOMICSDB_BIN_DIR)/libgenomicsdb.so: $(GENOMICSDB_LIBRARY_OBJ_FILES)
 
 #Linking
 $(GENOMICSDB_BIN_DIR)/%: $(GENOMICSDB_OBJ_DIR)/%.o $(GENOMICSDB_STATIC_LIBRARY) \
-    $(TILEDB_DIR)/core/lib/$(BUILD)/libtiledb.a $(HTSDIR)/libhts.a
+    $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(HTSDIR)/libhts.a
 	@mkdir -p $(GENOMICSDB_BIN_DIR)
 	@echo "Linking example $@"
 	@$(CXX) $(LINKFLAGS) -o $@ $< $(LDFLAGS)
