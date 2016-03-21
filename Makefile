@@ -19,17 +19,20 @@ LINKFLAGS+=-fopenmp
 # --- Debug/Release/Verbose mode handler --- #
 BUILD ?= debug
 VERBOSE ?= 0
+HTSLIB_BUILD=
 
 ifeq ($(BUILD),debug)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
   TILEDB_BUILD:=debug
+  HTSLIB_BUILD=-DDEBUG
 endif
 
 ifeq ($(BUILD),debug-coverage)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG --coverage
   LINKFLAGS+=-g -gdwarf-2 -g3 --coverage
   TILEDB_BUILD:=debug
+  HTSLIB_BUILD=-DDEBUG
 endif
 
 ifeq ($(BUILD),release)
@@ -189,7 +192,7 @@ TileDB_clean:
 
 #htslib library
 $(HTSDIR)/libhts.a:
-	make -C $(HTSDIR) -j $(HTSLIB_BUILD_NUM_THREADS)
+	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS)
 
 # --- Compilation and dependency genration --- #
 

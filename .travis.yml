@@ -9,7 +9,7 @@ before_script:
     - lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage TILEDB_BUILD_NUM_THREADS=1 HTSLIB_BUILD_NUM_THREADS=1
+    - make BUILD=debug-coverage TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 -j 4
     - python tests/run.py 
 
 after_success:
