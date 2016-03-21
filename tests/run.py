@@ -72,32 +72,32 @@ def main():
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
     loader_tests = [
-            { "name" : "t0_1_2", 'stdout_md5sum_hash' : '1533f6bfdbd348cf6d6da0bd5f08c6f3',
+            { "name" : "t0_1_2", 'stdout_md5sum_hash' : '6063db9832fcdeb25d24dcc0630ec499',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000], "stdout_md5sum_hash": [
                         "0e13f0030b56e906eda9124e3c922949",
                         "976e1b4cb258bf791206e60e890c0a48",
-                        "35e4bb7f7718553049041dd3d548258f"
+                        "3b9b56b9a9a64199fe20d919703aca98"
                     ] },
                     { "query_column_ranges" : [12150, 1000000000], "stdout_md5sum_hash": [
                         "fc7dee1c356ed054b8858bbe7b8da83e",
                         "976e1b4cb258bf791206e60e890c0a48",
-                        "0e95aa24446ac5bef94c8beb34cd0000"
+                        "76d636ec426fc7cf3b53508554a95224"
                         ] }
                     ]
             },
             { "name" : "t0_overlapping" },
-            { "name" : "t6_7_8", 'stdout_md5sum_hash' : '296e26e20c86f77ce0aff77824bf020d',
+            { "name" : "t6_7_8", 'stdout_md5sum_hash' : '6ddaed1219aae6ac2f4ea5da3f312178',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000], "stdout_md5sum_hash": [
                         "a8e66cc7df0001b64da650d3a901d6ef",
                         "b677b16582b477cef2fb3b8e71417f5b",
-                        "296e26e20c86f77ce0aff77824bf020d"
+                        "6ddaed1219aae6ac2f4ea5da3f312178"
                     ] },
                     { "query_column_ranges" : [8029500, 1000000000], "stdout_md5sum_hash": [
                         "81427830d0d43701b49b6c22bd9e7369",
                         "b677b16582b477cef2fb3b8e71417f5b",
-                        "6add4ae3ddb447917575a9fd4b79b579"
+                        "19d86392bf34a3f737bb47a99cb1b8d5"
                     ] }
                     ]
             },
