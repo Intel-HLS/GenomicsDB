@@ -25,14 +25,14 @@ ifeq ($(BUILD),debug)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
   LINKFLAGS+=-g -gdwarf-2 -g3
   TILEDB_BUILD:=debug
-  HTSLIB_BUILD=-DDEBUG
+  HTSLIB_BUILD="DEBUG=1"
 endif
 
 ifeq ($(BUILD),debug-coverage)
   CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG --coverage
   LINKFLAGS+=-g -gdwarf-2 -g3 --coverage
   TILEDB_BUILD:=debug
-  HTSLIB_BUILD=-DDEBUG
+  HTSLIB_BUILD="DEBUG=1"
 endif
 
 ifeq ($(BUILD),release)
