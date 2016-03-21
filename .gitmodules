@@ -3,7 +3,7 @@
 	url = https://github.com/Intel-HSS/htslib.git
 [submodule "dependencies/TileDB"]
 	path = dependencies/TileDB
-	url = git@github.com:stavrospapadopoulos/TileDB.git
+	url = git@github.com:Intel-HSS/TileDB.git 
 [submodule "dependencies/RapidJSON"]
 	path = dependencies/RapidJSON
 	url = https://github.com/miloyip/rapidjson.git
