@@ -175,22 +175,32 @@ LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLA
 # General Targets #
 ###################
 
-.PHONY: clean genomicsdb_library 
+.PHONY: all genomicsdb_library clean TileDB_library TileDB_clean htslib_library htslib_clean
 
-all: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY) $(GENOMICSDB_EXAMPLE_BIN_FILES)
+all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES)
 
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
-clean: TileDB_clean
+clean: TileDB_clean htslib_clean
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
 
-$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
+#TileDB library
+TileDB_library:
 	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS)
 
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
 
+$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS)
+
 #htslib library
+htslib_library:
+	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS)
+
+htslib_clean:
+	make -C $(HTSDIR) clean
+
 $(HTSDIR)/libhts.a:
 	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS)
 
