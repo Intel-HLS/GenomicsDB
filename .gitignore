@@ -39,3 +39,4 @@ examples/obj/*
 bin/*
 *.gcno
 *.gcda
+tests/coverage.info

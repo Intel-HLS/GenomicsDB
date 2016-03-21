@@ -63,6 +63,9 @@ def cleanup_and_exit(tmpdir, exit_code):
     sys.exit(exit_code);
 
 def main():
+    #Switch to tests directory
+    parent_dir=os.path.dirname(os.path.realpath(__file__))
+    os.chdir(parent_dir)
     #Zero line coverage
     subprocess.call('lcov --directory ../ --zerocounters', shell=True);
     exe_path = '../bin/'
