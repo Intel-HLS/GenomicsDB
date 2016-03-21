@@ -53,6 +53,7 @@ CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
 #TileDB source
+TILEDB_BUILD_NUM_THREADS ?= 16
 ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
 endif
@@ -60,6 +61,7 @@ CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
 LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 
 #htslib
+HTSLIB_BUILD_NUM_THREADS ?= 8
 ifndef HTSDIR
     HTSDIR=dependencies/htslib
 endif
@@ -180,14 +182,14 @@ clean: TileDB_clean
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
 
 $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
-	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j 16
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS)
 
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
 
 #htslib library
 $(HTSDIR)/libhts.a:
-	make -C $(HTSDIR) -j 16
+	make -C $(HTSDIR) -j $(HTSLIB_BUILD_NUM_THREADS)
 
 # --- Compilation and dependency genration --- #
 
