@@ -17,4 +17,4 @@ script:
 
 after_success:
     - lcov --list tests/coverage.info # debug before upload
-    - coveralls-lcov --repo-token ${COVERALLS_TOKEN} tests/coverage.info # uploads to coveralls
+    #- coveralls-lcov --repo-token ${COVERALLS_TOKEN} tests/coverage.info # uploads to coveralls
