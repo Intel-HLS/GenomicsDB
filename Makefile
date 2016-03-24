@@ -22,15 +22,15 @@ VERBOSE ?= 0
 HTSLIB_BUILD=
 
 ifeq ($(BUILD),debug)
-  CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG
-  LINKFLAGS+=-g -gdwarf-2 -g3
+  CFLAGS+= -gdwarf-3 -g3 -DDEBUG
+  LINKFLAGS+=-gdwarf-3 -g3
   TILEDB_BUILD:=debug
   HTSLIB_BUILD="DEBUG=1"
 endif
 
 ifeq ($(BUILD),debug-coverage)
-  CFLAGS+= -g -gdwarf-2 -g3 -DDEBUG --coverage
-  LINKFLAGS+=-g -gdwarf-2 -g3 --coverage
+  CFLAGS+= -gdwarf-3 -g3 -DDEBUG --coverage
+  LINKFLAGS+=-gdwarf-3 -g3 --coverage
   TILEDB_BUILD:=debug
   HTSLIB_BUILD="DEBUG=1"
 endif
