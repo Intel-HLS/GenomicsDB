@@ -437,9 +437,9 @@ void VariantQueryProcessor::iterate_over_cells(
     const VariantQueryConfig& query_config, 
     SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const
 {
+  GTProfileStats stats;
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
-  GTProfileStats stats;
   stats_ptr = &stats;
 #endif
   assert(query_config.is_bookkeeping_done());
@@ -448,6 +448,30 @@ void VariantQueryProcessor::iterate_over_cells(
   //Scan only queried interval, not whole array
   if(query_config.get_num_column_intervals() > 0u)
     start_column = query_config.get_column_begin(column_interval_idx);
+  //Find calls that intersect with begin query position
+  if(start_column > 0)
+  {
+    Variant interval_begin_variant(&query_config);
+    interval_begin_variant.resize_based_on_query();
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
+#ifdef DUPLICATE_CELL_AT_END
+        0
+#else
+        &query_row_idx_in_order
+#endif
+        );
+#ifdef DUPLICATE_CELL_AT_END
+    std::vector<uint64_t> query_row_idx_in_order(interval_begin_variant.get_num_calls());
+    interval_begin_variant.get_column_sorted_call_idx_vec(query_row_idx_in_order);
+    for(auto i=0ull;i<query_row_idx_in_order.size();++i)
+    {
+      assert(interval_begin_variant.get_call(query_row_idx_in_order[i]).is_valid());
+      variant_operator.operate(interval_begin_variant.get_call(query_row_idx_in_order[i]), query_config);
+    }
+#endif
+    //Now deal with calls that begin AFTER begin position
+    ++start_column;
+  }
   //Initialize forward scan iterators
   VariantArrayCellIterator* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);

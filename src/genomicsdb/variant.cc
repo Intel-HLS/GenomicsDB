@@ -717,10 +717,8 @@ void print_positions_json_split_by_row(std::ostream& fptr,
   fptr << "}\n";
 }
 
-void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
-    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
+void Variant::get_column_sorted_call_idx_vec(std::vector<uint64_t>& query_row_idx_in_order)
 {
-#ifdef DUPLICATE_CELL_AT_END
   //no ordering exists in query_row_idx_in_order - do a column major sort first
   query_row_idx_in_order.resize(get_num_calls());
   //iterate over valid calls
@@ -729,6 +727,13 @@ void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_co
     query_row_idx_in_order[valid_call_idx] = iter.get_call_idx_in_variant();
   query_row_idx_in_order.resize(valid_call_idx);
   std::sort(query_row_idx_in_order.begin(), query_row_idx_in_order.end(), VariantCallIdxColumnMajorLT(this));
+}
+
+void Variant::move_calls_to_separate_variants(const VariantQueryConfig& query_config, std::vector<Variant>& variants, 
+    std::vector<uint64_t>& query_row_idx_in_order, GA4GHCallInfoToVariantIdx& call_info_2_variant, GA4GHPagingInfo* paging_info)
+{
+#ifdef DUPLICATE_CELL_AT_END
+  get_column_sorted_call_idx_vec(query_row_idx_in_order);
 #else
   if(query_row_idx_in_order.size() == 0u)
     return;

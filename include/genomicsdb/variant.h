@@ -413,6 +413,7 @@ class Variant
     }
     inline std::vector<VariantCall>& get_calls() { return m_calls; }
     inline const std::vector<VariantCall>& get_calls() const { return m_calls; }
+    void get_column_sorted_call_idx_vec(std::vector<uint64_t>& query_row_idx_in_order);
     /*
      * If this Variant object has N valid VariantCall objects, then create
      * N variants each with a single valid VariantCall

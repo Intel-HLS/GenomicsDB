@@ -35,7 +35,7 @@ query_json_template_string="""
         "query_column_ranges" : [ [ [0, 10000000000 ] ] ],
         "query_row_ranges" : [ [ [0, 2 ] ] ],
         "reference_genome" : "inputs/chr1_10MB.fasta.gz",
-        "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP" ]
+        "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
 
 def create_query_json(ws_dir, test_name, query_column_range):
@@ -67,7 +67,7 @@ loader_json_template_string="""
     "delete_and_create_tiledb_array" : true,
     "compress_tiledb_array" : false,
     "segment_size" : 1048576,
-    "num_cells_per_tile" : 10
+    "num_cells_per_tile" : 3
 }""";
 
 def create_loader_json(ws_dir, test_name):
@@ -76,6 +76,20 @@ def create_loader_json(ws_dir, test_name):
     test_dict["column_partitions"][0]["array"] = test_name;
     test_dict["callset_mapping_file"] = 'inputs/callsets/'+test_name+'.json';
     return test_dict;
+
+def get_file_content_and_md5sum(filename):
+    with open(filename, 'rb') as fptr:
+        data = fptr.read();
+        md5sum_hash_str = str(hashlib.md5(data).hexdigest())
+        fptr.close();
+        return (data, md5sum_hash_str);
+
+def print_diff(golden_output, test_output):
+    print("=======Golden output:=======");
+    print(golden_output);
+    print("=======Test output:=======");
+    print(test_output);
+    print("=======END=======");
 
 def cleanup_and_exit(tmpdir, exit_code):
     shutil.rmtree(tmpdir, ignore_errors=True)
@@ -90,33 +104,36 @@ def main():
     exe_path = '../bin/'
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
+    #Buffer size
+    segment_size = 40
+    load_segment_size = 50
     loader_tests = [
-            { "name" : "t0_1_2", 'stdout_md5sum_hash' : '6063db9832fcdeb25d24dcc0630ec499',
+            { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "stdout_md5sum_hash": [
-                        "0e13f0030b56e906eda9124e3c922949",
-                        "976e1b4cb258bf791206e60e890c0a48",
-                        "3b9b56b9a9a64199fe20d919703aca98"
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": [
+                        "golden_outputs/t0_1_2_calls_at_0",
+                        "golden_outputs/t0_1_2_variants_at_0",
+                        "golden_outputs/t0_1_2_vcf_at_0",
                     ] },
-                    { "query_column_ranges" : [12150, 1000000000], "stdout_md5sum_hash": [
-                        "fc7dee1c356ed054b8858bbe7b8da83e",
-                        "976e1b4cb258bf791206e60e890c0a48",
-                        "76d636ec426fc7cf3b53508554a95224"
+                    { "query_column_ranges" : [12150, 1000000000], "golden_output": [
+                        "golden_outputs/t0_1_2_calls_at_12150",
+                        "golden_outputs/t0_1_2_variants_at_12150",
+                        "golden_outputs/t0_1_2_vcf_at_12150",
                         ] }
                     ]
             },
             { "name" : "t0_overlapping" },
-            { "name" : "t6_7_8", 'stdout_md5sum_hash' : '6ddaed1219aae6ac2f4ea5da3f312178',
+            { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "stdout_md5sum_hash": [
-                        "a8e66cc7df0001b64da650d3a901d6ef",
-                        "b677b16582b477cef2fb3b8e71417f5b",
-                        "6ddaed1219aae6ac2f4ea5da3f312178"
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": [
+                        "golden_outputs/t6_7_8_calls_at_0",
+                        "golden_outputs/t6_7_8_variants_at_0",
+                        "golden_outputs/t6_7_8_vcf_at_0",
                     ] },
-                    { "query_column_ranges" : [8029500, 1000000000], "stdout_md5sum_hash": [
-                        "81427830d0d43701b49b6c22bd9e7369",
-                        "b677b16582b477cef2fb3b8e71417f5b",
-                        "19d86392bf34a3f737bb47a99cb1b8d5"
+                    { "query_column_ranges" : [8029500, 1000000000], "golden_output": [
+                        "golden_outputs/t6_7_8_calls_at_8029500",
+                        "golden_outputs/t6_7_8_variants_at_8029500",
+                        "golden_outputs/t6_7_8_vcf_at_8029500",
                     ] }
                     ]
             },
@@ -126,7 +143,10 @@ def main():
         test_loader_dict = create_loader_json(ws_dir, test_name);
         if(test_name == "t0_overlapping"):
             test_loader_dict["produce_combined_vcf"] = False;
+        if(test_name == "t0_1_2"):
+            test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
+        test_loader_dict['segment_size'] = load_segment_size;
         with open(loader_json_filename, 'wb') as fptr:
             json.dump(test_loader_dict, fptr);
             fptr.close();
@@ -137,9 +157,12 @@ def main():
             sys.stderr.write('Loader test: '+test_name+'failed\n');
             cleanup_and_exit(tmpdir, -1);
         md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
-        if('stdout_md5sum_hash' in test_params_dict and md5sum_hash_str != test_params_dict['stdout_md5sum_hash']):
-            sys.stderr.write('Loader stdout mismatch for test: '+test_name+'\n');
-            cleanup_and_exit(tmpdir, -1);
+        if('golden_output' in test_params_dict):
+            golden_stdout, golden_md5sum = get_file_content_and_md5sum(test_params_dict['golden_output']);
+            if(golden_md5sum != md5sum_hash_str):
+                sys.stderr.write('Loader stdout mismatch for test: '+test_name+'\n');
+                print_diff(golden_stdout, stdout_string);
+                cleanup_and_exit(tmpdir, -1);
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict["query_column_ranges"])
@@ -150,18 +173,20 @@ def main():
                     with open(query_json_filename, 'wb') as fptr:
                         json.dump(test_query_dict, fptr);
                         fptr.close();
-                    pid = subprocess.Popen(exe_path+os.path.sep+'gt_mpi_gather -l '+loader_json_filename+' -j '
-                            +query_json_filename+' '+cmd_line_param, shell=True,
+                    pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d -l '+loader_json_filename+' -j '
+                            +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
                             stdout=subprocess.PIPE);
                     stdout_string = pid.communicate()[0]
                     if(pid.returncode != 0):
                         sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
                         cleanup_and_exit(tmpdir, -1);
                     md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
-                    if('stdout_md5sum_hash' in query_param_dict and md5sum_hash_str !=
-                            query_param_dict['stdout_md5sum_hash'][idx]):
-                        sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
-                        cleanup_and_exit(tmpdir, -1);
+                    if('golden_output' in query_param_dict):
+                        golden_stdout, golden_md5sum = get_file_content_and_md5sum(query_param_dict['golden_output'][idx]);
+                        if(golden_md5sum != md5sum_hash_str):
+                            sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
+                            print_diff(golden_stdout, stdout_string);
+                            cleanup_and_exit(tmpdir, -1);
                     idx += 1
     coverage_file='coverage.info'
     subprocess.call('lcov --directory ../ --capture --output-file '+coverage_file, shell=True);

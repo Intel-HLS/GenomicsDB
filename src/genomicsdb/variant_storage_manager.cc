@@ -111,7 +111,7 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
 //VariantArrayInfo functions
 VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema, TileDB_Array* tiledb_array,
     const size_t buffer_size)
-: m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(schema), m_tiledb_array(tiledb_array)
+: m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(m_schema), m_tiledb_array(tiledb_array)
 {
   //If writing, allocate buffers
   if(mode == TILEDB_ARRAY_WRITE || mode == TILEDB_ARRAY_WRITE_UNSORTED)
@@ -142,15 +142,16 @@ VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, c
 
 //Move constructor
 VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
-  : m_cell(std::move(other.m_cell))
+  : m_schema(std::move(other.m_schema)), m_cell(std::move(other.m_cell))
 {
   m_idx = other.m_idx;
   m_mode = other.m_mode;
   m_name = std::move(other.m_name);
-  m_schema = std::move(other.m_schema);
   //Pointer handling
   m_tiledb_array = other.m_tiledb_array;
   other.m_tiledb_array = 0;
+  //Point array schema to this array schema
+  m_cell.set_variant_array_schema(m_schema);
   //Move other members
   m_buffers = std::move(other.m_buffers);
   m_buffer_offsets = std::move(other.m_buffer_offsets);

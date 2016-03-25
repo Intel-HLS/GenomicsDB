@@ -24,6 +24,7 @@
 
 #include "headers.h"
 #include "c_api.h"
+#include "gt_common.h"
 
 //Exceptions thrown 
 class VariantArraySchemaException : public std::exception {
@@ -40,12 +41,20 @@ class VariantArraySchemaException : public std::exception {
 class AttributeInfo
 {
   public:
-    AttributeInfo() : m_type(typeid(void)) {}
+    AttributeInfo()
+      : m_type(typeid(void))
+    {
+      m_idx = -1;
+      m_length = -1;
+      m_compression_type = -1;
+      m_element_size = UNDEFINED_UINT64_T_VALUE;
+    }
     int m_idx;
     int m_length;
     int m_compression_type;
     std::string m_name;
     std::type_index m_type;
+    size_t m_element_size;
 };
 
 class VariantArraySchema
@@ -90,6 +99,12 @@ class VariantArraySchema
     inline const bool is_variable_length_field(const int idx) const
     {
       return (val_num(idx) == TILEDB_VAR_NUM);
+    }
+    inline const size_t element_size(const int idx) const
+    {
+      assert(static_cast<size_t>(idx) < m_attributes_vector.size());
+      assert(m_attributes_vector[idx].m_element_size != UNDEFINED_UINT64_T_VALUE);
+      return m_attributes_vector[idx].m_element_size;
     }
     inline const int compression(int idx) const
     {

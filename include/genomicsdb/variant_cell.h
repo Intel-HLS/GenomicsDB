@@ -61,6 +61,10 @@ class BufferVariantCell
     BufferVariantCell(const VariantArraySchema& array_schema, const VariantQueryConfig& query_config);
     BufferVariantCell(const VariantArraySchema& array_schema, const std::vector<int>& attribute_ids);
     void clear();
+    void set_variant_array_schema(const VariantArraySchema& array_schema)
+    {
+      m_array_schema = &array_schema;
+    }
     void set_cell(const void* ptr);
     template<typename T=void>
     inline const T* get_field_ptr_for_query_idx(const int query_idx) const
@@ -80,8 +84,9 @@ class BufferVariantCell
     }
     inline size_t get_field_size_in_bytes(const int query_idx) const
     {
-      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
-      return m_field_lengths[query_idx]*m_field_element_sizes[query_idx];
+      assert(static_cast<size_t>(query_idx) < m_schema_idxs.size());
+      auto schema_idx = m_schema_idxs[query_idx];
+      return m_field_lengths[query_idx]*(m_array_schema->element_size(schema_idx));
     }
     inline void set_field_length(const int query_idx, const int length)
     {
@@ -90,18 +95,21 @@ class BufferVariantCell
     }
     inline void set_field_size_in_bytes(const int query_idx, const size_t bytes)
     {
-      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
-      m_field_lengths[query_idx] = bytes/m_field_element_sizes[query_idx];
+      assert(static_cast<size_t>(query_idx) < m_schema_idxs.size());
+      auto schema_idx = m_schema_idxs[query_idx];
+      m_field_lengths[query_idx] = bytes/(m_array_schema->element_size(schema_idx));
     }
     inline int get_field_length_descriptor(const int query_idx) const
     {
-      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
-      return m_field_length_descriptors[query_idx];
+      assert(static_cast<size_t>(query_idx) < m_schema_idxs.size());
+      auto schema_idx = m_schema_idxs[query_idx];
+      return m_array_schema->val_num(schema_idx);
     }
     inline bool is_variable_length_field(const int query_idx) const
     {
-      assert(static_cast<size_t>(query_idx) < m_field_lengths.size());
-      return (m_field_length_descriptors[query_idx] == TILEDB_VAR_NUM);
+      assert(static_cast<size_t>(query_idx) < m_schema_idxs.size());
+      auto schema_idx = m_schema_idxs[query_idx];
+      return m_array_schema->is_variable_length_field(schema_idx);
     }
     FieldsIter begin() const { return FieldsIter(this, 0ull); }
     FieldsIter end() const { return FieldsIter(this, m_field_ptrs.size()); }
@@ -117,9 +125,8 @@ class BufferVariantCell
     void update_field_info(const int query_idx, const int schema_idx);
   private:
     const VariantArraySchema* m_array_schema;
+    std::vector<int> m_schema_idxs;
     std::vector<const void*> m_field_ptrs;
-    std::vector<size_t> m_field_element_sizes;
-    std::vector<int> m_field_length_descriptors;
     std::vector<int> m_field_lengths;
     //Co-ordinates
     int64_t m_row_idx;

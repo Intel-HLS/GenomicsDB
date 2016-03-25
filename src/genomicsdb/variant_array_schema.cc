@@ -51,6 +51,7 @@ VariantArraySchema::VariantArraySchema(const std::string& array_name,
     curr_elem.m_compression_type = compression[i];
     curr_elem.m_name = attribute_names[i];
     curr_elem.m_type = types[i];
+    curr_elem.m_element_size = VariantFieldTypeUtil::size(types[i]);
   }
   //Co-ordinates
   m_dim_names = dim_names;

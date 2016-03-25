@@ -53,9 +53,8 @@ BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema, con
 
 void BufferVariantCell::clear()
 {
+  m_schema_idxs.clear();
   m_field_ptrs.clear();
-  m_field_element_sizes.clear();
-  m_field_length_descriptors.clear();
   m_field_lengths.clear();
   m_row_idx = m_begin_column_idx = -1ll;
 }
@@ -63,19 +62,17 @@ void BufferVariantCell::clear()
 void BufferVariantCell::resize(const size_t num_fields)
 {
   //Resize vectors
+  m_schema_idxs.resize(num_fields);
   m_field_ptrs.resize(num_fields);
-  m_field_element_sizes.resize(num_fields);
-  m_field_length_descriptors.resize(num_fields);
   m_field_lengths.resize(num_fields);
 }
     
 void BufferVariantCell::update_field_info(const int query_idx, const int schema_idx)
 {
-  assert(static_cast<const size_t>(query_idx) < m_field_ptrs.size());
-  auto type_index = m_array_schema->type(schema_idx);
-  m_field_element_sizes[query_idx] = VariantFieldTypeUtil::size(type_index);
-  m_field_length_descriptors[query_idx] = m_array_schema->val_num(schema_idx);
-  m_field_lengths[query_idx] = m_field_length_descriptors[query_idx];
+  assert(static_cast<const size_t>(query_idx) < m_field_ptrs.size() && m_field_ptrs.size() == m_schema_idxs.size()
+      && m_field_lengths.size() == m_schema_idxs.size());
+  m_schema_idxs[query_idx] = schema_idx;
+  m_field_lengths[query_idx] = m_array_schema->val_num(schema_idx);
 }
 
 void BufferVariantCell::set_cell(const void* ptr)
@@ -91,16 +88,17 @@ void BufferVariantCell::set_cell(const void* ptr)
 #endif
   for(auto i=0u;i<m_field_ptrs.size();++i)
   {
-    auto length = m_field_length_descriptors[i];
+    auto schema_idx = m_schema_idxs[i];
+    auto length = m_field_lengths[i];
     //check if variable length field - read length from buffer
-    if(length == TILEDB_VAR_NUM)
+    if(m_array_schema->is_variable_length_field(schema_idx))
     {
       length = *(reinterpret_cast<const int*>(cell_ptr+offset));
       m_field_lengths[i] = length;
       offset += sizeof(int);
     }
     m_field_ptrs[i] = cell_ptr + offset;      //field pointer points to region in buffer AFTER the length
-    offset += (length*m_field_element_sizes[i]);
+    offset += (length*(m_array_schema->element_size(schema_idx)));
   }
 #ifdef DEBUG
   assert(offset == cell_size);
