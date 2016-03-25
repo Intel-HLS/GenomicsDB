@@ -92,14 +92,16 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
   size_t field_size = 0u;
   for(auto i=0u;i<m_num_queried_attributes;++i)
   {
-    tiledb_array_iterator_get_value(m_tiledb_array_iterator, i,
+    auto status = tiledb_array_iterator_get_value(m_tiledb_array_iterator, i,
         reinterpret_cast<const void**>(&field_ptr), &field_size);
+    VERIFY_OR_THROW(status == TILEDB_OK);
     m_cell.set_field_ptr_for_query_idx(i, field_ptr);
     m_cell.set_field_size_in_bytes(i, field_size);
   }
   //Co-ordinates
-  tiledb_array_iterator_get_value(m_tiledb_array_iterator, m_num_queried_attributes,
+  auto status = tiledb_array_iterator_get_value(m_tiledb_array_iterator, m_num_queried_attributes,
         reinterpret_cast<const void**>(&field_ptr), &field_size);
+  VERIFY_OR_THROW(status == TILEDB_OK);
   assert(field_size == m_variant_array_schema->dim_size_in_bytes());
   auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
   m_cell.set_coordinates(coords_ptr[0], coords_ptr[1]);
@@ -199,7 +201,8 @@ void VariantArrayInfo::write_cell(const void* ptr)
   //write to array and reset sizes
   if(overflow)
   {
-    tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+    auto status = tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+    VERIFY_OR_THROW(status == TILEDB_OK);
     memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
   }
   buffer_idx = 0;

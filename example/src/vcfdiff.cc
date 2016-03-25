@@ -856,7 +856,7 @@ int main(int argc, char** argv)
   {
     {"threshold",1,0,'t'},
     {"regions",1,0,'r'},
-    {"loader-config",1,0,'j'},
+    {"loader-config",1,0,'l'},
     {"process-rank",1,0,'p'},
     {"test_to_gold_callset_map_file",1,0, ARGS_USE_CALLSETS_FILE_FOR_SAMPLE_IDX}
   };
@@ -864,7 +864,7 @@ int main(int argc, char** argv)
   std::string regions = "";
   std::string loader_json_filename = "";
   std::string test_to_gold_callset_map_file = "";
-  while((c=getopt_long(argc, argv, "t:r:j:p:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "t:r:l:p:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
@@ -874,7 +874,7 @@ int main(int argc, char** argv)
       case 'r':
         regions = std::move(std::string(optarg));
         break;
-      case 'j':
+      case 'l':
         loader_json_filename = std::move(std::string(optarg));
         break;
       case 'p':

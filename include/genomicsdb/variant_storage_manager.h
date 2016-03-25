@@ -61,7 +61,9 @@ class VariantArrayCellIterator
     }
     inline const VariantArrayCellIterator& operator++()
     {
-      tiledb_array_iterator_next(m_tiledb_array_iterator);
+      auto status = tiledb_array_iterator_next(m_tiledb_array_iterator);
+      if(status != TILEDB_OK)
+        throw VariantStorageManagerException("VariantArrayCellIterator increment failed");
 #ifdef DEBUG
       if(!end())
       {
@@ -121,7 +123,9 @@ class VariantArrayInfo
       if((m_mode == TILEDB_ARRAY_WRITE || m_mode == TILEDB_ARRAY_WRITE_UNSORTED)
           && m_buffer_offsets[coords_buffer_idx] > 0ull)
       {
-        tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+        auto status = tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+        if(status != TILEDB_OK)
+          throw VariantStorageManagerException("Error while writing to array "+m_name);
         memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
       }
       if(m_tiledb_array)
