@@ -106,7 +106,7 @@ def main():
     ws_dir=tmpdir+os.path.sep+'ws';
     #Buffer size
     segment_size = 40
-    load_segment_size = 50
+    load_segment_size = 40
     loader_tests = [
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 "query_params": [
