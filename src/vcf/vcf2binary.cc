@@ -160,7 +160,8 @@ void VCFReader::add_reader()
 {
   assert(m_indexed_reader->nreaders == 0);      //no existing files are open
   assert(m_fptr == 0);  //normal file handle should be NULL
-  bcf_sr_add_reader(m_indexed_reader, m_filename.c_str());
+  if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
+    throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" or its index doesn't index - VCF/BCF files must be block compressed and indexed");
 }
 
 void VCFReader::remove_reader()
@@ -184,7 +185,8 @@ void VCFReader::seek_read_advance(const char* contig, const int pos, bool discar
     m_fptr = 0;
   }
   if(m_indexed_reader->nreaders == 0)        //index not loaded
-    bcf_sr_add_reader(m_indexed_reader, m_filename.c_str());
+    if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
+      throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" or its index doesn't index - VCF/BCF files must be block compressed and indexed");
   assert(m_indexed_reader->nreaders == 1);
   bcf_sr_seek(m_indexed_reader, contig, pos);
   //Only read 1 record at a time
