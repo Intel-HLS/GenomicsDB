@@ -138,7 +138,7 @@ void VCFDiffFile::set_regions_and_open_file()
 {
   bcf_sr_set_regions(m_reader, m_regions.c_str(), 0);
   if(bcf_sr_add_reader(m_reader, m_filename.c_str()) != 1)
-    throw VCFDiffException(std::string("Could not open file ")+m_filename+" or its index - VCF/BCF files must be block compressed and indexed");
+    throw VCFDiffException(std::string("Could not open file ")+m_filename+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
   bcf_sr_next_line(m_reader);
   m_line = bcf_sr_get_line(m_reader, 0);
   if(m_line)
