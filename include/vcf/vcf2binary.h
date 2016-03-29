@@ -33,6 +33,7 @@
 #include "htslib/synced_bcf_reader.h"
 #include "gt_common.h"
 #include "histogram.h"
+#include "tiledb_loader_file_base.h" 
 
 //Exceptions thrown 
 class VCF2BinaryException : public std::exception {
@@ -71,7 +72,7 @@ class VCFReader
     bool m_is_line_valid;
 };
 
-class VCFColumnPartition
+class VCFColumnPartition : File2TileDBBinaryColumnPartitionBase
 {
   friend class VCF2Binary;
   public:
@@ -79,6 +80,7 @@ class VCFColumnPartition
      * Primary constructor
      */
     VCFColumnPartition()
+      : File2TileDBBinaryColumnPartitionBase()
     {
       m_reader = 0;
       //buffer for vcf get functions - 16 KB
@@ -93,30 +95,18 @@ class VCFColumnPartition
     {
       if(m_reader)
         delete m_reader;
-      m_begin_buffer_offset_for_local_callset.clear();
-      m_last_full_line_end_buffer_offset_for_local_callset.clear();
-      m_buffer_offset_for_local_callset.clear();
       if(m_vcf_get_buffer && m_vcf_get_buffer_size)
         free(m_vcf_get_buffer);
       m_vcf_get_buffer = 0;
       m_vcf_get_buffer_size = 0;
     }
   protected:
-    int64_t m_column_interval_begin;
-    int64_t m_column_interval_end;
     //VCFReader
     VCFReader* m_reader;
     //Position in contig from which to fetch next batch of cells
     int m_local_contig_idx;
     int64_t m_contig_position;  //position in contig (0-based)
     int64_t m_contig_tiledb_column_offset;
-    //Buffer offsets - 1 per callset
-    //Offset at which data should be copied for the current batch
-    std::vector<int64_t> m_begin_buffer_offset_for_local_callset;
-    //Offset at which the current line begins
-    std::vector<int64_t> m_last_full_line_end_buffer_offset_for_local_callset;
-    //Current value of offset
-    std::vector<int64_t> m_buffer_offset_for_local_callset;
     //Buffer for obtaining data from htslib 
     uint8_t* m_vcf_get_buffer;
     uint64_t m_vcf_get_buffer_size;
@@ -124,7 +114,7 @@ class VCFColumnPartition
     void copy_simple_members(const VCFColumnPartition& other);
 };
 
-class VCF2Binary
+class VCF2Binary : public File2TileDBBinaryBase 
 {
   public:
     VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
@@ -185,24 +175,12 @@ class VCF2Binary
     void create_histogram_for_vcf(uint64_t max_histogram_range, unsigned num_bins);
     UniformHistogram* get_histogram_for_vcf() { return m_histogram; }
   private:
-    bool m_parallel_partitions;
-    bool m_noupdates;
-    bool m_close_file;
-    bool m_treat_deletions_as_intervals;
     bool m_discard_index;
-    std::string m_vcf_filename;
-    VidMapper* m_vid_mapper;
-    int64_t m_file_idx;
-    size_t m_max_size_per_callset;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
     //Common reader when m_parallel_partitions==false
     VCFReader* m_reader;
     std::string m_regions;
-    //Local callset idx to tiledb row idx
-    std::vector<int64_t> m_local_callset_idx_to_tiledb_row_idx;
-    //Enabled local callset idx
-    std::vector<int64_t> m_enabled_local_callset_idx_vec;
     //Local contig idx to global contig idx
     std::vector<int> m_local_contig_idx_to_global_contig_idx;
     //Local field idx to global field idx

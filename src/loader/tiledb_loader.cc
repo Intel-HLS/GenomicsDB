@@ -661,7 +661,10 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
     assert(m_pq_vector[order].m_row_idx == row_idx);
     if(valid_cell_found)
+    {
       m_column_major_pq.push(&(m_pq_vector[order]));
+      m_pq_vector[order].m_completed = false;
+    }
     else
       m_pq_vector[order].m_completed = true;
   }

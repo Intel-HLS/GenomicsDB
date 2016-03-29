@@ -77,6 +77,13 @@ class ContigInfo
     std::string m_name;
 };
 
+enum VidFileTypeEnum
+{
+  VCF_FILE_TYPE=0,
+  SORTED_CSV_FILE_TYPE,
+  UNSORTED_CSV_FILE_TYPE
+};
+
 class FileInfo
 {
   public:
@@ -86,6 +93,7 @@ class FileInfo
       m_owner_idx = -1;
       m_local_file_idx = -1;
       m_local_tiledb_row_idx_pairs.clear();
+      m_type = VidFileTypeEnum::VCF_FILE_TYPE;
     }
     void set_info(const int64_t file_idx, const std::string& name)
     {
@@ -107,6 +115,8 @@ class FileInfo
     //A VCF can contain multiple callsets - each entry in this map contains a vector of pair<local_idx,row_idx>,
     //corresponding to each callset in the VCF
     std::vector<std::pair<int64_t, int64_t>> m_local_tiledb_row_idx_pairs;
+    //File type enum
+    unsigned m_type;
 };
 
 class FieldInfo
@@ -238,12 +248,7 @@ class VidMapper
       {
         auto file_idx = (*iter).second;
         assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-        for(const auto& pair : m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs)
-        {
-          assert(static_cast<size_t>(pair.first) < row_idx_vec.size());
-          row_idx_vec[pair.first] = pair.second;
-        }
-        return true;
+        return get_local_tiledb_row_idx_vec(file_idx, row_idx_vec);
       }
       else
       {
@@ -260,7 +265,8 @@ class VidMapper
       assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
       for(const auto& pair : m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs)
       {
-        assert(static_cast<size_t>(pair.first) < row_idx_vec.size());
+        if(static_cast<size_t>(pair.first) >= row_idx_vec.size())
+          row_idx_vec.resize(static_cast<size_t>(pair.first)+1ull);
         row_idx_vec[pair.first] = pair.second;
       }
       return true;

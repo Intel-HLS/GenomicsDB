@@ -527,4 +527,22 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       sort_and_assign_local_file_idxs_for_partition(owner_idx);
     }
   }
+  //CSV files
+  for(const auto& val : std::vector<std::string>({"sorted_csv_files", "unsorted_csv_files"}))
+  {
+    if(json_doc.HasMember(val.c_str()))
+    {
+      const auto& csv_file_array = json_doc[val.c_str()];
+      auto is_sorted_file = (val == "sorted_csv_files");
+      //is an array
+      VERIFY_OR_THROW(csv_file_array.IsArray());
+      for(rapidjson::SizeType i=0;i<csv_file_array.Size();++i)
+      {
+        int64_t global_file_idx;
+        auto found = get_global_file_idx(csv_file_array[i].GetString(), global_file_idx);
+        if(found)
+          m_file_idx_to_info[global_file_idx].m_type = is_sorted_file ? VidFileTypeEnum::SORTED_CSV_FILE_TYPE : VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE;
+      }
+    }
+  }
 }

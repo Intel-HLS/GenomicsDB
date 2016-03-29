@@ -240,8 +240,6 @@ void VCFReader::read_and_advance()
 //VCFColumnPartition functions
 void VCFColumnPartition::copy_simple_members(const VCFColumnPartition& other)
 {
-  m_column_interval_begin = other.m_column_interval_begin;
-  m_column_interval_end = other.m_column_interval_end;
   m_local_contig_idx = other.m_local_contig_idx;
   m_contig_position = other.m_contig_position;
   m_contig_tiledb_column_offset = other.m_contig_tiledb_column_offset;
@@ -250,12 +248,9 @@ void VCFColumnPartition::copy_simple_members(const VCFColumnPartition& other)
 
 //Move constructor
 VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
+  : File2TileDBBinaryColumnPartitionBase(other)
 {
   copy_simple_members(other);
-  m_begin_buffer_offset_for_local_callset = std::move(other.m_begin_buffer_offset_for_local_callset);
-  m_last_full_line_end_buffer_offset_for_local_callset = 
-    std::move(other.m_last_full_line_end_buffer_offset_for_local_callset);
-  m_buffer_offset_for_local_callset = std::move(other.m_buffer_offset_for_local_callset);
   m_vcf_get_buffer = other.m_vcf_get_buffer;
   other.m_vcf_get_buffer = 0;
   other.m_vcf_get_buffer_size = 0;
@@ -263,24 +258,20 @@ VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
   other.m_reader = 0;
 }
 
-
 VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
     unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
     size_t max_size_per_callset,
     bool treat_deletions_as_intervals,
     bool parallel_partitions, bool noupdates, bool close_file, bool discard_index)
+  : File2TileDBBinaryBase(vcf_filename, file_idx, vid_mapper,
+        max_size_per_callset,
+        treat_deletions_as_intervals,
+        parallel_partitions, noupdates, close_file)
 {
   m_reader = 0;
   m_histogram = 0;
   clear();
-  m_vcf_filename = vcf_filename;
   m_vcf_fields = &vcf_fields;
-  m_file_idx = file_idx;
-  m_vid_mapper = &vid_mapper;
-  m_max_size_per_callset = max_size_per_callset;
-  m_treat_deletions_as_intervals = treat_deletions_as_intervals;
-  m_parallel_partitions = parallel_partitions;
-  m_noupdates = noupdates;
   m_discard_index = discard_index;
   m_close_file = close_file || discard_index;   //close file if index has to be discarded
   initialize(partition_bounds);
@@ -288,25 +279,16 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
 
 void VCF2Binary::copy_simple_members(const VCF2Binary& other)
 {
-  m_parallel_partitions = other.m_parallel_partitions;
-  m_noupdates = other.m_noupdates;
-  m_close_file = other.m_close_file;
-  m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
-  m_vid_mapper = other.m_vid_mapper;
-  m_file_idx = other.m_file_idx;
-  m_max_size_per_callset = other.m_max_size_per_callset;
   m_vcf_fields = other.m_vcf_fields;
   m_discard_index = other.m_discard_index;
 }
 
 //Move constructor
 VCF2Binary::VCF2Binary(VCF2Binary&& other)
+  : File2TileDBBinaryBase(other)
 {
   copy_simple_members(other);
-  m_vcf_filename = std::move(other.m_vcf_filename);
   m_regions = std::move(other.m_regions);
-  m_local_callset_idx_to_tiledb_row_idx = std::move(other.m_local_callset_idx_to_tiledb_row_idx);
-  m_enabled_local_callset_idx_vec = std::move(other.m_enabled_local_callset_idx_vec);
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);
   m_partitions = std::move(other.m_partitions);
@@ -332,11 +314,7 @@ VCF2Binary::~VCF2Binary()
 
 void VCF2Binary::clear()
 {
-  m_vid_mapper = 0;
-  m_vcf_filename.clear();
   m_regions.clear();
-  m_local_callset_idx_to_tiledb_row_idx.clear();
-  m_enabled_local_callset_idx_vec.clear();
   m_local_contig_idx_to_global_contig_idx.clear();
   m_local_field_idx_to_global_field_idx.clear();
   m_partitions.clear();
@@ -346,11 +324,11 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
 {
   assert(m_vid_mapper);
   //Setup local-global mappings
-  auto* fptr = bcf_open(m_vcf_filename.c_str(), "r");
+  auto* fptr = bcf_open(m_filename.c_str(), "r");
   auto* hdr = bcf_hdr_read(fptr);
   //Callset mapping
   m_local_callset_idx_to_tiledb_row_idx = std::move(std::vector<int64_t>(bcf_hdr_nsamples(hdr), -1ll));
-  m_vid_mapper->get_local_tiledb_row_idx_vec(m_vcf_filename, m_local_callset_idx_to_tiledb_row_idx);
+  m_vid_mapper->get_local_tiledb_row_idx_vec(m_filename, m_local_callset_idx_to_tiledb_row_idx);
   for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
     if(m_local_callset_idx_to_tiledb_row_idx[i] >= 0)
       m_enabled_local_callset_idx_vec.push_back(i);
@@ -383,7 +361,7 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   if(!m_parallel_partitions)
   {
     m_reader = new VCFReader();
-    m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
+    m_reader->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
   }
   //Initialize partition info
   m_partitions.resize(partition_bounds.size());
@@ -400,7 +378,7 @@ void VCF2Binary::initialize_partition(unsigned idx, const std::vector<ColumnRang
   if(m_parallel_partitions)
   {
     column_interval_info.m_reader = new VCFReader();
-    column_interval_info.m_reader->initialize(m_vcf_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
+    column_interval_info.m_reader->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
   }
   else
     column_interval_info.m_reader = m_reader;
