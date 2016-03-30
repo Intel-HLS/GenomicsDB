@@ -124,7 +124,7 @@ class VCF2Binary : public File2TileDBBinaryBase
     void clear();
     //Initialization functions
     void initialize(const std::vector<ColumnRange>& partition_bounds);
-    void initialize_partition(unsigned idx, const std::vector<ColumnRange>& partition_bounds );
+    void initialize_partition(unsigned idx, const ColumnRange& column_partition);
     //Abstract virtual functions in base class that must be defined 
     bool convert_record_to_binary(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info);
     bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader);

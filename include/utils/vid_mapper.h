@@ -307,6 +307,23 @@ class VidMapper
       return m_file_idx_to_info[file_idx];
     }
     /*
+     * Get type of file
+     */
+    inline unsigned get_file_type(const int64_t file_idx) const
+    {
+      assert(static_cast<size_t>(file_idx) < m_file_idx_to_info.size());
+      return m_file_idx_to_info[file_idx].m_type;
+    }
+    inline bool get_file_type(const std::string& filename, unsigned& file_type) const
+    {
+      int64_t file_idx = -1;
+      auto status = get_global_file_idx(filename, file_idx);
+      if(!status)
+        return false;
+      file_type = get_file_type(file_idx);
+      return true;
+    }
+    /*
      * Return list of files owned by owner_idx
      */
     const std::vector<int64_t>& get_global_file_idxs_owned_by(int owner_idx) const

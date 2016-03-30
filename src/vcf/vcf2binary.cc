@@ -353,10 +353,10 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   }
   //Initialize partition info
   for(auto i=0u;i<partition_bounds.size();++i)
-    initialize_partition(i, partition_bounds);
+    initialize_partition(i, partition_bounds[i]);
 }
 
-void VCF2Binary::initialize_partition(unsigned idx, const std::vector<ColumnRange>& partition_bounds)
+void VCF2Binary::initialize_partition(unsigned idx, const ColumnRange& column_partition)
 {
   VCFColumnPartition* new_vcf_column_partition_ptr = new VCFColumnPartition();
   m_base_partition_ptrs[idx] = new_vcf_column_partition_ptr;
@@ -373,7 +373,7 @@ void VCF2Binary::initialize_partition(unsigned idx, const std::vector<ColumnRang
     base_reader_ptr = m_base_reader_ptr;
   //Initialize base class members
   column_interval_info.initialize_base_class_members(
-      partition_bounds[idx].first, partition_bounds[idx].second,
+      column_partition.first, column_partition.second,
       m_enabled_local_callset_idx_vec.size(), base_reader_ptr);
   //Indicates that nothing has been read for this interval
   column_interval_info.m_local_contig_idx = -1;

@@ -130,6 +130,12 @@ class File2TileDBBinaryBase
     UniformHistogram* get_histogram() { return m_histogram; }
     //Functions that must be over-ridden by all sub-classes
     /*
+     * Initialization for partition idx
+     * This function in the sub-class must set the pointer in m_base_partition_ptrs[idx] to the required
+     * object and call the initialize_base_class_members of File2TileDBBinaryColumnPartitionBase
+     */
+    virtual void initialize_partition(unsigned idx, const ColumnRange& column_partition) = 0;
+    /*
      * Convert current record to TileDB binary in the buffer
      */
     virtual bool convert_record_to_binary(std::vector<uint8_t>& buffer,
