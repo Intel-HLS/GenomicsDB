@@ -176,14 +176,18 @@ LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLA
 # General Targets #
 ###################
 
-.PHONY: all genomicsdb_library clean TileDB_library TileDB_clean htslib_library htslib_clean
+.PHONY: all genomicsdb_library clean clean-dependencies clean-all TileDB_library TileDB_clean htslib_library htslib_clean
 
 all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES)
 
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
-clean: TileDB_clean htslib_clean
+clean:
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
+
+clean-dependencies: TileDB_clean htslib_clean
+
+clean-all: clean clean-dependencies
 
 #TileDB library
 TileDB_library:

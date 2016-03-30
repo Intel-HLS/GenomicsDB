@@ -321,13 +321,21 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
       &(attribute_names[0]),
       // Number of attributes
       attribute_names.size(),
+      // Capacity
+      num_cells_per_tile,
+      // Cell order
+      TILEDB_COL_MAJOR,
+      // Number of cell values per attribute (NULL means 1 everywhere)
+      &(cell_val_num[0]),
+      // Compression
+      &(compression[0]),
+      // Sparse array
+      0,
       // Dimensions
       &(dim_names[0]),
       // Number of dimensions
       dim_names.size(),
-      // Sparse array
-      0,
-      // Domain
+       // Domain
       &(dim_domains[0]),
       // Domain length in bytes
       dim_domains.size()*sizeof(int64_t),
@@ -335,18 +343,10 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
       NULL,
       // Tile extents in bytes
       0, 
-      // Types 
-      &(types[0]),
-      // Number of cell values per attribute (NULL means 1 everywhere)
-      &(cell_val_num[0]),
-      // Cell order
-      TILEDB_COL_MAJOR,
       // Tile order (0 means ignore in sparse arrays and default in dense)
       0,
-      // Capacity
-      num_cells_per_tile,
-      // Compression
-      &(compression[0])
+      // Types
+      &(types[0])
   );
   /* Create the array schema */
   auto status = tiledb_array_create(m_tiledb_ctx, &array_schema);
