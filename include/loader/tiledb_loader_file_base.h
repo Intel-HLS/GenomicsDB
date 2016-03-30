@@ -2,11 +2,70 @@
 #define TILEDB_IMPORTER_H
 
 #include "gt_common.h"
+#include "column_partition_batch.h"
+#include "vid_mapper.h"
+#include "histogram.h"
+
+#define PRODUCE_BINARY_CELLS 1
+/*#define PRODUCE_CSV_CELLS 1*/
+
+//Binary gets priority
+#if defined(PRODUCE_BINARY_CELLS) and defined(PRODUCE_CSV_CELLS)
+#undef PRODUCE_CSV_CELLS
+#endif
+
+//If none defined, produce binary cells
+#if !defined(PRODUCE_BINARY_CELLS) and !defined(PRODUCE_CSV_CELLS)
+#define PRODUCE_BINARY_CELLS 1
+#endif
+
+//Exceptions thrown 
+class File2TileDBBinaryException : public std::exception {
+  public:
+    File2TileDBBinaryException(const std::string m="") : msg_("File2TileDBBinaryException : "+m) { ; }
+    ~File2TileDBBinaryException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
+class FileReaderBase
+{
+  public:
+    virtual ~FileReaderBase() { }
+    virtual void add_reader() = 0;
+    virtual void remove_reader() = 0;
+    virtual void read_and_advance() = 0;
+};
 
 class File2TileDBBinaryColumnPartitionBase
 {
+  friend class File2TileDBBinaryBase;
   public:
-    File2TileDBBinaryColumnPartitionBase() { ; }
+    File2TileDBBinaryColumnPartitionBase()
+    {
+      m_base_reader_ptr = 0;
+    }
+    virtual ~File2TileDBBinaryColumnPartitionBase();
+    void clear()
+    {
+      m_begin_buffer_offset_for_local_callset.clear();
+      m_last_full_line_end_buffer_offset_for_local_callset.clear();
+      m_buffer_offset_for_local_callset.clear();
+    }
+    //Delete copy constructor
+    File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
+    //Define move constructor
+    File2TileDBBinaryColumnPartitionBase(File2TileDBBinaryColumnPartitionBase&& other);
+    void initialize_base_class_members(const int64_t begin, const int64_t end,
+        const uint64_t num_enabled_callsets, FileReaderBase* ptr);
+    FileReaderBase* get_base_reader_ptr() { return m_base_reader_ptr; }
+    /*
+     * abstract virtual functions
+     */
+    virtual int64_t get_column_position_in_record() const = 0;
   protected:
     int64_t m_column_interval_begin;
     int64_t m_column_interval_end;
@@ -17,37 +76,73 @@ class File2TileDBBinaryColumnPartitionBase
     std::vector<int64_t> m_last_full_line_end_buffer_offset_for_local_callset;
     //Current value of offset
     std::vector<int64_t> m_buffer_offset_for_local_callset;
+    FileReaderBase* m_base_reader_ptr;
 };
 
 /*
  * Base class for all instances of objects that convert file formats for importing
  * to TileDB
  */
-
 class File2TileDBBinaryBase
 {
   public:
     File2TileDBBinaryBase(const std::string& filename,
         unsigned file_idx, VidMapper& vid_mapper,
         size_t max_size_per_callset,
+        size_t num_partitions,
         bool treat_deletions_as_intervals,
-        bool parallel_partitions=false, bool noupdates=true, bool close_file=false)
-    {
-      m_filename = filename;
-      m_file_idx = file_idx;
-      m_vid_mapper = &(vid_mapper);
-      m_max_size_per_callset = max_size_per_callset;
-      m_treat_deletions_as_intervals = treat_deletions_as_intervals;
-      m_parallel_partitions = parallel_partitions;
-      m_noupdates = noupdates;
-      m_close_file = close_file;
-    }
-    void clear()
-    {
-      m_filename.clear();
-      m_local_callset_idx_to_tiledb_row_idx.clear();
-      m_enabled_local_callset_idx_vec.clear();
-    }
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
+    //Delete copy constructor
+    File2TileDBBinaryBase(const File2TileDBBinaryBase& other) = delete;
+    //Define move constructor
+    File2TileDBBinaryBase(File2TileDBBinaryBase&& other);
+    //Destructor
+    virtual ~File2TileDBBinaryBase();
+    void clear();
+    /*
+     * Set order of enabled callsets
+     */
+    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
+    /*
+     * List active row idxs
+     */
+    void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
+    /*
+     * */
+    void read_next_batch(std::vector<std::vector<uint8_t>*>& buffer_vec,
+        std::vector<ColumnPartitionBatch>& partition_batches, bool close_file);
+    void read_next_batch(std::vector<uint8_t>& buffer,File2TileDBBinaryColumnPartitionBase& partition_info,
+        ColumnPartitionFileBatch& partition_file_batch, bool close_file);
+    /*
+     * Printer
+     */
+    template<class FieldType>
+    bool tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, const FieldType val, bool print_sep=true);
+    /*
+     * Null value printer
+     */
+    template<class FieldType>
+    bool tiledb_buffer_print_null(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit);
+    /*
+     * Create histogram
+     */
+    void create_histogram(uint64_t max_histogram_range, unsigned num_bins);
+    UniformHistogram* get_histogram() { return m_histogram; }
+    //Functions that must be over-ridden by all sub-classes
+    /*
+     * Convert current record to TileDB binary in the buffer
+     */
+    virtual bool convert_record_to_binary(std::vector<uint8_t>& buffer,
+        File2TileDBBinaryColumnPartitionBase& partition_info) = 0;
+    /*
+     * Seek and/or advance to position in the file as described by partition_info
+     */
+    virtual bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek,
+        bool advance_reader) = 0;
+    /*
+     * Return #callsets in current record
+     */
+    virtual uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const = 0;
   protected:
     bool m_parallel_partitions;
     bool m_noupdates;
@@ -61,6 +156,16 @@ class File2TileDBBinaryBase
     std::vector<int64_t> m_local_callset_idx_to_tiledb_row_idx;
     //Enabled local callset idx
     std::vector<int64_t> m_enabled_local_callset_idx_vec;
+    //Reader
+    FileReaderBase* m_base_reader_ptr;
+    //Partition read state - pointers to objects of sub-classes of File2TileDBBinaryColumnPartitionBase
+    //Must be initialized by sub-classes of File2TileDBBinaryBase
+    std::vector<File2TileDBBinaryColumnPartitionBase*> m_base_partition_ptrs;
+    //Histogram
+    UniformHistogram* m_histogram;
+  private:
+    //Called by move constructor
+    void copy_simple_members(const File2TileDBBinaryBase& other);
 };
 
 #endif

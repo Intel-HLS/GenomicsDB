@@ -362,8 +362,8 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
 #pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files) reduction(l0_sum_up : combined_histogram)
   for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
   {
-    m_vcf2binary_handlers[i].create_histogram_for_vcf(max_histogram_range, num_bins);
-    combined_histogram->sum_up_histogram(m_vcf2binary_handlers[i].get_histogram_for_vcf());
+    m_vcf2binary_handlers[i].create_histogram(max_histogram_range, num_bins);
+    combined_histogram->sum_up_histogram(m_vcf2binary_handlers[i].get_histogram());
   }
   combined_histogram->print(fptr);
   delete combined_histogram;

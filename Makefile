@@ -142,7 +142,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    variant_operations.cc \
 			    load_operators.cc \
 			    variant_storage_manager.cc \
-			    query_variants.cc
+			    query_variants.cc \
+			    tiledb_loader_file_base.cc
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
 			    gt_verifier.cc \
