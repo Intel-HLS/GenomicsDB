@@ -1,9 +1,9 @@
 [submodule "dependencies/htslib"]
 	path = dependencies/htslib
-	url = https://github.com/Intel-HSS/htslib.git
+	url = https://github.com/Intel-HLS/htslib.git
 [submodule "dependencies/TileDB"]
 	path = dependencies/TileDB
-	url = git@github.com:Intel-HSS/TileDB.git 
+	url = git@github.com:Intel-HLS/TileDB.git
 [submodule "dependencies/RapidJSON"]
 	path = dependencies/RapidJSON
 	url = https://github.com/miloyip/rapidjson.git

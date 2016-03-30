@@ -334,7 +334,8 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
       continue;
     if(!first_valid_contig)
       m_regions += ",";
-    m_regions += contig_name;
+    //enclose contig name with quotes to deal with weird contig names containing :,- etc - messes up synced reader
+    m_regions += ('"' + contig_name + '"');
     first_valid_contig = false;
   }
   //Field mapping

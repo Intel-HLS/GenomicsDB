@@ -619,6 +619,7 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
 std::string VCFDiffFile::create_region(const std::string& regions,
     const std::unordered_map<std::string, std::pair<int64_t, int64_t>>& regions_contig_to_interval, const std::string& contig)
 {
+  auto quoted_contig = '"' + contig + '"';
   if(regions.length())
   {
     auto iter = regions_contig_to_interval.find(contig);
@@ -626,19 +627,19 @@ std::string VCFDiffFile::create_region(const std::string& regions,
       return "";
     auto pair = (*iter).second;
     if(pair.first == 1ll && pair.second == INT64_MAX)
-      return (contig + ",");    //full contig
+      return (quoted_contig + ",");    //full contig
     if(pair.second == INT64_MAX)
     {
       auto contig_idx = bcf_hdr_name2id(m_hdr, contig.c_str());
       VERIFY_OR_THROW(contig_idx >= 0);
       auto contig_length = bcf_hdr_id2contig_length(m_hdr, contig_idx);
-      return (contig + ":" + std::to_string(pair.first) + "-" + std::to_string(contig_length) + ",");
+      return (quoted_contig + ":" + std::to_string(pair.first) + "-" + std::to_string(contig_length) + ",");
     }
     else
-      return (contig + ":" + std::to_string(pair.first) + "-" + std::to_string(pair.second) + ",");
+      return (quoted_contig + ":" + std::to_string(pair.first) + "-" + std::to_string(pair.second) + ",");
   }
   else
-    return (contig + ",");
+    return (quoted_contig + ",");
 }
 
 /*
