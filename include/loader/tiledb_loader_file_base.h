@@ -89,9 +89,9 @@ class File2TileDBBinaryBase
     File2TileDBBinaryBase(const std::string& filename,
         unsigned file_idx, VidMapper& vid_mapper,
         size_t max_size_per_callset,
-        size_t num_partitions,
         bool treat_deletions_as_intervals,
         bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
+    void initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds);
     //Delete copy constructor
     File2TileDBBinaryBase(const File2TileDBBinaryBase& other) = delete;
     //Define move constructor
@@ -130,11 +130,17 @@ class File2TileDBBinaryBase
     UniformHistogram* get_histogram() { return m_histogram; }
     //Functions that must be over-ridden by all sub-classes
     /*
-     * Initialization for partition idx
-     * This function in the sub-class must set the pointer in m_base_partition_ptrs[idx] to the required
-     * object and call the initialize_base_class_members of File2TileDBBinaryColumnPartitionBase
+     * Initialization of column partitions by sub class
      */
-    virtual void initialize_partition(unsigned idx, const ColumnRange& column_partition) = 0;
+    virtual void initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds) = 0;
+    /*
+     * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used
+     */
+    virtual File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const = 0;
+    /*
+     * Create the subclass of FileReaderBase that must be used
+     */
+    virtual FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const = 0;
     /*
      * Convert current record to TileDB binary in the buffer
      */

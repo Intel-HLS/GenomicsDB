@@ -50,7 +50,9 @@ VCFReader::~VCFReader()
     bcf_hdr_destroy(m_hdr);
   if(m_line)
     bcf_destroy(m_line);
-  free(m_buffer.s);
+  if(m_buffer.s)
+    free(m_buffer.s);
+  m_buffer.s = 0;
 }
 
 void VCFReader::initialize(const char* filename, const char* regions,
@@ -263,7 +265,6 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
     bool parallel_partitions, bool noupdates, bool close_file, bool discard_index)
   : File2TileDBBinaryBase(vcf_filename, file_idx, vid_mapper,
         max_size_per_callset,
-        partition_bounds.size(),
         treat_deletions_as_intervals,
         parallel_partitions, noupdates, close_file)
 {
@@ -344,40 +345,34 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
     m_vid_mapper->get_global_field_idx(bcf_hdr_int2id(hdr, BCF_DT_ID, i), m_local_field_idx_to_global_field_idx[i]);
   bcf_hdr_destroy(hdr);
   bcf_close(fptr);
+  //Initialize partition info
+  initialize_base_column_partitions(partition_bounds);
+}
+
+void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
+{
   //Initialize reader, if needed
   if(!m_parallel_partitions)
   {
-    auto vcf_reader_ptr = new VCFReader();
+    auto vcf_reader_ptr = dynamic_cast<VCFReader*>(m_base_reader_ptr);
+    assert(vcf_reader_ptr);
     vcf_reader_ptr->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
-    m_base_reader_ptr = dynamic_cast<FileReaderBase*>(vcf_reader_ptr);
   }
-  //Initialize partition info
   for(auto i=0u;i<partition_bounds.size();++i)
-    initialize_partition(i, partition_bounds[i]);
-}
-
-void VCF2Binary::initialize_partition(unsigned idx, const ColumnRange& column_partition)
-{
-  VCFColumnPartition* new_vcf_column_partition_ptr = new VCFColumnPartition();
-  m_base_partition_ptrs[idx] = new_vcf_column_partition_ptr;
-  auto& column_interval_info = *(new_vcf_column_partition_ptr);
-  //If parallel partitions, each interval gets its own reader
-  FileReaderBase* base_reader_ptr = 0;
-  if(m_parallel_partitions)
   {
-    auto vcf_reader_ptr = new VCFReader();
-    vcf_reader_ptr->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
-    base_reader_ptr = dynamic_cast<FileReaderBase*>(vcf_reader_ptr);
+    auto vcf_column_partition_ptr = dynamic_cast<VCFColumnPartition*>(m_base_partition_ptrs[i]);
+    assert(vcf_column_partition_ptr);
+    //If parallel partitions, each interval gets its own reader
+    if(m_parallel_partitions)
+    {
+      auto vcf_reader_ptr = dynamic_cast<VCFReader*>(vcf_column_partition_ptr->m_base_reader_ptr);
+      assert(vcf_reader_ptr);
+      vcf_reader_ptr->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
+    }
+    //Indicates that nothing has been read for this interval
+    vcf_column_partition_ptr->m_local_contig_idx = -1;
+    vcf_column_partition_ptr->m_contig_position = -1;
   }
-  else
-    base_reader_ptr = m_base_reader_ptr;
-  //Initialize base class members
-  column_interval_info.initialize_base_class_members(
-      column_partition.first, column_partition.second,
-      m_enabled_local_callset_idx_vec.size(), base_reader_ptr);
-  //Indicates that nothing has been read for this interval
-  column_interval_info.m_local_contig_idx = -1;
-  column_interval_info.m_contig_position = -1;
 }
 
 bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info)

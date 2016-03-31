@@ -49,6 +49,10 @@ class VCFReader : public FileReaderBase
 {
   public:
     VCFReader();
+    //Delete move and copy constructors
+    VCFReader(const VCFReader& other) = delete;
+    VCFReader(VCFReader&& other) = delete;
+    //Destructor
     virtual ~VCFReader();
     void initialize(const char* filename, const char* regions,
         const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, bool open_file);
@@ -80,9 +84,15 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     VCFColumnPartition()
       : File2TileDBBinaryColumnPartitionBase()
     {
+      //Initialize as invalid
+      m_local_contig_idx = -1;
+      m_contig_position = -1;
+      m_contig_tiledb_column_offset = -1;
       //buffer for vcf get functions - 16 KB
       m_vcf_get_buffer_size = 16*1024;
       m_vcf_get_buffer = (uint8_t*)malloc(m_vcf_get_buffer_size*sizeof(uint8_t));
+      if(m_vcf_get_buffer == 0)
+        throw VCF2BinaryException("Malloc failure");
     }
     //Delete copy constructor
     VCFColumnPartition(const VCFColumnPartition& other) = delete;
@@ -124,8 +134,22 @@ class VCF2Binary : public File2TileDBBinaryBase
     void clear();
     //Initialization functions
     void initialize(const std::vector<ColumnRange>& partition_bounds);
-    void initialize_partition(unsigned idx, const ColumnRange& column_partition);
     //Abstract virtual functions in base class that must be defined 
+    void initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds);
+    /*
+     * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used
+     */
+    File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const
+    {
+      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new VCFColumnPartition());
+    }
+    /*
+     * Create the subclass of FileReaderBase that must be used
+     */
+    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
+    {
+      return dynamic_cast<FileReaderBase*>(new VCFReader());
+    }
     bool convert_record_to_binary(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info);
     bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader);
     uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const

@@ -173,7 +173,6 @@ bool File2TileDBBinaryBase::tiledb_buffer_print_null<double>(std::vector<uint8_t
 File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
     unsigned file_idx, VidMapper& vid_mapper,
     size_t max_size_per_callset,
-    size_t num_partitions,
     bool treat_deletions_as_intervals,
     bool parallel_partitions, bool noupdates, bool close_file)
 {
@@ -190,8 +189,27 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
     m_enabled_local_callset_idx_vec[i] = i;
   m_base_reader_ptr = 0;
-  m_base_partition_ptrs.resize(num_partitions, 0);
   m_histogram = 0;
+}
+
+void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds)
+{
+  m_base_reader_ptr = !m_parallel_partitions ? create_new_reader_object(m_filename, !m_close_file) : 0;
+  //Initialize base partition pointers
+  m_base_partition_ptrs.resize(partition_bounds.size(), 0);
+  for(auto i=0ull;i<m_base_partition_ptrs.size();++i)
+  {
+    m_base_partition_ptrs[i] = create_new_column_partition_object();
+    const auto& column_partition = partition_bounds[i];
+    //If parallel partitions, each interval gets its own reader
+    auto base_reader_ptr = m_parallel_partitions ? create_new_reader_object(m_filename, !m_close_file) : m_base_reader_ptr;
+    //Initialize base class members
+    m_base_partition_ptrs[i]->initialize_base_class_members(
+        column_partition.first, column_partition.second,
+        m_enabled_local_callset_idx_vec.size(), base_reader_ptr);
+  }
+  //Sub-class virtual function
+  initialize_column_partitions(partition_bounds);
 }
 
 void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& other)
