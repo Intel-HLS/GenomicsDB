@@ -145,6 +145,7 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    query_variants.cc
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
+    			    create_tiledb_workspace.cc \
 			    gt_verifier.cc \
 			    example_ga4gh_scan_operator.cc \
 			    vcf2tiledb.cc \
