@@ -63,7 +63,7 @@ class VCFReader : public FileReaderBase
     //Helper functions
     void seek_read_advance(const char* contig, const int pos, bool discard_index);
     bcf_hdr_t* get_header() { return m_hdr; }
-    bcf1_t* get_line() { return m_is_line_valid ? m_line : 0; }
+    bcf1_t* get_line() { return m_is_record_valid ? m_line : 0; }
   private:
     bcf_srs_t* m_indexed_reader;
     htsFile* m_fptr;
@@ -71,7 +71,6 @@ class VCFReader : public FileReaderBase
     bcf_hdr_t* m_hdr;
     bcf1_t* m_line;
     kstring_t m_buffer;
-    bool m_is_line_valid;
 };
 
 class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase

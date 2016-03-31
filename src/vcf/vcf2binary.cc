@@ -34,7 +34,6 @@ VCFReader::VCFReader()
   m_fptr = 0;
   m_hdr = 0;
   m_line = bcf_init();
-  m_is_line_valid = false;
   m_buffer.l = 0;
   m_buffer.m = 4096;    //4KB
   m_buffer.s = (char*)malloc(m_buffer.m*sizeof(char));
@@ -203,8 +202,8 @@ void VCFReader::read_and_advance()
     {
       //Since m_fptr is obtained from an indexed reader, use bgzf_getline function
       auto status = bgzf_getline(hts_get_bgzfp(m_fptr), '\n', &m_buffer);
-      m_is_line_valid = (status <= 0) ? false : true;
-      if(m_is_line_valid)
+      m_is_record_valid = (status <= 0) ? false : true;
+      if(m_is_record_valid)
         vcf_parse(&m_buffer, m_hdr, m_line);
     }
     else        //BCF
@@ -212,7 +211,7 @@ void VCFReader::read_and_advance()
       m_line->errcode = 0;
       //simple bcf_read
       auto status = bcf_read(m_fptr, m_hdr, m_line);
-      m_is_line_valid = (status < 0) ? false : true;
+      m_is_record_valid = (status < 0) ? false : true;
       assert(m_line->errcode == 0);
     }
   }
@@ -223,10 +222,10 @@ void VCFReader::read_and_advance()
     if(line)
     {
       std::swap<bcf1_t*>(m_indexed_reader->readers[0].buffer[0], m_line);
-      m_is_line_valid = true;
+      m_is_record_valid = true;
     }
     else
-      m_is_line_valid = false;
+      m_is_record_valid = false;
   }
 }
 

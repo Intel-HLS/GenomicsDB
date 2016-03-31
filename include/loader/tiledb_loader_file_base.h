@@ -34,10 +34,13 @@ class File2TileDBBinaryException : public std::exception {
 class FileReaderBase
 {
   public:
+    FileReaderBase() { m_is_record_valid = false; }
     virtual ~FileReaderBase() { }
     virtual void add_reader() = 0;
     virtual void remove_reader() = 0;
     virtual void read_and_advance() = 0;
+  protected:
+    bool m_is_record_valid;
 };
 
 class File2TileDBBinaryColumnPartitionBase
