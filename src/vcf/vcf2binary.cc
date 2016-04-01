@@ -548,6 +548,14 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   }
   else
   {
+    auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
+    //For format fields, the ptr should point to where data for the current callset begins
+    if(field_type_idx == BCF_HL_FMT)
+    {
+      assert(num_values%bcf_hdr_nsamples(hdr) == 0);
+      num_values = num_values/bcf_hdr_nsamples(hdr);
+      ptr += (local_callset_idx*num_values);
+    }
     //variable length field, print #elements  first
     if(length_descriptor != BCF_VL_FIXED)
     {
@@ -558,14 +566,6 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
         buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_values);
         if(buffer_full) return true;
       }
-    }
-    auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
-    //For format fields, the ptr should point to where data for the current callset begins
-    if(field_type_idx == BCF_HL_FMT)
-    {
-      assert(num_values%bcf_hdr_nsamples(hdr) == 0);
-      num_values = num_values/bcf_hdr_nsamples(hdr);
-      ptr += (local_callset_idx*num_values);
     }
     auto print_sep = true;
     for(auto k=0;k<num_values;++k)
