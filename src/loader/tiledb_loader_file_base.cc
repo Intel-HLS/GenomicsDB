@@ -115,7 +115,7 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   std::string x = ss.str();
   size_t add_size = x.length()*sizeof(char);
   //Do not write anything past the limit
-  if(buffer_offset + add_size > buffer_offset_limit)
+  if(static_cast<size_t>(buffer_offset) + add_size > static_cast<size_t>(buffer_offset_limit))
     return true;
   memcpy(&(buffer[buffer_offset]), x.c_str(), add_size);
   buffer_offset += add_size;
@@ -125,7 +125,9 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template<class FieldType>
 bool File2TileDBBinaryBase::tiledb_buffer_print_null(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit)
 {
-  return tiledb_buffer_print<char>(buffer, buffer_offset, buffer_offset_limit, NULL_VALUE);
+  //return tiledb_buffer_print<char>(buffer, buffer_offset, buffer_offset_limit, '\0');
+  //Print nothing for null fields when producing a CSV - except for a separator
+  return tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, "");
 }
 #endif
 
@@ -151,6 +153,14 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const double val, bool print_sep);
+#ifdef PRODUCE_CSV_CELLS
+template
+bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
+    const int64_t buffer_offset_limit, const char* val, bool print_sep);
+template
+bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
+    const int64_t buffer_offset_limit, const std::string& val, bool print_sep);
+#endif
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<char>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);

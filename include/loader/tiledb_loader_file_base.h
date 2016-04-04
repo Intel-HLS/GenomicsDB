@@ -85,7 +85,11 @@ class File2TileDBBinaryColumnPartitionBase
       assert(idx_in_file < m_buffer_full_for_local_callset.size());
       m_buffer_full_for_local_callset[idx_in_file] = false;
     }
-    std::vector<uint8_t>* get_buffer_ptr() { return m_buffer_ptr; }
+    std::vector<uint8_t>& get_buffer()
+    {
+      assert(m_buffer_ptr);
+      return *m_buffer_ptr;
+    }
     /*
      * abstract virtual functions
      */
