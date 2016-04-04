@@ -94,7 +94,8 @@ class VariantFieldBase
     virtual ~VariantFieldBase() = default;
     virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter) = 0;
     virtual void clear() { ; }
-    virtual void print(std::ostream& fptr) const { ; }
+    virtual void print(std::ostream& fptr) const  = 0;
+    virtual void print_csv(std::ostream& fptr) const  = 0;
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
     virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const = 0;
     virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements) = 0;
@@ -195,6 +196,8 @@ class VariantFieldData : public VariantFieldBase
     }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
+    virtual void print(std::ostream& fptr) const { fptr << m_data; }
+    virtual void print_csv(std::ostream& fptr) const { fptr << m_data; }
   private:
     DataType m_data;
 };
@@ -250,6 +253,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
     virtual std::string& get()  { return m_data; }
     virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << "\"" << m_data << "\""; }
+    virtual void print_csv(std::ostream& fptr) const { fptr << m_data; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { fptr << "\"" << m_data << "\"" ; }
     virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
     {
@@ -365,6 +369,23 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
           fptr << "," << val;
       }
       fptr << " ]";
+    }
+    virtual void print_csv(std::ostream& fptr) const
+    {
+      if(m_length_descriptor != BCF_VL_FIXED)
+        fptr << m_data.size() << ",";
+      //Print blanks for invalid cells
+      auto first_elem = true;
+      for(auto val : m_data)
+      {
+        if(first_elem)
+        {
+          fptr << val;
+          first_elem = false;
+        }
+        else
+          fptr << "," << val;
+      }
     }
     virtual void print_Cotton_JSON(std::ostream& fptr) const
     {
@@ -497,6 +518,21 @@ class VariantFieldALTData : public VariantFieldBase
           fptr << ",\"" << ptr << "\"";
       }
       fptr << " ]";
+    }
+    virtual void print_csv(std::ostream& fptr) const
+    {
+      auto first_elem = true;
+      for(auto& val : m_data)
+      {
+        auto& ptr = IS_NON_REF_ALLELE(val) ? g_vcf_NON_REF : val;
+        if(first_elem)
+        {
+          fptr << ptr;
+          first_elem = false;
+        }
+        else
+          fptr << "," << ptr;
+      }
     }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { print(fptr); }
     virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
