@@ -186,4 +186,122 @@ inline bool is_tiledb_missing_value(const double val)
   return (x.i == g_tiledb_null_double.i);
 }
 
+//Convert string to type - handling null values, empty string etc
+//Return TileDB null values
+template<class T>
+inline T from_string_to_tiledb(const char* str);
+
+//Exceptions thrown
+class StringConversionException : public std::exception {
+  public:
+    StringConversionException(const std::string m="") : msg_("StringConversionException : "+m) { ; }
+    ~StringConversionException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
+
+//Template specializations
+template<>
+inline int from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<int>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtoll(str, &endptr, 0);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to integer");
+    return val;
+  }
+}
+
+template<>
+inline unsigned from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<unsigned>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtoull(str, &endptr, 0);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to unsigned");
+    return val;
+  }
+}
+
+template<>
+inline int64_t from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<int64_t>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtoll(str, &endptr, 0);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to int64_t");
+    return val;
+  }
+}
+
+template<>
+inline uint64_t from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<uint64_t>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtoull(str, &endptr, 0);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to uint64_t");
+    return val;
+  }
+}
+
+template<>
+inline float from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<float>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtof(str, &endptr);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to float");
+    return val;
+  }
+}
+
+template<>
+inline double from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return get_tiledb_null_value<double>();
+  else
+  {
+    char* endptr = 0;
+    auto val = strtod(str, &endptr);
+    if(endptr == str)
+      throw StringConversionException(std::string("Cannot convert string ")+str+" to double");
+    return val;
+  }
+}
+
+template<>
+inline std::string from_string_to_tiledb(const char* str)
+{
+  if(str == 0 || str[0] == '\0')
+    return "";
+  else
+    return std::string(str);
+}
+
 #endif
