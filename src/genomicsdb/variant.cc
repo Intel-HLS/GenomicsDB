@@ -473,24 +473,24 @@ void print_field(std::ostream& fptr,
         else
           first_valid = false;
         switch(field_type) {
-          case INDICES_IDX:
+          case VariantPrintTypesEnum::VARIANT_PRINT_INDICES_IDX:
             fptr << call.get_row_idx();
             break;
-          case START_IDX:
+          case VariantPrintTypesEnum::VARIANT_PRINT_START_IDX:
             tile_position = call.get_column_begin();
             assert(tile_position >= contig_info->m_tiledb_column_offset);
             assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
             // Adding 1 as TileDB is 0-based and genomics (VCF) is 1-based
             fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
-          case END_IDX:
+          case VariantPrintTypesEnum::VARIANT_PRINT_END_IDX:
             tile_position = call.get_column_end();
             assert(tile_position >= contig_info->m_tiledb_column_offset);
             assert((tile_position - contig_info->m_tiledb_column_offset) < contig_info->m_length);
             // Adding 1 as TileDB is 0-based and genomics (VCF) is 1-based
             fptr << (tile_position - contig_info->m_tiledb_column_offset + 1);
             break;
-          case ATTRIBUTE_IDX:
+          case VariantPrintTypesEnum::VARIANT_PRINT_ATTRIBUTE_IDX:
             call.print_Cotton_JSON(fptr, attribute_index);
             break;
           default:
@@ -510,22 +510,22 @@ void print_fields(std::ostream& fptr,
 {
   std::string indent = json_indent_unit;
   fptr << indent + "\"indices\" : [ ";
-  print_field(fptr, variants, starts, ends, contig_info, INDICES_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, VariantPrintTypesEnum::VARIANT_PRINT_INDICES_IDX);
   fptr << " ],\n";
 
   fptr << indent + "\"POSITION\" : [ ";
-  print_field(fptr, variants, starts, ends, contig_info, START_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, VariantPrintTypesEnum::VARIANT_PRINT_START_IDX);
   fptr << " ],\n";
 
   fptr << indent + "\"END\" : [ ";
-  print_field(fptr, variants, starts, ends, contig_info, END_IDX);
+  print_field(fptr, variants, starts, ends, contig_info, VariantPrintTypesEnum::VARIANT_PRINT_END_IDX);
   fptr << " ],\n";
 
   //other attributes, start from 1 as the first queried attribute is always END
   for(auto i=1u;i<query_config.get_num_queried_attributes();++i)
   {
     fptr << indent + "\"" + query_config.get_query_attribute_name(i) + "\" : [ ";
-    print_field(fptr, variants, starts, ends, contig_info, ATTRIBUTE_IDX, i);
+    print_field(fptr, variants, starts, ends, contig_info, VariantPrintTypesEnum::VARIANT_PRINT_ATTRIBUTE_IDX, i);
     fptr << " ]";
     if(i+1u >= query_config.get_num_queried_attributes())       //last query, no comma
       fptr << "\n";

@@ -41,15 +41,18 @@ class CallSetInfo
     {
       m_row_idx = -1;
       m_file_idx = -1;
+      m_idx_in_file = 0;
     }
-    void set_info(const int64_t row_idx, const std::string& name, const int64_t file_idx=-1)
+    void set_info(const int64_t row_idx, const std::string& name, const int64_t file_idx=-1, const int64_t idx_in_file=0)
     {
       m_row_idx = row_idx;
       m_file_idx = file_idx;
       m_name = name;
+      m_idx_in_file = idx_in_file;
     }
     int64_t m_row_idx;
     int64_t m_file_idx;
+    int64_t m_idx_in_file;
     std::string m_name;
 };
 
@@ -266,10 +269,18 @@ class VidMapper
       for(const auto& pair : m_file_idx_to_info[file_idx].m_local_tiledb_row_idx_pairs)
       {
         if(static_cast<size_t>(pair.first) >= row_idx_vec.size())
-          row_idx_vec.resize(static_cast<size_t>(pair.first)+1ull);
+          row_idx_vec.resize(static_cast<size_t>(pair.first)+1ull, -1ll);
         row_idx_vec[pair.first] = pair.second;
       }
       return true;
+    }
+    /*
+     * Get idx in file for a given row
+     */
+    unsigned get_idx_in_file_for_row_idx(const int64_t row_idx) const
+    {
+      assert(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+      return m_row_idx_to_info[row_idx].m_idx_in_file;
     }
     /*
      * Given a filename, return #callsets within that file being processed 

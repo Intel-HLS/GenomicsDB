@@ -774,12 +774,12 @@ enum VariantOutputFormatEnum
   DEFAULT_OUTPUT_FORMAT_IDX
 };
 
-enum VaritantPrintTypesEnum
+enum VariantPrintTypesEnum
 {
-    INDICES_IDX = 0,
-    START_IDX,
-    END_IDX,
-    ATTRIBUTE_IDX
+    VARIANT_PRINT_INDICES_IDX = 0,
+    VARIANT_PRINT_START_IDX,
+    VARIANT_PRINT_END_IDX,
+    VARIANT_PRINT_ATTRIBUTE_IDX
 };
 
 /*

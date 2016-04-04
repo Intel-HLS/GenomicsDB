@@ -487,6 +487,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       if(row_idx > m_limit_callset_row_idx)
         continue;
       int64_t file_idx = -1;
+      //idx in file
+      auto idx_in_file = 0ll;
       if(callset_info_dict.HasMember("filename"))
       {
         std::string filename = std::move(callset_info_dict["filename"].GetString());
@@ -501,8 +503,6 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         }
         else
           file_idx = (*iter).second;
-        //local callset idx
-        auto idx_in_file = 0ll;
         if(callset_info_dict.HasMember("idx_in_file"))
           idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
         assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
@@ -510,7 +510,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       }
       m_callset_name_to_row_idx[callset_name] = row_idx;
       VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx);
+      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
     }
   }
   m_file_idx_to_info.resize(num_files);

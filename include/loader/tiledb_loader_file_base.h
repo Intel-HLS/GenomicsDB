@@ -50,6 +50,7 @@ class File2TileDBBinaryColumnPartitionBase
     File2TileDBBinaryColumnPartitionBase()
     {
       m_base_reader_ptr = 0;
+      m_buffer_ptr = 0;
     }
     virtual ~File2TileDBBinaryColumnPartitionBase();
     void clear()
@@ -57,6 +58,7 @@ class File2TileDBBinaryColumnPartitionBase
       m_begin_buffer_offset_for_local_callset.clear();
       m_last_full_line_end_buffer_offset_for_local_callset.clear();
       m_buffer_offset_for_local_callset.clear();
+      m_buffer_full_for_local_callset.clear();
     }
     //Delete copy constructor
     File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
@@ -65,6 +67,25 @@ class File2TileDBBinaryColumnPartitionBase
     void initialize_base_class_members(const int64_t begin, const int64_t end,
         const uint64_t num_enabled_callsets, FileReaderBase* ptr);
     FileReaderBase* get_base_reader_ptr() { return m_base_reader_ptr; }
+    /*
+     * Buffer control access functions
+     */
+    bool is_buffer_full(unsigned idx_in_file) const
+    {
+      assert(idx_in_file < m_buffer_full_for_local_callset.size());
+      return m_buffer_full_for_local_callset[idx_in_file];
+    }
+    void set_buffer_full_if_true(unsigned idx_in_file, bool val)
+    {
+      assert(idx_in_file < m_buffer_full_for_local_callset.size());
+      m_buffer_full_for_local_callset[idx_in_file] = m_buffer_full_for_local_callset[idx_in_file] || val;
+    }
+    void reset_buffer_full(unsigned idx_in_file)
+    {
+      assert(idx_in_file < m_buffer_full_for_local_callset.size());
+      m_buffer_full_for_local_callset[idx_in_file] = false;
+    }
+    std::vector<uint8_t>* get_buffer_ptr() { return m_buffer_ptr; }
     /*
      * abstract virtual functions
      */
@@ -79,6 +100,10 @@ class File2TileDBBinaryColumnPartitionBase
     std::vector<int64_t> m_last_full_line_end_buffer_offset_for_local_callset;
     //Current value of offset
     std::vector<int64_t> m_buffer_offset_for_local_callset;
+    //Buffer full flags - 1 per callset
+    std::vector<bool> m_buffer_full_for_local_callset;
+    //Pointer to buffer
+    std::vector<uint8_t>* m_buffer_ptr;
     FileReaderBase* m_base_reader_ptr;
 };
 
@@ -159,6 +184,12 @@ class File2TileDBBinaryBase
      */
     virtual uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const = 0;
   protected:
+    inline int64_t get_enabled_idx_for_local_callset_idx(int64_t local_callset_idx) const
+    {
+      assert(local_callset_idx >= 0 && static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_enabled_idx.size());
+      return m_local_callset_idx_to_enabled_idx[local_callset_idx];
+    }
+  protected:
     bool m_parallel_partitions;
     bool m_noupdates;
     bool m_close_file;
@@ -171,6 +202,8 @@ class File2TileDBBinaryBase
     std::vector<int64_t> m_local_callset_idx_to_tiledb_row_idx;
     //Enabled local callset idx
     std::vector<int64_t> m_enabled_local_callset_idx_vec;
+    //Local callset idx to enabled idx
+    std::vector<int64_t> m_local_callset_idx_to_enabled_idx;
     //Reader
     FileReaderBase* m_base_reader_ptr;
     //Partition read state - pointers to objects of sub-classes of File2TileDBBinaryColumnPartitionBase

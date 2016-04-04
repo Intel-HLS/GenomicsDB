@@ -11,9 +11,12 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
   m_last_full_line_end_buffer_offset_for_local_callset =
     std::move(other.m_last_full_line_end_buffer_offset_for_local_callset);
   m_buffer_offset_for_local_callset = std::move(other.m_buffer_offset_for_local_callset);
+  m_buffer_full_for_local_callset = std::move(other.m_buffer_full_for_local_callset);
   //Move and nullify other
   m_base_reader_ptr = other.m_base_reader_ptr;
   other.m_base_reader_ptr = 0;
+  m_buffer_ptr = other.m_buffer_ptr;
+  other.m_buffer_ptr = 0;
 }
 
 File2TileDBBinaryColumnPartitionBase::~File2TileDBBinaryColumnPartitionBase()
@@ -33,6 +36,7 @@ void File2TileDBBinaryColumnPartitionBase::initialize_base_class_members(const i
   m_buffer_offset_for_local_callset.resize(num_enabled_callsets);
   m_begin_buffer_offset_for_local_callset.resize(num_enabled_callsets);
   m_last_full_line_end_buffer_offset_for_local_callset.resize(num_enabled_callsets);
+  m_buffer_full_for_local_callset.resize(num_enabled_callsets, false);
   m_base_reader_ptr = reader_ptr;
 }
 
@@ -184,10 +188,16 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_parallel_partitions = parallel_partitions;
   m_noupdates = noupdates;
   m_close_file = close_file;
+  //Callset mapping
   vid_mapper.get_local_tiledb_row_idx_vec(filename, m_local_callset_idx_to_tiledb_row_idx);
-  m_enabled_local_callset_idx_vec.resize(m_local_callset_idx_to_tiledb_row_idx.size());
+  m_local_callset_idx_to_enabled_idx.resize(m_local_callset_idx_to_tiledb_row_idx.size(), -1ll);
+  m_enabled_local_callset_idx_vec.clear();
   for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
-    m_enabled_local_callset_idx_vec[i] = i;
+    if(m_local_callset_idx_to_tiledb_row_idx[i] >= 0)
+    {
+      m_local_callset_idx_to_enabled_idx[i] = m_enabled_local_callset_idx_vec.size();
+      m_enabled_local_callset_idx_vec.push_back(i);
+    }
   m_base_reader_ptr = 0;
   m_histogram = 0;
 }
@@ -230,6 +240,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(File2TileDBBinaryBase&& other)
   m_filename = std::move(other.m_filename);
   m_local_callset_idx_to_tiledb_row_idx = std::move(other.m_local_callset_idx_to_tiledb_row_idx);
   m_enabled_local_callset_idx_vec = std::move(other.m_enabled_local_callset_idx_vec);
+  m_local_callset_idx_to_enabled_idx = std::move(other.m_local_callset_idx_to_enabled_idx);
   m_base_reader_ptr = other.m_base_reader_ptr;
   other.m_base_reader_ptr = 0;
   m_base_partition_ptrs = std::move(other.m_base_partition_ptrs);
@@ -261,6 +272,7 @@ void File2TileDBBinaryBase::clear()
   m_filename.clear();
   m_local_callset_idx_to_tiledb_row_idx.clear();
   m_enabled_local_callset_idx_vec.clear();
+  m_local_callset_idx_to_enabled_idx.clear();
   m_base_partition_ptrs.clear();
 }
 
@@ -347,6 +359,10 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
   auto has_data = seek_and_fetch_position(partition_info, m_close_file, false);
   auto buffer_full = false;
   auto read_one_line_fully = false;
+  //Set buffer full to false
+  for(auto i=0ull;i<partition_info.m_buffer_full_for_local_callset.size();++i)
+    partition_info.m_buffer_full_for_local_callset[i] = false;
+  partition_info.m_buffer_ptr = &(buffer);
   while(has_data && !buffer_full)
   {
     buffer_full = convert_record_to_binary(buffer, partition_info);

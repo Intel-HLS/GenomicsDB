@@ -309,10 +309,8 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   auto* fptr = bcf_open(m_filename.c_str(), "r");
   auto* hdr = bcf_hdr_read(fptr);
   //Callset mapping
-  m_local_callset_idx_to_tiledb_row_idx = std::move(std::vector<int64_t>(bcf_hdr_nsamples(hdr), -1ll));
-  m_vid_mapper->get_local_tiledb_row_idx_vec(m_filename, m_local_callset_idx_to_tiledb_row_idx);
   //Length might be more than what's available in hdr due to JSON error
-  m_local_callset_idx_to_tiledb_row_idx.resize(bcf_hdr_nsamples(hdr));
+  m_local_callset_idx_to_tiledb_row_idx.resize(bcf_hdr_nsamples(hdr), -1ll);
   //Store only enabled callsets
   m_enabled_local_callset_idx_vec.clear();
   for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
