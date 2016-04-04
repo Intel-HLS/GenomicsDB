@@ -25,7 +25,7 @@
 
 #include "vid_mapper.h"
 #include "column_partition_batch.h"
-#include "vcf2binary.h"
+#include "tiledb_loader_file_base.h"
 #include "load_operators.h"
 #include "json_config.h"
 
@@ -150,7 +150,8 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
   private:
     void clear();
     void initialize_column_batch_objects();
-    void initialize_vcf2binary_objects();
+    void initialize_file2binary_objects();
+    File2TileDBBinaryBase* create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx);
   private:
     VidMapper* m_vid_mapper;
     //One per partition
@@ -158,8 +159,8 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     //Vector of vector of strings, outer vector corresponds to FILTER, INFO, FORMAT
     std::vector<std::vector<std::string>> m_vcf_fields;
     //One per VCF file
-    std::vector<VCF2Binary> m_vcf2binary_handlers;
-    //Ordering of TileDB row idx for this converter - determined by the order of m_vcf2binary_handlers
+    std::vector<File2TileDBBinaryBase*> m_file2binary_handlers;
+    //Ordering of TileDB row idx for this converter - determined by the order of m_file2binary_handlers
     std::vector<int64_t> m_tiledb_row_idx_to_order;
     //References to ping-pong buffers 
     //May point to buffers owned by this object or by VCF2TileDBLoader depending on the configuration

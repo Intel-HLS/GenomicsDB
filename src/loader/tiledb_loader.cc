@@ -25,6 +25,8 @@
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
 #include "timer.h"
+#include "vcf2binary.h"
+#include "tiledb_loader_text_file.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2TileDBException(#X);
 
@@ -165,7 +167,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   }
   determine_num_callsets_owned(m_vid_mapper, false);
   m_max_size_per_callset = m_per_partition_size/m_num_callsets_owned;
-  initialize_vcf2binary_objects();
+  initialize_file2binary_objects();
   initialize_column_batch_objects();
   //For standalone converter objects, allocate ping-pong buffers and exchange objects
   if(m_standalone_converter_process)
@@ -179,6 +181,12 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
 
 VCF2TileDBConverter::~VCF2TileDBConverter()
 {
+  for(auto& ptr : m_file2binary_handlers)
+  {
+    if(ptr)
+      delete ptr;
+    ptr = 0;
+  }
   clear();
   if(m_standalone_converter_process && m_vid_mapper)
     delete m_vid_mapper;
@@ -190,11 +198,44 @@ void VCF2TileDBConverter::clear()
   m_cell_data_buffers.clear();
   m_partition_batch.clear();
   m_vcf_fields.clear();
-  m_vcf2binary_handlers.clear();
+  m_file2binary_handlers.clear();
   m_exchanges.clear();
 }
 
-void VCF2TileDBConverter::initialize_vcf2binary_objects()
+File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx)
+{
+  File2TileDBBinaryBase* file2binary_base_ptr = 0;
+  switch(file_info.m_type)
+  {
+    case VidFileTypeEnum::VCF_FILE_TYPE:
+      file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new VCF2Binary(
+            file_info.m_name, m_vcf_fields, local_file_idx, *m_vid_mapper,
+            m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
+            : get_sorted_column_partitions(),
+            m_max_size_per_callset,
+            m_treat_deletions_as_intervals,
+            false, false, false, m_discard_vcf_index
+            ));
+      break;
+    case VidFileTypeEnum::SORTED_CSV_FILE_TYPE:
+    case VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE:
+      file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new CSV2TileDBBinary(
+            file_info.m_name, local_file_idx, *m_vid_mapper,
+            m_max_size_per_callset,
+            m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
+            : get_sorted_column_partitions(),
+            m_treat_deletions_as_intervals,
+            false, false, false
+            ));
+      break;
+    default:
+      throw VCF2TileDBException(std::string("Unknown file type "+std::to_string(file_info.m_type)));
+      break;
+  }
+  return file2binary_base_ptr;
+}
+
+void VCF2TileDBConverter::initialize_file2binary_objects()
 {
   //VCF fields
   m_vid_mapper->build_vcf_fields_vectors(m_vcf_fields);
@@ -206,15 +247,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
     for(auto i=0ull;i<global_file_idx_vec.size();++i)
     {
       auto global_file_idx = global_file_idx_vec[i];
-      auto& file_info = m_vid_mapper->get_file_info(global_file_idx);
-      m_vcf2binary_handlers.emplace_back( 
-          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, 
-          m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
-          : get_sorted_column_partitions(),
-          m_max_size_per_callset,
-          m_treat_deletions_as_intervals,
-          false, false, false, m_discard_vcf_index
-          );
+      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(global_file_idx), i));
     }
   }
   else
@@ -223,16 +256,7 @@ void VCF2TileDBConverter::initialize_vcf2binary_objects()
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
     auto partition_bounds=std::vector<ColumnRange>(1u, get_column_partition());
     for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
-    {
-      auto global_file_idx = i;
-      auto& file_info = m_vid_mapper->get_file_info(global_file_idx);
-      m_vcf2binary_handlers.emplace_back(
-          file_info.m_name, m_vcf_fields, i, *m_vid_mapper, partition_bounds,
-          m_max_size_per_callset,
-          m_treat_deletions_as_intervals,
-          false, false, false, m_discard_vcf_index
-          );
-    }
+      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i));
   }
 }
 
@@ -247,8 +271,8 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   //Update row idx to ordering
   m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_vid_mapper->get_num_callsets(), -1ll));
   int64_t order = 0ll;
-  for(const auto& x : m_vcf2binary_handlers)
-    x.set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
+  for(const auto& x : m_file2binary_handlers)
+    x->set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
   assert(order == m_num_callsets_owned);
 }
 
@@ -268,7 +292,7 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     auto status = (m_standalone_converter_process || m_row_based_partitioning)
       ? m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx)
       : m_vid_mapper->get_global_file_idx_for_row(row_idx, local_file_idx);
-    assert(status && local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_vcf2binary_handlers.size());
+    assert(status && local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_file2binary_handlers.size());
     //Activate file - enable fetch flag and reserve entry in circular buffer
     m_partition_batch[partition_idx].activate_file(local_file_idx);
   }
@@ -288,19 +312,19 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
       //Find callsets which still have new data in this partition
       int64_t idx_offset = curr_exchange.get_idx_offset_for_partition(partition_idx);
       auto begin_idx_offset = idx_offset;
-      for(auto& vcf_handler : m_vcf2binary_handlers)
-        vcf_handler.list_active_row_idxs(m_partition_batch[partition_idx], idx_offset,
+      for(auto& file2binary_handler : m_file2binary_handlers)
+        file2binary_handler->list_active_row_idxs(m_partition_batch[partition_idx], idx_offset,
             curr_exchange.m_all_tiledb_row_idx_vec_response);
       curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = idx_offset - begin_idx_offset;
     }
   //Set upper bound on #files to process in parallel
 #pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files)
-  for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
+  for(auto i=0u;i<m_file2binary_handlers.size();++i)
   {
     //#pragma omp critical
     //std::cerr << "Thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
     //Also advances circular buffer idx
-    m_vcf2binary_handlers[i].read_next_batch(m_cell_data_buffers, m_partition_batch, false);
+    m_file2binary_handlers[i]->read_next_batch(m_cell_data_buffers, m_partition_batch, false);
   }
   //For non-standalone converter processes, must simply advance read idx
   if(!m_standalone_converter_process)
@@ -361,10 +385,10 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
 #pragma omp declare reduction ( l0_sum_up : UniformHistogram* : omp_out->sum_up_histogram(omp_in) ) \
   initializer(omp_priv = new UniformHistogram(*omp_orig))
 #pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files) reduction(l0_sum_up : combined_histogram)
-  for(auto i=0u;i<m_vcf2binary_handlers.size();++i)
+  for(auto i=0u;i<m_file2binary_handlers.size();++i)
   {
-    m_vcf2binary_handlers[i].create_histogram(max_histogram_range, num_bins);
-    combined_histogram->sum_up_histogram(m_vcf2binary_handlers[i].get_histogram());
+    m_file2binary_handlers[i]->create_histogram(max_histogram_range, num_bins);
+    combined_histogram->sum_up_histogram(m_file2binary_handlers[i]->get_histogram());
   }
   combined_histogram->print(fptr);
   delete combined_histogram;
