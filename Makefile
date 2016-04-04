@@ -143,7 +143,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    load_operators.cc \
 			    variant_storage_manager.cc \
 			    query_variants.cc \
-			    tiledb_loader_file_base.cc
+			    tiledb_loader_file_base.cc \
+			    tiledb_loader_text_file.cc
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
     			    create_tiledb_workspace.cc \
