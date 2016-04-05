@@ -79,6 +79,17 @@ ifndef RAPIDJSON_INCLUDE_DIR
 endif
 CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 
+#libcsv - optional, but required if csvs need to be imported
+ifdef LIBCSV_DIR
+    CPPFLAGS+=-DUSE_LIBCSV -I$(LIBCSV_DIR)
+    LDFLAGS+=-L$(LIBCSV_DIR)/.libs -lcsv
+else
+    ifdef USE_LIBCSV
+	CPPFLAGS+=-DUSE_LIBCSV
+	LDFLAGS+=-lcsv
+    endif
+endif
+
 #BigMPI - optional
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI

@@ -736,7 +736,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
 #endif
 #ifdef PRODUCE_CSV_CELLS
   //Add newline
-  if(buffer_offset+sizeof(char) <= buffer_offset_limit)
+  if(static_cast<size_t>(buffer_offset)+sizeof(char) <= static_cast<size_t>(buffer_offset_limit))
   {
     buffer[buffer_offset] = '\n';
     buffer_offset += sizeof(char);
