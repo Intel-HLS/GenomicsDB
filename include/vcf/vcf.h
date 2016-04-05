@@ -205,11 +205,12 @@ class StringConversionException : public std::exception {
 };
 
 
+#define LEGACY_CSV_NULL_CHAR '*'
 //Template specializations
 template<>
 inline int from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<int>();
   else
   {
@@ -224,7 +225,7 @@ inline int from_string_to_tiledb(const char* str)
 template<>
 inline unsigned from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<unsigned>();
   else
   {
@@ -239,7 +240,7 @@ inline unsigned from_string_to_tiledb(const char* str)
 template<>
 inline int64_t from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<int64_t>();
   else
   {
@@ -254,7 +255,7 @@ inline int64_t from_string_to_tiledb(const char* str)
 template<>
 inline uint64_t from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<uint64_t>();
   else
   {
@@ -269,7 +270,7 @@ inline uint64_t from_string_to_tiledb(const char* str)
 template<>
 inline float from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<float>();
   else
   {
@@ -284,7 +285,7 @@ inline float from_string_to_tiledb(const char* str)
 template<>
 inline double from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return get_tiledb_null_value<double>();
   else
   {
@@ -299,7 +300,7 @@ inline double from_string_to_tiledb(const char* str)
 template<>
 inline std::string from_string_to_tiledb(const char* str)
 {
-  if(str == 0 || str[0] == '\0')
+  if(str == 0 || str[0] == '\0' || str[0] == LEGACY_CSV_NULL_CHAR)
     return "";
   else
     return std::string(str);

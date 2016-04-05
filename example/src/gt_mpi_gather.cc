@@ -42,7 +42,8 @@ enum ArgsEnum
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
   ARGS_IDX_PRODUCE_BROAD_GVCF,
   ARGS_IDX_PRODUCE_HISTOGRAM,
-  ARGS_IDX_PRINT_CALLS
+  ARGS_IDX_PRINT_CALLS,
+  ARGS_IDX_PRINT_CSV
 };
 
 enum CommandsEnum
@@ -50,7 +51,8 @@ enum CommandsEnum
   COMMAND_RANGE_QUERY=0,
   COMMAND_PRODUCE_BROAD_GVCF,
   COMMAND_PRODUCE_HISTOGRAM,
-  COMMAND_PRINT_CALLS
+  COMMAND_PRINT_CALLS,
+  COMMAND_PRINT_CSV
 };
 
 #define MegaByte (1024*1024)
@@ -316,15 +318,44 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
 }
 #endif
 
-void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config)
+void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, int command_idx)
 {
-  std::string indent_prefix = "    ";
-  VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix);
-  std::cout << "{\n";
-  std::cout << indent_prefix << "\"variant_calls\": [\n";
-  qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, 0u);
-  std::cout << "\n" << indent_prefix << "]\n";
-  std::cout << "}\n";
+  switch(command_idx)
+  {
+    case COMMAND_PRINT_CALLS:
+      {
+        std::string indent_prefix = "    ";
+        std::cout << "{\n";
+        //variant_calls is an array of dictionaries
+        std::cout << indent_prefix << "\"variant_calls\": [\n";
+        VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix+indent_prefix+indent_prefix);
+        for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
+        {
+          //Each dictionary contains 2 keys - query_interval and variant_calls
+          std::cout << indent_prefix << indent_prefix << "{\n";
+          std::cout << indent_prefix << indent_prefix << indent_prefix << "\"query_interval\": [ "
+            <<query_config.get_column_begin(i) <<", "<<query_config.get_column_end(i)<<" ],\n";
+          //variant_calls is an array of dictionaries
+          std::cout << indent_prefix << indent_prefix << indent_prefix << "\"variant_calls\": [\n";
+          qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, i);
+          std::cout << "\n" << indent_prefix << indent_prefix << indent_prefix << "]\n";
+          std::cout << indent_prefix << indent_prefix << "}\n";
+        }
+        std::cout << indent_prefix << "]\n";
+        std::cout << "}\n";
+        break;
+      }
+    case COMMAND_PRINT_CSV:
+      {
+        VariantCallPrintCSVOperator printer(std::cout);
+        for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
+          qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, i);
+        break;
+      }
+    default:
+      std::cerr << "Unknown print_calls command "<<command_idx<<"\n";
+      exit(-1);
+  }
 }
 
 void produce_column_histogram(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, uint64_t bin_size,
@@ -371,6 +402,7 @@ int main(int argc, char *argv[]) {
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
     {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
     {"print-calls",0,0,ARGS_IDX_PRINT_CALLS},
+    {"print-csv",0,0,ARGS_IDX_PRINT_CSV},
     {"array",1,0,'A'},
     {0,0,0,0},
   };
@@ -418,6 +450,9 @@ int main(int argc, char *argv[]) {
         break;
       case ARGS_IDX_PRINT_CALLS:
         command_idx = COMMAND_PRINT_CALLS;
+        break;
+      case ARGS_IDX_PRINT_CSV:
+        command_idx = COMMAND_PRINT_CSV;
         break;
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
@@ -490,6 +525,7 @@ int main(int argc, char *argv[]) {
       case COMMAND_PRODUCE_HISTOGRAM:
         break;  //no attributes
       case COMMAND_PRINT_CALLS:
+      case COMMAND_PRINT_CSV:
         query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
         break;
       default:
@@ -529,7 +565,8 @@ int main(int argc, char *argv[]) {
       produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
       break;
     case COMMAND_PRINT_CALLS:
-      print_calls(qp, query_config);
+    case COMMAND_PRINT_CSV:
+      print_calls(qp, query_config, command_idx);
       break;
   }
 #ifdef USE_GPERFTOOLS

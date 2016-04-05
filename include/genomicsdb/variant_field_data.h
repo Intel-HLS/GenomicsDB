@@ -524,14 +524,13 @@ class VariantFieldALTData : public VariantFieldBase
       auto first_elem = true;
       for(auto& val : m_data)
       {
-        auto& ptr = IS_NON_REF_ALLELE(val) ? g_vcf_NON_REF : val;
         if(first_elem)
         {
-          fptr << ptr;
+          fptr << val;
           first_elem = false;
         }
         else
-          fptr << "," << ptr;
+          fptr << "," << val;
       }
     }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { print(fptr); }

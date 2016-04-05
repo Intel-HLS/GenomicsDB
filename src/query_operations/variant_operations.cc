@@ -606,18 +606,41 @@ void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryC
   fptr << call.get_row_idx();
   fptr << "," << call.get_column_begin();
   fptr << "," << call.get_column_end();
-  for(auto i=0ull;i<query_config.get_num_queried_attributes();++i)
+  //First field is always END - ignore
+  for(auto i=1ull;i<query_config.get_num_queried_attributes();++i)
   {
+    fptr << ",";
     if(call.get_field(i).get() && call.get_field(i)->is_valid())
-      call.get_field(i)->print_csv(fptr);
+    {
+      //ALT is handled by concatenating elements with '|' as the separator
+      if(query_config.get_known_field_enum_for_query_idx(i) == GVCF_ALT_IDX)
+      {
+        auto ptr = call.get_field<VariantFieldALTData>(i);
+        assert(ptr);
+        const auto& alt_vector = ptr->get();
+        for(auto j=0u;j<alt_vector.size();++j)
+        {
+          if(j > 0u)
+            fptr << '|';
+          fptr << alt_vector[j];
+        }
+      }
+      else
+        call.get_field(i)->print_csv(fptr);
+    }
     else
     {
       auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
       if(schema.is_variable_length_field(schema_idx))
-        fptr << ",0";
+      {
+        auto variant_field_type_enum_idx = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema.type(schema_idx));
+        if(variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_STRING &&
+            variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_CHAR)
+          fptr << "0";
+      }
       else
       {
-        for(auto j=0;j<schema.val_num(schema_idx);++j)
+        for(auto j=0;j<schema.val_num(schema_idx)-1;++j)
           fptr << ",";
       }
     }
