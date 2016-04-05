@@ -56,7 +56,7 @@ CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
 #TileDB source
-TILEDB_BUILD_NUM_THREADS ?= 16
+TILEDB_BUILD_NUM_THREADS ?= 1
 ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
 endif
@@ -64,7 +64,7 @@ CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
 LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 
 #htslib
-HTSLIB_BUILD_NUM_THREADS ?= 8
+HTSLIB_BUILD_NUM_THREADS ?= 1
 ifndef HTSDIR
     HTSDIR=dependencies/htslib
 endif
