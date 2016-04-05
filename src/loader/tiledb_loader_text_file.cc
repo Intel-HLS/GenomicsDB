@@ -286,10 +286,10 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
     default:
       break;
   }
+  auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
   //Should store this row in buffer?
-  if(csv_line_parse_ptr->should_store_in_buffer() && csv_line_parse_ptr->get_enabled_idx_in_file() >= 0)
+  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(enabled_idx_in_file)))
   {
-    auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
     assert(enabled_idx_in_file >= 0);
     const int64_t begin_buffer_offset = csv_partition_info.m_begin_buffer_offset_for_local_callset[enabled_idx_in_file];
     const int64_t line_begin_buffer_offset = csv_partition_info.m_last_full_line_end_buffer_offset_for_local_callset[enabled_idx_in_file];
@@ -411,10 +411,10 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
 
 void CSV2TileDBBinary::handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr)
 {
+  auto& csv_partition_info = *(csv_line_parse_ptr->get_csv_column_partition_ptr());
   auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
-  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0)
+  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(enabled_idx_in_file)))
   {
-    auto& csv_partition_info = *(csv_line_parse_ptr->get_csv_column_partition_ptr());
     //If a fixed length field is at the end of the schema, then it's possible that the last field or last element
     //of the fixed length field is omitted
     if(csv_line_parse_ptr->get_field_idx() < m_array_schema->attribute_num())
