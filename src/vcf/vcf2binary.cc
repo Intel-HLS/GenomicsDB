@@ -555,6 +555,9 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       num_values = num_values/bcf_hdr_nsamples(hdr);
       ptr += (local_callset_idx*num_values);
     }
+    //Exclude trailing null characters for strings
+    if(is_vcf_str_type)
+      num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
     //variable length field, print #elements  first
     if(length_descriptor != BCF_VL_FIXED)
     {
