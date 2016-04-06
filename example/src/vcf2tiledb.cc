@@ -23,6 +23,7 @@
 #include "vcf2binary.h"
 #include "tiledb_loader.h"
 #include <mpi.h>
+#include <getopt.h>
 
 #ifdef USE_GPERFTOOLS
 #include "gperftools/profiler.h"
@@ -30,9 +31,28 @@
 
 int main(int argc, char** argv)
 {
-  if(argc <= 1)
+  // Define long options
+  static struct option long_options[] =
   {
-    std::cerr << "Needs 1 arg <json_config_file>\n";
+    {"tmp-directory",1,0,'T'},
+    {0,0,0,0},
+  };
+  int c;
+  while((c=getopt_long(argc, argv, "T:", long_options, NULL)) >= 0)
+  {
+    switch(c)
+    {
+      case 'T':
+        g_tmp_scratch_dir = optarg;
+        break;
+      default:
+        std::cerr << "Unknown parameter "<< argv[optind] << "\n";
+        exit(-1);
+    }
+  }
+  if(optind+1 > argc)
+  {
+    std::cerr << "Needs <loader_json_config_file>\n";
     exit(-1);
   }
   //Initialize MPI environment
@@ -51,7 +71,7 @@ int main(int argc, char** argv)
   ProfilerStart("gprofile.log");
 #endif
   //Loader object
-  VCF2TileDBLoader loader(argv[1], my_world_mpi_rank);
+  VCF2TileDBLoader loader(argv[optind], my_world_mpi_rank);
 #ifdef HTSDIR
   loader.read_all();
 #endif
