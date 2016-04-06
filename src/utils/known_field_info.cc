@@ -38,6 +38,7 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "ReadPosRankSum",
     "DP",
     "MQ",
+    "RAW_MQ",
     "MQ0",
     "DP_FORMAT",
     "MIN_DP",
@@ -193,6 +194,10 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
     case GVCF_SB_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
       g_known_field_enum_to_info[idx].m_num_elements = 4u;
+      break;
+    case GVCF_RAW_MQ_IDX:
+      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
+      g_known_field_enum_to_info[idx].m_num_elements = 1u;
       break;
     case GVCF_PGT_IDX:
     case GVCF_PID_IDX:

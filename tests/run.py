@@ -36,7 +36,7 @@ query_json_template_string="""
         "query_column_ranges" : [ [ [0, 10000000000 ] ] ],
         "query_row_ranges" : [ [ [0, 2 ] ] ],
         "reference_genome" : "inputs/chr1_10MB.fasta.gz",
-        "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
+        "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
 
 def create_query_json(ws_dir, test_name, query_column_range):

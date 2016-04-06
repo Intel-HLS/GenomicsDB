@@ -8,6 +8,7 @@
         "MQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
         "ReadPosRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
         "MQ":{ "vcf_field_class":["INFO"], "type":"float" },
+        "RAW_MQ":{ "vcf_field_class":["INFO"], "type":"float" },
         "MQ0":{ "vcf_field_class":["INFO"], "type":"int" },
         "DP": { "vcf_field_class":["INFO","FORMAT"], "type":"int" },
         "GQ": { "vcf_field_class":["FORMAT"], "type":"int" },

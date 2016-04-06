@@ -63,6 +63,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       MAKE_BCF_INFO_TUPLE(GVCF_MQRANKSUM_IDX, VARIANT_FIELD_FLOAT, BCF_HT_REAL),
       MAKE_BCF_INFO_TUPLE(GVCF_READPOSRANKSUM_IDX, VARIANT_FIELD_FLOAT, BCF_HT_REAL),
       MAKE_BCF_INFO_TUPLE(GVCF_MQ_IDX, VARIANT_FIELD_FLOAT, BCF_HT_REAL),
+      MAKE_BCF_INFO_TUPLE(GVCF_RAW_MQ_IDX, VARIANT_FIELD_FLOAT, BCF_HT_REAL),
       MAKE_BCF_INFO_TUPLE(GVCF_MQ0_IDX, VARIANT_FIELD_INT, BCF_HT_INT)
       });
   m_FORMAT_fields_vec = std::move(std::vector<FORMAT_tuple_type>
@@ -155,7 +156,7 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     int vcf_end_pos = m_remapped_variant.get_column_end() - m_curr_contig_begin_position + 1; //vcf END is 1 based
     bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "END", &vcf_end_pos, 1);
   }
-  //Compute median for all INFO fields
+  //Compute median for all INFO fields except RAW_MQ
   for(auto i=0u;i<m_INFO_fields_vec.size();++i)
   {
     auto& curr_tuple = m_INFO_fields_vec[i];
@@ -164,12 +165,31 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
     //valid field handler
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
-    //Just need a 4-byte value, the contents could be a float or int (determined by the templated median function)
-    int32_t median;
-    auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(variant, *m_query_config,
-        m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&median));
-    if(valid_median_found)
-      bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &median, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+    if(known_field_enum != GVCF_RAW_MQ_IDX)
+    {
+      //Just need a 4-byte value, the contents could be a float or int (determined by the templated median function)
+      int32_t median;
+      auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(variant, *m_query_config,
+          m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&median));
+      if(valid_median_found)
+        bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &median, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+    }
+    else
+    {
+      //RAW_MQ - was element wise sum initially
+      //auto num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(GVCF_RAW_MQ_IDX, 0u, 0u);
+      //auto result_vector = std::move(std::vector<int>(num_elements, 0u));
+      //auto valid_sum_found = m_field_handlers[variant_type_enum]->compute_valid_element_wise_sum(variant, *m_query_config,
+      //m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&(result_vector[0])), num_elements);
+      //Just need a 4-byte value, the contents could be a float or int (determined by the templated sum function)
+      int32_t sum;
+      auto valid_sum_found = m_field_handlers[variant_type_enum]->get_valid_sum(variant, *m_query_config,
+          m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&sum));
+      if(valid_sum_found)
+        bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &sum, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+      //bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &(result_vector[0]), num_elements,
+      //BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+    }
   }
 }
 

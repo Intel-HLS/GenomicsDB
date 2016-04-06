@@ -178,7 +178,9 @@ bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, con
       auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
       assert(ptr); 
       assert((ptr->get()).size() > 0u);
-      m_median_compute_vector[valid_idx++] = ptr->get()[0u];
+      auto val = ptr->get()[0u];
+      if(is_bcf_valid_value<DataType>(val))
+        m_median_compute_vector[valid_idx++] = val;
     }
   }
   if(valid_idx == 0u)   //no valid fields found
@@ -191,7 +193,7 @@ bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, con
 }
 
 template<class DataType>
-bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
+bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, void* output_ptr)
 {
   DataType sum = get_zero_value<DataType>();
@@ -208,8 +210,12 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
       auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
       assert(ptr); 
       assert((ptr->get()).size() > 0u);
-      sum += ptr->get()[0u];
-      ++valid_idx;
+      auto val = ptr->get()[0u];
+      if(is_bcf_valid_value<DataType>(val))
+      {
+        sum += val;
+        ++valid_idx;
+      }
     }
   }
   if(valid_idx == 0u)   //no valid fields found
@@ -217,6 +223,41 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
   auto result_ptr = reinterpret_cast<DataType*>(output_ptr);
   *result_ptr = sum;
   return true;
+}
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned num_elements)
+{
+  DataType* sum = reinterpret_cast<DataType*>(output_ptr);
+  for(auto i=0u;i<num_elements;++i)
+    sum[i] = get_zero_value<DataType>();
+  auto valid_idx = 0u;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr);
+      auto& vec = ptr->get();
+      assert(vec.size() > 0u);
+      for(auto i=0ull;i<vec.size() && i<num_elements;++i)
+      {
+        auto val = vec[i];
+        if(is_bcf_valid_value<DataType>(val))
+        {
+          sum[i] += val;
+          ++valid_idx;
+        }
+      }
+    }
+  }
+  return (valid_idx > 0u);
 }
 
 template<class DataType>
