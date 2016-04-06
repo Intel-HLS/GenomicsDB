@@ -169,6 +169,8 @@ class VariantFieldHandlerBase
         unsigned query_idx, void* output_ptr) = 0; 
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr) = 0; 
+    virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, unsigned& num_elements) = 0;
 };
@@ -205,6 +207,11 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      */
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr);
+    /*
+     * Computes element-wise sum for a given field over all Calls (only considers calls with valid field)
+     */
+    virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned num_elements);
     /*
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
