@@ -273,7 +273,20 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   int64_t order = 0ll;
   for(const auto& x : m_file2binary_handlers)
     x->set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
-  assert(order == m_num_callsets_owned);
+  //Could be less if multiple callsets point to the same order - this happens for CSV files with multiple callsets
+  assert(order <= m_num_callsets_owned);
+  m_order_to_designated_tiledb_row_idx = std::move(std::vector<int64_t>(order, -1ll));
+  //Assign smallest row idx to each order value
+  for(auto i=0ull;i<m_tiledb_row_idx_to_order.size();++i)
+  {
+    auto order = m_tiledb_row_idx_to_order[i];
+    if(order >= 0)
+    {
+      assert(static_cast<size_t>(order) < m_order_to_designated_tiledb_row_idx.size());
+      if(m_order_to_designated_tiledb_row_idx[order] < 0)
+        m_order_to_designated_tiledb_row_idx[order] = i;
+    }
+  }
 }
 
 void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const int partition_idx)
@@ -419,37 +432,37 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     //Allocate exchange objects
   }
   else
-  {
-    //Allocate exchange objects
-    for(auto& x : m_owned_exchanges)
-    {
-      x.initialize_from_loader(m_num_callsets_owned);
-      x.m_all_num_tiledb_row_idx_vec_request[0] = m_num_callsets_owned;
-      for(auto i=0ll;i<m_num_callsets_owned;++i)
-      {
-        assert(static_cast<size_t>(i) < m_owned_row_idx_vec.size());
-        x.m_all_tiledb_row_idx_vec_request[x.get_idx_offset_for_converter(0)+i] = m_owned_row_idx_vec[i];
-      }
-    }
+  { 
 #ifdef HTSDIR
     m_converter = new VCF2TileDBConverter(config_filename, idx, m_vid_mapper, &m_ping_pong_buffers, &m_owned_exchanges);
 #endif
+    //Num order values
+    auto num_order_values = get_num_order_values();
+    //Initialize exchange objects
+    for(auto& x : m_owned_exchanges)
+    {
+      x.initialize_from_loader(num_order_values);
+      x.m_all_num_tiledb_row_idx_vec_request[0] = num_order_values;
+      for(auto i=0ull;i<num_order_values;++i)
+        x.m_all_tiledb_row_idx_vec_request[x.get_idx_offset_for_converter(0)+i] = get_designated_row_idx_for_order(i);
+    }
   }
   //Allocate buffers
   for(auto i=0u;i<m_ping_pong_buffers.size();++i)
     m_ping_pong_buffers[i].resize(m_per_partition_size);
+  //Num order values
+  auto num_order_values = get_num_order_values();
   //Circular buffer control
-  m_order_idx_to_buffer_control.resize(m_num_callsets_owned, CircularBufferController(m_num_entries_in_circular_buffer));
+  m_order_idx_to_buffer_control.resize(num_order_values, CircularBufferController(m_num_entries_in_circular_buffer));
   //Priority queue elements
-  m_pq_vector.resize(m_num_callsets_owned);
-  m_rows_not_in_pq.resize(m_num_callsets_owned);
-  for(const auto row_idx : m_owned_row_idx_vec)
+  m_pq_vector.resize(num_order_values);
+  m_designated_rows_not_in_pq.resize(num_order_values);
+  for(auto order=0ull;order<num_order_values;++order)
   {
-    auto order = get_order_for_row_idx(row_idx);
-    assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
+    auto row_idx = get_designated_row_idx_for_order(order);
     m_pq_vector[order].m_row_idx = row_idx;
     m_pq_vector[order].m_offset = get_buffer_start_offset_for_row_idx(row_idx);
-    m_rows_not_in_pq[order] = row_idx;
+    m_designated_rows_not_in_pq[order] = row_idx;
   }
 #ifdef PRODUCE_BINARY_CELLS
   if(m_produce_combined_vcf)
@@ -589,15 +602,14 @@ bool VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& o
     for(auto i=0ll;i<curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];++i)
     {
       auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
-      assert(row_idx >= 0 && static_cast<size_t>(row_idx) < m_order_idx_to_buffer_control.size());
+      auto order = get_order_for_row_idx(row_idx);
+      assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
       //Add to next request
       curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset + i] = row_idx;
       //Ping pong buffering control
-      auto buffer_idx = m_order_idx_to_buffer_control[row_idx].get_read_idx();
-      assert(m_order_idx_to_buffer_control[row_idx].get_num_entries_with_valid_data() > 0u);
-      auto order = get_order_for_row_idx(row_idx);
-      assert(order >= 0);
-      int64_t offset = order*m_max_size_per_callset;
+      auto buffer_idx = m_order_idx_to_buffer_control[order].get_read_idx();
+      assert(m_order_idx_to_buffer_control[order].get_num_entries_with_valid_data() > 0u);
+      int64_t offset = get_buffer_start_offset_for_row_idx(row_idx);
       auto j=0ll;
       for(;j<m_max_size_per_callset;++j)
       {
@@ -607,7 +619,7 @@ bool VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& o
         else
           break;
       }
-      m_order_idx_to_buffer_control[row_idx].advance_read_idx();
+      m_order_idx_to_buffer_control[order].advance_read_idx();
     }
     curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx] = curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx];
     return (curr_exchange.m_all_num_tiledb_row_idx_vec_response[converter_idx] == 0);
@@ -636,7 +648,9 @@ bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
   //row idx in buffer == NULL, no more valid data
   if(row_idx_in_buffer == get_tiledb_null_value<int64_t>())
     return false;
-  assert(row_idx_in_buffer == row_idx);
+  //Must point to the same order value
+  assert(get_order_for_row_idx(row_idx_in_buffer) == order);
+  pq_element.m_row_idx = row_idx_in_buffer;
   pq_element.m_column = ptr[1];
   return true;
 }
@@ -678,13 +692,13 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
   auto converter_idx = 0u;
   auto idx_offset = curr_exchange.get_idx_offset_for_converter(converter_idx);
   //Add callsets that are not in PQ into the PQ if valid cells found
-  for(auto i=0ull;i<m_rows_not_in_pq.size();++i)
+  for(auto i=0ull;i<m_designated_rows_not_in_pq.size();++i)
   {
-    auto row_idx = m_rows_not_in_pq[i];
+    auto row_idx = m_designated_rows_not_in_pq[i];
     auto valid_cell_found = read_cell_from_buffer(row_idx);
     auto order = get_order_for_row_idx(row_idx);
     assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
-    assert(m_pq_vector[order].m_row_idx == row_idx);
+    assert(get_order_for_row_idx(m_pq_vector[order].m_row_idx) == order);
     if(valid_cell_found)
     {
       m_column_major_pq.push(&(m_pq_vector[order]));
@@ -693,12 +707,13 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     else
       m_pq_vector[order].m_completed = true;
   }
-  auto num_rows_not_in_pq = 0ull;
+  auto num_designated_rows_not_in_pq = 0ull;
   //No re-allocation as resize() doesn't reduce capacity
-  m_rows_not_in_pq.resize(m_num_callsets_owned);
+  m_designated_rows_not_in_pq.resize(get_num_order_values());
   auto top_column = -1ll;
   auto hit_invalid_cell = false;
-  while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
+  //while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
+  while(!m_column_major_pq.empty() && !hit_invalid_cell)
   {
     auto* top_ptr = m_column_major_pq.top();
     m_column_major_pq.pop();
@@ -720,32 +735,26 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
         hit_invalid_cell = true;
         top_column = top_ptr->m_column;
       }
-      m_rows_not_in_pq[num_rows_not_in_pq++] = row_idx;
+      m_designated_rows_not_in_pq[num_designated_rows_not_in_pq++] = get_designated_row_idx_for_order(order);
     }
   }
   //No re-allocation as resize() doesn't reduce capacity
-  m_rows_not_in_pq.resize(num_rows_not_in_pq);
+  m_designated_rows_not_in_pq.resize(num_designated_rows_not_in_pq);
   //Find rows to request in next batch - rows which have empty space
   auto num_rows_in_next_request = 0ull;
-  for(auto i=0ll;i<m_num_callsets_owned;++i)
+  for(auto order=0ull;order<get_num_order_values();++order)
   {
-    auto& pq_element = m_pq_vector[i];
-    auto row_idx = m_pq_vector[i].m_row_idx;
+    auto& pq_element = m_pq_vector[order];
     pq_element.m_crossed_one_buffer = false;
-#ifdef DEBUG
-    auto order = get_order_for_row_idx(row_idx);
-    assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
-    assert(order == i);
-#endif
     //Space in circular buffer
-    if(!pq_element.m_completed && m_order_idx_to_buffer_control[i].get_num_empty_entries() > 0u)
+    if(!pq_element.m_completed && m_order_idx_to_buffer_control[order].get_num_empty_entries() > 0u)
     {
-      curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset + num_rows_in_next_request] = row_idx;
+      curr_exchange.m_all_tiledb_row_idx_vec_request[idx_offset + num_rows_in_next_request] = get_designated_row_idx_for_order(order);
       ++num_rows_in_next_request;
     }
   }
   curr_exchange.m_all_num_tiledb_row_idx_vec_request[converter_idx] = num_rows_in_next_request;
-  return (m_column_major_pq.empty() && num_rows_in_next_request == 0u && num_rows_not_in_pq == 0u);
+  return (m_column_major_pq.empty() && num_rows_in_next_request == 0u && num_designated_rows_not_in_pq == 0u);
 }
 
 void VCF2TileDBLoader::clear()

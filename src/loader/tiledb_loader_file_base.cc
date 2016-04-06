@@ -290,33 +290,6 @@ void File2TileDBBinaryBase::clear()
   m_base_partition_ptrs.clear();
 }
 
-void File2TileDBBinaryBase::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
-{
-  for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
-  {
-    assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
-    auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
-    assert(row_idx >= 0);
-    assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
-    tiledb_row_idx_to_order[row_idx] = order_value++;
-  }
-}
-
-void File2TileDBBinaryBase::list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
-{
-  auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
-  if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
-  {
-    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
-    {
-      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
-      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
-      assert(row_idx >= 0);
-      row_idx_vec[row_idx_offset++] = row_idx;
-    }
-  }
-}
-
 void File2TileDBBinaryBase::read_next_batch(std::vector<std::vector<uint8_t>*>& buffer_vec,
     std::vector<ColumnPartitionBatch>& partition_batches, bool close_file)
 {

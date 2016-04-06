@@ -134,11 +134,11 @@ class File2TileDBBinaryBase
     /*
      * Set order of enabled callsets
      */
-    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
+    virtual void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const = 0;
     /*
      * List active row idxs
      */
-    void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
+    virtual void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const = 0;
     /*
      * */
     void read_next_batch(std::vector<std::vector<uint8_t>*>& buffer_vec,

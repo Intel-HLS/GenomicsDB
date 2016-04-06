@@ -392,6 +392,33 @@ bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2Til
   return buffer_full;
 }
 
+void VCF2Binary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
+{
+  for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+  {
+    assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+    auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+    assert(row_idx >= 0);
+    assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
+    tiledb_row_idx_to_order[row_idx] = order_value++;
+  }
+}
+
+void VCF2Binary::list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
+{
+  auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
+  if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
+  {
+    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    {
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      row_idx_vec[row_idx_offset++] = row_idx;
+    }
+  }
+}
+
 inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf1_t* line)
 {
   //Different contig, update offset value

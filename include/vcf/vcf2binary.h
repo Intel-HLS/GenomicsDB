@@ -135,6 +135,16 @@ class VCF2Binary : public File2TileDBBinaryBase
     //Initialization functions
     void initialize(const std::vector<ColumnRange>& partition_bounds);
     //Abstract virtual functions in base class that must be defined 
+    /*
+     * Set order of enabled callsets
+     * In VCFs, each line contains data from all callsets
+     */
+    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
+    /*
+     * List active row idxs
+     * In VCFs, each line contains data from all callsets
+     */
+    void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
     void initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds);
     /*
      * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used

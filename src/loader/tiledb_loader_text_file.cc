@@ -161,6 +161,43 @@ void CSV2TileDBBinary::initialize_column_partitions(const std::vector<ColumnRang
   }
 }
 
+void CSV2TileDBBinary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
+{
+  //Point all callsets to the same value of order i.e. the order value for the first callset
+  //This ensures that effectively, a single buffer space is allocated for all callsets in this 
+  //file
+  if(m_enabled_local_callset_idx_vec.size())
+  {
+    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    {
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
+      tiledb_row_idx_to_order[row_idx] = order_value;
+    }
+    order_value++;
+  }
+}
+
+void CSV2TileDBBinary::list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
+{
+  auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
+  if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
+  {
+    //Effectively inform loader that only 1 callset in this file is ready
+    //Since all callsets in this file use the same buffer space, it doesn't really matter
+    if(m_enabled_local_callset_idx_vec.size())
+    {
+      auto local_callset_idx = m_enabled_local_callset_idx_vec[0];
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      row_idx_vec[row_idx_offset++] = row_idx;
+    }
+  }
+}
+
 bool CSV2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader)
 {
   auto& csv_partition_info = dynamic_cast<CSV2TileDBBinaryColumnPartition&>(partition_info);
@@ -212,6 +249,8 @@ void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
   auto field_idx = csv_line_parse_ptr->get_field_idx(); 
   auto num_elements = csv_line_parse_ptr->get_num_elements();
   auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
+  //Direct all data to the buffer corresponding to the first enabled callset in this file
+  auto buffer_idx = 0u;
   //For fixed length fields, set length first
   if(!(csv_line_parse_ptr->read_num_elements()) && !(m_array_schema->is_variable_length_field(field_idx)))
   {
@@ -227,10 +266,10 @@ void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
     {
 #ifdef PRODUCE_BINARY_CELLS
       //Copy length into buffer
-      csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+      csv_partition_info.set_buffer_full_if_true(buffer_idx,
           tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, strlen(token_ptr)));
 #endif
-      csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+      csv_partition_info.set_buffer_full_if_true(buffer_idx,
           tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, token_ptr));
       //since field is already handled, set num elements to 0
       //code at the end of the function will increment field idx
@@ -239,14 +278,14 @@ void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
     else
     {
       num_elements = from_string_to_tiledb<int>(token_ptr);
-      csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+      csv_partition_info.set_buffer_full_if_true(buffer_idx,
           tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_elements));
     }
     csv_line_parse_ptr->set_num_elements(num_elements);
   }
   else
   {
-    csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+    csv_partition_info.set_buffer_full_if_true(buffer_idx,
       tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit,
           from_string_to_tiledb<FieldType>(token_ptr)));
     csv_line_parse_ptr->increment_field_element_idx();
@@ -287,13 +326,14 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
       break;
   }
   auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
+  //Direct all data to the buffer corresponding to the first enabled callset in this file
+  auto buffer_idx = 0u;
   //Should store this row in buffer?
-  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(enabled_idx_in_file)))
+  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(buffer_idx)))
   {
-    assert(enabled_idx_in_file >= 0);
-    const int64_t begin_buffer_offset = csv_partition_info.m_begin_buffer_offset_for_local_callset[enabled_idx_in_file];
-    const int64_t line_begin_buffer_offset = csv_partition_info.m_last_full_line_end_buffer_offset_for_local_callset[enabled_idx_in_file];
-    int64_t& buffer_offset = csv_partition_info.m_buffer_offset_for_local_callset[enabled_idx_in_file];
+    const int64_t begin_buffer_offset = csv_partition_info.m_begin_buffer_offset_for_local_callset[buffer_idx];
+    const int64_t line_begin_buffer_offset = csv_partition_info.m_last_full_line_end_buffer_offset_for_local_callset[buffer_idx];
+    int64_t& buffer_offset = csv_partition_info.m_buffer_offset_for_local_callset[buffer_idx];
     assert(line_begin_buffer_offset >= begin_buffer_offset && line_begin_buffer_offset <= static_cast<int64_t>(begin_buffer_offset + m_max_size_per_callset));
     assert(buffer_offset >= begin_buffer_offset && buffer_offset <= static_cast<int64_t>(begin_buffer_offset + m_max_size_per_callset));
     assert(buffer_offset >= line_begin_buffer_offset);
@@ -304,20 +344,20 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
       case TileDBCSVFieldPosIdxEnum::TILEDB_CSV_ROW_POS_IDX:
         {
           //Do not print sep when printing row idx
-          csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+          csv_partition_info.set_buffer_full_if_true(buffer_idx,
             tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, from_string_to_tiledb<int64_t>(token_ptr),
                 false));
           break;
         }
       case TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX:
         {
-          csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+          csv_partition_info.set_buffer_full_if_true(buffer_idx,
             tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, from_string_to_tiledb<int64_t>(token_ptr)));
 #ifdef PRODUCE_BINARY_CELLS
           //reserve space for cell size
           csv_line_parse_ptr->set_cell_size_offset(buffer_offset);
           buffer_offset += sizeof(size_t);
-          csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file, buffer_offset > buffer_offset_limit);
+          csv_partition_info.set_buffer_full_if_true(buffer_idx, buffer_offset > buffer_offset_limit);
 #endif
           break;
         }
@@ -329,7 +369,7 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
           {
             case VariantArraySchemaFixedFieldsEnum::VARIANT_ARRAY_SCHEMA_END_IDX:
               {
-                csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+                csv_partition_info.set_buffer_full_if_true(buffer_idx,
                   tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit,
                       from_string_to_tiledb<int64_t>(token_ptr)));
                 break;
@@ -338,18 +378,18 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
             case VariantArraySchemaFixedFieldsEnum::VARIANT_ARRAY_SCHEMA_ALT_IDX:
               {
 #ifdef PRODUCE_BINARY_CELLS
-                csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+                csv_partition_info.set_buffer_full_if_true(buffer_idx,
                   tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
                       strlen(token_ptr)));
 #endif
-                csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+                csv_partition_info.set_buffer_full_if_true(buffer_idx,
                   tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit,
                       token_ptr));
                 break;
               }
             case VariantArraySchemaFixedFieldsEnum::VARIANT_ARRAY_SCHEMA_QUAL_IDX:
               {
-                csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
+                csv_partition_info.set_buffer_full_if_true(buffer_idx,
                   tiledb_buffer_print<float>(buffer, buffer_offset, buffer_offset_limit,
                       from_string_to_tiledb<float>(token_ptr)));
                 break;
@@ -413,34 +453,33 @@ void CSV2TileDBBinary::handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr
 {
   auto& csv_partition_info = *(csv_line_parse_ptr->get_csv_column_partition_ptr());
   auto enabled_idx_in_file = csv_line_parse_ptr->get_enabled_idx_in_file();
-  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(enabled_idx_in_file)))
+  //Direct all data to the buffer corresponding to the first enabled callset in this file
+  auto buffer_idx = 0u;
+  if(csv_line_parse_ptr->should_store_in_buffer() && enabled_idx_in_file >= 0 && !(csv_partition_info.is_buffer_full(buffer_idx)))
   {
     //If a fixed length field is at the end of the schema, then it's possible that the last field or last element
     //of the fixed length field is omitted
     if(csv_line_parse_ptr->get_field_idx() < m_array_schema->attribute_num())
       handle_token(csv_line_parse_ptr, "", 0);
     assert(csv_line_parse_ptr->get_field_idx() == m_array_schema->attribute_num());
-    if(!(csv_partition_info.is_buffer_full(enabled_idx_in_file)))
-    {
-      const int64_t begin_buffer_offset = csv_partition_info.m_begin_buffer_offset_for_local_callset[enabled_idx_in_file];
-      const int64_t line_begin_buffer_offset =
-        csv_partition_info.m_last_full_line_end_buffer_offset_for_local_callset[enabled_idx_in_file];
-      int64_t& buffer_offset = csv_partition_info.m_buffer_offset_for_local_callset[enabled_idx_in_file];
-      const int64_t buffer_offset_limit = begin_buffer_offset + m_max_size_per_callset;
+    const int64_t begin_buffer_offset = csv_partition_info.m_begin_buffer_offset_for_local_callset[buffer_idx];
+    const int64_t line_begin_buffer_offset =
+      csv_partition_info.m_last_full_line_end_buffer_offset_for_local_callset[buffer_idx];
+    int64_t& buffer_offset = csv_partition_info.m_buffer_offset_for_local_callset[buffer_idx];
+    const int64_t buffer_offset_limit = begin_buffer_offset + m_max_size_per_callset;
 #ifdef PRODUCE_BINARY_CELLS
-      //Write cell size into buffer
-      auto cell_size_offset = csv_line_parse_ptr->get_cell_size_offset();
-      assert(cell_size_offset >= 0);
-      auto buffer_full = tiledb_buffer_print<size_t>(csv_partition_info.get_buffer(), cell_size_offset, buffer_offset_limit,
-          buffer_offset-line_begin_buffer_offset);
-      assert(!buffer_full);
+    //Write cell size into buffer
+    auto cell_size_offset = csv_line_parse_ptr->get_cell_size_offset();
+    assert(cell_size_offset >= 0);
+    auto buffer_full = tiledb_buffer_print<size_t>(csv_partition_info.get_buffer(), cell_size_offset, buffer_offset_limit,
+        buffer_offset-line_begin_buffer_offset);
+    assert(!buffer_full);
 #endif
 #ifdef PRODUCE_CSV_CELLS
-      //Add newline
-      csv_partition_info.set_buffer_full_if_true(enabled_idx_in_file,
-          tiledb_buffer_print<char>(csv_partition_info.get_buffer(), buffer_offset, buffer_offset_limit, '\n'));
+    //Add newline
+    csv_partition_info.set_buffer_full_if_true(buffer_idx,
+        tiledb_buffer_print<char>(csv_partition_info.get_buffer(), buffer_offset, buffer_offset_limit, '\n'));
 #endif
-    }
   }
 }
 
@@ -454,7 +493,9 @@ bool CSV2TileDBBinary::parse_line(const char* line, CSV2TileDBBinaryColumnPartit
       csv_parse_callback, csv_line_end_callback,
       reinterpret_cast<void*>(&(parse_obj)));
 #endif
-  return (store_in_buffer && csv_partition_info.is_buffer_full(parse_obj.get_enabled_idx_in_file()));
+  //Direct all data to the buffer corresponding to the first enabled callset in this file
+  auto buffer_idx = 0u;
+  return (store_in_buffer && csv_partition_info.is_buffer_full(buffer_idx));
 }
 
 void csv_parse_callback(void* token_ptr, size_t field_size, void* parse_ptr)
