@@ -225,11 +225,14 @@ bool CSV2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionB
     {
       //First read
       csv_reader_ptr->read_and_advance();
-      for(auto line=csv_reader_ptr->get_line();line != 0;csv_reader_ptr->read_and_advance())
+      auto line = csv_reader_ptr->get_line();
+      while(line != 0)
       {
         parse_line(line, csv_partition_info, TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX, false);        //parse only till column idx
         if(csv_partition_info.m_current_column_position >= csv_partition_info.m_column_interval_begin)
           break;
+        csv_reader_ptr->read_and_advance();
+        line = csv_reader_ptr->get_line();
       }
       csv_partition_info.set_initialized_file_position_to_partition_begin(true);
     }
