@@ -202,7 +202,8 @@ void VCF2TileDBConverter::clear()
   m_exchanges.clear();
 }
 
-File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx)
+File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx,
+    const std::vector<ColumnRange>& partition_bounds)
 {
   File2TileDBBinaryBase* file2binary_base_ptr = 0;
   switch(file_info.m_type)
@@ -210,8 +211,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
     case VidFileTypeEnum::VCF_FILE_TYPE:
       file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new VCF2Binary(
             file_info.m_name, m_vcf_fields, local_file_idx, *m_vid_mapper,
-            m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
-            : get_sorted_column_partitions(),
+            partition_bounds,
             m_max_size_per_callset,
             m_treat_deletions_as_intervals,
             false, false, false, m_discard_vcf_index
@@ -222,8 +222,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
       file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new CSV2TileDBBinary(
             file_info.m_name, local_file_idx, *m_vid_mapper,
             m_max_size_per_callset,
-            m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
-            : get_sorted_column_partitions(),
+            partition_bounds,
             m_treat_deletions_as_intervals,
             false, false, false
             ));
@@ -242,21 +241,23 @@ void VCF2TileDBConverter::initialize_file2binary_objects()
   //If standalone or row partitioning, deal only with subset of files assigned to this converter
   if(m_standalone_converter_process || m_row_based_partitioning)
   {
+    auto partition_bounds = m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
+            : get_sorted_column_partitions();
     //Get list of files handled by this converter
     auto& global_file_idx_vec = m_vid_mapper->get_global_file_idxs_owned_by(m_idx);
     for(auto i=0ull;i<global_file_idx_vec.size();++i)
     {
       auto global_file_idx = global_file_idx_vec[i];
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(global_file_idx), i));
+      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(global_file_idx), i, partition_bounds));
     }
   }
   else
   {
     //Same process as loader - must read all files
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
-    auto partition_bounds=std::vector<ColumnRange>(1u, get_column_partition());
+    auto partition_bounds = std::vector<ColumnRange>(1u, get_column_partition());
     for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i));
+      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i, partition_bounds));
   }
 }
 

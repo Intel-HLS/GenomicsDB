@@ -159,7 +159,8 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     void clear();
     void initialize_column_batch_objects();
     void initialize_file2binary_objects();
-    File2TileDBBinaryBase* create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx);
+    File2TileDBBinaryBase* create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx,
+        const std::vector<ColumnRange>& partition_bounds);
   private:
     VidMapper* m_vid_mapper;
     //One per partition
