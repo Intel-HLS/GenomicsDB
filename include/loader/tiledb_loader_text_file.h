@@ -221,7 +221,11 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
     //Define move constructor
     CSV2TileDBBinary(CSV2TileDBBinary&& other)
       : LineBasedTextFile2TileDBBinary(std::move(other))
-    { }
+    {
+      m_cleanup_file = other.m_cleanup_file;
+      other.m_cleanup_file = false;
+    }
+    ~CSV2TileDBBinary();
     //Functions that must be over-ridden by all sub-classes
     /*
      * Set order of enabled callsets
@@ -281,6 +285,8 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
         std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
         VariantFieldTypeEnum variant_field_type_enum);
     void handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr);
+  private:
+    bool m_cleanup_file;
 };
 
 /*

@@ -114,8 +114,6 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     //Buffer for obtaining data from htslib 
     uint8_t* m_vcf_get_buffer;
     uint64_t m_vcf_get_buffer_size;
-    //Used by move constructor
-    void copy_simple_members(const VCFColumnPartition& other);
 };
 
 class VCF2Binary : public File2TileDBBinaryBase 
@@ -185,8 +183,6 @@ class VCF2Binary : public File2TileDBBinaryBase
     std::vector<int> m_local_contig_idx_to_global_contig_idx;
     //Local field idx to global field idx
     std::vector<int> m_local_field_idx_to_global_field_idx;
-    //Used by move constructor
-    void copy_simple_members(const VCF2Binary& other);
 };
 
 #endif //ifdef HTSDIR

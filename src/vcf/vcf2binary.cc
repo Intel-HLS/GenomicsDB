@@ -230,20 +230,14 @@ void VCFReader::read_and_advance()
   }
 }
 
-//VCFColumnPartition functions
-void VCFColumnPartition::copy_simple_members(const VCFColumnPartition& other)
+//Move constructor
+VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
+  : File2TileDBBinaryColumnPartitionBase(std::move(other))
 {
   m_local_contig_idx = other.m_local_contig_idx;
   m_contig_position = other.m_contig_position;
   m_contig_tiledb_column_offset = other.m_contig_tiledb_column_offset;
   m_vcf_get_buffer_size = other.m_vcf_get_buffer_size;
-}
-
-//Move constructor
-VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
-  : File2TileDBBinaryColumnPartitionBase(std::move(other))
-{
-  copy_simple_members(other);
   m_vcf_get_buffer = other.m_vcf_get_buffer;
   other.m_vcf_get_buffer = 0;
   other.m_vcf_get_buffer_size = 0;
@@ -275,17 +269,12 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
   initialize(partition_bounds);
 }
 
-void VCF2Binary::copy_simple_members(const VCF2Binary& other)
-{
-  m_vcf_fields = other.m_vcf_fields;
-  m_discard_index = other.m_discard_index;
-}
-
 //Move constructor
 VCF2Binary::VCF2Binary(VCF2Binary&& other)
   : File2TileDBBinaryBase(std::move(other))
 {
-  copy_simple_members(other);
+  m_vcf_fields = other.m_vcf_fields;
+  m_discard_index = other.m_discard_index;
   m_regions = std::move(other.m_regions);
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);

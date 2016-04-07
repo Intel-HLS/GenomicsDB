@@ -107,6 +107,7 @@ CSV2TileDBBinary::CSV2TileDBBinary(const std::string& filename,
           treat_deletions_as_intervals,
           parallel_partitions, noupdates, close_file)
 {
+  m_cleanup_file = false;
   auto file_type = 0u;
   auto status = vid_mapper.get_file_type(filename, file_type);
   if(!status)
@@ -133,9 +134,18 @@ CSV2TileDBBinary::CSV2TileDBBinary(const std::string& filename,
      throw LineBasedTextFileException(std::string("Sort failed for file ")+filename);
     m_filename = sorted_filename;
     free(sorted_filename);
+    m_cleanup_file = true;
   }
   //Initialize partition info
   initialize_base_column_partitions(partition_bounds);
+}
+
+CSV2TileDBBinary::~CSV2TileDBBinary()
+{
+  //Cleanup if unsorted csv file
+  if(m_cleanup_file)
+    remove(m_filename.c_str());
+  m_cleanup_file = false;
 }
 
 void CSV2TileDBBinary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
