@@ -123,6 +123,20 @@ def main():
                         ] }
                     ]
             },
+            { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": [
+                        "golden_outputs/t0_1_2_calls_at_0",
+                        "golden_outputs/t0_1_2_variants_at_0",
+                        "golden_outputs/t0_1_2_vcf_at_0",
+                    ] },
+                    { "query_column_ranges" : [12150, 1000000000], "golden_output": [
+                        "golden_outputs/t0_1_2_calls_at_12150",
+                        "golden_outputs/t0_1_2_variants_at_12150",
+                        "golden_outputs/t0_1_2_vcf_at_12150",
+                        ] }
+                    ]
+            },
             { "name" : "t0_overlapping" },
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 "query_params": [
@@ -155,7 +169,7 @@ def main():
                 stdout=subprocess.PIPE);
         stdout_string = pid.communicate()[0]
         if(pid.returncode != 0):
-            sys.stderr.write('Loader test: '+test_name+'failed\n');
+            sys.stderr.write('Loader test: '+test_name+' failed\n');
             cleanup_and_exit(tmpdir, -1);
         md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
         if('golden_output' in test_params_dict):

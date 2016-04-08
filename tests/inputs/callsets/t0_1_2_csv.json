@@ -1,0 +1,20 @@
+{
+    "callsets" : {
+        "HG00141" : {
+            "row_idx" : 0,
+            "idx_in_file": 0,
+            "filename": "inputs/callsets/t0_1_2.csv"
+        },
+        "HG01958" : {
+            "row_idx" : 1,
+            "idx_in_file": 1,
+            "filename": "inputs/callsets/t0_1_2.csv"
+        },
+        "HG01530" : {
+            "row_idx" : 2,
+            "idx_in_file": 2,
+            "filename": "inputs/callsets/t0_1_2.csv"
+        }
+    },
+    "unsorted_csv_files" :[ "inputs/callsets/t0_1_2.csv" ]
+}
