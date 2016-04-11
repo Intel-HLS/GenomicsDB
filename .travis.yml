@@ -2,9 +2,17 @@
 sudo: required
 dist: trusty
 
+env:
+    - LD_LIBRARY_PATH=dependencies/libcsv/.libs
+
 install:
     #Install lcov and MPICH
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev
+    #Install libcsv
+    - cd $TRAVIS_BUILD_DIR
+    - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
+    - mkdir -p dependencies/libcsv && tar xzf dependencies/libcsv.tar.gz  -C dependencies/libcsv --strip-components=1 && cd dependencies/libcsv && ./configure && make
+    - cd $TRAVIS_BUILD_DIR
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
 
@@ -12,7 +20,7 @@ before_script:
     - lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 -j 4
+    - make BUILD=debug-coverage TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 LIBCSV_DIR=dependencies/libcsv -j 4
     - python tests/run.py 
 
 after_success:
