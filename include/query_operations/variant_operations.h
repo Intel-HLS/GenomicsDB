@@ -126,6 +126,7 @@ class SingleVariantOperatorBase
     {
       clear();
       m_NON_REF_exists = false;
+      m_remapping_needed = true;
     }
     void clear();
     /*
@@ -143,6 +144,9 @@ class SingleVariantOperatorBase
     //Merged reference allele and ALT alleles
     std::string m_merged_reference_allele;
     std::vector<std::string> m_merged_alt_alleles;
+    //Flag that determines if any allele re-ordering occurred and whether fields such
+    //as PL/AD need to be re-ordered
+    bool m_remapping_needed;
 };
 
 class DummyGenotypingOperator : public SingleVariantOperatorBase

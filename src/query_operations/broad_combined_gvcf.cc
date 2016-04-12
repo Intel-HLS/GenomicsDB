@@ -217,7 +217,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
     //else we should use field objects from the original variant
     auto query_field_idx = m_query_config->get_query_idx_for_known_field_enum(known_field_enum);
-    auto& src_variant = (KnownFieldInfo::is_length_allele_dependent(known_field_enum)) ? m_remapped_variant : variant;
+    auto& src_variant = (m_remapping_needed && KnownFieldInfo::is_length_allele_dependent(known_field_enum)) ? m_remapped_variant : variant;
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements);
     if(valid_field_found)
