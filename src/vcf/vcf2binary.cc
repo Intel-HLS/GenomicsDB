@@ -162,7 +162,7 @@ void VCFReader::add_reader()
   assert(m_indexed_reader->nreaders == 0);      //no existing files are open
   assert(m_fptr == 0);  //normal file handle should be NULL
   if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
-    throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" or its index doesn't index - VCF/BCF files must be block compressed and indexed");
+    throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
 }
 
 void VCFReader::remove_reader()
