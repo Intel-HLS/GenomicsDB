@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=dependencies/libcsv/.libs
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs
 
 install:
     #Install lcov and MPICH
