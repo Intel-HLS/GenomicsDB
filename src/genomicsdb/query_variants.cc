@@ -467,7 +467,7 @@ void VariantQueryProcessor::iterate_over_cells(
     for(auto i=0ull;i<query_row_idx_in_order.size();++i)
     {
       assert(interval_begin_variant.get_call(query_row_idx_in_order[i]).is_valid());
-      variant_operator.operate(interval_begin_variant.get_call(query_row_idx_in_order[i]), query_config);
+      variant_operator.operate(interval_begin_variant.get_call(query_row_idx_in_order[i]), query_config, get_array_schema());
     }
 #endif
     //Now deal with calls that begin AFTER begin position
@@ -493,7 +493,7 @@ void VariantQueryProcessor::iterate_over_cells(
       gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
       //When cells are duplicated at the END, then the VariantCall object need not be valid
       if(curr_call.is_valid())
-        variant_operator.operate(curr_call, query_config);
+        variant_operator.operate(curr_call, query_config, get_array_schema());
     }
   }
   delete forward_iter;

@@ -39,6 +39,15 @@ class VariantArraySchemaException : public std::exception {
     std::string msg_;
 };
 
+enum VariantArraySchemaFixedFieldsEnum
+{
+  VARIANT_ARRAY_SCHEMA_END_IDX=0u,
+  VARIANT_ARRAY_SCHEMA_REF_IDX,
+  VARIANT_ARRAY_SCHEMA_ALT_IDX,
+  VARIANT_ARRAY_SCHEMA_QUAL_IDX,
+  VARIANT_ARRAY_SCHEMA_FILTER_IDX
+};
+
 class AttributeInfo
 {
   public:

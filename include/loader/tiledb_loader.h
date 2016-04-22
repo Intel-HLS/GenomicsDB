@@ -25,7 +25,7 @@
 
 #include "vid_mapper.h"
 #include "column_partition_batch.h"
-#include "vcf2binary.h"
+#include "tiledb_loader_file_base.h"
 #include "load_operators.h"
 #include "json_config.h"
 
@@ -146,11 +146,21 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
       assert(static_cast<size_t>(row_idx) < m_tiledb_row_idx_to_order.size());
       return m_tiledb_row_idx_to_order[row_idx];
     }
+    inline int64_t get_designated_row_idx_for_order(const int64_t order) const
+    {
+      assert(order >= 0 && static_cast<size_t>(order) < m_order_to_designated_tiledb_row_idx.size());
+      auto val = m_order_to_designated_tiledb_row_idx[order];
+      assert(val >= 0 && static_cast<size_t>(val) < m_tiledb_row_idx_to_order.size());
+      return val;
+    }
+    inline size_t get_num_order_values() const { return m_order_to_designated_tiledb_row_idx.size(); }
     void create_and_print_histogram(const std::string& config_filename, std::ostream& fptr=std::cout);
   private:
     void clear();
     void initialize_column_batch_objects();
-    void initialize_vcf2binary_objects();
+    void initialize_file2binary_objects();
+    File2TileDBBinaryBase* create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx,
+        const std::vector<ColumnRange>& partition_bounds);
   private:
     VidMapper* m_vid_mapper;
     //One per partition
@@ -158,9 +168,12 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     //Vector of vector of strings, outer vector corresponds to FILTER, INFO, FORMAT
     std::vector<std::vector<std::string>> m_vcf_fields;
     //One per VCF file
-    std::vector<VCF2Binary> m_vcf2binary_handlers;
-    //Ordering of TileDB row idx for this converter - determined by the order of m_vcf2binary_handlers
+    std::vector<File2TileDBBinaryBase*> m_file2binary_handlers;
+    //Multiple row_idx could point to the same order
+    //Ordering of TileDB row idx for this converter - determined by the order of m_file2binary_handlers
     std::vector<int64_t> m_tiledb_row_idx_to_order;
+    //Order to row_idx - points to one designated row_idx for a given order value
+    std::vector<int64_t> m_order_to_designated_tiledb_row_idx;
     //References to ping-pong buffers 
     //May point to buffers owned by this object or by VCF2TileDBLoader depending on the configuration
     std::vector<std::vector<uint8_t>*> m_cell_data_buffers; 
@@ -239,6 +252,22 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       return row_idx;
 #endif
     }
+    inline int64_t get_designated_row_idx_for_order(const int64_t order) const
+    {
+#ifdef HTSDIR
+      return m_standalone_converter_process ? order : m_converter->get_designated_row_idx_for_order(order);
+#else
+      return order;
+#endif
+    }
+    inline size_t get_num_order_values() const
+    {
+#ifdef HTSDIR
+      return m_standalone_converter_process ? m_num_callsets_owned : m_converter->get_num_order_values();
+#else
+      return m_num_callsets_owned;
+#endif
+    }
     inline int64_t get_buffer_start_offset_for_row_idx(const int64_t row_idx) const
     {
       assert(get_order_for_row_idx(row_idx) >= 0 && get_order_for_row_idx(row_idx) < m_num_callsets_owned);
@@ -267,7 +296,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     std::vector<CellPQElement> m_pq_vector;
     TileDBColumnMajorPQ m_column_major_pq;
     //Row idxs not in PQ - need to be inserted in next call
-    std::vector<int64_t> m_rows_not_in_pq;
+    std::vector<int64_t> m_designated_rows_not_in_pq;
     //Operators - act on one cell per call
     std::vector<LoaderOperatorBase*> m_operators;
 };

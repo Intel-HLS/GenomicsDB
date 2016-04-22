@@ -79,6 +79,17 @@ ifndef RAPIDJSON_INCLUDE_DIR
 endif
 CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 
+#libcsv - optional, but required if csvs need to be imported
+ifdef LIBCSV_DIR
+    CPPFLAGS+=-DUSE_LIBCSV -I$(LIBCSV_DIR)
+    LDFLAGS+=-L$(LIBCSV_DIR)/.libs -lcsv
+else
+    ifdef USE_LIBCSV
+	CPPFLAGS+=-DUSE_LIBCSV
+	LDFLAGS+=-lcsv
+    endif
+endif
+
 #BigMPI - optional
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
@@ -142,7 +153,9 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    variant_operations.cc \
 			    load_operators.cc \
 			    variant_storage_manager.cc \
-			    query_variants.cc
+			    query_variants.cc \
+			    tiledb_loader_file_base.cc \
+			    tiledb_loader_text_file.cc
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
     			    create_tiledb_workspace.cc \

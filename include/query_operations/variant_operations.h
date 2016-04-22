@@ -257,14 +257,14 @@ class SingleCellOperatorBase
 {
   public:
     SingleCellOperatorBase() { ; }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)  { ; }
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)  { ; }
 };
 
 class ColumnHistogramOperator : public SingleCellOperatorBase
 {
   public:
     ColumnHistogramOperator(uint64_t begin, uint64_t end, uint64_t bin_size);
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config);
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
     bool equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr=std::cout) const; 
   private:
     std::vector<uint64_t> m_bin_counts_vector;
@@ -281,7 +281,7 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
       {
         m_num_calls_printed = 0ull;
       }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config)
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
     {
       if(m_num_calls_printed > 0ull)
         (*m_fptr) << ",\n";
@@ -291,6 +291,19 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
   private:
     uint64_t m_num_calls_printed;
     std::string m_indent_prefix;
+    std::ostream* m_fptr;
+};
+
+//Dump CSV
+class VariantCallPrintCSVOperator : public SingleCellOperatorBase
+{
+  public:
+    VariantCallPrintCSVOperator(std::ostream& fptr=std::cout)
+      : SingleCellOperatorBase(), m_fptr(&fptr)
+      {
+      }
+    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+  private:
     std::ostream* m_fptr;
 };
 

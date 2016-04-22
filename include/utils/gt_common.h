@@ -69,4 +69,6 @@ extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field
 extern std::unordered_map<std::type_index, int> g_variant_field_type_index_to_tiledb_type;
 extern std::vector<std::type_index> g_tiledb_type_to_variant_field_type_index;
 
+extern std::string g_tmp_scratch_dir;
+
 #endif

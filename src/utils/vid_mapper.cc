@@ -488,6 +488,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       if(row_idx > m_limit_callset_row_idx)
         continue;
       int64_t file_idx = -1;
+      //idx in file
+      auto idx_in_file = 0ll;
       if(callset_info_dict.HasMember("filename"))
       {
         std::string filename = std::move(callset_info_dict["filename"].GetString());
@@ -502,8 +504,6 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         }
         else
           file_idx = (*iter).second;
-        //local callset idx
-        auto idx_in_file = 0ll;
         if(callset_info_dict.HasMember("idx_in_file"))
           idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
         assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
@@ -511,7 +511,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       }
       m_callset_name_to_row_idx[callset_name] = row_idx;
       VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx);
+      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
     }
   }
   m_file_idx_to_info.resize(num_files);
@@ -539,6 +539,24 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         }
       }
       sort_and_assign_local_file_idxs_for_partition(owner_idx);
+    }
+  }
+  //CSV files
+  for(const auto& val : std::vector<std::string>({"sorted_csv_files", "unsorted_csv_files"}))
+  {
+    if(json_doc.HasMember(val.c_str()))
+    {
+      const auto& csv_file_array = json_doc[val.c_str()];
+      auto is_sorted_file = (val == "sorted_csv_files");
+      //is an array
+      VERIFY_OR_THROW(csv_file_array.IsArray());
+      for(rapidjson::SizeType i=0;i<csv_file_array.Size();++i)
+      {
+        int64_t global_file_idx;
+        auto found = get_global_file_idx(csv_file_array[i].GetString(), global_file_idx);
+        if(found)
+          m_file_idx_to_info[global_file_idx].m_type = is_sorted_file ? VidFileTypeEnum::SORTED_CSV_FILE_TYPE : VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE;
+      }
     }
   }
 }

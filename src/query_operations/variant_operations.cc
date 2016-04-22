@@ -563,7 +563,7 @@ ColumnHistogramOperator::ColumnHistogramOperator(uint64_t begin, uint64_t end, u
   memset(&(m_bin_counts_vector[0]), 0, num_bins*sizeof(uint64_t));
 }
 
-void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfig& query_config)
+void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
 {
   auto call_begin = call.get_column_begin();
   auto bin_idx = call_begin <= m_begin_column ? 0ull
@@ -609,3 +609,50 @@ void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryCon
   }
 }
 
+void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
+{
+  auto& fptr = *m_fptr;
+  fptr << call.get_row_idx();
+  fptr << "," << call.get_column_begin();
+  fptr << "," << call.get_column_end();
+  //First field is always END - ignore
+  for(auto i=1ull;i<query_config.get_num_queried_attributes();++i)
+  {
+    fptr << ",";
+    if(call.get_field(i).get() && call.get_field(i)->is_valid())
+    {
+      //ALT is handled by concatenating elements with '|' as the separator
+      if(query_config.get_known_field_enum_for_query_idx(i) == GVCF_ALT_IDX)
+      {
+        auto ptr = call.get_field<VariantFieldALTData>(i);
+        assert(ptr);
+        const auto& alt_vector = ptr->get();
+        for(auto j=0u;j<alt_vector.size();++j)
+        {
+          if(j > 0u)
+            fptr << '|';
+          fptr << alt_vector[j];
+        }
+      }
+      else
+        call.get_field(i)->print_csv(fptr);
+    }
+    else
+    {
+      auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
+      if(schema.is_variable_length_field(schema_idx))
+      {
+        auto variant_field_type_enum_idx = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema.type(schema_idx));
+        if(variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_STRING &&
+            variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_CHAR)
+          fptr << "0";
+      }
+      else
+      {
+        for(auto j=0;j<schema.val_num(schema_idx)-1;++j)
+          fptr << ",";
+      }
+    }
+  }
+  fptr << "\n";
+}
