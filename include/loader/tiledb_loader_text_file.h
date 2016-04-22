@@ -20,6 +20,13 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+/*
+ * We use libcsv (https://sourceforge.net/projects/libcsv/) to parse CSV files. libcsv
+ * is licensed under the GNU Library or Lesser General Public License version 2.0 (LGPLv2).
+ * So, if you are re-distributing binaries or object files, they may be subject to LGPLv2 terms.
+ * Please ensure that any binaries/object files you distribute are compliant with LGPLv2.
+ */ 
+
 #ifndef TILEDB_LOADER_TEXT_FILE_H
 #define TILEDB_LOADER_TEXT_FILE_H
 
