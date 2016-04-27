@@ -454,6 +454,8 @@ class VidMapper
     static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
     static std::unordered_map<std::string, std::type_index> m_typename_string_to_type_index;
     static std::unordered_map<std::string, int> m_typename_string_to_bcf_ht_type;
+    //Max #rows in the array - used to define domains
+    int64_t m_max_num_rows_in_array;
 };
 
 //Exceptions thrown 
@@ -487,10 +489,12 @@ class FileBasedVidMapper : public VidMapper
   public:
     FileBasedVidMapper() : VidMapper() { ; }
     FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
-        const int64_t limit_callset_row_idx=INT64_MAX, const bool callsets_file_required=true);
+        const int64_t max_num_rows_in_array=INT64_MAX, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX,
+        const bool callsets_file_required=true);
   private:
     void parse_callsets_file(const std::string& filename);
-    int64_t m_limit_callset_row_idx;
+    int64_t m_lb_callset_row_idx;
+    int64_t m_ub_callset_row_idx;
 };
 
 #endif

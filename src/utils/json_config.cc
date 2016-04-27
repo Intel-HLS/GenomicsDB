@@ -416,7 +416,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
     }
   }
   if(id_mapper && vid_mapping_file.length())
-    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, INT64_MAX, false));
+    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, INT64_MAX, 0, INT64_MAX, false));
   return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
@@ -526,8 +526,11 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_num_converter_processes = 0;
   m_per_partition_size = 0;
   m_max_size_per_callset = 0;
-  //Limit callset row idx to this value
-  m_limit_callset_row_idx = INT64_MAX;
+  //Lower and upper bounds of callset row idx to import in this invocation
+  m_lb_callset_row_idx = 0;
+  m_ub_callset_row_idx = INT64_MAX;
+  //Array domain
+  m_max_num_rows_in_array = INT64_MAX;
   //#VCF files to open/process in parallel
   m_num_parallel_vcf_files = 1;
   //do ping-pong buffering
@@ -566,10 +569,18 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
     m_treat_deletions_as_intervals = m_json["treat_deletions_as_intervals"].GetBool();
   else
     m_treat_deletions_as_intervals = false;
+  //Domain size of the array
+  m_max_num_rows_in_array = INT64_MAX;
+  if(m_json.HasMember("max_num_rows_in_array"))
+    m_max_num_rows_in_array = m_json["max_num_rows_in_array"].GetInt64();
+  //Ignore callsets with row idx < specified value
+  m_lb_callset_row_idx = 0;
+  if(m_json.HasMember("lb_callset_row_idx"))
+    m_lb_callset_row_idx = m_json["lb_callset_row_idx"].GetInt64();
   //Ignore callsets with row idx > specified value
-  m_limit_callset_row_idx = INT64_MAX;
-  if(m_json.HasMember("limit_callset_row_idx"))
-    m_limit_callset_row_idx = m_json["limit_callset_row_idx"].GetInt64();
+  m_ub_callset_row_idx = INT64_MAX;
+  if(m_json.HasMember("ub_callset_row_idx"))
+    m_ub_callset_row_idx = m_json["ub_callset_row_idx"].GetInt64();
   //Produce combined vcf
   m_produce_combined_vcf = false;
   if(m_json.HasMember("produce_combined_vcf") && m_json["produce_combined_vcf"].GetBool())

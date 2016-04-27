@@ -120,8 +120,11 @@ class JSONLoaderConfig : public JSONConfigBase
     std::string m_vid_mapping_filename;
     //callset mapping file - if defined in upper level config file
     std::string m_callset_mapping_file;
-    //Limit callset row idx to this value
-    int64_t m_limit_callset_row_idx;
+    //max #rows - defining domain of the array
+    int64_t m_max_num_rows_in_array;
+    //Lower and upper bounds of callset row idx to import in this invocation
+    int64_t m_lb_callset_row_idx;
+    int64_t m_ub_callset_row_idx;
     //#VCF files to open/process in parallel
     int m_num_parallel_vcf_files;
     //do ping-pong buffering
