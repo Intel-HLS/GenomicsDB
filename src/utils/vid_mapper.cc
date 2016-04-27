@@ -187,7 +187,8 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   auto dim_names = std::vector<std::string>({"samples", "position"});
   auto dim_domains = row_based_partitioning ?
     std::vector<std::pair<int64_t, int64_t>>({ {row_range.first, row_range.second}, {0, INT64_MAX}})
-    : std::vector<std::pair<int64_t,int64_t>>({ {0, get_num_callsets()-1}, {0, INT64_MAX } });
+    : std::vector<std::pair<int64_t,int64_t>>({ {0, ((m_max_num_rows_in_array==INT64_MAX) ? get_num_callsets() : m_max_num_rows_in_array) -1},
+        {0, INT64_MAX } });
   std::vector<std::string> attribute_names;
   std::vector<std::type_index> types;
   std::vector<int> num_vals;
@@ -263,8 +264,9 @@ void VidMapper::build_file_partitioning(const int partition_idx, const RowRange 
   {
     VERIFY_OR_THROW(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
     auto file_idx = m_row_idx_to_info[row_idx].m_file_idx;
-    VERIFY_OR_THROW(file_idx >= 0 && static_cast<size_t>(file_idx) < m_file_idx_to_info.size());
-    if(files_set.find(file_idx) == files_set.end())
+    //Either the file is not handled by the loader in this invocation or it's within the vector size
+    VERIFY_OR_THROW(file_idx < 0 || static_cast<size_t>(file_idx) < m_file_idx_to_info.size());
+    if(file_idx >= 0 && files_set.find(file_idx) == files_set.end())
     {
       auto& file_info = m_file_idx_to_info[file_idx];
       file_info.m_owner_idx = partition_idx;
@@ -326,7 +328,7 @@ void VidMapper::verify_file_partitioning() const
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
 FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
-    const int64_t limit_callset_row_idx, const bool callsets_file_required)
+    const int64_t max_num_rows_in_array, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool callsets_file_required)
   : VidMapper()
 {
   VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
@@ -336,7 +338,9 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     throw FileBasedVidMapperException((std::string("Could not open vid mapping file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
-  m_limit_callset_row_idx = limit_callset_row_idx;
+  m_max_num_rows_in_array = max_num_rows_in_array;
+  m_lb_callset_row_idx = lb_callset_row_idx;
+  m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
   if(callset_mapping_file != "")
     parse_callsets_file(callset_mapping_file);
@@ -473,8 +477,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     const rapidjson::Value& callsets_dict = json_doc["callsets"];
     //callsets is a dictionary of name:info key-value pairs
     VERIFY_OR_THROW(callsets_dict.IsObject());
-    auto num_callsets = (m_limit_callset_row_idx == INT64_MAX) ? callsets_dict.MemberCount() :
-      std::min<int64_t>(callsets_dict.MemberCount(), m_limit_callset_row_idx+1);
+    auto num_callsets = (m_ub_callset_row_idx == INT64_MAX) ? callsets_dict.MemberCount() :
+      std::min<int64_t>(callsets_dict.MemberCount(), m_ub_callset_row_idx+1);
     m_row_idx_to_info.resize(num_callsets);
     std::string callset_name;
     for(auto b=callsets_dict.MemberBegin(), e=callsets_dict.MemberEnd();b!=e;++b)
@@ -485,12 +489,15 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       VERIFY_OR_THROW(callset_info_dict.IsObject());    //must be dict
       VERIFY_OR_THROW(callset_info_dict.HasMember("row_idx"));
       int64_t row_idx = callset_info_dict["row_idx"].GetInt64();
-      if(row_idx > m_limit_callset_row_idx)
+      if(row_idx > m_ub_callset_row_idx)
         continue;
+      //Resize vector
+      if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
+        m_row_idx_to_info.resize(row_idx+1);
       int64_t file_idx = -1;
       //idx in file
       auto idx_in_file = 0ll;
-      if(callset_info_dict.HasMember("filename"))
+      if(row_idx >= m_lb_callset_row_idx && callset_info_dict.HasMember("filename"))
       {
         std::string filename = std::move(callset_info_dict["filename"].GetString());
         auto iter = m_filename_to_idx.find(filename);
