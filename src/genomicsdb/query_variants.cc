@@ -547,7 +547,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   }
   //Set number of rows in the array
   auto& dim_domains = array_schema.dim_domains();
-  uint64_t row_num = dim_domains[0].second - dim_domains[0].first + 1;
+  uint64_t row_num = m_storage_manager ? m_storage_manager->get_num_valid_rows_in_array(m_ad) :   //may read from array metadata
+    (dim_domains[0].second - dim_domains[0].first + 1);
   query_config.set_num_rows_in_array(row_num, static_cast<int64_t>(dim_domains[0].first));
   query_config.setup_array_row_idx_to_query_row_idx_map();
   //Bounds checking for query

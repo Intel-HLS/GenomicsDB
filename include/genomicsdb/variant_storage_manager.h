@@ -107,7 +107,8 @@ class VariantArrayCellIterator
 class VariantArrayInfo
 {
   public:
-    VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema, TileDB_Array* tiledb_array,
+    VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema,
+        TileDB_Array* tiledb_array, TileDB_Metadata* tiledb_metadata,
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
@@ -129,6 +130,9 @@ class VariantArrayInfo
           throw VariantStorageManagerException("Error while writing to array "+m_name);
         memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
       }
+      if(m_tiledb_metadata)
+        tiledb_metadata_finalize(m_tiledb_metadata);
+      m_tiledb_metadata = 0;
       if(m_tiledb_array)
         tiledb_array_finalize(m_tiledb_array);
       m_tiledb_array = 0;
@@ -143,6 +147,14 @@ class VariantArrayInfo
     const VariantArraySchema& get_schema() const { return m_schema; }
     const std::string& get_array_name() const { return m_name; }
     void write_cell(const void* ptr);
+    //Read #valid rows from metadata if available, else set from schema (array domain)
+    int64_t read_num_valid_rows_in_array();
+    /*
+     * Update #valid rows in the metadata
+     */
+    void update_num_valid_rows_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_dir, const int64_t num_rows_seen);
+    //Return  m_num_valid_rows_in_array
+    int64_t get_num_valid_rows_in_array() const { return m_num_valid_rows_in_array; }
   private:
     int m_idx;
     int m_mode;
@@ -150,6 +162,7 @@ class VariantArrayInfo
     VariantArraySchema m_schema;
     BufferVariantCell m_cell;
     TileDB_Array* m_tiledb_array;
+    TileDB_Metadata* m_tiledb_metadata;
     //For writing cells
     //Buffers to hold data
     std::vector<std::vector<uint8_t>> m_buffers;
@@ -157,6 +170,9 @@ class VariantArrayInfo
     std::vector<void*> m_buffer_pointers;
     //Buffer offsets - byte where next data item needs to be written
     std::vector<size_t> m_buffer_offsets;
+    //Number of valid rows in the array
+    int64_t m_num_valid_rows_in_array;
+    bool m_metadata_contains_num_valid_rows_in_array;
 #ifdef DEBUG
     int64_t m_last_row;
     int64_t m_last_column;
@@ -188,6 +204,7 @@ class VariantStorageManager
     int open_array(const std::string& array_name, const char* mode);
     void close_array(const int ad);
     int define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile=1000u);
+    int define_metadata_schema(const VariantArraySchema* variant_array_schema);
     /*
      * Load array schema
      */
@@ -202,6 +219,14 @@ class VariantStorageManager
      * Write sorted cell
      */
     void write_cell_sorted(const int ad, const void* ptr);
+    /*
+     * Return #valid rows in the array
+     */
+    int64_t get_num_valid_rows_in_array(const int ad) const;
+    /*
+     * Update #valid rows in the array metadata
+     */
+    void update_num_valid_rows_in_array(const int ad, const int64_t num_rows_seen);
   private:
     static const std::unordered_map<std::string, int> m_mode_string_to_int;
     //TileDB context
@@ -212,6 +237,8 @@ class VariantStorageManager
     std::vector<VariantArrayInfo> m_open_arrays_info_vector;
     //How much data to read/write in a given access
     size_t m_segment_size;
+    //Metadata attribute name
+    static std::vector<const char*> m_metadata_attributes;
 };
 
 #endif
