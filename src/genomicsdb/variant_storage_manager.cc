@@ -23,14 +23,20 @@
 #include "variant_storage_manager.h"
 #include "variant_field_data.h"
 #include <sys/stat.h>
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantStorageManagerException(#X);
+#define GET_METADATA_PATH(workspace, array) ((workspace)+'/'+(array)+"/genomicsdb_meta.json")
 
 const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_to_int = {
   { "r", TILEDB_ARRAY_READ },
   { "w", TILEDB_ARRAY_WRITE },
   { "a", TILEDB_ARRAY_WRITE }
 };
+
+std::vector<const char*> VariantStorageManager::m_metadata_attributes = std::vector<const char*>({ "max_valid_row_idx_in_array" });
 
 //ceil(buffer_size/field_size)*field_size
 #define GET_ALIGNED_BUFFER_SIZE(buffer_size, field_size) ((((buffer_size)+(field_size)-1u)/(field_size))*(field_size))
@@ -110,9 +116,11 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
 }
 
 //VariantArrayInfo functions
-VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema, TileDB_Array* tiledb_array,
+VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name,
+    const VariantArraySchema& schema, TileDB_Array* tiledb_array, const std::string& metadata_filename,
     const size_t buffer_size)
-: m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(m_schema), m_tiledb_array(tiledb_array)
+: m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(m_schema), m_tiledb_array(tiledb_array),
+  m_metadata_filename(metadata_filename)
 {
   //If writing, allocate buffers
   if(mode == TILEDB_ARRAY_WRITE || mode == TILEDB_ARRAY_WRITE_UNSORTED)
@@ -136,6 +144,7 @@ VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name, c
       m_buffer_offsets[i] = 0ull; //will be modified during a write
     }
   }
+  read_row_bounds_from_metadata();
 #ifdef DEBUG
   m_last_row = m_last_column = -1;
 #endif
@@ -148,6 +157,7 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
   m_idx = other.m_idx;
   m_mode = other.m_mode;
   m_name = std::move(other.m_name);
+  m_metadata_filename = std::move(other.m_metadata_filename);
   //Pointer handling
   m_tiledb_array = other.m_tiledb_array;
   other.m_tiledb_array = 0;
@@ -159,6 +169,8 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
   m_buffer_pointers = std::move(other.m_buffer_pointers);
   for(auto i=0ull;i<m_buffer_pointers.size();++i)
     m_buffer_pointers[i] = reinterpret_cast<void*>(&(m_buffers[i][0]));
+  m_metadata_contains_max_valid_row_idx_in_array = other.m_metadata_contains_max_valid_row_idx_in_array;
+  m_max_valid_row_idx_in_array = other.m_max_valid_row_idx_in_array;
 #ifdef DEBUG
   m_last_row = other.m_last_row;
   m_last_column = other.m_last_column;
@@ -234,6 +246,56 @@ void VariantArrayInfo::write_cell(const void* ptr)
   m_buffer_offsets[coords_buffer_idx] += coords_size;
 }
 
+void VariantArrayInfo::read_row_bounds_from_metadata()
+{
+  //Compute value from array schema
+  m_metadata_contains_max_valid_row_idx_in_array = false;
+  const auto& dim_domains = m_schema.dim_domains();
+  m_max_valid_row_idx_in_array = dim_domains[0].second;
+  //Try reading from metadata
+  if(m_metadata_filename.length())
+  {
+    std::ifstream ifs(m_metadata_filename.c_str());
+    if(ifs.is_open())
+    {
+      rapidjson::Document json_doc;
+      std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+      json_doc.Parse(str.c_str());
+      if(json_doc.HasMember("max_valid_row_idx_in_array") && json_doc["max_valid_row_idx_in_array"].IsInt64())
+      {
+        m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
+        m_metadata_contains_max_valid_row_idx_in_array = true;
+      }
+    }
+  }
+}
+
+void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
+    const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array)
+{
+  //Update metadata if:
+  // (it did not exist and (#valid rows is set to large value or  num_rows_seen > num rows as defined in schema
+  //                (old implementation))  OR
+  // (num_rows_seen > #valid rows in metadata (this part implies that metadata file exists)
+  if((!m_metadata_contains_max_valid_row_idx_in_array &&
+        (m_max_valid_row_idx_in_array == INT64_MAX-1 || max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
+      || (max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
+  {
+    m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
+    rapidjson::Document json_doc;
+    json_doc.SetObject();
+    json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
+    json_doc.AddMember("max_valid_row_idx_in_array", max_valid_row_idx_in_array, json_doc.GetAllocator());
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    json_doc.Accept(writer);
+    auto* fptr = fopen(metadata_filename.c_str(), "w");
+    VERIFY_OR_THROW(fptr);
+    fwrite(reinterpret_cast<const void*>(buffer.GetString()), 1u, strlen(buffer.GetString()), fptr);
+    fclose(fptr);
+  }
+}
+
 //VariantStorageManager functions
 VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size)
 {
@@ -268,9 +330,17 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
   if(status == TILEDB_OK)
   {
     auto idx = m_open_arrays_info_vector.size();
+    //Schema
     VariantArraySchema tmp_schema;
     get_array_schema(array_name, &tmp_schema);
-    m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array, m_segment_size);
+    //Check for metadata JSON file
+    auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
+    if(fptr == 0) //file doesn't exist
+      define_metadata_schema(&tmp_schema);
+    else
+      fclose(fptr);
+    m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array,
+        GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
     return idx;
   }
   else
@@ -352,8 +422,28 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
   /* Create the array schema */
   auto status = tiledb_array_create(m_tiledb_ctx, &array_schema);
   if(status == TILEDB_OK)
+  {
     status = tiledb_array_free_schema(&array_schema);
+    if(status == TILEDB_OK)
+      status = define_metadata_schema(variant_array_schema);
+  }
   return status;
+}
+
+//Define metadata
+int VariantStorageManager::define_metadata_schema(const VariantArraySchema* variant_array_schema)
+{
+  auto* fptr = fopen(GET_METADATA_PATH(m_workspace, variant_array_schema->array_name()).c_str(), "w");
+  VERIFY_OR_THROW(fptr);
+  //Create empty JSON
+  rapidjson::Document d;
+  d.SetObject();
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  d.Accept(writer);
+  fwrite(buffer.GetString(), 1, strlen(buffer.GetString()), fptr);
+  fclose(fptr);
+  return TILEDB_OK;
 }
 
 int VariantStorageManager::get_array_schema(const int ad, VariantArraySchema* variant_array_schema)
@@ -428,4 +518,19 @@ void VariantStorageManager::write_cell_sorted(const int ad, const void* ptr)
   assert(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
       m_open_arrays_info_vector[ad].get_array_name().length());
   m_open_arrays_info_vector[ad].write_cell(ptr);
+}
+
+int64_t VariantStorageManager::get_num_valid_rows_in_array(const int ad) const
+{
+  assert(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
+      m_open_arrays_info_vector[ad].get_array_name().length());
+  return m_open_arrays_info_vector[ad].get_num_valid_rows_in_array();
+}
+
+void VariantStorageManager::update_row_bounds_in_array(const int ad, const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array)
+{
+  assert(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
+      m_open_arrays_info_vector[ad].get_array_name().length());
+  m_open_arrays_info_vector[ad].update_row_bounds_in_array(m_tiledb_ctx,
+      GET_METADATA_PATH(m_workspace,m_open_arrays_info_vector[ad].get_array_name()), lb_row_idx, max_valid_row_idx_in_array);
 }

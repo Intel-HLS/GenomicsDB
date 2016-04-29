@@ -173,7 +173,7 @@ class LineBasedTextFile2TileDBBinary : public File2TileDBBinaryBase
           treat_deletions_as_intervals,
           parallel_partitions, noupdates, close_file)
     {
-      vid_mapper.build_tiledb_array_schema(m_array_schema, "dummy", false, RowRange(0, INT64_MAX), false);
+      vid_mapper.build_tiledb_array_schema(m_array_schema, "dummy", false, RowRange(0, INT64_MAX-1), false);
     }
     //Delete copy constructor
     LineBasedTextFile2TileDBBinary(const LineBasedTextFile2TileDBBinary& other) = delete;

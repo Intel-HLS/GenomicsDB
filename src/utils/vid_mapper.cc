@@ -185,10 +185,7 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   const
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
-  auto dim_domains = row_based_partitioning ?
-    std::vector<std::pair<int64_t, int64_t>>({ {row_range.first, row_range.second}, {0, INT64_MAX}})
-    : std::vector<std::pair<int64_t,int64_t>>({ {0, ((m_max_num_rows_in_array==INT64_MAX) ? get_num_callsets() : m_max_num_rows_in_array) -1},
-        {0, INT64_MAX } });
+  auto dim_domains = std::vector<std::pair<int64_t, int64_t>>({ {row_range.first, row_range.second}, {0, INT64_MAX}});
   std::vector<std::string> attribute_names;
   std::vector<std::type_index> types;
   std::vector<int> num_vals;
@@ -328,9 +325,11 @@ void VidMapper::verify_file_partitioning() const
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
 FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
-    const int64_t max_num_rows_in_array, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool callsets_file_required)
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool callsets_file_required)
   : VidMapper()
 {
+  m_lb_callset_row_idx = 0;
+  m_ub_callset_row_idx = INT64_MAX-1;
   VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
   rapidjson::Document json_doc;
   std::ifstream ifs(filename.c_str());
@@ -338,7 +337,6 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     throw FileBasedVidMapperException((std::string("Could not open vid mapping file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
-  m_max_num_rows_in_array = max_num_rows_in_array;
   m_lb_callset_row_idx = lb_callset_row_idx;
   m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
@@ -480,6 +478,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     auto num_callsets = (m_ub_callset_row_idx == INT64_MAX) ? callsets_dict.MemberCount() :
       std::min<int64_t>(callsets_dict.MemberCount(), m_ub_callset_row_idx+1);
     m_row_idx_to_info.resize(num_callsets);
+    m_max_callset_row_idx = -1;
     std::string callset_name;
     for(auto b=callsets_dict.MemberBegin(), e=callsets_dict.MemberEnd();b!=e;++b)
     {
@@ -491,6 +490,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       int64_t row_idx = callset_info_dict["row_idx"].GetInt64();
       if(row_idx > m_ub_callset_row_idx)
         continue;
+      m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
       //Resize vector
       if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
         m_row_idx_to_info.resize(row_idx+1);

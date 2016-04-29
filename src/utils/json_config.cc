@@ -292,7 +292,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
         m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
         m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
-        m_row_ranges[partition_idx][0].second = INT64_MAX;
+        m_row_ranges[partition_idx][0].second = INT64_MAX-1;
         if(curr_partition_info_dict.HasMember("end"))
           m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
         if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
@@ -416,7 +416,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
     }
   }
   if(id_mapper && vid_mapping_file.length())
-    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, INT64_MAX, 0, INT64_MAX, false));
+    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, 0, INT64_MAX, false));
   return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
@@ -528,7 +528,7 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_max_size_per_callset = 0;
   //Lower and upper bounds of callset row idx to import in this invocation
   m_lb_callset_row_idx = 0;
-  m_ub_callset_row_idx = INT64_MAX;
+  m_ub_callset_row_idx = INT64_MAX-1;
   //Array domain
   m_max_num_rows_in_array = INT64_MAX;
   //#VCF files to open/process in parallel
@@ -578,7 +578,7 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if(m_json.HasMember("lb_callset_row_idx"))
     m_lb_callset_row_idx = m_json["lb_callset_row_idx"].GetInt64();
   //Ignore callsets with row idx > specified value
-  m_ub_callset_row_idx = INT64_MAX;
+  m_ub_callset_row_idx = INT64_MAX-1;
   if(m_json.HasMember("ub_callset_row_idx"))
     m_ub_callset_row_idx = m_json["ub_callset_row_idx"].GetInt64();
   //Produce combined vcf

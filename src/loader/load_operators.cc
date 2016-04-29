@@ -36,17 +36,17 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   //recreate array flag
   bool recreate_array = (json_doc.HasMember("delete_and_create_tiledb_array")
       && json_doc["delete_and_create_tiledb_array"].GetBool()) ? true : false;
-  JSONConfigBase json_config;
+  JSONLoaderConfig json_config;
   json_config.read_from_file(config_filename);
   auto workspace = json_config.get_workspace(rank);
   auto array_name = json_config.get_array_name(rank);
   //Schema
-  bool row_based_partitioning = (json_doc.HasMember("row_based_partitioning") && json_doc["row_based_partitioning"].GetBool());
-  RowRange row_partition(0, id_mapper->get_num_callsets()-1);
+  bool row_based_partitioning = json_config.is_partitioned_by_row();
+  RowRange row_partition(0, json_config.get_max_num_rows_in_array()-1);
   if(row_based_partitioning)
   {
     row_partition = json_config.get_row_partition(rank);
-    row_partition.second = std::min(row_partition.second, static_cast<int64_t>(id_mapper->get_num_callsets()-1));
+    row_partition.second = std::min(row_partition.second, static_cast<int64_t>(json_config.get_max_num_rows_in_array()-1));
   }
   //default true
   bool compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array") || json_doc["compress_tiledb_array"].GetBool());
@@ -69,6 +69,8 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   }
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
+  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, row_partition.first,
+      std::min(row_partition.second, id_mapper->get_max_callset_row_idx()));
 #ifdef DUPLICATE_CELL_AT_END
   m_cell_copies.clear();
   m_last_end_position_for_row.resize(id_mapper->get_num_callsets(), -1ll);
