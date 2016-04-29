@@ -69,7 +69,8 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   }
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
-  m_storage_manager->update_num_valid_rows_in_array(m_array_descriptor, id_mapper->get_max_callset_row_idx()+1);
+  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, row_partition.first,
+      std::min(row_partition.second, id_mapper->get_max_callset_row_idx()));
 #ifdef DUPLICATE_CELL_AT_END
   m_cell_copies.clear();
   m_last_end_position_for_row.resize(id_mapper->get_num_callsets(), -1ll);

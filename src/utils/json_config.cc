@@ -292,7 +292,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
         m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
         m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
-        m_row_ranges[partition_idx][0].second = INT64_MAX;
+        m_row_ranges[partition_idx][0].second = INT64_MAX-1;
         if(curr_partition_info_dict.HasMember("end"))
           m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
         if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)

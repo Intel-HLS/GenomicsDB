@@ -145,14 +145,17 @@ class VariantArrayInfo
     const std::string& get_array_name() const { return m_name; }
     void write_cell(const void* ptr);
     //Read #valid rows from metadata if available, else set from schema (array domain)
-    void read_num_valid_rows_in_array();
+    void read_row_bounds_from_metadata();
     /*
      * Update #valid rows in the metadata
      */
-    void update_num_valid_rows_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
-        const int64_t num_rows_seen);
-    //Return  m_num_valid_rows_in_array
-    int64_t get_num_valid_rows_in_array() const { return m_num_valid_rows_in_array; }
+    void update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
+        const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array);
+    //Return #valid rows in the array
+    inline int64_t get_num_valid_rows_in_array() const
+    {
+      return (m_max_valid_row_idx_in_array - m_schema.dim_domains()[0].first + 1);
+    }
   private:
     int m_idx;
     int m_mode;
@@ -168,9 +171,9 @@ class VariantArrayInfo
     std::vector<void*> m_buffer_pointers;
     //Buffer offsets - byte where next data item needs to be written
     std::vector<size_t> m_buffer_offsets;
-    //Number of valid rows in the array
-    int64_t m_num_valid_rows_in_array;
-    bool m_metadata_contains_num_valid_rows_in_array;
+    //Max valid row idx in array
+    int64_t m_max_valid_row_idx_in_array;
+    bool m_metadata_contains_max_valid_row_idx_in_array;
 #ifdef DEBUG
     int64_t m_last_row;
     int64_t m_last_column;
@@ -222,9 +225,9 @@ class VariantStorageManager
      */
     int64_t get_num_valid_rows_in_array(const int ad) const;
     /*
-     * Update #valid rows in the array metadata
+     * Update row bounds in the metadata
      */
-    void update_num_valid_rows_in_array(const int ad, const int64_t num_rows_seen);
+    void update_row_bounds_in_array(const int ad, const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array);
   private:
     static const std::unordered_map<std::string, int> m_mode_string_to_int;
     //TileDB context
