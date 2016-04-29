@@ -108,7 +108,7 @@ class VariantArrayInfo
 {
   public:
     VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema,
-        TileDB_Array* tiledb_array, TileDB_Metadata* tiledb_metadata,
+        TileDB_Array* tiledb_array, const std::string& metadata_filename,
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
@@ -130,9 +130,6 @@ class VariantArrayInfo
           throw VariantStorageManagerException("Error while writing to array "+m_name);
         memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
       }
-      if(m_tiledb_metadata)
-        tiledb_metadata_finalize(m_tiledb_metadata);
-      m_tiledb_metadata = 0;
       if(m_tiledb_array)
         tiledb_array_finalize(m_tiledb_array);
       m_tiledb_array = 0;
@@ -148,11 +145,12 @@ class VariantArrayInfo
     const std::string& get_array_name() const { return m_name; }
     void write_cell(const void* ptr);
     //Read #valid rows from metadata if available, else set from schema (array domain)
-    int64_t read_num_valid_rows_in_array();
+    void read_num_valid_rows_in_array();
     /*
      * Update #valid rows in the metadata
      */
-    void update_num_valid_rows_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_dir, const int64_t num_rows_seen);
+    void update_num_valid_rows_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
+        const int64_t num_rows_seen);
     //Return  m_num_valid_rows_in_array
     int64_t get_num_valid_rows_in_array() const { return m_num_valid_rows_in_array; }
   private:
@@ -162,7 +160,7 @@ class VariantArrayInfo
     VariantArraySchema m_schema;
     BufferVariantCell m_cell;
     TileDB_Array* m_tiledb_array;
-    TileDB_Metadata* m_tiledb_metadata;
+    std::string m_metadata_filename;
     //For writing cells
     //Buffers to hold data
     std::vector<std::vector<uint8_t>> m_buffers;
