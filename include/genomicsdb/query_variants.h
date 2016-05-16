@@ -110,9 +110,7 @@ class VariantQueryProcessorScanState
   public:
     VariantQueryProcessorScanState()
     {
-      m_iter = 0;
-      m_current_start_position = -1ll;
-      m_done = false;
+      reset();
     }
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
     {
@@ -121,6 +119,12 @@ class VariantQueryProcessorScanState
       m_done = false;
     }
     bool end() const { return m_done; }
+    void reset()
+    {
+      m_iter = 0;
+      m_current_start_position = -1ll;
+      m_done = false;
+    }
   private:
     bool m_done;
     VariantArrayCellIterator* m_iter;

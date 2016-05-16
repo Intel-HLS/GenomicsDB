@@ -66,7 +66,7 @@ class ReferenceGenomeInfo
 class VCFAdapter
 {
   public:
-    VCFAdapter();
+    VCFAdapter(bool open_output=true);
     virtual ~VCFAdapter();
     void clear();
     void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
@@ -86,6 +86,7 @@ class VCFAdapter
     char get_reference_base_at_position(const char* contig, int pos)
     { return m_reference_genome_info.get_reference_base_at_position(contig, pos); }
   protected:
+    bool m_open_output;
     //Output file
     std::string m_output_filename;
     //Template VCF header to start with
@@ -116,9 +117,10 @@ class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
 class VCFSerializedBufferAdapter: public VCFAdapter
 {
   public:
-    VCFSerializedBufferAdapter(const size_t overflow_limit, bool print_output)
-      : VCFAdapter()
+    VCFSerializedBufferAdapter(const size_t overflow_limit, bool print_output, bool keep_idx_fields_in_bcf_header=true)
+      : VCFAdapter(false)
     {
+      m_keep_idx_fields_in_bcf_header = keep_idx_fields_in_bcf_header;
       m_rw_buffer = 0;
       m_overflow_limit = overflow_limit;
       //Temporary hts string
@@ -157,6 +159,7 @@ class VCFSerializedBufferAdapter: public VCFAdapter
       assert(write_size == m_rw_buffer->m_num_valid_bytes);
     }
   private:
+    bool m_keep_idx_fields_in_bcf_header;
     RWBuffer* m_rw_buffer;
     FILE* m_write_fptr;
     kstring_t m_hts_string;

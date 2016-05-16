@@ -239,13 +239,19 @@ void VariantQueryProcessor::initialize()
 
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
-  for(auto i=0ull;i<schema.attribute_num();++i)
+  if(queryConfig.get_num_queried_attributes() == 0u)  //add all attributes
   {
-    const auto& name = schema.attribute_name(i);
-    unsigned query_idx = 0u;
-    if(queryConfig.get_query_idx_for_name(name, query_idx))
-      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+    for(auto i=0ull;i<schema.attribute_num();++i)
+      queryConfig.add_attribute_to_query(schema.attribute_name(i), i);
   }
+  else
+    for(auto i=0ull;i<schema.attribute_num();++i)
+    {
+      const auto& name = schema.attribute_name(i);
+      unsigned query_idx = 0u;
+      if(queryConfig.get_query_idx_for_name(name, query_idx))
+        queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+    }
   for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
     if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
       throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));

@@ -53,8 +53,9 @@ char ReferenceGenomeInfo::get_reference_base_at_position(const char* contig, int
   return m_buffer[0];
 }
 
-VCFAdapter::VCFAdapter()
+VCFAdapter::VCFAdapter(bool open_output)
 {
+  m_open_output = open_output;
   clear();
   m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
@@ -67,8 +68,9 @@ VCFAdapter::~VCFAdapter()
   clear();
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
-  if(m_output_fptr)
+  if(m_open_output && m_output_fptr)
     bcf_close(m_output_fptr);
+  m_output_fptr = 0;
 }
 
 void VCFAdapter::clear()
@@ -94,12 +96,15 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     output_format = "z";
   }
   m_is_bcf = valid_output_formats[output_format];
-  m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
   m_output_filename = output_filename;
-  if(m_output_fptr == 0)
+  if(m_open_output)
   {
-    std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
-    exit(-1);
+    m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
+    if(m_output_fptr == 0)
+    {
+      std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
+      exit(-1);
+    }
   }
   //Reference genome
   m_reference_genome_info.initialize(reference_genome);
@@ -185,13 +190,13 @@ void VCFSerializedBufferAdapter::print_header()
 {
   assert(m_rw_buffer);
   auto offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
-      m_is_bcf ? 1u : 0u);
+      m_is_bcf ? 1u : 0u, m_keep_idx_fields_in_bcf_header ? 1u : 0u);
   //Buffer capacity was too small, resize
   while(offset == m_rw_buffer->m_num_valid_bytes)
   {
     m_rw_buffer->m_buffer.resize(2u*(m_rw_buffer->m_buffer.size())+1u);
     offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
-       m_is_bcf ? 1u : 0u);
+        m_is_bcf ? 1u : 0u, m_keep_idx_fields_in_bcf_header ? 1u : 0u);
   }
   m_rw_buffer->m_num_valid_bytes = offset;
 }

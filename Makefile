@@ -5,7 +5,7 @@
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable
+CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=
 #LDFLAGS appear after the list of object files (-lz etc)
@@ -90,6 +90,11 @@ else
     endif
 endif
 
+#JNI flag - optional, but required if the JNI library is needed
+ifdef JNI_FLAGS
+    CPPFLAGS+=$(JNI_FLAGS)
+endif
+
 #BigMPI - optional
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
@@ -119,12 +124,12 @@ GENOMICSDB_BIN_DIR=./bin
 
 #Header directories
 GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader include/query_operations include/utils include/vcf \
-    example/include
+    src/java/JNI/include example/include
 CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
 #Using vpath to let Makefile know which directories to search for sources
 #For sources
-vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:example/src
+vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:src/java/JNI/src:example/src
 
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -155,7 +160,13 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    variant_storage_manager.cc \
 			    query_variants.cc \
 			    tiledb_loader_file_base.cc \
-			    tiledb_loader_text_file.cc
+			    tiledb_loader_text_file.cc \
+			    jni_bcf_reader.cc
+
+ifdef BUILD_JAVA
+    GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
+	genomicsdb_GenomicsDBQueryOutputStream.cc
+endif
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
     			    create_tiledb_workspace.cc \
@@ -167,7 +178,8 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    vcf_histogram.cc \
 			    gt_profile_query_processor.cc \
 			    gt_example_query_processor.cc \
-			    gt_mpi_gather.cc
+			    gt_mpi_gather.cc \
+			    test_jni_bcf_reader.cc
 
 ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 
@@ -182,6 +194,18 @@ ALL_GENOMICSDB_HEADER_DEPENDENCIES = $(ALL_GENOMICSDB_OBJ_FILES:%.o=%.d)
 GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
 GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.so
 
+GENOMICSDB_JAVA_PKG_NAME:=genomicsdb
+GENOMICSDB_JAVA_SOURCE_DIRECTORY:= src/java/
+GENOMICSDB_JAVA_SOURCES:= $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBException.java  \
+    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBFeatureReader.java \
+    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBQueryOutputStream.java
+
+GENOMICSDB_JAR_NAME:=genomicsdb.jar
+GENOMICSDB_JAR:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_JAR_NAME)
+GENOMICSDB_JAVA_BUILD_DIRECTORY:=$(GENOMICSDB_OBJ_DIR)/java
+GENOMICSDB_JAR_PATH_RELATIVE:=../../bin/$(GENOMICSDB_JAR_NAME)
+#GENOMICSDB_JAVA_CLASS_FILES := $(patsubst %.java, $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/%.class, $(GENOMICSDB_JAVA_SOURCES))
+
 #Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
 LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
 
@@ -191,9 +215,15 @@ LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLA
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all TileDB_library TileDB_clean htslib_library htslib_clean
 
-all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES)
+ifdef BUILD_JAVA
+    all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES) genomicsdb_jar
+else
+    all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES)
+endif
 
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
+
+genomicsdb_jar: $(GENOMICSDB_JAR)
 
 clean:
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
@@ -238,11 +268,16 @@ $(GENOMICSDB_BIN_DIR)/libgenomicsdb.a: $(GENOMICSDB_LIBRARY_OBJ_FILES)
 	@echo "Creating static library $@"
 	@ar rcs $@ $^
 
-$(GENOMICSDB_BIN_DIR)/libgenomicsdb.so: $(GENOMICSDB_LIBRARY_OBJ_FILES)
+$(GENOMICSDB_BIN_DIR)/libgenomicsdb.so: $(GENOMICSDB_LIBRARY_OBJ_FILES) \
+    $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(HTSDIR)/libhts.a
 	@mkdir -p $(GENOMICSDB_BIN_DIR)
 	@echo "Creating dynamic library $@"
-	@$(CXX) -shared -o $@ $^
+	@$(CXX) $(LINKFLAGS) -shared -o $@ $^
 
+$(GENOMICSDB_JAR): $(GENOMICSDB_JAVA_SOURCES)
+	@mkdir -p $(GENOMICSDB_JAVA_BUILD_DIRECTORY) 
+	javac -d $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/ $^
+	cd $(GENOMICSDB_JAVA_BUILD_DIRECTORY) && jar cf $(GENOMICSDB_JAR_PATH_RELATIVE) $(GENOMICSDB_JAVA_PKG_NAME)/*.class
 
 #GenomicsDB examples
 

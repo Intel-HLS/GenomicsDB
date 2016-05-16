@@ -109,8 +109,11 @@ class RWBuffer
       m_next_read_idx = 0u;
       m_num_valid_bytes = 0u;
     }
+    size_t get_num_remaining_bytes() const { return m_num_valid_bytes-m_next_read_idx; }
+    uint8_t* get_pointer_at_read_position() { return &(m_buffer[m_next_read_idx]); }
+    const uint8_t* get_pointer_at_read_position() const { return &(m_buffer[m_next_read_idx]); }
     std::vector<uint8_t> m_buffer;
-    uint64_t m_next_read_idx;
+    size_t m_next_read_idx;
     size_t m_num_valid_bytes;
 };
 
