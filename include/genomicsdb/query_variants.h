@@ -104,6 +104,29 @@ class GTProfileStats {
     uint64_t m_num_queries;
 };
 
+class VariantQueryProcessorScanState
+{
+  friend class VariantQueryProcessor;
+  public:
+    VariantQueryProcessorScanState()
+    {
+      m_iter = 0;
+      m_current_start_position = -1ll;
+      m_done = false;
+    }
+    VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
+    {
+      m_iter = iter;
+      m_current_start_position = current_start_position;
+      m_done = false;
+    }
+    bool end() const { return m_done; }
+  private:
+    bool m_done;
+    VariantArrayCellIterator* m_iter;
+    int64_t m_current_start_position;
+};
+
 /*
  * Child class of QueryProcessor customized to handle variants
  */
@@ -145,7 +168,7 @@ class VariantQueryProcessor {
      */
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
-        unsigned column_interval_idx=0u, bool handle_spanning_deletions=false) const;
+        unsigned column_interval_idx=0u, bool handle_spanning_deletions=false, VariantQueryProcessorScanState* scan_state=0) const;
     /*
      * Deal with next cell in forward iteration in a scan
      * */

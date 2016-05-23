@@ -115,10 +115,12 @@ def main():
                         "golden_outputs/t0_1_2_calls_at_0",
                         "golden_outputs/t0_1_2_variants_at_0",
                         "golden_outputs/t0_1_2_vcf_at_0",
+                        "golden_outputs/t0_1_2_vcf_at_0",
                     ] },
                     { "query_column_ranges" : [12150, 1000000000], "golden_output": [
                         "golden_outputs/t0_1_2_calls_at_12150",
                         "golden_outputs/t0_1_2_variants_at_12150",
+                        "golden_outputs/t0_1_2_vcf_at_12150",
                         "golden_outputs/t0_1_2_vcf_at_12150",
                         ] }
                     ]
@@ -129,10 +131,12 @@ def main():
                         "golden_outputs/t0_1_2_calls_at_0",
                         "golden_outputs/t0_1_2_variants_at_0",
                         "golden_outputs/t0_1_2_vcf_at_0",
+                        "golden_outputs/t0_1_2_vcf_at_0",
                     ] },
                     { "query_column_ranges" : [12150, 1000000000], "golden_output": [
                         "golden_outputs/t0_1_2_calls_at_12150",
                         "golden_outputs/t0_1_2_variants_at_12150",
+                        "golden_outputs/t0_1_2_vcf_at_12150",
                         "golden_outputs/t0_1_2_vcf_at_12150",
                         ] }
                     ]
@@ -144,10 +148,12 @@ def main():
                         "golden_outputs/t6_7_8_calls_at_0",
                         "golden_outputs/t6_7_8_variants_at_0",
                         "golden_outputs/t6_7_8_vcf_at_0",
+                        "golden_outputs/t6_7_8_vcf_at_0",
                     ] },
                     { "query_column_ranges" : [8029500, 1000000000], "golden_output": [
                         "golden_outputs/t6_7_8_calls_at_8029500",
                         "golden_outputs/t6_7_8_variants_at_8029500",
+                        "golden_outputs/t6_7_8_vcf_at_8029500",
                         "golden_outputs/t6_7_8_vcf_at_8029500",
                     ] }
                     ]
@@ -181,7 +187,7 @@ def main():
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict["query_column_ranges"])
-                query_types_list = [ ('calls','--print-calls'), ('variants',''), ('vcf','--produce-Broad-GVCF') ]
+                query_types_list = [ ('calls','--print-calls'), ('variants',''), ('vcf','--produce-Broad-GVCF'), ('batched_vcf','--produce-Broad-GVCF -p 128') ]
                 idx = 0;
                 for query_type,cmd_line_param in query_types_list:
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'

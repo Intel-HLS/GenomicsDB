@@ -60,6 +60,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void clear();
     void switch_contig();
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
+    inline bool overflow() const { return m_vcf_adapter->overflow(); }
     void handle_INFO_fields(const Variant& variant);
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
