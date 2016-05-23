@@ -100,5 +100,18 @@ class CircularBufferController
     unsigned m_num_reserved_entries;
 };
 
+class RWBuffer
+{
+  public:
+    RWBuffer(size_t buffer_capacity=1048576u)
+    {
+      m_buffer.resize(buffer_capacity);
+      m_next_read_idx = 0u;
+      m_num_valid_bytes = 0u;
+    }
+    std::vector<uint8_t> m_buffer;
+    uint64_t m_next_read_idx;
+    size_t m_num_valid_bytes;
+};
 
 #endif

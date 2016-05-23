@@ -59,6 +59,7 @@ VCFAdapter::VCFAdapter()
   m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
+  m_is_bcf = true;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -94,6 +95,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   }
   m_is_bcf = valid_output_formats[output_format];
   m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
+  m_output_filename = output_filename;
   if(m_output_fptr == 0)
   {
     std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
@@ -177,6 +179,36 @@ void BufferedVCFAdapter::do_output()
   }
   m_num_valid_entries[read_idx] = 0u;
   advance_read_idx();
+}
+
+void VCFSerializedBufferAdapter::print_header()
+{
+  assert(m_rw_buffer);
+  auto offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+      m_is_bcf ? 1u : 0u);
+  //Buffer capacity was too small, resize
+  while(offset == m_rw_buffer->m_num_valid_bytes)
+  {
+    m_rw_buffer->m_buffer.resize(2u*(m_rw_buffer->m_buffer.size())+1u);
+    offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+       m_is_bcf ? 1u : 0u);
+  }
+  m_rw_buffer->m_num_valid_bytes = offset;
+}
+
+void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line)
+{
+  assert(m_rw_buffer);
+  auto offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+       m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
+  //Buffer capacity was too small, resize
+  while(offset == m_rw_buffer->m_num_valid_bytes)
+  {
+    m_rw_buffer->m_buffer.resize(2u*(m_rw_buffer->m_buffer.size())+1u);
+    offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+       m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
+  }
+  m_rw_buffer->m_num_valid_bytes = offset;
 }
 
 #endif //ifdef HTSDIR

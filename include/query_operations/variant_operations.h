@@ -136,6 +136,11 @@ class SingleVariantOperatorBase
      * (b) Merged ALT allele list and updates the alleles LUT
      */
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
+    /*
+     * Return true in child class if some output buffer used by the operator
+     * is full. Default implementation: return false
+     */
+    virtual bool overflow() const { return false; }
   protected:
     //Maintain mapping between alleles in input VariantCalls and merged allele list
     CombineAllelesLUT m_alleles_LUT;
