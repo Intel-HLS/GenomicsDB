@@ -133,7 +133,14 @@ class VCFSerializedBufferAdapter: public VCFAdapter
       if(m_write_fptr && m_write_fptr != stdout)
         fclose(m_write_fptr);
       m_write_fptr = 0;
+      if(m_hts_string.s && m_hts_string.m > 0)
+        free(m_hts_string.s);
+      m_hts_string.s = 0;
+      m_hts_string.m = 0;
     }
+    //Delete copy and move constructors
+    VCFSerializedBufferAdapter(const VCFSerializedBufferAdapter& other) = delete;
+    VCFSerializedBufferAdapter(VCFSerializedBufferAdapter&& other) = delete;
     void set_buffer(RWBuffer& buffer) { m_rw_buffer = &buffer; }
     void print_header();
     void handoff_output_bcf_line(bcf1_t*& line);
@@ -146,7 +153,8 @@ class VCFSerializedBufferAdapter: public VCFAdapter
     {
       assert(m_write_fptr);
       assert(m_rw_buffer);
-      fwrite(&(m_rw_buffer->m_buffer[0]), 1u,  m_rw_buffer->m_num_valid_bytes, m_write_fptr);
+      auto write_size = fwrite(&(m_rw_buffer->m_buffer[0]), 1u,  m_rw_buffer->m_num_valid_bytes, m_write_fptr);
+      assert(write_size == m_rw_buffer->m_num_valid_bytes);
     }
   private:
     RWBuffer* m_rw_buffer;
