@@ -32,15 +32,19 @@ import java.io.IOException;
  */
 public class GenomicsDBQueryOutputStream extends InputStream
 {
-    static
+    static 
     {
-        System.loadLibrary("genomicsdb");
+        try
+        {
+            boolean loaded = GenomicsDBUtils.loadLibrary();
+            if(!loaded)
+                throw new GenomicsDBException("Could not load genomicsdb native library");
+        }
+        catch(UnsatisfiedLinkError ule)
+        {
+            throw new GenomicsDBException("Could not load genomicsdb native library");
+        }
     }
-
-    /*
-     * JNI functions
-     */
-
     /*
      * Returns a "pointer" to a structure that stores the TileDB/GenomicsDB read state
      * This might look scary, but follows the same idea used in Java's compression library
