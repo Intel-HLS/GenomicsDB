@@ -24,6 +24,7 @@
 
 #include "vcf2binary.h"
 #include "htslib/bgzf.h"
+#include "vcf_adapter.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
@@ -76,76 +77,11 @@ void VCFReader::initialize(const char* filename, const char* regions,
     m_fptr = 0;
   }
   //Add lines in the header for fields that are missing in the VCF, but requested in the input config JSON file
-  //Only look at INFO and FORMAT fields
-  for(auto field_type_idx=BCF_HL_INFO;field_type_idx<=BCF_HL_FMT;++field_type_idx)
+  for(auto field_type_idx=BCF_HL_FLT;field_type_idx<=BCF_HL_FMT;++field_type_idx)
   {
     assert(static_cast<size_t>(field_type_idx) < vcf_field_names.size());
     for(auto j=0u;j<vcf_field_names[field_type_idx].size();++j)
-    {
-      const auto& field_name = vcf_field_names[field_type_idx][j];
-      auto field_idx = bcf_hdr_id2int(m_hdr, BCF_DT_ID, field_name.c_str());
-      //bcf_hdr_idinfo_exists handles negative field idx
-      auto idinfo_exists = bcf_hdr_idinfo_exists(m_hdr, field_type_idx, field_idx);
-      //Field not found
-      if(idinfo_exists == 0)
-      {
-        std::string header_line = "##";
-        header_line += (field_type_idx == BCF_HL_INFO ? "INFO" : "FORMAT");
-        header_line += "=<ID="+field_name+",Type=";
-        //GT is weird
-        if(field_type_idx == BCF_HL_FMT && field_name == "GT")
-          header_line += "String,Number=1,Description=\"Genotype\"";
-        else
-        {
-          assert(id_mapper->get_field_info(field_name));
-          auto field_info = *(id_mapper->get_field_info(field_name));
-          switch(field_info.m_bcf_ht_type)
-          {
-            case BCF_HT_INT:
-              header_line += "Integer";
-              break;
-            case BCF_HT_REAL:
-              header_line += "Float";
-              break;
-            case BCF_HT_CHAR:
-            case BCF_HT_STR:
-              header_line += "String";
-              break;
-            default:
-              throw VCF2BinaryException("Field type "+std::to_string(field_info.m_bcf_ht_type)+" not handled");
-              break;
-          }
-          header_line += ",Number=";
-          switch(field_info.m_length_descriptor)
-          {
-            case BCF_VL_FIXED:
-              header_line += std::to_string(field_info.m_num_elements);
-              break;
-            case BCF_VL_VAR:
-              header_line += ".";
-              break;
-            case BCF_VL_A:
-              header_line += "A";
-              break;
-            case BCF_VL_R:
-              header_line += "R";
-              break;
-            case BCF_VL_G:
-              header_line += "G";
-              break;
-            default:
-              throw VCF2BinaryException("Unhandled field length descriptor "+std::to_string(field_info.m_length_descriptor));
-              break;
-          }
-          header_line += ",Description=\""+field_name+"\"";
-        }
-        header_line += ">";
-        int line_length = 0;
-        auto hrec = bcf_hdr_parse_line(m_hdr, header_line.c_str(), &line_length);
-        bcf_hdr_add_hrec(m_hdr, hrec);
-        bcf_hdr_sync(m_hdr);
-      }
-    }
+      VCFAdapter::add_field_to_hdr_if_missing(m_hdr, id_mapper, vcf_field_names[field_type_idx][j], field_type_idx);
   }
 }
 

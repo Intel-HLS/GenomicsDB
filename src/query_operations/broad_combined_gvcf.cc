@@ -89,7 +89,11 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   {
     auto& tuple = m_INFO_fields_vec[i];
     if(query_config.is_defined_query_idx_for_known_field_enum((BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple))))
+    {
       m_INFO_fields_vec[last_valid_idx++] = tuple;
+      VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, KnownFieldInfo::get_known_field_name_for_enum(BCF_INFO_GET_KNOWN_FIELD_ENUM(tuple)),
+          BCF_HL_INFO);
+    }
   }
   m_INFO_fields_vec.resize(last_valid_idx);
   //Same for FORMAT
@@ -97,8 +101,14 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   for(auto i=0u;i<m_FORMAT_fields_vec.size();++i)
   {
     auto& tuple = m_FORMAT_fields_vec[i];
-    if(query_config.is_defined_query_idx_for_known_field_enum((BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple))))
+    auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(tuple);
+    if(query_config.is_defined_query_idx_for_known_field_enum(known_field_enum))
+    {
       m_FORMAT_fields_vec[last_valid_idx++] = tuple;
+      auto field_info_ptr = id_mapper.get_field_info(KnownFieldInfo::get_known_field_name_for_enum(known_field_enum));
+      assert(field_info_ptr);
+      VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info_ptr->m_name, BCF_HL_FMT);
+    }
   }
   m_FORMAT_fields_vec.resize(last_valid_idx);
   //Add missing contig names to template header

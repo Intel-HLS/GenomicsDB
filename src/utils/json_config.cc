@@ -618,7 +618,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
 {
   JSONConfigBase::read_from_file(filename);
   //VCF header filename
-  VERIFY_OR_THROW(m_json.HasMember("vcf_header_filename"));
+  if(m_json.HasMember("vcf_header_filename"))
   {
     const rapidjson::Value& v = m_json["vcf_header_filename"];
     //vcf_header_filename could be an array, one vcf_header_filename location for every rank

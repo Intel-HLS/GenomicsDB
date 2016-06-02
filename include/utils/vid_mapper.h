@@ -129,6 +129,7 @@ class FieldInfo
     FieldInfo()
       : m_type_index(typeid(void))
     {
+      m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
@@ -142,6 +143,7 @@ class FieldInfo
       m_field_idx = idx;
     }
     std::string m_name;
+    bool m_is_vcf_FILTER_field;
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;

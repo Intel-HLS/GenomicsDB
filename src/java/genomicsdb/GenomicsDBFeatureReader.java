@@ -57,6 +57,16 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
 
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
+            final String referenceGenome,
+            final FeatureCodec<T, SOURCE> codec) throws IOException
+    {
+        this(loaderJSONFile, tiledbWorkspace, arrayName,
+                referenceGenome, null,
+                codec);
+    }
+
+    public GenomicsDBFeatureReader(final String loaderJSONFile,
+            final String tiledbWorkspace, final String arrayName,
             final String referenceGenome, final String templateVCFHeaderFilename,
             final FeatureCodec<T, SOURCE> codec) throws IOException
     {
@@ -67,7 +77,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         queryJSON += indentString + "\"workspace\": \""+tiledbWorkspace+"\",\n";
         queryJSON += indentString + "\"array\": \""+arrayName+"\",\n";
         queryJSON += indentString + "\"reference_genome\": \""+referenceGenome+"\",\n";
-        queryJSON += indentString + "\"vcf_header_filename\": \""+templateVCFHeaderFilename+"\"\n";
+        if(templateVCFHeaderFilename != null)
+            queryJSON += indentString + "\"vcf_header_filename\": \""+templateVCFHeaderFilename+"\"\n";
         queryJSON += "}\n";
         File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
         tmpQueryJSONFile.deleteOnExit();

@@ -29,6 +29,18 @@
 #include "htslib/vcf.h"
 #include "htslib/faidx.h"
 
+//Exceptions thrown
+class VCFAdapterException : public std::exception {
+  public:
+    VCFAdapterException(const std::string m="") : msg_("VCFAdapterException : "+m) { ; }
+    ~VCFAdapterException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 //Struct for accessing reference genome
 //reference genome access - required for gVCF merge
 class ReferenceGenomeInfo
@@ -63,14 +75,20 @@ class ReferenceGenomeInfo
     faidx_t* m_reference_faidx;
 };
 
+class VidMapper;
 class VCFAdapter
 {
+  public:
+    //Returns true if new field added
+    static bool add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id_mapper, const std::string& field_name, int field_type_idx);
   public:
     VCFAdapter(bool open_output=true);
     virtual ~VCFAdapter();
     void clear();
     void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
         std::string output_filename, std::string output_format="");
+    //Allocates header
+    bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
     /*
      * The line is ready for output
