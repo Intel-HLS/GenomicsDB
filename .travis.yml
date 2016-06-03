@@ -8,6 +8,10 @@ env:
 install:
     #Install lcov and MPICH
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev
+    - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+    - sudo apt-get update -q
+    - sudo apt-get install g++-4.9 -y
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
@@ -20,7 +24,7 @@ before_script:
     - lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 LIBCSV_DIR=dependencies/libcsv -j 4
+    - make BUILD=debug-coverage OPENMP=1 TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 LIBCSV_DIR=dependencies/libcsv -j 4
     - python tests/run.py 
 
 after_success:
