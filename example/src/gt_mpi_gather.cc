@@ -291,7 +291,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
         std::cerr << std::fixed << std::setprecision(3) << "," << timings[2*i] << ",," << timings[2*i+1u] << "\n";
       else
       {
-        assert(2*i+1 < num_timing_values_per_mpi_process);
+        assert(2*i+1 < static_cast<unsigned>(num_timing_values_per_mpi_process));
         for(auto j=0u;j<gathered_timings.size();j+=num_timing_values_per_mpi_process)
           std::cerr << std::fixed << std::setprecision(3) << "," << gathered_timings[j + 2*i];
         std::cerr << ",";

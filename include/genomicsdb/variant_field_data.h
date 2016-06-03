@@ -72,6 +72,14 @@ class VariantFieldTypeUtil
         throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
       return (*iter).second;
     }
+   
+    static int get_vcf_field_type_enum_for_variant_field_type(const std::type_index& type_index)
+    {
+      auto iter = g_variant_field_type_index_to_vcf_enum.find(type_index);
+      if(iter == g_variant_field_type_index_to_vcf_enum.end())
+        throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
+      return (*iter).second;
+    }
 };
 
 template<class T>

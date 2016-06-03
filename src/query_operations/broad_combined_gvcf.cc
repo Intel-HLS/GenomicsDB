@@ -34,6 +34,7 @@
 #define MAKE_BCF_FORMAT_TUPLE(enum_idx, variant_type_enum, bcf_type) \
   FORMAT_tuple_type(enum_idx, variant_type_enum, bcf_type)
 #define BCF_FORMAT_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
+#define BCF_FORMAT_GET_QUERY_FIELD_IDX(X) (std::get<0>(X))
 #define BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<1>(X))
 #define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<2>(X))
 
@@ -101,6 +102,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   m_INFO_fields_vec.resize(last_valid_idx);
   //Same for FORMAT
   last_valid_idx = 0u;
+  std::unordered_set<unsigned> handled_format_fields_query_idxs;
   for(auto i=0u;i<m_FORMAT_fields_vec.size();++i)
   {
     auto& tuple = m_FORMAT_fields_vec[i];
@@ -111,9 +113,24 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       auto field_info_ptr = id_mapper.get_field_info(KnownFieldInfo::get_known_field_name_for_enum(known_field_enum));
       assert(field_info_ptr);
       VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info_ptr->m_name, BCF_HL_FMT);
+      auto query_field_idx = query_config.get_query_idx_for_known_field_enum(known_field_enum);
+      handled_format_fields_query_idxs.insert(query_field_idx);
     }
   }
   m_FORMAT_fields_vec.resize(last_valid_idx);
+  //Add format fields which are not already known by GenomicsDB
+  for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
+  {
+    auto* field_info = m_vid_mapper->get_field_info(query_config.get_query_attribute_name(i));
+    if(field_info &&
+        field_info->m_is_vcf_FORMAT_field && handled_format_fields_query_idxs.find(i) == handled_format_fields_query_idxs.end())
+    {
+      m_unknown_FORMAT_fields_vec.emplace_back(MAKE_BCF_FORMAT_TUPLE(i,
+            VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
+            VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index)));
+      VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_name, BCF_HL_FMT);
+    }
+  }
   //Add missing contig names to template header
   for(auto i=0u;i<m_vid_mapper->get_num_contigs();++i)
   {
@@ -156,6 +173,7 @@ void BroadCombinedGVCFOperator::clear()
   m_alleles_pointer_buffer.clear();
   m_INFO_fields_vec.clear();
   m_FORMAT_fields_vec.clear();
+  m_unknown_FORMAT_fields_vec.clear();
   m_MIN_DP_vector.clear();
   m_DP_FORMAT_vector.clear();
   m_spanning_deletions_remapped_fields.clear();
@@ -301,6 +319,20 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     //If valid DP INFO field found, add to INFO list
     if(valid_DP_found)
       bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "DP", &sum_INFO_DP, 1);
+  }
+  //Handle fields which GenomicsDB does not know about 
+  for(auto i=0u;i<m_unknown_FORMAT_fields_vec.size();++i)
+  {
+    auto& curr_tuple = m_unknown_FORMAT_fields_vec[i];
+    auto query_field_idx = BCF_FORMAT_GET_QUERY_FIELD_IDX(curr_tuple);
+    auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
+    //valid field handler
+    assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(variant, *m_query_config,
+        query_field_idx, &ptr, num_elements, m_use_missing_values_not_vector_end);
+    if(valid_field_found)
+      bcf_update_format(m_vcf_hdr, m_bcf_out, m_query_config->get_query_attribute_name(query_field_idx).c_str(), ptr, num_elements,
+          BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
   }
 }
 
