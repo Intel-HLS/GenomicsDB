@@ -28,7 +28,7 @@ public final class TestGenomicsDB
                         new BCF2Codec());
         final VariantContextWriter writer = new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(Options.INDEX_ON_THE_FLY).build();
         writer.writeHeader((VCFHeader)(reader.getHeader()));
-        if(args.length == 5)
+        if(args.length == 5 || args.length == 2)
             for(final VariantContext record : reader.iterator())
                 writer.add(record);
         else
