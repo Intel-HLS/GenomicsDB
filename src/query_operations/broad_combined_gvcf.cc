@@ -41,7 +41,7 @@
 const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
 
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
-    const VariantQueryConfig& query_config) 
+    const VariantQueryConfig& query_config, const bool use_missing_values_only_not_vector_end)
 : GA4GHOperator(query_config)
 {
   clear();
@@ -51,6 +51,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   //Initialize VCF structs
   m_vcf_adapter = &vcf_adapter;
   m_vid_mapper = &id_mapper;
+  m_use_missing_values_not_vector_end = use_missing_values_only_not_vector_end;
   m_vcf_hdr = vcf_adapter.get_vcf_header();
   m_bcf_out = bcf_init();
   //vector of char*, to avoid frequent reallocs()
@@ -229,7 +230,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto query_field_idx = m_query_config->get_query_idx_for_known_field_enum(known_field_enum);
     auto& src_variant = (m_remapping_needed && KnownFieldInfo::is_length_allele_dependent(known_field_enum)) ? m_remapped_variant : variant;
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
-        query_field_idx, &ptr, num_elements);
+        query_field_idx, &ptr, num_elements, m_use_missing_values_not_vector_end);
     if(valid_field_found)
     {
       auto j=0u;

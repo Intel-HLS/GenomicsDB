@@ -114,9 +114,9 @@ class VariantQueryProcessorScanState
     }
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
     {
+      reset();
       m_iter = iter;
       m_current_start_position = current_start_position;
-      m_done = false;
     }
     bool end() const { return m_done; }
     void reset()
@@ -124,11 +124,19 @@ class VariantQueryProcessorScanState
       m_iter = 0;
       m_current_start_position = -1ll;
       m_done = false;
+      m_num_calls_with_deletions = 0;
     }
+    VariantCallEndPQ& get_end_pq() { return m_end_pq; }
+    Variant& get_variant() { return m_variant; }
+    uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
+    void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }
   private:
     bool m_done;
     VariantArrayCellIterator* m_iter;
     int64_t m_current_start_position;
+    uint64_t m_num_calls_with_deletions;
+    VariantCallEndPQ m_end_pq;
+    Variant m_variant;
 };
 
 /*

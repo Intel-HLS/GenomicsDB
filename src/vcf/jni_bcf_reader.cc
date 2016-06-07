@@ -27,7 +27,8 @@ unsigned JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
 
 JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::string& query_config_file,
     const char* chr, const int start, const int end,
-    int my_rank, size_t buffer_capacity, size_t tiledb_segment_size, const char* output_format)
+    int my_rank, size_t buffer_capacity, size_t tiledb_segment_size, const char* output_format,
+    const bool use_missing_values_only_not_vector_end)
   : m_buffer_control(JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, false)
 {
   m_done = false;
@@ -55,7 +56,7 @@ JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::str
   m_query_processor->do_query_bookkeeping(m_query_processor->get_array_schema(), m_query_config);
   //Must set buffer before constructing BroadCombinedGVCFOperator
   set_write_buffer();
-  m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config);
+  m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config, use_missing_values_only_not_vector_end);
   m_query_column_interval_idx = 0u;
   m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
       true, &m_scan_state);

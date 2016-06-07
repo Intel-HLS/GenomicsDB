@@ -68,8 +68,10 @@ int main(int argc, char *argv[]) {
   {
     auto num_bytes_read = bcf_reader.read_and_advance(&(buffer[0]), 0u, buffer.size());
     if(num_bytes_read > 0u)
+    {
       fwrite(&(buffer[0]), 1u, num_bytes_read, stdout);
+      fflush(stdout);
+    }
   }
-  fflush(stdout);
   return 0;
 }

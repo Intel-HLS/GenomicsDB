@@ -39,9 +39,11 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryOutputStream_jniGenomicsD
   auto chr_cstr = env->GetStringUTFChars(chr, NULL);
   VERIFY_OR_THROW(chr_cstr);
   //Create object
+  auto output_format = "bu";
   auto bcf_reader_obj = new JNIBCFReader(loader_configuration_file_cstr, query_configuration_file_cstr,
       chr_cstr, start, end,
-      rank, buffer_capacity, segment_size);
+      rank, buffer_capacity, segment_size, output_format,
+      (strcmp(output_format, "bu") == 0));
   //Cleanup
   env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);
   env->ReleaseStringUTFChars(query_configuration_file, query_configuration_file_cstr);

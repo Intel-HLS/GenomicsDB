@@ -51,7 +51,8 @@ class BroadCombinedGVCFException : public std::exception {
 class BroadCombinedGVCFOperator : public GA4GHOperator
 {
   public:
-    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config);
+    BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config,
+        const bool use_missing_values_only_not_vector_end=false);
     virtual ~BroadCombinedGVCFOperator()
     {
       bcf_destroy(m_bcf_out);
@@ -65,6 +66,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
   private:
+    bool m_use_missing_values_not_vector_end;
     const VariantQueryConfig* m_query_config;
     VCFAdapter* m_vcf_adapter;
     const VidMapper* m_vid_mapper;
