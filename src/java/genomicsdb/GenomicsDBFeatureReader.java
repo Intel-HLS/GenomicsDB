@@ -102,7 +102,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         mLoaderJSONFile = loaderJSONFile;
         mQueryJSONFile = queryJSONFile;
         //Read header
-        GenomicsDBQueryOutputStream gdbStream = new GenomicsDBQueryOutputStream(loaderJSONFile, queryJSONFile);
+        GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile);
         mSource = codec.makeSourceFromStream(gdbStream);
         mFCHeader = codec.readHeader(mSource);
         //Store sequence names
@@ -140,7 +140,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     class GenomicsDBFeatureIterator implements CloseableTribbleIterator<T>
     {
         private FeatureCodec<T, SOURCE> mCodec = null;
-        private GenomicsDBQueryOutputStream mStream = null;
+        private GenomicsDBQueryStream mStream = null;
         private SOURCE mSource = null;
 
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
@@ -154,7 +154,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                 final String chr, final int start, final int end) throws IOException
         {
             mCodec = codec;
-            mStream = new GenomicsDBQueryOutputStream(loaderJSONFile, queryJSONFile, chr, start, end);
+            mStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile, chr, start, end);
             mStream.skip(mFCHeader.getHeaderEnd());
             mSource = codec.makeSourceFromStream(mStream);
         }

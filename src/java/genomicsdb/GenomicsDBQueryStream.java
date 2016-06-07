@@ -30,7 +30,7 @@ import java.io.IOException;
  * can be used as to construct a <a href="https://samtools.github.io/htsjdk/javadoc/htsjdk/htsjdk/tribble/readers/PositionalBufferedStream.html">PositionalBufferedStream</a> object.The PositionalBufferedStream object can then be used by FeatureCodecs such as BCF2Codec to construct
  * VariantContext objects
  */
-public class GenomicsDBQueryOutputStream extends InputStream
+public class GenomicsDBQueryStream extends InputStream
 {
     static 
     {
@@ -69,25 +69,25 @@ public class GenomicsDBQueryOutputStream extends InputStream
     //"Pointer" to TileDB/GenomicsDB read state object
     private long mGenomicsDBReadStateHandle = 0;
 
-    public GenomicsDBQueryOutputStream(final String loaderJSONFile, final String queryJSONFile)
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile)
     {
         this(loaderJSONFile, queryJSONFile, "", 0, 0);
     }
 
-    public GenomicsDBQueryOutputStream(final String loaderJSONFile, final String queryJSONFile,
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end)
     {
         this(loaderJSONFile, queryJSONFile, chr, start, end, 0);
     }
 
-    public GenomicsDBQueryOutputStream(final String loaderJSONFile, final String queryJSONFile,
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end,
             final int rank)
     {
         this(loaderJSONFile, queryJSONFile, chr, start, end, rank, 10485760, 10485760);
     }
 
-    public GenomicsDBQueryOutputStream(final String loaderJSONFile, final String queryJSONFile,
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end,
             final int rank, final long bufferCapacity, final long segmentSize)
     {

@@ -31,7 +31,7 @@ import java.io.FileOutputStream;
 
 public class GenomicsDBUtils
 {
-    private final static String mGenomicsDBLibraryName = "genomicsdb";
+    private final static String mGenomicsDBLibraryName = "tiledbgenomicsdb";
     private static boolean mIsLibraryLoaded = false;
     
     public static synchronized boolean loadLibrary()
