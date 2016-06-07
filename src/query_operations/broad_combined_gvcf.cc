@@ -96,6 +96,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           BCF_HL_INFO);
     }
   }
+  //Add DP field to header
+  VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, "DP", BCF_HL_INFO);
   m_INFO_fields_vec.resize(last_valid_idx);
   //Same for FORMAT
   last_valid_idx = 0u;

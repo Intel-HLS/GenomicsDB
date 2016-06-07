@@ -212,6 +212,7 @@ bcf_hdr_t* VCFAdapter::initialize_default_header()
 {
   auto hdr = bcf_hdr_init("w");
   bcf_hdr_append(hdr, "##ALT=<ID=NON_REF,Description=\"Represents any possible alternative allele at this location\">");
+  bcf_hdr_append(hdr, "##INFO=<ID=END,Number=1,Type=Integer,Description=\"Stop position of the interval\">");
   bcf_hdr_sync(hdr);
   return hdr;
 }
