@@ -309,10 +309,29 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
     VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
-  Timer timer;
+  //Read output in batches if required
+  //Must initialize buffer before constructing gvcf_op
+  RWBuffer rw_buffer;
+  auto serialized_vcf_adapter_ptr = dynamic_cast<VCFSerializedBufferAdapter*>(&vcf_adapter);
+  if(serialized_vcf_adapter_ptr)
+    serialized_vcf_adapter_ptr->set_buffer(rw_buffer);
   BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config);
+  Timer timer;
   timer.start();
-  qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, 0, true);
+  //At least 1 iteration
+  for(auto i=0u;i<std::max(1u, query_config.get_num_column_intervals());++i)
+  {
+    VariantQueryProcessorScanState scan_state;
+    while(!scan_state.end())
+    {
+      qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, i, true, &scan_state);
+      if(serialized_vcf_adapter_ptr)
+      {
+        serialized_vcf_adapter_ptr->do_output();
+        rw_buffer.m_num_valid_bytes = 0u;
+      }
+    }
+  }
   timer.stop();
   timer.print("Rank : "+std::to_string(my_world_mpi_rank)+" ", std::cerr);
 }
@@ -422,7 +441,7 @@ int main(int argc, char *argv[]) {
     {
       case 'p':
         page_size = strtoull(optarg, 0, 10);
-        std::cerr << "WARNING: page size is ignored for now\n";
+        std::cerr << "WARNING: page size is ignored except for scan now\n";
         break;
       case 'O':
         output_format = std::move(std::string(optarg));
@@ -469,7 +488,9 @@ int main(int argc, char *argv[]) {
   JSONLoaderConfig loader_config;
   auto file_id_mapper_ptr = &id_mapper;
 #ifdef HTSDIR
-  VCFAdapter vcf_adapter;
+  VCFAdapter vcf_adapter_base;
+  VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
+  auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
 #endif
   //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
   if(json_config_file != "")

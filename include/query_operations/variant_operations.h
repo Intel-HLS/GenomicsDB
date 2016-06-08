@@ -136,6 +136,11 @@ class SingleVariantOperatorBase
      * (b) Merged ALT allele list and updates the alleles LUT
      */
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
+    /*
+     * Return true in child class if some output buffer used by the operator
+     * is full. Default implementation: return false
+     */
+    virtual bool overflow() const { return false; }
   protected:
     //Maintain mapping between alleles in input VariantCalls and merged allele list
     CombineAllelesLUT m_alleles_LUT;
@@ -176,7 +181,7 @@ class VariantFieldHandlerBase
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, void* output_ptr, unsigned num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements) = 0;
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end=false) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -220,7 +225,7 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements);
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end=false);
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;

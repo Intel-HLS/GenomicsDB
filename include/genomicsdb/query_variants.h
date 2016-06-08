@@ -104,6 +104,41 @@ class GTProfileStats {
     uint64_t m_num_queries;
 };
 
+class VariantQueryProcessorScanState
+{
+  friend class VariantQueryProcessor;
+  public:
+    VariantQueryProcessorScanState()
+    {
+      reset();
+    }
+    VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
+    {
+      reset();
+      m_iter = iter;
+      m_current_start_position = current_start_position;
+    }
+    bool end() const { return m_done; }
+    void reset()
+    {
+      m_iter = 0;
+      m_current_start_position = -1ll;
+      m_done = false;
+      m_num_calls_with_deletions = 0;
+    }
+    VariantCallEndPQ& get_end_pq() { return m_end_pq; }
+    Variant& get_variant() { return m_variant; }
+    uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
+    void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }
+  private:
+    bool m_done;
+    VariantArrayCellIterator* m_iter;
+    int64_t m_current_start_position;
+    uint64_t m_num_calls_with_deletions;
+    VariantCallEndPQ m_end_pq;
+    Variant m_variant;
+};
+
 /*
  * Child class of QueryProcessor customized to handle variants
  */
@@ -145,7 +180,7 @@ class VariantQueryProcessor {
      */
     void scan_and_operate(const int ad, const VariantQueryConfig& query_config,
         SingleVariantOperatorBase& variant_operator,
-        unsigned column_interval_idx=0u, bool handle_spanning_deletions=false) const;
+        unsigned column_interval_idx=0u, bool handle_spanning_deletions=false, VariantQueryProcessorScanState* scan_state=0) const;
     /*
      * Deal with next cell in forward iteration in a scan
      * */

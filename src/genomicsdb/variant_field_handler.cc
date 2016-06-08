@@ -262,7 +262,7 @@ bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant
 
 template<class DataType>
 bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements)
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end)
 {
   auto max_elements_per_call = 0u;
   auto valid_idx = 0u;
@@ -306,8 +306,11 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
       ++extended_field_vector_idx;
     }
     //Pad with vector end values, handles invalid fields also
+    //Except when producing records for htsjdk BCF2 - htsjdk has no support for vector end values
+    auto padded_value = use_missing_values_only_not_vector_end ? get_bcf_missing_value<DataType>()
+        : get_bcf_vector_end_value<DataType>();
     for(;num_elements_inserted<max_elements_per_call;++num_elements_inserted,++extended_field_vector_idx)
-      m_extended_field_vector[extended_field_vector_idx] = get_bcf_vector_end_value<DataType>();
+      m_extended_field_vector[extended_field_vector_idx] = padded_value;
   }
   assert(extended_field_vector_idx <= m_extended_field_vector.size());
   *output_ptr = reinterpret_cast<const void*>(&(m_extended_field_vector[0]));

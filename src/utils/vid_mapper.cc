@@ -173,6 +173,8 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   vcf_fields.resize(3u);        //FILTER,INFO,FORMAT
   for(const auto& field_info : m_field_idx_to_info)
   {
+    if(field_info.m_is_vcf_FILTER_field)
+      vcf_fields[BCF_HL_FLT].push_back(field_info.m_name);
     if(field_info.m_is_vcf_INFO_field)
       vcf_fields[BCF_HL_INFO].push_back(field_info.m_name);
     if(field_info.m_is_vcf_FORMAT_field)
@@ -425,7 +427,13 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
           else
             if(class_name == "FORMAT")
               m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
+            else
+              if(class_name == "FILTER")
+                m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
         }
+        //Both INFO and FORMAT, throw another entry <field>_FORMAT into map pointing to this entry
+        if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
+          m_field_name_to_idx[field_name+"_FORMAT"] = field_idx;
       }
       if(field_info_dict.HasMember("length"))
       {

@@ -53,12 +53,107 @@ char ReferenceGenomeInfo::get_reference_base_at_position(const char* contig, int
   return m_buffer[0];
 }
 
-VCFAdapter::VCFAdapter()
+//VCFAdapter functions
+bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id_mapper, const std::string& field_name, int field_type_idx)
 {
+  auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
+  //bcf_hdr_idinfo_exists handles negative field idx
+  auto idinfo_exists = bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx);
+  //Field not found
+  if(idinfo_exists == 0)
+  {
+    std::string header_line = "##";
+    switch(field_type_idx)
+    {
+      case BCF_HL_FLT:
+        header_line += "FILTER";
+        break;
+      case BCF_HL_INFO:
+        header_line += "INFO";
+        break;
+      case BCF_HL_FMT:
+        header_line += "FORMAT";
+        break;
+      default:
+        throw VCFAdapterException(std::string("Unknown field type ")+std::to_string(field_type_idx));
+        break;
+    }
+    header_line += "=<ID="+field_name;
+    if(field_type_idx != BCF_HL_FLT)
+    {
+      //GT is weird
+      if(field_type_idx == BCF_HL_FMT && field_name == "GT")
+        header_line += ",Number=1,Type=String,Description=\"Genotype\"";
+      else
+      {
+        assert(id_mapper->get_field_info(field_name));
+        auto field_info = *(id_mapper->get_field_info(field_name)); 
+        if(field_info.m_bcf_ht_type != BCF_HT_FLAG)
+        {
+          header_line += ",Number=";
+          switch(field_info.m_length_descriptor)
+          {
+            case BCF_VL_FIXED:
+              header_line += std::to_string(field_info.m_num_elements);
+              break;
+            case BCF_VL_VAR:
+              header_line += ".";
+              break;
+            case BCF_VL_A:
+              header_line += "A";
+              break;
+            case BCF_VL_R:
+              header_line += "R";
+              break;
+            case BCF_VL_G:
+              header_line += "G";
+              break;
+            default:
+              throw VCFAdapterException("Unhandled field length descriptor "+std::to_string(field_info.m_length_descriptor));
+              break;
+          }
+        }
+        header_line += ",Type=";
+        switch(field_info.m_bcf_ht_type)
+        {
+          case BCF_HT_FLAG:
+            header_line += "Flag";
+            break;
+          case BCF_HT_INT:
+            header_line += "Integer";
+            break;
+          case BCF_HT_REAL:
+            header_line += "Float";
+            break;
+          case BCF_HT_CHAR:
+          case BCF_HT_STR:
+            header_line += "String";
+            break;
+          default:
+            throw VCFAdapterException("Field type "+std::to_string(field_info.m_bcf_ht_type)+" not handled");
+            break;
+        }
+      }
+    }
+    header_line += ",Description=\""+field_name+"\"";
+    header_line += ">";
+    int line_length = 0;
+    auto hrec = bcf_hdr_parse_line(hdr, header_line.c_str(), &line_length);
+    bcf_hdr_add_hrec(hdr, hrec);
+    bcf_hdr_sync(hdr);
+    return true;
+  }
+  return false;
+}
+
+VCFAdapter::VCFAdapter(bool open_output)
+{
+  m_open_output = open_output;
   clear();
   m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
+  m_is_bcf = true;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -66,8 +161,9 @@ VCFAdapter::~VCFAdapter()
   clear();
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
-  if(m_output_fptr)
+  if(m_open_output && m_output_fptr)
     bcf_close(m_output_fptr);
+  m_output_fptr = 0;
 }
 
 void VCFAdapter::clear()
@@ -82,9 +178,14 @@ void VCFAdapter::initialize(const std::string& reference_genome,
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
-  auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
-  m_template_vcf_hdr = bcf_hdr_read(fptr);
-  bcf_close(fptr);
+  if(m_vcf_header_filename.length() > 0u)
+  {
+    auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
+    m_template_vcf_hdr = bcf_hdr_read(fptr);
+    bcf_close(fptr);
+  }
+  else
+    m_template_vcf_hdr = initialize_default_header();
   //Output fptr
   std::unordered_map<std::string, bool> valid_output_formats = { {"b", true}, {"bu",true}, {"z",false}, {"",false} };
   if(valid_output_formats.find(output_format) == valid_output_formats.end())
@@ -93,14 +194,27 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     output_format = "z";
   }
   m_is_bcf = valid_output_formats[output_format];
-  m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
-  if(m_output_fptr == 0)
+  m_output_filename = output_filename;
+  if(m_open_output)
   {
-    std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
-    exit(-1);
+    m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
+    if(m_output_fptr == 0)
+    {
+      std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
+      exit(-1);
+    }
   }
   //Reference genome
   m_reference_genome_info.initialize(reference_genome);
+}
+
+bcf_hdr_t* VCFAdapter::initialize_default_header()
+{
+  auto hdr = bcf_hdr_init("w");
+  bcf_hdr_append(hdr, "##ALT=<ID=NON_REF,Description=\"Represents any possible alternative allele at this location\">");
+  bcf_hdr_append(hdr, "##INFO=<ID=END,Number=1,Type=Integer,Description=\"Stop position of the interval\">");
+  bcf_hdr_sync(hdr);
+  return hdr;
 }
 
 void VCFAdapter::print_header()
@@ -177,6 +291,36 @@ void BufferedVCFAdapter::do_output()
   }
   m_num_valid_entries[read_idx] = 0u;
   advance_read_idx();
+}
+
+void VCFSerializedBufferAdapter::print_header()
+{
+  assert(m_rw_buffer);
+  auto offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+      m_is_bcf ? 1u : 0u, m_keep_idx_fields_in_bcf_header ? 1u : 0u);
+  //Buffer capacity was too small, resize
+  while(offset == m_rw_buffer->m_num_valid_bytes)
+  {
+    m_rw_buffer->m_buffer.resize(2u*(m_rw_buffer->m_buffer.size())+1u);
+    offset = bcf_hdr_serialize(m_template_vcf_hdr, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+        m_is_bcf ? 1u : 0u, m_keep_idx_fields_in_bcf_header ? 1u : 0u);
+  }
+  m_rw_buffer->m_num_valid_bytes = offset;
+}
+
+void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line)
+{
+  assert(m_rw_buffer);
+  auto offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+       m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
+  //Buffer capacity was too small, resize
+  while(offset == m_rw_buffer->m_num_valid_bytes)
+  {
+    m_rw_buffer->m_buffer.resize(2u*(m_rw_buffer->m_buffer.size())+1u);
+    offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
+       m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
+  }
+  m_rw_buffer->m_num_valid_bytes = offset;
 }
 
 #endif //ifdef HTSDIR

@@ -239,13 +239,19 @@ void VariantQueryProcessor::initialize()
 
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
-  for(auto i=0ull;i<schema.attribute_num();++i)
+  if(queryConfig.get_num_queried_attributes() == 0u)  //add all attributes
   {
-    const auto& name = schema.attribute_name(i);
-    unsigned query_idx = 0u;
-    if(queryConfig.get_query_idx_for_name(name, query_idx))
-      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+    for(auto i=0ull;i<schema.attribute_num();++i)
+      queryConfig.add_attribute_to_query(schema.attribute_name(i), i);
   }
+  else
+    for(auto i=0ull;i<schema.attribute_num();++i)
+    {
+      const auto& name = schema.attribute_name(i);
+      unsigned query_idx = 0u;
+      if(queryConfig.get_query_idx_for_name(name, query_idx))
+        queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+    }
   for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
     if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
       throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));
@@ -281,7 +287,8 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
 void VariantQueryProcessor::scan_and_operate(
     const int ad,
     const VariantQueryConfig& query_config,
-    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool handle_spanning_deletions) const
+    SingleVariantOperatorBase& variant_operator, unsigned column_interval_idx, bool handle_spanning_deletions,
+    VariantQueryProcessorScanState* scan_state) const
 {
   GTProfileStats* stats_ptr = 0;
 #ifdef DO_PROFILING
@@ -290,46 +297,58 @@ void VariantQueryProcessor::scan_and_operate(
 #endif
   assert(query_config.is_bookkeeping_done());
   //Priority queue of VariantCalls ordered by END positions
-  VariantCallEndPQ end_pq;
+  VariantCallEndPQ local_end_pq;
+  VariantCallEndPQ& end_pq = scan_state ? scan_state->get_end_pq() : local_end_pq;
   //Rank of tile from which scan should start
   int64_t start_column = 0;
   //Current gVCF position being operated on
   int64_t current_start_position = -1ll;
   //Variant object
-  Variant variant(&query_config);
+  Variant local_variant;
+  Variant& variant = scan_state ? scan_state->get_variant() : local_variant;
+  variant.set_query_config(&query_config);
   variant.resize_based_on_query();
   //Number of calls with deletions
-  uint64_t num_calls_with_deletions = 0; 
+  uint64_t num_calls_with_deletions = scan_state ? scan_state->get_num_calls_with_deletions() : 0;
   //Used when deletions have to be treated as intervals and the PQ needs to be emptied
   std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
-  //Scan only queried interval, not whole array
-  if(query_config.get_num_column_intervals() > 0)
-  {
-    //If the queried interval is [100:200], then the first part of this function gets a Variant object
-    //containing Calls that intersect with 100. Some of them could start before 100 and extend beyond. This
-    //information is recorded in the Call
-    //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
-    //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
-    gt_get_column(ad, query_config, column_interval_idx, variant, stats_ptr);
-    //Insert valid calls produced by gt_get_column into the priority queue
-    for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
-    {
-      auto& curr_call = *iter;
-      end_pq.push(&curr_call);
-      if(handle_spanning_deletions && curr_call.contains_deletion())
-        ++num_calls_with_deletions;
-      assert(end_pq.size() <= query_config.get_num_rows_to_query());
-    }
-    //Valid calls were found, start position == query colum interval begin
-    if(end_pq.size() > 0)
-      current_start_position = query_config.get_column_begin(column_interval_idx);
-    //All cells with column == query_column (or intersecting with query_column) will be handled
-    //by gt_get_column(). Hence, must start from next column
-    start_column = query_config.get_column_begin(column_interval_idx) + 1;
-  }
-  //Initialize forward scan iterators
+  //Forward iterator
   VariantArrayCellIterator* forward_iter = 0;
-  gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
+  if(scan_state && scan_state->m_iter && scan_state->m_current_start_position >= 0) //resuming a previous scan
+  {
+    current_start_position = scan_state->m_current_start_position;
+    forward_iter = scan_state->m_iter;
+  }
+  else //new scan
+  {
+    //Scan only queried interval, not whole array
+    if(query_config.get_num_column_intervals() > 0u)
+    {
+      //If the queried interval is [100:200], then the first part of this function gets a Variant object
+      //containing Calls that intersect with 100. Some of them could start before 100 and extend beyond. This
+      //information is recorded in the Call
+      //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
+      //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
+      gt_get_column(ad, query_config, column_interval_idx, variant, stats_ptr);
+      //Insert valid calls produced by gt_get_column into the priority queue
+      for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
+      {
+        auto& curr_call = *iter;
+        end_pq.push(&curr_call);
+        if(handle_spanning_deletions && curr_call.contains_deletion())
+          ++num_calls_with_deletions;
+        assert(end_pq.size() <= query_config.get_num_rows_to_query());
+      }
+      //Valid calls were found, start position == query colum interval begin
+      if(end_pq.size() > 0)
+        current_start_position = query_config.get_column_begin(column_interval_idx);
+      //All cells with column == query_column (or intersecting with query_column) will be handled
+      //by gt_get_column(). Hence, must start from next column
+      start_column = query_config.get_column_begin(column_interval_idx) + 1;
+    }
+    //Initialize forward scan iterators
+    gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
+  }
   //If uninitialized, store first column idx of forward scan in current_start_position
   if(current_start_position < 0 && !(forward_iter->end()))
   {
@@ -341,7 +360,8 @@ void VariantQueryProcessor::scan_and_operate(
   variant.set_column_interval(current_start_position, current_start_position);
   //Next co-ordinate to consider
   int64_t next_start_position = -1ll;
-  for(;!(forward_iter->end());++(*forward_iter))
+  auto end_loop = false;
+  for(;!(forward_iter->end()) && !end_loop && (scan_state == 0 || !(variant_operator.overflow()));++(*forward_iter))
   {
     auto& cell = **forward_iter;
 #ifdef DUPLICATE_CELL_AT_END
@@ -351,17 +371,36 @@ void VariantQueryProcessor::scan_and_operate(
     if(cell_column_value > END_v)
       continue;
 #endif
-    auto end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell,
+    end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell,
         end_pq, tmp_pq_buffer, current_start_position, next_start_position, num_calls_with_deletions, handle_spanning_deletions, stats_ptr);
-    if(end_loop)
-      break;
   }
-  auto completed_iter = (forward_iter->end() || (query_config.get_num_column_intervals()==0u)) ? true : false;
-  next_start_position =  completed_iter ? 0 //iterator end, don't care about next
-    : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
-  //handle last interval
-  handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
-  delete forward_iter;
+  //Loop is over - no more data available from TileDB array
+  if(end_loop || forward_iter->end())
+  {
+    auto completed_iter = forward_iter->end();
+    next_start_position =  completed_iter ? 0 //iterator end, don't care about next
+      : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
+    //handle last interval
+    handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
+    delete forward_iter;
+    if(scan_state)
+    {
+      //Invalidate iterator
+      scan_state->m_iter = 0;
+      scan_state->m_current_start_position = -1ll;
+      scan_state->m_done = true;
+    }
+  }
+  else  //more data available in TileDB array, but buffer is full in operator
+  {
+    if(scan_state)
+    {
+      assert(variant_operator.overflow());
+      scan_state->m_iter = forward_iter;
+      scan_state->m_current_start_position = current_start_position;
+      scan_state->set_num_calls_with_deletions(num_calls_with_deletions);
+    }
+  }
 }
 
 bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_config, unsigned column_interval_idx,
@@ -373,7 +412,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     GTProfileStats* stats_ptr) const
 {
   //If only interval requested and end of interval crossed, then done
-  if(query_config.get_num_column_intervals() > 0 &&
+  if(query_config.get_num_column_intervals() > 0u &&
       cell.get_begin_column() > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
     return true;
   if(cell.get_begin_column() != current_start_position) //have found cell with next gVCF position, handle accumulated values
