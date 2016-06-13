@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.intel.hls</groupId>
+  <artifactId>genomicsdb</artifactId>
+  <version>0.2.0</version>
+  <name>GenomicsDB</name>
+  <description>A C++ layer on top of TileDB for storing and querying variants</description>
+  <url>https://github.com/Intel-HLS/GenomicsDB</url>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>Intel-HLS</id>
+      <name>Intel-HLS</name>
+      <url>https://github.com/Intel-HLS</url>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:https://github.com/Intel-HLS/GenomicsDB.git</connection>
+    <url>https://github.com/Intel-HLS/GenomicsDB.git</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>com.github.samtools</groupId>
+      <artifactId>htsjdk</artifactId>
+      <version>[2.4.0,)</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>

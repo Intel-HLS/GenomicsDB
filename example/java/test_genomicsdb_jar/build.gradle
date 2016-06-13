@@ -1,0 +1,25 @@
+apply plugin: 'java'
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+dependencies {
+  compile group: 'com.intel.hls', name: 'genomicsdb', version: '0.2.0+'
+}
+
+jar {
+  manifest {
+    attributes 'Main-Class': 'test_genomicsdb.TestGenomicsDB'
+  }
+}
+
+apply plugin: 'application'
+mainClassName = 'test_genomicsdb.TestGenomicsDB'
+
+//gradle run -quiet -Dexec.args="<args>"
+run {
+  if(System.getProperty('exec.args'))
+      args System.getProperty("exec.args").split()
+}
