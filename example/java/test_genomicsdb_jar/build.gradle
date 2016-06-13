@@ -6,7 +6,7 @@ repositories {
 }
 
 dependencies {
-  compile group: 'com.intel.hls', name: 'genomicsdb', version: '0.2.0+'
+  compile group: 'com.intel', name: 'genomicsdb', version: '0.2.0+'
 }
 
 jar {
