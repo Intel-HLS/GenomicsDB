@@ -7,14 +7,16 @@ LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
 CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
-LINKFLAGS=
+LINKFLAGS=-static-libgcc -static-libstdc++
 #LDFLAGS appear after the list of object files (-lz etc)
 LDFLAGS:=-lz -lrt -lcrypto
 
+GNU_PARALLEL=0
 ifdef OPENMP
   CFLAGS+=-fopenmp
+  GNU_PARALLEL=1
+  LINKFLAGS+=-fopenmp
 endif
-LINKFLAGS+=-fopenmp
 
 # --- Debug/Release/Verbose mode handler --- #
 BUILD ?= debug
@@ -41,14 +43,20 @@ ifeq ($(BUILD),release)
   TILEDB_BUILD:=release
 endif
 
-# MPI compiler for C++
-ifdef MPIPATH
-    CC  = $(MPIPATH)/mpicc
-    CXX = $(MPIPATH)/mpicxx
+ifdef DISABLE_MPI
+    CC = gcc
+    CXX = g++
+    CFLAGS += -DDISABLE_MPI
 else
-    MPIPATH=
-    CC  = mpicc
-    CXX = mpicxx
+    # MPI compiler for C++
+    ifdef MPIPATH
+	CC  = $(MPIPATH)/mpicc
+	CXX = $(MPIPATH)/mpicxx
+    else
+	MPIPATH=
+	CC  = mpicc
+	CXX = mpicxx
+    endif
 endif
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 
@@ -217,12 +225,16 @@ LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLA
 ###################
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all TileDB_library TileDB_clean htslib_library htslib_clean
- 
-ifdef BUILD_JAVA
-    all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES) $(GENOMICSDB_JAR) 
-else
-    all: genomicsdb_library $(GENOMICSDB_EXAMPLE_BIN_FILES)
+
+ALL_BUILD_TARGETS:= genomicsdb_library
+ifndef DISABLE_MPI
+    ALL_BUILD_TARGETS += $(GENOMICSDB_EXAMPLE_BIN_FILES)
 endif
+ifdef BUILD_JAVA
+    ALL_BUILD_TARGETS += $(GENOMICSDB_JAR)
+endif
+
+all: $(ALL_BUILD_TARGETS)
 
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
@@ -235,13 +247,13 @@ clean-all: clean clean-dependencies
 
 #TileDB library
 TileDB_library:
-	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS)
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS) GNU_PARALLEL=$(GNU_PARALLEL)
 
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
 
 $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
-	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS)
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS) GNU_PARALLEL=$(GNU_PARALLEL)
 
 #htslib library
 htslib_library:
