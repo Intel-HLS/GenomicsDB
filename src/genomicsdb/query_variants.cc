@@ -386,8 +386,7 @@ void VariantQueryProcessor::scan_and_operate(
     if(scan_state)
     {
       //Invalidate iterator
-      scan_state->m_iter = 0;
-      scan_state->m_current_start_position = -1ll;
+      scan_state->invalidate();
       scan_state->m_done = true;
     }
   }

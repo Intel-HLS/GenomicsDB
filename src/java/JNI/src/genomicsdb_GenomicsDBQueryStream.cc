@@ -86,16 +86,16 @@ JNIEXPORT jint JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBRead
   {
     auto& buffer_obj = bcf_reader_obj->get_read_batch();
     auto num_bytes_to_copy = std::min<size_t>(buffer_obj.get_num_remaining_bytes(), static_cast<size_t>(n)-total_num_bytes_read);
-    //Handle this as a special case as read_and_advance will not advance anything
+    //Handle this as a special case as read_and_advance will not advance anything if num_bytes_to_copy == 0u
     if(num_bytes_to_copy == 0u)
-      bcf_reader_obj->produce_next_batch();
+      num_bytes_to_copy = SIZE_MAX;     //forces jni_bcf_reader to produce the next batch of records
     else
     {
       env->SetByteArrayRegion(java_byte_array, offset+total_num_bytes_read, num_bytes_to_copy,
           reinterpret_cast<const jbyte*>(buffer_obj.get_pointer_at_read_position()));
       total_num_bytes_read += num_bytes_to_copy;
-      bcf_reader_obj->read_and_advance(0, 0u, num_bytes_to_copy);
     }
+    bcf_reader_obj->read_and_advance(0, 0u, num_bytes_to_copy);
   }
   return total_num_bytes_read;
 }

@@ -27,6 +27,7 @@
 #include "broad_combined_gvcf.h"
 #include "variant_storage_manager.h"
 #include "query_variants.h"
+#include "timer.h"
 
 class GenomicsDBJNIException : public std::exception {
   public:
@@ -65,13 +66,17 @@ class JNIBCFReader
     {
       return m_buffers[m_buffer_control.get_read_idx()];
     }
+    /*
+     * if n == SIZE_MAX, simply produce the next batch, but don't advance pointers within buffer
+     * if dst not NULL, copy n bytes to dst+offset
+     */
     size_t read_and_advance(uint8_t* dst, size_t offset, size_t n);
-    void produce_next_batch();
     uint8_t read_next_byte();
     inline bool end() const { return m_done; }
   private:
     void set_write_buffer();
     void reset_read_buffer();
+    void produce_next_batch();
   private:
     bool m_done;
     FileBasedVidMapper m_vid_mapper;
@@ -85,6 +90,9 @@ class JNIBCFReader
     //If using ping-pong buffering, then multiple buffers exist
     std::vector<RWBuffer> m_buffers;
     CircularBufferController m_buffer_control;
+#ifdef DO_PROFILING
+    Timer m_timer;
+#endif
 };
 
 #endif

@@ -27,6 +27,7 @@
 #include "variant_array_schema.h"
 #include "variant_cell.h"
 #include "c_api.h"
+#include "timer.h"
 
 //Exceptions thrown 
 class VariantStorageManagerException : public std::exception {
@@ -53,6 +54,9 @@ class VariantArrayCellIterator
 #ifdef DEBUG
       std::cerr << "#cells traversed "<<m_num_cells_iterated_over<<"\n";
 #endif
+#ifdef DO_PROFILING
+      m_tiledb_timer.print_cumulative("TileDB iterator", std::cerr);
+#endif
     }
     //Delete copy and move constructors
     VariantArrayCellIterator(const VariantArrayCellIterator& other) = delete;
@@ -62,6 +66,9 @@ class VariantArrayCellIterator
     }
     inline const VariantArrayCellIterator& operator++()
     {
+#ifdef DO_PROFILING
+      m_tiledb_timer.start();
+#endif
       auto status = tiledb_array_iterator_next(m_tiledb_array_iterator);
       if(status != TILEDB_OK)
         throw VariantStorageManagerException("VariantArrayCellIterator increment failed");
@@ -80,6 +87,9 @@ class VariantArrayCellIterator
         m_last_row = coords_ptr[0];
         m_last_column = coords_ptr[1];
       }
+#endif
+#ifdef DO_PROFILING
+      m_tiledb_timer.stop();
 #endif
       return *this;
     }
@@ -101,6 +111,9 @@ class VariantArrayCellIterator
     int64_t m_last_row;
     int64_t m_last_column;
     uint64_t m_num_cells_iterated_over;
+#endif
+#ifdef DO_PROFILING
+    Timer m_tiledb_timer;
 #endif
 };
 
