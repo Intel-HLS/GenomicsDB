@@ -22,6 +22,9 @@
 
 package genomicsdb;
 
+/**
+ * Classes in the genomicsdb package throw exceptions of type GenomicsDBException
+ */
 public class GenomicsDBException extends RuntimeException
 {
     public GenomicsDBException(final String msg)

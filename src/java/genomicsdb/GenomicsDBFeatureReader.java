@@ -42,7 +42,8 @@ import java.util.ArrayList;
 import java.lang.RuntimeException;
 
 /**
- * A reader for GenomicsDB that provides an iterator over VariantContext objects
+ * A reader for GenomicsDB that implements {@link htsjdk.tribble.FeatureReader}
+ * Currently, the reader only return {@link htsjdk.variant.variantcontext.VariantContext}
  */
 
 public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements FeatureReader<T>
@@ -50,11 +51,18 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private String mLoaderJSONFile = null;
     private String mQueryJSONFile = null;
     private FeatureCodec<T, SOURCE> mCodec = null;
-    private SOURCE mSource;
     protected FeatureCodecHeader mFCHeader;
     private VCFHeader mVCFHeader = null;
     private ArrayList<String> mSequenceNames;
 
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param tiledbWorkspace TileDB workspace path
+     * @param arrayName TileDB array name
+     * @param referenceGenome Path to reference genome (fasta file)
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
             final String referenceGenome,
@@ -65,6 +73,15 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                 codec);
     }
 
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param tiledbWorkspace TileDB workspace path
+     * @param arrayName TileDB array name
+     * @param referenceGenome Path to reference genome (fasta file)
+     * @param templateVCFHeaderFilename Template VCF header to be used for the combined gVCF records
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
             final String referenceGenome, final String templateVCFHeaderFilename,
@@ -88,12 +105,24 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         initialize(loaderJSONFile, tmpQueryJSONFile.getAbsolutePath(), codec);
     }
 
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     */
     public GenomicsDBFeatureReader(final String loaderJSONFile, final String queryJSONFile,
             final FeatureCodec<T, SOURCE> codec) throws IOException
     {
         initialize(loaderJSONFile, queryJSONFile, codec);
     }
 
+    /**
+     * Initialization function that's used by all constructors
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     */
     public void initialize(final String loaderJSONFile, final String queryJSONFile,
             final FeatureCodec<T, SOURCE> codec) throws IOException
 
@@ -103,8 +132,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         mQueryJSONFile = queryJSONFile;
         //Read header
         GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile);
-        mSource = codec.makeSourceFromStream(gdbStream);
-        mFCHeader = codec.readHeader(mSource);
+        SOURCE source = codec.makeSourceFromStream(gdbStream);
+        mFCHeader = codec.readHeader(source);
         //Store sequence names
         mVCFHeader = (VCFHeader)(mFCHeader.getHeaderValue());
         mSequenceNames = new ArrayList<String>(mVCFHeader.getContigLines().size());
@@ -113,11 +142,19 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         gdbStream.close();
     }
 
+    /**
+     * Return the VCF header of the combined gVCF stream
+     * @return the VCF header of the combined gVCF stream
+     */
     public Object getHeader()
     {
         return mFCHeader.getHeaderValue();
     } 
 
+    /**
+     * Return the list of contigs in the combined VCF header
+     * @return list of strings of the contig names
+     */
     public List<String> getSequenceNames()
     {
         return mSequenceNames;
@@ -127,28 +164,58 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     {
     }
 
+    /**
+     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects for the specified TileDB array and query configuration
+     * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
+     */
     public CloseableTribbleIterator<T> iterator() throws IOException
     {
         return new GenomicsDBFeatureIterator(mLoaderJSONFile, mQueryJSONFile, mCodec);
     }
 
+    /**
+     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects for the specified TileDB array and queried position
+     * @param chr contig name
+     * @param start start position (1-based)
+     * @param end end position, inclusive (1-based)
+     * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
+     */
     public CloseableTribbleIterator<T> query(final String chr, final int start, final int end) throws IOException
     {
         return new GenomicsDBFeatureIterator(mLoaderJSONFile, mQueryJSONFile, mCodec, chr, start, end);
     }
 
+    /**
+     * Iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects.
+     * Uses {@link GenomicsDBQueryStream} to obtain combined gVCF records (as BCF2) from TileDB/GenomicsDB
+     */
     class GenomicsDBFeatureIterator implements CloseableTribbleIterator<T>
     {
         private FeatureCodec<T, SOURCE> mCodec = null;
         private GenomicsDBQueryStream mStream = null;
         private SOURCE mSource = null;
 
+        /**
+         * Constructor
+         * @param loaderJSONFile GenomicsDB loader JSON configuration file
+         * @param queryJSONFile GenomicsDB query JSON configuration file
+         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
                 final FeatureCodec<T, SOURCE> codec) throws IOException
         {
             this(loaderJSONFile, queryJSONFile, codec, "", 0, 0);
         }
 
+        /**
+         * Constructor
+         * @param loaderJSONFile GenomicsDB loader JSON configuration file
+         * @param queryJSONFile GenomicsDB query JSON configuration file
+         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         * @param chr contig name
+         * @param start start position (1-based)
+         * @param end end position, inclusive (1-based)
+         */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
                 final FeatureCodec<T, SOURCE> codec,
                 final String chr, final int start, final int end) throws IOException
@@ -159,11 +226,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             mSource = codec.makeSourceFromStream(mStream);
         }
 
+        @Override
         public boolean hasNext()
         {
             return !(mCodec.isDone(mSource));
         }
 
+        @Override
         public T next()
         {
             try
@@ -178,11 +247,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             }
         } 
 
+        @Override
         public void close()
         {
             mCodec.close(mSource);
         }
 
+        @Override
         public GenomicsDBFeatureIterator iterator()
         {
             return this;
