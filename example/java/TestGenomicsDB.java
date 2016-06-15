@@ -7,6 +7,7 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.tribble.CloseableTribbleIterator;
 
 import genomicsdb.GenomicsDBFeatureReader;
 
@@ -29,8 +30,12 @@ public final class TestGenomicsDB
         final VariantContextWriter writer = new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(Options.INDEX_ON_THE_FLY).build();
         writer.writeHeader((VCFHeader)(reader.getHeader()));
         if(args.length == 5 || args.length == 2)
-            for(final VariantContext record : reader.iterator())
-                writer.add(record);
+        {
+            CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
+            while(gdbIterator.hasNext())
+                writer.add(gdbIterator.next());
+            gdbIterator.close();
+        }
         else
             if(args.length >= 8)
                 for(final VariantContext record : reader.query(args[5], Integer.parseInt(args[6]), Integer.parseInt(args[7])))

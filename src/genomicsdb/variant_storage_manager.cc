@@ -46,6 +46,9 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
         const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size)
   : m_num_queried_attributes(attribute_ids.size()), m_tiledb_ctx(tiledb_ctx),
   m_variant_array_schema(&variant_array_schema), m_cell(variant_array_schema, attribute_ids)
+#ifdef DO_PROFILING
+  , m_tiledb_timer()
+#endif
 {
   m_buffers.clear();
   std::vector<const char*> attribute_names(attribute_ids.size()+1u);  //+1 for the COORDS
@@ -90,6 +93,9 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
   m_last_row = -1;
   m_last_column = -1;
   m_num_cells_iterated_over = 0ull;
+#endif
+#ifdef DO_PROFILING
+  m_tiledb_timer.stop();
 #endif
 }
 

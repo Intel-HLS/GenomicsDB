@@ -118,13 +118,23 @@ class VariantQueryProcessorScanState
       m_iter = iter;
       m_current_start_position = current_start_position;
     }
+    ~VariantQueryProcessorScanState()
+    {
+      if(m_iter)
+        delete m_iter;
+      invalidate();
+    }
     bool end() const { return m_done; }
     void reset()
     {
-      m_iter = 0;
-      m_current_start_position = -1ll;
+      invalidate();
       m_done = false;
       m_num_calls_with_deletions = 0;
+    }
+    void invalidate()
+    {
+      m_iter = 0;
+      m_current_start_position = -1ll;
     }
     VariantCallEndPQ& get_end_pq() { return m_end_pq; }
     Variant& get_variant() { return m_variant; }
