@@ -156,8 +156,10 @@ inline unsigned get_tiledb_null_value<unsigned>() { return TILEDB_EMPTY_INT32; }
 template<>
 inline int64_t get_tiledb_null_value<int64_t>() { return TILEDB_EMPTY_INT64; }
 
+#ifdef __MACH__
 template<>
 inline size_t get_tiledb_null_value<size_t>() { return TILEDB_EMPTY_INT64; }
+#endif
 
 template<>
 inline uint64_t get_tiledb_null_value<uint64_t>() { return TILEDB_EMPTY_INT64; }

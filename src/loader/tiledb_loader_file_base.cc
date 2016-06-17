@@ -150,9 +150,11 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const int64_t val, bool print_sep);
+#ifdef __MACH__
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const size_t val, bool print_sep);
+#endif
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const uint64_t val, bool print_sep);
@@ -180,9 +182,11 @@ bool File2TileDBBinaryBase::tiledb_buffer_print_null<unsigned>(std::vector<uint8
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<int64_t>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);
+#ifdef __MACH__
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<size_t>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);
+#endif
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<uint64_t>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);
