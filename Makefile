@@ -10,12 +10,28 @@ CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-
 LINKFLAGS=-static-libgcc -static-libstdc++
 #LDFLAGS appear after the list of object files (-lz etc)
 LDFLAGS:=-lz -lrt -lcrypto
+SHARED_LIBRARY_EXTENSION:=so
+SHARED_LIBRARY_FLAGS:=-shared
+
+OS := $(shell uname)
+#Only build shared library on MacOS
+ifeq ($(OS), Darwin)
+  OPENSSL_PREFIX_DIR?=/usr/local/opt/openssl/
+  CFLAGS=-mmacosx-version-min=10.9
+  LINKFLAGS:=
+  LDFLAGS:=$(OPENSSL_PREFIX_DIR)/lib/libcrypto.a -lz
+  SHARED_LIBRARY_EXTENSION=dylib
+  SHARED_LIBRARY_FLAGS:=-dynamiclib -mmacosx-version-min=10.9
+  DISABLE_OPENMP:=1
+endif
 
 GNU_PARALLEL=0
 ifdef OPENMP
-  CFLAGS+=-fopenmp
-  GNU_PARALLEL=1
-  LINKFLAGS+=-fopenmp
+  ifndef DISABLE_OPENMP
+    CFLAGS+=-fopenmp
+    GNU_PARALLEL=1
+    LINKFLAGS+=-fopenmp
+  endif
 endif
 
 # --- Debug/Release/Verbose mode handler --- #
@@ -58,6 +74,11 @@ else
 	CXX = mpicxx
     endif
 endif
+
+ifdef DISABLE_OPENMP
+CFLAGS+=-DDISABLE_OPENMP
+endif
+
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 
 #In the current version, this is mandatory
@@ -69,16 +90,26 @@ ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
 endif
 CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
-LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
+ifeq ($(OS), Darwin)
+    LDFLAGS:= $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(LDFLAGS)
+else
+    LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
+endif
 
 #htslib
 HTSLIB_BUILD_NUM_THREADS ?= 1
+HTSLIB_EXTRA_CFLAGS=
 ifndef HTSDIR
     HTSDIR=dependencies/htslib
 endif
 ifdef HTSDIR
     CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
-    LDFLAGS:=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic $(LDFLAGS)
+    ifeq ($(OS), Darwin)
+        LDFLAGS:=$(HTSDIR)/libhts.a $(LDFLAGS)
+        HTSLIB_EXTRA_CFLAGS=-mmacosx-version-min=10.9
+    else
+        LDFLAGS:=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic $(LDFLAGS)
+    endif
 endif
 
 #RapidJSON - header only library
@@ -90,7 +121,7 @@ CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 #libcsv - optional, but required if csvs need to be imported
 ifdef LIBCSV_DIR
     CPPFLAGS+=-DUSE_LIBCSV -I$(LIBCSV_DIR)
-    LDFLAGS+=-L$(LIBCSV_DIR)/.libs -lcsv
+    LDFLAGS+=-L$(LIBCSV_DIR)/.libs -L$(LIBCSV_DIR)/lib -lcsv
 else
     ifdef USE_LIBCSV
 	CPPFLAGS+=-DUSE_LIBCSV
@@ -169,7 +200,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    query_variants.cc \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
-			    jni_bcf_reader.cc
+			    jni_bcf_reader.cc \
+                            timer.cc
 
 ifdef BUILD_JAVA
     GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
@@ -200,7 +232,7 @@ ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_O
 ALL_GENOMICSDB_HEADER_DEPENDENCIES = $(ALL_GENOMICSDB_OBJ_FILES:%.o=%.d)
 
 GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
-GENOMICSDB_SHARED_LIBRARY_BASENAME:=libtiledbgenomicsdb.so
+GENOMICSDB_SHARED_LIBRARY_BASENAME:=libtiledbgenomicsdb.$(SHARED_LIBRARY_EXTENSION)
 GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_SHARED_LIBRARY_BASENAME)
 
 GENOMICSDB_JAVA_PKG_NAME:=genomicsdb
@@ -220,7 +252,11 @@ GENOMICSDB_JAR_BUILD_BIN_RELATIVE:=../../bin/
 GENOMICSDB_JAVA_CLASS_FILES:=$(GENOMICSDB_JAVA_BUILD_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBFeatureReader.class
 
 #Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
-LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
+ifeq ($(OS), Darwin)
+    LDFLAGS:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a $(LDFLAGS)
+else
+    LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
+endif
 
 ###################
 # General Targets #
@@ -249,7 +285,8 @@ clean-all: clean clean-dependencies
 
 #TileDB library
 TileDB_library:
-	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS) GNU_PARALLEL=$(GNU_PARALLEL)
+	make -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) -j $(TILEDB_BUILD_NUM_THREADS) GNU_PARALLEL=$(GNU_PARALLEL) \
+	  OPENSSL_PREFIX_DIR=$(OPENSSL_PREFIX_DIR)
 
 TileDB_clean:
 	make -C $(TILEDB_DIR) clean
@@ -259,13 +296,13 @@ $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
 
 #htslib library
 htslib_library:
-	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS)
+	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS) CPPFLAGS=$(HTSLIB_EXTRA_CFLAGS)
 
 htslib_clean:
 	make -C $(HTSDIR) clean
 
 $(HTSDIR)/libhts.a:
-	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS)
+	make -C $(HTSDIR) $(HTSLIB_BUILD) -j $(HTSLIB_BUILD_NUM_THREADS) CPPFLAGS=$(HTSLIB_EXTRA_CFLAGS)
 
 # --- Compilation and dependency genration --- #
 
@@ -287,7 +324,7 @@ $(GENOMICSDB_SHARED_LIBRARY): $(GENOMICSDB_LIBRARY_OBJ_FILES) \
     $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(HTSDIR)/libhts.a
 	@mkdir -p $(GENOMICSDB_BIN_DIR)
 	@echo "Creating dynamic library $@"
-	@$(CXX) $(LINKFLAGS) -shared -o $@ $^
+	@$(CXX) $(LINKFLAGS) $(SHARED_LIBRARY_FLAGS) -o $@ $^ $(LDFLAGS)
 
 $(GENOMICSDB_JAVA_CLASS_FILES): $(GENOMICSDB_JAVA_SOURCES)
 	@echo "Compiling Java files"

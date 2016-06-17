@@ -169,7 +169,7 @@ def main():
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
         test_loader_dict['segment_size'] = load_segment_size;
         with open(loader_json_filename, 'wb') as fptr:
-            json.dump(test_loader_dict, fptr);
+            json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
         pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
                 stdout=subprocess.PIPE);
@@ -192,7 +192,7 @@ def main():
                 for query_type,cmd_line_param in query_types_list:
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                     with open(query_json_filename, 'wb') as fptr:
-                        json.dump(test_query_dict, fptr);
+                        json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                         fptr.close();
                     pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d -l '+loader_json_filename+' -j '
                             +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,

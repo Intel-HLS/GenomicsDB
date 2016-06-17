@@ -679,7 +679,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
           if(buffer_full) return true;
           break;
         default: //FIXME: handle other types
-          throw VCF2BinaryException("Unhandled VCF data type "+bcf_hdr_id2type(hdr, BCF_DT_ID, field_idx));
+          throw VCF2BinaryException(std::string("Unhandled VCF data type ")+std::to_string(bcf_hdr_id2type(hdr, BCF_DT_ID, field_idx)));
           break;
       }
     }

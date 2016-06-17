@@ -406,7 +406,8 @@ int main(int argc, char *argv[]) {
   gethostname(&(hostname[0]), hostname.size());
   if(my_world_mpi_rank == 0)
     std::cerr << "#processes "<<num_mpi_processes<<"\n";
-  std::cerr << "Host : "<< &(hostname[0]) << " rank "<< my_world_mpi_rank << " LD_LIBRARY_PATH= "<<getenv("LD_LIBRARY_PATH") << "\n";
+  auto* ld_library_path_cstr = getenv("LD_LIBRARY_PATH");
+  std::cerr << "Host : "<< &(hostname[0]) << " rank "<< my_world_mpi_rank << " LD_LIBRARY_PATH= "<<(ld_library_path_cstr ? ld_library_path_cstr : "")<< "\n";
 #endif
   // Define long options
   static struct option long_options[] = 

@@ -45,7 +45,9 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#ifndef DISABLE_OPENMP
 #include <omp.h>
+#endif
 #include <typeindex>
 
 typedef std::pair<int64_t, int64_t> ColumnRange;
