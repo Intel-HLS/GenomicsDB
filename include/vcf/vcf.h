@@ -160,6 +160,9 @@ template<>
 inline size_t get_tiledb_null_value<size_t>() { return TILEDB_EMPTY_INT64; }
 
 template<>
+inline uint64_t get_tiledb_null_value<uint64_t>() { return TILEDB_EMPTY_INT64; }
+
+template<>
 inline float get_tiledb_null_value<float>() { return TILEDB_EMPTY_FLOAT32; }
 
 template<>

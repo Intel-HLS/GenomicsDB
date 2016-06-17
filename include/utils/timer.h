@@ -29,6 +29,14 @@
 #include<sys/time.h>
 #include <iomanip>
 
+//MacOS does not have a clock_gettime function
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#define CLOCK_THREAD_CPUTIME_ID 0
+int clock_gettime(clock_id_t clk_id, struct timespec *tp);
+#endif
+
 class Timer
 {
   public:
