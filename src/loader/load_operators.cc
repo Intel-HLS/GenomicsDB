@@ -51,6 +51,9 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   //default true
   bool compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array") || json_doc["compress_tiledb_array"].GetBool());
   id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, compress_tiledb_array);
+  //Disable synced writes
+  if(json_doc.HasMember("disable_synced_writes") && json_doc["disable_synced_writes"].GetBool())
+    g_TileDB_enable_SYNC_write = 0;
   //Storage manager
   size_t segment_size = json_doc.HasMember("segment_size") ? json_doc["segment_size"].GetInt64() : 10u*1024u*1024u;
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
