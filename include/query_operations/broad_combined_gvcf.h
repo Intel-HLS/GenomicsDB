@@ -84,6 +84,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //INFO fields enum vector
     std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<FORMAT_tuple_type> m_FORMAT_fields_vec;
+    std::vector<FORMAT_tuple_type> m_unknown_FORMAT_fields_vec;
     //MIN_DP values
     std::vector<int> m_MIN_DP_vector;
     //DP_FORMAT values

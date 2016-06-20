@@ -67,6 +67,7 @@ enum VariantFieldTypeEnum
 //Map from type_index to VariantFieldTypeEnum
 extern std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum;
 extern std::unordered_map<std::type_index, int> g_variant_field_type_index_to_tiledb_type;
+extern std::unordered_map<std::type_index, int> g_variant_field_type_index_to_vcf_enum;
 extern std::vector<std::type_index> g_tiledb_type_to_variant_field_type_index;
 
 extern std::string g_tmp_scratch_dir;

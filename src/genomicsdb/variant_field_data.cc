@@ -60,6 +60,20 @@ std::vector<std::type_index> g_tiledb_type_to_variant_field_type_index =
   std::type_index(typeid(char))
 };
 
+std::unordered_map<std::type_index, int> g_variant_field_type_index_to_vcf_enum = 
+std::unordered_map<std::type_index, int>{
+  { std::type_index(typeid(void)), BCF_HT_VOID },
+  { std::type_index(typeid(int)), BCF_HT_INT },
+  { std::type_index(typeid(int64_t)), BCF_HT_INT },
+  { std::type_index(typeid(unsigned)), BCF_HT_INT },
+  { std::type_index(typeid(uint64_t)), BCF_HT_INT },
+  { std::type_index(typeid(float)), BCF_HT_REAL },
+  { std::type_index(typeid(double)), BCF_HT_REAL },
+  { std::type_index(typeid(std::string)), BCF_HT_STR },
+  { std::type_index(typeid(char)), BCF_HT_STR }
+};
+
+
 size_t VariantFieldTypeUtil::size(const VariantFieldTypeEnum type_enum)
 {
   switch(type_enum)
