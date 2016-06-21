@@ -181,7 +181,8 @@ class VariantFieldHandlerBase
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, void* output_ptr, unsigned num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end=false) = 0;
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -225,7 +226,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end=false);
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false);
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;
