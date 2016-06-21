@@ -262,7 +262,8 @@ bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant
 
 template<class DataType>
 bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements, const bool use_missing_values_only_not_vector_end)
+        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        const bool use_missing_values_only_not_vector_end, const bool use_vector_end_only)
 {
   auto max_elements_per_call = 0u;
   auto valid_idx = 0u;
@@ -301,7 +302,8 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
     }
     if(num_elements_inserted == 0u) //no elements inserted, insert missing value first
     {
-      m_extended_field_vector[extended_field_vector_idx] = get_bcf_missing_value<DataType>();
+      m_extended_field_vector[extended_field_vector_idx] = use_vector_end_only ? get_bcf_vector_end_value<DataType>()
+        : get_bcf_missing_value<DataType>();
       ++num_elements_inserted;
       ++extended_field_vector_idx;
     }

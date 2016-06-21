@@ -243,6 +243,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(curr_tuple);
     assert(known_field_enum < g_known_variant_field_names.size());
     auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
+    auto is_char_type = (variant_type_enum == VARIANT_FIELD_CHAR);
     //valid field handler
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
     //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
@@ -250,7 +251,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto query_field_idx = m_query_config->get_query_idx_for_known_field_enum(known_field_enum);
     auto& src_variant = (m_remapping_needed && KnownFieldInfo::is_length_allele_dependent(known_field_enum)) ? m_remapped_variant : variant;
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
-        query_field_idx, &ptr, num_elements, m_use_missing_values_not_vector_end);
+        query_field_idx, &ptr, num_elements,
+        m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type);
     if(valid_field_found)
     {
       auto j=0u;
@@ -326,10 +328,12 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto& curr_tuple = m_unknown_FORMAT_fields_vec[i];
     auto query_field_idx = BCF_FORMAT_GET_QUERY_FIELD_IDX(curr_tuple);
     auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
+    auto is_char_type = (variant_type_enum == VARIANT_FIELD_CHAR);
     //valid field handler
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(variant, *m_query_config,
-        query_field_idx, &ptr, num_elements, m_use_missing_values_not_vector_end);
+        query_field_idx, &ptr, num_elements,
+        m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type);
     if(valid_field_found)
       bcf_update_format(m_vcf_hdr, m_bcf_out, m_query_config->get_query_attribute_name(query_field_idx).c_str(), ptr, num_elements,
           BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
