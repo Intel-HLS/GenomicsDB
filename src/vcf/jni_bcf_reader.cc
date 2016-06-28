@@ -28,8 +28,8 @@ unsigned JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
 JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::string& query_config_file,
     const char* chr, const int start, const int end,
     int my_rank, size_t buffer_capacity, size_t tiledb_segment_size, const char* output_format,
-    const bool use_missing_values_only_not_vector_end)
-  : m_buffer_control(JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, false)
+    const bool use_missing_values_only_not_vector_end, const bool keep_idx_fields_in_bcf_header)
+  : m_buffer_control(JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header)
 #ifdef DO_PROFILING
     , m_timer()
 #endif
@@ -42,7 +42,7 @@ JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::str
   loader_config.read_from_file(loader_config_file, &m_vid_mapper, my_rank);
   //Parse query JSON file
   JSONVCFAdapterQueryConfig bcf_scan_config;
-  bcf_scan_config.read_from_file(query_config_file, m_query_config, m_vcf_adapter, &m_vid_mapper, output_format, my_rank);
+  bcf_scan_config.read_from_file(query_config_file, m_query_config, m_vcf_adapter, &m_vid_mapper, output_format, my_rank, buffer_capacity);
   //Specified chromosome and start end
   if(chr && strlen(chr) > 0u)
   {

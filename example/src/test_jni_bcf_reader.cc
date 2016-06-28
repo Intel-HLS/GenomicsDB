@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
   }
   std::vector<uint8_t> buffer(page_size > 0u ? page_size : 100u); 
   assert(json_config_file.length() > 0u && loader_json_config_file.length() > 0u);
-  JNIBCFReader bcf_reader(loader_json_config_file, json_config_file, 0, page_size > 0u ? page_size : 1024u*1024u, 1048576, output_format.c_str());
+  JNIBCFReader bcf_reader(loader_json_config_file, json_config_file, 0, page_size, 1048576, output_format.c_str());
   while(!(bcf_reader.end()))
   {
     auto num_bytes_read = bcf_reader.read_and_advance(&(buffer[0]), 0u, buffer.size());

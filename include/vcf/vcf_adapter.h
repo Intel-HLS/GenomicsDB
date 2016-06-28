@@ -26,6 +26,7 @@
 #ifdef HTSDIR
 
 #include "headers.h"
+#include "gt_common.h"
 #include "htslib/vcf.h"
 #include "htslib/faidx.h"
 
@@ -82,11 +83,12 @@ class VCFAdapter
     //Returns true if new field added
     static bool add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id_mapper, const std::string& field_name, int field_type_idx);
   public:
-    VCFAdapter(bool open_output=true);
+    VCFAdapter(bool open_output=true, const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
     virtual ~VCFAdapter();
     void clear();
     void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
-        std::string output_filename, std::string output_format="");
+        std::string output_filename, std::string output_format="",
+        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -95,7 +97,7 @@ class VCFAdapter
      * Child classes might actually just swap out the pointer so that the actual output is performed by
      * a thread off the critical path
      **/
-    virtual void handoff_output_bcf_line(bcf1_t*& line) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
+    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
     virtual void print_header();
     /*
      * Return true in child class if some output causes buffer to be full. Default: return false
@@ -115,32 +117,39 @@ class VCFAdapter
     //Output fptr
     htsFile* m_output_fptr;
     bool m_is_bcf;
+    //Buffer size for combined vcf records
+    size_t m_combined_vcf_records_buffer_size_limit;
 };
 
 class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
 {
   public:
-    BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries);
+    BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries,
+        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
     virtual ~BufferedVCFAdapter();
     void clear();
-    virtual void handoff_output_bcf_line(bcf1_t*& line);
+    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
     void advance_write_idx();
     void do_output();
+    inline bool overflow() const
+    {
+      return (m_combined_vcf_records_buffer_sizes[get_write_idx()] >= m_combined_vcf_records_buffer_size_limit);
+    }
   private:
     void resize_line_buffer(std::vector<bcf1_t*>& line_buffer, unsigned new_size);
     std::vector<std::vector<bcf1_t*>> m_line_buffers;   //Outer vector for double-buffering
     std::vector<unsigned> m_num_valid_entries;  //One per double-buffer
+    std::vector<size_t> m_combined_vcf_records_buffer_sizes;
 };
 
 class VCFSerializedBufferAdapter: public VCFAdapter
 {
   public:
-    VCFSerializedBufferAdapter(const size_t overflow_limit, bool print_output, bool keep_idx_fields_in_bcf_header=true)
-      : VCFAdapter(false)
+    VCFSerializedBufferAdapter(const size_t combined_vcf_records_buffer_size_limit, bool print_output, bool keep_idx_fields_in_bcf_header=true)
+      : VCFAdapter(false, combined_vcf_records_buffer_size_limit)
     {
       m_keep_idx_fields_in_bcf_header = keep_idx_fields_in_bcf_header;
       m_rw_buffer = 0;
-      m_overflow_limit = overflow_limit;
       //Temporary hts string
       m_hts_string.l = 0u;
       m_hts_string.m = 4096u;
@@ -163,11 +172,11 @@ class VCFSerializedBufferAdapter: public VCFAdapter
     VCFSerializedBufferAdapter(VCFSerializedBufferAdapter&& other) = delete;
     void set_buffer(RWBuffer& buffer) { m_rw_buffer = &buffer; }
     void print_header();
-    void handoff_output_bcf_line(bcf1_t*& line);
+    void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
     inline bool overflow() const
     {
       assert(m_rw_buffer);
-      return (m_rw_buffer->m_num_valid_bytes >= m_overflow_limit);
+      return (m_rw_buffer->m_num_valid_bytes >= m_combined_vcf_records_buffer_size_limit);
     }
     void do_output()
     {
@@ -181,7 +190,6 @@ class VCFSerializedBufferAdapter: public VCFAdapter
     RWBuffer* m_rw_buffer;
     FILE* m_write_fptr;
     kstring_t m_hts_string;
-    size_t m_overflow_limit;
 };
 
 #endif  //ifdef HTSDIR

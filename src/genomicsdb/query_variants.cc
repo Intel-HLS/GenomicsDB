@@ -262,9 +262,9 @@ void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchem
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     SingleVariantOperatorBase& variant_operator,
-    int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const
+    int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const
 {
-  while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call))
+  while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call) && !(variant_operator.overflow()))
   {
     int64_t top_end_pq = end_pq.top()->get_column_end();
     int64_t min_end_point = (is_last_call || (top_end_pq < (next_start_position - 1))) ? top_end_pq : (next_start_position-1);
@@ -375,6 +375,9 @@ void VariantQueryProcessor::scan_and_operate(
 #endif
     end_loop = scan_handle_cell(query_config, column_interval_idx, variant, variant_operator, cell,
         end_pq, tmp_pq_buffer, current_start_position, next_start_position, num_calls_with_deletions, handle_spanning_deletions, stats_ptr);
+    //Do not increment the iterator if buffer overflows in the operator
+    if(scan_state && variant_operator.overflow())
+      break;
   }
   //Loop is over - no more data available from TileDB array
   if(end_loop || forward_iter->end())
@@ -384,23 +387,24 @@ void VariantQueryProcessor::scan_and_operate(
       : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
     //handle last interval
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
-    delete forward_iter;
+    if(!variant_operator.overflow())
+      delete forward_iter;
     if(scan_state)
     {
-      //Invalidate iterator
-      scan_state->invalidate();
-      scan_state->m_done = true;
+      if(variant_operator.overflow()) //buffer full
+        scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
+      else //totally done
+      {
+        //Invalidate iterator
+        scan_state->invalidate();
+        scan_state->m_done = true;
+      }
     }
   }
   else  //more data available in TileDB array, but buffer is full in operator
   {
-    if(scan_state)
-    {
-      assert(variant_operator.overflow());
-      scan_state->m_iter = forward_iter;
-      scan_state->m_current_start_position = current_start_position;
-      scan_state->set_num_calls_with_deletions(num_calls_with_deletions);
-    }
+    assert(scan_state && variant_operator.overflow());
+    scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
   }
 }
 
@@ -422,7 +426,10 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     assert(cell.get_begin_column() > current_start_position);
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
         next_start_position, false, num_calls_with_deletions);
-    assert(end_pq.empty() || static_cast<int64_t>(end_pq.top()->get_column_end()) >= next_start_position);  //invariant
+    assert(end_pq.empty() || static_cast<int64_t>(end_pq.top()->get_column_end()) >= next_start_position || variant_operator.overflow());  //invariant
+    //Buffer overflow, don't process anymore
+    if(variant_operator.overflow())
+      return false;
     //Set new start for next interval
     current_start_position = next_start_position;
     variant.set_column_interval(current_start_position, current_start_position);

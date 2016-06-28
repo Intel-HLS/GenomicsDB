@@ -148,10 +148,19 @@ class VariantQueryProcessorScanState
       m_iter = 0;
       m_current_start_position = -1ll;
     }
+    /*
+     * Set state
+     */
+    void set_scan_state(VariantArrayCellIterator* iter, const int64_t current_start_position, const uint64_t num_calls_with_deletions)
+    {
+      m_iter = iter;
+      m_current_start_position = current_start_position;
+      m_num_calls_with_deletions = num_calls_with_deletions;
+    }
     VariantCallEndPQ& get_end_pq() { return m_end_pq; }
     Variant& get_variant() { return m_variant; }
     uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
-    void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }
+    /*void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }*/
   private:
     bool m_done;
     VariantArrayCellIterator* m_iter;
@@ -217,7 +226,7 @@ class VariantQueryProcessor {
     void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
         const VariantQueryConfig& queryConfig, Variant& variant,
         SingleVariantOperatorBase& variant_operator,
-        int64_t current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
+        int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
     //while scan breaks up the intervals, iterate does not
     void iterate_over_cells(
         const int ad,

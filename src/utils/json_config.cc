@@ -614,7 +614,8 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
 #ifdef HTSDIR
 
 void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
-    VCFAdapter& vcf_adapter, std::string output_format, const int rank)
+    VCFAdapter& vcf_adapter, std::string output_format, const int rank,
+    const size_t combined_vcf_records_buffer_size_limit)
 {
   JSONConfigBase::read_from_file(filename);
   //VCF header filename
@@ -692,7 +693,6 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   //Output format - if arg not empty
   if(output_format == "" && m_json.HasMember("vcf_output_format"))
     output_format = m_json["vcf_output_format"].GetString(); 
-  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
   //Limit on max #alt alleles so that PL fields get re-computed
   if(m_json.HasMember("max_diploid_alt_alleles_that_can_be_genotyped"))
     m_max_diploid_alt_alleles_that_can_be_genotyped = m_json["max_diploid_alt_alleles_that_can_be_genotyped"].GetInt();
@@ -703,13 +703,24 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     m_determine_sites_with_max_alleles = m_json["determine_sites_with_max_alleles"].GetInt();
   else
     m_determine_sites_with_max_alleles = 0;
+  //Buffer size for combined vcf records
+  if(combined_vcf_records_buffer_size_limit == 0u)
+    if(m_json.HasMember("combined_vcf_records_buffer_size_limit"))
+      m_combined_vcf_records_buffer_size_limit = m_json["combined_vcf_records_buffer_size_limit"].GetInt64();
+    else
+      m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
+  else
+    m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
+  //Cannot be 0
+  m_combined_vcf_records_buffer_size_limit = std::max<size_t>(1ull, m_combined_vcf_records_buffer_size_limit);
+  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit);
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
         VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
-        std::string output_format, const int rank)
+        std::string output_format, const int rank, const size_t combined_vcf_records_buffer_size_limit)
 {
   JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
-  JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank);
+  JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank, combined_vcf_records_buffer_size_limit);
 }
 #endif

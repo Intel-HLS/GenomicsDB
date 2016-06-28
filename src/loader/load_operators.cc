@@ -431,19 +431,24 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
     m_variant.set_column_interval(m_current_start_position, m_current_start_position);
   }
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;
-  m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
-      m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
-#ifdef DO_MEMORY_PROFILING
-  statm_t mem_result;
-  read_off_memory_status(mem_result);
-  if(mem_result.resident > m_next_memory_limit)
+  auto operator_overflow = true;
+  while(operator_overflow)
   {
-    std::cerr << "ENDING crossed "<<m_next_memory_limit<<"\n";
-    m_next_memory_limit += ONE_GB;
-  }
+    m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
+        m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
+    operator_overflow = m_operator->overflow();
+#ifdef DO_MEMORY_PROFILING
+    statm_t mem_result;
+    read_off_memory_status(mem_result);
+    if(mem_result.resident > m_next_memory_limit)
+    {
+      std::cerr << "ENDING crossed "<<m_next_memory_limit<<"\n";
+      m_next_memory_limit += ONE_GB;
+    }
 #endif
-  post_operate_sequential();
-  flush_output();
+    post_operate_sequential();
+    flush_output();
+  }
 }
 
 #endif
