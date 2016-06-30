@@ -24,6 +24,11 @@
 #include "json_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw LoadOperatorException(#X);
+#define ONE_GB (1024ull*1024ull*1024ull)
+
+#ifdef DO_MEMORY_PROFILING
+#include "memory_measure.h"
+#endif
 
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
   : LoaderOperatorBase(), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
@@ -262,7 +267,10 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   JSONVCFAdapterConfig vcf_adapter_config;
   vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, "", partition_idx);
   //Initialize operator
-  m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config);
+  if(json_doc.HasMember("determine_max_alleles") && json_doc["determine_max_alleles"].GetInt() > 0)
+    m_operator = new MaxAllelesCountOperator(json_doc["determine_max_alleles"].GetInt());
+  else
+    m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config);
   //Initialize variant
   m_variant = std::move(Variant(&m_query_config));
   m_variant.resize_based_on_query();
@@ -283,6 +291,9 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_stats_ptr = &m_stats;
 #else
   m_stats_ptr = 0;
+#endif
+#ifdef DO_MEMORY_PROFILING
+  m_next_memory_limit = ONE_GB;
 #endif
 }
 
@@ -324,6 +335,15 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       m_current_start_position, m_next_start_position,
       m_num_calls_with_deletions, m_handle_spanning_deletions,
       m_stats_ptr);
+#ifdef DO_MEMORY_PROFILING
+  statm_t mem_result;
+  read_off_memory_status(mem_result);
+  if(mem_result.resident >= m_next_memory_limit)
+  {
+    std::cerr << "Crossed "<<m_next_memory_limit<<" at position "<<column_value<<"\n";
+    m_next_memory_limit += ONE_GB;
+  }
+#endif
   return;
 }
 
@@ -340,6 +360,15 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;
   m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
       m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
+#ifdef DO_MEMORY_PROFILING
+  statm_t mem_result;
+  read_off_memory_status(mem_result);
+  if(mem_result.resident > m_next_memory_limit)
+  {
+    std::cerr << "ENDING crossed "<<m_next_memory_limit<<"\n";
+    m_next_memory_limit += ONE_GB;
+  }
+#endif
   post_operate_sequential();
   flush_output();
 }

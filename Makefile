@@ -144,6 +144,10 @@ ifdef DO_PROFILING
     CPPFLAGS+=-DDO_PROFILING
 endif
 
+ifdef DO_MEMORY_PROFILING
+    CPPFLAGS+=-DDO_MEMORY_PROFILING
+endif
+
 #Google performance tools library - optional
 ifdef USE_GPERFTOOLS
     ifdef GPERFTOOLSDIR
@@ -201,7 +205,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
 			    jni_bcf_reader.cc \
-                            timer.cc
+                            timer.cc \
+			    memory_measure.cc
 
 ifdef BUILD_JAVA
     GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \

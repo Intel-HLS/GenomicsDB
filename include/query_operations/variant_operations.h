@@ -128,6 +128,7 @@ class SingleVariantOperatorBase
       m_NON_REF_exists = false;
       m_remapping_needed = true;
     }
+    virtual ~SingleVariantOperatorBase() { }
     void clear();
     /*
      * Main operate function - should be overridden by all child classes
@@ -152,6 +153,73 @@ class SingleVariantOperatorBase
     //Flag that determines if any allele re-ordering occurred and whether fields such
     //as PL/AD need to be re-ordered
     bool m_remapping_needed;
+};
+
+class MaxAllelesCountOperator : public SingleVariantOperatorBase
+{
+  public:
+    class AlleleTracker
+    {
+      public:
+        AlleleTracker(const std::string& ref, const std::vector<std::string>& alt, const int64_t column)
+        {
+          m_merged_reference_allele = ref;
+          m_merged_alt_alleles = alt;
+          m_column = column;
+        }
+        std::string m_merged_reference_allele;
+        std::vector<std::string> m_merged_alt_alleles;
+        int64_t m_column;
+        size_t size() const { return m_merged_alt_alleles.size(); }
+    };
+    class AlleleTrackerCompare
+    {
+      public:
+        bool operator()(const AlleleTracker& lhs, const AlleleTracker& rhs) const
+        {
+          return (lhs.size() > rhs.size());
+        }
+    };
+  public:
+    MaxAllelesCountOperator(const unsigned top_count=25u)
+      : SingleVariantOperatorBase()
+    {
+      m_top_count = top_count;
+      m_curr_count = 0u;
+      m_total_lines = 0ull;
+    }
+    ~MaxAllelesCountOperator()
+    {
+      std::cerr << "TOTAL "<<m_total_lines<<"\n";
+      while(!m_top_alleles_pq.empty())
+      {
+        auto& top_value = m_top_alleles_pq.top();
+        std::cerr << top_value.m_column << "," << top_value.m_merged_reference_allele
+          << "," << top_value.size();
+        for(const auto& alt_allele : top_value.m_merged_alt_alleles)
+          std::cerr << "," << alt_allele;
+        std::cerr << "\n";
+        m_top_alleles_pq.pop();
+      }
+    }
+    virtual void operate(Variant& variant, const VariantQueryConfig& query_config)
+    {
+      SingleVariantOperatorBase::operate(variant, query_config);
+      ++m_total_lines;
+      if(m_curr_count < m_top_count || m_merged_alt_alleles.size() > m_top_alleles_pq.top().size())
+      {
+        if(m_curr_count < m_top_count)
+          ++m_curr_count;
+        else
+          m_top_alleles_pq.pop();
+        m_top_alleles_pq.push(AlleleTracker(m_merged_reference_allele, m_merged_alt_alleles, variant.get_column_begin()));
+      }
+    }
+  protected:
+    unsigned m_top_count;
+    unsigned m_curr_count;
+    std::priority_queue<AlleleTracker, std::vector<AlleleTracker>, AlleleTrackerCompare> m_top_alleles_pq;
+    uint64_t m_total_lines;
 };
 
 class DummyGenotypingOperator : public SingleVariantOperatorBase

@@ -164,7 +164,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     VCFAdapter* m_vcf_adapter;
     BufferedVCFAdapter* m_buffered_vcf_adapter; //points to same object as above
     //Operator that produces combined VCF record
-    BroadCombinedGVCFOperator* m_operator;
+    SingleVariantOperatorBase* m_operator;
     Variant m_variant;
     BufferVariantCell* m_cell;
     //Column interval bounds
@@ -181,6 +181,9 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     //Profiling stat
     GTProfileStats m_stats;
     GTProfileStats* m_stats_ptr;
+#ifdef DO_MEMORY_PROFILING
+    size_t m_next_memory_limit;
+#endif
 };
 #endif
 
