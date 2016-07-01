@@ -306,7 +306,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 
 #if defined(HTSDIR)
 void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config,
-    VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
+    VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const JSONVCFAdapterQueryConfig& json_scan_config,
     int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
 {
   //Read output in batches if required
@@ -315,7 +315,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
   auto serialized_vcf_adapter_ptr = dynamic_cast<VCFSerializedBufferAdapter*>(&vcf_adapter);
   if(serialized_vcf_adapter_ptr)
     serialized_vcf_adapter_ptr->set_buffer(rw_buffer);
-  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config);
+  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config, json_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
   Timer timer;
   timer.start();
   //At least 1 iteration
@@ -492,15 +492,13 @@ int main(int argc, char *argv[]) {
   VCFAdapter vcf_adapter_base;
   VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
   auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
+  JSONVCFAdapterQueryConfig scan_config;
 #endif
   //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
   if(json_config_file != "")
   {
     JSONBasicQueryConfig* json_config_ptr = 0;
     JSONBasicQueryConfig range_query_config;
-#if defined(HTSDIR)
-    JSONVCFAdapterQueryConfig scan_config;
-#endif
     //If loader JSON passed as argument, initialize id_mapper from this file
     if(loader_json_config_file.length())
     {
@@ -579,7 +577,7 @@ int main(int argc, char *argv[]) {
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper),
+      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
           num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
       break;

@@ -693,6 +693,16 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   if(output_format == "" && m_json.HasMember("vcf_output_format"))
     output_format = m_json["vcf_output_format"].GetString(); 
   vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format);
+  //Limit on max #alt alleles so that PL fields get re-computed
+  if(m_json.HasMember("max_diploid_alt_alleles_that_can_be_genotyped"))
+    m_max_diploid_alt_alleles_that_can_be_genotyped = m_json["max_diploid_alt_alleles_that_can_be_genotyped"].GetInt();
+  else
+    m_max_diploid_alt_alleles_that_can_be_genotyped = MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED;
+  //Don't produce the full VCF, but determine sites with high allele count
+  if(m_json.HasMember("determine_sites_with_max_alleles"))
+    m_determine_sites_with_max_alleles = m_json["determine_sites_with_max_alleles"].GetInt();
+  else
+    m_determine_sites_with_max_alleles = 0;
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,

@@ -142,13 +142,20 @@ class JSONVCFAdapterConfig : public JSONConfigBase
     JSONVCFAdapterConfig() : JSONConfigBase()
     {
       m_vcf_header_filename = "";
+      m_determine_sites_with_max_alleles = 0;
     }
     void read_from_file(const std::string& filename,
         VCFAdapter& vcf_adapter, std::string output_format="", int rank=0);
+    inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
+    inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
   protected:
     std::string m_vcf_header_filename;
     std::string m_reference_genome;
     std::string m_vcf_output_filename;
+    //Count max #alt alleles , don't create combined gVCF
+    unsigned m_determine_sites_with_max_alleles;
+    //Max diploid alleles for which fields whose length is equal to the number of genotypes can be produced (such as PL)
+    unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
 };
 
 class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQueryConfig

@@ -234,6 +234,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   : LoaderOperatorBase(), m_schema(0), m_query_processor(0), m_operator(0)
 {
   clear();
+  //Common properties for loader
   //Parse json configuration
   rapidjson::Document json_doc;
   std::ifstream ifs(config_filename.c_str());
@@ -267,10 +268,11 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   JSONVCFAdapterConfig vcf_adapter_config;
   vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, "", partition_idx);
   //Initialize operator
-  if(json_doc.HasMember("determine_max_alleles") && json_doc["determine_max_alleles"].GetInt() > 0)
-    m_operator = new MaxAllelesCountOperator(json_doc["determine_max_alleles"].GetInt());
+  if(vcf_adapter_config.get_determine_sites_with_max_alleles() > 0)
+    m_operator = new MaxAllelesCountOperator(vcf_adapter_config.get_determine_sites_with_max_alleles());
   else
-    m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config);
+    m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config,
+        vcf_adapter_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
   //Initialize variant
   m_variant = std::move(Variant(&m_query_config));
   m_variant.resize_based_on_query();
@@ -308,14 +310,14 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 {
   auto coords = reinterpret_cast<const int64_t*>(cell_ptr);
   auto column_value = coords[1];
-#ifndef NDEBUG
   auto ptr = reinterpret_cast<const uint8_t*>(cell_ptr);
   //END value is after cooords and cell_size
   ptr += 2*sizeof(int64_t)+sizeof(size_t);
   auto end_value = *(reinterpret_cast<const int64_t*>(ptr));
-  //Must cross partition bound
-  assert(end_value >= m_partition.first && column_value <= m_partition.second);
-#endif
+  //Ignore if this cell does not intersect with the current partition
+  //Might occur because of the way VCF records and indexes are setup
+  if(end_value < m_partition.first || column_value > m_partition.second)
+    return;
   //Either un-initialized or VariantCall interval starts before/at partition begin value
   if(m_current_start_position < 0 || column_value <= m_partition.first)
   {

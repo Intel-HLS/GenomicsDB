@@ -311,11 +311,12 @@ class VariantFieldHandler : public VariantFieldHandlerBase
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    GA4GHOperator(const VariantQueryConfig& query_config);
+    GA4GHOperator(const VariantQueryConfig& query_config, const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }
     void copy_back_remapped_fields(Variant& variant) const;
+    bool too_many_alt_alleles_for_genotype_length_fields(unsigned num_alt_alleles) const { return num_alt_alleles > m_max_diploid_alt_alleles_that_can_be_genotyped; }
   protected:
     Variant m_remapped_variant;
     //Query idxs of fields that need to be remmaped - PL, AD etc
@@ -326,6 +327,8 @@ class GA4GHOperator : public SingleVariantOperatorBase
     std::unique_ptr<VariantFieldHandlerBase>& get_handler_for_type(std::type_index ty);
     //Handlers for various fields
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
+    //Max alt alleles that can be handled for computing the PL fields - default 50
+    unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
 };
 
 class SingleCellOperatorBase
