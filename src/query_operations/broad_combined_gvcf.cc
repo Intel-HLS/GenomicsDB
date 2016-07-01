@@ -42,8 +42,9 @@
 const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
 
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
-    const VariantQueryConfig& query_config, const bool use_missing_values_only_not_vector_end)
-: GA4GHOperator(query_config)
+    const VariantQueryConfig& query_config,
+    const unsigned max_diploid_alt_alleles_that_can_be_genotyped, const bool use_missing_values_only_not_vector_end)
+: GA4GHOperator(query_config, max_diploid_alt_alleles_that_can_be_genotyped)
 {
   clear();
   if(!id_mapper.is_initialized())
@@ -242,6 +243,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto& curr_tuple = m_FORMAT_fields_vec[i];
     auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(curr_tuple);
     assert(known_field_enum < g_known_variant_field_names.size());
+    if(KnownFieldInfo::is_length_genotype_dependent(known_field_enum) && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
+      continue;
     auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
     auto is_char_type = (variant_type_enum == VARIANT_FIELD_CHAR);
     //valid field handler

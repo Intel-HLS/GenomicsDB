@@ -52,6 +52,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
 {
   public:
     BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const VariantQueryConfig& query_config,
+        const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED,
         const bool use_missing_values_only_not_vector_end=false);
     virtual ~BroadCombinedGVCFOperator()
     {

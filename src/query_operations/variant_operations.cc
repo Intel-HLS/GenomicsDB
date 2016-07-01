@@ -353,10 +353,11 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
 }
 
 //GA4GHOperator functions
-GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config)
+GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsigned max_diploid_alt_alleles_that_can_be_genotyped)
   : SingleVariantOperatorBase()
 {
   m_GT_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+  m_max_diploid_alt_alleles_that_can_be_genotyped = max_diploid_alt_alleles_that_can_be_genotyped;
   m_remapped_fields_query_idxs.clear();
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
@@ -440,6 +441,13 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
       const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
       //known field whose length is dependent on #alleles
       assert(info_ptr && info_ptr->is_length_allele_dependent());
+      if(info_ptr->is_length_genotype_dependent() && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
+      {
+        std::cerr << "Column "<<variant.get_column_begin() <<" has too many alleles in the combined VCF record : "<<num_merged_alleles-1
+          << " : current limit : "<<m_max_diploid_alt_alleles_that_can_be_genotyped
+          << ". Fields, such as  PL, with length equal to the number of genotypes will NOT be added for this location.\n";
+        continue;
+      }
       unsigned num_merged_elements = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
       //Remapper for m_remapped_variant
       RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
