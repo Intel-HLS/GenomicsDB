@@ -82,6 +82,22 @@ bool KnownFieldInfo::is_length_allele_dependent(unsigned enumIdx)
   return g_known_field_enum_to_info[enumIdx].is_length_allele_dependent();
 }
 /*
+ * Function that determines whether length of the field is dependent on the #genotypes
+ */
+bool KnownFieldInfo::is_length_genotype_dependent(unsigned enumIdx)
+{
+  assert(enumIdx < g_known_field_enum_to_info.size());
+  return g_known_field_enum_to_info[enumIdx].is_length_genotype_dependent();
+}
+/*
+ * Function that determines whether length of the field is dependent on the #genotypes
+ */
+bool KnownFieldInfo::is_length_only_ALT_alleles_dependent(unsigned enumIdx)
+{
+  assert(enumIdx < g_known_field_enum_to_info.size());
+  return g_known_field_enum_to_info[enumIdx].is_length_only_ALT_alleles_dependent();
+}
+/*
  * Check whether the known field requires ploidy - e.g. GT, GQ etc
  */
 bool KnownFieldInfo::ploidy_required_for_known_field_enum(unsigned enumIdx)

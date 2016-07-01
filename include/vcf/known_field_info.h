@@ -96,8 +96,8 @@ class KnownFieldInfo
     /*
      * Static functions that access the global vector specified below to get info
      */
-    inline static bool is_length_genotype_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_G; }
-    inline static bool is_length_only_ALT_alleles_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_A; }
+    inline static bool is_length_descriptor_genotype_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_G; }
+    inline static bool is_length_descriptor_only_ALT_alleles_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_A; }
     /*
      * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
      * If yes, fills known_field_enum and returns true
@@ -117,6 +117,14 @@ class KnownFieldInfo
      * Function that determines whether length of the field is dependent on the #alleles 
      */
     static bool is_length_allele_dependent(unsigned enumIdx);
+    /*
+     * Function that determines whether length of the field is dependent on the #genotypes
+     */
+    static bool is_length_genotype_dependent(unsigned enumIdx);
+    /*
+     * Function that determines whether length of the field is dependent only on the #alt alleles
+     */
+    static bool is_length_only_ALT_alleles_dependent(unsigned enumIdx);
     /*
      * Check whether the known field requires ploidy - e.g. GT, GQ etc
      */

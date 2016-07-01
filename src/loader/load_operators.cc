@@ -310,14 +310,14 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 {
   auto coords = reinterpret_cast<const int64_t*>(cell_ptr);
   auto column_value = coords[1];
-#ifndef NDEBUG
   auto ptr = reinterpret_cast<const uint8_t*>(cell_ptr);
   //END value is after cooords and cell_size
   ptr += 2*sizeof(int64_t)+sizeof(size_t);
   auto end_value = *(reinterpret_cast<const int64_t*>(ptr));
-  //Must cross partition bound
-  assert(end_value >= m_partition.first && column_value <= m_partition.second);
-#endif
+  //Ignore if this cell does not intersect with the current partition
+  //Might occur because of the way VCF records and indexes are setup
+  if(end_value < m_partition.first || column_value > m_partition.second)
+    return;
   //Either un-initialized or VariantCall interval starts before/at partition begin value
   if(m_current_start_position < 0 || column_value <= m_partition.first)
   {
