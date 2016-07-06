@@ -9,7 +9,7 @@ CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS=-static-libgcc -static-libstdc++
 #LDFLAGS appear after the list of object files (-lz etc)
-LDFLAGS:=-lz -lrt -lcrypto
+LDFLAGS:=-Wl,-Bstatic -lcrypto -Wl,-Bdynamic -lz -lrt
 SHARED_LIBRARY_EXTENSION:=so
 SHARED_LIBRARY_FLAGS:=-shared
 
