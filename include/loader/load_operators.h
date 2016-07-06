@@ -28,6 +28,22 @@
 #include "broad_combined_gvcf.h" 
 #include "variant_storage_manager.h"
 
+struct CellPointersColumnMajorCompare
+{
+  bool operator()(const uint8_t*& a, const uint8_t*& b) const
+  {
+    auto* a_coords = reinterpret_cast<const int64_t*>(a);
+    auto* b_coords = reinterpret_cast<const int64_t*>(b);
+    return (a_coords[1] < b_coords[1] || (a_coords[1] == b_coords[1] && a_coords[0] < b_coords[0]));
+  }
+  bool operator()(uint8_t*& a, uint8_t*& b) const
+  {
+    auto* a_coords = reinterpret_cast<const int64_t*>(a);
+    auto* b_coords = reinterpret_cast<const int64_t*>(b);
+    return (a_coords[1] < b_coords[1] || (a_coords[1] == b_coords[1] && a_coords[0] < b_coords[0]));
+  }
+};
+
 //Exceptions thrown
 class LoadOperatorException : public std::exception {
   public:
@@ -43,7 +59,15 @@ class LoadOperatorException : public std::exception {
 class LoaderOperatorBase
 {
   public:
-    LoaderOperatorBase() { ; }
+    LoaderOperatorBase(const size_t num_callsets)
+      : m_column_partition(0, INT64_MAX-1)
+    {
+      m_crossed_column_partition_begin = false;
+#ifdef DUPLICATE_CELL_AT_END
+      m_cell_copies.resize(num_callsets, 0);
+      m_last_end_position_for_row.resize(num_callsets, -1ll);
+#endif
+    }
     virtual ~LoaderOperatorBase() { ; }
     /*
      * Function that is called before the parallel section takes over, but inside the operational loop
@@ -53,6 +77,13 @@ class LoaderOperatorBase
      * Virtual function that must be overridden by sub-classes
      */
     virtual void operate(const void* cell_ptr) = 0;
+    /*
+     * Handle intervals which begin before the column partition and span across.
+     * This is needed to deal with the overlapping variants issue for VCFs (see wiki)
+     * @return: true if the interval begins before the column partition
+     */
+    void handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
+        const size_t cell_size, const void* cell_ptr);
     /*
      * Called within parallel sections - useful if the output needs to be flushed by a thread
      * not in the critical path
@@ -66,6 +97,15 @@ class LoaderOperatorBase
      * Called at the end - the argument is the column interval end limit
      */
     virtual void finish(const int64_t column_interval_end) { ; }
+  protected:
+    ColumnRange m_column_partition;
+    bool m_crossed_column_partition_begin;
+#ifdef DUPLICATE_CELL_AT_END
+    //Copy of cell buffers
+    std::vector<uint8_t*> m_cell_copies;
+    //End position of last cell seen for current row
+    std::vector<int64_t> m_last_end_position_for_row;
+#endif
 };
 
 class LoaderArrayWriter : public LoaderOperatorBase
@@ -97,8 +137,6 @@ class LoaderArrayWriter : public LoaderOperatorBase
      * and adds to PQ again
      */
     void write_top_element_to_disk();
-    //Copy of cell buffers
-    std::vector<uint8_t*> m_cell_copies;
     //Mimics behavior of program heap for cell copies - minimizes number of frees/reallocations
     std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>> m_memory_manager;
     //For use in priority queue
@@ -116,7 +154,6 @@ class LoaderArrayWriter : public LoaderOperatorBase
         return ((a.m_begin_column > b.m_begin_column) || (a.m_begin_column == b.m_begin_column && a.m_row > b.m_row));
       }
     };
-    std::vector<int64_t> m_last_end_position_for_row;
     //top() contains CellWrapper with the smallest cell in column major order 
     std::priority_queue<CellWrapper, std::vector<CellWrapper>, ColumnMajorCellCompareGT> m_cell_wrapper_pq;
 #endif

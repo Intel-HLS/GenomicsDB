@@ -446,7 +446,7 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
     std::vector<ColumnRange> my_rank_queried_columns;
     for(auto queried_column : m_column_ranges[0])
     {
-      if (queried_column.first >= my_rank_loader_column_range.first && queried_column.first < my_rank_loader_column_range.second)
+      if(queried_column.second >= my_rank_loader_column_range.first && queried_column.first <= my_rank_loader_column_range.second)
         my_rank_queried_columns.emplace_back(queried_column);
     }
     m_column_ranges[0] = std::move(my_rank_queried_columns);

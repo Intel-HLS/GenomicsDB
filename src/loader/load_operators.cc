@@ -30,8 +30,56 @@
 #include "memory_measure.h"
 #endif
 
+void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
+    const size_t cell_size, const void* cell_ptr)
+{
+  if(begin > m_column_partition.first)
+  {
+    if(!m_crossed_column_partition_begin) //first cross
+    {
+      m_crossed_column_partition_begin = true;
+      //Determine all rows for which there is a valid interval intersecting with column begin
+      //These intervals must be operated on
+      std::vector<uint8_t*> copies_vector;
+      for(auto i=0ull;i<m_last_end_position_for_row.size();++i)
+      {
+        if(m_last_end_position_for_row[i] >= 0)
+          copies_vector.push_back(m_cell_copies[i]);
+        else
+          if(m_cell_copies[i])
+            free(m_cell_copies[i]);
+        m_cell_copies[i] = 0;
+        m_last_end_position_for_row[i] = -1ll;
+      }
+      m_cell_copies.clear();
+      //Sort the copies vector in column major order
+      CellPointersColumnMajorCompare cmp;
+      std::sort(copies_vector.begin(), copies_vector.end(), cmp);
+      //Invoke the operator function for each of the cells
+      for(auto*& cell_ptr : copies_vector)
+      {
+        operate(reinterpret_cast<const void*>(cell_ptr));
+        free(cell_ptr);
+        cell_ptr = 0;
+      }
+    }
+    return;
+  }
+  //begin <= m_column_partition.first from now
+  if(end >= m_column_partition.first)   //intersects current partition
+  {
+    //Copy the cell - since this is the latest interval that intersects the partition
+    m_last_end_position_for_row[row] = end;
+    m_cell_copies[row] = static_cast<uint8_t*>(realloc(m_cell_copies[row], cell_size));
+    VERIFY_OR_THROW(m_cell_copies[row] && "Memory allocation failed while creating copy of cell");
+    memcpy(m_cell_copies[row], cell_ptr, cell_size);
+  }
+  else //most recent interval ends before the partition - invalidate entry for this row
+    m_last_end_position_for_row[row] = -1ll;
+}
+
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
-  : LoaderOperatorBase(), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
+  : LoaderOperatorBase(id_mapper->get_num_callsets()), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
 {
   //Parse json configuration
   rapidjson::Document json_doc;
@@ -53,6 +101,8 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
     row_partition = json_config.get_row_partition(rank);
     row_partition.second = std::min(row_partition.second, static_cast<int64_t>(json_config.get_max_num_rows_in_array()-1));
   }
+  else
+    m_column_partition = json_config.get_column_partition(rank);
   //default true
   bool compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array") || json_doc["compress_tiledb_array"].GetBool());
   id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, compress_tiledb_array);
@@ -79,10 +129,6 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
   m_storage_manager->update_row_bounds_in_array(m_array_descriptor, row_partition.first,
       std::min(row_partition.second, id_mapper->get_max_callset_row_idx()));
-#ifdef DUPLICATE_CELL_AT_END
-  m_cell_copies.clear();
-  m_last_end_position_for_row.resize(id_mapper->get_num_callsets(), -1ll);
-#endif
 }
 
 #ifdef DUPLICATE_CELL_AT_END
@@ -116,7 +162,6 @@ void LoaderArrayWriter::write_top_element_to_disk()
 void LoaderArrayWriter::operate(const void* cell_ptr)
 {
   assert(m_storage_manager);
-#ifdef DUPLICATE_CELL_AT_END
   const uint8_t* ptr = reinterpret_cast<const uint8_t*>(cell_ptr);
   //row
   auto row = *(reinterpret_cast<const int64_t*>(ptr));
@@ -127,6 +172,13 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
   assert(column_end >= column_begin && static_cast<size_t>(row) < m_last_end_position_for_row.size());
   //cell size is after co-ordinates
   auto cell_size = *(reinterpret_cast<const size_t*>(ptr+2*sizeof(int64_t)));
+  if(!m_crossed_column_partition_begin)
+  {
+    handle_intervals_spanning_partition_begin(row, column_begin, column_end, cell_size, cell_ptr);
+    if(!m_crossed_column_partition_begin)       //still did not cross
+      return;
+  }
+#ifdef DUPLICATE_CELL_AT_END
   //Reason: the whole setup works only if the intervals for a given row/sample are non-overlapping. This
   //property must be enforced by the loader
   //We maintain the last END value seen for every row - if the new cell has a begin
@@ -231,15 +283,14 @@ void LoaderArrayWriter::finish(const int64_t column_interval_end)
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
     bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
-  : LoaderOperatorBase(), m_schema(0), m_query_processor(0), m_operator(0)
+  : LoaderOperatorBase(id_mapper->get_num_callsets()), m_schema(0), m_query_processor(0), m_operator(0)
 {
-  clear();
-  //Common properties for loader
-  //Parse json configuration
-  rapidjson::Document json_doc;
-  std::ifstream ifs(config_filename.c_str());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
+  clear(); 
+  //Loader configuration
+  JSONLoaderConfig json_config;
+  json_config.read_from_file(config_filename);
+  if(!json_config.is_partitioned_by_row())
+    m_column_partition = json_config.get_column_partition(partition_idx);
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
@@ -251,6 +302,11 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
     query_attributes[i] = m_schema->attribute_name(i);
   m_query_config.set_attributes_to_query(query_attributes);
   m_query_processor->do_query_bookkeeping(*m_schema, m_query_config);
+  //Parse json configuration
+  rapidjson::Document json_doc;
+  std::ifstream ifs(config_filename.c_str());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  json_doc.Parse(str.c_str());
   //Initialize VCF adapter
   if(json_doc.HasMember("offload_vcf_output_processing") && json_doc["offload_vcf_output_processing"].GetBool())
   {
@@ -309,22 +365,27 @@ void LoaderCombinedGVCFOperator::clear()
 void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 {
   auto coords = reinterpret_cast<const int64_t*>(cell_ptr);
-  auto column_value = coords[1];
+  auto row = coords[0];
+  auto column_begin = coords[1];
   auto ptr = reinterpret_cast<const uint8_t*>(cell_ptr);
+  //Cell size after the coords
+  auto cell_size = *(reinterpret_cast<const size_t*>(ptr+2*sizeof(int64_t)));
   //END value is after cooords and cell_size
   ptr += 2*sizeof(int64_t)+sizeof(size_t);
-  auto end_value = *(reinterpret_cast<const int64_t*>(ptr));
-  //Ignore if this cell does not intersect with the current partition
-  //Might occur because of the way VCF records and indexes are setup
-  if(end_value < m_partition.first || column_value > m_partition.second)
-    return;
-  //Either un-initialized or VariantCall interval starts before/at partition begin value
-  if(m_current_start_position < 0 || column_value <= m_partition.first)
+  auto column_end = *(reinterpret_cast<const int64_t*>(ptr));
+  if(!m_crossed_column_partition_begin)
   {
-    m_current_start_position = column_value;
-    m_variant.set_column_interval(column_value, column_value);
+    handle_intervals_spanning_partition_begin(row, column_begin, column_end, cell_size, cell_ptr);
+    if(!m_crossed_column_partition_begin)       //still did not cross
+      return;
   }
-  else  //column_value > m_partition.first, check if m_current_start_position < m_partition.first
+  //Either un-initialized or VariantCall interval starts before/at partition begin value
+  if(m_current_start_position < 0 || column_begin <= m_partition.first)
+  {
+    m_current_start_position = column_begin;
+    m_variant.set_column_interval(column_begin, column_begin);
+  }
+  else  //column_begin > m_partition.first, check if m_current_start_position < m_partition.first
     if(m_current_start_position < m_partition.first)
     {
       m_current_start_position = m_partition.first;
@@ -342,7 +403,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
   read_off_memory_status(mem_result);
   if(mem_result.resident >= m_next_memory_limit)
   {
-    std::cerr << "Crossed "<<m_next_memory_limit<<" at position "<<column_value<<"\n";
+    std::cerr << "Crossed "<<m_next_memory_limit<<" at position "<<column_begin<<"\n";
     m_next_memory_limit += ONE_GB;
   }
 #endif
