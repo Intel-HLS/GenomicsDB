@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.intel</groupId>
   <artifactId>genomicsdb</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
   <name>GenomicsDB</name>
   <description>A C++ layer on top of TileDB for storing and querying variants</description>
   <url>https://github.com/Intel-HLS/GenomicsDB</url>

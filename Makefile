@@ -7,9 +7,16 @@ LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
 CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
-LINKFLAGS=-static-libgcc -static-libstdc++
+LINKFLAGS:=
 #LDFLAGS appear after the list of object files (-lz etc)
-LDFLAGS:=-lz -lrt -lcrypto
+LDFLAGS:=
+ifdef MAXIMIZE_STATIC_LINKING
+    LINKFLAGS+=-static-libgcc -static-libstdc++
+    LDFLAGS+=-Wl,-Bstatic -lcrypto -Wl,-Bdynamic
+else
+    LDFLAGS+=-lcrypto
+endif
+LDFLAGS+= -lz -lrt
 SHARED_LIBRARY_EXTENSION:=so
 SHARED_LIBRARY_FLAGS:=-shared
 
@@ -19,7 +26,11 @@ ifeq ($(OS), Darwin)
   OPENSSL_PREFIX_DIR?=/usr/local/opt/openssl/
   CFLAGS=-mmacosx-version-min=10.9
   LINKFLAGS:=
-  LDFLAGS:=$(OPENSSL_PREFIX_DIR)/lib/libcrypto.a -lz
+  ifdef MAXIMIZE_STATIC_LINKING
+      LDFLAGS:=$(OPENSSL_PREFIX_DIR)/lib/libcrypto.a -lz
+  else
+      LDFLAGS:=-L$(OPENSSL_PREFIX_DIR)/lib -lcrypto -lz
+  endif
   SHARED_LIBRARY_EXTENSION=dylib
   SHARED_LIBRARY_FLAGS:=-dynamiclib -mmacosx-version-min=10.9
   DISABLE_OPENMP:=1
