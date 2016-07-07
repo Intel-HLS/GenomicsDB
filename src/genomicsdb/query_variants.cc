@@ -211,6 +211,8 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
   clear();
   m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, "r");
+  if(m_ad < 0)
+    throw VariantQueryProcessorException("Could not open array "+array_name+" at workspace: "+storage_manager->get_workspace());
   m_array_schema = new VariantArraySchema();
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
