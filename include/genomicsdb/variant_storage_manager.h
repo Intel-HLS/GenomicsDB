@@ -241,6 +241,10 @@ class VariantStorageManager
      * Update row bounds in the metadata
      */
     void update_row_bounds_in_array(const int ad, const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array);
+    /*
+     * Return workspace path
+     */
+    const std::string& get_workspace() const { return m_workspace; }
   private:
     static const std::unordered_map<std::string, int> m_mode_string_to_int;
     //TileDB context

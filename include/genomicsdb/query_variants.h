@@ -50,6 +50,18 @@ class InconsistentQueryOptionsException : public std::exception {
     std::string msg_;
 };
 
+//Exceptions thrown
+class VariantQueryProcessorException : public std::exception {
+  public:
+    VariantQueryProcessorException(const std::string m="") : msg_("VariantQueryProcessorException : "+m) { ; }
+    ~VariantQueryProcessorException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 /* Structure to store profiling information */
 class GTProfileStats {
   public:
