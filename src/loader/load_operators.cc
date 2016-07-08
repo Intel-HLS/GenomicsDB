@@ -30,6 +30,7 @@
 #include "memory_measure.h"
 #endif
 
+//LoaderOperatorBase functions
 void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
     const size_t cell_size, const void* cell_ptr)
 {
@@ -56,11 +57,11 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
       CellPointersColumnMajorCompare cmp;
       std::sort(copies_vector.begin(), copies_vector.end(), cmp);
       //Invoke the operator function for each of the cells
-      for(auto*& cell_ptr : copies_vector)
+      for(auto*& cell_copy_ptr : copies_vector)
       {
-        operate(reinterpret_cast<const void*>(cell_ptr));
-        free(cell_ptr);
-        cell_ptr = 0;
+        operate(reinterpret_cast<const void*>(cell_copy_ptr));
+        free(cell_copy_ptr);
+        cell_copy_ptr = 0;
       }
     }
     return;
@@ -78,6 +79,13 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
     m_last_end_position_for_row[row] = -1ll;
 }
 
+void LoaderOperatorBase::finish(const int64_t column_interval_end)
+{
+  if(!m_crossed_column_partition_begin) //did not ever cross the column partition beginning, force cross
+    handle_intervals_spanning_partition_begin(0, INT64_MAX-1, INT64_MAX-1, 0, 0);
+}
+
+//LoaderArrayWriter - writes to TileDB arrays
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
   : LoaderOperatorBase(id_mapper->get_num_callsets()), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
 {
@@ -271,6 +279,7 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
 
 void LoaderArrayWriter::finish(const int64_t column_interval_end)
 {
+  LoaderOperatorBase::finish(column_interval_end);
 #ifdef DUPLICATE_CELL_AT_END
   //some cells may be left in the PQ, write them to disk
   while(!m_cell_wrapper_pq.empty())
@@ -412,6 +421,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
 
 void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
 {
+  LoaderOperatorBase::finish(column_interval_end);
   assert(!m_offload_vcf_output_processing || m_buffered_vcf_adapter->get_num_entries_with_valid_data() == 0u);
   pre_operate_sequential();
   //Fix start and next_start positions if necessary

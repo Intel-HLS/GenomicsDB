@@ -96,7 +96,7 @@ class LoaderOperatorBase
     /*
      * Called at the end - the argument is the column interval end limit
      */
-    virtual void finish(const int64_t column_interval_end) { ; }
+    virtual void finish(const int64_t column_interval_end);
   protected:
     ColumnRange m_column_partition;
     bool m_crossed_column_partition_begin;
