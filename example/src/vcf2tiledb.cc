@@ -31,19 +31,32 @@
 
 int main(int argc, char** argv)
 {
+  //Initialize MPI environment
+  auto rc = MPI_Init(0, 0);
+  if (rc != MPI_SUCCESS) {
+    printf ("Error starting MPI program. Terminating.\n");
+    MPI_Abort(MPI_COMM_WORLD, rc);
+  }
+  //Get my world rank
+  int my_world_mpi_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
   // Define long options
   static struct option long_options[] =
   {
     {"tmp-directory",1,0,'T'},
+    {"rank",1,0,'r'},
     {0,0,0,0},
   };
   int c;
-  while((c=getopt_long(argc, argv, "T:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "T:r:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
       case 'T':
         g_tmp_scratch_dir = optarg;
+        break;
+      case 'r':
+        my_world_mpi_rank = strtol(optarg, 0, 10);
         break;
       default:
         std::cerr << "Unknown parameter "<< argv[optind] << "\n";
@@ -55,18 +68,6 @@ int main(int argc, char** argv)
     std::cerr << "Needs <loader_json_config_file>\n";
     exit(-1);
   }
-  //Initialize MPI environment
-  auto rc = MPI_Init(0, 0);
-  if (rc != MPI_SUCCESS) {
-    printf ("Error starting MPI program. Terminating.\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
-  }
-  //Get number of MPI processes
-  int num_mpi_processes = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &num_mpi_processes);
-  //Get my world rank
-  int my_world_mpi_rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
 #ifdef USE_GPERFTOOLS
   ProfilerStart("gprofile.log");
 #endif
