@@ -413,6 +413,7 @@ int main(int argc, char *argv[]) {
   static struct option long_options[] = 
   {
     {"page-size",1,0,'p'},
+    {"rank",1,0,'r'},
     {"output-format",1,0,'O'},
     {"workspace",1,0,'w'},
     {"json-config",1,0,'j'},
@@ -436,13 +437,16 @@ int main(int argc, char *argv[]) {
   bool skip_query_on_root = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
-  while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
       case 'p':
         page_size = strtoull(optarg, 0, 10);
         std::cerr << "WARNING: page size is ignored except for scan now\n";
+        break;
+      case 'r':
+        my_world_mpi_rank = strtoull(optarg, 0, 10);
         break;
       case 'O':
         output_format = std::move(std::string(optarg));
