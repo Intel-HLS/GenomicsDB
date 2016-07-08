@@ -340,9 +340,11 @@ void SingleVariantOperatorBase::operate(Variant& variant, const VariantQueryConf
   m_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 10u);    //arbitrary non-0 second arg, will be resized correctly anyway
   VariantOperations::merge_alt_alleles(variant, query_config, m_merged_reference_allele, m_alleles_LUT,
       m_merged_alt_alleles, m_NON_REF_exists);
-  //No remapping is needed if REF is 1 char, and ALT contains only <NON_REF>
-  m_remapping_needed = !(m_merged_reference_allele.length() == 1u && m_merged_alt_alleles.size() == 1u &&
+  //is pure reference block if REF is 1 char, and ALT contains only <NON_REF>
+  m_is_reference_block_only = (m_merged_reference_allele.length() == 1u && m_merged_alt_alleles.size() == 1u &&
       m_merged_alt_alleles[0] == g_vcf_NON_REF);
+  //No remapping is needed if REF is 1 char, and ALT contains only <NON_REF>
+  m_remapping_needed = !m_is_reference_block_only;
 }
 
 //Dummy genotyping operator

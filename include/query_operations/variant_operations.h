@@ -127,6 +127,7 @@ class SingleVariantOperatorBase
       clear();
       m_NON_REF_exists = false;
       m_remapping_needed = true;
+      m_is_reference_block_only = false;
     }
     virtual ~SingleVariantOperatorBase() { }
     void clear();
@@ -153,6 +154,8 @@ class SingleVariantOperatorBase
     //Flag that determines if any allele re-ordering occurred and whether fields such
     //as PL/AD need to be re-ordered
     bool m_remapping_needed;
+    //is pure reference block if REF is 1 char, and ALT contains only <NON_REF>
+    bool m_is_reference_block_only;
 };
 
 class MaxAllelesCountOperator : public SingleVariantOperatorBase
