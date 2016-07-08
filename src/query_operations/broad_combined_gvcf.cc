@@ -322,7 +322,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     if(found_one_valid_DP_FORMAT)
       bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
     //If at least one valid DP value found from (DP or DP_FORMAT or MIN_DP), add DP to INFO
-    if(sum_INFO_DP > 0)
+    if(sum_INFO_DP > 0 && !m_is_reference_block_only)
       bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "DP", &sum_INFO_DP, 1);
   }
   //Handle fields which GenomicsDB does not know about 
