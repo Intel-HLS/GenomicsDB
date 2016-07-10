@@ -450,7 +450,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           {
             unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
             assert(gt_idx < PL_vector.size());
-            if(PL_vector[gt_idx] < lowest_PL_value)
+            if(PL_vector[gt_idx] < lowest_PL_value || lowest_deletion_allele_idx < 0)
             {
               lowest_PL_value = PL_vector[gt_idx];
               lowest_deletion_allele_idx = allele_idx;
