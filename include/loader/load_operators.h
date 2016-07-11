@@ -30,16 +30,10 @@
 
 struct CellPointersColumnMajorCompare
 {
-  bool operator()(const uint8_t*& a, const uint8_t*& b) const
+  bool operator()(const uint8_t* const a, const uint8_t* const b) const
   {
-    auto* a_coords = reinterpret_cast<const int64_t*>(a);
-    auto* b_coords = reinterpret_cast<const int64_t*>(b);
-    return (a_coords[1] < b_coords[1] || (a_coords[1] == b_coords[1] && a_coords[0] < b_coords[0]));
-  }
-  bool operator()(uint8_t*& a, uint8_t*& b) const
-  {
-    auto* a_coords = reinterpret_cast<const int64_t*>(a);
-    auto* b_coords = reinterpret_cast<const int64_t*>(b);
+    auto* a_coords = reinterpret_cast<const int64_t* const>(a);
+    auto* b_coords = reinterpret_cast<const int64_t* const>(b);
     return (a_coords[1] < b_coords[1] || (a_coords[1] == b_coords[1] && a_coords[0] < b_coords[0]));
   }
 };
