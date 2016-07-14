@@ -43,7 +43,7 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   auto bcf_reader_obj = new JNIBCFReader(loader_configuration_file_cstr, query_configuration_file_cstr,
       chr_cstr, start, end,
       rank, buffer_capacity, segment_size, output_format,
-      (strcmp(output_format, "bu") == 0));
+      (strcmp(output_format, "bu") == 0), false);
   //Cleanup
   env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);
   env->ReleaseStringUTFChars(query_configuration_file, query_configuration_file_cstr);

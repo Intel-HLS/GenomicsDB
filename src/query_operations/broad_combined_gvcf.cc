@@ -187,6 +187,7 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
   {
     int vcf_end_pos = m_remapped_variant.get_column_end() - m_curr_contig_begin_position + 1; //vcf END is 1 based
     bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "END", &vcf_end_pos, 1);
+    m_bcf_record_size += sizeof(int);
   }
   //Compute median for all INFO fields except RAW_MQ
   for(auto i=0u;i<m_INFO_fields_vec.size();++i)
@@ -204,7 +205,10 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
       auto valid_median_found = m_field_handlers[variant_type_enum]->get_valid_median(variant, *m_query_config,
           m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&median));
       if(valid_median_found)
+      {
         bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &median, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+        m_bcf_record_size += sizeof(int);
+      }
     }
     else
     {
@@ -218,7 +222,10 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
       auto valid_sum_found = m_field_handlers[variant_type_enum]->get_valid_sum(variant, *m_query_config,
           m_query_config->get_query_idx_for_known_field_enum(known_field_enum), reinterpret_cast<void*>(&sum));
       if(valid_sum_found)
+      {
         bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &sum, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+        m_bcf_record_size += sizeof(int);
+      }
       //bcf_update_info(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), &(result_vector[0]), num_elements,
       //BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
     }
@@ -290,8 +297,11 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           break;
       }
       if(do_insert)
+      {
         bcf_update_format(m_vcf_hdr, m_bcf_out, g_known_variant_field_names[known_field_enum].c_str(), ptr, num_elements,
             BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
+        m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(static_cast<VariantFieldTypeEnum>(variant_type_enum));
+      }
     }
   }
   //Update DP fields
@@ -320,10 +330,16 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
     if(found_one_valid_DP_FORMAT)
+    {
       bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
+      m_bcf_record_size += m_DP_FORMAT_vector.size()*sizeof(int);
+    }
     //If at least one valid DP value found from (DP or DP_FORMAT or MIN_DP), add DP to INFO
     if(sum_INFO_DP > 0 && !m_is_reference_block_only)
+    {
       bcf_update_info_int32(m_vcf_hdr, m_bcf_out, "DP", &sum_INFO_DP, 1);
+      m_bcf_record_size += sizeof(int);
+    }
   }
   //Handle fields which GenomicsDB does not know about 
   for(auto i=0u;i<m_unknown_FORMAT_fields_vec.size();++i)
@@ -338,8 +354,11 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
         query_field_idx, &ptr, num_elements,
         m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type);
     if(valid_field_found)
+    {
       bcf_update_format(m_vcf_hdr, m_bcf_out, m_query_config->get_query_attribute_name(query_field_idx).c_str(), ptr, num_elements,
           BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
+      m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(static_cast<VariantFieldTypeEnum>(variant_type_enum));
+    }
   }
 }
 
@@ -369,6 +388,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   }
   //clear out
   bcf_clear(m_bcf_out);
+  m_bcf_record_size = 0ull;
   //If no valid FORMAT fields exist, this value is never set
   m_bcf_out->n_sample = bcf_hdr_nsamples(m_vcf_hdr);
   //position
@@ -376,6 +396,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
   //GATK combined GVCF does not care about QUAL value
   m_bcf_out->qual = get_bcf_missing_value<float>();
+  m_bcf_record_size += 3*sizeof(int);
   //Update alleles
   auto& ref_allele = dynamic_cast<VariantFieldString*>(m_remapped_variant.get_common_field(0u).get())->get();
   if(ref_allele.length() == 1u && ref_allele[0] == 'N')
@@ -390,9 +411,13 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
     m_alleles_pointer_buffer.resize(total_num_merged_alleles);
   //REF
   m_alleles_pointer_buffer[0] = ref_allele.c_str();
+  m_bcf_record_size += ref_allele.length()*sizeof(char);
   //ALT
   for(auto i=1u;i<total_num_merged_alleles;++i)
+  {
     m_alleles_pointer_buffer[i] = alt_alleles[i-1u].c_str();
+    m_bcf_record_size += alt_alleles[i-1u].length()*sizeof(char);
+  }
   bcf_update_alleles(m_vcf_hdr, m_bcf_out, &(m_alleles_pointer_buffer[0]), total_num_merged_alleles);
   //Flag that determines when to add GQ field - only when <NON_REF> is the only alternate allele
   //m_should_add_GQ_field = (m_NON_REF_exists && alt_alleles.size() == 1u);
@@ -401,7 +426,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_INFO_fields(variant);
   //FORMAT fields
   handle_FORMAT_fields(variant);
-  m_vcf_adapter->handoff_output_bcf_line(m_bcf_out);
+  m_vcf_adapter->handoff_output_bcf_line(m_bcf_out, m_bcf_record_size);
 }
 
 void BroadCombinedGVCFOperator::switch_contig()

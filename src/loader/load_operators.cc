@@ -296,10 +296,10 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
 {
   clear(); 
   //Loader configuration
-  JSONLoaderConfig json_config;
-  json_config.read_from_file(config_filename);
-  if(!json_config.is_partitioned_by_row())
-    m_column_partition = json_config.get_column_partition(partition_idx);
+  JSONLoaderConfig loader_json_config;
+  loader_json_config.read_from_file(config_filename);
+  if(!loader_json_config.is_partitioned_by_row())
+    m_column_partition = loader_json_config.get_column_partition(partition_idx);
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
@@ -311,13 +311,8 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
     query_attributes[i] = m_schema->attribute_name(i);
   m_query_config.set_attributes_to_query(query_attributes);
   m_query_processor->do_query_bookkeeping(*m_schema, m_query_config);
-  //Parse json configuration
-  rapidjson::Document json_doc;
-  std::ifstream ifs(config_filename.c_str());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
   //Initialize VCF adapter
-  if(json_doc.HasMember("offload_vcf_output_processing") && json_doc["offload_vcf_output_processing"].GetBool())
+  if(loader_json_config.offload_vcf_output_processing())
   {
     m_offload_vcf_output_processing = true;
     //2 entries in circular buffer, max #entries to use in each line_buffer
@@ -431,19 +426,24 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
     m_variant.set_column_interval(m_current_start_position, m_current_start_position);
   }
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;
-  m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
-      m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
-#ifdef DO_MEMORY_PROFILING
-  statm_t mem_result;
-  read_off_memory_status(mem_result);
-  if(mem_result.resident > m_next_memory_limit)
+  auto operator_overflow = true;
+  while(operator_overflow)
   {
-    std::cerr << "ENDING crossed "<<m_next_memory_limit<<"\n";
-    m_next_memory_limit += ONE_GB;
-  }
+    m_query_processor->handle_gvcf_ranges(m_end_pq, m_query_config, m_variant, *m_operator,
+        m_current_start_position, m_next_start_position, column_interval_end == INT64_MAX, m_num_calls_with_deletions);
+    operator_overflow = m_operator->overflow(); //must be queried before post_operate_sequential and flush_output() are called
+#ifdef DO_MEMORY_PROFILING
+    statm_t mem_result;
+    read_off_memory_status(mem_result);
+    if(mem_result.resident > m_next_memory_limit)
+    {
+      std::cerr << "ENDING crossed "<<m_next_memory_limit<<"\n";
+      m_next_memory_limit += ONE_GB;
+    }
 #endif
-  post_operate_sequential();
-  flush_output();
+    post_operate_sequential();
+    flush_output();
+  }
 }
 
 #endif

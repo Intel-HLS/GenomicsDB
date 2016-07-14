@@ -44,10 +44,12 @@ class JNIBCFReader
   public:
     JNIBCFReader(const std::string& loader_config_file, const std::string& query_config_file,
         const char* chr, const int start, const int end,
-        int my_rank=0, size_t buffer_capacity=1048576u, size_t tiledb_segment_size=1048576u, const char* output_format="bu",
-        const bool use_missing_values_only_not_vector_end=false);
+        int my_rank=0, size_t buffer_capacity=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE, size_t tiledb_segment_size=1048576u,
+        const char* output_format="bu",
+        const bool use_missing_values_only_not_vector_end=false,
+        const bool keep_idx_fields_in_bcf_header=true);
     JNIBCFReader(const std::string& loader_config_file, const std::string& query_config_file, int my_rank=0,
-        size_t buffer_capacity=1048576u, size_t tiledb_segment_size=1048576u, const char* output_format="bu",
+        size_t buffer_capacity=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE, size_t tiledb_segment_size=1048576u, const char* output_format="bu",
         const bool use_missing_values_only_not_vector_end=false)
       : JNIBCFReader(loader_config_file, query_config_file,
           "", 0, 0,

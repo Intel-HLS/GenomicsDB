@@ -331,6 +331,8 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
             curr_exchange.m_all_tiledb_row_idx_vec_response);
       curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = idx_offset - begin_idx_offset;
     }
+    else
+      curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = 0ull;
   //Set upper bound on #files to process in parallel
 #pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files)
   for(auto i=0u;i<m_file2binary_handlers.size();++i)
@@ -465,6 +467,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_pq_vector[order].m_offset = get_buffer_start_offset_for_row_idx(row_idx);
     m_designated_rows_not_in_pq[order] = row_idx;
   }
+  m_num_operators_overflow_in_last_round = 0u;
 #ifdef PRODUCE_BINARY_CELLS
   if(m_produce_combined_vcf)
   {
@@ -473,13 +476,17 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
           new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx,
             get_column_partition())));
+    m_operators_overflow.push_back(false);
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
 #endif //ifdef HTSDIR
   }
   if(m_produce_tiledb_array)
+  {
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
           new LoaderArrayWriter(m_vid_mapper, config_filename, m_idx)));
+    m_operators_overflow.push_back(false);
+  }
 #endif //ifdef PRODUCE_BINARY_CELLS
 }
 
@@ -713,31 +720,51 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
   m_designated_rows_not_in_pq.resize(get_num_order_values());
   auto top_column = -1ll;
   auto hit_invalid_cell = false;
+  auto num_operators_overflow_in_this_round = 0u;
   //while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
-  while(!m_column_major_pq.empty() && !hit_invalid_cell)
+  while(!m_column_major_pq.empty() && !hit_invalid_cell && num_operators_overflow_in_this_round == 0u)
   {
     auto* top_ptr = m_column_major_pq.top();
-    m_column_major_pq.pop();
     auto row_idx = top_ptr->m_row_idx;
     //std::cerr << row_idx <<","<<top_ptr->m_column<<"\n";
     auto order = get_order_for_row_idx(row_idx);
     assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
     const auto& buffer = m_ping_pong_buffers[m_order_idx_to_buffer_control[order].get_read_idx()];
     auto offset = top_ptr->m_offset;
-    for(auto op : m_operators)
-      op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
-    auto valid_cell_found = read_next_cell_from_buffer(row_idx);
-    if(valid_cell_found)
-      m_column_major_pq.push(&(m_pq_vector[order]));
-    else
+    for(auto i=0u;i<m_operators.size();++i)
     {
-      if(!hit_invalid_cell)     //first invalid cell found
+      auto op = m_operators[i];
+      //An operator is allowed to proceed iff one of the following conditions are satisfied
+      //A. No operators overflowed in the previous call of this function OR
+      //B. This was one of the operators that overflowed in the past call
+      if(m_num_operators_overflow_in_last_round == 0u || m_operators_overflow[i])
       {
-        hit_invalid_cell = true;
-        top_column = top_ptr->m_column;
+        assert(!(op->overflow())); //must have buffer space
+        op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
+        auto curr_overflow = op->overflow();
+        m_operators_overflow[i] = curr_overflow;
+        if(curr_overflow)
+          ++num_operators_overflow_in_this_round;
       }
-      m_designated_rows_not_in_pq[num_designated_rows_not_in_pq++] = get_designated_row_idx_for_order(order);
     }
+    //Advance to next cell iff no operators are overflowing
+    if(num_operators_overflow_in_this_round == 0u)
+    {
+      m_column_major_pq.pop();
+      auto valid_cell_found = read_next_cell_from_buffer(row_idx);
+      if(valid_cell_found)
+        m_column_major_pq.push(&(m_pq_vector[order]));
+      else
+      {
+        if(!hit_invalid_cell)     //first invalid cell found
+        {
+          hit_invalid_cell = true;
+          top_column = top_ptr->m_column;
+        }
+        m_designated_rows_not_in_pq[num_designated_rows_not_in_pq++] = get_designated_row_idx_for_order(order);
+      }
+    }
+    m_num_operators_overflow_in_last_round = num_operators_overflow_in_this_round;
   }
   //No re-allocation as resize() doesn't reduce capacity
   m_designated_rows_not_in_pq.resize(num_designated_rows_not_in_pq);
@@ -763,4 +790,5 @@ void VCF2TileDBLoader::clear()
   m_order_idx_to_buffer_control.clear();
   m_pq_vector.clear();
   m_operators.clear();
+  m_operators_overflow.clear();
 }

@@ -105,6 +105,7 @@ class JSONLoaderConfig : public JSONConfigBase
       return m_row_based_partitioning ? ColumnRange(0, INT64_MAX) : JSONConfigBase::get_column_partition(idx);
     }
     inline int64_t get_max_num_rows_in_array() const { return m_max_num_rows_in_array; }
+    inline bool offload_vcf_output_processing() const { return m_offload_vcf_output_processing; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -143,11 +144,14 @@ class JSONVCFAdapterConfig : public JSONConfigBase
     {
       m_vcf_header_filename = "";
       m_determine_sites_with_max_alleles = 0;
+      m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
     }
     void read_from_file(const std::string& filename,
-        VCFAdapter& vcf_adapter, std::string output_format="", int rank=0);
+        VCFAdapter& vcf_adapter, std::string output_format="", int rank=0,
+        const size_t combined_vcf_records_buffer_size_limit=0u);
     inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
     inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
+    inline size_t get_combined_vcf_records_buffer_size_limit() const { return m_combined_vcf_records_buffer_size_limit; }
   protected:
     std::string m_vcf_header_filename;
     std::string m_reference_genome;
@@ -156,6 +160,8 @@ class JSONVCFAdapterConfig : public JSONConfigBase
     unsigned m_determine_sites_with_max_alleles;
     //Max diploid alleles for which fields whose length is equal to the number of genotypes can be produced (such as PL)
     unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
+    //Buffer size for combined vcf records
+    size_t m_combined_vcf_records_buffer_size_limit;
 };
 
 class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQueryConfig
@@ -164,7 +170,8 @@ class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQ
     JSONVCFAdapterQueryConfig() : JSONVCFAdapterConfig(), JSONBasicQueryConfig() { ; }
     void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
         VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
-        std::string output_format="", int rank=0);
+        std::string output_format="", int rank=0,
+        const size_t combined_vcf_records_buffer_size_limit=0u);
 };
 
 

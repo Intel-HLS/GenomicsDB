@@ -146,9 +146,10 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
   return false;
 }
 
-VCFAdapter::VCFAdapter(bool open_output)
+VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffer_size_limit)
 {
   m_open_output = open_output;
+  m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
   clear();
   m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
@@ -174,7 +175,8 @@ void VCFAdapter::clear()
 
 void VCFAdapter::initialize(const std::string& reference_genome,
     const std::string& vcf_header_filename,
-    std::string output_filename, std::string output_format)
+    std::string output_filename, std::string output_format,
+    const size_t combined_vcf_records_buffer_size_limit)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -206,6 +208,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   }
   //Reference genome
   m_reference_genome_info.initialize(reference_genome);
+  m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()
@@ -222,14 +225,13 @@ void VCFAdapter::print_header()
   bcf_hdr_write(m_output_fptr, m_template_vcf_hdr);
 }
 
-BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries)
-  : VCFAdapter(), CircularBufferController(num_circular_buffers)
+BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries, const size_t combined_vcf_records_buffer_size_limit)
+  : VCFAdapter(true, combined_vcf_records_buffer_size_limit), CircularBufferController(num_circular_buffers)
 {
   clear();
   m_line_buffers.resize(num_circular_buffers);
-  m_num_valid_entries.resize(num_circular_buffers);
-  for(auto i=0u;i<m_num_valid_entries.size();++i)
-    m_num_valid_entries[i] = 0u;
+  m_num_valid_entries.resize(num_circular_buffers, 0u);
+  m_combined_vcf_records_buffer_sizes.resize(num_circular_buffers, 0ull);
   //Initialize buffers
   for(auto& line_buffer : m_line_buffers)
     resize_line_buffer(line_buffer, max_num_entries);
@@ -247,9 +249,10 @@ void BufferedVCFAdapter::clear()
 {
   m_line_buffers.clear();
   m_num_valid_entries.clear();
+  m_combined_vcf_records_buffer_sizes.clear();
 }
 
-void BufferedVCFAdapter::handoff_output_bcf_line(bcf1_t*& line)
+void BufferedVCFAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size)
 {
   auto write_idx = get_write_idx();
   auto& line_buffer = m_line_buffers[write_idx];
@@ -259,6 +262,7 @@ void BufferedVCFAdapter::handoff_output_bcf_line(bcf1_t*& line)
   assert(m_num_valid_entries[write_idx] < line_buffer.size());
   std::swap<bcf1_t*>(line, line_buffer[m_num_valid_entries[write_idx]]);
   ++(m_num_valid_entries[write_idx]);
+  m_combined_vcf_records_buffer_sizes[write_idx] += bcf_record_size;
 }
 
 void BufferedVCFAdapter::resize_line_buffer(std::vector<bcf1_t*>& line_buffer, unsigned new_size)
@@ -273,8 +277,9 @@ void BufferedVCFAdapter::resize_line_buffer(std::vector<bcf1_t*>& line_buffer, u
 
 void BufferedVCFAdapter::advance_write_idx()
 {
+  auto write_idx = get_write_idx();
   //Advance if something was written
-  if(m_num_valid_entries[get_write_idx()])
+  if(m_num_valid_entries[write_idx])
     CircularBufferController::advance_write_idx();
 }
 
@@ -290,6 +295,7 @@ void BufferedVCFAdapter::do_output()
     bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
   }
   m_num_valid_entries[read_idx] = 0u;
+  m_combined_vcf_records_buffer_sizes[read_idx] = 0ull;
   advance_read_idx();
 }
 
@@ -308,7 +314,7 @@ void VCFSerializedBufferAdapter::print_header()
   m_rw_buffer->m_num_valid_bytes = offset;
 }
 
-void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line)
+void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size)
 {
   assert(m_rw_buffer);
   auto offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),

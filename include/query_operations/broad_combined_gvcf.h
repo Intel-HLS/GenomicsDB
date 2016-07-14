@@ -72,6 +72,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     VCFAdapter* m_vcf_adapter;
     const VidMapper* m_vid_mapper;
     bcf1_t* m_bcf_out;
+    size_t m_bcf_record_size;
     bcf_hdr_t* m_vcf_hdr;
     //Contig info
     std::string m_curr_contig_name;
