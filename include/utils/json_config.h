@@ -105,6 +105,7 @@ class JSONLoaderConfig : public JSONConfigBase
       return m_row_based_partitioning ? ColumnRange(0, INT64_MAX) : JSONConfigBase::get_column_partition(idx);
     }
     inline int64_t get_max_num_rows_in_array() const { return m_max_num_rows_in_array; }
+    inline bool offload_vcf_output_processing() const { return m_offload_vcf_output_processing; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;

@@ -299,6 +299,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     std::vector<int64_t> m_designated_rows_not_in_pq;
     //Operators - act on one cell per call
     std::vector<LoaderOperatorBase*> m_operators;
+    std::vector<bool> m_operators_overflow;
+    unsigned m_num_operators_overflow_in_last_round;
 };
 
 #endif

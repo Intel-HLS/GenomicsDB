@@ -79,6 +79,11 @@ class LoaderOperatorBase
     void handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
         const size_t cell_size, const void* cell_ptr);
     /*
+     * Returns true if output buffer for this operator is full and caller must "block"
+     * till flush is completed
+     */
+    virtual bool overflow() const { return false; }
+    /*
      * Called within parallel sections - useful if the output needs to be flushed by a thread
      * not in the critical path
      */
@@ -173,6 +178,7 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
       delete m_vcf_adapter;
     }
     virtual void operate(const void* cell_ptr);
+    virtual bool overflow() const { return m_vcf_adapter->overflow(); }
     virtual void flush_output()
     {
       if(m_offload_vcf_output_processing)
