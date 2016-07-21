@@ -1,0 +1,10 @@
+if(NOT HTSJDK_JAR_PATH)
+    include(FindPackageHandleStandardArgs)
+    if(NOT HTSJDK_VERSION)
+        set(HTSJDK_VERSION 2.4.1)
+    endif()
+    file(DOWNLOAD http://repo1.maven.org/maven2/com/github/samtools/htsjdk/${HTSJDK_VERSION}/htsjdk-${HTSJDK_VERSION}.jar
+        ${CMAKE_BINARY_DIR}/htsjdk-${HTSJDK_VERSION}.jar)
+    set(HTSJDK_JAR_PATH ${CMAKE_BINARY_DIR}/htsjdk-${HTSJDK_VERSION}.jar)
+endif()
+find_package_handle_standard_args(htsjdk "Could not find htsjdk JAR ${DEFAULT_MSG}" HTSJDK_JAR_PATH)
