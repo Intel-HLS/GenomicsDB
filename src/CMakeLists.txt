@@ -37,6 +37,7 @@ set_property(TARGET GenomicsDB_library_object_files PROPERTY POSITION_INDEPENDEN
 
 #Create the shared and static libraries
 add_library(genomicsdb STATIC $<TARGET_OBJECTS:GenomicsDB_library_object_files>)
+#Link in other libraries
 add_library(tiledbgenomicsdb SHARED $<TARGET_OBJECTS:GenomicsDB_library_object_files>)
 if(TILEDB_SOURCE_DIR)
     add_dependencies(tiledbgenomicsdb TileDB)
@@ -44,7 +45,11 @@ endif()
 if(HTSLIB_SOURCE_DIR)
     add_dependencies(tiledbgenomicsdb htslib)
 endif()
-target_link_libraries(tiledbgenomicsdb ${HTSLIB_LIBRARY} ${TILEDB_LIBRARY})
+target_link_libraries(tiledbgenomicsdb ${HTSLIB_LIBRARY} ${TILEDB_LIBRARY} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
+if(LIBRT_LIBRARY)
+    target_link_libraries(tiledbgenomicsdb ${LIBRT_LIBRARY})
+endif()
+
 if(LIBCSV_FOUND)
     target_link_libraries(tiledbgenomicsdb ${LIBCSV_LIBRARY})
 endif()

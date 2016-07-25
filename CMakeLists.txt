@@ -1,7 +1,6 @@
 project(GenomicsDB)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 
 #Build parameters
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
@@ -32,18 +31,21 @@ if(BUILD_DISTRIBUTABLE_LIBRARY)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     endif()
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
+endif()
+
+#Check C++ 2011 support
+include(CheckAndSetStdCXX2011Flag)
+CHECK_AND_SET_STD_CXX_2011_FLAG(test_cpp_2011)
+if(NOT test_cpp_2011)
+    message(FATAL_ERROR "Your compiler does not support C++ 2011, exiting")
 endif()
 
 #Warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result")
-
-#Check C++ 2011 support
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG(-std=c++11 test_cpp_2011)
-if(NOT test_cpp_2011)
-    message(FATAL_ERROR "Your compiler does not support C++ 2011, exiting")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
 endif()
 
 #MPI library/compiler etc
@@ -55,11 +57,14 @@ endif()
 if(NOT DISABLE_OPENMP)
     find_package(OpenMPv4)
     if(NOT OPENMPV4_FOUND)
-        set(DISABLE_OPENMP False)
+        set(DISABLE_OPENMP True)
     else()
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     endif()
+endif()
+if(DISABLE_OPENMP)
+    add_definitions(-DDISABLE_OPENMP=1)
 endif()
 
 add_definitions(-D_FILE_OFFSET_BITS=64)  #large file support
