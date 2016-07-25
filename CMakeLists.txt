@@ -123,6 +123,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
 
+#Clean all
+add_custom_target(clean-all ${CMAKE_MAKE_PROGRAM} clean)
+if(TILEDB_SOURCE_DIR)
+    add_custom_target(clean-TileDB ${CMAKE_MAKE_PROGRAM} clean -C ${TILEDB_SOURCE_DIR})
+    add_dependencies(clean-all clean-TileDB)
+endif()
+if(HTSLIB_SOURCE_DIR)
+    add_custom_target(clean-htslib ${CMAKE_MAKE_PROGRAM} clean -C ${HTSLIB_SOURCE_DIR})
+    add_dependencies(clean-all clean-htslib)
+endif()
+
 include_directories (
     include/genomicsdb
     include/loader
