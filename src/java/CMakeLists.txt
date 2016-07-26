@@ -21,7 +21,7 @@ if(BUILD_JAVA)
     set(CMAKE_JAVA_INCLUDE_PATH "${CMAKE_JAVA_INCLUDE_PATH}:${HTSJDK_JAR_PATH}")
     #JAR name
     set(CMAKE_JAVA_TARGET_OUTPUT_NAME "genomicsdb")
-    add_jar(genomicsdb_jar SOURCES ${GenomicsDB_java_sources})
+    add_jar(genomicsdb_jar SOURCES ${GenomicsDB_java_sources} OUTPUT_NAME "${CMAKE_JAVA_TARGET_OUTPUT_NAME}")
     get_property(genomicsdb_jar_path TARGET genomicsdb_jar PROPERTY JAR_FILE)
     #Add the native library
     add_custom_command(TARGET genomicsdb_jar POST_BUILD
