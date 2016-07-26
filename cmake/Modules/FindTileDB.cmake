@@ -19,8 +19,10 @@ if(TILEDB_SOURCE_DIR)
     else()
         set(GNU_PARALLEL, 1)
     endif()
-    #OpenSSL 
-    set(OPENSSL_ROOT_DIR "${OPENSSL_PREFIX_DIR}")
+    #OpenSSL
+    if(OPENSSL_PREFIX_DIR AND NOT OPENSSL_ROOT_DIR)
+        set(OPENSSL_ROOT_DIR "${OPENSSL_PREFIX_DIR}")
+    endif()
     if(BUILD_DISTRIBUTABLE_LIBRARY)
         set(OPENSSL_USE_STATIC_LIBS True)
     endif()
