@@ -235,7 +235,7 @@ void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::ve
   assert(input_GT.size() == output_GT.size());
   for(auto i=0u;i<input_GT.size();++i)
   {
-    if(is_tiledb_missing_value<int>(input_GT[i]) || input_GT[i] == -1)
+    if(is_tiledb_missing_value<int>(input_GT[i]) || input_GT[i] == -1 || is_bcf_missing_value<int>(input_GT[i]))
       output_GT[i] = input_GT[i];
     else
     {

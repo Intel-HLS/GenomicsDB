@@ -510,6 +510,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     //Exclude trailing null characters for strings
     if(is_vcf_str_type)
       num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
+    auto field_length_offset = buffer_offset;
     //variable length field, print #elements  first
     if(length_descriptor != BCF_VL_FIXED)
     {
@@ -525,6 +526,19 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     for(auto k=0;k<num_values;++k)
     {
       auto val = ptr[k];
+      //For variable length fields, terminate loop if vector_end seen
+      if(is_bcf_vector_end_value<FieldType>(val) && length_descriptor != BCF_VL_FIXED)
+      {
+        //Update field length
+#ifdef PRODUCE_CSV_CELLS
+        if(!is_vcf_str_type)
+#endif
+        {
+          buffer_full = tiledb_buffer_print<int>(buffer, field_length_offset, buffer_offset_limit, k);
+          assert(!buffer_full);
+        }
+        break;
+      }
       if(is_GT_field)
         val = bcf_gt_allele(static_cast<int>(val));
       buffer_full = buffer_full || tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
