@@ -263,19 +263,38 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements,
         m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type);
+    auto num_elements_per_call = num_elements/variant.get_num_calls();
     if(valid_field_found)
     {
-      auto j=0u;
+      auto j=0ull;
       auto do_insert = true;    //by default, insert into VCF record
       switch(known_field_enum)
       {
         case GVCF_GT_IDX: //GT field is a pita
-          int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
-          //CombineGVCF sets GT field to missing
-          for(j=0u;j<num_elements;++j)
-            int_vec[j] = bcf_gt_missing;
-          //int_vec[j] = (int_vec[j] == get_bcf_missing_value<int>()) ? bcf_gt_missing : bcf_gt_unphased(int_vec[j]);
-          break;
+          {
+            int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
+            auto insert_idx = 0ull;
+            //CombineGVCF sets GT field to missing
+            for(j=0ull;j<variant.get_num_calls();++j)
+            {
+              auto k = 0ull;
+              auto& curr_call = variant.get_call(j);
+              if(curr_call.is_valid() && curr_call.get_field(query_field_idx).get() && curr_call.get_field(query_field_idx)->is_valid())
+                for(k=0ull;k<std::min<size_t>(num_elements_per_call, curr_call.get_field(query_field_idx)->length());
+                    ++k,++insert_idx)
+                  int_vec[insert_idx] = bcf_gt_missing;
+              if(k < num_elements_per_call)
+              {
+                int_vec[insert_idx] = get_bcf_vector_end_value<int>();
+                ++insert_idx;
+                ++k;
+                for(;k<num_elements_per_call;++k,++insert_idx)
+                  int_vec[insert_idx] = bcf_gt_missing;
+              }
+            }
+            //int_vec[j] = (int_vec[j] == get_bcf_missing_value<int>()) ? bcf_gt_missing : bcf_gt_unphased(int_vec[j]);
+            break;
+          }
         case GVCF_GQ_IDX:
           do_insert = m_should_add_GQ_field;
           break;
