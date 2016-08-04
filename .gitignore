@@ -17,3 +17,5 @@ bin/*
 tests/coverage.info
 *.class
 *.jar
+*.iml
+.idea/*
