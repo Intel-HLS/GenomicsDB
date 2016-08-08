@@ -52,7 +52,7 @@ object GenomicsDBSparkFactory {
       .setHostFile("/home/kdatta1/GenomicsDB/GenomicsDB/tests/hostfile")
 
     val gc = new GenomicsDBContext(gconf)
-    val myrdd = gc.getVariantContexts()
+    val myrdd = gc.getVariantContexts
     System.out.println(myrdd.count())
   }
 }

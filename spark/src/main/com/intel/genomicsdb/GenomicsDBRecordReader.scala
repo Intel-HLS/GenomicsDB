@@ -20,7 +20,7 @@ import scala.reflect.ClassTag
   * @tparam S
   */
 class GenomicsDBRecordReader[D <: Feature: ClassTag, S: ClassTag](
-    split: InputSplit,
+    split: GenomicsDBInputSplit,
     conf: GenomicsDBConf) extends RecordReader[LongWritable, D] {
 
   var currentVariant : D = _

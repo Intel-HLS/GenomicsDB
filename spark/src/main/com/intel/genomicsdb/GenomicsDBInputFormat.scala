@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb
 
-import java.io.{FileNotFoundException, IOException}
 import java.util.{List => JavaList}
 
 import genomicsdb.GenomicsDBFeatureReader
@@ -31,6 +30,7 @@ import htsjdk.variant.bcf2.BCF2Codec
 import org.apache.hadoop.classification.{InterfaceAudience, InterfaceStability}
 import org.apache.hadoop.io.LongWritable
 import org.apache.hadoop.mapreduce._
+import org.apache.spark.TaskContext
 import org.apache.spark.annotation.DeveloperApi
 import parquet.org.apache.thrift.TException
 import parquet.org.apache.thrift.protocol.{TBinaryProtocol, TProtocol}
@@ -102,15 +102,8 @@ class GenomicsDBInputFormat[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     * Currently, there is 1:1 relation to GenomicsDB data partition per node and
     * input split. This might change in future!!
     *
-    * @throws IOException  General I/O exception
-    * @throws InterruptedException  Thrown if scanner fails to read the host file
-    * @throws FileNotFoundException  Thrown if hostfile not found
-    *
-    * @return  List of input splits of type [[com.intel.genomicsdb.GenomicsDBInputSplit]]
+    * @return  List of input splits
     */
-  @throws[IOException]
-  @throws[InterruptedException]
-  @throws[FileNotFoundException]
   @DeveloperApi
   @Override
   def getSplits(runningAsService: Boolean = false): List[InputSplit] = {
@@ -127,16 +120,18 @@ class GenomicsDBInputFormat[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
       val splits = new Array[InputSplit](hostList.size)
 
       for (i <- 0 until hostList.size) {
-        splits(i) = new GenomicsDBInputSplit(Array(hostList.get(i)), gConf)
+        splits(i) = GenomicsDBInputSplit(Array(hostList.get(i)), gConf)
       }
       splits.toList
     }
   }
 
-  @Override
   def createRecordReader(
     inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext): RecordReader[LongWritable, VCONTEXT] = {
+    taskContext: TaskContext,
+    flag: Int): RecordReader[LongWritable, VCONTEXT] = {
+
+    //val config = taskAttemptContext.getConfiguration
 
     if (!loaderJsonFile.toString.isEmpty && !queryJsonFile.toString.isEmpty) {
       featureReader = new GenomicsDBFeatureReader(loaderJsonFile.toString,
@@ -148,7 +143,7 @@ class GenomicsDBInputFormat[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         gConf.getReferenceGenome, gConf.getVCFHeaderFile, new BCF2Codec()).asInstanceOf
     }
     header = featureReader.getHeader
-    recordReader = new GenomicsDBRecordReader[VCONTEXT, SOURCE](inputSplit, gConf)
+    recordReader = new GenomicsDBRecordReader[VCONTEXT, SOURCE](inputSplit.asInstanceOf, gConf)
     recordReader
   }
 
@@ -187,5 +182,12 @@ class GenomicsDBInputFormat[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
   }
 
   def getRecordReader: GenomicsDBRecordReader[VCONTEXT, SOURCE] = recordReader
+
+  @Override
+  def createRecordReader(inputSplit: InputSplit,
+                         taskAttemptContext: TaskAttemptContext):
+      RecordReader[LongWritable, VCONTEXT] = {
+    createRecordReader(inputSplit, null, 1)
+  }
 }
 

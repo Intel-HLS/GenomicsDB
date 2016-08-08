@@ -1,7 +1,8 @@
 package com.intel.genomicsdb
 
 import htsjdk.tribble.Feature
-import org.apache.hadoop.mapred.InputSplit
+import org.apache.hadoop.io.Writable
+import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.spark.{Partition, SerializableWritable}
 
 /**
@@ -16,10 +17,10 @@ import org.apache.spark.{Partition, SerializableWritable}
 private[genomicsdb] class GenomicsDBPartition[VCONTEXT <: Feature, SOURCE](
     rddId: Int,
     val index: Int,
-    rawSplit: InputSplit)
+    rawSplit: InputSplit with Writable)
   extends Partition {
 
-  val serializableSplit = new SerializableWritable[InputSplit](rawSplit)
+  val serializableSplit = new SerializableWritable(rawSplit)
 
   override def hashCode: Int = 31 * (31 + rddId) + index
 
