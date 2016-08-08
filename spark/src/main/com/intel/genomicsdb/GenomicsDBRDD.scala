@@ -23,7 +23,8 @@
 package com.intel.genomicsdb
 
 import htsjdk.tribble.Feature
-import org.apache.hadoop.mapred.InputSplit
+import org.apache.hadoop.io.{LongWritable, Writable}
+import org.apache.hadoop.mapreduce.{InputSplit, RecordReader}
 import org.apache.spark._
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.java.JavaRDD
@@ -58,7 +59,7 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
   /**
     * Method containing the next() method to iterate over the variants. The first call
     * reads variants from underlying GenomicsDB into a internal buffer. Subsequent calls
-    * read from the buffer until all records are read. Then, next call to GenomicsDB is
+    * read from the buffer until al l records are read. Then, next call to GenomicsDB is
     * executed.
     *
     * @param thisSplit  the local partition of the task. GenomicsDB inputsplit carries the
@@ -73,24 +74,28 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     log.debug("Inside GenomicsDB.compute")
     System.out.println("Inside GenomicsDB.compute")
     val inputFormat = new GenomicsDBInputFormat[VCONTEXT, SOURCE](gConf)
-    //inputFormat.createRecordReader(split.serializableSplit.asInstanceOf, context)
+    inputFormat.setLoaderJsonFile(gConf.getLoaderJson)
+    inputFormat.setQueryJsonFile(gConf.getQueryJson)
+    inputFormat.setHostFile(gConf.getHostFile)
 
     val iterator = new Iterator[VCONTEXT] {
 
       // Register an on-task-completion callback to close the input stream.
-      context.addTaskCompletionListener{ context => closeIfNeeded() }
+      //context.addTaskCompletionListener{ context => closeIfNeeded() }
 
       private var gotNext = false
       private var nextValue: VCONTEXT = _
       private var closed = false
       protected var finished = false
 
-      val recordReader = inputFormat.getRecordReader
+      val recordReader: RecordReader[LongWritable, VCONTEXT] =
+        inputFormat.createRecordReader(split.serializableSplit.value,
+          context, 0)
 
       override def hasNext: Boolean = {
         if (!finished) {
           if (!gotNext) {
-            nextValue = getNext()
+            nextValue = getNext
             if (finished) {
               closeIfNeeded()
             }
@@ -117,7 +122,10 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         nextValue
       }
 
-      def getNext(): VCONTEXT = recordReader.nextValue
+      def getNext: VCONTEXT = {
+        recordReader.nextKeyValue()
+        recordReader.getCurrentValue
+      }
     }
     new InterruptibleIterator[VCONTEXT](context, iterator)
   }
@@ -135,7 +143,8 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     val rawSplits = inputFormat.getSplits(runningAsService)
     val result = new Array[Partition](rawSplits.size)
     for (i <- rawSplits.indices) {
-      result(i) = new GenomicsDBPartition(id, i, rawSplits(i).asInstanceOf[InputSplit])
+      result(i) = new GenomicsDBPartition(id, i,
+        rawSplits(i).asInstanceOf[InputSplit with Writable])
     }
     result
   }

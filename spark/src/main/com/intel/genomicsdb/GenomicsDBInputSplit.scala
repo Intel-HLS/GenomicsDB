@@ -22,7 +22,7 @@
 
 package com.intel.genomicsdb
 
-import java.io.{DataInput, DataOutput, IOException}
+import java.io.{DataInput, DataOutput}
 
 import htsjdk.variant.variantcontext.VariantContext
 import htsjdk.variant.vcf.VCFHeader
@@ -36,17 +36,21 @@ import org.apache.hadoop.mapreduce.InputSplit
   */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-class GenomicsDBInputSplit(hosts: Array[String], gconf: GenomicsDBConf)
+class GenomicsDBInputSplit
   extends InputSplit with Writable {
 
   val log: Log = LogFactory.getLog("GenomicsDBInputSplit")
+  private var hosts: Array[String] = _
+  private var gConf: GenomicsDBConf = _
 
   /**
-    * @throws IOException  Exception caused by get host name
-    * @return location of the split
+    * Return the locations of this split.
+    * Although in Hadoop DFS, there can be multiple splits
+    * of a block, in GenomicsDB, there's only one, for now!
+    *
+    * @return  Return the location as a singleton array
     */
   @Override
-  @throws[IOException]
   def getLocations: Array[String] = {
     hosts
   }
@@ -69,14 +73,21 @@ class GenomicsDBInputSplit(hosts: Array[String], gconf: GenomicsDBConf)
     }
   }
 
-  /** @inheritdoc */
   @Override
   def readFields(dataInput: DataInput): Unit = {
 
   }
 
-  /** @inheritdoc */
   @Override
   def write(dataOutput: DataOutput): Unit = {}
 
+}
+
+object GenomicsDBInputSplit {
+  def apply(_hosts: Array[String], gconf: GenomicsDBConf): GenomicsDBInputSplit = {
+    val split = new GenomicsDBInputSplit
+    split.hosts = _hosts.clone()
+    split.gConf = gconf.clone
+    split
+  }
 }

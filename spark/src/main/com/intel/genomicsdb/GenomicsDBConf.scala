@@ -200,6 +200,10 @@ class GenomicsDBConf extends SparkConf with Serializable {
     str.toString()
   }
 
+  override def clone(): GenomicsDBConf = {
+    this
+  }
+
 //  @Override
 //  def readFields(dataInput: DataInput): Unit = {
 //    for (i <- hosts.size()) {
