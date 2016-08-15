@@ -179,6 +179,10 @@ class VariantUtils
             ) 
            );
     }
+    inline static bool is_reference_block(const std::string& REF, const std::vector<std::string>& ALT_vec)
+    {
+      return (REF.length() == 1u && ALT_vec.size() == 1u && IS_NON_REF_ALLELE(ALT_vec[0]));
+    }
 };
 
 #endif
