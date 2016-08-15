@@ -83,6 +83,7 @@ class VariantCall
       m_is_valid = false;
       m_is_initialized = false;
       m_contains_deletion = false;
+      m_is_reference_block = false;
       m_row_idx = UNDEFINED_NUM_ROWS_VALUE;
       clear();
     }
@@ -94,6 +95,7 @@ class VariantCall
       m_is_valid = false;
       m_is_initialized = false;
       m_contains_deletion = false;
+      m_is_reference_block = false;
       m_row_idx = rowIdx;
       clear();
     } 
@@ -238,6 +240,8 @@ class VariantCall
      */
     void set_contains_deletion(bool val) { m_contains_deletion = val; }
     bool contains_deletion() const { return m_is_valid && m_contains_deletion; }
+    void set_is_reference_block(bool val) { m_is_reference_block = val; }
+    bool is_reference_block() const { return m_is_valid && m_is_reference_block; }
     /*
      * Only copy simple elements and resize m_fields vector
      * Do not copy the fields themselves
@@ -261,6 +265,8 @@ class VariantCall
     bool m_is_initialized;
     //whether the ALT contains a deletion
     bool m_contains_deletion;
+    //whether the current call is a reference block
+    bool m_is_reference_block;
     uint64_t m_row_idx;
     std::vector<std::unique_ptr<VariantFieldBase>> m_fields;
     /**

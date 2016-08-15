@@ -311,7 +311,7 @@ void VariantQueryProcessor::scan_and_operate(
   variant.set_query_config(&query_config);
   variant.resize_based_on_query();
   //Number of calls with deletions
-  uint64_t num_calls_with_deletions = scan_state ? scan_state->get_num_calls_with_deletions() : 0;
+  uint64_t num_calls_with_deletions = scan_state ? scan_state->get_num_calls_with_deletions() : 0ull;
   //Used when deletions have to be treated as intervals and the PQ needs to be emptied
   std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Forward iterator
@@ -462,9 +462,16 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
       assert(found_curr_call);
       for(auto i=0ull;i<num_entries_in_tmp_pq_buffer;++i)
         end_pq.push(tmp_pq_buffer[i]);
-      //Reduce #calls with deletions 
-      assert(num_calls_with_deletions > 0u);
-      --num_calls_with_deletions;
+      //Can handle overlapping deletions and reference blocks - if something else, throw error
+      if(!curr_call.contains_deletion() && !curr_call.is_reference_block())
+	throw VariantQueryProcessorException("Unhandled overlapping variants at columns "+std::to_string(curr_call.get_column_begin())+" and "
+	      + std::to_string(cell.get_begin_column())+" for row "+std::to_string(cell.get_row()));
+      if(curr_call.contains_deletion())
+      {
+	//Reduce #calls with deletions 
+	assert(num_calls_with_deletions > 0u);
+	--num_calls_with_deletions;
+      }
     }
     curr_call.reset_for_new_interval();
     gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
@@ -952,6 +959,7 @@ void VariantQueryProcessor::gt_fill_row(
   //Curr call will be initialized, one way or the other
   curr_call.mark_initialized(true);
   curr_call.set_contains_deletion(false);
+  curr_call.set_is_reference_block(false);
   //Column values
   auto query_column_value = static_cast<int64_t>(variant.get_column_begin());
   auto cell_begin_value = column;
@@ -1031,6 +1039,7 @@ void VariantQueryProcessor::gt_fill_row(
   {
     auto has_deletion = VariantUtils::contains_deletion(REF_field_ptr->get(), ALT_field_ptr->get());
     curr_call.set_contains_deletion(has_deletion);
+    curr_call.set_is_reference_block(VariantUtils::is_reference_block(REF_field_ptr->get(), ALT_field_ptr->get()));
   }
 }
 
