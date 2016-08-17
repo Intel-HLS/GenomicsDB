@@ -44,7 +44,7 @@ public class VCF2TileDB
         }
     }
 
-    /*
+    /**
      * JNI function that writes to TileDB
      */
     private native int jniVCF2TileDB(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
@@ -52,31 +52,82 @@ public class VCF2TileDB
     private String mLoaderJSONFile = null;
     private int mRank = 0;
 
+    /**
+     * Constructor
+     */
     public VCF2TileDB()
     {
     }
 
+    /** 
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     */
     public VCF2TileDB(String loaderJSONFile)
     {
         mLoaderJSONFile = loaderJSONFile;
     }
 
+    /** 
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
+     */
     public VCF2TileDB(String loaderJSONFile, int rank)
     {
         mLoaderJSONFile = loaderJSONFile;
         mRank = rank;
     }
 
+    /**
+     * Write to TileDB/GenomicsDB using the configuration specified in the
+     * loader file passed to constructor
+     */
     public void write() throws GenomicsDBException
     {
         write(mLoaderJSONFile, mRank, 0, Long.MAX_VALUE-1);
     }
 
+    /**
+     * Write to TileDB/GenomicsDB using the configuration specified in the
+     * loader file passed to constructor
+     * @param lbRowIdx Minimum row idx from which new data will be added
+     */
+    public void write(long lbRowIdx) throws GenomicsDBException
+    {
+        write(mLoaderJSONFile, mRank, lbRowIdx, Long.MAX_VALUE-1);
+    }
+
+    /**
+     * Write to TileDB/GenomicsDB using the configuration specified in the
+     * loader file passed to constructor
+     * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
+     * @param lbRowIdx Minimum row idx from which new data will be added
+     */
+    public void write(int rank, long lbRowIdx) throws GenomicsDBException
+    {
+        write(mLoaderJSONFile, rank, lbRowIdx, Long.MAX_VALUE-1);
+    }
+
+    /**
+     * Write to TileDB/GenomicsDB using the configuration specified in the
+     * loader file passed to constructor
+     * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
+     * @param lbRowIdx Minimum row idx from which new data will be added
+     * @param ubRowIdx Maximum row idx upto which new data will be added
+     */
     public void write(int rank, long lbRowIdx, long ubRowIdx) throws GenomicsDBException
     {
         write(mLoaderJSONFile, rank, lbRowIdx, ubRowIdx);
     }
 
+    /**
+     * Write to TileDB/GenomicsDB
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
+     * @param lbRowIdx Minimum row idx from which new data will be added
+     * @param ubRowIdx Maximum row idx upto which new data will be added
+     */
     public void write(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx) throws GenomicsDBException
     {
         if(loaderJSONFile == null)
