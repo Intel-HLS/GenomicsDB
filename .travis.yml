@@ -28,7 +28,7 @@ before_script:
     - lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
+    - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
     - javac -d tests example/java/TestGenomicsDB.java 
     - python tests/run.py 
 
