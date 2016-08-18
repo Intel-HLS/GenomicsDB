@@ -60,12 +60,16 @@ void LoaderConverterMessageExchange::initialize_from_loader(int64_t all_callsets
   initialize_from_converter(1, all_callsets);
 }
 
-VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx)
+VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : JSONLoaderConfig()
 {
   clear();
   m_idx = idx;
   JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
+  //Override
+  m_lb_callset_row_idx = std::max(lb_callset_row_idx, m_lb_callset_row_idx);
+  m_ub_callset_row_idx = std::min(ub_callset_row_idx, m_ub_callset_row_idx);
   if(m_produce_combined_vcf && m_row_based_partitioning)
     throw VCF2TileDBException("Cannot partition by rows and produce combined gVCF");
   //Size circular buffers - 3 needed in non-standalone converter mode
@@ -412,8 +416,9 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
 #endif //ifdef HTSLIB
 
 //Loader functions
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
-  : VCF2TileDBLoaderConverterBase(config_filename, idx)
+VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+  : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
 #ifdef HTSDIR
   m_converter = 0;

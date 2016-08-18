@@ -3,20 +3,24 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/dependencies/htsjdk-2.5.0.jar:$TRAVIS_BUILD_DIR/bin/genomicsdb.jar:$TRAVIS_BUILD_DIR/tests:.
 
 install:
-    #Install lcov and MPICH
+    #Install dependencies
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+    - sudo add-apt-repository -y ppa:openjdk-r/ppa
     - sudo apt-get update -q
     - sudo apt-get install g++-4.9 -y
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
+    - sudo apt-get -y install openjdk-8-jdk
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
     - mkdir -p dependencies/libcsv && tar xzf dependencies/libcsv.tar.gz  -C dependencies/libcsv --strip-components=1 && cd dependencies/libcsv && ./configure && make
     - cd $TRAVIS_BUILD_DIR
+    #Download htsjdk jar
+    - wget -O dependencies/htsjdk-2.5.0.jar https://repo1.maven.org/maven2/com/github/samtools/htsjdk/2.5.0/htsjdk-2.5.0.jar
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
 
@@ -24,7 +28,8 @@ before_script:
     - lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage OPENMP=1 TILEDB_BUILD_NUM_THREADS=4 HTSLIB_BUILD_NUM_THREADS=4 LIBCSV_DIR=dependencies/libcsv -j 4
+    - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
+    - javac -d tests example/java/TestGenomicsDB.java 
     - python tests/run.py 
 
 after_success:

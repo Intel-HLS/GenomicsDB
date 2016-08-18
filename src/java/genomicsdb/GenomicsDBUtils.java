@@ -36,7 +36,9 @@ public class GenomicsDBUtils
 {
     private final static String mGenomicsDBLibraryName = "tiledbgenomicsdb";
     private static boolean mIsLibraryLoaded = false;
-    
+
+    private static native int jniGenomicsDBOneTimeInitialize();
+
     public static synchronized boolean loadLibrary()
     {
         if(mIsLibraryLoaded)
@@ -58,6 +60,7 @@ public class GenomicsDBUtils
                 throw ule;
             }
         }
+        jniGenomicsDBOneTimeInitialize();
         mIsLibraryLoaded = true;
         return true;
     }
