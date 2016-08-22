@@ -46,6 +46,8 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
+  if(m_json.HasParseError())
+    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
   //Workspace
   if(m_json.HasMember("workspace"))
   {
@@ -461,6 +463,8 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
+  if(m_json.HasParseError())
+    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
   if (id_mapper && !id_mapper->is_initialized())
   {
     get_vid_mapping_filename(id_mapper, rank);

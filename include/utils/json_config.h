@@ -30,6 +30,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 //Exceptions thrown 
 class RunConfigException : public std::exception {

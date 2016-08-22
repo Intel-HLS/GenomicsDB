@@ -21,9 +21,6 @@
 */
 
 #include "tiledb_loader.h"
-#include "rapidjson/document.h"
-#include "rapidjson/reader.h"
-#include "rapidjson/stringbuffer.h"
 #include "timer.h"
 #include "vcf2binary.h"
 #include "tiledb_loader_text_file.h"
@@ -394,6 +391,8 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw VCF2TileDBException(std::string("Syntax error in JSON file ")+config_filename);
   //Histogram parameters
   VERIFY_OR_THROW(json_doc.HasMember("max_histogram_range") && json_doc["max_histogram_range"].IsInt64());
   uint64_t max_histogram_range = json_doc["max_histogram_range"].GetInt64();

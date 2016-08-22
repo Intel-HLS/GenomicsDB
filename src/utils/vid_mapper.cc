@@ -21,10 +21,8 @@
 */
 
 #include "vid_mapper.h"
-#include "rapidjson/document.h"
-#include "rapidjson/reader.h"
-#include "rapidjson/stringbuffer.h"
 #include "c_api.h"
+#include "json_config.h"
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -339,6 +337,8 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     throw FileBasedVidMapperException((std::string("Could not open vid mapping file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
   m_lb_callset_row_idx = lb_callset_row_idx;
   m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
@@ -363,16 +363,25 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     std::string contig_name;
     std::string filename;
     auto contig_idx=0;
+    auto duplicate_contigs_exist = false;
     for(auto b=contigs_dict.MemberBegin(), e=contigs_dict.MemberEnd();b!=e;++b,++contig_idx)
     {
       const auto& curr_obj = *b;
       contig_name = curr_obj.name.GetString();
+      if(m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end())
+      {
+        std::cerr << (std::string("Duplicate contig/chromosome name ")+contig_name+" found in vid file "+filename) << "\n";
+        duplicate_contigs_exist = true;
+        continue;
+      }
       const auto& contig_info_dict = curr_obj.value;
       VERIFY_OR_THROW(contig_info_dict.IsObject());    //must be dict
       VERIFY_OR_THROW(contig_info_dict.HasMember("tiledb_column_offset") && contig_info_dict["tiledb_column_offset"].IsInt64());
       auto tiledb_column_offset = contig_info_dict["tiledb_column_offset"].GetInt64();
+      VERIFY_OR_THROW(tiledb_column_offset >= 0ll);
       VERIFY_OR_THROW(contig_info_dict.HasMember("length") && contig_info_dict["length"].IsInt64());
       auto length = contig_info_dict["length"].GetInt64();
+      VERIFY_OR_THROW(length >= 0ll);
       VERIFY_OR_THROW(static_cast<size_t>(contig_idx) < static_cast<size_t>(num_contigs));
       m_contig_name_to_idx[contig_name] = contig_idx;
       m_contig_idx_to_info[contig_idx].set_info(contig_idx, contig_name, length, tiledb_column_offset);
@@ -381,8 +390,35 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       m_contig_end_2_idx[contig_idx].first = tiledb_column_offset + length - 1; //inclusive
       m_contig_end_2_idx[contig_idx].second = contig_idx; 
     }
+    if(duplicate_contigs_exist)
+      throw FileBasedVidMapperException(std::string("Duplicate contigs exist in vid file ")+filename);
     std::sort(m_contig_begin_2_idx.begin(), m_contig_begin_2_idx.end(), contig_offset_idx_pair_cmp);
     std::sort(m_contig_end_2_idx.begin(), m_contig_end_2_idx.end(), contig_offset_idx_pair_cmp);
+    //Check that there are no spurious overlaps
+    auto last_contig_idx = -1;
+    auto last_contig_end_column = -1ll;
+    auto overlapping_contigs_exist = false;
+    for(const auto& offset_idx_pair : m_contig_begin_2_idx)
+    {
+      auto contig_idx = offset_idx_pair.second;
+      const auto& contig_info = m_contig_idx_to_info[contig_idx];
+      if(last_contig_idx >= 0)
+      {
+        const auto& last_contig_info = m_contig_idx_to_info[last_contig_idx];
+        if(contig_info.m_tiledb_column_offset <= last_contig_end_column)
+        {
+          std::cerr << (std::string("Contig/chromosome ")+contig_info.m_name+" begins at TileDB column "
+              +std::to_string(contig_info.m_tiledb_column_offset)+" and intersects with contig/chromosome "+last_contig_info.m_name
+              +" that spans columns [ "+std::to_string(last_contig_info.m_tiledb_column_offset)+", "
+              +std::to_string(last_contig_info.m_tiledb_column_offset+last_contig_info.m_length-1)+" ]") << "\n";
+          overlapping_contigs_exist = true;
+        }
+      }
+      last_contig_idx = contig_idx;
+      last_contig_end_column = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
+    }
+    if(overlapping_contigs_exist)
+      throw FileBasedVidMapperException(std::string("Overlapping contigs exist in vid file ")+filename);
   }
   //Field info parsing
   VERIFY_OR_THROW(json_doc.HasMember("fields"));
@@ -394,10 +430,17 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     m_field_idx_to_info.resize(num_fields);
     std::string field_name;
     auto field_idx = 0;
+    auto duplicate_fields_exist = false;
     for(auto b=fields_dict.MemberBegin(), e=fields_dict.MemberEnd();b!=e;++b,++field_idx)
     {
       const auto& curr_obj = *b;
       field_name = curr_obj.name.GetString();
+      if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end())
+      {
+        std::cerr << (std::string("Duplicate field name ")+field_name+" found in vid file "+filename) << "\n";
+        duplicate_fields_exist = true;
+        continue;
+      }
       m_field_name_to_idx[field_name] = field_idx;
       m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
       const auto& field_info_dict = curr_obj.value;
@@ -463,6 +506,8 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
       field_info.m_type_index = std::move(std::type_index(typeid(int)));
       field_info.m_bcf_ht_type = BCF_HT_INT;
     }
+    if(duplicate_fields_exist)
+      throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
   } 
   m_is_initialized = true;
 }
@@ -476,6 +521,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     throw FileBasedVidMapperException((std::string("Could not open callsets file \"")+filename+"\"").c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
   uint64_t num_files = 0ull;
   //Callset info parsing
   VERIFY_OR_THROW(json_doc.HasMember("callsets"));
@@ -492,6 +539,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     {
       const auto& curr_obj = *b;
       callset_name = curr_obj.name.GetString();
+      if(m_callset_name_to_row_idx.find(callset_name) != m_callset_name_to_row_idx.end())
+        throw FileBasedVidMapperException(std::string("Duplicate sample/callset name ")+callset_name+" found in callsets file "+filename);
       const auto& callset_info_dict = curr_obj.value;
       VERIFY_OR_THROW(callset_info_dict.IsObject());    //must be dict
       VERIFY_OR_THROW(callset_info_dict.HasMember("row_idx"));
@@ -526,8 +575,20 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       }
       m_callset_name_to_row_idx[callset_name] = row_idx;
       VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+      if(m_row_idx_to_info[row_idx].m_is_initialized)
+        throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
+            +m_row_idx_to_info[row_idx].m_name);
       m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
     }
+    auto missing_row_idxs_exist = false;
+    for(auto row_idx=0ll;static_cast<size_t>(row_idx)<m_row_idx_to_info.size() && row_idx<=m_ub_callset_row_idx;++row_idx)
+      if(row_idx >= m_lb_callset_row_idx && row_idx <= m_ub_callset_row_idx && !(m_row_idx_to_info[row_idx].m_is_initialized))
+      {
+        std::cerr << "Sample/callset information missing for row " << row_idx << "\n";
+        missing_row_idxs_exist = true;
+      }
+    if(missing_row_idxs_exist)
+      throw FileBasedVidMapperException(std::string("Row indexes with missing sample/callset information found in callsets file: ")+filename);
   }
   m_file_idx_to_info.resize(num_files);
   //File partitioning info
