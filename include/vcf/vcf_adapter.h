@@ -97,7 +97,7 @@ class VCFAdapter
      * Child classes might actually just swap out the pointer so that the actual output is performed by
      * a thread off the critical path
      **/
-    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
+    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
     virtual void print_header();
     /*
      * Return true in child class if some output causes buffer to be full. Default: return false

@@ -225,6 +225,15 @@ void VCFAdapter::print_header()
   bcf_hdr_write(m_output_fptr, m_template_vcf_hdr);
 }
 
+void VCFAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size)
+{
+  auto write_status = bcf_write(m_output_fptr, m_template_vcf_hdr, line);
+  if(write_status != 0)
+    throw VCFAdapterException(std::string("Failed to write VCF/BCF record at position ")
+        +bcf_hdr_id2name(m_template_vcf_hdr, line->rid)+", "
+        +std::to_string(line->pos+1));
+}
+
 BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries, const size_t combined_vcf_records_buffer_size_limit)
   : VCFAdapter(true, combined_vcf_records_buffer_size_limit), CircularBufferController(num_circular_buffers)
 {
@@ -292,7 +301,11 @@ void BufferedVCFAdapter::do_output()
   for(auto i=0u;i<m_num_valid_entries[read_idx];++i)
   {
     assert(m_line_buffers[read_idx][i]);
-    bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
+    auto write_status = bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
+    if(write_status != 0)
+      throw VCFAdapterException(std::string("Failed to write VCF/BCF record at position ")
+          +bcf_hdr_id2name(m_template_vcf_hdr, m_line_buffers[read_idx][i]->rid)+", "
+          +std::to_string(m_line_buffers[read_idx][i]->pos+1));
   }
   m_num_valid_entries[read_idx] = 0u;
   m_combined_vcf_records_buffer_sizes[read_idx] = 0ull;
