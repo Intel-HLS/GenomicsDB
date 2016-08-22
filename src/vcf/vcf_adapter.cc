@@ -143,6 +143,42 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
     bcf_hdr_sync(hdr);
     return true;
   }
+  else
+  {
+    const auto* field_info_ptr = id_mapper->get_field_info(field_name);
+    assert(field_info_ptr);
+    auto field_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
+    //Don't bother doing any checks for the GT field
+    if(field_name != "GT" && field_ht_type != BCF_HT_STR)
+    {
+      //Allowed configurations - both the JSON and the header specify that:
+      //The field is fixed length and agree on the length OR
+      //The field is variable length
+      if(!((field_info_ptr->m_length_descriptor == BCF_VL_FIXED
+              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
+              && field_info_ptr->m_num_elements == static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
+            ||
+            (field_info_ptr->m_length_descriptor != BCF_VL_FIXED
+             && bcf_hdr_id2length(hdr, field_type_idx, field_idx) != BCF_VL_FIXED
+            )
+          )
+        )
+        throw VCFAdapterException(std::string("Conflicting field length descriptors and/or field lengths in the vid JSON and VCF header for field ")+field_name);
+      //Check for compatible field types
+      auto compatible_types = std::unordered_map<int, std::unordered_set<int>>{
+           { BCF_HT_FLAG, { BCF_HT_FLAG } },
+           { BCF_HT_INT, { BCF_HT_INT } },
+           { BCF_HT_REAL, { BCF_HT_REAL } },
+           { BCF_HT_INT64, { BCF_HT_INT64 } },
+           { BCF_HT_VOID, { BCF_HT_VOID } },
+           { BCF_HT_CHAR, { BCF_HT_CHAR, BCF_HT_STR } },
+           { BCF_HT_STR, { BCF_HT_CHAR, BCF_HT_STR } }
+      };
+      if(compatible_types.find(field_ht_type) != compatible_types.end()
+          && compatible_types[field_ht_type].find(field_info_ptr->m_bcf_ht_type) == compatible_types[field_ht_type].end())
+        throw VCFAdapterException(std::string("Conflicting data types in the vid JSON and VCF header for field ")+field_name);
+    }
+  }
   return false;
 }
 
