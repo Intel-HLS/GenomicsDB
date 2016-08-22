@@ -80,8 +80,16 @@ void VCFReader::initialize(const char* filename, const char* regions,
   for(auto field_type_idx=BCF_HL_FLT;field_type_idx<=BCF_HL_FMT;++field_type_idx)
   {
     assert(static_cast<size_t>(field_type_idx) < vcf_field_names.size());
-    for(auto j=0u;j<vcf_field_names[field_type_idx].size();++j)
-      VCFAdapter::add_field_to_hdr_if_missing(m_hdr, id_mapper, vcf_field_names[field_type_idx][j], field_type_idx);
+    try
+    {
+      for(auto j=0u;j<vcf_field_names[field_type_idx].size();++j)
+        VCFAdapter::add_field_to_hdr_if_missing(m_hdr, id_mapper, vcf_field_names[field_type_idx][j], field_type_idx);
+    }
+    catch(const VCFAdapterException& e)
+    {
+      std::cerr << "ERROR: conflicting field description in the vid JSON and the VCF header of file: "<<filename<<"\n";
+      throw e;
+    }
   }
 }
 

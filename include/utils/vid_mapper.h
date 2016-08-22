@@ -40,17 +40,20 @@ class CallSetInfo
   public:
     CallSetInfo()
     {
+      m_is_initialized = false;
       m_row_idx = -1;
       m_file_idx = -1;
       m_idx_in_file = 0;
     }
     void set_info(const int64_t row_idx, const std::string& name, const int64_t file_idx=-1, const int64_t idx_in_file=0)
     {
+      m_is_initialized = true;
       m_row_idx = row_idx;
       m_file_idx = file_idx;
       m_name = name;
       m_idx_in_file = idx_in_file;
     }
+    bool m_is_initialized;
     int64_t m_row_idx;
     int64_t m_file_idx;
     int64_t m_idx_in_file;

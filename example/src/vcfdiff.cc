@@ -758,6 +758,8 @@ void construct_regions_for_partitions(const std::string& loader_json_filename, V
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   rapidjson::Document json;
   json.Parse(str.c_str());
+  if(json.HasParseError())
+    throw VCFDiffException(std::string("Syntax error in JSON file ")+loader_json_filename);
   VERIFY_OR_THROW(json.HasMember("vid_mapping_file") && json["vid_mapping_file"].IsString());
   VERIFY_OR_THROW(json.HasMember("column_partitions"));
   //callsets file
@@ -811,6 +813,8 @@ void setup_samples_lut(const std::string& test_to_gold_callset_map_file, VCFDiff
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   rapidjson::Document json;
   json.Parse(str.c_str());
+  if(json.HasParseError())
+    throw VCFDiffException(std::string("Syntax error in JSON file ")+test_to_gold_callset_map_file);
   VERIFY_OR_THROW(json.HasMember("test_to_gold_callset_map") && json["test_to_gold_callset_map"].IsObject());
   const auto& callset_map = json["test_to_gold_callset_map"];
   //if(vid_mapper->get_num_callsets() != callset_map.MemberCount())

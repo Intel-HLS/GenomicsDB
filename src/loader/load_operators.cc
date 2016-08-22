@@ -94,6 +94,8 @@ LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::stri
   std::ifstream ifs(config_filename.c_str());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+config_filename);
   //recreate array flag
   bool recreate_array = (json_doc.HasMember("delete_and_create_tiledb_array")
       && json_doc["delete_and_create_tiledb_array"].GetBool()) ? true : false;

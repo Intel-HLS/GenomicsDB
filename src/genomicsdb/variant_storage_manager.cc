@@ -23,9 +23,7 @@
 #include "variant_storage_manager.h"
 #include "variant_field_data.h"
 #include <sys/stat.h>
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
+#include "json_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantStorageManagerException(#X);
 #define GET_METADATA_PATH(workspace, array) ((workspace)+'/'+(array)+"/genomicsdb_meta.json")
@@ -267,6 +265,8 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
       rapidjson::Document json_doc;
       std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
       json_doc.Parse(str.c_str());
+      if(json_doc.HasParseError())
+        throw VariantStorageManagerException(std::string("Syntax error in corrupted JSON metadata file ")+m_metadata_filename);
       if(json_doc.HasMember("max_valid_row_idx_in_array") && json_doc["max_valid_row_idx_in_array"].IsInt64())
       {
         m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
