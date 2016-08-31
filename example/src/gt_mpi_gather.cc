@@ -337,7 +337,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
 }
 #endif
 
-void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, int command_idx)
+void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config, int command_idx, const VidMapper& id_mapper)
 {
   switch(command_idx)
   {
@@ -347,7 +347,7 @@ void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& quer
         std::cout << "{\n";
         //variant_calls is an array of dictionaries
         std::cout << indent_prefix << "\"variant_calls\": [\n";
-        VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix+indent_prefix+indent_prefix);
+        VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix+indent_prefix+indent_prefix, &id_mapper);
         for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
         {
           //Each dictionary contains 2 keys - query_interval and variant_calls
@@ -590,7 +590,7 @@ int main(int argc, char *argv[]) {
       break;
     case COMMAND_PRINT_CALLS:
     case COMMAND_PRINT_CSV:
-      print_calls(qp, query_config, command_idx);
+      print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
       break;
   }
 #ifdef USE_GPERFTOOLS

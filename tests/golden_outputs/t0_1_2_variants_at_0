@@ -2,6 +2,7 @@
     "variants": [
         {
             "interval": [ 12140, 12294 ],
+            "genomic_interval": { "1" : [ 12141, 12295 ] },
              "common_fields" : {
 
             },
@@ -9,6 +10,7 @@
                 {
                     "row": 0,
                     "interval": [ 12140, 12294 ],
+                    "genomic_interval": { "1" : [ 12141, 12295 ] },
                     "fields": {
                         "REF": "C",
                         "ALT": [ "<NON_REF>" ],
@@ -23,6 +25,7 @@
         },
         {
             "interval": [ 12144, 12276 ],
+            "genomic_interval": { "1" : [ 12145, 12277 ] },
              "common_fields" : {
 
             },
@@ -30,6 +33,7 @@
                 {
                     "row": 1,
                     "interval": [ 12144, 12276 ],
+                    "genomic_interval": { "1" : [ 12145, 12277 ] },
                     "fields": {
                         "REF": "C",
                         "ALT": [ "<NON_REF>" ],
@@ -44,6 +48,7 @@
         },
         {
             "interval": [ 17384, 17384 ],
+            "genomic_interval": { "1" : [ 17385, 17385 ] },
              "common_fields" : {
                 "REF": "G",
                 "ALT": [ "A","<NON_REF>" ]
@@ -52,6 +57,7 @@
                 {
                     "row": 0,
                     "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
                     "fields": {
                         "REF": "G",
                         "ALT": [ "A","<NON_REF>" ],
@@ -75,6 +81,7 @@
                 {
                     "row": 2,
                     "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
                     "fields": {
                         "REF": "G",
                         "ALT": [ "A","<NON_REF>" ],
@@ -97,6 +104,7 @@
         },
         {
             "interval": [ 17384, 17384 ],
+            "genomic_interval": { "1" : [ 17385, 17385 ] },
              "common_fields" : {
 
             },
@@ -104,6 +112,7 @@
                 {
                     "row": 1,
                     "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
                     "fields": {
                         "REF": "G",
                         "ALT": [ "T","<NON_REF>" ],

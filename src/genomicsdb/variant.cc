@@ -225,7 +225,7 @@ void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std:
 
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config,
-    const std::string& indent_prefix) const
+    const std::string& indent_prefix, const VidMapper* vid_mapper) const
 {
   auto indent_string = indent_prefix+json_indent_unit;
   if(m_is_initialized && m_is_valid)
@@ -233,6 +233,15 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
     fptr << indent_prefix << "{\n";
     fptr << indent_string << "\"row\": "<<m_row_idx << ",\n";
     fptr << indent_string << "\"interval\": [ "<< m_col_begin << ", "<<m_col_end << " ],\n";
+    if(vid_mapper)
+    {
+      std::string contig_name;
+      int64_t contig_position;
+      auto status = vid_mapper->get_contig_location(m_col_begin, contig_name, contig_position);
+      if(status)
+        fptr << indent_string << "\"genomic_interval\": { \"" << contig_name << "\" : [ "<<contig_position+1
+          << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
+    }
     fptr << indent_string << "\"fields\": {\n";
     indent_string += json_indent_unit;
     unsigned idx = 0u;
@@ -417,11 +426,21 @@ void Variant::resize_based_on_query()
   }
 }
 
-void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, const std::string& indent_prefix) const
+void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, const std::string& indent_prefix
+    , const VidMapper* vid_mapper) const
 {
   fptr << indent_prefix << "{\n";
   std::string indent_string = indent_prefix+json_indent_unit;
   fptr << indent_string << "\"interval\": [ "<<m_col_begin <<", "<<m_col_end<<" ],\n";
+  if(vid_mapper)
+  {
+    std::string contig_name;
+    int64_t contig_position;
+    auto status = vid_mapper->get_contig_location(m_col_begin, contig_name, contig_position);
+    if(status)
+      fptr << indent_string << "\"genomic_interval\": { \"" << contig_name << "\" : [ "<<contig_position+1
+        << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
+  }
   fptr << indent_string << " \"common_fields\" : {\n";
   indent_string += json_indent_unit;
   auto idx = 0u;
@@ -451,7 +470,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
   {
     if(call_idx > 0ull)
       fptr << ",\n";
-    (*iter).print(fptr, query_config ? query_config : m_query_config, indent_string);
+    (*iter).print(fptr, query_config ? query_config : m_query_config, indent_string, vid_mapper);
     ++call_idx;
   }
   indent_string = indent_prefix + json_indent_unit;
@@ -971,7 +990,7 @@ void print_variants(const std::vector<Variant>& variants,
         {
           if(variant_idx > 0ull)
             optr << ",\n";
-          variant.print(optr, &query_config, indent_prefix);
+          variant.print(optr, &query_config, indent_prefix, id_mapper);
           ++variant_idx;
         }
         optr << "\n"<< json_indent_unit << "]\n";
