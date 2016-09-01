@@ -2,6 +2,7 @@
     "variants": [
         {
             "interval": [ 8029499, 8029501 ],
+            "genomic_interval": { "1" : [ 8029500, 8029502 ] },
              "common_fields" : {
 
             },
@@ -9,6 +10,7 @@
                 {
                     "row": 0,
                     "interval": [ 8029499, 8029501 ],
+                    "genomic_interval": { "1" : [ 8029500, 8029502 ] },
                     "fields": {
                         "REF": "TGG",
                         "ALT": [ "T","<NON_REF>" ],
@@ -30,6 +32,7 @@
         },
         {
             "interval": [ 8029499, 8029501 ],
+            "genomic_interval": { "1" : [ 8029500, 8029502 ] },
              "common_fields" : {
 
             },
@@ -37,6 +40,7 @@
                 {
                     "row": 1,
                     "interval": [ 8029499, 8029501 ],
+                    "genomic_interval": { "1" : [ 8029500, 8029502 ] },
                     "fields": {
                         "REF": "TGG",
                         "ALT": [ "T","TG","<NON_REF>" ],
@@ -59,6 +63,7 @@
         },
         {
             "interval": [ 8029499, 8029500 ],
+            "genomic_interval": { "1" : [ 8029500, 8029501 ] },
              "common_fields" : {
 
             },
@@ -66,6 +71,7 @@
                 {
                     "row": 2,
                     "interval": [ 8029499, 8029500 ],
+                    "genomic_interval": { "1" : [ 8029500, 8029501 ] },
                     "fields": {
                         "REF": "TG",
                         "ALT": [ "T","<NON_REF>" ],
