@@ -499,7 +499,7 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
     {
       auto end_idx = m_field_idx_to_info.size();
       m_field_idx_to_info.emplace_back();
-      m_field_name_to_idx[field_name] = end_idx;
+      m_field_name_to_idx["END"] = end_idx;
       auto& field_info = m_field_idx_to_info[end_idx];
       field_info.set_info("END", end_idx);
       field_info.m_is_vcf_INFO_field = true;
