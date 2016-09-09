@@ -72,7 +72,6 @@ class KnownFieldInfo
   public:
     KnownFieldInfo();
   private:
-    bool m_ploidy_required;
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
@@ -87,7 +86,6 @@ class KnownFieldInfo
     inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
     inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
     unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
-    inline bool ploidy_required_for_known_field_enum() const { return m_ploidy_required; }
     inline int get_INFO_field_combine_operation() const { return m_INFO_field_combine_operation; }
     /*
      * Static functions that access the global vector specified below to get info
@@ -114,6 +112,13 @@ class KnownFieldInfo
      */
     static bool is_length_allele_dependent(unsigned enumIdx);
     /*
+     * Function that determines whether length descriptor is dependent on the #alleles 
+     */
+    static bool is_length_descriptor_allele_dependent(unsigned length_descriptor)
+    {
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
+    /*
      * Function that determines whether length of the field is dependent on the #genotypes
      */
     static bool is_length_genotype_dependent(unsigned enumIdx);
@@ -121,10 +126,6 @@ class KnownFieldInfo
      * Function that determines whether length of the field is dependent only on the #alt alleles
      */
     static bool is_length_only_ALT_alleles_dependent(unsigned enumIdx);
-    /*
-     * Check whether the known field requires ploidy - e.g. GT, GQ etc
-     */
-    static bool ploidy_required_for_known_field_enum(unsigned enumIdx);
     /*
      * Functions that determine number of elements for known fields
      */
@@ -138,7 +139,7 @@ class KnownFieldInfo
     /*
      * INFO field combine operation
      */ 
-    static int get_INFO_field_combine_operation(unsigned known_field_enum);
+    static int get_INFO_field_combine_operation_for_known_field_enum(unsigned known_field_enum);
 };
 /*
  * Vector that stores information about the known fields - length, Factory methods etc

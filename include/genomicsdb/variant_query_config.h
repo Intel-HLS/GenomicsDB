@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "lut.h"
 #include "known_field_info.h"
+#include "vid_mapper.h"
 
 //Out of bounds query exception
 class OutOfBoundsQueryException : public std::exception {
@@ -52,6 +53,23 @@ class UnknownQueryAttributeException {
 
 class VariantQueryConfig
 {
+  private:
+    class VariantQueryFieldInfo
+    {
+      public:
+        VariantQueryFieldInfo(const std::string& name, const int schema_idx)
+          : m_name(name), m_schema_idx(schema_idx)
+        {
+          m_length_descriptor = BCF_VL_FIXED;
+          m_num_elements = 1u;
+          m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION; 
+        }
+        int m_schema_idx;
+        int m_length_descriptor;
+        int m_num_elements;
+        int m_INFO_field_combine_operation;
+        std::string m_name;
+    };
   public:
     VariantQueryConfig()
     {
@@ -65,8 +83,7 @@ class VariantQueryConfig
     }
     void clear()
     {
-      m_query_attributes_names.clear();
-      m_query_attributes_schema_idxs.clear();
+      m_query_attributes_info_vec.clear();
       m_query_attribute_name_to_query_idx.clear();
       m_query_rows.clear();
       m_query_column_intervals.clear();
@@ -85,24 +102,24 @@ class VariantQueryConfig
      */
     inline bool is_schema_idx_defined_for_query_idx(unsigned idx) const
     {
-      assert(idx < m_query_attributes_schema_idxs.size());
-      return (m_query_attributes_schema_idxs[idx] != static_cast<int>(UNDEFINED_ATTRIBUTE_IDX_VALUE));
+      assert(idx < m_query_attributes_info_vec.size());
+      return (m_query_attributes_info_vec[idx].m_schema_idx != static_cast<int>(UNDEFINED_ATTRIBUTE_IDX_VALUE));
     }
     /**
      * Set TileDB array schema attribute idx (schemaIdx) for the queried attribute idx
      */
     void set_schema_idx_for_query_idx(unsigned idx, unsigned schemaIdx)
     {
-      assert(idx < m_query_attributes_schema_idxs.size());
-      m_query_attributes_schema_idxs[idx] = schemaIdx;
+      assert(idx < m_query_attributes_info_vec.size());
+      m_query_attributes_info_vec[idx].m_schema_idx = schemaIdx;
     }
     /**
      * Get TileDB array schema attribute idx for the queried attribute idx
      */
     inline unsigned get_schema_idx_for_query_idx(unsigned idx) const
     {
-      assert(idx < m_query_attributes_schema_idxs.size());
-      return m_query_attributes_schema_idxs[idx];
+      assert(idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[idx].m_schema_idx;
     }
     /**
      * Get idx in the query for given attribute name
@@ -123,14 +140,42 @@ class VariantQueryConfig
      */
     inline std::string get_query_attribute_name(unsigned idx) const
     {
-      assert(idx < m_query_attributes_schema_idxs.size());
-      return m_query_attributes_names[idx];
+      assert(idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[idx].m_name;
     }
     /**
      * Get number of attributes in query
      */
-    inline unsigned get_num_queried_attributes() const { return m_query_attributes_names.size(); }
-    inline const std::vector<int>& get_query_attributes_schema_idxs() const { return m_query_attributes_schema_idxs; }
+    inline unsigned get_num_queried_attributes() const { return m_query_attributes_info_vec.size(); }
+    std::vector<int> get_query_attributes_schema_idxs() const
+    {
+      auto schema_idx_vec = std::vector<int>(m_query_attributes_info_vec.size(), UNDEFINED_ATTRIBUTE_IDX_VALUE);
+      for(auto i=0u;i<m_query_attributes_info_vec.size();++i)
+        schema_idx_vec[i] = m_query_attributes_info_vec[i].m_schema_idx;
+      return schema_idx_vec;
+    }
+    /*
+     * Attributes info parameters
+     */
+    void set_query_attribute_info_parameters(const unsigned query_field_idx, int length_descriptor, int num_elements,
+        int INFO_field_combine_operation)
+    {
+      assert(query_field_idx < m_query_attributes_info_vec.size());
+      auto& attribute_info = m_query_attributes_info_vec[query_field_idx];
+      attribute_info.m_length_descriptor = length_descriptor;
+      attribute_info.m_num_elements = num_elements;
+      attribute_info.m_INFO_field_combine_operation = INFO_field_combine_operation;
+    }
+    int get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[query_idx].m_length_descriptor;
+    }
+    int get_num_elements_for_query_attribute_idx(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[query_idx].m_num_elements;
+    }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
      */
@@ -294,15 +339,12 @@ class VariantQueryConfig
      * @param all_rows if true, invalidates all mappings, else invalidates mapping for rows in m_query_rows only
      */
     void invalidate_array_row_idx_to_query_row_idx_map(bool all_rows);
-    //Query attribute names
-    std::vector<std::string> m_query_attributes_names;
-    //Query attribute schema idxs
-    std::vector<int> m_query_attributes_schema_idxs;
-    //Map from query name to index in m_query_attributes_names/m_query_attributes_schema_idxs
+    std::vector<VariantQueryFieldInfo> m_query_attributes_info_vec;
+    //Map from query name to index in m_query_attributes_info_vec
     std::unordered_map<std::string, unsigned> m_query_attribute_name_to_query_idx;
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;
-    //Idx in m_query_attributes_names with the first common attribute - see reorder_query_fields();
+    //Idx in m_query_attributes_info_vec with the first common attribute - see reorder_query_fields();
     unsigned m_first_normal_field_query_idx;
     //Mapping between queried idx and known fields enum
     QueryIdxToKnownVariantFieldsEnumLUT m_query_idx_known_variant_field_enum_LUT;

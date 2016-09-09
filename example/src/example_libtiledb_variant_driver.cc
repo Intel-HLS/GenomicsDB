@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
         {"single-positions",0,0,ARGS_IDX_TEST_SINGLE_POSITIONS},
         {"test-update-rows",0,0,ARGS_IDX_TEST_UPDATE_ROWS},
         {"page-size",1,0,'p'},
+        {"vid-mapping-file",1,0,'V'},
         {"output-format",1,0,'O'},
         {"test-binary-serialization",0,0,ARGS_IDX_TEST_BINARY_SERIALIZATION},
         {0,0,0,0},
@@ -55,7 +56,8 @@ int main(int argc, char *argv[]) {
     bool test_single_positions = false;
     bool test_update_rows = false;
     bool test_binary_serialization = false;
-    while((c=getopt_long(argc, argv, "p:O:", long_options, NULL)) >= 0)
+    std::string vid_mapping_file = "";
+    while((c=getopt_long(argc, argv, "V:p:O:", long_options, NULL)) >= 0)
     {
         switch(c)
         {
@@ -64,6 +66,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'O':
                 output_format = std::move(std::string(optarg));
+                break;
+            case 'V':
+                vid_mapping_file = std::move(std::string(optarg));
                 break;
             case ARGS_IDX_TEST_BINARY_SERIALIZATION:
                 test_binary_serialization = true;
@@ -79,6 +84,13 @@ int main(int argc, char *argv[]) {
                 exit(-1);
         }
     }
+
+    if(vid_mapping_file.length() == 0u)
+    {
+      std::cerr << "Vid mapping file is mandatory - use -V <vid_mapping_file>\n";
+      return -1;
+    }
+    FileBasedVidMapper vid_mapper(vid_mapping_file);
 
     if( optind + 4 > argc ) {
       char workspace[] = "/mnt/app_hdd/scratch/jagan/TileDB/DB/";
@@ -118,7 +130,7 @@ int main(int argc, char *argv[]) {
         Variant variant;
         for( uint64_t i = start; i <= end; ++i ) {
             std::cout << "Position " << i << std::endl;
-            db_query_column(workspace, array_name, i-start, variant, query_config); 
+            db_query_column(workspace, array_name, i-start, variant, query_config, vid_mapper); 
             std::cout << std::endl;
             variant.print(std::cout, &query_config);
         }
@@ -130,7 +142,7 @@ int main(int argc, char *argv[]) {
         {
           std::cout << "Querying only row 0\n";
           query_config.set_rows_to_query(std::vector<int64_t>(1u, 0ll));     //query row 0 only
-          db_query_column_range(workspace, array_name, 0ull, variants, query_config);
+          db_query_column_range(workspace, array_name, 0ull, variants, query_config, vid_mapper);
           for(const auto& variant : variants)
               variant.print(std::cout, &query_config);
           variants.clear();
@@ -145,7 +157,7 @@ int main(int argc, char *argv[]) {
           paging_info = &tmp_paging_info;
           paging_info->set_page_size(page_size);
         }
-        db_query_column_range(workspace, array_name, 0ull, variants, query_config, paging_info);
+        db_query_column_range(workspace, array_name, 0ull, variants, query_config, vid_mapper, paging_info);
 #ifdef DEBUG
         auto page_idx = 0u;
 #endif
@@ -158,7 +170,7 @@ int main(int argc, char *argv[]) {
           std::vector<Variant> tmp_vector;
           while(!(paging_info->is_query_completed()))
           {
-            db_query_column_range(workspace, array_name, 0ull, tmp_vector, query_config, paging_info);
+            db_query_column_range(workspace, array_name, 0ull, tmp_vector, query_config, vid_mapper, paging_info);
             //Move to final vector
             for(auto& v : tmp_vector)
               variants.push_back(std::move(v));

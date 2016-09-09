@@ -68,7 +68,7 @@ void Factory::clear() {
 }
 
 extern "C" void db_query_column(std::string workspace, std::string array_name, 
-        uint64_t query_interval_idx, Variant& variant, VariantQueryConfig& query_config) {
+        uint64_t query_interval_idx, Variant& variant, VariantQueryConfig& query_config, const VidMapper& vid_mapper) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
@@ -76,7 +76,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
     {
-      qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
+      qp->do_query_bookkeeping(qp->get_array_schema(), query_config, vid_mapper);
       variant = std::move(Variant(&query_config));
       variant.resize_based_on_query();
     }
@@ -85,14 +85,15 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
 }
 
 extern "C" void db_query_column_range(std::string workspace, std::string array_name, 
-        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config, GA4GHPagingInfo* paging_info) {
+        uint64_t query_interval_idx, std::vector<Variant>& variants, VariantQueryConfig& query_config,
+        const VidMapper& vid_mapper, GA4GHPagingInfo* paging_info) {
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
     VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
-        qp->do_query_bookkeeping(qp->get_array_schema(), query_config);
+        qp->do_query_bookkeeping(qp->get_array_schema(), query_config, vid_mapper);
     qp->gt_get_column_interval(qp->get_array_descriptor(), query_config, query_interval_idx, variants, paging_info, &f.stats);
     if(paging_info == 0 || paging_info->is_query_completed())
         f.stats.increment_num_queries();

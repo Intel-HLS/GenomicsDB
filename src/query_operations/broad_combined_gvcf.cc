@@ -81,7 +81,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
         int INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
         //Check if known field - determine combination operation
         if(known_field_enum != UNDEFINED_ATTRIBUTE_IDX_VALUE)
-          INFO_field_combine_operation = KnownFieldInfo::get_INFO_field_combine_operation(known_field_enum);
+          INFO_field_combine_operation = KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(known_field_enum);
         //Check if combination operation specified in the vid JSON file
         if(field_info->m_INFO_field_combine_operation != INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
           INFO_field_combine_operation = field_info->m_INFO_field_combine_operation;

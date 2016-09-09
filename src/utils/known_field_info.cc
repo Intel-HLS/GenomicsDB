@@ -63,7 +63,6 @@ KnownFieldInitializer g_known_field_initializer;
 //KnownFieldInfo functions
 KnownFieldInfo::KnownFieldInfo()
 {
-  m_ploidy_required = false;
   m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_field_creator = 0;
@@ -106,14 +105,6 @@ bool KnownFieldInfo::is_length_only_ALT_alleles_dependent(unsigned enumIdx)
   assert(enumIdx < g_known_field_enum_to_info.size());
   return g_known_field_enum_to_info[enumIdx].is_length_only_ALT_alleles_dependent();
 }
-/*
- * Check whether the known field requires ploidy - e.g. GT, GQ etc
- */
-bool KnownFieldInfo::ploidy_required_for_known_field_enum(unsigned enumIdx)
-{
-  assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
-  return g_known_field_enum_to_info[enumIdx].ploidy_required_for_known_field_enum();
-}
 
 unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned known_field_enum,
     unsigned num_ALT_alleles, unsigned ploidy)
@@ -128,7 +119,7 @@ unsigned KnownFieldInfo::get_length_descriptor_for_known_field_enum(unsigned kno
   return g_known_field_enum_to_info[known_field_enum].get_length_descriptor();
 }
 
-int KnownFieldInfo::get_INFO_field_combine_operation(unsigned known_field_enum)
+int KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(unsigned known_field_enum)
 {
   assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
   return g_known_field_enum_to_info[known_field_enum].get_INFO_field_combine_operation();
@@ -222,8 +213,6 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
       break;
     case GVCF_GT_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_P;
-      //Ploidy requirements
-      g_known_field_enum_to_info[idx].m_ploidy_required = true;
       break;
     case GVCF_SB_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
