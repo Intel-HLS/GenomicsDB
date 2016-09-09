@@ -29,8 +29,9 @@
 #include "vcf_adapter.h"
 #include "vid_mapper.h"
 
-typedef std::tuple<unsigned, unsigned, unsigned> INFO_tuple_type;
-typedef std::tuple<unsigned, unsigned, unsigned> FORMAT_tuple_type;
+//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
+typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string, int> INFO_tuple_type;
+typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string> FORMAT_tuple_type;
 
 //Exceptions thrown 
 class BroadCombinedGVCFException : public std::exception {
@@ -86,7 +87,6 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //INFO fields enum vector
     std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<FORMAT_tuple_type> m_FORMAT_fields_vec;
-    std::vector<FORMAT_tuple_type> m_unknown_FORMAT_fields_vec;
     //MIN_DP values
     std::vector<int> m_MIN_DP_vector;
     //DP_FORMAT values

@@ -70,18 +70,13 @@ class KnownFieldInfo
 {
   friend class KnownFieldInitializer;
   public:
-    KnownFieldInfo()
-    {
-      m_ploidy_required = false;
-      m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
-      m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
-      m_field_creator = 0;
-    }
+    KnownFieldInfo();
   private:
     bool m_ploidy_required;
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
+    int m_INFO_field_combine_operation;
   public:
     inline bool is_length_allele_dependent() const
     {
@@ -93,6 +88,7 @@ class KnownFieldInfo
     inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
     unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
     inline bool ploidy_required_for_known_field_enum() const { return m_ploidy_required; }
+    inline int get_INFO_field_combine_operation() const { return m_INFO_field_combine_operation; }
     /*
      * Static functions that access the global vector specified below to get info
      */
@@ -139,6 +135,10 @@ class KnownFieldInfo
      * Returns BCF length descriptor, BCF_VL_*
      */
     static unsigned get_length_descriptor_for_known_field_enum(unsigned known_field_enum);
+    /*
+     * INFO field combine operation
+     */ 
+    static int get_INFO_field_combine_operation(unsigned known_field_enum);
 };
 /*
  * Vector that stores information about the known fields - length, Factory methods etc
@@ -155,6 +155,7 @@ class KnownFieldInitializer
     KnownFieldInitializer();
   private:
     void initialize_length_descriptor(unsigned idx) const;
+    void initialize_INFO_combine_operation(unsigned idx) const;
 };
 extern KnownFieldInitializer g_known_field_initializer;
 

@@ -126,6 +126,14 @@ class FileInfo
     unsigned m_type;
 };
 
+enum INFOFieldCombineOperationEnum
+{
+  INFO_FIELD_COMBINE_OPERATION_SUM=0,
+  INFO_FIELD_COMBINE_OPERATION_MEDIAN,
+  INFO_FIELD_COMBINE_OPERATION_DP,      //for the DP INFO field
+  INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION
+};
+
 class FieldInfo
 {
   public:
@@ -139,13 +147,16 @@ class FieldInfo
       m_bcf_ht_type = BCF_HT_VOID;
       m_length_descriptor = BCF_VL_FIXED;
       m_num_elements = 1;
+      m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
     }
     void set_info(const std::string& name, int idx)
     {
       m_name = name;
+      m_vcf_name = name;
       m_field_idx = idx;
     }
-    std::string m_name;
+    std::string m_name;     //Unique per array schema
+    std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
     bool m_is_vcf_FILTER_field;
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
@@ -156,6 +167,7 @@ class FieldInfo
     //Length descriptors
     int m_length_descriptor;
     int m_num_elements;
+    int m_INFO_field_combine_operation;
 };
 
 /*
@@ -461,6 +473,8 @@ class VidMapper
     static std::unordered_map<std::string, int> m_length_descriptor_string_to_int;
     static std::unordered_map<std::string, std::type_index> m_typename_string_to_type_index;
     static std::unordered_map<std::string, int> m_typename_string_to_bcf_ht_type;
+    //INFO field combine operation
+    static std::unordered_map<std::string, int> m_INFO_field_operation_name_to_enum;
     //Max row idx in callset idx file
     int64_t m_max_callset_row_idx;
 };

@@ -21,6 +21,7 @@
 */
 
 #include "known_field_info.h"
+#include "vid_mapper.h"
 
 std::string g_vcf_SPANNING_DELETION="*";
 //Global vector storing info of all known fields
@@ -60,6 +61,14 @@ std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
 KnownFieldInitializer g_known_field_initializer;
 
 //KnownFieldInfo functions
+KnownFieldInfo::KnownFieldInfo()
+{
+  m_ploidy_required = false;
+  m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+  m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
+  m_field_creator = 0;
+  m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+}
 /*
  * Check whether the known field requires a special creator
  */
@@ -119,6 +128,12 @@ unsigned KnownFieldInfo::get_length_descriptor_for_known_field_enum(unsigned kno
   return g_known_field_enum_to_info[known_field_enum].get_length_descriptor();
 }
 
+int KnownFieldInfo::get_INFO_field_combine_operation(unsigned known_field_enum)
+{
+  assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
+  return g_known_field_enum_to_info[known_field_enum].get_INFO_field_combine_operation();
+}
+
 bool KnownFieldInfo::get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum)
 {
   auto iter = g_known_variant_field_name_to_enum.find(field_name);
@@ -176,6 +191,9 @@ KnownFieldInitializer::KnownFieldInitializer()
   //set length descriptors and creator objects for special attributes
   for(auto i=0u;i<g_known_field_enum_to_info.size();++i)
     initialize_length_descriptor(i);
+  //set INFO combine operation
+  for(auto i=0u;i<g_known_field_enum_to_info.size();++i)
+    initialize_INFO_combine_operation(i);
 }
 
 void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
@@ -222,6 +240,30 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
     default:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
       g_known_field_enum_to_info[idx].m_num_elements = 1u;
+      break;
+  }
+}
+
+void KnownFieldInitializer::initialize_INFO_combine_operation(unsigned idx) const
+{
+  switch(idx)
+  {
+    case GVCF_BASEQRANKSUM_IDX:
+    case GVCF_CLIPPINGRANKSUM_IDX:
+    case GVCF_MQRANKSUM_IDX:
+    case GVCF_READPOSRANKSUM_IDX:
+    case GVCF_MQ_IDX:
+    case GVCF_MQ0_IDX:
+      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN;
+      break;
+    case GVCF_RAW_MQ_IDX:
+      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM;
+      break;
+    case GVCF_DP_IDX:
+      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP;
+      break;
+    default:
+      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
       break;
   }
 }

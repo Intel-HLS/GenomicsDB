@@ -191,6 +191,7 @@ VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffe
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
   m_is_bcf = true;
+  m_produce_GT_field = false;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -212,7 +213,8 @@ void VCFAdapter::clear()
 void VCFAdapter::initialize(const std::string& reference_genome,
     const std::string& vcf_header_filename,
     std::string output_filename, std::string output_format,
-    const size_t combined_vcf_records_buffer_size_limit)
+    const size_t combined_vcf_records_buffer_size_limit,
+    const bool produce_GT_field)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -245,6 +247,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   //Reference genome
   m_reference_genome_info.initialize(reference_genome);
   m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
+  m_produce_GT_field = produce_GT_field;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()

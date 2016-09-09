@@ -39,6 +39,8 @@ query_json_template_string="""
         "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
 
+vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
+
 def create_query_json(ws_dir, test_name, query_column_range):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
@@ -225,6 +227,8 @@ def main():
                         ('java_vcf', ''),
                         ]
                 for query_type,cmd_line_param in query_types_list:
+                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type == 'java_vcf'):
+                        test_query_dict['query_attributes'] = vcf_query_attributes_order;
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                     with open(query_json_filename, 'wb') as fptr:
                         json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
