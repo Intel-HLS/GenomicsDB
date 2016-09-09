@@ -52,6 +52,12 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
       {"char", BCF_HT_STR}
       });
 
+std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
+  std::unordered_map<std::string, int>({
+      {"sum", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM},
+      {"median", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN}
+      });
+
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
 
 void VidMapper::clear()
@@ -172,11 +178,11 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   for(const auto& field_info : m_field_idx_to_info)
   {
     if(field_info.m_is_vcf_FILTER_field)
-      vcf_fields[BCF_HL_FLT].push_back(field_info.m_name);
+      vcf_fields[BCF_HL_FLT].push_back(field_info.m_vcf_name);
     if(field_info.m_is_vcf_INFO_field)
-      vcf_fields[BCF_HL_INFO].push_back(field_info.m_name);
+      vcf_fields[BCF_HL_INFO].push_back(field_info.m_vcf_name);
     if(field_info.m_is_vcf_FORMAT_field)
-      vcf_fields[BCF_HL_FMT].push_back(field_info.m_name);
+      vcf_fields[BCF_HL_FMT].push_back(field_info.m_vcf_name);
   }
 }
 
@@ -474,9 +480,6 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
               if(class_name == "FILTER")
                 m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
         }
-        //Both INFO and FORMAT, throw another entry <field>_FORMAT into map pointing to this entry
-        if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
-          m_field_name_to_idx[field_name+"_FORMAT"] = field_idx;
       }
       if(field_info_dict.HasMember("length"))
       {
@@ -491,6 +494,34 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
           else
             m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
         }
+      }
+      if(field_info_dict.HasMember("INFO_field_combine_operation"))
+      {
+        VERIFY_OR_THROW(field_info_dict["INFO_field_combine_operation"].IsString());
+        auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["INFO_field_combine_operation"].GetString());
+        if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
+          throw VidMapperException(std::string("Unknown INFO field combine operation ")+field_info_dict["INFO_field_combine_operation"].GetString()
+                +" specified for field "+field_name);
+        m_field_idx_to_info[field_idx].m_INFO_field_combine_operation = (*iter).second;
+      }
+      //Both INFO and FORMAT, throw another entry <field>_FORMAT
+      if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
+      {
+        auto new_field_idx = field_idx+1u;
+        m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
+        //Copy field information
+        m_field_idx_to_info[new_field_idx] = m_field_idx_to_info[field_idx];
+        auto& new_field_info =  m_field_idx_to_info[new_field_idx];
+        //Update name and index - keep the same VCF name
+        new_field_info.m_name = field_name+"_FORMAT";
+        new_field_info.m_is_vcf_INFO_field = false;
+        new_field_info.m_field_idx = new_field_idx;
+        new_field_info.m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+        //Update map
+        m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
+        //Set FORMAT to false for original field
+        m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = false;
+        ++field_idx;
       }
     }
     //Force add END as a field
