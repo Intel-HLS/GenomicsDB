@@ -320,19 +320,6 @@ class VariantQueryConfig
     }
     inline uint64_t get_column_begin(unsigned idx) const { return get_column_interval(idx).first; }
     inline uint64_t get_column_end(unsigned idx) const { return get_column_interval(idx).second; }
-    /*
-     * Functions for dealing with known field info
-     * Returns pointer in vector if known field, else null
-     */
-    const KnownFieldInfo* get_info_for_query_idx(unsigned idx) const
-    {
-      assert(idx < get_num_queried_attributes());
-      unsigned known_field_idx = m_query_idx_known_variant_field_enum_LUT.get_known_field_enum_for_query_idx(idx);
-      if(m_query_idx_known_variant_field_enum_LUT.is_defined_value(known_field_idx))
-        return &(g_known_field_enum_to_info[known_field_idx]);
-      else
-        return 0;
-    }
   private:
     /*
      * Function to invalid TileDB array row idx -> query row idx mapping

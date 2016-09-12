@@ -63,6 +63,18 @@ extern std::vector<std::string> g_known_variant_field_names;
 //Mapping from field name to enum idx
 extern std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
 
+//Known fields exception
+class KnownFieldInfoException : public std::exception {
+  public:
+    KnownFieldInfoException(const std::string m="") : msg_("KnownFieldInfoException : "+m) { ; }
+    ~KnownFieldInfoException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 /*
  * Class that stores info about some of the known fields
  */
@@ -118,6 +130,11 @@ class KnownFieldInfo
     {
       return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
     }
+    /*
+     * Given a length descriptor, get #elements
+     */
+    static unsigned get_num_elements_given_length_descriptor(unsigned length_descriptor,
+        unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements);
     /*
      * Function that determines whether length of the field is dependent on the #genotypes
      */

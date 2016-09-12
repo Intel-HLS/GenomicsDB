@@ -113,6 +113,24 @@ unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned known_fi
   return g_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles, ploidy);
 }
 
+unsigned KnownFieldInfo::get_num_elements_given_length_descriptor(unsigned length_descriptor,
+    unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements)
+{
+  switch(length_descriptor)
+  {
+    case BCF_VL_A:
+      return num_ALT_alleles;
+    case BCF_VL_R:
+      return num_ALT_alleles+1u;
+    case BCF_VL_G:
+      return ((num_ALT_alleles+1u)*(num_ALT_alleles+2u))/2;
+    case BCF_VL_P:
+      return ploidy;
+    default:
+      return num_elements;
+  }
+}
+
 unsigned KnownFieldInfo::get_length_descriptor_for_known_field_enum(unsigned known_field_enum)
 {
   assert(known_field_enum < g_known_field_enum_to_info.size());
