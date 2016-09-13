@@ -73,10 +73,20 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     {
       auto known_field_enum = query_config.is_defined_known_field_enum_for_query_idx(i) ? query_config.get_known_field_enum_for_query_idx(i)
         : UNDEFINED_ATTRIBUTE_IDX_VALUE;
-      //DP as INFO field should be handled with the FORMAT fields due to the weird way in which DP is combined
-      if(field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_DP_IDX && known_field_enum != GVCF_END_IDX)
+      auto INFO_field_combine_operation = query_config.get_INFO_field_combine_operation_for_query_attribute_idx(i);
+      auto add_to_INFO_vector = (field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_END_IDX
+          && (known_field_enum != GVCF_DP_IDX || INFO_field_combine_operation != INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
+          && INFO_field_combine_operation != INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
+          );
+      auto add_to_FORMAT_vector = (field_info->m_is_vcf_FORMAT_field ||
+          (field_info->m_is_vcf_INFO_field
+           && ((known_field_enum == GVCF_DP_IDX && INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP)
+             || (INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+           )
+           )
+          );
+      if(add_to_INFO_vector)
       {
-        auto INFO_field_combine_operation = field_info->m_INFO_field_combine_operation;
         if(INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
           std::cerr << "WARNING: No valid combination operation found for INFO field "<<field_info->m_vcf_name<<" - the field will NOT be part of INFO fields in the generated VCF records\n";
         else
@@ -89,13 +99,15 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
         }
       }
-      if(field_info->m_is_vcf_FORMAT_field || (field_info->m_is_vcf_INFO_field && known_field_enum == GVCF_DP_IDX))
+      if(add_to_FORMAT_vector)
       {
         auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i,
             VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
             VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
             field_info->m_vcf_name);
-        if(field_info->m_is_vcf_FORMAT_field)
+        if((field_info->m_is_vcf_FORMAT_field)
+            || (INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+          )
         {
           m_FORMAT_fields_vec.emplace_back(format_tuple);
           VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_FMT);

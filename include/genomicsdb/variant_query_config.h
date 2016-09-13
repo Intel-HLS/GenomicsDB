@@ -176,6 +176,11 @@ class VariantQueryConfig
       assert(query_idx < m_query_attributes_info_vec.size());
       return m_query_attributes_info_vec[query_idx].m_num_elements;
     }
+    int get_INFO_field_combine_operation_for_query_attribute_idx(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[query_idx].m_INFO_field_combine_operation;
+    }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
      */
