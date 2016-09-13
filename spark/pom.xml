@@ -33,26 +33,6 @@
             <version>${spark.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_2.11</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-catalyst_2.11</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_2.11</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-shuffle_2.11</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>
             <version>3.0.0-M7</version>
@@ -68,38 +48,40 @@
             <version>2.4.1</version>
         </dependency>
         <dependency>
-            <groupId>com.intel</groupId>
-            <artifactId>genomicsdb</artifactId>
-            <version>0.2.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-            <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.4</version>
         </dependency>
         <dependency>
-            <groupId>com.esotericsoftware.kryo</groupId>
-            <artifactId>kryo</artifactId>
-            <version>2.10</version>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.twitter</groupId>
-            <artifactId>chill_2.9.2</artifactId>
-            <version>0.0.3</version>
-
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.esotericsoftware.kryo</groupId>-->
+            <!--<artifactId>kryo</artifactId>-->
+            <!--<version>2.10</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>com.twitter</groupId>-->
+            <!--<artifactId>chill_2.9.2</artifactId>-->
+            <!--<version>0.0.3</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>com.intel.gkl</groupId>
             <artifactId>gkl</artifactId>
             <version>0.1.2</version>
         </dependency>
-
+        <!--<dependency>-->
+            <!--<groupId>org.scalanlp</groupId>-->
+            <!--<artifactId>breeze_2.10</artifactId> &lt;!&ndash; or 2.11 &ndash;&gt;-->
+            <!--<version>0.12</version>-->
+        <!--</dependency>-->
+        <dependency>
+            <groupId>com.intel</groupId>
+            <artifactId>genomicsdb</artifactId>
+            <version>0.2.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -115,50 +97,73 @@
 
         <plugins>
             <plugin>
+                <inherited>true</inherited>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.scala-tools</groupId>
                 <artifactId>maven-scala-plugin</artifactId>
                 <version>2.15.2</version>
                 <executions>
                     <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>compile</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- Run scala compiler in the process-test-resources phase, so that dependencies on
+                         scala classes can be resolved later in the (Java) test-compile phase -->
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
                             <goal>testCompile</goal>
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <sourceDir>src/main</sourceDir>
-                    <jvmArgs>
-                        <jvmArg>-Xms64m</jvmArg>
-                        <jvmArg>-Xmx1024m</jvmArg>
-                    </jvmArgs>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<sourceDir>src/main</sourceDir>-->
+                    <!--<jvmArgs>-->
+                        <!--<jvmArg>-Xms64m</jvmArg>-->
+                        <!--<jvmArg>-Xmx1024m</jvmArg>-->
+                    <!--</jvmArgs>-->
+                <!--</configuration>-->
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
                 <executions>
+                    <!-- Add src/main/scala to source path of Eclipse -->
                     <execution>
-                        <id>add-scala-sources</id>
+                        <id>add-source</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
                         <configuration>
                             <sources>
-                                <source>src/main</source>
+                                <source>src/main/scala</source>
                             </sources>
                         </configuration>
                     </execution>
+
+                    <!-- Add src/test/scala to test source path of Eclipse -->
                     <execution>
-                        <id>add-scala-test-sources</id>
+                        <id>add-test-source</id>
                         <phase>generate-test-sources</phase>
                         <goals>
                             <goal>add-test-source</goal>
                         </goals>
                         <configuration>
                             <sources>
-                                <source>src/test</source>
+                                <source>src/test/scala</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -199,6 +204,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.7</version>
                 <configuration>
+                    <includes>
+                        <include>**/*.java</include>
+                        <include>**/*.scala</include>
+                    </includes>
                     <forkMode>once</forkMode>
                     <argLine>-Djava.library.path=${project.basedir}/lib:${java.library.path}</argLine>
                     <skipTests>true</skipTests>
