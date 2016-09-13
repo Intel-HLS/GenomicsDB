@@ -1,7 +1,6 @@
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.Serializable;
@@ -50,10 +49,6 @@ public class GenomicsDBConf extends Configuration implements Serializable {
       hosts.add(host);
     }
     return this;
-  }
-
-  List<String> getHosts() {
-    return hosts;
   }
 }
 

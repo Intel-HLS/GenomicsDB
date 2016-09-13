@@ -9,7 +9,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,10 +17,7 @@ import java.util.List;
 public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   extends InputFormat<LongWritable, VCONTEXT> implements Configurable {
 
-  public GenomicsDBConf genomicsDBConf;
-  private GenomicsDBFeatureReader<VCONTEXT, SOURCE> featureReader = null;
-  private GenomicsDBRecordReader<VCONTEXT, SOURCE> recordReader;
-
+  private GenomicsDBConf genomicsDBConf;
   private Configuration configuration;
 
   Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
@@ -32,17 +28,17 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    *
    * @param jobContext  Hadoop Job context passed from newAPIHadoopRDD
    *                    defined in SparkContext
-   * @return
-   * @throws IOException
-   * @throws InterruptedException
+   * @return  Returns a list of input splits
+   * @throws FileNotFoundException  Thrown if creaing configuration object fails
    */
-  public List<InputSplit> getSplits(JobContext jobContext)
-    throws IOException, InterruptedException {
+  public List<InputSplit> getSplits(JobContext jobContext) throws FileNotFoundException {
+
 
     genomicsDBConf = new GenomicsDBConf(configuration);
     genomicsDBConf.setLoaderJsonFile(configuration.get(GenomicsDBConf.LOADERJSON));
     genomicsDBConf.setQueryJsonFile(configuration.get(GenomicsDBConf.QUERYJSON));
     genomicsDBConf.setHostFile(configuration.get(GenomicsDBConf.MPIHOSTFILE));
+
     List<String> hosts = genomicsDBConf.getHosts();
 
     ArrayList<InputSplit> inputSplits = new ArrayList<InputSplit>(hosts.size());
@@ -61,6 +57,9 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     String loaderJson;
     String queryJson;
 
+    GenomicsDBFeatureReader<VCONTEXT, SOURCE> featureReader;
+    GenomicsDBRecordReader<VCONTEXT, SOURCE> recordReader;
+
     if (taskAttemptContext != null) {
       Configuration configuration = taskAttemptContext.getConfiguration();
       loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
@@ -75,10 +74,10 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
       queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
     }
 
-    this.featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
+    featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
       loaderJson, queryJson, (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
-    this.recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(this.featureReader);
-    return this.recordReader;
+    recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(featureReader);
+    return recordReader;
   }
 
   /**
@@ -108,7 +107,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {
-//    genomicsDBConf.setHostFile(hostFile);
+    genomicsDBConf.setHostFile(hostFile);
     return this;
   }
 

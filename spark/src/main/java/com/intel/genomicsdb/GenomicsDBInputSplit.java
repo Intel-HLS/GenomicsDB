@@ -4,12 +4,10 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.net.InetAddress;
-
 
 public class GenomicsDBInputSplit extends InputSplit implements Writable {
 

@@ -19,7 +19,7 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
   private VCONTEXT currentVariant;
   private int currentKey;
 
-  Logger logger;
+  Logger logger = Logger.getLogger(GenomicsDBRecordReader.class);
 
   GenomicsDBRecordReader(GenomicsDBFeatureReader<VCONTEXT, SOURCE> featureReader) {
     this.featureReader = featureReader;
