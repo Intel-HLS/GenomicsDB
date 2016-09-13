@@ -357,22 +357,24 @@ class ColumnHistogramOperator : public SingleCellOperatorBase
 class VariantCallPrintOperator : public SingleCellOperatorBase
 {
   public:
-    VariantCallPrintOperator(std::ostream& fptr=std::cout, const std::string& indent_prefix="")
+    VariantCallPrintOperator(std::ostream& fptr=std::cout, const std::string& indent_prefix="", const VidMapper* vid_mapper=0)
       : SingleCellOperatorBase(), m_fptr(&fptr), m_indent_prefix(indent_prefix)
       {
         m_num_calls_printed = 0ull;
+        m_vid_mapper = (vid_mapper && vid_mapper->is_initialized()) ? vid_mapper : 0;
       }
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
     {
       if(m_num_calls_printed > 0ull)
         (*m_fptr) << ",\n";
-      call.print(*m_fptr, &query_config, m_indent_prefix);
+      call.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
       ++m_num_calls_printed;
     }
   private:
     uint64_t m_num_calls_printed;
     std::string m_indent_prefix;
     std::ostream* m_fptr;
+    const VidMapper* m_vid_mapper;
 };
 
 //Dump CSV

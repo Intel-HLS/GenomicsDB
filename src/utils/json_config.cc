@@ -46,6 +46,8 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
+  if(m_json.HasParseError())
+    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
   //Workspace
   if(m_json.HasMember("workspace"))
   {
@@ -461,6 +463,8 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
+  if(m_json.HasParseError())
+    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
   if (id_mapper && !id_mapper->is_initialized())
   {
     get_vid_mapping_filename(id_mapper, rank);
@@ -713,7 +717,10 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
   //Cannot be 0
   m_combined_vcf_records_buffer_size_limit = std::max<size_t>(1ull, m_combined_vcf_records_buffer_size_limit);
-  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit);
+  //GATK CombineGVCF does not produce GT field by default - option to produce GT
+  auto produce_GT_field = (m_json.HasMember("produce_GT_field") && m_json["produce_GT_field"].GetBool());
+  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit,
+      produce_GT_field);
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,

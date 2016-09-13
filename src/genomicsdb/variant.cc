@@ -225,7 +225,7 @@ void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std:
 
 //VariantCall functions
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config,
-    const std::string& indent_prefix) const
+    const std::string& indent_prefix, const VidMapper* vid_mapper) const
 {
   auto indent_string = indent_prefix+json_indent_unit;
   if(m_is_initialized && m_is_valid)
@@ -233,6 +233,15 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
     fptr << indent_prefix << "{\n";
     fptr << indent_string << "\"row\": "<<m_row_idx << ",\n";
     fptr << indent_string << "\"interval\": [ "<< m_col_begin << ", "<<m_col_end << " ],\n";
+    if(vid_mapper)
+    {
+      std::string contig_name;
+      int64_t contig_position;
+      auto status = vid_mapper->get_contig_location(m_col_begin, contig_name, contig_position);
+      if(status)
+        fptr << indent_string << "\"genomic_interval\": { \"" << contig_name << "\" : [ "<<contig_position+1
+          << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
+    }
     fptr << indent_string << "\"fields\": {\n";
     indent_string += json_indent_unit;
     unsigned idx = 0u;
@@ -275,6 +284,7 @@ void VariantCall::reset_for_new_interval()
   m_is_initialized = false;
   m_is_valid = false;
   m_contains_deletion = false;
+  m_is_reference_block = false;
   //for(auto& ptr : m_fields)
   //ptr.reset(nullptr);
 }
@@ -284,6 +294,7 @@ void VariantCall::copy_simple_members(const VariantCall& other)
   m_is_valid = other.is_valid();
   m_is_initialized = other.is_initialized();
   m_contains_deletion = other.m_contains_deletion;
+  m_is_reference_block = other.m_is_reference_block;
   m_row_idx = other.get_row_idx();
   m_col_begin = other.m_col_begin;
   m_col_end = other.m_col_end;
@@ -321,8 +332,8 @@ void VariantCall::deep_copy_simple_members(const VariantCall& other)
 void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
 {
   uint64_t add_size = 0ull;
-  //is_valid, is_initialized, contains_deletion, row_idx, col_begin, col_end, num fields[unsigned]
-  add_size = 3*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned);
+  //is_valid, is_initialized, contains_deletion, is_reference_block, row_idx, col_begin, col_end, num fields[unsigned]
+  add_size = 4*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned);
   RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
   //is_valid
   *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_valid;
@@ -332,6 +343,9 @@ void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offse
   offset += sizeof(bool);
   //contains_deletion
   *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_contains_deletion;
+  offset += sizeof(bool);
+  //is_reference_block
+  *(reinterpret_cast<bool*>(&(buffer[offset]))) = m_is_reference_block;
   offset += sizeof(bool);
   //row idx
   *(reinterpret_cast<uint64_t*>(&(buffer[offset]))) = m_row_idx;
@@ -361,8 +375,8 @@ void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offse
 
 void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset)
 {
-  //is_valid, is_initialized, contains_deletion, row_idx, col_begin, col_end, num fields[unsigned]
-  assert(offset + 3*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
+  //is_valid, is_initialized, contains_deletion, is_reference_block, row_idx, col_begin, col_end, num fields[unsigned]
+  assert(offset + 4*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
   //is_valid
   m_is_valid = *(reinterpret_cast<const bool*>(&(buffer[offset])));
   offset += sizeof(bool);
@@ -371,6 +385,9 @@ void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, 
   offset += sizeof(bool);
   //contains_deletion
   m_contains_deletion = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  offset += sizeof(bool);
+  //is_reference_block
+  m_is_reference_block = *(reinterpret_cast<const bool*>(&(buffer[offset])));
   offset += sizeof(bool);
   //row idx
   m_row_idx = *(reinterpret_cast<const uint64_t*>(&(buffer[offset])));
@@ -409,11 +426,21 @@ void Variant::resize_based_on_query()
   }
 }
 
-void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, const std::string& indent_prefix) const
+void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, const std::string& indent_prefix
+    , const VidMapper* vid_mapper) const
 {
   fptr << indent_prefix << "{\n";
   std::string indent_string = indent_prefix+json_indent_unit;
   fptr << indent_string << "\"interval\": [ "<<m_col_begin <<", "<<m_col_end<<" ],\n";
+  if(vid_mapper)
+  {
+    std::string contig_name;
+    int64_t contig_position;
+    auto status = vid_mapper->get_contig_location(m_col_begin, contig_name, contig_position);
+    if(status)
+      fptr << indent_string << "\"genomic_interval\": { \"" << contig_name << "\" : [ "<<contig_position+1
+        << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
+  }
   fptr << indent_string << " \"common_fields\" : {\n";
   indent_string += json_indent_unit;
   auto idx = 0u;
@@ -443,7 +470,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
   {
     if(call_idx > 0ull)
       fptr << ",\n";
-    (*iter).print(fptr, query_config ? query_config : m_query_config, indent_string);
+    (*iter).print(fptr, query_config ? query_config : m_query_config, indent_string, vid_mapper);
     ++call_idx;
   }
   indent_string = indent_prefix + json_indent_unit;
@@ -963,7 +990,7 @@ void print_variants(const std::vector<Variant>& variants,
         {
           if(variant_idx > 0ull)
             optr << ",\n";
-          variant.print(optr, &query_config, indent_prefix);
+          variant.print(optr, &query_config, indent_prefix, id_mapper);
           ++variant_idx;
         }
         optr << "\n"<< json_indent_unit << "]\n";

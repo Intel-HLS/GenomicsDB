@@ -21,9 +21,6 @@
 */
 
 #include "tiledb_loader.h"
-#include "rapidjson/document.h"
-#include "rapidjson/reader.h"
-#include "rapidjson/stringbuffer.h"
 #include "timer.h"
 #include "vcf2binary.h"
 #include "tiledb_loader_text_file.h"
@@ -60,12 +57,16 @@ void LoaderConverterMessageExchange::initialize_from_loader(int64_t all_callsets
   initialize_from_converter(1, all_callsets);
 }
 
-VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx)
+VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : JSONLoaderConfig()
 {
   clear();
   m_idx = idx;
   JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
+  //Override
+  m_lb_callset_row_idx = std::max(lb_callset_row_idx, m_lb_callset_row_idx);
+  m_ub_callset_row_idx = std::min(ub_callset_row_idx, m_ub_callset_row_idx);
   if(m_produce_combined_vcf && m_row_based_partitioning)
     throw VCF2TileDBException("Cannot partition by rows and produce combined gVCF");
   //Size circular buffers - 3 needed in non-standalone converter mode
@@ -390,6 +391,8 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw VCF2TileDBException(std::string("Syntax error in JSON file ")+config_filename);
   //Histogram parameters
   VERIFY_OR_THROW(json_doc.HasMember("max_histogram_range") && json_doc["max_histogram_range"].IsInt64());
   uint64_t max_histogram_range = json_doc["max_histogram_range"].GetInt64();
@@ -412,8 +415,9 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
 #endif //ifdef HTSLIB
 
 //Loader functions
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx)
-  : VCF2TileDBLoaderConverterBase(config_filename, idx)
+VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+  : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
 #ifdef HTSDIR
   m_converter = 0;

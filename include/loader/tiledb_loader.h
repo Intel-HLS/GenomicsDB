@@ -91,7 +91,8 @@ class LoaderConverterMessageExchange
 class VCF2TileDBLoaderConverterBase : public JSONLoaderConfig
 {
   public:
-    VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx);
+    VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx,
+        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     inline int64_t get_column_partition_end() const
     {
       return JSONLoaderConfig::get_column_partition(m_idx).second;
@@ -213,7 +214,8 @@ typedef std::priority_queue<CellPQElement*, std::vector<CellPQElement*>, TileDBC
 class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
   public:
-    VCF2TileDBLoader(const std::string& config_filename, int idx);
+    VCF2TileDBLoader(const std::string& config_filename, int idx,
+        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor

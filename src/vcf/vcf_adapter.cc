@@ -143,6 +143,42 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
     bcf_hdr_sync(hdr);
     return true;
   }
+  else
+  {
+    const auto* field_info_ptr = id_mapper->get_field_info(field_name);
+    assert(field_info_ptr);
+    auto field_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
+    //Don't bother doing any checks for the GT field
+    if(field_name != "GT" && field_ht_type != BCF_HT_STR)
+    {
+      //Allowed configurations - both the JSON and the header specify that:
+      //The field is fixed length and agree on the length OR
+      //The field is variable length
+      if(!((field_info_ptr->m_length_descriptor == BCF_VL_FIXED
+              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
+              && field_info_ptr->m_num_elements == static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
+            ||
+            (field_info_ptr->m_length_descriptor != BCF_VL_FIXED
+             && bcf_hdr_id2length(hdr, field_type_idx, field_idx) != BCF_VL_FIXED
+            )
+          )
+        )
+        throw VCFAdapterException(std::string("Conflicting field length descriptors and/or field lengths in the vid JSON and VCF header for field ")+field_name);
+      //Check for compatible field types
+      auto compatible_types = std::unordered_map<int, std::unordered_set<int>>{
+           { BCF_HT_FLAG, { BCF_HT_FLAG } },
+           { BCF_HT_INT, { BCF_HT_INT } },
+           { BCF_HT_REAL, { BCF_HT_REAL } },
+           { BCF_HT_INT64, { BCF_HT_INT64 } },
+           { BCF_HT_VOID, { BCF_HT_VOID } },
+           { BCF_HT_CHAR, { BCF_HT_CHAR, BCF_HT_STR } },
+           { BCF_HT_STR, { BCF_HT_CHAR, BCF_HT_STR } }
+      };
+      if(compatible_types.find(field_ht_type) != compatible_types.end()
+          && compatible_types[field_ht_type].find(field_info_ptr->m_bcf_ht_type) == compatible_types[field_ht_type].end())
+        throw VCFAdapterException(std::string("Conflicting data types in the vid JSON and VCF header for field ")+field_name);
+    }
+  }
   return false;
 }
 
@@ -155,6 +191,7 @@ VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffe
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
   m_is_bcf = true;
+  m_produce_GT_field = false;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -176,7 +213,8 @@ void VCFAdapter::clear()
 void VCFAdapter::initialize(const std::string& reference_genome,
     const std::string& vcf_header_filename,
     std::string output_filename, std::string output_format,
-    const size_t combined_vcf_records_buffer_size_limit)
+    const size_t combined_vcf_records_buffer_size_limit,
+    const bool produce_GT_field)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -209,6 +247,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   //Reference genome
   m_reference_genome_info.initialize(reference_genome);
   m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
+  m_produce_GT_field = produce_GT_field;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()
@@ -223,6 +262,15 @@ bcf_hdr_t* VCFAdapter::initialize_default_header()
 void VCFAdapter::print_header()
 {
   bcf_hdr_write(m_output_fptr, m_template_vcf_hdr);
+}
+
+void VCFAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size)
+{
+  auto write_status = bcf_write(m_output_fptr, m_template_vcf_hdr, line);
+  if(write_status != 0)
+    throw VCFAdapterException(std::string("Failed to write VCF/BCF record at position ")
+        +bcf_hdr_id2name(m_template_vcf_hdr, line->rid)+", "
+        +std::to_string(line->pos+1));
 }
 
 BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries, const size_t combined_vcf_records_buffer_size_limit)
@@ -292,7 +340,11 @@ void BufferedVCFAdapter::do_output()
   for(auto i=0u;i<m_num_valid_entries[read_idx];++i)
   {
     assert(m_line_buffers[read_idx][i]);
-    bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
+    auto write_status = bcf_write(m_output_fptr, m_template_vcf_hdr, m_line_buffers[read_idx][i]);
+    if(write_status != 0)
+      throw VCFAdapterException(std::string("Failed to write VCF/BCF record at position ")
+          +bcf_hdr_id2name(m_template_vcf_hdr, m_line_buffers[read_idx][i]->rid)+", "
+          +std::to_string(m_line_buffers[read_idx][i]->pos+1));
   }
   m_num_valid_entries[read_idx] = 0u;
   m_combined_vcf_records_buffer_sizes[read_idx] = 0ull;

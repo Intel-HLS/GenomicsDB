@@ -12,13 +12,13 @@
         "MQ0":{ "vcf_field_class":["INFO"], "type":"int" },
         "DP": { "vcf_field_class":["INFO","FORMAT"], "type":"int" },
         "GQ": { "vcf_field_class":["FORMAT"], "type":"int" },
-        "MIN_DP": { "vcf_field_class":["FORMAT"], "type":"int" },
         "SB":{ "vcf_field_class" : ["FORMAT"], "type":"int", "length":4 },
-        "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" },
         "AD": { "vcf_field_class":["FORMAT"], "type":"int", "length":"R" },
+        "PL": { "vcf_field_class":["FORMAT"], "type":"int", "length":"G" },
         "PGT": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
         "PID": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
-        "PL": { "vcf_field_class":["FORMAT"], "type":"int", "length":"G" }
+        "MIN_DP": { "vcf_field_class":["FORMAT"], "type":"int" },
+        "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" }
     },
     "contigs": {
         "1": {

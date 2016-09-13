@@ -88,7 +88,8 @@ class VCFAdapter
     void clear();
     void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
         std::string output_filename, std::string output_format="",
-        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
+        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE,
+        const bool produce_GT_field=false);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -97,7 +98,7 @@ class VCFAdapter
      * Child classes might actually just swap out the pointer so that the actual output is performed by
      * a thread off the critical path
      **/
-    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size) { bcf_write(m_output_fptr, m_template_vcf_hdr, line); }
+    virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
     virtual void print_header();
     /*
      * Return true in child class if some output causes buffer to be full. Default: return false
@@ -105,6 +106,7 @@ class VCFAdapter
     virtual bool overflow() const { return false; }
     char get_reference_base_at_position(const char* contig, int pos)
     { return m_reference_genome_info.get_reference_base_at_position(contig, pos); }
+    const bool produce_GT_field() const { return m_produce_GT_field; }
   protected:
     bool m_open_output;
     //Output file
@@ -119,6 +121,8 @@ class VCFAdapter
     bool m_is_bcf;
     //Buffer size for combined vcf records
     size_t m_combined_vcf_records_buffer_size_limit;
+    //GATK CombineGVCF does not produce GT field by default - option to produce GT
+    bool m_produce_GT_field;
 };
 
 class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
