@@ -5,7 +5,7 @@ if [ -z "$SPARK_HOME" ]; then
   exit
 fi
 
-CLASS=com.intel.genomicsdb.GenomicsDBSparkFactory.usingGenomicsDBRDD
+CLASS=com.intel.genomicsdb.GenomicsDBSparkFactory
 GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1-SNAPSHOT.jar
 GENOMICSDB_SPARK_HOME="$(cd `dirname $0`; pwd)"
 GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1-SNAPSHOT.jar

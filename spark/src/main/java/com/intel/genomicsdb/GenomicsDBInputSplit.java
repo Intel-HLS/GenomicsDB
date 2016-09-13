@@ -8,11 +8,14 @@ import org.apache.spark.Partition;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.List;
+import java.net.InetAddress;
 
 
 public class GenomicsDBInputSplit extends InputSplit implements Writable {
 
+  // Note that for now the assumption is that there is
+  // one GenomicsDB instance per node, hence one host
+  // per split
   String[] hosts;
   long length = 0;
 
@@ -22,7 +25,6 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
    * Default constructor
    */
   public GenomicsDBInputSplit() {
-
   }
 
   public GenomicsDBInputSplit(long length) {
@@ -30,13 +32,10 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   }
 
   public void write(DataOutput dataOutput) throws IOException {
-    logger.info("GenomicsDBInputSplit::write() called");
     dataOutput.writeLong(this.length);
   }
 
   public void readFields(DataInput dataInput) throws IOException {
-    // do nothing
-    logger.info("GenomicsDBInputSplit::readFields() called");
     hosts = null;
     length = dataInput.readLong();
   }
@@ -46,6 +45,8 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   }
 
   public String[] getLocations() throws IOException, InterruptedException {
+    hosts = new String[1];
+    hosts[0] = InetAddress.getLocalHost().getHostName();
     return hosts;
   }
 
@@ -55,9 +56,11 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
    * @param locations  The values of locations or nodes are passed from host file
    *                   in GenomicsDBConf or hadoopConfiguration in SparkContext
    */
-  public void setLocations(List<String> locations) {
-    hosts = new String[locations.size()];
-    for (int i = 0; i < locations.size(); ++i)
-      hosts[i] = locations.get(i);
-  }
+//  public void setLocations(List<String> locations) throws UnknownHostException {
+//    hosts = new String[locations.size()];
+//    for (int i = 0; i < locations.size(); ++i)
+//      hosts[i] = locations.get(i);
+////    hosts = new String[1];
+////    hosts[0] = InetAddress.getLocalHost().getHostName();
+//  }
 }

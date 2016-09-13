@@ -33,8 +33,6 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
   }
 
   private void initialize() throws IOException {
-    logger.info("GenomicsDBRecordReader::initialize() called");
-
     this.iterator = featureReader.iterator();
     if (iterator.hasNext()) {
       this.currentVariant = iterator.next();
@@ -67,13 +65,6 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
   }
 
   public Boolean hasNext() {
-    logger.info("GDBRR:hasnext");
-
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    for (int i = 0; i < stackTraceElements.length; ++i) {
-      logger.info("StackTraceElement[" + i + "]=" + stackTraceElements[i].toString());
-    }
-
     return this.iterator.hasNext();
   }
 

@@ -80,9 +80,11 @@ object GenomicsDBSparkFactory {
       classOf[LongWritable], classOf[VariantContext])
 
     System.out.println(myrdd.count())
+    myrdd.collect().foreach(println)
   }
 
   def main(args: Array[String]): Unit = {
+//    usingNewAPIHadoopRDD(args)
     usingGenomicsRDD(args)
   }
 }

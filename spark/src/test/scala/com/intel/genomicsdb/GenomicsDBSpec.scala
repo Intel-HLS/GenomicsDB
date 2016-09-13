@@ -31,7 +31,7 @@ class GenomicsDBSpec extends FunSuite {
 
     /* Create a GenomicsDB Context which will eventually create a Spark Context */
     val conf = new SparkConf()
-      .setMaster("spark://GAO-WS5:7077")
+      .setMaster("spark://localhost:7077")
       .setAppName("GenomicsDB StandAlone Example")
     val sc = new SparkContext(conf)
     val hadoopConf = sc.hadoopConfiguration
@@ -41,7 +41,7 @@ class GenomicsDBSpec extends FunSuite {
 
     val genomicsDBContext = new GenomicsDBContext(null, sc)
     val myRDD = genomicsDBContext.getVariantContexts
-    myRDD.count()
+    assert(myRDD.count()==2)
   }
 
 }

@@ -1,7 +1,7 @@
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,54 +18,33 @@ public class GenomicsDBConf extends Configuration implements Serializable {
 
   public GenomicsDBConf(Configuration configuration) throws FileNotFoundException {
     super(configuration);
-    setLoaderJsonFile(new Path(configuration.get(GenomicsDBConf.LOADERJSON)));
-    setQueryJsonFile(new Path(configuration.get(GenomicsDBConf.QUERYJSON)));
-    setHostFile(new Path(configuration.get(GenomicsDBConf.MPIHOSTFILE)));
   }
 
   // <String> left for backward compatibility to Java 7
   private ArrayList<String> hosts = new ArrayList<>();
 
-//  public GenomicsDBConf setMinInputSplitSize(Job job, Long size) {
-//    job.getConfiguration().setLong(SPLIT_MINSIZE, size);
-//    return this;
-//  }
-
-//  public Long getMinSplitSize(JobContext job) {
-//    return job.getConfiguration().getLong(SPLIT_MINSIZE, 1L);
-//  }
-
-  public GenomicsDBConf setLoaderJsonFile(Path path) {
-    set(LOADERJSON, path.toString());
+  public GenomicsDBConf setLoaderJsonFile(String path) {
+    set(LOADERJSON, path);
     return this;
   }
 
-//  public Path getLoaderJsonFile() {
-//    return new Path(get(LOADERJSON));
-//  }
-
-  public GenomicsDBConf setQueryJsonFile(Path path) {
-    set(QUERYJSON, path.toString());
+  public GenomicsDBConf setQueryJsonFile(String path) {
+    set(QUERYJSON, path);
     return this;
   }
 
-//  public Path getQueryJsonFile() {
-//    return new Path(get(QUERYJSON));
-//  }
+  public GenomicsDBConf setHostFile(String path) throws FileNotFoundException {
+    set(MPIHOSTFILE, path);
 
-  public GenomicsDBConf setHostFile(Path path) throws FileNotFoundException {
-    set(MPIHOSTFILE, path.toString());
-
-    Scanner scanner = new Scanner(new FileInputStream(path.toString()));
+    Logger logger = Logger.getLogger(GenomicsDBConf.class);
+    Scanner scanner = new Scanner(new FileInputStream(path));
     while (scanner.hasNextLine()) {
-      hosts.add(scanner.nextLine());
+      String host = scanner.nextLine();
+      hosts.add(host);
+      logger.error("host file content: " + host);
     }
     return this;
   }
-
-//  public Path getHostFile(){
-//    return new Path(get(MPIHOSTFILE));
-//  }
 
   List<String> getHosts() {
     return hosts;

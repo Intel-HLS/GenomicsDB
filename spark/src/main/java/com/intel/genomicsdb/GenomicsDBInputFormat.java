@@ -6,7 +6,6 @@ import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
@@ -38,27 +37,21 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   public List<InputSplit> getSplits(JobContext jobContext)
     throws IOException, InterruptedException {
 
-    System.out.println("Inside GenomicsDBInputFormat::getSplits: started");
-
-    System.out.println("configuration in getsplits: " + configuration.toString());
-    System.out.println("configuration in getsplits: " + configuration.get(GenomicsDBConf.LOADERJSON));
-    System.out.println("configuration in getsplits: " + configuration.get(GenomicsDBConf.QUERYJSON));
-    System.out.println("configuration in getsplits: " + configuration.get(GenomicsDBConf.MPIHOSTFILE));
     genomicsDBConf = new GenomicsDBConf(configuration);
-    genomicsDBConf.setLoaderJsonFile(new Path(configuration.get(GenomicsDBConf.LOADERJSON)));
-    genomicsDBConf.setQueryJsonFile(new Path(configuration.get(GenomicsDBConf.QUERYJSON)));
-    genomicsDBConf.setHostFile(new Path(configuration.get(GenomicsDBConf.MPIHOSTFILE)));
+    genomicsDBConf.setLoaderJsonFile(configuration.get(GenomicsDBConf.LOADERJSON));
+    genomicsDBConf.setQueryJsonFile(configuration.get(GenomicsDBConf.QUERYJSON));
+    genomicsDBConf.setHostFile(configuration.get(GenomicsDBConf.MPIHOSTFILE));
     List<String> hosts = genomicsDBConf.getHosts();
+
+    Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
+    logger.error("size: " + hosts.size());
 
     ArrayList<InputSplit> inputSplits = new ArrayList<InputSplit>(hosts.size());
     for (int i = 0; i < hosts.size(); ++i) {
       GenomicsDBInputSplit split = new GenomicsDBInputSplit();
-      split.setLocations(hosts);
       inputSplits.add(split);
     }
 
-    System.out.println("Inside GenomicsDBInputFormat::getSplits: returning splits size: " +
-      inputSplits.size());
     return inputSplits;
   }
 
@@ -66,36 +59,27 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
       throws IOException, InterruptedException {
 
-    System.out.println("Inside createrecordreader: started");
+    String loaderJson;
+    String queryJson;
 
     if (taskAttemptContext != null) {
       Configuration configuration = taskAttemptContext.getConfiguration();
-      String loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
-      String queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
-
-      this.featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
-        loaderJson, queryJson, (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
-      this.recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(this.featureReader);
-//      this.recordReader.initialize(inputSplit, taskAttemptContext);
+      loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
+      queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
     } else {
       // If control comes here, means this method is called from
       // GenomicsDBRDD. Hence, the configuration object must be
       // set by setConf method, else this will lead to
       // NullPointerException
       assert(configuration!=null);
-      String loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
-      String queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
-
-      System.out.println("GenomicsDBInputFormat::createRR::" + loaderJson);
-      System.out.println("GenomicsDBInputFormat::createRR::" + queryJson);
-
-      this.featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
-        loaderJson, queryJson, (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
-      System.out.println("featurReader dhappa");
-      this.recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(this.featureReader);
+      loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
+      queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
     }
-    System.out.println("Inside createrecordreader: done");
-    return recordReader;
+
+    this.featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
+      loaderJson, queryJson, (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
+    this.recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(this.featureReader);
+    return this.recordReader;
   }
 
   /**
@@ -113,17 +97,17 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    *
    * @param jsonFile  Full qualified path of the loader JSON file
    */
-  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setLoaderJsonFile(Path jsonFile) {
+  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setLoaderJsonFile(String jsonFile) {
     genomicsDBConf.setLoaderJsonFile(jsonFile);
     return this;
   }
 
-  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setQueryJsonFile(Path jsonFile) {
+  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setQueryJsonFile(String jsonFile) {
     genomicsDBConf.setQueryJsonFile(jsonFile);
     return this;
   }
 
-  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(Path hostFile)
+  public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {
     genomicsDBConf.setHostFile(hostFile);
     return this;
@@ -131,18 +115,6 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
   @Override
   public void setConf(Configuration configuration) {
-
-    Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    for (int i = 0; i < stackTraceElements.length; ++i) {
-      logger.info("StackTraceElement[" + i + "]=" + stackTraceElements[i].toString());
-    }
-
-    System.out.println("InputFormat::setConf()");
-    String loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
-    String queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
-    System.out.println("GenomicsDBInputFormat::setConf::" + loaderJson);
-    System.out.println("GenomicsDBInputFormat::setConf::" + queryJson);
     this.configuration = configuration;
   }
 

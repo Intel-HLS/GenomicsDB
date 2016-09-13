@@ -50,38 +50,30 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
 
   private val shouldCloneJobConf = sparkContext.getConf.getBoolean("spark.hadoop.cloneConf",
     defaultValue = false)
-  log.info("Just before calling confBroadcast::")
+
   private val confBroadcast = gc.sparkContext.broadcast(
     new GenomicsDBConf(gc.sparkContext.hadoopConfiguration))
-  log.info("Just after calling confBroadcast::" + confBroadcast.value.toString)
-  log.info(confBroadcast.value.get(GenomicsDBConf.LOADERJSON))
-  log.info(confBroadcast.value.get(GenomicsDBConf.QUERYJSON))
+
+  val loaderJsonBroadcast = sparkContext.broadcast(
+    confBroadcast.value.get(GenomicsDBConf.LOADERJSON))
+  val queryJsonBroadcast = sparkContext.broadcast(
+    confBroadcast.value.get(GenomicsDBConf.QUERYJSON))
 
   def getConf: Configuration = {
     val conf: Configuration = confBroadcast.value
     log.info(conf.toString)
     log.info(conf.get(GenomicsDBConf.LOADERJSON))
     if (shouldCloneJobConf) {
-      // Picked up from NewHadoopRDD::
-      // Hadoop Configuration objects are not thread-safe, which may lead to various problems if
-      // one job modifies a configuration while another reads it (SPARK-2546, SPARK-10611).  This
-      // problem occurs somewhat rarely because most jobs treat the configuration as though it's
-      // immutable.  One solution, implemented here, is to clone the Configuration object.
-      // Unfortunately, this clone can be very expensive.  To avoid unexpected performance
-      // regressions for workloads and Hadoop versions that do not suffer from these thread-safety
-      // issues, this cloning is disabled by default.
-      GenomicsDBRDD.CONFIGURATION_INSTANTIATION_LOCK.synchronized {
+        /**
+          * Picked up from [[org.apache.spark.rdd.NewHadoopRDD]]
+          */
+        GenomicsDBRDD.CONFIGURATION_INSTANTIATION_LOCK.synchronized {
         log.debug("Cloning Hadoop Configuration in GenomicsDBRDD")
-        // The Configuration passed in is actually a JobConf and possibly contains credentials.
-        // To keep those credentials properly we have to create a new JobConf not a Configuration.
-
-        log.info("getConf::77::" + conf.get(GenomicsDBConf.LOADERJSON))
-        log.info("getConf::78::" + conf.get(GenomicsDBConf.QUERYJSON))
         new Configuration(conf)
       }
     } else {
-      log.info("getConf::83::" + conf.get(GenomicsDBConf.LOADERJSON))
-      log.info("getConf::84::" + conf.get(GenomicsDBConf.QUERYJSON))
+      conf.set(GenomicsDBConf.LOADERJSON, loaderJsonBroadcast.value)
+      conf.set(GenomicsDBConf.QUERYJSON, queryJsonBroadcast.value)
       conf
     }
   }
@@ -101,7 +93,6 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
   @Override
   def compute(thisSplit: Partition, context: TaskContext): Iterator[VCONTEXT] = {
 
-    log.info("compute() called")
     val iterator = new Iterator[VCONTEXT] {
       val split = thisSplit.asInstanceOf[GenomicsDBPartition[VCONTEXT, SOURCE]]
       val conf = getConf
@@ -160,16 +151,15 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     */
   @Override
   protected def getPartitions: Array[Partition] = {
-    log.info("getPartitions called")
+
     val inputFormat = new GenomicsDBInputFormat[VCONTEXT, SOURCE]
-    inputFormat.setConf(confBroadcast.value)
+    inputFormat.setConf(sparkContext.hadoopConfiguration)
     val rawSplits = inputFormat.getSplits(null).toArray
     val result = new Array[Partition](rawSplits.length)
     for (i <- 0 until rawSplits.length) {
       result(i) = new GenomicsDBPartition(id, i,
         rawSplits(i).asInstanceOf[InputSplit with Writable])
     }
-    log.info("getPartitions done")
     result
   }
 
