@@ -24,7 +24,7 @@
 #include "jni_bcf_reader.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
-#define GET_BCF_READER_FROM_HANDLE(X) reinterpret_cast<JNIBCFReader*>(static_cast<std::uintptr_t>(handle))
+#define GET_BCF_READER_FROM_HANDLE(X) (reinterpret_cast<JNIBCFReader*>(static_cast<std::uintptr_t>(X)))
 
 JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   (JNIEnv* env, jobject curr_obj, jstring loader_configuration_file, jstring query_configuration_file,
