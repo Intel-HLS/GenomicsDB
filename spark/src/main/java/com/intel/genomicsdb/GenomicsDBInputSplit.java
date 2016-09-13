@@ -44,23 +44,15 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
     return this.length;
   }
 
+  /**
+   * Called from {@link org.apache.spark.rdd.NewHadoopRDD#getPreferredLocations(Partition)}
+   *
+   * @return locations  The values of locations or nodes are passed from host file
+   *                   in GenomicsDBConf or hadoopConfiguration in SparkContext
+   */
   public String[] getLocations() throws IOException, InterruptedException {
     hosts = new String[1];
     hosts[0] = InetAddress.getLocalHost().getHostName();
     return hosts;
   }
-
-  /**
-   * Called from {@link org.apache.spark.rdd.NewHadoopRDD#getPreferredLocations(Partition)}
-   *
-   * @param locations  The values of locations or nodes are passed from host file
-   *                   in GenomicsDBConf or hadoopConfiguration in SparkContext
-   */
-//  public void setLocations(List<String> locations) throws UnknownHostException {
-//    hosts = new String[locations.size()];
-//    for (int i = 0; i < locations.size(); ++i)
-//      hosts[i] = locations.get(i);
-////    hosts = new String[1];
-////    hosts[0] = InetAddress.getLocalHost().getHostName();
-//  }
 }

@@ -1,7 +1,6 @@
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,25 +32,28 @@ public class GenomicsDBConf extends Configuration implements Serializable {
     return this;
   }
 
+  /**
+   * Host file contains the hosts where GenomicsDB instances reside.
+   * This file can be a replica of the slaves file. For now, we have
+   * kept it separate, can be merged later
+   *
+   * @param path  Full path of the host file
+   * @return  GenomicsDBConf object
+   * @throws FileNotFoundException  If file not found, throw exception
+   */
   public GenomicsDBConf setHostFile(String path) throws FileNotFoundException {
     set(MPIHOSTFILE, path);
 
-    Logger logger = Logger.getLogger(GenomicsDBConf.class);
     Scanner scanner = new Scanner(new FileInputStream(path));
     while (scanner.hasNextLine()) {
       String host = scanner.nextLine();
       hosts.add(host);
-      logger.error("host file content: " + host);
     }
     return this;
   }
 
   List<String> getHosts() {
     return hosts;
-  }
-
-  public Configuration value() {
-    return this;
   }
 }
 

@@ -24,6 +24,8 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
   private Configuration configuration;
 
+  Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
+
   /**
    * When this function is called, it is already assumed that configuration
    * object is set
@@ -42,9 +44,6 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     genomicsDBConf.setQueryJsonFile(configuration.get(GenomicsDBConf.QUERYJSON));
     genomicsDBConf.setHostFile(configuration.get(GenomicsDBConf.MPIHOSTFILE));
     List<String> hosts = genomicsDBConf.getHosts();
-
-    Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
-    logger.error("size: " + hosts.size());
 
     ArrayList<InputSplit> inputSplits = new ArrayList<InputSplit>(hosts.size());
     for (int i = 0; i < hosts.size(); ++i) {
@@ -109,7 +108,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {
-    genomicsDBConf.setHostFile(hostFile);
+//    genomicsDBConf.setHostFile(hostFile);
     return this;
   }
 
