@@ -35,9 +35,9 @@ void VariantQueryConfig::add_attribute_to_query(const string& name, unsigned sch
 {
   if(m_query_attribute_name_to_query_idx.find(name) == m_query_attribute_name_to_query_idx.end())
   {
-    m_query_attributes_names.push_back(name);
-    m_query_attributes_schema_idxs.push_back(schema_idx);
-    m_query_attribute_name_to_query_idx[name] = m_query_attributes_names.size()-1;
+    auto idx = m_query_attributes_info_vec.size();
+    m_query_attributes_info_vec.emplace_back(name, schema_idx);
+    m_query_attribute_name_to_query_idx[name] = idx;
   }
 }
 
@@ -161,13 +161,12 @@ void VariantQueryConfig::reorder_query_fields()
       assert(query_idx >= m_first_normal_field_query_idx);
       if(query_idx > m_first_normal_field_query_idx) // == implies already in right place
       {
-        auto& other_field_name = m_query_attributes_names[m_first_normal_field_query_idx];
+        auto& other_field_name = m_query_attributes_info_vec[m_first_normal_field_query_idx].m_name;
         //Before swap, update name mappings
         m_query_attribute_name_to_query_idx[curr_field_name] = m_first_normal_field_query_idx;
         m_query_attribute_name_to_query_idx[other_field_name] = query_idx;
         //Swap positions in schema idx and attribute names vector
-        std::swap(m_query_attributes_schema_idxs[query_idx], m_query_attributes_schema_idxs[m_first_normal_field_query_idx]);
-        std::swap(m_query_attributes_names[query_idx], m_query_attributes_names[m_first_normal_field_query_idx]);
+        std::swap(m_query_attributes_info_vec[query_idx], m_query_attributes_info_vec[m_first_normal_field_query_idx]);
         //Now other_field_name can no longer be used
       }
       ++m_first_normal_field_query_idx;

@@ -23,6 +23,7 @@
 #include "vid_mapper.h"
 #include "c_api.h"
 #include "json_config.h"
+#include "known_field_info.h"
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -55,7 +56,8 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
   std::unordered_map<std::string, int>({
       {"sum", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM},
-      {"median", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN}
+      {"median", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN},
+      {"move_to_FORMAT", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT}
       });
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
@@ -447,6 +449,10 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
         duplicate_fields_exist = true;
         continue;
       }
+      //Known fields
+      auto known_field_enum = 0u;
+      auto is_known_field = KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum);
+      //Map
       m_field_name_to_idx[field_name] = field_idx;
       m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
       const auto& field_info_dict = curr_obj.value;
@@ -495,6 +501,16 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
             m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
         }
       }
+      else
+      {
+        if(is_known_field)
+        {
+           auto length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
+           m_field_idx_to_info[field_idx].m_length_descriptor = length_descriptor;
+           if(length_descriptor == BCF_VL_FIXED)
+             m_field_idx_to_info[field_idx].m_num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u);  //don't care about ploidy
+        }
+      }
       if(field_info_dict.HasMember("INFO_field_combine_operation"))
       {
         VERIFY_OR_THROW(field_info_dict["INFO_field_combine_operation"].IsString());
@@ -503,6 +519,11 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
           throw VidMapperException(std::string("Unknown INFO field combine operation ")+field_info_dict["INFO_field_combine_operation"].GetString()
                 +" specified for field "+field_name);
         m_field_idx_to_info[field_idx].m_INFO_field_combine_operation = (*iter).second;
+      }
+      else
+      {
+        if(is_known_field)
+          m_field_idx_to_info[field_idx].m_INFO_field_combine_operation = KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(known_field_enum);
       }
       //Both INFO and FORMAT, throw another entry <field>_FORMAT
       if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)

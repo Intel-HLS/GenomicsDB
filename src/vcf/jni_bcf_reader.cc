@@ -56,7 +56,7 @@ JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::str
   }
   m_storage_manager = new VariantStorageManager(static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_workspace(my_rank), tiledb_segment_size);
   m_query_processor = new VariantQueryProcessor(m_storage_manager, static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_array_name(my_rank));
-  m_query_processor->do_query_bookkeeping(m_query_processor->get_array_schema(), m_query_config);
+  m_query_processor->do_query_bookkeeping(m_query_processor->get_array_schema(), m_query_config, m_vid_mapper);
   //Must set buffer before constructing BroadCombinedGVCFOperator
   set_write_buffer();
   m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config,

@@ -63,6 +63,18 @@ extern std::vector<std::string> g_known_variant_field_names;
 //Mapping from field name to enum idx
 extern std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
 
+//Known fields exception
+class KnownFieldInfoException : public std::exception {
+  public:
+    KnownFieldInfoException(const std::string m="") : msg_("KnownFieldInfoException : "+m) { ; }
+    ~KnownFieldInfoException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 /*
  * Class that stores info about some of the known fields
  */
@@ -72,7 +84,6 @@ class KnownFieldInfo
   public:
     KnownFieldInfo();
   private:
-    bool m_ploidy_required;
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
@@ -87,7 +98,6 @@ class KnownFieldInfo
     inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
     inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
     unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
-    inline bool ploidy_required_for_known_field_enum() const { return m_ploidy_required; }
     inline int get_INFO_field_combine_operation() const { return m_INFO_field_combine_operation; }
     /*
      * Static functions that access the global vector specified below to get info
@@ -114,6 +124,18 @@ class KnownFieldInfo
      */
     static bool is_length_allele_dependent(unsigned enumIdx);
     /*
+     * Function that determines whether length descriptor is dependent on the #alleles 
+     */
+    static bool is_length_descriptor_allele_dependent(unsigned length_descriptor)
+    {
+      return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
+    }
+    /*
+     * Given a length descriptor, get #elements
+     */
+    static unsigned get_num_elements_given_length_descriptor(unsigned length_descriptor,
+        unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements);
+    /*
      * Function that determines whether length of the field is dependent on the #genotypes
      */
     static bool is_length_genotype_dependent(unsigned enumIdx);
@@ -121,10 +143,6 @@ class KnownFieldInfo
      * Function that determines whether length of the field is dependent only on the #alt alleles
      */
     static bool is_length_only_ALT_alleles_dependent(unsigned enumIdx);
-    /*
-     * Check whether the known field requires ploidy - e.g. GT, GQ etc
-     */
-    static bool ploidy_required_for_known_field_enum(unsigned enumIdx);
     /*
      * Functions that determine number of elements for known fields
      */
@@ -138,7 +156,7 @@ class KnownFieldInfo
     /*
      * INFO field combine operation
      */ 
-    static int get_INFO_field_combine_operation(unsigned known_field_enum);
+    static int get_INFO_field_combine_operation_for_known_field_enum(unsigned known_field_enum);
 };
 /*
  * Vector that stores information about the known fields - length, Factory methods etc

@@ -30,6 +30,7 @@
 #include "variant.h"
 #include "variant_operations.h"
 #include "variant_cell.h"
+#include "vid_mapper.h"
 
 enum GTSchemaVersionEnum
 {
@@ -198,7 +199,7 @@ class VariantQueryProcessor {
      * When querying, setup bookkeeping structures first 
      */
     void do_query_bookkeeping(const VariantArraySchema& array_schema,
-        VariantQueryConfig& query_config) const;
+        VariantQueryConfig& query_config, const VidMapper& vid_mapper) const;
     /*
      * Equivalent of gt_get_column, but for interval
      */
@@ -315,11 +316,10 @@ class VariantQueryProcessor {
      * @param OFFSETS_values- can be nullptr, if the current field does not use OFFSETS
      * @param NULL_bitmap - can be 0, if the current field does not use NULL field
      * @param num_ALT_alleles - number of ALT alleles:can be 0, if the current field does not use this info
-     * @schema_idx The idx of the attribute in the schema of the current array 
+     * @query_idx The idx of the attribute in the query config
      */
     void fill_field(std::unique_ptr<VariantFieldBase>& field_ptr, const BufferVariantCell::FieldsIter& attr_iter,
-        const unsigned num_ALT_alleles, const unsigned ploidy,
-        const unsigned schema_idx
+        const VariantQueryConfig& query_config, const unsigned query_idx
         ) const;
     /*
      * Prep work for filling out a field_ptr
@@ -327,7 +327,7 @@ class VariantQueryProcessor {
      * Marks field_ptr as valid
      * Gets length_descriptor, num_elements for known fields
      */
-    void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
+    void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, const VariantQueryConfig& query_config, const unsigned query_idx,
         unsigned& length_descriptor, unsigned& num_elements) const;
     /*
      * VariantStorage manager

@@ -41,11 +41,11 @@ query_json_template_string="""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
 
-def create_query_json(ws_dir, test_name, query_column_range):
+def create_query_json(ws_dir, test_name, query_params_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array"] = test_name
-    test_dict["query_column_ranges"] = [ [ query_column_range ] ]
+    test_dict["query_column_ranges"] = [ [ query_params_dict["query_column_ranges"] ] ]
     return test_dict;
 
 
@@ -73,11 +73,13 @@ loader_json_template_string="""
     "num_cells_per_tile" : 3
 }""";
 
-def create_loader_json(ws_dir, test_name, callset_mapping_file):
+def create_loader_json(ws_dir, test_name, test_params_dict):
     test_dict=json.loads(loader_json_template_string);
     test_dict["column_partitions"][0]["workspace"] = ws_dir;
     test_dict["column_partitions"][0]["array"] = test_name;
-    test_dict["callset_mapping_file"] = callset_mapping_file;
+    test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
+    if('vid_mapping_file' in test_params_dict):
+        test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
@@ -95,7 +97,8 @@ def print_diff(golden_output, test_output):
     print("=======END=======");
 
 def cleanup_and_exit(tmpdir, exit_code):
-    shutil.rmtree(tmpdir, ignore_errors=True)
+    if(exit_code == 0):
+        shutil.rmtree(tmpdir, ignore_errors=True)
     sys.exit(exit_code);
 
 def main():
@@ -185,11 +188,15 @@ def main():
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
                         } }
                     ]
+            },
+            { "name" : "test_new_fields", 'golden_output' : 'golden_outputs/t6_7_8_new_field_gatk.vcf',
+                'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
             }
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
-        test_loader_dict = create_loader_json(ws_dir, test_name, test_params_dict['callset_mapping_file']);
+        test_loader_dict = create_loader_json(ws_dir, test_name, test_params_dict);
         if(test_name == "t0_overlapping"):
             test_loader_dict["produce_combined_vcf"] = False;
         if(test_name == "t0_1_2"):
@@ -218,7 +225,7 @@ def main():
                 cleanup_and_exit(tmpdir, -1);
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
-                test_query_dict = create_query_json(ws_dir, test_name, query_param_dict["query_column_ranges"])
+                test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),

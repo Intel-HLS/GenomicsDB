@@ -312,7 +312,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   for(auto i=0ull;i<m_schema->attribute_num();++i)
     query_attributes[i] = m_schema->attribute_name(i);
   m_query_config.set_attributes_to_query(query_attributes);
-  m_query_processor->do_query_bookkeeping(*m_schema, m_query_config);
+  m_query_processor->do_query_bookkeeping(*m_schema, m_query_config, *m_vid_mapper);
   //Initialize VCF adapter
   if(loader_json_config.offload_vcf_output_processing())
   {

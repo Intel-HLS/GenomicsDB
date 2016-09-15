@@ -30,8 +30,9 @@
 #include "vid_mapper.h"
 
 //known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
-typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string, int> INFO_tuple_type;
-typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string> FORMAT_tuple_type;
+typedef std::tuple<unsigned, unsigned, unsigned, unsigned, std::string, int> INFO_tuple_type;
+//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name
+typedef std::tuple<unsigned, unsigned, unsigned, unsigned, std::string> FORMAT_tuple_type;
 
 //Exceptions thrown 
 class BroadCombinedGVCFException : public std::exception {
@@ -96,6 +97,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //vector of field pointers used for handling remapped fields when dealing with spanning deletions
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
+    std::vector<int> m_spanning_deletion_remapped_GT;
     //Allowed bases
     static const std::unordered_set<char> m_legal_bases;
 };

@@ -486,12 +486,18 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
   }
+  if(loader_json_config_file.length() == 0u)
+  {
+    std::cerr << "Loader JSON configuration file (-l parameter) is mandatory\n";
+    return -1;
+  }
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
   //Vid mapping
   FileBasedVidMapper id_mapper;
+  //Loader configuration
   JSONLoaderConfig loader_config;
-  auto file_id_mapper_ptr = &id_mapper;
+  loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
 #ifdef HTSDIR
   VCFAdapter vcf_adapter_base;
   VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
@@ -503,18 +509,11 @@ int main(int argc, char *argv[]) {
   {
     JSONBasicQueryConfig* json_config_ptr = 0;
     JSONBasicQueryConfig range_query_config;
-    //If loader JSON passed as argument, initialize id_mapper from this file
-    if(loader_json_config_file.length())
-    {
-      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
-      //Do not initialize FileBasedVidMapper from the query JSON
-      file_id_mapper_ptr = 0;
-    }
     switch(command_idx)
     {
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, file_id_mapper_ptr, output_format, my_world_mpi_rank);
+        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
         json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
         std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
@@ -534,7 +533,7 @@ int main(int argc, char *argv[]) {
   {
     if( optind + 2 > argc ) {
       std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-      std::cout << "Usage: " << argv[0] << "  ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
+      std::cout << "Usage: " << argv[0] << " -l <loader_config> ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
       return -1;
     }
     uint64_t start = std::stoull(std::string(argv[optind]));
@@ -572,7 +571,7 @@ int main(int argc, char *argv[]) {
   VariantStorageManager sm(workspace, segment_size);
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
-  qp.do_query_bookkeeping(qp.get_array_schema(), query_config);
+  qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper);
   switch(command_idx)
   {
     case COMMAND_RANGE_QUERY:

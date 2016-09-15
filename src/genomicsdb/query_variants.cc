@@ -554,7 +554,7 @@ void VariantQueryProcessor::iterate_over_cells(
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
-    VariantQueryConfig& query_config) const
+    VariantQueryConfig& query_config, const VidMapper& vid_mapper) const
 {
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
@@ -566,26 +566,46 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   unsigned ALT_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
+  assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
+  unsigned REF_schema_idx =
+    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_REF_IDX);
+  assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(REF_schema_idx));
+  auto added_ALT_REF = false;
   for(auto i=0u;i<num_queried_attributes;++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
-    unsigned schema_idx =  query_config.get_schema_idx_for_query_idx(i);
-    unsigned known_variant_field_enum = 
-      m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
-    //known field
-    if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_variant_field_enum))
+    const auto& field_name = query_config.get_query_attribute_name(i);
+    const auto* vid_field_info = vid_mapper.get_field_info(field_name);
+    auto length_descriptor = BCF_VL_FIXED;
+    if(vid_field_info)
     {
-      //Does the length of the field depend on the number of alleles
-      if(KnownFieldInfo::is_length_allele_dependent(known_variant_field_enum))
+      length_descriptor = vid_field_info->m_length_descriptor;
+      query_config.set_query_attribute_info_parameters(i, length_descriptor, vid_field_info->m_num_elements,
+          vid_field_info->m_INFO_field_combine_operation);
+    }
+    else //No information in vid file, see if something can be gleaned from known fields
+    {
+      auto known_field_enum = 0u;
+      if(KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum))
       {
-        assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
-        query_config.add_attribute_to_query("ALT", ALT_schema_idx);
+        length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
+        query_config.set_query_attribute_info_parameters(i, length_descriptor,
+            KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u),
+            KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(known_field_enum)
+            );
       }
+    }
+    //Does the length of the field depend on the number of alleles? If yes, add ALT and REF as query fields
+    if(!added_ALT_REF && KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor))
+    {
+      query_config.add_attribute_to_query("ALT", ALT_schema_idx);
+      query_config.add_attribute_to_query("REF", REF_schema_idx);
+      added_ALT_REF = true;
     }
   }
   //Re-order query fields so that special fields are first
   query_config.reorder_query_fields();
-  //Set enum within query
+  //Set known field enum within query
   query_config.resize_LUT(GVCF_NUM_KNOWN_FIELDS);
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
@@ -862,32 +882,26 @@ void VariantQueryProcessor::gt_get_column(
 #endif
 }
 
-void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, unsigned schema_idx,
+void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr,
+    const VariantQueryConfig& query_config, const unsigned query_idx,
     unsigned& length_descriptor, unsigned& num_elements) const
 {
+  auto schema_idx = query_config.get_schema_idx_for_query_idx(query_idx);
   if(field_ptr.get() == nullptr)       //Allocate only if null
-    field_ptr = std::move(m_field_factory.Create(schema_idx)); 
-  unsigned known_field_enum = m_schema_idx_to_known_variant_field_enum_LUT.get_known_field_enum_for_schema_idx(schema_idx);
-  //For known fields, check length descriptors - default FIXED
-  num_elements = m_array_schema->val_num(schema_idx);
-  length_descriptor = m_array_schema->is_variable_length_field(schema_idx) ? BCF_VL_VAR : BCF_VL_FIXED;
-  if(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(known_field_enum))
-  {
-    length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-    num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0, 0);
-  }
+    field_ptr = std::move(m_field_factory.Create(schema_idx));
+  length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_idx);
+  num_elements = query_config.get_num_elements_for_query_attribute_idx(query_idx);
   field_ptr->set_valid(true);  //mark as valid
 }
 
 void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_ptr,
     const BufferVariantCell::FieldsIter& attr_iter,
-    const unsigned num_ALT_alleles, const unsigned ploidy,
-    unsigned schema_idx
+    const VariantQueryConfig& query_config, const unsigned query_idx
     ) const
 {
   unsigned length_descriptor = BCF_VL_FIXED;
   unsigned num_elements = 1u;
-  fill_field_prep(field_ptr, schema_idx, length_descriptor, num_elements);
+  fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
   //This function might mark the field as invalid - some fields are  determined to be invalid only
   //after accessing the data and comparing to NULL_* values
   field_ptr->copy_data_from_tile(attr_iter);
@@ -916,7 +930,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
         auto& field_ptr = curr_call.get_field(j); 
         unsigned length_descriptor = BCF_VL_FIXED;
         unsigned num_elements = 1u;
-        fill_field_prep(field_ptr, query_config.get_schema_idx_for_query_idx(j), length_descriptor, num_elements);
+        fill_field_prep(field_ptr, query_config, j, length_descriptor, num_elements);
         field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
       }
     }
@@ -936,7 +950,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       std::unique_ptr<VariantFieldBase>& field_ptr = variant.get_common_field(i); 
       unsigned length_descriptor = BCF_VL_FIXED;
       unsigned num_elements = 1u;
-      fill_field_prep(field_ptr, query_config.get_schema_idx_for_query_idx(query_idx), length_descriptor, num_elements);
+      fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
       field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
     }
   }
@@ -1015,8 +1029,7 @@ void VariantQueryProcessor::gt_fill_row(
   {
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
-        num_ALT_alleles, ploidy,
-        query_config.get_schema_idx_for_query_idx(i)
+        query_config, i
         );
   }
   //Initialize ALT field, if needed
@@ -1028,8 +1041,7 @@ void VariantQueryProcessor::gt_fill_row(
   {
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
-        num_ALT_alleles, ploidy,
-        query_config.get_schema_idx_for_query_idx(i)
+        query_config, i
         );     
   }
   //Initialize REF field, if queried

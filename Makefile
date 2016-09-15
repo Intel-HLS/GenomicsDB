@@ -229,13 +229,10 @@ endif
 GENOMICSDB_EXAMPLE_SOURCES:= \
     			    create_tiledb_workspace.cc \
 			    gt_verifier.cc \
-			    example_ga4gh_scan_operator.cc \
 			    vcf2tiledb.cc \
 			    vcfdiff.cc \
 			    example_libtiledb_variant_driver.cc \
 			    vcf_histogram.cc \
-			    gt_profile_query_processor.cc \
-			    gt_example_query_processor.cc \
 			    gt_mpi_gather.cc \
 			    test_jni_bcf_reader.cc
 

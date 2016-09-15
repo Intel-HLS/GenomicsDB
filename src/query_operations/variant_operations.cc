@@ -363,17 +363,12 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
   m_remapped_fields_query_idxs.clear();
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
-    //is known field
-    if(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx))
-    {
-      const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
-      //known field whose length is dependent on #alleles
-      if(info_ptr && info_ptr->is_length_allele_dependent())
-        m_remapped_fields_query_idxs.push_back(query_field_idx);
-      //GT field
-      if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
-        m_GT_query_idx = query_field_idx;
-    }
+    //Does the length dependent on number of alleles
+    if(KnownFieldInfo::is_length_descriptor_allele_dependent(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx)))
+      m_remapped_fields_query_idxs.push_back(query_field_idx);
+    //GT field
+    if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
+      m_GT_query_idx = query_field_idx;
   }
   m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
   for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
@@ -439,18 +434,18 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   {
     for(auto query_field_idx : m_remapped_fields_query_idxs)
     {
-      assert(query_config.is_defined_known_field_enum_for_query_idx(query_field_idx));
-      const auto* info_ptr = query_config.get_info_for_query_idx(query_field_idx);
-      //known field whose length is dependent on #alleles
-      assert(info_ptr && info_ptr->is_length_allele_dependent());
-      if(info_ptr->is_length_genotype_dependent() && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
+      auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
+      //field length depends on #alleles
+      assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
+      //Fields such as PL should be skipped, if the #alleles is above a threshold
+      if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor) && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
       {
         std::cerr << "Column "<<variant.get_column_begin() <<" has too many alleles in the combined VCF record : "<<num_merged_alleles-1
           << " : current limit : "<<m_max_diploid_alt_alleles_that_can_be_genotyped
           << ". Fields, such as  PL, with length equal to the number of genotypes will NOT be added for this location.\n";
         continue;
       }
-      unsigned num_merged_elements = info_ptr->get_num_elements_for_known_field_enum(num_merged_alleles-1u, 0u);     //#alt alleles
+      unsigned num_merged_elements = KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_merged_alleles-1u, 0u, 0u);  //#alt alleles
       //Remapper for m_remapped_variant
       RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
       //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
@@ -471,7 +466,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
           handler->remap_vector_data(
               orig_field, curr_call_idx_in_variant,
               m_alleles_LUT, num_merged_alleles, m_NON_REF_exists,
-              info_ptr->get_length_descriptor(), num_merged_elements, remapper_variant);
+              query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx), num_merged_elements, remapper_variant);
         }
       }
     }
