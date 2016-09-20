@@ -24,7 +24,6 @@ package com.intel.genomicsdb
 
 import htsjdk.tribble.readers.PositionalBufferedStream
 import htsjdk.variant.variantcontext.VariantContext
-import org.apache.hadoop.io.LongWritable
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -63,9 +62,9 @@ object GenomicsDBSparkFactory {
       .setMaster("spark://" + master + ":" + port)
       .setAppName("GenomicsDBTest using newAPIHadoopRDD")
 
-    val classObjects: Array[Class[_]] = Array(Class.forName("org.apache.hadoop.io.LongWritable"),
-      Class.forName("org.apache.hadoop.io.Text"))
-    conf.registerKryoClasses(classObjects)
+//    val classObjects: Array[Class[_]] = Array(Class.forName("org.apache.hadoop.io.LongWritable"),
+//      Class.forName("org.apache.hadoop.io.Text"))
+//    conf.registerKryoClasses(classObjects)
 
     val sc = new SparkContext(conf)
     val hadoopConf = sc.hadoopConfiguration
@@ -73,13 +72,14 @@ object GenomicsDBSparkFactory {
     hadoopConf.set(GenomicsDBConf.QUERYJSON, queryJsonFile)
     hadoopConf.set(GenomicsDBConf.MPIHOSTFILE, hostfile)
 
-    val myrdd: RDD[(LongWritable, VariantContext)] =
-      sc.newAPIHadoopRDD[LongWritable, VariantContext,
+    val myrdd: RDD[(String, VariantContext)] =
+      sc.newAPIHadoopRDD[String, VariantContext,
       GenomicsDBInputFormat[VariantContext, PositionalBufferedStream]](sc.hadoopConfiguration,
       classOf[GenomicsDBInputFormat[VariantContext, PositionalBufferedStream]],
-      classOf[LongWritable], classOf[VariantContext])
+      classOf[String], classOf[VariantContext])
 
     System.out.println(myrdd.count())
+    myrdd.collect().foreach(println)
   }
 
   def main(args: Array[String]): Unit = {
