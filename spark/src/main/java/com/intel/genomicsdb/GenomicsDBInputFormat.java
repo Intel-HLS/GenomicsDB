@@ -1,3 +1,25 @@
+/*
+ * The MIT License (MIT)
+ * Copyright (c) 2016 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package com.intel.genomicsdb;
 
 import genomicsdb.GenomicsDBFeatureReader;
@@ -6,16 +28,16 @@ import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
-  extends InputFormat<LongWritable, VCONTEXT> implements Configurable {
+  extends InputFormat<String, VCONTEXT> implements Configurable {
 
   private GenomicsDBConf genomicsDBConf;
   private Configuration configuration;
@@ -50,7 +72,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     return inputSplits;
   }
 
-  public RecordReader<LongWritable, VCONTEXT>
+  public RecordReader<String, VCONTEXT>
     createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
       throws IOException, InterruptedException {
 
@@ -94,17 +116,28 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    * Set the loader JSON file path
    *
    * @param jsonFile  Full qualified path of the loader JSON file
+   * @return  Returns the same object for forward function calls
    */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setLoaderJsonFile(String jsonFile) {
     genomicsDBConf.setLoaderJsonFile(jsonFile);
     return this;
   }
 
+  /**
+   * Set the query JSON file path
+   * @param jsonFile  Full qualified path of the query JSON file
+   * @return  Returns the same object for forward function calls
+   */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setQueryJsonFile(String jsonFile) {
     genomicsDBConf.setQueryJsonFile(jsonFile);
     return this;
   }
 
+  /**
+   * Set the host file path
+   * @param hostFile  Full qualified path of the hosts file
+   * @return  Returns the same object for forward function calls
+   */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {
     genomicsDBConf.setHostFile(hostFile);
