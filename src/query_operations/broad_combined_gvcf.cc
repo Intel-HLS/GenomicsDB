@@ -25,14 +25,14 @@
 #include "broad_combined_gvcf.h"
 
 //INFO fields
-#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, INFO_field_combine_operation) \
-  INFO_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, INFO_field_combine_operation)
+#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation) \
+  INFO_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation)
 #define BCF_INFO_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
 #define BCF_INFO_GET_QUERY_FIELD_IDX(X) (std::get<1>(X))
 #define BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<2>(X))
 #define BCF_INFO_GET_BCF_HT_TYPE(X) (std::get<3>(X))
 #define BCF_INFO_GET_VCF_FIELD_NAME(X) (std::get<4>(X))
-#define BCF_INFO_GET_INFO_FIELD_COMBINE_OPERATION(X) (std::get<5>(X))
+#define BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(X) (std::get<5>(X))
 //FORMAT fields
 #define MAKE_BCF_FORMAT_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name) \
   FORMAT_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name)
@@ -73,21 +73,21 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     {
       auto known_field_enum = query_config.is_defined_known_field_enum_for_query_idx(i) ? query_config.get_known_field_enum_for_query_idx(i)
         : UNDEFINED_ATTRIBUTE_IDX_VALUE;
-      auto INFO_field_combine_operation = query_config.get_INFO_field_combine_operation_for_query_attribute_idx(i);
+      auto VCF_field_combine_operation = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(i);
       auto add_to_INFO_vector = (field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_END_IDX
-          && (known_field_enum != GVCF_DP_IDX || INFO_field_combine_operation != INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
-          && INFO_field_combine_operation != INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
+          && (known_field_enum != GVCF_DP_IDX || VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
+          && VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
           );
       auto add_to_FORMAT_vector = (field_info->m_is_vcf_FORMAT_field ||
           (field_info->m_is_vcf_INFO_field
-           && ((known_field_enum == GVCF_DP_IDX && INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP)
-             || (INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+           && ((known_field_enum == GVCF_DP_IDX && VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP)
+             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
            )
            )
           );
       if(add_to_INFO_vector)
       {
-        if(INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
+        if(VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
           std::cerr << "WARNING: No valid combination operation found for INFO field "<<field_info->m_vcf_name<<" - the field will NOT be part of INFO fields in the generated VCF records\n";
         else
         {
@@ -95,7 +95,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
                 VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
                 VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
                 field_info->m_vcf_name,
-                INFO_field_combine_operation));
+                VCF_field_combine_operation));
           VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
         }
       }
@@ -106,7 +106,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
             VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
             field_info->m_vcf_name);
         if((field_info->m_is_vcf_FORMAT_field)
-            || (INFO_field_combine_operation == INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+            || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
           )
         {
           m_FORMAT_fields_vec.emplace_back(format_tuple);
@@ -211,31 +211,31 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     //For element wise operations
     auto num_result_elements = 1u;
     auto valid_result_found = false;
-    switch(BCF_INFO_GET_INFO_FIELD_COMBINE_OPERATION(curr_tuple))
+    switch(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(curr_tuple))
     {
-      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM:
+      case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM:
         valid_result_found = m_field_handlers[variant_type_enum]->get_valid_sum(src_variant, *m_query_config,
             query_field_idx, result_ptr, num_valid_input_elements);
         break;
-      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEAN:
+      case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEAN:
         valid_result_found = m_field_handlers[variant_type_enum]->get_valid_mean(src_variant, *m_query_config,
             query_field_idx, result_ptr, num_valid_input_elements);
         break;
-      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN:
+      case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN:
         valid_result_found = m_field_handlers[variant_type_enum]->get_valid_median(src_variant, *m_query_config,
             query_field_idx, result_ptr, num_valid_input_elements);
         break;
-      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM:
+      case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM:
         valid_result_found = m_field_handlers[variant_type_enum]->compute_valid_element_wise_sum(src_variant, *m_query_config,
             query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
         break;
-      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_CONCATENATE:
+      case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE:
         valid_result_found = m_field_handlers[variant_type_enum]->concatenate_field(src_variant, *m_query_config,
             query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
         break;
       default:
         throw BroadCombinedGVCFException(std::string("Unknown INFO field combine operation ")
-            +std::to_string(BCF_INFO_GET_INFO_FIELD_COMBINE_OPERATION(curr_tuple)));
+            +std::to_string(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(curr_tuple)));
         break;
     }
     if(valid_result_found)

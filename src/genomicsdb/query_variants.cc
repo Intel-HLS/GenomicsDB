@@ -581,7 +581,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     {
       length_descriptor = vid_field_info->m_length_descriptor;
       query_config.set_query_attribute_info_parameters(i, length_descriptor, vid_field_info->m_num_elements,
-          vid_field_info->m_INFO_field_combine_operation);
+          vid_field_info->m_VCF_field_combine_operation);
     }
     else //No information in vid file, see if something can be gleaned from known fields
     {
@@ -591,7 +591,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
         length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
         query_config.set_query_attribute_info_parameters(i, length_descriptor,
             KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u),
-            KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(known_field_enum)
+            KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum)
             );
       }
     }

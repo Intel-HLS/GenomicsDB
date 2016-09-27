@@ -3,12 +3,12 @@
         "PASS":{"type":"int"},
         "LowQual":{"type":"int" },
         "END":{ "vcf_field_class":["INFO"], "type":"int" },
-        "BaseQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float", "INFO_field_combine_operation": "mean" },
+        "BaseQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float", "VCF_field_combine_operation": "mean" },
         "ClippingRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
         "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" },
-        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "INFO_field_combine_operation": "concatenate" },
-        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "INFO_field_combine_operation": "element_wise_sum" },
-        "var_field": { "vcf_field_class":["INFO"], "type":"int", "length":"VAR", "INFO_field_combine_operation": "element_wise_sum" }
+        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "VCF_field_combine_operation": "concatenate" },
+        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "VCF_field_combine_operation": "element_wise_sum" },
+        "var_field": { "vcf_field_class":["INFO"], "type":"int", "length":"VAR", "VCF_field_combine_operation": "element_wise_sum" }
     },
     "contigs": {
         "1": {

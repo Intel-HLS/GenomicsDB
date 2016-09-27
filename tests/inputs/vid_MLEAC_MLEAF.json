@@ -19,8 +19,8 @@
         "PID": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
         "MIN_DP": { "vcf_field_class":["FORMAT"], "type":"int" },
         "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" },
-        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "INFO_field_combine_operation": "move_to_FORMAT" },
-        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "INFO_field_combine_operation": "move_to_FORMAT" }
+        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "VCF_field_combine_operation": "move_to_FORMAT" },
+        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "VCF_field_combine_operation": "move_to_FORMAT" }
     },
     "contigs": {
         "1": {

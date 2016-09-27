@@ -126,16 +126,16 @@ class FileInfo
     unsigned m_type;
 };
 
-enum INFOFieldCombineOperationEnum
+enum VCFFieldCombineOperationEnum
 {
-  INFO_FIELD_COMBINE_OPERATION_SUM=0,
-  INFO_FIELD_COMBINE_OPERATION_MEAN,
-  INFO_FIELD_COMBINE_OPERATION_MEDIAN,
-  INFO_FIELD_COMBINE_OPERATION_DP,      //for the DP INFO field
-  INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT,
-  INFO_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM,
-  INFO_FIELD_COMBINE_OPERATION_CONCATENATE,
-  INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION
+  VCF_FIELD_COMBINE_OPERATION_SUM=0,
+  VCF_FIELD_COMBINE_OPERATION_MEAN,
+  VCF_FIELD_COMBINE_OPERATION_MEDIAN,
+  VCF_FIELD_COMBINE_OPERATION_DP,      //for the DP INFO field
+  VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT,
+  VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM,
+  VCF_FIELD_COMBINE_OPERATION_CONCATENATE,
+  VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION
 };
 
 class FieldInfo
@@ -151,7 +151,7 @@ class FieldInfo
       m_bcf_ht_type = BCF_HT_VOID;
       m_length_descriptor = BCF_VL_FIXED;
       m_num_elements = 1;
-      m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+      m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -171,7 +171,7 @@ class FieldInfo
     //Length descriptors
     int m_length_descriptor;
     int m_num_elements;
-    int m_INFO_field_combine_operation;
+    int m_VCF_field_combine_operation;
 };
 
 /*

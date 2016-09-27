@@ -62,12 +62,12 @@ class VariantQueryConfig
         {
           m_length_descriptor = BCF_VL_FIXED;
           m_num_elements = 1u;
-          m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION; 
+          m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION; 
         }
         int m_schema_idx;
         int m_length_descriptor;
         int m_num_elements;
-        int m_INFO_field_combine_operation;
+        int m_VCF_field_combine_operation;
         std::string m_name;
     };
   public:
@@ -158,13 +158,13 @@ class VariantQueryConfig
      * Attributes info parameters
      */
     void set_query_attribute_info_parameters(const unsigned query_field_idx, int length_descriptor, int num_elements,
-        int INFO_field_combine_operation)
+        int VCF_field_combine_operation)
     {
       assert(query_field_idx < m_query_attributes_info_vec.size());
       auto& attribute_info = m_query_attributes_info_vec[query_field_idx];
       attribute_info.m_length_descriptor = length_descriptor;
       attribute_info.m_num_elements = num_elements;
-      attribute_info.m_INFO_field_combine_operation = INFO_field_combine_operation;
+      attribute_info.m_VCF_field_combine_operation = VCF_field_combine_operation;
     }
     int get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
     {
@@ -176,10 +176,10 @@ class VariantQueryConfig
       assert(query_idx < m_query_attributes_info_vec.size());
       return m_query_attributes_info_vec[query_idx].m_num_elements;
     }
-    int get_INFO_field_combine_operation_for_query_attribute_idx(const unsigned query_idx) const
+    int get_VCF_field_combine_operation_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_INFO_field_combine_operation;
+      return m_query_attributes_info_vec[query_idx].m_VCF_field_combine_operation;
     }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
