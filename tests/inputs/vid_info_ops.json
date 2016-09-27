@@ -1,6 +1,7 @@
 {
     "fields" : {
         "PASS":{"type":"int"},
+        "QUAL":{"type":"float", "VCF_field_combine_operation": "median" },
         "LowQual":{"type":"int" },
         "END":{ "vcf_field_class":["INFO"], "type":"int" },
         "BaseQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float", "VCF_field_combine_operation": "mean" },
