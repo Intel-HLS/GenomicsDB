@@ -56,8 +56,11 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
   std::unordered_map<std::string, int>({
       {"sum", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM},
+      {"mean", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEAN},
       {"median", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN},
-      {"move_to_FORMAT", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT}
+      {"move_to_FORMAT", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT},
+      {"element_wise_sum", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM},
+      {"concatenate", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_CONCATENATE}
       });
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);

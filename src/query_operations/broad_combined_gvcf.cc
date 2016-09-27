@@ -194,19 +194,44 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
     //valid field handler
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+    auto query_field_idx = BCF_INFO_GET_QUERY_FIELD_IDX(curr_tuple);
+    auto length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(query_field_idx);
+    //Fields such as PL are skipped if the #alleles is above a certain threshold
+    if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor)
+        && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
+      continue;
+    //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
+    //else we should use field objects from the original variant
+    auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor) || query_field_idx == m_GT_query_idx))
+      ? m_remapped_variant : variant;
     //Just need a 4-byte value, the contents could be a float or int (determined by the templated median function)
     int32_t result = -1;
+    void* result_ptr = reinterpret_cast<void*>(&result);
+    auto num_valid_input_elements = 0u;
+    //For element wise operations
+    auto num_result_elements = 1u;
     auto valid_result_found = false;
-    auto query_field_idx = BCF_INFO_GET_QUERY_FIELD_IDX(curr_tuple);
     switch(BCF_INFO_GET_INFO_FIELD_COMBINE_OPERATION(curr_tuple))
     {
       case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM:
-        valid_result_found = m_field_handlers[variant_type_enum]->get_valid_sum(variant, *m_query_config,
-            query_field_idx, reinterpret_cast<void*>(&result));
+        valid_result_found = m_field_handlers[variant_type_enum]->get_valid_sum(src_variant, *m_query_config,
+            query_field_idx, result_ptr, num_valid_input_elements);
+        break;
+      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEAN:
+        valid_result_found = m_field_handlers[variant_type_enum]->get_valid_mean(src_variant, *m_query_config,
+            query_field_idx, result_ptr, num_valid_input_elements);
         break;
       case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN:
-        valid_result_found = m_field_handlers[variant_type_enum]->get_valid_median(variant, *m_query_config,
-            query_field_idx, reinterpret_cast<void*>(&result));
+        valid_result_found = m_field_handlers[variant_type_enum]->get_valid_median(src_variant, *m_query_config,
+            query_field_idx, result_ptr, num_valid_input_elements);
+        break;
+      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM:
+        valid_result_found = m_field_handlers[variant_type_enum]->compute_valid_element_wise_sum(src_variant, *m_query_config,
+            query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
+        break;
+      case INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_CONCATENATE:
+        valid_result_found = m_field_handlers[variant_type_enum]->concatenate_field(src_variant, *m_query_config,
+            query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
         break;
       default:
         throw BroadCombinedGVCFException(std::string("Unknown INFO field combine operation ")
@@ -215,8 +240,8 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     }
     if(valid_result_found)
     {
-      bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), &result, 1, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
-      m_bcf_record_size += sizeof(int);
+      bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), result_ptr, num_result_elements, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
+      m_bcf_record_size += num_result_elements*VariantFieldTypeUtil::size(variant_type_enum);
     }
   }
 }
