@@ -519,9 +519,14 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
         VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
         auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["VCF_field_combine_operation"].GetString());
         if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
-          throw VidMapperException(std::string("Unknown INFO field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
+          throw VidMapperException(std::string("Unknown VCF field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
                 +" specified for field "+field_name);
         m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
+        //Concatenate can only be used for VAR length fields
+        if(m_field_idx_to_info[field_idx].m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
+            && m_field_idx_to_info[field_idx].m_length_descriptor != BCF_VL_VAR)
+         throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
+             +" field "+field_name+" does not have 'VAR' as its length descriptor");
       }
       else
       {

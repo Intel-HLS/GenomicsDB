@@ -118,4 +118,4 @@
 ##contig=<ID=GL000192.1,length=547496>
 ##contig=<ID=NC_007605,length=171823>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00141	HG01958	HG01530
-1	17385	.	G	A,T,<NON_REF>	989.77	.	BaseQRankSum=-0.525;ClippingRankSum=0.555;MLEAC=5,6,6,7,2,7,.,4,4;MLEAF=0.7,1.5,2.2;var_field=18,.,4,8	GT	./.	./.	./.
+1	17385	.	G	A,T,<NON_REF>	989.77	.	BaseQRankSum=-0.525;ClippingRankSum=0.555;MLEAC=12,12,17;MLEAF=0.7,1.5,2.2;var_field=18,.,4,8	GT	./.	./.	./.

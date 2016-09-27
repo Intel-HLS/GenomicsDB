@@ -193,10 +193,14 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
             },
-            { "name" : "test_info_combine_ops", 'golden_output' : 'golden_outputs/info_ops.vcf',
+            { "name" : "test_info_combine_ops0", 'golden_output' : 'golden_outputs/info_ops0.vcf',
                 'callset_mapping_file': 'inputs/callsets/info_ops.json',
-                'vid_mapping_file': 'inputs/vid_info_ops.json'
-            }
+                'vid_mapping_file': 'inputs/vid_info_ops0.json'
+            },
+            { "name" : "test_info_combine_ops1", 'golden_output' : 'golden_outputs/info_ops1.vcf',
+                'callset_mapping_file': 'inputs/callsets/info_ops.json',
+                'vid_mapping_file': 'inputs/vid_info_ops1.json'
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
