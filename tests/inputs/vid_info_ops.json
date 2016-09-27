@@ -1,26 +1,15 @@
 {
     "fields" : {
         "PASS":{"type":"int"},
+        "QUAL":{"type":"float", "VCF_field_combine_operation": "median" },
         "LowQual":{"type":"int" },
         "END":{ "vcf_field_class":["INFO"], "type":"int" },
-        "BaseQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
+        "BaseQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float", "VCF_field_combine_operation": "mean" },
         "ClippingRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
-        "MQRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
-        "ReadPosRankSum":{ "vcf_field_class" : ["INFO"], "type":"float" },
-        "MQ":{ "vcf_field_class":["INFO"], "type":"float" },
-        "RAW_MQ":{ "vcf_field_class":["INFO"], "type":"float" },
-        "MQ0":{ "vcf_field_class":["INFO"], "type":"int" },
-        "DP": { "vcf_field_class":["INFO","FORMAT"], "type":"int" },
-        "GQ": { "vcf_field_class":["FORMAT"], "type":"int" },
-        "SB":{ "vcf_field_class" : ["FORMAT"], "type":"int", "length":4 },
-        "AD": { "vcf_field_class":["FORMAT"], "type":"int", "length":"R" },
-        "PL": { "vcf_field_class":["FORMAT"], "type":"int", "length":"G" },
-        "PGT": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
-        "PID": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
-        "MIN_DP": { "vcf_field_class":["FORMAT"], "type":"int" },
         "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" },
-        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "VCF_field_combine_operation": "move_to_FORMAT" },
-        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "VCF_field_combine_operation": "move_to_FORMAT" }
+        "MLEAC": { "vcf_field_class":["INFO"], "type":"int", "length":"A", "VCF_field_combine_operation": "concatenate" },
+        "MLEAF": { "vcf_field_class":["INFO"], "type":"float", "length":"A", "VCF_field_combine_operation": "element_wise_sum" },
+        "var_field": { "vcf_field_class":["INFO"], "type":"int", "length":"VAR", "VCF_field_combine_operation": "element_wise_sum" }
     },
     "contigs": {
         "1": {

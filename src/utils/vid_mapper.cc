@@ -55,9 +55,12 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
 
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
   std::unordered_map<std::string, int>({
-      {"sum", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM},
-      {"median", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN},
-      {"move_to_FORMAT", INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT}
+      {"sum", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM},
+      {"mean", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEAN},
+      {"median", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN},
+      {"move_to_FORMAT", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT},
+      {"element_wise_sum", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM},
+      {"concatenate", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE}
       });
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
@@ -511,19 +514,19 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
              m_field_idx_to_info[field_idx].m_num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u);  //don't care about ploidy
         }
       }
-      if(field_info_dict.HasMember("INFO_field_combine_operation"))
+      if(field_info_dict.HasMember("VCF_field_combine_operation"))
       {
-        VERIFY_OR_THROW(field_info_dict["INFO_field_combine_operation"].IsString());
-        auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["INFO_field_combine_operation"].GetString());
+        VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
+        auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["VCF_field_combine_operation"].GetString());
         if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
-          throw VidMapperException(std::string("Unknown INFO field combine operation ")+field_info_dict["INFO_field_combine_operation"].GetString()
+          throw VidMapperException(std::string("Unknown INFO field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
                 +" specified for field "+field_name);
-        m_field_idx_to_info[field_idx].m_INFO_field_combine_operation = (*iter).second;
+        m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
       }
       else
       {
         if(is_known_field)
-          m_field_idx_to_info[field_idx].m_INFO_field_combine_operation = KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(known_field_enum);
+          m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
       }
       //Both INFO and FORMAT, throw another entry <field>_FORMAT
       if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
@@ -537,7 +540,7 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
         new_field_info.m_name = field_name+"_FORMAT";
         new_field_info.m_is_vcf_INFO_field = false;
         new_field_info.m_field_idx = new_field_idx;
-        new_field_info.m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+        new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
         //Update map
         m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
         //Set FORMAT to false for original field

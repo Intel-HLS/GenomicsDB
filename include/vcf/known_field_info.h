@@ -87,7 +87,7 @@ class KnownFieldInfo
     unsigned m_length_descriptor;
     unsigned m_num_elements;
     std::shared_ptr<VariantFieldCreatorBase> m_field_creator;
-    int m_INFO_field_combine_operation;
+    int m_VCF_field_combine_operation;
   public:
     inline bool is_length_allele_dependent() const
     {
@@ -98,7 +98,7 @@ class KnownFieldInfo
     inline bool is_length_genotype_dependent() const { return m_length_descriptor == BCF_VL_G; }
     inline bool is_length_only_ALT_alleles_dependent() const { return m_length_descriptor == BCF_VL_A; }
     unsigned get_num_elements_for_known_field_enum(unsigned num_ALT_alleles, unsigned ploidy) const;
-    inline int get_INFO_field_combine_operation() const { return m_INFO_field_combine_operation; }
+    inline int get_VCF_field_combine_operation() const { return m_VCF_field_combine_operation; }
     /*
      * Static functions that access the global vector specified below to get info
      */
@@ -156,7 +156,7 @@ class KnownFieldInfo
     /*
      * INFO field combine operation
      */ 
-    static int get_INFO_field_combine_operation_for_known_field_enum(unsigned known_field_enum);
+    static int get_VCF_field_combine_operation_for_known_field_enum(unsigned known_field_enum);
 };
 /*
  * Vector that stores information about the known fields - length, Factory methods etc

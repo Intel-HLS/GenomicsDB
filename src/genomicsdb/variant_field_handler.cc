@@ -162,7 +162,7 @@ void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFie
 
 template<class DataType>
 bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr)
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements)
 {
   m_median_compute_vector.resize(variant.get_num_calls());
   auto valid_idx = 0u;
@@ -194,7 +194,7 @@ bool VariantFieldHandler<DataType>::get_valid_median(const Variant& variant, con
 
 template<class DataType>
 bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config,
-        unsigned query_idx, void* output_ptr)
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements)
 {
   DataType sum = get_zero_value<DataType>();
   auto valid_idx = 0u;
@@ -218,6 +218,7 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
       }
     }
   }
+  num_valid_elements = valid_idx;
   if(valid_idx == 0u)   //no valid fields found
     return false;
   auto result_ptr = reinterpret_cast<DataType*>(output_ptr);
@@ -225,14 +226,34 @@ bool VariantFieldHandler<DataType>::get_valid_sum(const Variant& variant, const 
   return true;
 }
 
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::get_valid_mean(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements)
+{
+  auto status = get_valid_sum(variant, query_config, query_idx, output_ptr, num_valid_elements);
+  if(status)
+  {
+    auto result_ptr = reinterpret_cast<DataType*>(output_ptr);
+    *result_ptr = (*result_ptr)/num_valid_elements;
+  }
+  return status;
+}
+
+//Mean is undefined for strings
+template<>
+bool VariantFieldHandler<std::string>::get_valid_mean(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements)
+{
+  throw VariantOperationException("Mean is an undefined operation for combining string fields");
+  return false;
+}
+
 template<class DataType>
 bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
-        unsigned query_idx, void* output_ptr, unsigned num_elements)
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements)
 {
-  DataType* sum = reinterpret_cast<DataType*>(output_ptr);
-  for(auto i=0u;i<num_elements;++i)
-    sum[i] = get_zero_value<DataType>();
-  auto valid_idx = 0u;
+  auto num_valid_elements = 0u;
   //Iterate over valid calls
   for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
   {
@@ -245,19 +266,65 @@ bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant
       auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
       assert(ptr);
       auto& vec = ptr->get();
-      assert(vec.size() > 0u);
-      for(auto i=0ull;i<vec.size() && i<num_elements;++i)
+      if(vec.size() > m_element_wise_operations_result.size())
+        m_element_wise_operations_result.resize(vec.size());
+      for(auto i=0ull;i<vec.size();++i)
       {
         auto val = vec[i];
         if(is_bcf_valid_value<DataType>(val))
         {
-          sum[i] += val;
-          ++valid_idx;
+          if(i < num_valid_elements && is_bcf_valid_value<DataType>(m_element_wise_operations_result[i]))
+            m_element_wise_operations_result[i] += val;
+          else
+          {
+            m_element_wise_operations_result[i] = val;
+            if(i >= num_valid_elements)
+            {
+              //Set all elements after the last valid value upto i to missing
+              for(auto j=num_valid_elements;j<i;++j)
+                m_element_wise_operations_result[j] = get_bcf_missing_value<DataType>();
+              num_valid_elements = i+1u;
+            }
+          }
         }
       }
     }
   }
-  return (valid_idx > 0u);
+  if(num_valid_elements > 0u)
+    m_element_wise_operations_result.resize(num_valid_elements);
+  (*output_ptr) = &(m_element_wise_operations_result[0]);
+  num_elements = num_valid_elements;
+  return (num_valid_elements > 0u);
+}
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements)
+{
+  auto curr_result_size = 0ull;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<DataType>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(field_ptr.get());
+      assert(ptr);
+      auto& vec = ptr->get();
+      if(curr_result_size + vec.size() > m_element_wise_operations_result.size())
+        m_element_wise_operations_result.resize(curr_result_size+vec.size());
+      memcpy(&(m_element_wise_operations_result[curr_result_size]), &(vec[0]), vec.size()*sizeof(DataType));
+      curr_result_size += vec.size();
+    }
+  }
+  if(curr_result_size > 0u)
+    m_element_wise_operations_result.resize(curr_result_size);
+  (*output_ptr) = &(m_element_wise_operations_result[0]);
+  num_elements = curr_result_size;
+  return (curr_result_size > 0u);
 }
 
 template<class DataType>

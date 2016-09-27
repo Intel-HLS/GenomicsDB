@@ -66,7 +66,7 @@ KnownFieldInfo::KnownFieldInfo()
   m_length_descriptor = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_num_elements = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_field_creator = 0;
-  m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+  m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
 }
 /*
  * Check whether the known field requires a special creator
@@ -137,10 +137,10 @@ unsigned KnownFieldInfo::get_length_descriptor_for_known_field_enum(unsigned kno
   return g_known_field_enum_to_info[known_field_enum].get_length_descriptor();
 }
 
-int KnownFieldInfo::get_INFO_field_combine_operation_for_known_field_enum(unsigned known_field_enum)
+int KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(unsigned known_field_enum)
 {
   assert(known_field_enum < GVCF_NUM_KNOWN_FIELDS);
-  return g_known_field_enum_to_info[known_field_enum].get_INFO_field_combine_operation();
+  return g_known_field_enum_to_info[known_field_enum].get_VCF_field_combine_operation();
 }
 
 bool KnownFieldInfo::get_known_field_enum_for_name(const std::string& field_name, unsigned& known_field_enum)
@@ -261,16 +261,16 @@ void KnownFieldInitializer::initialize_INFO_combine_operation(unsigned idx) cons
     case GVCF_READPOSRANKSUM_IDX:
     case GVCF_MQ_IDX:
     case GVCF_MQ0_IDX:
-      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_MEDIAN;
+      g_known_field_enum_to_info[idx].m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN;
       break;
     case GVCF_RAW_MQ_IDX:
-      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_SUM;
+      g_known_field_enum_to_info[idx].m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM;
       break;
     case GVCF_DP_IDX:
-      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_DP;
+      g_known_field_enum_to_info[idx].m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP;
       break;
     default:
-      g_known_field_enum_to_info[idx].m_INFO_field_combine_operation = INFOFieldCombineOperationEnum::INFO_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+      g_known_field_enum_to_info[idx].m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
       break;
   }
 }

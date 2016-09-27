@@ -192,6 +192,10 @@ def main():
             { "name" : "test_new_fields", 'golden_output' : 'golden_outputs/t6_7_8_new_field_gatk.vcf',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
+            },
+            { "name" : "test_info_combine_ops", 'golden_output' : 'golden_outputs/info_ops.vcf',
+                'callset_mapping_file': 'inputs/callsets/info_ops.json',
+                'vid_mapping_file': 'inputs/vid_info_ops.json'
             }
     ];
     for test_params_dict in loader_tests:
