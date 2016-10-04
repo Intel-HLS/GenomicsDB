@@ -215,7 +215,7 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    query_variants.cc \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
-			    jni_bcf_reader.cc \
+			    genomicsdb_bcf_generator.cc \
                             timer.cc \
 			    memory_measure.cc
 
@@ -234,7 +234,7 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    example_libtiledb_variant_driver.cc \
 			    vcf_histogram.cc \
 			    gt_mpi_gather.cc \
-			    test_jni_bcf_reader.cc
+			    test_genomicsdb_bcf_generator.cc
 
 ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 

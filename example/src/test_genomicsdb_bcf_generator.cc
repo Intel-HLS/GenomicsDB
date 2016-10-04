@@ -22,7 +22,7 @@
 
 #include <getopt.h>
 #include "headers.h"
-#include "jni_bcf_reader.h"
+#include "genomicsdb_bcf_generator.h"
 #include <mpi.h>
 
 int main(int argc, char *argv[]) {
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
   }
   std::vector<uint8_t> buffer(page_size > 0u ? page_size : 100u); 
   assert(json_config_file.length() > 0u && loader_json_config_file.length() > 0u);
-  JNIBCFReader bcf_reader(loader_json_config_file, json_config_file, my_world_mpi_rank, page_size, std::max<size_t>(page_size, 1024u),
+  GenomicsDBBCFGenerator bcf_reader(loader_json_config_file, json_config_file, my_world_mpi_rank, page_size, std::max<size_t>(page_size, 1024u),
       output_format.c_str());
   while(!(bcf_reader.end()))
   {
