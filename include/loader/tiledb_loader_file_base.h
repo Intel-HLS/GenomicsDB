@@ -31,16 +31,64 @@ class File2TileDBBinaryException : public std::exception {
     std::string msg_;
 };
 
-class FileReaderBase
+//Abstract base class for all classes that will read "records" and produce binary cells
+//which are combined by the loader class
+class GenomicsDBImportReaderBase
 {
   public:
-    FileReaderBase() { m_is_record_valid = false; }
-    virtual ~FileReaderBase() { }
+    GenomicsDBImportReaderBase(const bool is_file_reader)
+    {
+      m_is_record_valid = false;
+      m_is_file_reader = is_file_reader;
+    }
+    virtual ~GenomicsDBImportReaderBase() = default;
     virtual void add_reader() = 0;
     virtual void remove_reader() = 0;
     virtual void read_and_advance() = 0;
+    bool is_file_reader() const { return m_is_file_reader; }
   protected:
     bool m_is_record_valid;
+    bool m_is_file_reader;
+};
+
+//File I/O
+class FileReaderBase : public virtual GenomicsDBImportReaderBase
+{
+  public:
+    FileReaderBase()
+      : GenomicsDBImportReaderBase(true)
+    { }
+    virtual ~FileReaderBase() { }
+};
+
+//Reader that scans an in-memory buffer and does something
+class BufferReaderBase : public virtual GenomicsDBImportReaderBase
+{
+  public:
+    BufferReaderBase(const size_t buffer_size)
+      : GenomicsDBImportReaderBase(false)
+    {
+      m_offset = 0;
+      m_num_valid_bytes_in_buffer = 0;
+      m_buffer.resize(buffer_size);
+    }
+    virtual ~BufferReaderBase() = default;
+    size_t get_offset() const { return m_offset; }
+    void set_offset(const size_t val) { m_offset = val; }
+    void advance_offset_by(const size_t val) { m_offset += val; }
+    void reset_offset() { m_offset = 0; }
+    void set_num_valid_bytes_in_buffer(const size_t val) { m_num_valid_bytes_in_buffer = val; }
+    inline bool contains_unread_data() const { return m_offset < m_num_valid_bytes_in_buffer; }
+    std::vector<uint8_t>& get_buffer() { return m_buffer; }
+    /*
+     * Doesn't have a file pointer - so add and remove reader functions are useless
+     */
+    void add_reader() { }
+    void remove_reader() { }
+  protected:
+    size_t m_offset;
+    size_t m_num_valid_bytes_in_buffer;
+    std::vector<uint8_t> m_buffer;
 };
 
 class File2TileDBBinaryColumnPartitionBase
@@ -181,8 +229,8 @@ class File2TileDBBinaryBase
     /*
      * Seek and/or advance to position in the file as described by partition_info
      */
-    virtual bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek,
-        bool advance_reader) = 0;
+    virtual bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+        bool force_seek, bool advance_reader) = 0;
     /*
      * Return #callsets in current record
      */
@@ -198,6 +246,7 @@ class File2TileDBBinaryBase
     bool m_noupdates;
     bool m_close_file;
     bool m_treat_deletions_as_intervals;
+    bool m_get_data_from_file;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
     size_t m_max_size_per_callset;

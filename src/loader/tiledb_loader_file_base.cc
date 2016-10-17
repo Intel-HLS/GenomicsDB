@@ -212,6 +212,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_parallel_partitions = parallel_partitions;
   m_noupdates = noupdates;
   m_close_file = close_file;
+  m_get_data_from_file = true; //by default, data is obtained from a file
   //Callset mapping
   vid_mapper.get_local_tiledb_row_idx_vec(filename, m_local_callset_idx_to_tiledb_row_idx);
   m_local_callset_idx_to_enabled_idx.resize(m_local_callset_idx_to_tiledb_row_idx.size(), -1ll);
@@ -252,6 +253,7 @@ void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& oth
   m_noupdates = other.m_noupdates;
   m_close_file = other.m_close_file;
   m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
+  m_get_data_from_file = other.m_get_data_from_file;
   m_file_idx = other.m_file_idx;
   m_max_size_per_callset = other.m_max_size_per_callset;
 }
@@ -351,21 +353,22 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
     partition_info.m_buffer_offset_for_local_callset[i] = curr_offset;
     partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i] = curr_offset;
   }
+  auto is_read_buffer_exhausted = false;
   //If file is re-opened, seek to position from which to begin reading, but do not advance iterator from previous position
   //The second parameter is useful if the file handler is open, but the buffer was full in a previous call
-  auto has_data = seek_and_fetch_position(partition_info, m_close_file, false);
+  auto has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, m_close_file, false);
   auto buffer_full = false;
   auto read_one_line_fully = false;
   //Set buffer full to false
   for(auto i=0ull;i<partition_info.m_buffer_full_for_local_callset.size();++i)
     partition_info.m_buffer_full_for_local_callset[i] = false;
   partition_info.m_buffer_ptr = &(buffer);
-  while(has_data && !buffer_full)
+  while(has_data && !is_read_buffer_exhausted && !buffer_full)
   {
     buffer_full = convert_record_to_binary(buffer, partition_info);
     if(!buffer_full)
     {
-      has_data = seek_and_fetch_position(partition_info, false, true);  //no need to re-seek, use next_line() directly, advance file pointer
+      has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, false, true);  //no need to re-seek, use next_line() directly, advance file pointer
       //Store buffer offsets at the beginning of the line
       for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
         partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i] = partition_info.m_buffer_offset_for_local_callset[i];
@@ -409,14 +412,15 @@ void File2TileDBBinaryBase::create_histogram(uint64_t max_histogram_range, unsig
     auto& partition_info = *base_partition_ptr;
     if(m_close_file && m_parallel_partitions)
       partition_info.m_base_reader_ptr->add_reader();
-    auto has_data = seek_and_fetch_position(partition_info, m_close_file, false);
-    while(has_data)
+    auto is_read_buffer_exhausted = false;
+    auto has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, m_close_file, false);
+    while(has_data && !is_read_buffer_exhausted)
     {
       auto column_idx = partition_info.get_column_position_in_record();
       auto num_callsets = get_num_callsets_in_record(partition_info);
       for(auto i=0ull;i<num_callsets;++i)
         m_histogram->add_interval(column_idx, column_idx);
-      has_data = seek_and_fetch_position(partition_info, false, true);
+      has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, false, true);
     }
     if(m_close_file && m_parallel_partitions)
       partition_info.m_base_reader_ptr->remove_reader();

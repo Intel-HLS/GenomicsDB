@@ -44,9 +44,65 @@ class VCF2BinaryException : public std::exception {
     std::string msg_;
 };
 
+//Base class for VCFReader and VCFBufferReader
+//Contains header, line and a buffer for fetching data
+class VCFReaderBase : public virtual GenomicsDBImportReaderBase
+{
+  public:
+    VCFReaderBase(const bool is_file_reader)
+      : GenomicsDBImportReaderBase(is_file_reader)
+    {
+      m_hdr = 0;
+      m_line = bcf_init();
+    }
+    ~VCFReaderBase()
+    {
+      if(m_hdr)
+        bcf_hdr_destroy(m_hdr);
+      m_hdr = 0;
+      if(m_line)
+        bcf_destroy(m_line);
+      m_line = 0;
+    }
+    //Delete copy and move constructors
+    VCFReaderBase(const VCFReaderBase& other) = delete;
+    VCFReaderBase(VCFReaderBase&& other) = delete;
+    virtual void initialize(const char* filename,
+        const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file);
+    bcf_hdr_t* get_header() { return m_hdr; }
+    bcf1_t* get_line() { return m_is_record_valid ? m_line : 0; }
+  protected:
+    std::string m_filename;
+    bcf_hdr_t* m_hdr;
+    bcf1_t* m_line;
+};
+
+//Data is read from the buffer that is filled by an external agent
+class VCFBufferReader : public BufferReaderBase, public VCFReaderBase
+{
+  public:
+    VCFBufferReader(const size_t buffer_capacity, const bool is_bcf,
+        const uint8_t* init_buffer, const size_t init_num_valid_bytes)
+      : GenomicsDBImportReaderBase(false), BufferReaderBase(buffer_capacity), VCFReaderBase(false), m_is_bcf(is_bcf)
+    {
+      assert(init_num_valid_bytes < buffer_capacity);
+      memcpy(&(m_buffer[0]), init_buffer, init_num_valid_bytes);
+      m_num_valid_bytes_in_buffer = init_num_valid_bytes;
+    }
+    //Delete copy and move constructors
+    VCFBufferReader(const VCFBufferReader& other) = delete;
+    VCFBufferReader(VCFBufferReader&& other) = delete;
+    virtual ~VCFBufferReader() = default;
+    void initialize(const char* stream_name, 
+        const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file);
+    void read_and_advance();
+  private:
+    bool m_is_bcf;
+};
+
 //Wrapper around VCF's file I/O functions
 //Capability of using index only during seek to minimize memory consumption
-class VCFReader : public FileReaderBase
+class VCFReader : public FileReaderBase, public VCFReaderBase
 {
   public:
     VCFReader();
@@ -55,7 +111,7 @@ class VCFReader : public FileReaderBase
     VCFReader(VCFReader&& other) = delete;
     //Destructor
     virtual ~VCFReader();
-    void initialize(const char* filename, const char* regions,
+    void initialize(const char* filename,
         const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, bool open_file);
     //Abstract virtual functions from base class that must be over-ridden
     void add_reader();
@@ -63,15 +119,10 @@ class VCFReader : public FileReaderBase
     void read_and_advance();
     //Helper functions
     void seek_read_advance(const char* contig, const int pos, bool discard_index);
-    bcf_hdr_t* get_header() { return m_hdr; }
-    bcf1_t* get_line() { return m_is_record_valid ? m_line : 0; }
   private:
     bcf_srs_t* m_indexed_reader;
     htsFile* m_fptr;
-    std::string m_filename;
-    bcf_hdr_t* m_hdr;
-    bcf1_t* m_line;
-    kstring_t m_buffer;
+    kstring_t m_vcf_file_buffer;
 };
 
 class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
@@ -104,6 +155,7 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
       auto vcf_reader_ptr = dynamic_cast<VCFReader*>(m_base_reader_ptr);
       assert(vcf_reader_ptr);
       auto line = vcf_reader_ptr->get_line();
+      assert(line);
       return (m_contig_tiledb_column_offset + static_cast<int64_t>(line->pos));
     }
   protected:
@@ -124,6 +176,13 @@ class VCF2Binary : public File2TileDBBinaryBase
         size_t max_size_per_callset,
         bool treat_deletions_as_intervals,
         bool parallel_partitions=false, bool noupdates=true, bool close_file=false, bool discard_index=false);
+    VCF2Binary(const std::string& stream_name, const std::vector<std::vector<std::string>>& vcf_fields,
+        unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
+        const size_t vcf_buffer_reader_buffer_size, const bool vcf_buffer_reader_is_bcf,
+        const uint8_t* vcf_buffer_reader_init_buffer, const size_t vcf_buffer_reader_init_num_valid_bytes,
+        size_t max_size_per_callset,
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions=false);
     //Delete default copy constructor as it is incorrect
     VCF2Binary(const VCF2Binary& other) = delete;
     //Define move constructor explicitly
@@ -154,12 +213,9 @@ class VCF2Binary : public File2TileDBBinaryBase
     /*
      * Create the subclass of FileReaderBase that must be used
      */
-    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
-    {
-      return dynamic_cast<FileReaderBase*>(new VCFReader());
-    }
+    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const;
     bool convert_record_to_binary(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info);
-    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader);
+    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_empty, bool force_seek, bool advance_reader);
     uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const
     { return m_enabled_local_callset_idx_vec.size(); }
     //Helper functions
@@ -178,11 +234,16 @@ class VCF2Binary : public File2TileDBBinaryBase
     bool m_discard_index;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
-    std::string m_regions;
     //Local contig idx to global contig idx
     std::vector<int> m_local_contig_idx_to_global_contig_idx;
     //Local field idx to global field idx
     std::vector<int> m_local_field_idx_to_global_field_idx;
+    //For VCFBufferReader
+    size_t m_vcf_buffer_reader_buffer_size;
+    bool m_vcf_buffer_reader_is_bcf;
+    size_t m_vcf_buffer_reader_init_num_valid_bytes;
+    //The buffer in with the serialized VCF header used for initialization 
+    const uint8_t* m_vcf_buffer_reader_init_buffer;
 };
 
 #endif //ifdef HTSDIR

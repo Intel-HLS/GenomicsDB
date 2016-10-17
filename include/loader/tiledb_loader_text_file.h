@@ -270,8 +270,8 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
     /*
      * Seek and/or advance to position in the file as described by partition_info
      */
-    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek,
-        bool advance_reader);
+    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+        bool force_seek, bool advance_reader);
     /*
      * Return #callsets in current line
      */

@@ -36,7 +36,7 @@
 std::string g_tmp_scratch_dir = "/tmp";
 
 LineBasedTextFileReader::LineBasedTextFileReader()
-  : FileReaderBase()
+  : GenomicsDBImportReaderBase(true), FileReaderBase()
 {
   m_filename.clear();
   m_fptr = 0;
@@ -215,7 +215,8 @@ void CSV2TileDBBinary::list_active_row_idxs(const ColumnPartitionBatch& partitio
   }
 }
 
-bool CSV2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader)
+bool CSV2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+    bool force_seek, bool advance_reader)
 {
   auto& csv_partition_info = dynamic_cast<CSV2TileDBBinaryColumnPartition&>(partition_info);
   auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(partition_info.get_base_reader_ptr());
