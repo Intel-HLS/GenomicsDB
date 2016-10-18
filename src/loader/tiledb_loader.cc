@@ -427,7 +427,7 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
         m_lb_callset_row_idx, m_ub_callset_row_idx, true));
   //partition files
   if(m_row_based_partitioning)
-    m_vid_mapper->build_file_partitioning(idx, get_row_partition(idx));
+    m_vid_mapper->build_file_partitioning(m_idx, get_row_partition(idx));
   if(m_standalone_converter_process)
     m_vid_mapper->verify_file_partitioning();
   determine_num_callsets_owned(m_vid_mapper, true);
