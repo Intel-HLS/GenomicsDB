@@ -419,6 +419,22 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
+  std::vector<BufferReaderBase*> empty_vec;
+  common_constructor_initialization(config_filename, idx, empty_vec, lb_callset_row_idx, ub_callset_row_idx);
+}
+
+VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
+    const std::vector<BufferReaderBase*>& buffer_stream_readers,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+  : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
+{
+  common_constructor_initialization(config_filename, idx, buffer_stream_readers, lb_callset_row_idx, ub_callset_row_idx);
+}
+
+void VCF2TileDBLoader::common_constructor_initialization(const std::string& config_filename, int idx,
+    const std::vector<BufferReaderBase*>& buffer_stream_readers,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+{
 #ifdef HTSDIR
   m_converter = 0;
 #endif

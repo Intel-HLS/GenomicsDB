@@ -127,6 +127,20 @@ class FileInfo
     unsigned m_type;
 };
 
+class BufferStreamInfo
+{
+  public:
+    BufferStreamInfo(const std::string& name, const VidFileTypeEnum type_idx, const size_t buffer_capacity=10u*1024u)
+    {
+      m_name = name;
+      m_type = type_idx;
+      m_capacity = buffer_capacity;
+    }
+    VidFileTypeEnum m_type;
+    std::string m_name;
+    size_t m_capacity;
+};
+
 enum VCFFieldCombineOperationEnum
 {
   VCF_FIELD_COMBINE_OPERATION_SUM=0,
@@ -520,10 +534,38 @@ class FileBasedVidMapper : public VidMapper
       m_ub_callset_row_idx = INT64_MAX-1;
     }
     FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-        const bool callsets_file_required=true);
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool callsets_file_required=true);
+    : VidMapper()
+    {
+      std::vector<BufferStreamInfo> empty_vec;
+      common_constructor_initialization(filename,
+	  empty_vec,
+	  callset_mapping_file,
+	  lb_callset_row_idx, ub_callset_row_idx,
+	  callsets_file_required);
+    }
+    FileBasedVidMapper(const std::string& filename,
+	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+	const std::string& callset_mapping_file="",
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool callsets_file_required=true)
+      : VidMapper()
+    {
+      common_constructor_initialization(filename,
+	  buffer_stream_info_vec,
+	  callset_mapping_file,
+	  lb_callset_row_idx, ub_callset_row_idx,
+	  callsets_file_required);
+    }
   private:
-    void parse_callsets_file(const std::string& filename);
+    void common_constructor_initialization(const std::string& filename,
+	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+	const std::string& callset_mapping_file="",
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool callsets_file_required=true);
+  private:
+    void parse_callsets_file(const std::string& filename, const std::vector<BufferStreamInfo> buffer_stream_info_vec);
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
 };

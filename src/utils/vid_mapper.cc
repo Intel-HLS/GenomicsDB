@@ -335,9 +335,10 @@ void VidMapper::verify_file_partitioning() const
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
-FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
+void FileBasedVidMapper::common_constructor_initialization(const std::string& filename,
+    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+    const std::string& callset_mapping_file,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool callsets_file_required)
-  : VidMapper()
 {
   m_lb_callset_row_idx = 0;
   m_ub_callset_row_idx = INT64_MAX-1;
@@ -354,12 +355,12 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
   m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
   if(callset_mapping_file != "")
-    parse_callsets_file(callset_mapping_file);
+    parse_callsets_file(callset_mapping_file, buffer_stream_info_vec);
   else
   {
     VERIFY_OR_THROW(!callsets_file_required || (json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString()));
     if(callsets_file_required || json_doc.HasMember("callset_mapping_file"))
-      parse_callsets_file(json_doc["callset_mapping_file"].GetString());
+      parse_callsets_file(json_doc["callset_mapping_file"].GetString(), buffer_stream_info_vec);
   }
   //Contig info parsing
   VERIFY_OR_THROW(json_doc.HasMember("contigs"));
@@ -572,7 +573,7 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
   m_is_initialized = true;
 }
 
-void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
+void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const std::vector<BufferStreamInfo>& buffer_stream_info_vec)
 {
   VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
   rapidjson::Document json_doc;
@@ -697,5 +698,12 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
           m_file_idx_to_info[global_file_idx].m_type = entry.second;
       }
     }
+  }
+  for(const auto& info : buffer_stream_info_vec)
+  {
+    int64_t global_file_idx;
+    auto found = get_global_file_idx(info.m_name, global_file_idx);
+    if(found)
+      m_file_idx_to_info[global_file_idx].m_type = info.m_type;
   }
 }
