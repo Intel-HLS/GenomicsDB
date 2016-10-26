@@ -374,6 +374,19 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
   curr_exchange.m_is_serviced = true;
 }
 
+void VCF2TileDBConverter::write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx,
+    const uint8_t* data, const size_t num_bytes)
+{
+  auto local_file_idx = m_vid_mapper->get_local_file_idx_for_buffer_stream_idx(m_idx, buffer_stream_idx);
+  assert(static_cast<size_t>(local_file_idx) < m_file2binary_handlers.size());
+  auto buffer_reader_ptr = dynamic_cast<BufferReaderBase*>(m_file2binary_handlers[local_file_idx]->get_base_reader_ptr(partition_idx));
+  assert(buffer_reader_ptr);
+  buffer_reader_ptr->reset_offset();
+  buffer_reader_ptr->set_num_valid_bytes_in_buffer(0u);
+  auto num_bytes_copied = buffer_reader_ptr->append_data_and_resize_if_needed(data, num_bytes);
+  assert(num_bytes_copied == num_bytes);
+}
+
 void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream& osptr) const
 {
   auto& curr_exchange = *(m_exchanges[exchange_idx]);
@@ -538,17 +551,35 @@ void VCF2TileDBLoader::common_constructor_initialization(const std::string& conf
 #ifdef HTSDIR
 void VCF2TileDBLoader::read_all()
 {
+  VCF2TileDBLoaderReadState read_state(m_owned_exchanges.size(), m_do_ping_pong_buffering, m_offload_vcf_output_processing);
+  read_all(read_state);
+  finish_read_all(read_state);
+}
+
+void VCF2TileDBLoader::finish_read_all(const VCF2TileDBLoaderReadState& read_state)
+{
+  auto& fetch_timer = read_state.m_fetch_timer;
+  auto& load_timer = read_state.m_load_timer;
+  auto& flush_output_timer = read_state.m_flush_output_timer;
+  for(auto op : m_operators)
+    op->finish(get_column_partition_end());
+  fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
+  load_timer.print_cumulative("Combining cells", std::cerr);
+  flush_output_timer.print_cumulative("Flush output", std::cerr);
+}
+
+void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)
+{
   auto num_exchanges = m_owned_exchanges.size();
-  auto exchange_counter = num_exchanges-1u;
+  const auto num_parallel_omp_sections = read_state.m_num_parallel_omp_sections;
+  auto exchange_counter = read_state.m_exchange_counter;
   //Timers
-  Timer fetch_timer;
-  Timer load_timer;
-  Timer flush_output_timer;
-  const auto num_parallel_omp_sections = 1 + (m_do_ping_pong_buffering ? 1 : 0) +
-    (m_offload_vcf_output_processing && m_do_ping_pong_buffering ? 1 : 0);
+  auto& fetch_timer = read_state.m_fetch_timer;
+  auto& load_timer = read_state.m_load_timer;
+  auto& flush_output_timer = read_state.m_flush_output_timer;
+  auto done = false;
   while(true)
   {
-    auto done=false;
     auto fetch_exchange_counter = (exchange_counter+1u)%num_exchanges;
     auto load_exchange_counter = exchange_counter;
     //For row idx requested, reserve entries
@@ -601,12 +632,12 @@ void VCF2TileDBLoader::read_all()
       break;
     }
     exchange_counter = (exchange_counter+1u)%num_exchanges;
+    //Return to caller so that more data can be provided
+    if(m_converter->is_some_buffer_stream_exhausted())
+      break;
   }
-  for(auto op : m_operators)
-    op->finish(get_column_partition_end());
-  fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
-  load_timer.print_cumulative("Combining cells", std::cerr);
-  flush_output_timer.print_cumulative("Flush output", std::cerr);
+  read_state.m_done = done;
+  read_state.m_exchange_counter = exchange_counter;
 }
 #endif
 

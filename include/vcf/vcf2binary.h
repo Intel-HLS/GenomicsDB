@@ -176,7 +176,8 @@ class VCF2Binary : public File2TileDBBinaryBase
         bool treat_deletions_as_intervals,
         bool parallel_partitions=false, bool noupdates=true, bool close_file=false, bool discard_index=false);
     VCF2Binary(const std::string& stream_name, const std::vector<std::vector<std::string>>& vcf_fields,
-        unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
+        unsigned file_idx, const int64_t buffer_stream_idx,
+        VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
         const size_t vcf_buffer_reader_buffer_size, const bool vcf_buffer_reader_is_bcf,
         const uint8_t* vcf_buffer_reader_init_buffer, const size_t vcf_buffer_reader_init_num_valid_bytes,
         size_t max_size_per_callset,

@@ -106,6 +106,12 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
       else
         return 0u;
     }
+    size_t append_data_and_resize_if_needed(const uint8_t* src, const size_t num_bytes)
+    {
+      if(m_num_valid_bytes_in_buffer+num_bytes > m_buffer.size())
+        m_buffer.resize(m_num_valid_bytes_in_buffer+num_bytes);
+      return append_all_data(src, num_bytes);
+    }
     /*
      * Doesn't have a file pointer - so add and remove reader functions are useless
      */

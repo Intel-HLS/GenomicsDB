@@ -38,7 +38,6 @@ std::string g_tmp_scratch_dir = "/tmp";
 LineBasedTextFileReader::LineBasedTextFileReader()
   : GenomicsDBImportReaderBase(true), FileReaderBase()
 {
-  m_filename.clear();
   m_fptr = 0;
   m_line_buffer_size = 4096u;    //4KB
   m_line_buffer = new char[m_line_buffer_size];
@@ -47,7 +46,6 @@ LineBasedTextFileReader::LineBasedTextFileReader()
 
 LineBasedTextFileReader::~LineBasedTextFileReader()
 {
-  m_filename.clear();
   if(m_fptr)
     fclose(m_fptr);
   m_fptr = 0;
@@ -60,7 +58,7 @@ LineBasedTextFileReader::~LineBasedTextFileReader()
 
 void LineBasedTextFileReader::initialize(const char* filename, bool open_file)
 {
-  m_filename = filename;
+  m_name = filename;
   add_reader();
   if(!open_file)
   {
@@ -73,9 +71,9 @@ void LineBasedTextFileReader::add_reader()
 {
   if(m_fptr)
     return;
-  m_fptr = fopen(m_filename.c_str(), "r");
+  m_fptr = fopen(m_name.c_str(), "r");
   if(m_fptr == 0)
-    throw LineBasedTextFileException(std::string("Could not open file: ")+m_filename);
+    throw LineBasedTextFileException(std::string("Could not open file: ")+m_name);
 }
 
 void LineBasedTextFileReader::remove_reader()

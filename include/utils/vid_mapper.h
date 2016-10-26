@@ -559,7 +559,7 @@ class FileBasedVidMapper : public VidMapper
     }
     FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
 	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-	const bool callsets_file_required=true);
+	const bool callsets_file_required=true)
     : VidMapper()
     {
       std::vector<BufferStreamInfo> empty_vec;
@@ -589,7 +589,7 @@ class FileBasedVidMapper : public VidMapper
 	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
 	const bool callsets_file_required=true);
   private:
-    void parse_callsets_file(const std::string& filename, const std::vector<BufferStreamInfo> buffer_stream_info_vec);
+    void parse_callsets_file(const std::string& filename, const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
 };
