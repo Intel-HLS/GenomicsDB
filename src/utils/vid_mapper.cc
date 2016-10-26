@@ -77,6 +77,7 @@ void VidMapper::clear()
   m_contig_end_2_idx.clear();
   m_field_name_to_idx.clear();
   m_field_idx_to_info.clear();
+  m_buffer_stream_idx_to_global_file_idx.clear();
   m_owner_idx_to_file_idx_vec.clear();
 }
 
@@ -308,7 +309,8 @@ void VidMapper::sort_and_assign_local_file_idxs_for_partition(const int owner_id
   {
     auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][i];
     assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
-    m_file_idx_to_info[global_file_idx].m_local_file_idx = i;
+    auto& curr_file_info = m_file_idx_to_info[global_file_idx];
+    curr_file_info.m_local_file_idx = i;
   }
 }
 
@@ -615,9 +617,11 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
       int64_t file_idx = -1;
       //idx in file
       auto idx_in_file = 0ll;
-      if(row_idx >= m_lb_callset_row_idx && callset_info_dict.HasMember("filename"))
+      if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
       {
-        std::string filename = std::move(callset_info_dict["filename"].GetString());
+        std::string filename = callset_info_dict.HasMember("filename")
+          ? std::move(callset_info_dict["filename"].GetString())
+          : std::move(callset_info_dict["stream_name"].GetString());
         auto iter = m_filename_to_idx.find(filename);
         if(iter == m_filename_to_idx.end())
         {
@@ -683,6 +687,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
         {"sorted_csv_files", VidFileTypeEnum::SORTED_CSV_FILE_TYPE },
         {"unsorted_csv_files", VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE },
         {"vcf_buffer_streams", VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE },
+        {"bcf_buffer_streams", VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE }
         }))
   {
     if(json_doc.HasMember(entry.first.c_str()))
@@ -699,11 +704,22 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
       }
     }
   }
-  for(const auto& info : buffer_stream_info_vec)
+  //For buffer streams
+  m_buffer_stream_idx_to_global_file_idx.resize(buffer_stream_info_vec.size(), -1);
+  for(auto i=0ull;i<buffer_stream_info_vec.size();++i)
   {
+    const auto& info = buffer_stream_info_vec[i];
     int64_t global_file_idx;
     auto found = get_global_file_idx(info.m_name, global_file_idx);
     if(found)
-      m_file_idx_to_info[global_file_idx].m_type = info.m_type;
+    {
+      auto& curr_file_info = m_file_idx_to_info[global_file_idx];
+      curr_file_info.m_type = info.m_type;
+      curr_file_info.m_buffer_stream_idx = i;
+      curr_file_info.m_buffer_capacity = info.m_buffer_capacity;
+      curr_file_info.m_initialization_buffer = info.m_initialization_buffer;
+      curr_file_info.m_initialization_buffer_num_valid_bytes = info.m_initialization_buffer_num_valid_bytes;
+      m_buffer_stream_idx_to_global_file_idx[i] = global_file_idx;
+    }
   }
 }

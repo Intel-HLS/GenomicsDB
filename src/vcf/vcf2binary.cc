@@ -32,7 +32,7 @@ void VCFReaderBase::initialize(const char* filename,
     const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file)
 {
   assert(m_hdr);
-  m_filename = std::move(std::string(filename));
+  m_name = std::move(std::string(filename));
   //Add lines in the header for fields that are missing in the VCF, but requested in the input config JSON file
   for(auto field_type_idx=BCF_HL_FLT;field_type_idx<=BCF_HL_FMT;++field_type_idx)
   {
@@ -143,8 +143,8 @@ void VCFReader::add_reader()
 {
   assert(m_indexed_reader->nreaders == 0);      //no existing files are open
   assert(m_fptr == 0);  //normal file handle should be NULL
-  if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
-    throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
+  if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
+    throw VCF2BinaryException(std::string("Could not open file ")+m_name+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
 }
 
 void VCFReader::remove_reader()
@@ -168,8 +168,8 @@ void VCFReader::seek_read_advance(const char* contig, const int pos, bool discar
     m_fptr = 0;
   }
   if(m_indexed_reader->nreaders == 0)        //index not loaded
-    if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
-      throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
+    if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
+      throw VCF2BinaryException(std::string("Could not open file ")+m_name+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
   assert(m_indexed_reader->nreaders == 1);
   bcf_sr_seek(m_indexed_reader, contig, pos);
   //Only read 1 record at a time
@@ -242,6 +242,7 @@ VCFColumnPartition::~VCFColumnPartition()
 }
 
 //VCF2Binary functions
+//For VCF files
 VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
     unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
     size_t max_size_per_callset,
@@ -265,16 +266,18 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
 
 //For VCFBufferReader
 VCF2Binary::VCF2Binary(const std::string& stream_name, const std::vector<std::vector<std::string>>& vcf_fields,
-        unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
+        unsigned file_idx, const int64_t buffer_stream_idx,
+        VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
         const size_t vcf_buffer_reader_buffer_size, const bool vcf_buffer_reader_is_bcf,
         const uint8_t* vcf_buffer_reader_init_buffer, const size_t vcf_buffer_reader_init_num_valid_bytes,
         size_t max_size_per_callset,
-        bool treat_deletions_as_intervals,
-        bool parallel_partitions)
-  : File2TileDBBinaryBase(stream_name, file_idx, vid_mapper,
+        bool treat_deletions_as_intervals)
+  : File2TileDBBinaryBase(stream_name,
+      file_idx, buffer_stream_idx,
+      vid_mapper,
       max_size_per_callset,
       treat_deletions_as_intervals,
-      parallel_partitions, true, false)
+      true, true, false) //must use parallel partitions for buffered reader
 {
   clear();
   m_vcf_fields = &vcf_fields;
@@ -381,7 +384,7 @@ bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2Til
 {
   auto buffer_full = false;
   auto& vcf_partition = dynamic_cast<VCFColumnPartition&>(partition_info);
-  //Cast to VCFReader
+  //Cast to VCFReaderBase
   auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(partition_info.get_base_reader_ptr());
   assert(vcf_reader_ptr);
   auto* line = vcf_reader_ptr->get_line();
@@ -465,8 +468,7 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
     }
     //read buffer done
     is_read_buffer_exhausted = !(vcf_reader_ptr->contains_unread_data());
-    //Valid line found or there was valid data in the read buffer and it got exhausted 
-    if(vcf_reader_ptr->get_line() || vcf_reader_ptr->get_offset() > 0u)
+    if(vcf_reader_ptr->get_line())
       return true;
     else
       return false; //no valid line and the buffer had no valid data at all, this stream is done

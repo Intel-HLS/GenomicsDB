@@ -82,7 +82,6 @@ class LineBasedTextFileReader : public FileReaderBase
     inline const char* get_line() const { return m_is_record_valid ? m_line_buffer : 0; }
     inline size_t get_line_length() const  { return m_is_record_valid ? m_line_length : 0ull; }
   private:
-    std::string m_filename;
     FILE* m_fptr;
     char* m_line_buffer;
     size_t m_line_buffer_size;

@@ -170,6 +170,8 @@ VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int
   m_max_size_per_callset = m_per_partition_size/m_num_callsets_owned;
   initialize_file2binary_objects();
   initialize_column_batch_objects();
+  //Increase capacity to maximum once
+  m_exhausted_buffer_stream_identifiers.reserve(m_file2binary_handlers.size()*m_partition_batch.size());
   //For standalone converter objects, allocate ping-pong buffers and exchange objects
   if(m_standalone_converter_process)
   {
@@ -200,6 +202,7 @@ void VCF2TileDBConverter::clear()
   m_partition_batch.clear();
   m_vcf_fields.clear();
   m_file2binary_handlers.clear();
+  m_exhausted_buffer_stream_identifiers.clear();
   m_exchanges.clear();
 }
 
@@ -217,6 +220,20 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
             m_treat_deletions_as_intervals,
             false, false, false, m_discard_vcf_index
             ));
+      break;
+    case VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE:
+    case VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE:
+      assert(file_info.m_buffer_stream_idx >= 0);
+      file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new VCF2Binary(
+            file_info.m_name, m_vcf_fields,
+            local_file_idx, file_info.m_buffer_stream_idx,
+            *m_vid_mapper,
+            partition_bounds,
+            file_info.m_buffer_capacity, (file_info.m_type == VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE),
+            &(file_info.m_initialization_buffer[0]), file_info.m_initialization_buffer_num_valid_bytes,
+            m_max_size_per_callset,
+            m_treat_deletions_as_intervals
+          ));
       break;
     case VidFileTypeEnum::SORTED_CSV_FILE_TYPE:
     case VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE:
@@ -249,6 +266,7 @@ void VCF2TileDBConverter::initialize_file2binary_objects()
     for(auto i=0ull;i<global_file_idx_vec.size();++i)
     {
       auto global_file_idx = global_file_idx_vec[i];
+      assert(static_cast<size_t>(m_vid_mapper->get_file_info(global_file_idx).m_local_file_idx) == i);
       m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(global_file_idx), i, partition_bounds));
     }
   }
@@ -334,6 +352,8 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
     }
     else
       curr_exchange.m_all_num_tiledb_row_idx_vec_response[partition_idx] = 0ull;
+  size_t num_exhausted_buffer_streams = 0u;
+  m_exhausted_buffer_stream_identifiers.resize(m_exhausted_buffer_stream_identifiers.capacity());
   //Set upper bound on #files to process in parallel
 #pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files)
   for(auto i=0u;i<m_file2binary_handlers.size();++i)
@@ -341,8 +361,12 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
     //#pragma omp critical
     //std::cerr << "Thread id "<<omp_get_thread_num()<<" level "<<omp_get_active_level()<<"\n";
     //Also advances circular buffer idx
-    m_file2binary_handlers[i]->read_next_batch(m_cell_data_buffers, m_partition_batch, false);
+    m_file2binary_handlers[i]->read_next_batch(m_cell_data_buffers, m_partition_batch,
+        m_exhausted_buffer_stream_identifiers, num_exhausted_buffer_streams,
+        false);
   }
+  //No re-allocation as capacity doesn't change
+  m_exhausted_buffer_stream_identifiers.resize(num_exhausted_buffer_streams);
   //For non-standalone converter processes, must simply advance read idx
   if(!m_standalone_converter_process)
     for(auto& partition_batch : m_partition_batch)
@@ -419,27 +443,28 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
-  std::vector<BufferReaderBase*> empty_vec;
+  std::vector<BufferStreamInfo> empty_vec;
   common_constructor_initialization(config_filename, idx, empty_vec, lb_callset_row_idx, ub_callset_row_idx);
 }
 
 VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
-    const std::vector<BufferReaderBase*>& buffer_stream_readers,
+    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
-  common_constructor_initialization(config_filename, idx, buffer_stream_readers, lb_callset_row_idx, ub_callset_row_idx);
+  common_constructor_initialization(config_filename, idx, buffer_stream_info_vec, lb_callset_row_idx, ub_callset_row_idx);
 }
 
 void VCF2TileDBLoader::common_constructor_initialization(const std::string& config_filename, int idx,
-    const std::vector<BufferReaderBase*>& buffer_stream_readers,
+    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
 {
 #ifdef HTSDIR
   m_converter = 0;
 #endif
   clear();
-  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
+  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, buffer_stream_info_vec,
+        m_callset_mapping_file,
         m_lb_callset_row_idx, m_ub_callset_row_idx, true));
   //partition files
   if(m_row_based_partitioning)

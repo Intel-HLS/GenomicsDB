@@ -156,6 +156,9 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     }
     inline size_t get_num_order_values() const { return m_order_to_designated_tiledb_row_idx.size(); }
     void create_and_print_histogram(const std::string& config_filename, std::ostream& fptr=std::cout);
+    //Relevant for buffer streams
+    bool is_some_buffer_stream_exhausted() const  { return (m_exhausted_buffer_stream_identifiers.size() > 0u); }
+    const std::vector<BufferStreamIdentifier>& get_exhausted_buffer_stream_identifiers() const { return m_exhausted_buffer_stream_identifiers; }
   private:
     void clear();
     void initialize_column_batch_objects();
@@ -170,6 +173,9 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     std::vector<std::vector<std::string>> m_vcf_fields;
     //One per VCF file
     std::vector<File2TileDBBinaryBase*> m_file2binary_handlers;
+    //Exhausted buffer identifiers - determine buffers which are empty and for which the caller must supply more data
+    //Capacity = #partitions*#owned_files
+    std::vector<BufferStreamIdentifier> m_exhausted_buffer_stream_identifiers;
     //Multiple row_idx could point to the same order
     //Ordering of TileDB row idx for this converter - determined by the order of m_file2binary_handlers
     std::vector<int64_t> m_tiledb_row_idx_to_order;
@@ -215,6 +221,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
   public:
     VCF2TileDBLoader(const std::string& config_filename, int idx,
+        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoader(const std::string& config_filename, int idx,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
         const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
@@ -276,6 +285,18 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       return get_order_for_row_idx(row_idx)*m_max_size_per_callset;
     }
     /*
+     * Return BufferReaderBase corresponding to stream name - used by caller code that
+     * can fill BufferReaderBase with more data
+     */
+    inline BufferReaderBase* get_buffer_reader_for_stream(const std::string& stream_name, const unsigned column_partition_idx)
+    {
+#ifdef HTSDIR
+      return m_standalone_converter_process ? 0 : m_converter->get_buffer_reader_for_stream(stream_name, column_partition_idx);
+#else
+      return 0;
+#endif
+    }
+    /*
      * Debug dumper
      * Return true if no more data available
      */
@@ -284,6 +305,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
   private:
+    void common_constructor_initialization(const std::string& config_filename, int idx,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+        const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members

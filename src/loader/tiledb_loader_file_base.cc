@@ -28,7 +28,7 @@ File2TileDBBinaryColumnPartitionBase::~File2TileDBBinaryColumnPartitionBase()
 }
 
 void File2TileDBBinaryColumnPartitionBase::initialize_base_class_members(const int64_t begin, const int64_t end,
-    const uint64_t num_enabled_callsets, FileReaderBase* reader_ptr)
+    const uint64_t num_enabled_callsets, GenomicsDBImportReaderBase* reader_ptr)
 {
   m_column_interval_begin = begin;
   m_column_interval_end = end;
@@ -199,13 +199,15 @@ bool File2TileDBBinaryBase::tiledb_buffer_print_null<double>(std::vector<uint8_t
 
 //Constructor
 File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
-    unsigned file_idx, VidMapper& vid_mapper,
+    unsigned file_idx, const int64_t buffer_stream_idx,
+    VidMapper& vid_mapper,
     size_t max_size_per_callset,
     bool treat_deletions_as_intervals,
     bool parallel_partitions, bool noupdates, bool close_file)
 {
   m_filename = filename;
   m_file_idx = file_idx;
+  m_buffer_stream_idx = buffer_stream_idx;
   m_vid_mapper = &(vid_mapper);
   m_max_size_per_callset = max_size_per_callset;
   m_treat_deletions_as_intervals = treat_deletions_as_intervals;
@@ -255,6 +257,7 @@ void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& oth
   m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
   m_get_data_from_file = other.m_get_data_from_file;
   m_file_idx = other.m_file_idx;
+  m_buffer_stream_idx = other.m_buffer_stream_idx;
   m_max_size_per_callset = other.m_max_size_per_callset;
 }
 
@@ -303,7 +306,9 @@ void File2TileDBBinaryBase::clear()
 }
 
 void File2TileDBBinaryBase::read_next_batch(std::vector<std::vector<uint8_t>*>& buffer_vec,
-    std::vector<ColumnPartitionBatch>& partition_batches, bool close_file)
+    std::vector<ColumnPartitionBatch>& partition_batches,
+    std::vector<BufferStreamIdentifier>& exhausted_buffer_stream_identifiers, size_t& num_exhausted_buffer_streams,
+    bool close_file)
 {
   if(m_parallel_partitions)
   {
@@ -313,7 +318,9 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<std::vector<uint8_t>*>& 
       auto& curr_file_batch = partition_batches[partition_idx].get_partition_file_batch(m_file_idx);
       assert(static_cast<size_t>(curr_file_batch.get_buffer_idx()) < buffer_vec.size());
       read_next_batch(*(buffer_vec[curr_file_batch.get_buffer_idx()]), *(m_base_partition_ptrs[partition_idx]),
-          curr_file_batch, close_file);
+          curr_file_batch, partition_idx,
+          exhausted_buffer_stream_identifiers, num_exhausted_buffer_streams,
+          close_file);
     }
   }
   else
@@ -326,7 +333,9 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<std::vector<uint8_t>*>& 
       auto& curr_file_batch = partition_batches[partition_idx].get_partition_file_batch(m_file_idx);
       assert(static_cast<size_t>(curr_file_batch.get_buffer_idx()) < buffer_vec.size());
       read_next_batch(*(buffer_vec[curr_file_batch.get_buffer_idx()]), *(m_base_partition_ptrs[partition_idx]),
-          curr_file_batch, close_file);
+          curr_file_batch, partition_idx,
+          exhausted_buffer_stream_identifiers, num_exhausted_buffer_streams,
+          close_file);
     }
     //Close file handles if needed
     if(close_file)
@@ -337,7 +346,9 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<std::vector<uint8_t>*>& 
 
 void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
     File2TileDBBinaryColumnPartitionBase& partition_info,
-    ColumnPartitionFileBatch& partition_file_batch, bool close_file)
+    ColumnPartitionFileBatch& partition_file_batch, const unsigned partition_idx,
+    std::vector<BufferStreamIdentifier>& exhausted_buffer_stream_identifiers, size_t& num_exhausted_buffer_streams,
+    bool close_file)
 {
   //Nothing to do
   if(!partition_file_batch.m_fetch || partition_file_batch.m_completed)
@@ -363,16 +374,23 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
   for(auto i=0ull;i<partition_info.m_buffer_full_for_local_callset.size();++i)
     partition_info.m_buffer_full_for_local_callset[i] = false;
   partition_info.m_buffer_ptr = &(buffer);
-  while(has_data && !is_read_buffer_exhausted && !buffer_full)
+  while(has_data && !buffer_full)
   {
     buffer_full = convert_record_to_binary(buffer, partition_info);
     if(!buffer_full)
     {
-      has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, false, true);  //no need to re-seek, use next_line() directly, advance file pointer
       //Store buffer offsets at the beginning of the line
       for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
         partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i] = partition_info.m_buffer_offset_for_local_callset[i];
       read_one_line_fully = true;
+      //For buffered readers, if the read buffer is empty return control to caller
+      if(is_read_buffer_exhausted)
+      {
+        assert(m_buffer_stream_idx >= 0); //must be valid buffer stream
+        exhausted_buffer_stream_identifiers[num_exhausted_buffer_streams++] = std::move(BufferStreamIdentifier(m_buffer_stream_idx, partition_idx));
+        break;
+      }
+      has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, false, true);  //no need to re-seek, use next_line() directly, advance file pointer
     }
     else
       VERIFY_OR_THROW(read_one_line_fully && "Buffer did not have space to hold a line fully - increase buffer size")

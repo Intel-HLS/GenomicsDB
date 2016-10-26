@@ -72,7 +72,6 @@ class VCFReaderBase : public virtual GenomicsDBImportReaderBase
     bcf_hdr_t* get_header() { return m_hdr; }
     bcf1_t* get_line() { return m_is_record_valid ? m_line : 0; }
   protected:
-    std::string m_filename;
     bcf_hdr_t* m_hdr;
     bcf1_t* m_line;
 };
@@ -181,8 +180,7 @@ class VCF2Binary : public File2TileDBBinaryBase
         const size_t vcf_buffer_reader_buffer_size, const bool vcf_buffer_reader_is_bcf,
         const uint8_t* vcf_buffer_reader_init_buffer, const size_t vcf_buffer_reader_init_num_valid_bytes,
         size_t max_size_per_callset,
-        bool treat_deletions_as_intervals,
-        bool parallel_partitions=false);
+        bool treat_deletions_as_intervals);
     //Delete default copy constructor as it is incorrect
     VCF2Binary(const VCF2Binary& other) = delete;
     //Define move constructor explicitly

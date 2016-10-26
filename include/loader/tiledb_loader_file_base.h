@@ -49,6 +49,7 @@ class GenomicsDBImportReaderBase
   protected:
     bool m_is_record_valid;
     bool m_is_file_reader;
+    std::string m_name;
 };
 
 //File I/O
@@ -80,6 +81,31 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
     void set_num_valid_bytes_in_buffer(const size_t val) { m_num_valid_bytes_in_buffer = val; }
     inline bool contains_unread_data() const { return m_offset < m_num_valid_bytes_in_buffer; }
     std::vector<uint8_t>& get_buffer() { return m_buffer; }
+    /*
+     * Returns number of bytes that could be copied
+     */
+    size_t append_data(const uint8_t* src, const size_t num_bytes)
+    {
+      auto num_bytes_to_copy = std::min<size_t>(num_bytes, m_buffer.size()-m_num_valid_bytes_in_buffer);
+      memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes_to_copy);
+      m_num_valid_bytes_in_buffer += num_bytes_to_copy;
+      return num_bytes_to_copy;
+    }
+    /*
+     * If all the data cannot be appended, don't append at all
+     * Returns number of bytes that could be appended
+     */
+    size_t append_all_data(const uint8_t* src, const size_t num_bytes)
+    {
+      if(num_bytes <= (m_buffer.size()-m_num_valid_bytes_in_buffer))
+      {
+        memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes);
+        m_num_valid_bytes_in_buffer += num_bytes;
+        return num_bytes;
+      }
+      else
+        return 0u;
+    }
     /*
      * Doesn't have a file pointer - so add and remove reader functions are useless
      */
@@ -113,8 +139,8 @@ class File2TileDBBinaryColumnPartitionBase
     //Define move constructor
     File2TileDBBinaryColumnPartitionBase(File2TileDBBinaryColumnPartitionBase&& other);
     void initialize_base_class_members(const int64_t begin, const int64_t end,
-        const uint64_t num_enabled_callsets, FileReaderBase* ptr);
-    FileReaderBase* get_base_reader_ptr() { return m_base_reader_ptr; }
+        const uint64_t num_enabled_callsets, GenomicsDBImportReaderBase* ptr);
+    GenomicsDBImportReaderBase* get_base_reader_ptr() { return m_base_reader_ptr; }
     /*
      * Buffer control access functions
      */
@@ -156,8 +182,11 @@ class File2TileDBBinaryColumnPartitionBase
     std::vector<bool> m_buffer_full_for_local_callset;
     //Pointer to buffer
     std::vector<uint8_t>* m_buffer_ptr;
-    FileReaderBase* m_base_reader_ptr;
+    GenomicsDBImportReaderBase* m_base_reader_ptr;
 };
+
+//Buffer stream idx, partition idx
+typedef std::pair<int64_t, unsigned> BufferStreamIdentifier;
 
 /*
  * Base class for all instances of objects that convert file formats for importing
@@ -168,6 +197,19 @@ class File2TileDBBinaryBase
   public:
     File2TileDBBinaryBase(const std::string& filename,
         unsigned file_idx, VidMapper& vid_mapper,
+        size_t max_size_per_callset,
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false)
+      : File2TileDBBinaryBase(filename,
+          file_idx, -1,
+          vid_mapper,
+          max_size_per_callset,
+          treat_deletions_as_intervals,
+          parallel_partitions, noupdates, close_file)
+    {}
+    File2TileDBBinaryBase(const std::string& filename,
+        unsigned file_idx, const int64_t buffer_stream_idx,
+        VidMapper& vid_mapper,
         size_t max_size_per_callset,
         bool treat_deletions_as_intervals,
         bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
@@ -190,9 +232,13 @@ class File2TileDBBinaryBase
     /*
      * */
     void read_next_batch(std::vector<std::vector<uint8_t>*>& buffer_vec,
-        std::vector<ColumnPartitionBatch>& partition_batches, bool close_file);
+        std::vector<ColumnPartitionBatch>& partition_batches,
+        std::vector<BufferStreamIdentifier>& exhausted_buffer_stream_identifiers, size_t& num_exhausted_buffer_streams,
+        bool close_file);
     void read_next_batch(std::vector<uint8_t>& buffer,File2TileDBBinaryColumnPartitionBase& partition_info,
-        ColumnPartitionFileBatch& partition_file_batch, bool close_file);
+        ColumnPartitionFileBatch& partition_file_batch, const unsigned partition_idx,
+        std::vector<BufferStreamIdentifier>& exhausted_buffer_stream_identifiers, size_t& num_exhausted_buffer_streams,
+        bool close_file);
     /*
      * Printer
      */
@@ -208,6 +254,11 @@ class File2TileDBBinaryBase
      */
     void create_histogram(uint64_t max_histogram_range, unsigned num_bins);
     UniformHistogram* get_histogram() { return m_histogram; }
+    GenomicsDBImportReaderBase* get_base_reader_ptr(const unsigned column_partition_idx)
+    {
+      assert(column_partition_idx < m_base_partition_ptrs.size());
+      return m_base_partition_ptrs[column_partition_idx]->get_base_reader_ptr();
+    }
     //Functions that must be over-ridden by all sub-classes
     /*
      * Initialization of column partitions by sub class
@@ -249,6 +300,7 @@ class File2TileDBBinaryBase
     bool m_get_data_from_file;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
+    int64_t m_buffer_stream_idx;
     size_t m_max_size_per_callset;
     std::string m_filename;
     //Local callset idx to tiledb row idx
