@@ -94,6 +94,8 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
     m_scan_whole_array = true;
   else
   {
+    VERIFY_OR_THROW(!(m_json.HasMember("row_partitions") && m_json.HasMember("column_partitions"))
+        && "Cannot have both \"row_partitions\" and \"column_partitions\" simultaneously in the JSON file");
     VERIFY_OR_THROW((m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions") ||
       m_json.HasMember("query_row_ranges") || m_json.HasMember("row_partitions")) &&
       "Must have one of \"query_column_ranges\" or \"column_partitions\" or \"query_row_ranges\" or \"row_partitions\"");
