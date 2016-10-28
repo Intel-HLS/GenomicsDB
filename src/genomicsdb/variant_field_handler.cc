@@ -66,9 +66,16 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
     }
     assert(!alt_alleles_only || input_j_allele > 0u);   //if only ALT alleles are used, then input_j_allele must be non-0
     auto input_j = alt_alleles_only ? input_j_allele-1u : input_j_allele;
-    *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = 
-      input_data[input_j];
-    ++(num_calls_with_valid_data[j]);
+    //Input data could have been truncated due to missing values - if so, put missing value
+    if(static_cast<size_t>(input_j) >= input_data.size())
+      *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) = missing_value;
+    else
+    {
+      *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, j))) =
+        input_data[input_j];
+      if(is_bcf_valid_value<DataType>(input_data[input_j]))
+        ++(num_calls_with_valid_data[j]);
+    }
   }
 }
 /*
@@ -124,9 +131,17 @@ void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType
 	else //input has NON_REF, use its idx
 	  input_k_allele = input_non_reference_allele_idx;
       }
-      *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) = 
-        input_data[bcf_alleles2gt(input_j_allele, input_k_allele)];
-      ++(num_calls_with_valid_data[gt_idx]);
+      auto input_gt_idx = (bcf_alleles2gt(input_j_allele, input_k_allele));
+      //Input data could have been truncated due to missing values - if so, put missing value
+      if(static_cast<size_t>(input_gt_idx) >= input_data.size())
+        *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) = (missing_value);
+      else
+      {
+        *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) =
+          input_data[input_gt_idx];
+        if(is_bcf_valid_value<DataType>(input_data[input_gt_idx]))
+          ++(num_calls_with_valid_data[gt_idx]);
+      }
     }
   }
 }
