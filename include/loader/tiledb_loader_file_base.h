@@ -86,6 +86,8 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
      */
     size_t append_data(const uint8_t* src, const size_t num_bytes)
     {
+      if(src == 0)
+        return 0u;
       auto num_bytes_to_copy = std::min<size_t>(num_bytes, m_buffer.size()-m_num_valid_bytes_in_buffer);
       memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes_to_copy);
       m_num_valid_bytes_in_buffer += num_bytes_to_copy;
@@ -97,6 +99,8 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
      */
     size_t append_all_data(const uint8_t* src, const size_t num_bytes)
     {
+      if(src == 0)
+        return 0u;
       if(num_bytes <= (m_buffer.size()-m_num_valid_bytes_in_buffer))
       {
         memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes);
@@ -108,6 +112,8 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
     }
     size_t append_data_and_resize_if_needed(const uint8_t* src, const size_t num_bytes)
     {
+      if(src == 0)
+        return 0u;
       if(m_num_valid_bytes_in_buffer+num_bytes > m_buffer.size())
         m_buffer.resize(m_num_valid_bytes_in_buffer+num_bytes);
       return append_all_data(src, num_bytes);

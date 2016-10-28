@@ -157,6 +157,7 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     inline size_t get_num_order_values() const { return m_order_to_designated_tiledb_row_idx.size(); }
     void create_and_print_histogram(const std::string& config_filename, std::ostream& fptr=std::cout);
     //Relevant for buffer streams
+    size_t get_max_num_buffer_stream_identifiers() const { return m_exhausted_buffer_stream_identifiers.capacity(); }
     bool is_some_buffer_stream_exhausted() const  { return (m_exhausted_buffer_stream_identifiers.size() > 0u); }
     const std::vector<BufferStreamIdentifier>& get_exhausted_buffer_stream_identifiers() const { return m_exhausted_buffer_stream_identifiers; }
     /*
@@ -232,6 +233,7 @@ class VCF2TileDBLoaderReadState
       m_num_parallel_omp_sections = 1 + (do_ping_pong_buffering ? 1 : 0) +
         (offload_vcf_output_processing && do_ping_pong_buffering ? 1 : 0);
     }
+    bool is_done() const { return m_done; }
   private:
     bool m_done;
     size_t m_exchange_counter;
@@ -277,10 +279,27 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
      * of all VCF files
      */
     void read_all();
+    /*
+     * Construct a read state object
+     * Caller is responsible for calling delete
+     */
+    VCF2TileDBLoaderReadState* construct_read_state_object() const
+    {
+      return new VCF2TileDBLoaderReadState(m_owned_exchanges.size(), m_do_ping_pong_buffering, m_offload_vcf_output_processing);
+    }
+    /*
+     * Used when buffered streams are included in the load stage
+     */
     void read_all(VCF2TileDBLoaderReadState& read_state);
     void finish_read_all(const VCF2TileDBLoaderReadState& read_state);
 #endif
     //For buffer streams
+    size_t get_max_num_buffer_stream_identifiers() const
+    {
+#ifdef HTSDIR
+      return m_converter->get_max_num_buffer_stream_identifiers();
+#endif
+    }
     /*
      * Get buffer stream identifiers that are exhausted - used by caller to provide more data
      */

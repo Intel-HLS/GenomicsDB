@@ -217,7 +217,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    tiledb_loader_text_file.cc \
 			    genomicsdb_bcf_generator.cc \
                             timer.cc \
-			    memory_measure.cc
+			    memory_measure.cc \
+			    genomicsdb_importer.cc
 
 ifdef BUILD_JAVA
     GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
