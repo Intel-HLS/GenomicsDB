@@ -574,7 +574,8 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           auto& input_GT =
             curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
           m_spanning_deletion_remapped_GT.resize(input_GT.size());
-          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant);
+          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
+              num_reduced_alleles, has_NON_REF);
           //Copy back
           memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
         }

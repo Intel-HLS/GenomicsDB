@@ -230,7 +230,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
    Remaps GT field
  */
 void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
-    const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx)
+    const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx, const unsigned num_merged_alleles, const bool NON_REF_exists)
 {
   assert(input_GT.size() == output_GT.size());
   for(auto i=0u;i<input_GT.size();++i)
@@ -240,8 +240,18 @@ void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::ve
     else
     {
       auto output_allele_idx = alleles_LUT.get_merged_idx_for_input(input_call_idx, input_GT[i]);
-      assert(!alleles_LUT.is_missing_value(output_allele_idx));
-      output_GT[i] = output_allele_idx;
+      if(alleles_LUT.is_missing_value(output_allele_idx))
+      {
+        if(NON_REF_exists)
+        {
+          assert(num_merged_alleles >= 2u);
+          output_GT[i] = num_merged_alleles-1u;
+        }
+        else
+          output_GT[i] = -1; //missing allele idx
+      }
+      else
+        output_GT[i] = output_allele_idx;
     }
   }
 }
@@ -487,7 +497,8 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
             variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
           auto& output_GT = 
             remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
-          VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant);
+          VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant,
+              num_merged_alleles, m_NON_REF_exists);
         }
       }
     }
