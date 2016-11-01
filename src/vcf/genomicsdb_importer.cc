@@ -57,8 +57,12 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other)
   //Move-in members
   m_loader_config_file = std::move(other.m_loader_config_file);
   m_buffer_stream_info_vec = std::move(other.m_buffer_stream_info_vec);
+  if(m_loader_ptr)
+    delete m_loader_ptr;
   m_loader_ptr = other.m_loader_ptr;
   other.m_loader_ptr = 0;
+  if(m_read_state)
+    delete m_read_state;
   m_read_state = other.m_read_state;
   other.m_read_state = 0;
 }
@@ -79,8 +83,9 @@ void GenomicsDBImporter::setup_loader()
 {
   if(m_is_loader_setup) //already setup
     return;
-  m_loader_ptr = new VCF2TileDBLoader(m_loader_config_file, m_rank,
-      m_buffer_stream_info_vec, m_lb_callset_row_idx, m_ub_callset_row_idx);
+  m_loader_ptr = new VCF2TileDBLoader(m_loader_config_file,
+      m_buffer_stream_info_vec,
+      m_rank, m_lb_callset_row_idx, m_ub_callset_row_idx);
   m_read_state = m_loader_ptr->construct_read_state_object();
   m_is_loader_setup = true;
 }

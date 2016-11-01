@@ -460,9 +460,9 @@ VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
   common_constructor_initialization(config_filename, idx, empty_vec, lb_callset_row_idx, ub_callset_row_idx);
 }
 
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
+VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename,
     const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+    int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
   common_constructor_initialization(config_filename, idx, buffer_stream_info_vec, lb_callset_row_idx, ub_callset_row_idx);

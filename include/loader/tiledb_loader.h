@@ -250,9 +250,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
   public:
     VCF2TileDBLoader(const std::string& config_filename, int idx,
         const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
-    VCF2TileDBLoader(const std::string& config_filename, int idx,
+    VCF2TileDBLoader(const std::string& config_filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+        int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor

@@ -235,7 +235,8 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    example_libtiledb_variant_driver.cc \
 			    vcf_histogram.cc \
 			    gt_mpi_gather.cc \
-			    test_genomicsdb_bcf_generator.cc
+			    test_genomicsdb_bcf_generator.cc \
+			    test_genomicsdb_importer.cc
 
 ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 

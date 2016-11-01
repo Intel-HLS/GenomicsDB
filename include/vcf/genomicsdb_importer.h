@@ -75,6 +75,8 @@ class GenomicsDBImporter
      */
     void write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx, const uint8_t* data, const size_t num_bytes)
     {
+      if(!m_is_loader_setup)
+        throw GenomicsDBImporterException("Cannot write data to buffer stream in the GenomicsDBImporter without calling setup_loader() first");
       assert(m_loader_ptr);
       m_loader_ptr->write_data_to_buffer_stream(buffer_stream_idx, partition_idx, data, num_bytes);
     }
