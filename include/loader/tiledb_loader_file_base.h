@@ -281,9 +281,9 @@ class File2TileDBBinaryBase
      */
     virtual File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const = 0;
     /*
-     * Create the subclass of FileReaderBase that must be used
+     * Create the subclass of GenomicsDBImportReaderBase that must be used
      */
-    virtual FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const = 0;
+    virtual GenomicsDBImportReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const = 0;
     /*
      * Convert current record to TileDB binary in the buffer
      */
@@ -322,7 +322,7 @@ class File2TileDBBinaryBase
     //Local callset idx to enabled idx
     std::vector<int64_t> m_local_callset_idx_to_enabled_idx;
     //Reader
-    FileReaderBase* m_base_reader_ptr;
+    GenomicsDBImportReaderBase* m_base_reader_ptr;
     //Partition read state - pointers to objects of sub-classes of File2TileDBBinaryColumnPartitionBase
     //Must be initialized by sub-classes of File2TileDBBinaryBase
     std::vector<File2TileDBBinaryColumnPartitionBase*> m_base_partition_ptrs;

@@ -214,7 +214,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_parallel_partitions = parallel_partitions;
   m_noupdates = noupdates;
   m_close_file = close_file;
-  m_get_data_from_file = true; //by default, data is obtained from a file
+  m_get_data_from_file = (buffer_stream_idx < 0) ? true : false;
   //Callset mapping
   vid_mapper.get_local_tiledb_row_idx_vec(filename, m_local_callset_idx_to_tiledb_row_idx);
   m_local_callset_idx_to_enabled_idx.resize(m_local_callset_idx_to_tiledb_row_idx.size(), -1ll);

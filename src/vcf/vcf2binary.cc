@@ -281,7 +281,6 @@ VCF2Binary::VCF2Binary(const std::string& stream_name, const std::vector<std::ve
 {
   clear();
   m_vcf_fields = &vcf_fields;
-  File2TileDBBinaryBase::m_get_data_from_file = false;
   //The next parameter is irrelevant for buffered readers
   m_discard_index = false;
   //VCFBufferReader relevant params
@@ -318,12 +317,12 @@ void VCF2Binary::clear()
   m_local_field_idx_to_global_field_idx.clear();
 }
 
-FileReaderBase* VCF2Binary::create_new_reader_object(const std::string& filename, bool open_file) const
+GenomicsDBImportReaderBase* VCF2Binary::create_new_reader_object(const std::string& filename, bool open_file) const
 {
   //either reading from file or buffer parameters initialized
   assert(m_get_data_from_file || (m_vcf_buffer_reader_init_buffer && m_vcf_buffer_reader_init_num_valid_bytes && m_vcf_buffer_reader_buffer_size));
-  return (m_get_data_from_file ? dynamic_cast<FileReaderBase*>(new VCFReader())
-      : dynamic_cast<FileReaderBase*>(new VCFBufferReader(m_vcf_buffer_reader_buffer_size, m_vcf_buffer_reader_is_bcf,
+  return (m_get_data_from_file ? dynamic_cast<GenomicsDBImportReaderBase*>(new VCFReader())
+      : dynamic_cast<GenomicsDBImportReaderBase*>(new VCFBufferReader(m_vcf_buffer_reader_buffer_size, m_vcf_buffer_reader_is_bcf,
        m_vcf_buffer_reader_init_buffer,  m_vcf_buffer_reader_init_num_valid_bytes))
       );
 }
@@ -473,7 +472,7 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
     else
       return false; //no valid line and the buffer had no valid data at all, this stream is done
   }
-  else
+  else //VCF file
   {
     is_read_buffer_exhausted = false;
     //Cast to VCFReader

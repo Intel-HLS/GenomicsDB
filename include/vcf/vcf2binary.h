@@ -210,9 +210,9 @@ class VCF2Binary : public File2TileDBBinaryBase
       return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new VCFColumnPartition());
     }
     /*
-     * Create the subclass of FileReaderBase that must be used
+     * Create the subclass of GenomicsDBImportReaderBase that must be used
      */
-    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const;
+    GenomicsDBImportReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const;
     bool convert_record_to_binary(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info);
     bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_empty, bool force_seek, bool advance_reader);
     uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const

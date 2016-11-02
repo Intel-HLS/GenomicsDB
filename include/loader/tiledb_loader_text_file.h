@@ -189,11 +189,11 @@ class LineBasedTextFile2TileDBBinary : public File2TileDBBinaryBase
       m_array_schema = 0;
     }
     /*
-     * Create the subclass of FileReaderBase that must be used
+     * Create the subclass of GenomicsDBImportReaderBase that must be used
      */
-    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
+    GenomicsDBImportReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
     {
-      return dynamic_cast<FileReaderBase*>(new LineBasedTextFileReader());
+      return dynamic_cast<GenomicsDBImportReaderBase*>(new LineBasedTextFileReader());
     }
   protected:
     VariantArraySchema* m_array_schema;
