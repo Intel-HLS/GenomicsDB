@@ -84,7 +84,7 @@ class VCFBufferReader : public BufferReaderBase, public VCFReaderBase
         const uint8_t* init_buffer, const size_t init_num_valid_bytes)
       : GenomicsDBImportReaderBase(false), BufferReaderBase(buffer_capacity), VCFReaderBase(false), m_is_bcf(is_bcf)
     {
-      assert(init_num_valid_bytes < buffer_capacity);
+      m_buffer.resize(std::max(buffer_capacity, init_num_valid_bytes));
       memcpy(&(m_buffer[0]), init_buffer, init_num_valid_bytes);
       m_num_valid_bytes_in_buffer = init_num_valid_bytes;
     }

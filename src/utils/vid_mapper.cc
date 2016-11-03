@@ -619,6 +619,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
       auto idx_in_file = 0ll;
       if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
       {
+        VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
+            && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
         std::string filename = callset_info_dict.HasMember("filename")
           ? std::move(callset_info_dict["filename"].GetString())
           : std::move(callset_info_dict["stream_name"].GetString());
@@ -706,6 +708,7 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
   }
   //For buffer streams
   m_buffer_stream_idx_to_global_file_idx.resize(buffer_stream_info_vec.size(), -1);
+  auto max_buffer_stream_idx_with_global_file_idx = -1ll;
   for(auto i=0ull;i<buffer_stream_info_vec.size();++i)
   {
     const auto& info = buffer_stream_info_vec[i];
@@ -720,6 +723,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename, const 
       curr_file_info.m_initialization_buffer = info.m_initialization_buffer;
       curr_file_info.m_initialization_buffer_num_valid_bytes = info.m_initialization_buffer_num_valid_bytes;
       m_buffer_stream_idx_to_global_file_idx[i] = global_file_idx;
+      max_buffer_stream_idx_with_global_file_idx = i;
     }
   }
+  m_buffer_stream_idx_to_global_file_idx.resize(max_buffer_stream_idx_with_global_file_idx+1);
 }

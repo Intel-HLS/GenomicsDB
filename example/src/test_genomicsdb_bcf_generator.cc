@@ -56,7 +56,6 @@ int main(int argc, char *argv[]) {
     {
       case 'p':
         page_size = strtoull(optarg, 0, 10);
-        std::cerr << "WARNING: page size is ignored except for scan now\n";
         break;
       case 'r':
         my_world_mpi_rank = strtoull(optarg, 0 ,10);

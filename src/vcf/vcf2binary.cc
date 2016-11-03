@@ -59,9 +59,10 @@ void VCFBufferReader::initialize(const char* stream_name,
   m_hdr = bcf_hdr_init("r");
   VERIFY_OR_THROW(m_hdr);
   size_t hdr_length = 0ull;
-  auto status = bcf_hdr_parse(m_hdr, reinterpret_cast<char*>(&(BufferReaderBase::m_buffer[0])), &hdr_length);
+  auto new_offset = bcf_hdr_deserialize(m_hdr, &(BufferReaderBase::m_buffer[0]), 0u, BufferReaderBase::m_num_valid_bytes_in_buffer, m_is_bcf ? 1 : 0);
   //Header sample line parsed correctly - might have ignored other incorrect lines 
-  VERIFY_OR_THROW(status == 0);
+  if(new_offset == 0u)
+    throw VCF2BinaryException(std::string("Could not parse ")+(m_is_bcf ? "BCF" : "VCF")+" header for stream "+stream_name);
   advance_offset_by(hdr_length);
   VCFReaderBase::initialize(stream_name, vcf_field_names, id_mapper, open_file);
 }
@@ -74,7 +75,7 @@ void VCFBufferReader::read_and_advance()
     auto new_offset = bcf_deserialize(m_line, &(BufferReaderBase::m_buffer[0]), BufferReaderBase::m_offset, BufferReaderBase::m_num_valid_bytes_in_buffer,
         m_is_bcf ? 1 : 0, m_hdr);
     //Parsed or made progress
-    VERIFY_OR_THROW(new_offset > BufferReaderBase::m_offset);
+    assert(new_offset > BufferReaderBase::m_offset);
     BufferReaderBase::m_offset = new_offset;
     m_is_record_valid = true;
   }
@@ -336,7 +337,7 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   //Get reader from column partition struct if parallel partitions, else use common base reader ptr
   auto base_reader_ptr = (m_parallel_partitions && m_base_partition_ptrs.size()) ? m_base_partition_ptrs[0]->get_base_reader_ptr()
     : m_base_reader_ptr;
-  VERIFY_OR_THROW(m_base_reader_ptr && (std::string("Could not find valid VCF reader for ")+m_filename).c_str());
+  VERIFY_OR_THROW(base_reader_ptr && (std::string("Could not find valid VCF reader for ")+m_filename).c_str());
   assert(dynamic_cast<VCFReader*>(base_reader_ptr) || dynamic_cast<VCFBufferReader*>(base_reader_ptr));
   auto hdr = dynamic_cast<VCFReaderBase*>(base_reader_ptr)->get_header();
   VERIFY_OR_THROW(hdr && (std::string("Could not find valid VCF header for ")+m_filename).c_str());

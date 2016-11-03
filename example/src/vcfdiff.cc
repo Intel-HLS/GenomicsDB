@@ -216,6 +216,25 @@ inline int GET_FIELD_BT_TYPE(const bcf1_t* line, const int bcf_field_type, const
   }
 }
 
+inline const char* GET_FIELD_NAME(const bcf_hdr_t* hdr, const bcf1_t* line, const int bcf_field_type, const int idx)
+{
+  assert(idx >= 0);
+  int hdr_field_idx = -1;
+  if(bcf_field_type == BCF_HL_INFO)
+  {
+    assert(idx < line->n_info);
+    hdr_field_idx = line->d.info[idx].key;
+  }
+  else
+  {
+    assert(bcf_field_type == BCF_HL_FMT);
+    assert(idx < line->n_fmt);
+    hdr_field_idx = line->d.fmt[idx].id;
+  }
+  assert(hdr_field_idx >= 0 && hdr_field_idx<hdr->n[BCF_DT_ID]);
+  return hdr->id[BCF_DT_ID][hdr_field_idx].key;
+}
+
 inline int GET_NUM_ELEMENTS(const bcf1_t* line, const int bcf_field_type, const int idx)
 {
   assert(idx >= 0);
@@ -297,7 +316,8 @@ bool bcf_is_empty_field(const bcf_hdr_t* hdr, const bcf1_t* line, const int bcf_
         break;
       }
     default:
-      throw VCFDiffException("Unknown BCF_BT_TYPE "+std::to_string(GET_FIELD_BT_TYPE(line, bcf_field_type, idx)));
+      throw VCFDiffException("Unknown BCF_BT_TYPE "+std::to_string(GET_FIELD_BT_TYPE(line, bcf_field_type, idx))+" for field "
+          +GET_FIELD_NAME(hdr, line, bcf_field_type, idx));
       break;
   }
   return true;

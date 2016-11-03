@@ -402,6 +402,7 @@ class VidMapper
       assert(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
       return m_owner_idx_to_file_idx_vec[owner_idx];
     }
+    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const { return m_buffer_stream_idx_to_global_file_idx; }
     void build_file_partitioning(const int partition_idx, const RowRange row_partition);
     void verify_file_partitioning() const;
     /*

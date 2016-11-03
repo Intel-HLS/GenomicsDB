@@ -66,6 +66,11 @@ class GenomicsDBImporter
      * No more buffer streams can be added to this object after setup_loader is called
      */
     void setup_loader();
+    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
+    {
+      assert(m_is_loader_setup);
+      return m_loader_ptr->get_buffer_stream_idx_to_global_file_idx_vec();
+    }
     /*
      * Can be used by callers to pre-allocate vector<BufferStreamIdentifier>
      */

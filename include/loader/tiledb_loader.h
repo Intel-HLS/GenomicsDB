@@ -350,6 +350,11 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       assert(get_order_for_row_idx(row_idx) >= 0 && get_order_for_row_idx(row_idx) < m_num_callsets_owned);
       return get_order_for_row_idx(row_idx)*m_max_size_per_callset;
     }
+    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
+    {
+      assert(m_vid_mapper);
+      return m_vid_mapper->get_buffer_stream_idx_to_global_file_idx_vec();
+    }
     /*
      * Debug dumper
      * Return true if no more data available

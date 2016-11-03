@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
   //Get my world rank
   int my_world_mpi_rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_world_mpi_rank);
+  auto num_streams = INT64_MAX;
   // Define long options
   static struct option long_options[] = 
   {
@@ -138,24 +139,27 @@ int main(int argc, char *argv[]) {
     {"rank",1,0,'r'},
     {"output-format",1,0,'O'},
     {"loader-json-config",1,0,'l'},
+    {"num-streams",1,0,'n'},
     {0,0,0,0},
   };
   int c;
   uint64_t buffer_size = 20480u;
   std::string loader_json_config_file = "";
-  while((c=getopt_long(argc, argv, "l:b:r:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "l:b:r:n:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
       case 'b':
         buffer_size = strtoull(optarg, 0, 10);
-        std::cerr << "WARNING: page size is ignored except for scan now\n";
         break;
       case 'r':
         my_world_mpi_rank = strtoull(optarg, 0 ,10);
         break;
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
+        break;
+      case 'n':
+        num_streams = strtoll(optarg, 0, 0);
         break;
       default:
         std::cerr << "Unknown command line argument\n";
@@ -180,6 +184,8 @@ int main(int argc, char *argv[]) {
       stream_name = curr_obj.name.GetString();
       filename = curr_obj.value.GetString();
       stream_vector.emplace_back(stream_name.c_str(), filename.c_str(), buffer_size);
+      if(stream_vector.size() >= static_cast<size_t>(num_streams))
+        break;
     }
   }
   GenomicsDBImporter importer(loader_json_config_file, my_world_mpi_rank);
@@ -187,11 +193,15 @@ int main(int argc, char *argv[]) {
     importer.add_buffer_stream(stream_vector[i].m_stream_name, VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE, buffer_size,
         &(stream_vector[i].m_buffer[0]), stream_vector[i].m_num_valid_bytes_in_buffer);
   importer.setup_loader();
+  auto& buffer_stream_idx_to_global_file_idx_vec = importer.get_buffer_stream_idx_to_global_file_idx_vec();
   for(auto i=0ull;i<stream_vector.size();++i)
   {
+    if(buffer_stream_idx_to_global_file_idx_vec[i] < 0)
+      continue;
     stream_vector[i].get_more_data(0u);
     importer.write_data_to_buffer_stream(i, 0, &(stream_vector[i].m_buffer[0]), stream_vector[i].m_num_valid_bytes_in_buffer);
   }
+  auto num_iterations = 0ull;
   while(!importer.is_done())
   {
     importer.import_batch();
@@ -202,6 +212,12 @@ int main(int argc, char *argv[]) {
       stream_vector[stream_idx].get_more_data(0u);
       importer.write_data_to_buffer_stream(stream_idx, 0, &(stream_vector[stream_idx].m_buffer[0]), stream_vector[stream_idx].m_num_valid_bytes_in_buffer);
     }
+    ++num_iterations;
   }
   importer.finish();
+#ifdef DEBUG
+  std::cerr << "Num iterations in importer "<<num_iterations<<"\n";
+#endif
+  MPI_Finalize();
+  return 0;
 }
