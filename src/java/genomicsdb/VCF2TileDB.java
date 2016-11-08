@@ -184,36 +184,35 @@ public class VCF2TileDB
         public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
                 final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
         {
-            mStream = new SilentByteBufferStream(bufferCapacity);
-            switch(streamType)
-            {
-                case BCF_STREAM:
-                    mVCWriter = new VariantContextWriterBuilder().setOutputBCFStream(mStream).unsetOption(Options.INDEX_ON_THE_FLY).build();
-                    break;
-                case VCF_STREAM:
-                    mVCWriter = new VariantContextWriterBuilder().setOutputVCFStream(mStream).unsetOption(Options.INDEX_ON_THE_FLY).build();
-                    break;
-                default:
-                    throw new GenomicsDBException("Unknown stream type "+streamType.toString());
-            }
             boolean headerWritten = false;
             long currentCapacity = bufferCapacity;
             //Must ensure that the header gets written into the buffer stream
+            //Why this big outer loop? VCFWriter/BCFWriter seems to store some state which makes
+            //calling writeHeader() multiple times impossible
+            //Hence, create new objects in every iteration of the loop
+            //Since this function is called only once per stream, not really
+            //a performance concern
             while(!headerWritten)
             {
+                mStream = new SilentByteBufferStream(currentCapacity);
+                switch(streamType)
+                {
+                    case BCF_STREAM:
+                        mVCWriter = new VariantContextWriterBuilder().setOutputBCFStream(mStream).unsetOption(Options.INDEX_ON_THE_FLY).build();
+                        break;
+                    case VCF_STREAM:
+                        mVCWriter = new VariantContextWriterBuilder().setOutputVCFStream(mStream).unsetOption(Options.INDEX_ON_THE_FLY).build();
+                        break;
+                    default:
+                        throw new GenomicsDBException("Unknown stream type "+streamType.toString());
+                }
                 //Why clone the header?
                 //The writer modifies the VCFHeader object passed to writeHeader() - however, we might need
                 //to call writeHeader multiple times if the underlying buffer in mStream is too small. Hence,
                 //always pass a clone of the original, unmodified header in each call of writeHeader
                 mVCWriter.writeHeader(new VCFHeader(vcfHeader));
                 if(mStream.overflow())
-                {
                     currentCapacity = 2*currentCapacity+1;
-                    mStream.resize(currentCapacity);
-                    mStream.setNumValidBytes(0);
-                    mStream.setOverflow(false);
-                    System.err.println("OVERFLOW");
-                }
                 else
                     headerWritten = true;
             }

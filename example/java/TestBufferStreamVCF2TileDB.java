@@ -82,7 +82,7 @@ public final class TestBufferStreamVCF2TileDB
         for(Map.Entry<String, String> entry : streamNameToFileName.entrySet())
         {
             VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue());
-            int streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, 10240, VariantContextWriterBuilder.OutputType.BCF_STREAM);
+            int streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, 256, VariantContextWriterBuilder.OutputType.BCF_STREAM);
             currInfo.mStreamIdx = streamIdx;
             streamInfoVec.add(currInfo);
         }
