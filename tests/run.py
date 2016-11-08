@@ -189,6 +189,26 @@ def main():
                         } }
                     ]
             },
+            { "name" : "java_buffer_stream_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_buffer.json',
+                'stream_name_to_filename_mapping': 'inputs/callsets/t0_1_2_buffer_mapping.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_0",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
+                        } }
+                    ]
+            },
             { "name" : "test_new_fields", 'golden_output' : 'golden_outputs/t6_7_8_new_field_gatk.vcf',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
@@ -217,6 +237,9 @@ def main():
         if(test_name  == 'java_t0_1_2'):
             pid = subprocess.Popen('java TestGenomicsDB -load '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
+        elif(test_name == 'java_buffer_stream_t0_1_2'):
+            pid = subprocess.Popen('java TestBufferStreamVCF2TileDB '+loader_json_filename+' '+test_params_dict['stream_name_to_filename_mapping'],
+                    shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
