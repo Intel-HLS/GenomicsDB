@@ -25,6 +25,8 @@
 #include "genomicsdb_importer.h"
 #include <mpi.h>
 
+#define IS_BCF 1
+
 class VCFStreamStruct
 {
   public:
@@ -37,7 +39,7 @@ class VCFStreamStruct
       size_t num_bytes_written = 0;
       while(num_bytes_written == 0)
       {
-        num_bytes_written = bcf_hdr_serialize(m_hdr, &(m_buffer[0]), 0, m_buffer.size(), 1, 1);
+        num_bytes_written = bcf_hdr_serialize(m_hdr, &(m_buffer[0]), 0, m_buffer.size(), IS_BCF, 1);
         if(num_bytes_written == 0u)
           m_buffer.resize(2u*m_buffer.size()+1u);
       }
@@ -87,7 +89,7 @@ class VCFStreamStruct
       {
         if(m_is_line_valid)
         {
-          auto new_offset = bcf_serialize(m_line, &(m_buffer[0]), m_num_valid_bytes_in_buffer, m_buffer.size(), 1, m_hdr, &m_tmp_s);
+          auto new_offset = bcf_serialize(m_line, &(m_buffer[0]), m_num_valid_bytes_in_buffer, m_buffer.size(), IS_BCF, m_hdr, &m_tmp_s);
           if(new_offset == m_num_valid_bytes_in_buffer)
           {
             if(is_first_line_in_buffer)
@@ -190,7 +192,8 @@ int main(int argc, char *argv[]) {
   }
   GenomicsDBImporter importer(loader_json_config_file, my_world_mpi_rank);
   for(auto i=0ull;i<stream_vector.size();++i)
-    importer.add_buffer_stream(stream_vector[i].m_stream_name, VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE, buffer_size,
+    importer.add_buffer_stream(stream_vector[i].m_stream_name, IS_BCF ? VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE : VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE,
+        buffer_size,
         &(stream_vector[i].m_buffer[0]), stream_vector[i].m_num_valid_bytes_in_buffer);
   importer.setup_loader();
   auto& buffer_stream_idx_to_global_file_idx_vec = importer.get_buffer_stream_idx_to_global_file_idx_vec();

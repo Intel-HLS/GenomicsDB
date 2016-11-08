@@ -15,6 +15,46 @@ extern "C" {
 JNIEXPORT jint JNICALL Java_genomicsdb_VCF2TileDB_jniVCF2TileDB
   (JNIEnv *, jobject, jstring, jint, jlong, jlong);
 
+/*
+ * Class:     genomicsdb_VCF2TileDB
+ * Method:    jniInitializeGenomicsDBImporterObject
+ * Signature: (Ljava/lang/String;IJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniInitializeGenomicsDBImporterObject
+  (JNIEnv *, jobject, jstring, jint, jlong, jlong);
+
+/*
+ * Class:     genomicsdb_VCF2TileDB
+ * Method:    jniAddBufferStream
+ * Signature: (JLjava/lang/String;ZJ[BJ)V
+ */
+JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniAddBufferStream
+  (JNIEnv *, jobject, jlong, jstring, jboolean, jlong, jbyteArray, jlong);
+
+/*
+ * Class:     genomicsdb_VCF2TileDB
+ * Method:    jniSetupGenomicsDBLoader
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     genomicsdb_VCF2TileDB
+ * Method:    jniWriteDataToBufferStream
+ * Signature: (JII[BJ)V
+ */
+JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniWriteDataToBufferStream
+  (JNIEnv *, jobject, jlong, jint, jint, jbyteArray, jlong);
+
+/*
+ * Class:     genomicsdb_VCF2TileDB
+ * Method:    jniImportBatch
+ * Signature: (J[J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_genomicsdb_VCF2TileDB_jniImportBatch
+  (JNIEnv *, jobject, jlong, jlongArray);
+
 #ifdef __cplusplus
 }
 #endif
