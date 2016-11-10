@@ -367,6 +367,8 @@ const std::string& JSONConfigBase::get_array_name(const int rank) const
 
 RowRange JSONConfigBase::get_row_partition(const int rank, const unsigned idx) const
 {
+  if(!m_row_partitions_specified)
+    return RowRange(0, INT64_MAX-1);
   auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
   VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_row_ranges.size());
   VERIFY_OR_THROW(idx < m_row_ranges[fixed_rank].size());
@@ -375,6 +377,8 @@ RowRange JSONConfigBase::get_row_partition(const int rank, const unsigned idx) c
 
 ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned idx) const
 {
+  if(!m_column_partitions_specified)
+    return ColumnRange(0, INT64_MAX-1);
   auto fixed_rank = m_single_query_column_ranges_vector ? 0 : rank;
   VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_column_ranges.size());
   VERIFY_OR_THROW(idx < m_column_ranges[fixed_rank].size());
@@ -542,6 +546,8 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_do_ping_pong_buffering = true;
   //Offload VCF output processing to another thread
   m_offload_vcf_output_processing = false;
+  //Ignore cells that do not belong to this partition
+  m_ignore_cells_not_in_partition = false;
   m_vid_mapping_filename = "";
   m_callset_mapping_file = "";
 }
@@ -610,6 +616,9 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   m_offload_vcf_output_processing = false;
   if(m_json.HasMember("offload_vcf_output_processing"))
     m_offload_vcf_output_processing = m_do_ping_pong_buffering && m_json["offload_vcf_output_processing"].GetBool();
+  //Ignore cells that do not belong to this partition
+  if(m_json.HasMember("ignore_cells_not_in_partition"))
+    m_ignore_cells_not_in_partition = m_json["ignore_cells_not_in_partition"].GetBool();
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   auto filename_pair = get_vid_mapping_filename(id_mapper, rank);

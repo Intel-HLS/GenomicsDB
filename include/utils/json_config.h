@@ -134,6 +134,8 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_do_ping_pong_buffering;
     //Offload VCF output processing to another thread
     bool m_offload_vcf_output_processing;
+    //Ignore cells that do not belong to this partition
+    bool m_ignore_cells_not_in_partition;
 };
 
 #ifdef HTSDIR

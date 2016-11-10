@@ -386,6 +386,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     std::vector<LoaderOperatorBase*> m_operators;
     std::vector<bool> m_operators_overflow;
     unsigned m_num_operators_overflow_in_last_round;
+    //For checking whether cells are traversed in correct order
+    int64_t m_previous_cell_row_idx;
+    int64_t m_previous_cell_column;
 };
 
 #endif

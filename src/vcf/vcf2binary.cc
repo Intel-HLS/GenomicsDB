@@ -449,22 +449,14 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
     //Cast to VCFBufferReader
     auto vcf_reader_ptr = dynamic_cast<VCFBufferReader*>(partition_info.get_base_reader_ptr());
     assert(vcf_reader_ptr);
-    //advance or buffer contains fresh data
+    //advance or nothing in the buffer has been deserialized yet
     auto advance_flag = (advance_reader || vcf_reader_ptr->get_offset() == 0u);
-    while(advance_flag)
+    if(advance_flag)
     {
       vcf_reader_ptr->read_and_advance();
       auto line = vcf_reader_ptr->get_line();
       if(line)
-      {
         update_local_contig_idx(vcf_partition, line);
-        //valid line that falls within the partition, break out
-        if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end
-            && vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) >= vcf_partition.m_column_interval_begin)
-          advance_flag = false;
-      }
-      else //read buffer exhausted, break out
-        advance_flag = false;
     }
     //read buffer done
     is_read_buffer_exhausted = !(vcf_reader_ptr->contains_unread_data());
