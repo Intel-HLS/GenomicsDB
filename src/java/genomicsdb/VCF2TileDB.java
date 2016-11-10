@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Iterator;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
@@ -123,6 +124,11 @@ public class VCF2TileDB
             }
         }
 
+        public int size()
+        {
+            return mBuffer.length;
+        }
+
         public void resize(final long newSize)
         {
             byte tmp[] = new byte[(int)newSize];
@@ -174,6 +180,8 @@ public class VCF2TileDB
     {
         public VariantContextWriter mVCWriter = null;
         public SilentByteBufferStream mStream = null;
+        private Iterator<VariantContext> mIterator = null;
+        private VariantContext mCurrentVC = null;
         
         /**
          * Constructor
@@ -182,8 +190,11 @@ public class VCF2TileDB
          * @param streamType BCF_STREAM or VCF_STREAM
          */
         public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
-                final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+                final VariantContextWriterBuilder.OutputType streamType, Iterator<VariantContext> vcIterator) throws GenomicsDBException
         {
+            mIterator = vcIterator;
+            if(vcIterator != null && vcIterator.hasNext())
+                mCurrentVC = vcIterator.next();
             boolean headerWritten = false;
             long currentCapacity = bufferCapacity;
             //Must ensure that the header gets written into the buffer stream
@@ -216,6 +227,25 @@ public class VCF2TileDB
                 else
                     headerWritten = true;
             }
+        }
+
+        public boolean hasIterator()
+        {
+            return (mIterator != null);
+        }
+
+        public VariantContext next()
+        {
+            if(mIterator != null && mIterator.hasNext())
+                mCurrentVC = mIterator.next();
+            else
+                mCurrentVC = null;
+            return mCurrentVC;
+        }
+
+        public VariantContext getCurrentVC()
+        {
+            return mCurrentVC;
         }
     }
 
@@ -345,7 +375,12 @@ public class VCF2TileDB
     }
 
     /**
-     * Add a buffer stream
+     * Add a buffer stream as the data source - caller must:
+     * 1. Call setupGenomicsDBImporter() once all streams are added
+     * 2. Provide VC objects using the add() function
+     * 3. Call importBatch()
+     * 4. Get list of exhausted buffer streams using getNumExhaustedBufferStreams(), getExhaustedBufferStreamIndex()
+     * 5. If !isDone() goto 2
      * @param streamName Name of the stream being added - must be unique with respect to this VCF2TileDB object
      * @param vcfHeader VCF header for the stream
      * @param bufferCapacity Capacity of the stream buffer in bytes
@@ -353,6 +388,56 @@ public class VCF2TileDB
      */
     public int addBufferStream(final String streamName, final VCFHeader vcfHeader, final long bufferCapacity,
             final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+    {
+        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, null);
+    }
+
+    /**
+     * Add a sorted VC iterator as the data source - caller must:
+     * 1. Call setupGenomicsDBImporter() once all iterators are added
+     * 2. Call importBatch()
+     * 3. Done!
+     * @param streamName Name of the stream being added - must be unique with respect to this VCF2TileDB object
+     * @param vcfHeader VCF header for the stream
+     * @param vcIterator Iterator over VariantContext objects
+     * @param bufferCapacity Capacity of the stream buffer in bytes
+     * @param streamType BCF_STREAM or VCF_STREAM
+     */
+    public int addSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader, Iterator<VariantContext> vcIterator,
+            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+    {
+        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, vcIterator);
+    }
+
+    /**
+     * Sets sorted VC iterator as the data source and calls setupGenomicsDBImporter(). No more streams/iterators can
+     * be added after this function is called. The caller must:
+     * 1. Call importBatch()
+     * 2. Done!
+     * @param streamName Name of the stream being added - must be unique with respect to this VCF2TileDB object
+     * @param vcfHeader VCF header for the stream
+     * @param vcIterator Iterator over VariantContext objects
+     * @param bufferCapacity Capacity of the stream buffer in bytes
+     * @param streamType BCF_STREAM or VCF_STREAM
+     */
+    public int setSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader, Iterator<VariantContext> vcIterator,
+            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+    {
+        int streamIdx = addSortedVariantContextIterator(streamName, vcfHeader, vcIterator, bufferCapacity, streamType);
+        setupGenomicsDBImporter();
+        return streamIdx;
+    }
+
+    /**
+     * Add a buffer stream or VC iterator - internal function
+     * @param streamName Name of the stream being added - must be unique with respect to this VCF2TileDB object
+     * @param vcfHeader VCF header for the stream
+     * @param bufferCapacity Capacity of the stream buffer in bytes
+     * @param streamType BCF_STREAM or VCF_STREAM
+     * @param vcIterator Iterator over VariantContext objects - can be null
+     */
+    private int addBufferStream(final String streamName, final VCFHeader vcfHeader, final long bufferCapacity,
+            final VariantContextWriterBuilder.OutputType streamType, Iterator<VariantContext> vcIterator) throws GenomicsDBException
     {
         if(mIsLoaderSetupDone)
             throw new GenomicsDBException("Cannot add buffer streams after setupGenomicsDBImporter() is called");
@@ -365,7 +450,7 @@ public class VCF2TileDB
             mBufferStreamWrapperVector = new ArrayList<GenomicsDBImporterStreamWrapper>();
             mContainsBufferStreams = true;
         }
-        mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader, bufferCapacity, streamType));
+        mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader, bufferCapacity, streamType, vcIterator));
         int currIdx = mBufferStreamWrapperVector.size()-1;
         SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(currIdx).mStream;
         jniAddBufferStream(mGenomicsDBImporterObjectHandle, streamName, streamType == VariantContextWriterBuilder.OutputType.BCF_STREAM,
@@ -418,7 +503,7 @@ public class VCF2TileDB
         GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(streamIdx);
         currWrapper.mVCWriter.add(vc);
         SilentByteBufferStream currStream = currWrapper.mStream;
-        if(currStream.overflow())
+        if(currStream.overflow() && currStream.getMarker() > 0) //at least one record already existed in the buffer
         {
             //Set num valid bytes to marker - marker points to location after the last valid serialized vc in the buffer
             currStream.setNumValidBytes(currStream.getMarker());
@@ -426,6 +511,13 @@ public class VCF2TileDB
         }
         else
         {
+            while(currStream.overflow()) //the first record to be added to the buffer is too large, resize buffer
+            {
+                currStream.resize(2*currStream.size()+1);
+                currStream.setNumValidBytes(0);
+                currStream.setOverflow(false);
+                currWrapper.mVCWriter.add(vc);
+            }
             //Update marker - marker points to location after the last valid serialized vc in the buffer
             currStream.setMarker(currStream.getNumValidBytes());
             return true;
@@ -441,29 +533,49 @@ public class VCF2TileDB
             return true;
         if(!mIsLoaderSetupDone)
             throw new GenomicsDBException("Cannot call importBatch() before calling setupGenomicsDBImporter()");
-        //Write data from buffer streams exhausted in the previous round into GenomicsDB
-        for(int i=0,idx=0;i<mNumExhaustedBufferStreams;++i,idx+=2)
+        boolean allExhaustedStreamsHaveIterators = true;
+        while(!mDone && allExhaustedStreamsHaveIterators)
         {
-            long bufferStreamIdx = mExhaustedBufferStreamIdentifiers[idx];
-            SilentByteBufferStream currStream = mBufferStreamWrapperVector.get((int)bufferStreamIdx).mStream;
-            jniWriteDataToBufferStream(mGenomicsDBImporterObjectHandle, (int)bufferStreamIdx, 0, currStream.getBuffer(), currStream.getNumValidBytes());
-        }
-        mDone = jniImportBatch(mGenomicsDBImporterObjectHandle, mExhaustedBufferStreamIdentifiers);
-        mNumExhaustedBufferStreams = mExhaustedBufferStreamIdentifiers[mExhaustedBufferStreamIdentifiers.length-1];
-        //Reset markers, numValidBytesInBuffer and overflow flag for the exhausted streams
-        for(long i=0, idx=0;i<mNumExhaustedBufferStreams;++i, idx+=2)
-        {
-            long bufferStreamIdx = mExhaustedBufferStreamIdentifiers[(int)idx];
-            SilentByteBufferStream currStream = mBufferStreamWrapperVector.get((int)bufferStreamIdx).mStream;
-            currStream.setOverflow(false);
-            currStream.setMarker(0);
-            currStream.setNumValidBytes(0);
-        }
-        if(mDone)
-        {
-            mGenomicsDBImporterObjectHandle = 0;
-            mContainsBufferStreams = false;
-            mIsLoaderSetupDone = false;
+            //Write data from buffer streams exhausted in the previous round into GenomicsDB
+            for(int i=0,idx=0;i<mNumExhaustedBufferStreams;++i,idx+=2)
+            {
+                int bufferStreamIdx = (int)mExhaustedBufferStreamIdentifiers[idx];
+                GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(bufferStreamIdx);
+                //If iterator is provided, get data from iterator
+                if(currWrapper.hasIterator())
+                {
+                    while(currWrapper.getCurrentVC() != null)
+                    {
+                        boolean added = add(currWrapper.getCurrentVC(), bufferStreamIdx);
+                        if(added)
+                            currWrapper.next();
+                        else
+                            break; //buffer full
+                    }
+                }
+                SilentByteBufferStream currStream = currWrapper.mStream;
+                jniWriteDataToBufferStream(mGenomicsDBImporterObjectHandle, bufferStreamIdx, 0, currStream.getBuffer(), currStream.getNumValidBytes());
+            }
+            mDone = jniImportBatch(mGenomicsDBImporterObjectHandle, mExhaustedBufferStreamIdentifiers);
+            mNumExhaustedBufferStreams = mExhaustedBufferStreamIdentifiers[mExhaustedBufferStreamIdentifiers.length-1];
+            //Reset markers, numValidBytesInBuffer and overflow flag for the exhausted streams
+            for(long i=0, idx=0;i<mNumExhaustedBufferStreams;++i, idx+=2)
+            {
+                int bufferStreamIdx = (int)mExhaustedBufferStreamIdentifiers[(int)idx];
+                GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(bufferStreamIdx);
+                if(!currWrapper.hasIterator())
+                    allExhaustedStreamsHaveIterators = false;
+                SilentByteBufferStream currStream = currWrapper.mStream;
+                currStream.setOverflow(false);
+                currStream.setMarker(0);
+                currStream.setNumValidBytes(0);
+            }
+            if(mDone)
+            {
+                mGenomicsDBImporterObjectHandle = 0;
+                mContainsBufferStreams = false;
+                mIsLoaderSetupDone = false;
+            }
         }
         return mDone;
     }

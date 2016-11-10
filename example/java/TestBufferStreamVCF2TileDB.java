@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ArrayList;
@@ -63,58 +65,81 @@ public final class TestBufferStreamVCF2TileDB
     {
         if(args.length < 2)
         {
-            System.err.println("For loading: <loader.json> <stream_name_to_file.json> [rank lbRowIdx ubRowIdx]");
+            System.err.println("For loading: [-iterators] <loader.json> <stream_name_to_file.json> [bufferCapacity rank lbRowIdx ubRowIdx]");
             System.exit(-1);
-        } 
+        }
+        int argsLoaderFileIdx = 0;
+        if(args[0].equals("-iterators") || args[0].equals("-mv_iterator"))
+            argsLoaderFileIdx = 1;
+        //Buffer capacity
+        long bufferCapacity = (args.length >= argsLoaderFileIdx+3) ? Integer.parseInt(args[argsLoaderFileIdx+2]) : 1024;
         //Specify rank (or partition idx) of this process
-        int rank = (args.length >= 4) ? Integer.parseInt(args[3]) : 0;
+        int rank = (args.length >= argsLoaderFileIdx+4) ? Integer.parseInt(args[argsLoaderFileIdx+3]) : 0;
         //Specify smallest row idx from which to start loading - useful for incremental loading into existing array
-        long lbRowIdx = (args.length >= 5) ? Long.parseLong(args[4]) : 0;
+        long lbRowIdx = (args.length >= argsLoaderFileIdx+5) ? Long.parseLong(args[argsLoaderFileIdx+4]) : 0;
         //Specify largest row idx up to which loading should be performed - for completeness
-        long ubRowIdx = (args.length >= 6) ? Long.parseLong(args[5]) : Long.MAX_VALUE-1;
+        long ubRowIdx = (args.length >= argsLoaderFileIdx+6) ? Long.parseLong(args[argsLoaderFileIdx+5]) : Long.MAX_VALUE-1;
         //<loader.json> first arg
-        VCF2TileDB loader = new VCF2TileDB(args[0], rank, lbRowIdx, ubRowIdx);
-        //<stream_name_to_file.json>
-        FileReader mappingReader = new FileReader(args[1]);
+        VCF2TileDB loader = new VCF2TileDB(args[argsLoaderFileIdx], rank, lbRowIdx, ubRowIdx);
+        //<stream_name_to_file.json> - useful for the driver only
+        //JSON file that contains "stream_name": "vcf_file_path" entries
+        FileReader mappingReader = new FileReader(args[argsLoaderFileIdx+1]);
         Gson gson = new Gson();
-        LinkedHashMap<String, String> streamNameToFileName = (LinkedHashMap<String, String>)gson.fromJson(mappingReader, LinkedHashMap.class);
+        Type mapType = new TypeToken<LinkedHashMap<String, String>>(){}.getType();
+        LinkedHashMap<String, String> streamNameToFileName = gson.fromJson(mappingReader, mapType);
         ArrayList<VCFFileStreamInfo> streamInfoVec = new ArrayList<VCFFileStreamInfo>();
         for(Map.Entry<String, String> entry : streamNameToFileName.entrySet())
         {
             VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue());
-            int streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, 256, VariantContextWriterBuilder.OutputType.BCF_STREAM);
+            int streamIdx = -1;
+            if(args[0].equals("-iterators"))
+                streamIdx = loader.addSortedVariantContextIterator(entry.getKey(), currInfo.mVCFHeader, currInfo.mIterator,
+                        bufferCapacity, VariantContextWriterBuilder.OutputType.BCF_STREAM); //pass sorted VC iterators
+            else
+                streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, bufferCapacity,
+                        VariantContextWriterBuilder.OutputType.BCF_STREAM); //use buffers - VCs will be provided by caller
             currInfo.mStreamIdx = streamIdx;
             streamInfoVec.add(currInfo);
         }
+        //Must be called after all iterators/streams added - no more iterators/streams can be added once
+        //this function is called
         loader.setupGenomicsDBImporter();
-        //Counts and tracks buffer streams for which new data must be supplied
-        //Initialized to all the buffer streams
-        int numExhaustedBufferStreams = streamInfoVec.size();
-        int[] exhaustedBufferStreamIdxs = new int[numExhaustedBufferStreams];
-        for(int i=0;i<numExhaustedBufferStreams;++i)
-            exhaustedBufferStreamIdxs[i] = i;
-        while(!loader.isDone())
+        if(args[0].equals("-iterators"))
         {
-            //Add data for streams that were exhausted in the previous round
-            for(int i=0;i<numExhaustedBufferStreams;++i)
-            {
-                VCFFileStreamInfo currInfo = streamInfoVec.get(exhaustedBufferStreamIdxs[i]);
-                boolean added = true;
-                while(added && (currInfo.mIterator.hasNext() || currInfo.mNextVC != null))
-                {
-                    if(currInfo.mNextVC != null)
-                        added = loader.add(currInfo.mNextVC, currInfo.mStreamIdx);
-                    if(added)
-                        if(currInfo.mIterator.hasNext())
-                            currInfo.mNextVC = currInfo.mIterator.next();
-                        else
-                            currInfo.mNextVC = null;
-                }
-            }
             loader.importBatch();
-            numExhaustedBufferStreams = (int)loader.getNumExhaustedBufferStreams();
+            assert loader.isDone();
+        }
+        else
+        {
+            //Counts and tracks buffer streams for which new data must be supplied
+            //Initialized to all the buffer streams
+            int numExhaustedBufferStreams = streamInfoVec.size();
+            int[] exhaustedBufferStreamIdxs = new int[numExhaustedBufferStreams];
             for(int i=0;i<numExhaustedBufferStreams;++i)
-                exhaustedBufferStreamIdxs[i] = loader.getExhaustedBufferStreamIndex(i);
+                exhaustedBufferStreamIdxs[i] = i;
+            while(!loader.isDone())
+            {
+                //Add data for streams that were exhausted in the previous round
+                for(int i=0;i<numExhaustedBufferStreams;++i)
+                {
+                    VCFFileStreamInfo currInfo = streamInfoVec.get(exhaustedBufferStreamIdxs[i]);
+                    boolean added = true;
+                    while(added && (currInfo.mIterator.hasNext() || currInfo.mNextVC != null))
+                    {
+                        if(currInfo.mNextVC != null)
+                            added = loader.add(currInfo.mNextVC, currInfo.mStreamIdx);
+                        if(added)
+                            if(currInfo.mIterator.hasNext())
+                                currInfo.mNextVC = currInfo.mIterator.next();
+                            else
+                                currInfo.mNextVC = null;
+                    }
+                }
+                loader.importBatch();
+                numExhaustedBufferStreams = (int)loader.getNumExhaustedBufferStreams();
+                for(int i=0;i<numExhaustedBufferStreams;++i)
+                    exhaustedBufferStreamIdxs[i] = loader.getExhaustedBufferStreamIndex(i);
+            }
         }
     }
 }
