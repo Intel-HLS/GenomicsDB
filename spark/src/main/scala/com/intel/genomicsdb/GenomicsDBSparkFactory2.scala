@@ -27,7 +27,11 @@ import htsjdk.variant.variantcontext.VariantContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-object GenomicsDBSparkFactory {
+/**
+  * This factory class exposes the two ways RDD of variant contexts (htsjdk)
+  * can be retrieved from GenomicsDB
+  */
+object GenomicsDBSparkFactory2 {
 
   def usingGenomicsRDD(args: Array[String]): Unit = {
 
@@ -79,7 +83,6 @@ object GenomicsDBSparkFactory {
       classOf[String], classOf[VariantContext])
 
     System.out.println(myrdd.count())
-    myrdd.collect().foreach(println)
   }
 
   def main(args: Array[String]): Unit = {

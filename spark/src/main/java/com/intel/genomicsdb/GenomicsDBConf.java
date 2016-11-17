@@ -1,3 +1,25 @@
+/*
+ * The MIT License (MIT)
+ * Copyright (c) 2016 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
@@ -10,9 +32,9 @@ import java.util.Scanner;
 
 public class GenomicsDBConf extends Configuration implements Serializable {
 
-  static final String LOADERJSON = "genomicsdb.input.loaderjsonfile";
-  static final String QUERYJSON = "genomicsdb.input.queryjsonfile";
-  static final String MPIHOSTFILE = "genomicsdb.input.mpi.hostfile";
+  public static final String LOADERJSON = "genomicsdb.input.loaderjsonfile";
+  public static final String QUERYJSON = "genomicsdb.input.queryjsonfile";
+  public static final String MPIHOSTFILE = "genomicsdb.input.mpi.hostfile";
 
   public GenomicsDBConf(Configuration configuration) throws FileNotFoundException {
     super(configuration);
@@ -49,6 +71,10 @@ public class GenomicsDBConf extends Configuration implements Serializable {
       hosts.add(host);
     }
     return this;
+  }
+
+  List<String> getHosts() {
+    return hosts;
   }
 }
 
