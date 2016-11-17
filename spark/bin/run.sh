@@ -6,9 +6,9 @@ if [ -z "$SPARK_HOME" ]; then
 fi
 
 CLASS=com.intel.genomicsdb.GenomicsDBSparkFactory
-GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1-SNAPSHOT.jar
+GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1.jar
 GENOMICSDB_SPARK_HOME="$(cd `dirname $0`; pwd)"
-GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1-SNAPSHOT.jar
+GENOMICSDB_SPARK_JAR=genomicsdb-sparkapi-0.1.jar
 GENOMICSDB_BASE_JAR=$GENOMICSDB_SPARK_HOME/../../bin/genomicsdb.jar
 HTSJDK_JAR=$HOME/Downloads/htsjdk-2.4.1.jar
 BREEZE_JAR=$HOME/Downloads/breeze-math_2.10-0.4.jar:$HOME/Downloads/breeze-core_2.10-0.2.jar
