@@ -81,10 +81,15 @@ JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniAddBufferStream
 }
 
 JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
-  (JNIEnv* env, jobject obj, jlong handle)
+  (JNIEnv* env, jobject obj, jlong handle, jstring buffer_stream_callset_mapping_json_string)
 {
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);
-  importer->setup_loader();
+  //Java string to char*
+  auto buffer_stream_callset_mapping_json_string_cstr = env->GetStringUTFChars(buffer_stream_callset_mapping_json_string, NULL);
+  VERIFY_OR_THROW(buffer_stream_callset_mapping_json_string_cstr);
+  importer->setup_loader(buffer_stream_callset_mapping_json_string_cstr);
+  //Cleanup
+  env->ReleaseStringUTFChars(buffer_stream_callset_mapping_json_string, buffer_stream_callset_mapping_json_string_cstr);
   return importer->get_max_num_buffer_stream_identifiers();
 }
 

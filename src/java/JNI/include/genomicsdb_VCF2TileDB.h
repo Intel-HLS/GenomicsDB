@@ -34,10 +34,10 @@ JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniAddBufferStream
 /*
  * Class:     genomicsdb_VCF2TileDB
  * Method:    jniSetupGenomicsDBLoader
- * Signature: (J)J
+ * Signature: (JLjava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jstring);
 
 /*
  * Class:     genomicsdb_VCF2TileDB

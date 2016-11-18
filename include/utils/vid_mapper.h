@@ -560,37 +560,41 @@ class FileBasedVidMapper : public VidMapper
     }
     FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
 	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-	const bool callsets_file_required=true)
+	const bool is_callset_mapping_required=true)
     : VidMapper()
     {
       std::vector<BufferStreamInfo> empty_vec;
       common_constructor_initialization(filename,
 	  empty_vec,
 	  callset_mapping_file,
+          "",
 	  lb_callset_row_idx, ub_callset_row_idx,
-	  callsets_file_required);
+	  is_callset_mapping_required);
     }
     FileBasedVidMapper(const std::string& filename,
 	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
 	const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
 	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-	const bool callsets_file_required=true)
+	const bool is_callset_mapping_required=true)
       : VidMapper()
     {
       common_constructor_initialization(filename,
 	  buffer_stream_info_vec,
 	  callset_mapping_file,
+          buffer_stream_callset_mapping_json_string,
 	  lb_callset_row_idx, ub_callset_row_idx,
-	  callsets_file_required);
+	  is_callset_mapping_required);
     }
   private:
     void common_constructor_initialization(const std::string& filename,
 	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
 	const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
 	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-	const bool callsets_file_required=true);
+	const bool is_callset_mapping_required=true);
   private:
-    void parse_callsets_file(const std::string& filename, const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
+    void parse_callsets_json(const std::string& filename, const std::vector<BufferStreamInfo>& buffer_stream_info_vec, const bool is_file);
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
 };

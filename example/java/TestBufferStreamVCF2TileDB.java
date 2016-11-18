@@ -23,12 +23,15 @@
 import java.io.IOException;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.List;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ContainerFactory;
+import org.json.simple.parser.ParseException;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.vcf.VCFCodec;
@@ -61,7 +64,21 @@ public final class TestBufferStreamVCF2TileDB
         }
     }
 
-    public static void main(final String[] args) throws IOException, FileNotFoundException, GenomicsDBException
+    //Factory object to maintain order of keys in simple JSON parsing - use LinkedHashMap
+    private static class LinkedHashFactory implements ContainerFactory
+    {
+        public List creatArrayContainer()
+        {
+            return new ArrayList();
+        }
+
+        public Map createObjectContainer()
+        {
+            return new LinkedHashMap();
+        }
+    }
+
+    public static void main(final String[] args) throws IOException, FileNotFoundException, GenomicsDBException, ParseException
     {
         if(args.length < 2)
         {
@@ -84,20 +101,27 @@ public final class TestBufferStreamVCF2TileDB
         //<stream_name_to_file.json> - useful for the driver only
         //JSON file that contains "stream_name": "vcf_file_path" entries
         FileReader mappingReader = new FileReader(args[argsLoaderFileIdx+1]);
-        Gson gson = new Gson();
-        Type mapType = new TypeToken<LinkedHashMap<String, String>>(){}.getType();
-        LinkedHashMap<String, String> streamNameToFileName = gson.fromJson(mappingReader, mapType);
+        JSONParser parser = new JSONParser();
+        LinkedHashMap streamNameToFileName = (LinkedHashMap)parser.parse(mappingReader, new LinkedHashFactory());
         ArrayList<VCFFileStreamInfo> streamInfoVec = new ArrayList<VCFFileStreamInfo>();
-        for(Map.Entry<String, String> entry : streamNameToFileName.entrySet())
+        long rowIdx = 0;
+        for(Object currObj : streamNameToFileName.entrySet())
         {
+            Map.Entry<String, String> entry = (Map.Entry<String, String>)currObj;
             VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue());
+            //The following 2 lines are not mandatory - use initializeSampleInfoMapFromHeader() iff you know for sure that sample names
+            //in the VCF header are globally unique across all streams/files. If not, you have 2 options:
+            //(a) specify your own mapping from sample index in the header to SampleInfo object (unique_name, rowIdx) OR
+            //(b) specify the mapping in the callset_mapping_file (JSON) and pass null to addSortedVariantContextIterator()
+            LinkedHashMap<Integer, VCF2TileDB.SampleInfo> sampleIndexToInfo = new LinkedHashMap<Integer, VCF2TileDB.SampleInfo>();
+            rowIdx = VCF2TileDB.initializeSampleInfoMapFromHeader(sampleIndexToInfo, currInfo.mVCFHeader, rowIdx);
             int streamIdx = -1;
             if(args[0].equals("-iterators"))
                 streamIdx = loader.addSortedVariantContextIterator(entry.getKey(), currInfo.mVCFHeader, currInfo.mIterator,
-                        bufferCapacity, VariantContextWriterBuilder.OutputType.BCF_STREAM); //pass sorted VC iterators
+                        bufferCapacity, VariantContextWriterBuilder.OutputType.BCF_STREAM, sampleIndexToInfo); //pass sorted VC iterators
             else
                 streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, bufferCapacity,
-                        VariantContextWriterBuilder.OutputType.BCF_STREAM); //use buffers - VCs will be provided by caller
+                        VariantContextWriterBuilder.OutputType.BCF_STREAM, sampleIndexToInfo); //use buffers - VCs will be provided by caller
             currInfo.mStreamIdx = streamIdx;
             streamInfoVec.add(currInfo);
         }

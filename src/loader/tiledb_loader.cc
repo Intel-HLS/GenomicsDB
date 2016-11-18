@@ -452,25 +452,29 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
 #endif //ifdef HTSLIB
 
 //Loader functions
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename, int idx,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename,
+    const int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
   std::vector<BufferStreamInfo> empty_vec;
-  common_constructor_initialization(config_filename, idx, empty_vec, lb_callset_row_idx, ub_callset_row_idx);
+  common_constructor_initialization(config_filename, empty_vec, "",
+      idx, lb_callset_row_idx, ub_callset_row_idx);
 }
 
 VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename,
     const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-    int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+    const std::string& buffer_stream_callset_mapping_json_string,
+    const int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
   : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
 {
-  common_constructor_initialization(config_filename, idx, buffer_stream_info_vec, lb_callset_row_idx, ub_callset_row_idx);
+  common_constructor_initialization(config_filename, buffer_stream_info_vec, buffer_stream_callset_mapping_json_string,
+      idx, lb_callset_row_idx, ub_callset_row_idx);
 }
 
-void VCF2TileDBLoader::common_constructor_initialization(const std::string& config_filename, int idx,
+void VCF2TileDBLoader::common_constructor_initialization(const std::string& config_filename,
     const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
+    const std::string& buffer_stream_callset_mapping_json_string,
+    const int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
 {
 #ifdef HTSDIR
   m_converter = 0;
@@ -480,7 +484,9 @@ void VCF2TileDBLoader::common_constructor_initialization(const std::string& conf
   clear();
   m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, buffer_stream_info_vec,
         m_callset_mapping_file,
-        m_lb_callset_row_idx, m_ub_callset_row_idx, true));
+        buffer_stream_callset_mapping_json_string,
+        m_lb_callset_row_idx, m_ub_callset_row_idx,
+        true));
   //partition files
   if(m_row_based_partitioning)
     m_vid_mapper->build_file_partitioning(m_idx, get_row_partition(idx));

@@ -29,6 +29,10 @@ void GenomicsDBImporter::add_buffer_stream(const std::string& name, const VidFil
 {
   if(m_is_loader_setup)
     throw GenomicsDBImporterException(std::string("Cannot add buffer stream once setup_loader() has been called for a given GenomicsDBImporter object"));
+  //Duplicate buffer name
+  if(m_buffer_stream_names.find(name) != m_buffer_stream_names.end())
+    throw GenomicsDBImporterException(std::string("Duplicate buffer stream name ")+name);
+  m_buffer_stream_names.insert(name);
   m_buffer_stream_info_vec.emplace_back();
   auto& curr_buffer_stream_info = m_buffer_stream_info_vec[m_buffer_stream_info_vec.size()-1u];
   curr_buffer_stream_info.m_name = name;
@@ -57,6 +61,7 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other)
   //Move-in members
   m_loader_config_file = std::move(other.m_loader_config_file);
   m_buffer_stream_info_vec = std::move(other.m_buffer_stream_info_vec);
+  m_buffer_stream_names = std::move(other.m_buffer_stream_names);
   if(m_loader_ptr)
     delete m_loader_ptr;
   m_loader_ptr = other.m_loader_ptr;
@@ -79,12 +84,13 @@ GenomicsDBImporter::~GenomicsDBImporter()
   m_read_state = 0;
 }
 
-void GenomicsDBImporter::setup_loader()
+void GenomicsDBImporter::setup_loader(const std::string& buffer_stream_callset_mapping_json_string)
 {
   if(m_is_loader_setup) //already setup
     return;
   m_loader_ptr = new VCF2TileDBLoader(m_loader_config_file,
       m_buffer_stream_info_vec,
+      buffer_stream_callset_mapping_json_string,
       m_rank, m_lb_callset_row_idx, m_ub_callset_row_idx);
   m_read_state = m_loader_ptr->construct_read_state_object();
   m_is_loader_setup = true;

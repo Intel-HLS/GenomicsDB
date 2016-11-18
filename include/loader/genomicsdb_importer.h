@@ -65,7 +65,7 @@ class GenomicsDBImporter
     /*
      * No more buffer streams can be added to this object after setup_loader is called
      */
-    void setup_loader();
+    void setup_loader(const std::string& buffer_stream_callset_mapping_json_string="");
     inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
     {
       assert(m_is_loader_setup);
@@ -110,6 +110,7 @@ class GenomicsDBImporter
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
     std::vector<BufferStreamInfo> m_buffer_stream_info_vec;
+    std::unordered_set<std::string> m_buffer_stream_names;
     VCF2TileDBLoader* m_loader_ptr;
     VCF2TileDBLoaderReadState* m_read_state;
 };

@@ -29,12 +29,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.List;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.samtools.util.RuntimeIOException;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import java.io.StringWriter;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -250,6 +255,21 @@ public class VCF2TileDB
     }
 
     /**
+     * Utility class that stores row index and globally unique name for a given sample
+     */
+    public static class SampleInfo
+    {
+        public String mName = null;
+        public long mRowIdx = -1;
+
+        public SampleInfo(final String name, final long rowIdx)
+        {
+            mName = name;
+            mRowIdx = rowIdx;
+        }
+    }
+
+    /**
      * JNI functions
      */
     /**
@@ -283,10 +303,11 @@ public class VCF2TileDB
     /**
      * Setup loader after all the buffer streams are added
      * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
+     * @param callsetMappingJSON JSON formatted string containing globally consistent callset name to row index mapping
      * @return maximum number of buffer stream identifiers that can be returned in mExhaustedBufferStreamIdentifiers later
      * (this depends on the number of partitions and the number of buffer streams)
      */
-    private native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle);
+    private native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle, final String callsetMappingJSON);
     /**
      * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
      * @param streamIdx stream index
@@ -321,6 +342,8 @@ public class VCF2TileDB
     private long mNumExhaustedBufferStreams = 0;
     //Done flag - useful only for buffered streams
     private boolean mDone = false;
+    //JSON object that specifies callset/sample name to row_idx mapping in the buffer
+    private JSONObject mCallsetMappingJSON = null;
 
     /**
      * Constructor
@@ -375,6 +398,24 @@ public class VCF2TileDB
     }
 
     /**
+     * Static function that reads sample names from the vcfHeader and adds entries to the map.The function assumes that
+     * the samples will be assigned row indexes beginning at rowIdx and that the sample names specified in the header
+     * are globally unique (across all streams/files)
+     * @param sampleIndexToInfo  <sampleIndex in vcfHeader: SampleInfo> map
+     * @param vcfHeader VCF header
+     * @param rowIdx Starting row index from which to assign
+     * @return rowIdx+#samples in the header
+     */
+    public static long initializeSampleInfoMapFromHeader(Map<Integer, SampleInfo> sampleIndexToInfo, final VCFHeader vcfHeader, final long rowIdx)
+    {
+        final List<String> headerSampleNames = vcfHeader.getGenotypeSamples();
+        final int numSamplesInHeader = headerSampleNames.size();
+        for(int i=0;i<numSamplesInHeader;++i)
+            sampleIndexToInfo.put(i, new SampleInfo(headerSampleNames.get(i), rowIdx+i));
+        return rowIdx + numSamplesInHeader;
+    }
+
+    /**
      * Add a buffer stream as the data source - caller must:
      * 1. Call setupGenomicsDBImporter() once all streams are added
      * 2. Provide VC objects using the add() function
@@ -385,11 +426,14 @@ public class VCF2TileDB
      * @param vcfHeader VCF header for the stream
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
+     * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which contains row index and globally unique name
+     * can be set to null, which implies that the mapping is stored in a callsets JSON file
      */
     public int addBufferStream(final String streamName, final VCFHeader vcfHeader, final long bufferCapacity,
-            final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+            final VariantContextWriterBuilder.OutputType streamType,
+            final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException
     {
-        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, null);
+        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, null, sampleIndexToInfo);
     }
 
     /**
@@ -402,11 +446,14 @@ public class VCF2TileDB
      * @param vcIterator Iterator over VariantContext objects
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
+     * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which contains row index and globally unique name
+     * can be set to null, which implies that the mapping is stored in a callsets JSON file
      */
     public int addSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader, Iterator<VariantContext> vcIterator,
-            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType,
+            final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException
     {
-        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, vcIterator);
+        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, vcIterator, sampleIndexToInfo);
     }
 
     /**
@@ -419,11 +466,14 @@ public class VCF2TileDB
      * @param vcIterator Iterator over VariantContext objects
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
+     * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which contains row index and globally unique name
+     * can be set to null, which implies that the mapping is stored in a callsets JSON file
      */
     public int setSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader, Iterator<VariantContext> vcIterator,
-            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType) throws GenomicsDBException
+            final long bufferCapacity, final VariantContextWriterBuilder.OutputType streamType,
+            final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException, IOException
     {
-        int streamIdx = addSortedVariantContextIterator(streamName, vcfHeader, vcIterator, bufferCapacity, streamType);
+        int streamIdx = addSortedVariantContextIterator(streamName, vcfHeader, vcIterator, bufferCapacity, streamType, sampleIndexToInfo);
         setupGenomicsDBImporter();
         return streamIdx;
     }
@@ -435,9 +485,12 @@ public class VCF2TileDB
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
      * @param vcIterator Iterator over VariantContext objects - can be null
+     * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which contains row index and globally unique name
+     * can be set to null, which implies that the mapping is stored in a callsets JSON file
      */
     private int addBufferStream(final String streamName, final VCFHeader vcfHeader, final long bufferCapacity,
-            final VariantContextWriterBuilder.OutputType streamType, Iterator<VariantContext> vcIterator) throws GenomicsDBException
+            final VariantContextWriterBuilder.OutputType streamType, Iterator<VariantContext> vcIterator,
+            final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException
     {
         if(mIsLoaderSetupDone)
             throw new GenomicsDBException("Cannot add buffer streams after setupGenomicsDBImporter() is called");
@@ -448,6 +501,7 @@ public class VCF2TileDB
             if(mGenomicsDBImporterObjectHandle == 0)
                 throw new GenomicsDBException("Could not initialize GenomicsDBImporter object");
             mBufferStreamWrapperVector = new ArrayList<GenomicsDBImporterStreamWrapper>();
+            mCallsetMappingJSON = new JSONObject();
             mContainsBufferStreams = true;
         }
         mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader, bufferCapacity, streamType, vcIterator));
@@ -455,6 +509,17 @@ public class VCF2TileDB
         SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(currIdx).mStream;
         jniAddBufferStream(mGenomicsDBImporterObjectHandle, streamName, streamType == VariantContextWriterBuilder.OutputType.BCF_STREAM,
                 bufferCapacity, currStream.getBuffer(), currStream.getNumValidBytes());
+        if(sampleIndexToInfo != null)
+        {
+            for(Map.Entry<Integer, SampleInfo> currEntry : sampleIndexToInfo.entrySet())
+            {
+                JSONObject sampleJSON = new JSONObject();
+                sampleJSON.put("row_idx", currEntry.getValue().mRowIdx);
+                sampleJSON.put("stream_name", streamName);
+                sampleJSON.put("idx_in_file", currEntry.getKey());
+                mCallsetMappingJSON.put(currEntry.getValue().mName, sampleJSON);
+            }
+        }
         return currIdx;
     }
 
@@ -462,11 +527,17 @@ public class VCF2TileDB
      * Setup the importer after all the buffer streams are added, but before any data is inserted into any stream
      * No more buffer streams can be added once setupGenomicsDBImporter() is called
      */
-    public void setupGenomicsDBImporter()
+    public void setupGenomicsDBImporter() throws IOException
     {
         if(mIsLoaderSetupDone)
             return;
-        mMaxBufferStreamIdentifiers = jniSetupGenomicsDBLoader(mGenomicsDBImporterObjectHandle);
+        //Callset mapping JSON - convert to string
+        JSONObject topCallsetJSON = new JSONObject();
+        topCallsetJSON.put("callsets", mCallsetMappingJSON);
+        StringWriter stringWriter = new StringWriter();
+        topCallsetJSON.writeJSONString(stringWriter);
+        //Call native setupGenomicsDBImporter()
+        mMaxBufferStreamIdentifiers = jniSetupGenomicsDBLoader(mGenomicsDBImporterObjectHandle, stringWriter.toString());
         //Why 2* - each identifier is a pair<buffer_stream_idx, partition_idx>
         //Why +1 - the last element will contain the number of exhausted stream identifiers when importBatch() is called
         mExhaustedBufferStreamIdentifiers = new long[2*((int)mMaxBufferStreamIdentifiers)+1];

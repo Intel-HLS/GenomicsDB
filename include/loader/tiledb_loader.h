@@ -248,11 +248,12 @@ class VCF2TileDBLoaderReadState
 class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
   public:
-    VCF2TileDBLoader(const std::string& config_filename, int idx,
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoader(const std::string& config_filename,
+        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     VCF2TileDBLoader(const std::string& config_filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
+        const std::string& buffer_stream_callset_mapping_json_string,
+        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor
@@ -364,9 +365,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
   private:
-    void common_constructor_initialization(const std::string& config_filename, int idx,
+    void common_constructor_initialization(const std::string& config_filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
+        const std::string& buffer_stream_callset_mapping_json_string,
+        const int idx,const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members

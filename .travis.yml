@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/dependencies/htsjdk-2.5.0.jar:$TRAVIS_BUILD_DIR/bin/genomicsdb.jar:$TRAVIS_BUILD_DIR/tests:$TRAVIS_BUILD_DIR/dependencies/gson-2.8.0.jar:.
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/dependencies/htsjdk-2.5.0.jar:$TRAVIS_BUILD_DIR/bin/genomicsdb.jar:$TRAVIS_BUILD_DIR/tests:$TRAVIS_BUILD_DIR/dependencies/json-simple-1.1.1.jar:.
 
 install:
     #Install dependencies
@@ -21,8 +21,8 @@ install:
     - cd $TRAVIS_BUILD_DIR
     #Download htsjdk jar
     - wget -O dependencies/htsjdk-2.5.0.jar https://repo1.maven.org/maven2/com/github/samtools/htsjdk/2.5.0/htsjdk-2.5.0.jar
-    #Download gson jar for JSON handling in Java
-    - wget -O dependencies/gson-2.8.0.jar http://central.maven.org/maven2/com/google/code/gson/gson/2.8.0/gson-2.8.0.jar
+    #Download simple json jar for JSON handling in Java
+    - wget -O dependencies/json-simple-1.1.1.jar http://central.maven.org/maven2/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
 
