@@ -75,6 +75,8 @@ loader_json_template_string="""
 
 def create_loader_json(ws_dir, test_name, test_params_dict):
     test_dict=json.loads(loader_json_template_string);
+    if('column_partitions' in test_params_dict):
+        test_dict['column_partitions'] = test_params_dict['column_partitions'];
     test_dict["column_partitions"][0]["workspace"] = ws_dir;
     test_dict["column_partitions"][0]["array"] = test_name;
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
@@ -152,7 +154,19 @@ def main():
                         } }
                     ]
             },
-            { "name" : "t0_overlapping", 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json' },
+            { "name" : "t0_overlapping", 'golden_output': 'golden_outputs/t0_overlapping',
+                'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
+                "query_params": [
+                    { "query_column_ranges" : [12202, 1000000000], "golden_output": {
+                        "vcf"        : "golden_outputs/t0_overlapping_at_12202",
+                        }
+                    }
+                ]
+            },
+            { "name" : "t0_overlapping_at_12202", 'golden_output': 'golden_outputs/t0_overlapping_at_12202',
+                'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
+                'column_partitions': [ {"begin": 12202, "workspace":"", "array": "" }]
+            },
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 "query_params": [
@@ -225,8 +239,6 @@ def main():
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
         test_loader_dict = create_loader_json(ws_dir, test_name, test_params_dict);
-        if(test_name == "t0_overlapping"):
-            test_loader_dict["produce_combined_vcf"] = False;
         if(test_name == "t0_1_2"):
             test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
