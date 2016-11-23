@@ -125,9 +125,6 @@ public final class TestBufferStreamVCF2TileDB
             currInfo.mStreamIdx = streamIdx;
             streamInfoVec.add(currInfo);
         }
-        //Must be called after all iterators/streams added - no more iterators/streams can be added once
-        //this function is called
-        loader.setupGenomicsDBImporter();
         if(args[0].equals("-iterators"))
         {
             loader.importBatch();
@@ -135,6 +132,9 @@ public final class TestBufferStreamVCF2TileDB
         }
         else
         {
+            //Must be called after all iterators/streams added - no more iterators/streams can be added once
+            //this function is called
+            loader.setupGenomicsDBImporter();
             //Counts and tracks buffer streams for which new data must be supplied
             //Initialized to all the buffer streams
             int numExhaustedBufferStreams = streamInfoVec.size();

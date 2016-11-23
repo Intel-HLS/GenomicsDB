@@ -598,12 +598,12 @@ public class VCF2TileDB
     /**
      * @return true if the import process is done
      */
-    public boolean importBatch()
+    public boolean importBatch() throws IOException
     {
         if(mDone)
             return true;
         if(!mIsLoaderSetupDone)
-            throw new GenomicsDBException("Cannot call importBatch() before calling setupGenomicsDBImporter()");
+            setupGenomicsDBImporter();
         boolean allExhaustedStreamsHaveIterators = true;
         while(!mDone && allExhaustedStreamsHaveIterators)
         {
