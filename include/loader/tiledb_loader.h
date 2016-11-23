@@ -27,7 +27,6 @@
 #include "column_partition_batch.h"
 #include "tiledb_loader_file_base.h"
 #include "load_operators.h"
-#include "json_config.h"
 
 //Exceptions thrown
 class VCF2TileDBException : public std::exception{

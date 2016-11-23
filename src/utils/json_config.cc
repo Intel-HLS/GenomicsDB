@@ -528,6 +528,9 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_treat_deletions_as_intervals = false;
   m_produce_combined_vcf = false;
   m_produce_tiledb_array = false;
+  m_compress_tiledb_array = true;
+  m_disable_synced_writes = false;
+  m_delete_and_create_tiledb_array = false;
   m_row_based_partitioning = false;
   //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
   m_discard_vcf_index = true;
@@ -550,6 +553,8 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_ignore_cells_not_in_partition = false;
   m_vid_mapping_filename = "";
   m_callset_mapping_file = "";
+  m_segment_size = 10u*1024u*1024u; //10MiB default
+  m_num_cells_per_tile = 1024u;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -600,6 +605,15 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   m_produce_tiledb_array = false;
   if(m_json.HasMember("produce_tiledb_array") && m_json["produce_tiledb_array"].GetBool())
     m_produce_tiledb_array = true;
+  //Compress TileDB array by default or if flag set to true
+  m_compress_tiledb_array = (!m_json.HasMember("compress_tiledb_array")
+      || (m_json["compress_tiledb_array"].IsBool() && m_json["compress_tiledb_array"].GetBool()));
+  //Disable synced writes - default false
+  m_disable_synced_writes = (m_json.HasMember("disable_synced_writes") && m_json["disable_synced_writes"].IsBool()
+      && m_json["disable_synced_writes"].GetBool());
+  //recreate array from scratch
+  m_delete_and_create_tiledb_array = (m_json.HasMember("delete_and_create_tiledb_array") && m_json["delete_and_create_tiledb_array"].IsBool()
+    && m_json["delete_and_create_tiledb_array"].GetBool());
   //Control whether VCF indexes should be discarded to save memory
   m_discard_vcf_index = true;
   if(m_json.HasMember("discard_vcf_index"))
@@ -617,8 +631,14 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if(m_json.HasMember("offload_vcf_output_processing"))
     m_offload_vcf_output_processing = m_do_ping_pong_buffering && m_json["offload_vcf_output_processing"].GetBool();
   //Ignore cells that do not belong to this partition
-  if(m_json.HasMember("ignore_cells_not_in_partition"))
+  if(m_json.HasMember("ignore_cells_not_in_partition") && m_json["ignore_cells_not_in_partition"].IsBool())
     m_ignore_cells_not_in_partition = m_json["ignore_cells_not_in_partition"].GetBool();
+  //TileDB array segment size
+  if(m_json.HasMember("segment_size") && m_json["segment_size"].IsInt64())
+    m_segment_size = m_json["segment_size"].GetInt64();
+  //TileDB array #cells/tile
+  if(m_json.HasMember("num_cells_per_tile") && m_json["num_cells_per_tile"].IsInt64())
+    m_num_cells_per_tile = m_json["num_cells_per_tile"].GetInt64();
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   auto filename_pair = get_vid_mapping_filename(id_mapper, rank);

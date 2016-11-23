@@ -805,9 +805,6 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
   auto top_column = -1ll;
   auto hit_invalid_cell = false;
   auto num_operators_overflow_in_this_round = 0u;
-  //For partition bounds checking
-  auto row_partition = get_row_partition(m_idx);
-  auto column_partition = get_column_partition();
   //while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
   while(!m_column_major_pq.empty() && !hit_invalid_cell && num_operators_overflow_in_this_round == 0u)
   {
@@ -819,55 +816,33 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
     const auto& buffer = m_ping_pong_buffers[m_order_idx_to_buffer_control[order].get_read_idx()];
     auto offset = top_ptr->m_offset;
-    //END value is after coordinates and cell size
-    auto end_column = *(reinterpret_cast<const int64_t*>(&(buffer[offset+2*sizeof(int64_t)+sizeof(size_t)])));
-    auto is_in_partition = true;
-    //Check if cell is in this partition
-    if(!(row_idx >= row_partition.first && row_idx <= row_partition.second
-        && end_column >= column_partition.first && column <= column_partition.second))
+    //Check whether cell is in column-major order
+    if(!(column > m_previous_cell_column || (column == m_previous_cell_column && row_idx > m_previous_cell_row_idx)))
+      throw VCF2TileDBException(std::string("Incorrect cell order found - cells must be in column major order. Previous cell: [ ")
+          +std::to_string(m_previous_cell_row_idx)+", "+std::to_string(m_previous_cell_column)
+          +" ] current cell: [ "+std::to_string(row_idx)+", "+std::to_string(column)+" ]");
+    for(auto i=0u;i<m_operators.size();++i)
     {
-      is_in_partition = false;
-      if(!m_ignore_cells_not_in_partition)
-        throw VCF2TileDBException(std::string("Found cell [ ")+std::to_string(row_idx)+", [ "
-            +std::to_string(column)+", "+std::to_string(end_column)
-            +" ] ] that does not belong to TileDB/GenomicsDB partition "+std::to_string(m_idx));
-      //Must be the first time this 'invalid' cell is seen and hence, overflow cannot have occurred for this cell
-      assert(m_num_operators_overflow_in_last_round == 0u);
-    }
-    if(is_in_partition)
-      //Check whether cell is in column-major order
-      if(!(column > m_previous_cell_column || (column == m_previous_cell_column && row_idx > m_previous_cell_row_idx)))
-        throw VCF2TileDBException(std::string("Incorrect cell order found - cells must be in column major order. Previous cell: [ ")
-            +std::to_string(m_previous_cell_row_idx)+", "+std::to_string(m_previous_cell_column)
-            +" ] current cell: [ "+std::to_string(row_idx)+", "+std::to_string(column)+" ]");
-    if(is_in_partition)
-    {
-      for(auto i=0u;i<m_operators.size();++i)
+      auto op = m_operators[i];
+      //An operator is allowed to proceed iff one of the following conditions are satisfied
+      //A. No operators overflowed in the previous call of this function OR
+      //B. This was one of the operators that overflowed in the past call
+      if(m_num_operators_overflow_in_last_round == 0u || m_operators_overflow[i])
       {
-        auto op = m_operators[i];
-        //An operator is allowed to proceed iff one of the following conditions are satisfied
-        //A. No operators overflowed in the previous call of this function OR
-        //B. This was one of the operators that overflowed in the past call
-        if(m_num_operators_overflow_in_last_round == 0u || m_operators_overflow[i])
-        {
-          assert(!(op->overflow())); //must have buffer space
-          op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
-          auto curr_overflow = op->overflow();
-          m_operators_overflow[i] = curr_overflow;
-          if(curr_overflow)
-            ++num_operators_overflow_in_this_round;
-        }
+        assert(!(op->overflow())); //must have buffer space
+        op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
+        auto curr_overflow = op->overflow();
+        m_operators_overflow[i] = curr_overflow;
+        if(curr_overflow)
+          ++num_operators_overflow_in_this_round;
       }
     }
     //Advance to next cell iff no operators are overflowing
     if(num_operators_overflow_in_this_round == 0u)
     {
       m_column_major_pq.pop();
-      if(is_in_partition)
-      {
-        m_previous_cell_row_idx = row_idx;
-        m_previous_cell_column = column;
-      }
+      m_previous_cell_row_idx = row_idx;
+      m_previous_cell_column = column;
       auto valid_cell_found = read_next_cell_from_buffer(row_idx);
       if(valid_cell_found)
         m_column_major_pq.push(&(m_pq_vector[order]));

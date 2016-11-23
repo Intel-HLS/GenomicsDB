@@ -79,6 +79,31 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
     m_last_end_position_for_row[row] = -1ll;
 }
 
+void LoaderOperatorBase::check_cell_coordinates(const int64_t row_idx, const int64_t column_begin, const int64_t column_end)
+{
+  auto outside_row_bounds = (row_idx < m_row_partition.first || row_idx > m_row_partition.second);
+  auto ends_before_column_partition = (column_end < m_column_partition.first);
+  auto begins_after_column_partition = (column_begin > m_column_partition.second);
+  //VCFs can have overlapping intervals - hence you might have the first cell intersecting with the interval
+  //followed by cells that end before the interval (see wiki page for overlapping variants information)
+  //Throw exception iff
+  //(1) ignore flag is false AND (
+  //   (a) outside row bounds OR
+  //   (b) begins after column partition OR
+  //   (c) this is the first cell AND ends before partition
+  //   )
+  if(!m_loader_json_config.ignore_cells_not_in_partition() && (outside_row_bounds
+        || begins_after_column_partition || (m_first_cell && ends_before_column_partition)
+        )
+      )
+    throw LoadOperatorException(std::string("Found cell [ ")+std::to_string(row_idx)+", [ "
+        +std::to_string(column_begin)+", "+std::to_string(column_end)
+        +" ] ] that does not belong to TileDB/GenomicsDB partition with row_bounds [ "
+        +std::to_string(m_row_partition.first)+", "+std::to_string(m_row_partition.second)+" ] column_bounds [ "
+        +std::to_string(m_column_partition.first)+", "+std::to_string(m_column_partition.second)+" ]");
+  m_first_cell = false;
+}
+
 void LoaderOperatorBase::finish(const int64_t column_interval_end)
 {
   if(!m_crossed_column_partition_begin) //did not ever cross the column partition beginning, force cross
@@ -87,58 +112,32 @@ void LoaderOperatorBase::finish(const int64_t column_interval_end)
 
 //LoaderArrayWriter - writes to TileDB arrays
 LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
-  : LoaderOperatorBase(id_mapper->get_num_callsets()), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
+  : LoaderOperatorBase(config_filename, id_mapper->get_num_callsets(), rank), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
 {
-  //Parse json configuration
-  rapidjson::Document json_doc;
-  std::ifstream ifs(config_filename.c_str());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
-  if(json_doc.HasParseError())
-    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+config_filename);
-  //recreate array flag
-  bool recreate_array = (json_doc.HasMember("delete_and_create_tiledb_array")
-      && json_doc["delete_and_create_tiledb_array"].GetBool()) ? true : false;
-  JSONLoaderConfig json_config;
-  json_config.read_from_file(config_filename);
-  auto workspace = json_config.get_workspace(rank);
-  auto array_name = json_config.get_array_name(rank);
+  auto workspace = m_loader_json_config.get_workspace(rank);
+  auto array_name = m_loader_json_config.get_array_name(rank);
   //Schema
-  bool row_based_partitioning = json_config.is_partitioned_by_row();
-  RowRange row_partition(0, json_config.get_max_num_rows_in_array()-1);
-  if(row_based_partitioning)
-  {
-    row_partition = json_config.get_row_partition(rank);
-    row_partition.second = std::min(row_partition.second, static_cast<int64_t>(json_config.get_max_num_rows_in_array()-1));
-  }
-  else
-    m_column_partition = json_config.get_column_partition(rank);
-  //default true
-  bool compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array") || json_doc["compress_tiledb_array"].GetBool());
-  id_mapper->build_tiledb_array_schema(m_schema, array_name, row_based_partitioning, row_partition, compress_tiledb_array);
+  id_mapper->build_tiledb_array_schema(m_schema, array_name, m_loader_json_config.is_partitioned_by_row(), m_row_partition,
+      m_loader_json_config.compress_tiledb_array());
   //Disable synced writes
-  if(json_doc.HasMember("disable_synced_writes") && json_doc["disable_synced_writes"].GetBool())
-    g_TileDB_enable_SYNC_write = 0;
+  g_TileDB_enable_SYNC_write = m_loader_json_config.disable_synced_writes() ? 0 : 1;
   //Storage manager
-  size_t segment_size = json_doc.HasMember("segment_size") ? json_doc["segment_size"].GetInt64() : 10u*1024u*1024u;
+  size_t segment_size = m_loader_json_config.get_segment_size();
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
-  auto mode = recreate_array ? "w" : "a";
+  auto mode = m_loader_json_config.delete_and_create_tiledb_array() ? "w" : "a";
   //Check if array already exists
   m_array_descriptor = m_storage_manager->open_array(array_name, mode);
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
   {
-    size_t num_cells_per_tile = 1000u;
-    if(json_doc.HasMember("num_cells_per_tile") && json_doc["num_cells_per_tile"].IsInt64())
-      num_cells_per_tile = json_doc["num_cells_per_tile"].GetInt64();
-    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema, num_cells_per_tile) == TILEDB_OK
+    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema, m_loader_json_config.get_num_cells_per_tile()) == TILEDB_OK
         && "Could not define TileDB array");
     //Open array in write mode
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   }
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
-  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, row_partition.first,
-      std::min(row_partition.second, id_mapper->get_max_callset_row_idx()));
+  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, m_row_partition.first,
+      std::min(m_row_partition.second, id_mapper->get_max_callset_row_idx()));
 }
 
 #ifdef DUPLICATE_CELL_AT_END
@@ -182,6 +181,7 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
   assert(column_end >= column_begin && static_cast<size_t>(row) < m_last_end_position_for_row.size());
   //cell size is after co-ordinates
   auto cell_size = *(reinterpret_cast<const size_t*>(ptr+2*sizeof(int64_t)));
+  check_cell_coordinates(row, column_begin, column_end);
   if(!m_crossed_column_partition_begin)
   {
     handle_intervals_spanning_partition_begin(row, column_begin, column_end, cell_size, cell_ptr);
@@ -294,14 +294,12 @@ void LoaderArrayWriter::finish(const int64_t column_interval_end)
 #ifdef HTSDIR
 LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
     bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
-  : LoaderOperatorBase(id_mapper->get_num_callsets()), m_schema(0), m_query_processor(0), m_operator(0)
+  : LoaderOperatorBase(config_filename, id_mapper->get_num_callsets(), partition_idx), m_schema(0), m_query_processor(0), m_operator(0)
 {
   clear(); 
   //Loader configuration
-  JSONLoaderConfig loader_json_config;
-  loader_json_config.read_from_file(config_filename);
-  if(!loader_json_config.is_partitioned_by_row())
-    m_column_partition = loader_json_config.get_column_partition(partition_idx);
+  if(!m_loader_json_config.is_partitioned_by_row())
+    m_column_partition = m_loader_json_config.get_column_partition(partition_idx);
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
@@ -314,7 +312,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_query_config.set_attributes_to_query(query_attributes);
   m_query_processor->do_query_bookkeeping(*m_schema, m_query_config, *m_vid_mapper);
   //Initialize VCF adapter
-  if(loader_json_config.offload_vcf_output_processing())
+  if(m_loader_json_config.offload_vcf_output_processing())
   {
     m_offload_vcf_output_processing = true;
     //2 entries in circular buffer, max #entries to use in each line_buffer
@@ -379,6 +377,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
   //END value is after cooords and cell_size
   ptr += 2*sizeof(int64_t)+sizeof(size_t);
   auto column_end = *(reinterpret_cast<const int64_t*>(ptr));
+  check_cell_coordinates(row, column_begin, column_end);
   if(!m_crossed_column_partition_begin)
   {
     handle_intervals_spanning_partition_begin(row, column_begin, column_end, cell_size, cell_ptr);

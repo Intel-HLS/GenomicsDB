@@ -107,15 +107,32 @@ class JSONLoaderConfig : public JSONConfigBase
     }
     inline int64_t get_max_num_rows_in_array() const { return m_max_num_rows_in_array; }
     inline bool offload_vcf_output_processing() const { return m_offload_vcf_output_processing; }
+    inline bool ignore_cells_not_in_partition() const { return m_ignore_cells_not_in_partition; }
+    inline bool compress_tiledb_array() const { return m_compress_tiledb_array; }
+    inline bool disable_synced_writes() const { return m_disable_synced_writes; }
+    inline bool delete_and_create_tiledb_array() const { return m_delete_and_create_tiledb_array; }
+    inline size_t get_segment_size() const { return m_segment_size; }
+    inline size_t get_num_cells_per_tile() const { return m_num_cells_per_tile; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
     bool m_produce_combined_vcf;
     bool m_produce_tiledb_array;
+    bool m_compress_tiledb_array;
+    bool m_disable_synced_writes;
+    bool m_delete_and_create_tiledb_array;
     bool m_row_based_partitioning;
+    //do ping-pong buffering
+    bool m_do_ping_pong_buffering;
+    //Offload VCF output processing to another thread
+    bool m_offload_vcf_output_processing;
+    //Ignore cells that do not belong to this partition
+    bool m_ignore_cells_not_in_partition;
     //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
     bool m_discard_vcf_index;
     unsigned m_num_entries_in_circular_buffer;
+    //#VCF files to open/process in parallel
+    int m_num_parallel_vcf_files;
     int m_num_converter_processes;
     int64_t m_per_partition_size;
     int64_t m_max_size_per_callset;
@@ -125,17 +142,13 @@ class JSONLoaderConfig : public JSONConfigBase
     std::string m_callset_mapping_file;
     //max #rows - defining domain of the array
     int64_t m_max_num_rows_in_array;
+    //segment size for TileDB array
+    size_t m_segment_size;
+    //TileDB array #cells/tile
+    size_t m_num_cells_per_tile;
     //Lower and upper bounds of callset row idx to import in this invocation
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
-    //#VCF files to open/process in parallel
-    int m_num_parallel_vcf_files;
-    //do ping-pong buffering
-    bool m_do_ping_pong_buffering;
-    //Offload VCF output processing to another thread
-    bool m_offload_vcf_output_processing;
-    //Ignore cells that do not belong to this partition
-    bool m_ignore_cells_not_in_partition;
 };
 
 #ifdef HTSDIR
