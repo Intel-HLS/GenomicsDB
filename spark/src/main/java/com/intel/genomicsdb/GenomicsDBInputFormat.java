@@ -39,7 +39,7 @@ import java.util.List;
 public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   extends InputFormat<String, VCONTEXT> implements Configurable {
 
-  private GenomicsDBConf genomicsDBConf;
+  private GenomicsDBConfiguration genomicsDBConfiguration;
   private Configuration configuration;
 
   Logger logger = Logger.getLogger(GenomicsDBInputFormat.class);
@@ -56,12 +56,12 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   public List<InputSplit> getSplits(JobContext jobContext) throws FileNotFoundException {
 
 
-    genomicsDBConf = new GenomicsDBConf(configuration);
-    genomicsDBConf.setLoaderJsonFile(configuration.get(GenomicsDBConf.LOADERJSON));
-    genomicsDBConf.setQueryJsonFile(configuration.get(GenomicsDBConf.QUERYJSON));
-    genomicsDBConf.setHostFile(configuration.get(GenomicsDBConf.MPIHOSTFILE));
+    genomicsDBConfiguration = new GenomicsDBConfiguration(configuration);
+    genomicsDBConfiguration.setLoaderJsonFile(configuration.get(GenomicsDBConfiguration.LOADERJSON));
+    genomicsDBConfiguration.setQueryJsonFile(configuration.get(GenomicsDBConfiguration.QUERYJSON));
+    genomicsDBConfiguration.setHostFile(configuration.get(GenomicsDBConfiguration.MPIHOSTFILE));
 
-    List<String> hosts = genomicsDBConf.getHosts();
+    List<String> hosts = genomicsDBConfiguration.getHosts();
 
     ArrayList<InputSplit> inputSplits = new ArrayList<InputSplit>(hosts.size());
     for (int i = 0; i < hosts.size(); ++i) {
@@ -84,16 +84,16 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
     if (taskAttemptContext != null) {
       Configuration configuration = taskAttemptContext.getConfiguration();
-      loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
-      queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
+      loaderJson = configuration.get(GenomicsDBConfiguration.LOADERJSON);
+      queryJson = configuration.get(GenomicsDBConfiguration.QUERYJSON);
     } else {
       // If control comes here, means this method is called from
       // GenomicsDBRDD. Hence, the configuration object must be
       // set by setConf method, else this will lead to
       // NullPointerException
       assert(configuration!=null);
-      loaderJson = configuration.get(GenomicsDBConf.LOADERJSON);
-      queryJson = configuration.get(GenomicsDBConf.QUERYJSON);
+      loaderJson = configuration.get(GenomicsDBConfiguration.LOADERJSON);
+      queryJson = configuration.get(GenomicsDBConfiguration.QUERYJSON);
     }
 
     featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
@@ -108,8 +108,8 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   public GenomicsDBInputFormat() {
   }
 
-  public GenomicsDBInputFormat(GenomicsDBConf conf) {
-    genomicsDBConf = conf;
+  public GenomicsDBInputFormat(GenomicsDBConfiguration conf) {
+    genomicsDBConfiguration = conf;
   }
 
   /**
@@ -119,7 +119,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    * @return  Returns the same object for forward function calls
    */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setLoaderJsonFile(String jsonFile) {
-    genomicsDBConf.setLoaderJsonFile(jsonFile);
+    genomicsDBConfiguration.setLoaderJsonFile(jsonFile);
     return this;
   }
 
@@ -129,7 +129,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    * @return  Returns the same object for forward function calls
    */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setQueryJsonFile(String jsonFile) {
-    genomicsDBConf.setQueryJsonFile(jsonFile);
+    genomicsDBConfiguration.setQueryJsonFile(jsonFile);
     return this;
   }
 
@@ -140,7 +140,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {
-    genomicsDBConf.setHostFile(hostFile);
+    genomicsDBConfiguration.setHostFile(hostFile);
     return this;
   }
 
