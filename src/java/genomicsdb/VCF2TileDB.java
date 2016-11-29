@@ -74,12 +74,19 @@ public class VCF2TileDB
         private long mNumValidBytes = 0;
         private long mMarker = 0;
         private boolean mOverflow = false;
-        
+       
+        /**
+        * Constructor - uses default value of buffer capacity (20KiB)
+        */ 
         public SilentByteBufferStream()
         {
             mBuffer = new byte[(int)mDefaultBufferCapacity];
         }
-
+        
+        /**
+        * Constructor - uses specified buffer capacity
+        * @param capacity size of buffer in bytes
+        */ 
         public SilentByteBufferStream(final long capacity)
         {
             mBuffer = new byte[(int)capacity];
@@ -129,11 +136,19 @@ public class VCF2TileDB
             }
         }
 
+        /**
+         * Returns buffer capacity in bytes
+         * @return buffer capacity in bytes
+         */
         public int size()
         {
             return mBuffer.length;
         }
 
+        /**
+         * Resizes buffer to new size - data is retained
+         * @param newSize new capacity of the buffer
+         */
         public void resize(final long newSize)
         {
             byte tmp[] = new byte[(int)newSize];
@@ -141,36 +156,66 @@ public class VCF2TileDB
             mBuffer = tmp; //hopefully Java GC does its job
         }
 
+        /**
+         * Returns if the buffer has overflowed
+         * @return true if the buffer has overflowed
+         */
         public boolean overflow()
         {
             return mOverflow;
         }
 
+        /**
+         * Set overflow value
+         * @param value overflow value
+         */
         public void setOverflow(final boolean value)
         {
             mOverflow = value;
         }
 
+        /**
+         * Get number of valid bytes
+         * @return number of valid bytes
+         */
         public long getNumValidBytes()
         {
             return mNumValidBytes;
         }
 
+        /**
+         * Set number of valid bytes
+         * @param value number of valid bytes
+         */
         public void setNumValidBytes(final long value)
         {
             mNumValidBytes = value;
         }
 
+        /**
+         * Caller code can use this function to mark a certain point in the buffer
+         * This is generally used to mark the position in the buffer after the last
+         * complete VariantContext object written
+         * @param value set marker value
+         */
         public void setMarker(final long value)
         {
             mMarker = value;
         }
 
+        /**
+         * Get marker value
+         * @return marker value
+         */
         public long getMarker()
         {
             return mMarker;
         }
 
+        /**
+         * Get byte buffer for this stream
+         * @return byte buffer for this stream
+         */
         public byte[] getBuffer()
         {
             return mBuffer;
@@ -180,6 +225,8 @@ public class VCF2TileDB
     /**
      * Utility class wrapping a stream and a VariantContextWriter for a given stream
      * Each GenomicsDB import stream consists of a buffer stream and a writer object
+     * If the caller provides an iterator, then mCurrentVC points to the VariantContext object
+     * to be written, if any.
      */
     private class GenomicsDBImporterStreamWrapper
     {
@@ -234,11 +281,20 @@ public class VCF2TileDB
             }
         }
 
+        /**
+         * Returns true if a non-null Iterator<VariantContext> object was provided for this stream
+         * @return true if a non-null Iterator<VariantContext> object was provided for this stream
+         */
         public boolean hasIterator()
         {
             return (mIterator != null);
         }
 
+        /**
+         * Returns the next VariantContext object iff the Iterator<VariantContext> is non-null and has a next() object,
+         * else returns null. Stores the result in mCurrentVC
+         * @return the next VariantContext object or null
+         */
         public VariantContext next()
         {
             if(mIterator != null && mIterator.hasNext())
@@ -248,6 +304,10 @@ public class VCF2TileDB
             return mCurrentVC;
         }
 
+        /**
+         * Returns mCurrentVC - could be null if mIterator is null or !mIterator.hasNext()
+         * @return VariantContext object to be written
+         */
         public VariantContext getCurrentVC()
         {
             return mCurrentVC;

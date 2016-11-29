@@ -34,6 +34,12 @@ class GenomicsDBImporterException : public std::exception {
     std::string msg_;
 };
 
+/*
+ * Wrapper class around VCF2TileDBLoader that helps deal with buffer streams. Delays initialization of
+ * VCF2TileDBLoader object until callset information from all streams is fully obtained - this includes 
+ * VCF headers for streams and callset mapping.
+ * Used by the JNI layer for Java VCF2TileDB class
+ */
 class GenomicsDBImporter
 {
   public:
