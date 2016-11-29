@@ -48,7 +48,14 @@ import genomicsdb.GenomicsDBException;
 
 public final class TestBufferStreamVCF2TileDB
 {
-    //Wrapper class to maintain some testing stream state
+    /**
+     * Wrapper class to maintain stream state for the test driver program
+     * The class can maintains
+     * (a) VCFHeader
+     * (b) CloseableTribbleIterator<VariantContext>
+     * (c) mNextVC the next VariantContext object to be sent to VCF2TileDB iff the buffer interface of VCF2TileDB is used (addBufferStream())
+     * and not the Iterator<VariantContext> interface (addSortedVariantContextIterator())
+     */
     private static class VCFFileStreamInfo
     {
         public int mStreamIdx = -1;
@@ -56,6 +63,10 @@ public final class TestBufferStreamVCF2TileDB
         public CloseableTribbleIterator<VariantContext> mIterator = null;
         public VariantContext mNextVC = null;
 
+        /**
+         * Constructor
+         * @param filename path to VCF file
+         */
         public VCFFileStreamInfo(final String fileName) throws IOException
         {
             AbstractFeatureReader<VariantContext, LineIterator> reader = AbstractFeatureReader.getFeatureReader(fileName, new VCFCodec(), false);
@@ -64,20 +75,29 @@ public final class TestBufferStreamVCF2TileDB
         }
     }
 
-    //Factory object to maintain order of keys in simple JSON parsing - use LinkedHashMap
+    /**
+     * Factory object to maintain order of keys in simple JSON parsing - use LinkedHashMap
+     */
     private static class LinkedHashFactory implements ContainerFactory
     {
+        @Override
         public List creatArrayContainer()
         {
             return new ArrayList();
         }
 
+        @Override
         public Map createObjectContainer()
         {
             return new LinkedHashMap();
         }
     }
 
+    /**
+     * Sample driver code for testing Java VariantContext write API for GenomicsDB
+     * The code shows two ways of using the API (a) Iterator<VariantContext> (b) Directly adding VariantContext objects
+     * If "-iterators" is passed as the second argument, method (a) is used.
+     */
     public static void main(final String[] args) throws IOException, FileNotFoundException, GenomicsDBException, ParseException
     {
         if(args.length < 2)
@@ -86,7 +106,7 @@ public final class TestBufferStreamVCF2TileDB
             System.exit(-1);
         }
         int argsLoaderFileIdx = 0;
-        if(args[0].equals("-iterators") || args[0].equals("-mv_iterator"))
+        if(args[0].equals("-iterators"))
             argsLoaderFileIdx = 1;
         //Buffer capacity
         long bufferCapacity = (args.length >= argsLoaderFileIdx+3) ? Integer.parseInt(args[argsLoaderFileIdx+2]) : 1024;
@@ -127,6 +147,7 @@ public final class TestBufferStreamVCF2TileDB
         }
         if(args[0].equals("-iterators"))
         {
+            //Much simpler interface if using Iterator<VariantContext>
             loader.importBatch();
             assert loader.isDone();
         }
