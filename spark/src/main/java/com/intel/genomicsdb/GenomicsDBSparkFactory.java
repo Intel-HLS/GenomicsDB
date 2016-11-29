@@ -54,9 +54,9 @@ public final class GenomicsDBSparkFactory {
     JavaSparkContext sc = new JavaSparkContext(conf);
 
     Configuration hadoopConf = sc.hadoopConfiguration();
-    hadoopConf.set(GenomicsDBConf.LOADERJSON, loaderJsonFile);
-    hadoopConf.set(GenomicsDBConf.QUERYJSON, queryJsonFile);
-    hadoopConf.set(GenomicsDBConf.MPIHOSTFILE, hostfile);
+    hadoopConf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonFile);
+    hadoopConf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonFile);
+    hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile);
 
     GenomicsDBContext gc = new GenomicsDBContext(hadoopConf, sc.sc());
     JavaRDD<VariantContext> myrdd = gc.getVariantContexts().toJavaRDD();
@@ -80,14 +80,10 @@ public final class GenomicsDBSparkFactory {
     conf.setAppName("GenomicsDBTest using newAPIHadoopRDD");
     JavaSparkContext sc = new JavaSparkContext(conf);
 
-//    val classObjects: Array[Class[_]] = Array(Class.forName("org.apache.hadoop.io.LongWritable"),
-//      Class.forName("org.apache.hadoop.io.Text"))
-//    conf.registerKryoClasses(classObjects)
-
     Configuration hadoopConf = sc.hadoopConfiguration();
-    hadoopConf.set(GenomicsDBConf.LOADERJSON, loaderJsonFile);
-    hadoopConf.set(GenomicsDBConf.QUERYJSON, queryJsonFile);
-    hadoopConf.set(GenomicsDBConf.MPIHOSTFILE, hostfile);
+    hadoopConf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonFile);
+    hadoopConf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonFile);
+    hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile);
 
     JavaPairRDD variants;
     Class gformatClazz = GenomicsDBInputFormat.class;

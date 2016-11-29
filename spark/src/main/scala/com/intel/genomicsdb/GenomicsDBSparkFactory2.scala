@@ -46,9 +46,9 @@ object GenomicsDBSparkFactory2 {
       .setAppName("GenomicsDBTest using GenomicsDBRDD")
     val sc = new SparkContext(conf)
     val hadoopConf = sc.hadoopConfiguration
-    hadoopConf.set(GenomicsDBConf.LOADERJSON, loaderJsonFile)
-    hadoopConf.set(GenomicsDBConf.QUERYJSON, queryJsonFile)
-    hadoopConf.set(GenomicsDBConf.MPIHOSTFILE, hostfile)
+    hadoopConf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonFile)
+    hadoopConf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonFile)
+    hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile)
 
     val gc = new GenomicsDBContext(hadoopConf, sc)
     val myrdd = gc.getVariantContexts
@@ -72,9 +72,9 @@ object GenomicsDBSparkFactory2 {
 
     val sc = new SparkContext(conf)
     val hadoopConf = sc.hadoopConfiguration
-    hadoopConf.set(GenomicsDBConf.LOADERJSON, loaderJsonFile)
-    hadoopConf.set(GenomicsDBConf.QUERYJSON, queryJsonFile)
-    hadoopConf.set(GenomicsDBConf.MPIHOSTFILE, hostfile)
+    hadoopConf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonFile)
+    hadoopConf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonFile)
+    hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile)
 
     val myrdd: RDD[(String, VariantContext)] =
       sc.newAPIHadoopRDD[String, VariantContext,

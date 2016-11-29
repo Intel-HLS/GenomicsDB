@@ -52,17 +52,17 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     defaultValue = false)
 
   private val confBroadcast = gc.sparkContext.broadcast(
-    new GenomicsDBConf(gc.sparkContext.hadoopConfiguration))
+    new GenomicsDBConfiguration(gc.sparkContext.hadoopConfiguration))
 
   val loaderJsonBroadcast = sparkContext.broadcast(
-    confBroadcast.value.get(GenomicsDBConf.LOADERJSON))
+    confBroadcast.value.get(GenomicsDBConfiguration.LOADERJSON))
   val queryJsonBroadcast = sparkContext.broadcast(
-    confBroadcast.value.get(GenomicsDBConf.QUERYJSON))
+    confBroadcast.value.get(GenomicsDBConfiguration.QUERYJSON))
 
   def getConf: Configuration = {
     val conf: Configuration = confBroadcast.value
     log.info(conf.toString)
-    log.info(conf.get(GenomicsDBConf.LOADERJSON))
+    log.info(conf.get(GenomicsDBConfiguration.LOADERJSON))
     if (shouldCloneJobConf) {
         /**
           * Picked up from [[org.apache.spark.rdd.NewHadoopRDD]]
@@ -72,8 +72,8 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         new Configuration(conf)
       }
     } else {
-      conf.set(GenomicsDBConf.LOADERJSON, loaderJsonBroadcast.value)
-      conf.set(GenomicsDBConf.QUERYJSON, queryJsonBroadcast.value)
+      conf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonBroadcast.value)
+      conf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonBroadcast.value)
       conf
     }
   }

@@ -23,32 +23,49 @@
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Scanner;
 
-public class GenomicsDBConf extends Configuration implements Serializable {
+/**
+ * The configuration class enables users to use Java/Scala
+ * to populate the input parameters of GenomicsDB. The first
+ * version of the input format are JSON files. Through this
+ * class, we provide a programmable interface. Note, that once
+ * fully coded, this configuration object can be directly
+ * passed from GATK4.0
+ */
+public class GenomicsDBConfiguration extends Configuration implements Serializable {
 
   public static final String LOADERJSON = "genomicsdb.input.loaderjsonfile";
   public static final String QUERYJSON = "genomicsdb.input.queryjsonfile";
   public static final String MPIHOSTFILE = "genomicsdb.input.mpi.hostfile";
+  public static final String PARTITION_STRATEGY = "genomicsdb.partition.strategy";
 
-  public GenomicsDBConf(Configuration configuration) throws FileNotFoundException {
+  private Boolean produceCombinedVCF = false;
+  private Boolean produceTileDBArray = false;
+  private Integer segmentSize = 1000;
+  private Integer nCellsPerTile = 1000;
+
+  private LinkedList<GenomicsDBPartitionInfo> partitionInfoList = null;
+
+  public GenomicsDBConfiguration(Configuration configuration) throws FileNotFoundException {
     super(configuration);
+    produceTileDBArray = !produceCombinedVCF;
   }
 
   // <String> left for backward compatibility to Java 7
   private ArrayList<String> hosts = new ArrayList<>();
 
-  public GenomicsDBConf setLoaderJsonFile(String path) {
+  public GenomicsDBConfiguration setLoaderJsonFile(String path) {
     set(LOADERJSON, path);
     return this;
   }
 
-  public GenomicsDBConf setQueryJsonFile(String path) {
+  public GenomicsDBConfiguration setQueryJsonFile(String path) {
     set(QUERYJSON, path);
     return this;
   }
@@ -59,10 +76,10 @@ public class GenomicsDBConf extends Configuration implements Serializable {
    * kept it separate, can be merged later
    *
    * @param path  Full path of the host file
-   * @return  GenomicsDBConf object
+   * @return  GenomicsDBConfiguration object
    * @throws FileNotFoundException  If file not found, throw exception
    */
-  public GenomicsDBConf setHostFile(String path) throws FileNotFoundException {
+  public GenomicsDBConfiguration setHostFile(String path) throws FileNotFoundException {
     set(MPIHOSTFILE, path);
 
     Scanner scanner = new Scanner(new FileInputStream(path));
@@ -75,6 +92,42 @@ public class GenomicsDBConf extends Configuration implements Serializable {
 
   List<String> getHosts() {
     return hosts;
+  }
+
+  /**
+   * Set the partition strategy for underlying TileDB storage manager
+   *
+   * @param isRowPartitioned If true, data is partitioned as row major (ROW_MAJOR),
+   *                         COL_MAJOR otherwise
+   */
+  void setPartitionStrategy(Boolean isRowPartitioned) {
+
+    if (isRowPartitioned) {
+      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
+    } else {
+      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
+    }
+  }
+
+  /**
+   * Set the partition strategy for underlying TileDB storage manager
+   *
+   * @param partitionStrategy Partition strategy can be either column major
+   *                           (COL_MAJOR) or row major (ROW_MAJOR)
+   */
+  void setPartitionStrategy(String partitionStrategy) {
+    if (partitionStrategy.equals("ROW_MAJOR")) {
+      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
+    } else if (partitionStrategy.equals("COL_MAJOR")) {
+      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
+    }
+  }
+
+  void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {
+    if (partitionInfoList==null) {
+      partitionInfoList = new LinkedList<>();
+    }
+    partitionInfoList.push(genomicsDBPartitionInfo);
   }
 }
 
