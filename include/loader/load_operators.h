@@ -27,6 +27,7 @@
 #include "query_variants.h"
 #include "broad_combined_gvcf.h" 
 #include "variant_storage_manager.h"
+#include "json_config.h"
 
 struct CellPointersColumnMajorCompare
 {
@@ -53,14 +54,27 @@ class LoadOperatorException : public std::exception {
 class LoaderOperatorBase
 {
   public:
-    LoaderOperatorBase(const size_t num_callsets)
-      : m_column_partition(0, INT64_MAX-1)
+    LoaderOperatorBase(const std::string& loader_config_file, const size_t num_callsets, const int partition_idx)
+      : m_column_partition(0, INT64_MAX-1), m_row_partition(0, INT64_MAX-1)
     {
       m_crossed_column_partition_begin = false;
+      m_first_cell = true;
+      m_partition_idx = partition_idx;
 #ifdef DUPLICATE_CELL_AT_END
       m_cell_copies.resize(num_callsets, 0);
       m_last_end_position_for_row.resize(num_callsets, -1ll);
 #endif
+      //Parse loader JSON
+      m_loader_json_config.read_from_file(loader_config_file);
+      //Partitioning information
+      m_row_partition = RowRange(0, m_loader_json_config.get_max_num_rows_in_array()-1);
+      if(m_loader_json_config.is_partitioned_by_row())
+      {
+        m_row_partition = m_loader_json_config.get_row_partition(partition_idx);
+        m_row_partition.second = std::min(m_row_partition.second, static_cast<int64_t>(m_loader_json_config.get_max_num_rows_in_array()-1));
+      }
+      else
+        m_column_partition = m_loader_json_config.get_column_partition(partition_idx);
     }
     virtual ~LoaderOperatorBase() { ; }
     /*
@@ -78,6 +92,10 @@ class LoaderOperatorBase
      */
     void handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
         const size_t cell_size, const void* cell_ptr);
+    /*
+     * Throws exceptions if cell does not belong to current partition
+     */
+    void check_cell_coordinates(const int64_t row_idx, const int64_t column_begin, const int64_t column_end);
     /*
      * Returns true if output buffer for this operator is full and caller must "block"
      * till flush is completed
@@ -97,14 +115,18 @@ class LoaderOperatorBase
      */
     virtual void finish(const int64_t column_interval_end);
   protected:
+    int m_partition_idx;
     ColumnRange m_column_partition;
+    RowRange m_row_partition;
     bool m_crossed_column_partition_begin;
+    bool m_first_cell;
 #ifdef DUPLICATE_CELL_AT_END
     //Copy of cell buffers
     std::vector<uint8_t*> m_cell_copies;
     //End position of last cell seen for current row
     std::vector<int64_t> m_last_end_position_for_row;
 #endif
+    JSONLoaderConfig m_loader_json_config;
 };
 
 class LoaderArrayWriter : public LoaderOperatorBase

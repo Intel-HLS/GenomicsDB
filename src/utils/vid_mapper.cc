@@ -77,6 +77,7 @@ void VidMapper::clear()
   m_contig_end_2_idx.clear();
   m_field_name_to_idx.clear();
   m_field_idx_to_info.clear();
+  m_buffer_stream_idx_to_global_file_idx.clear();
   m_owner_idx_to_file_idx_vec.clear();
 }
 
@@ -308,7 +309,8 @@ void VidMapper::sort_and_assign_local_file_idxs_for_partition(const int owner_id
   {
     auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][i];
     assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
-    m_file_idx_to_info[global_file_idx].m_local_file_idx = i;
+    auto& curr_file_info = m_file_idx_to_info[global_file_idx];
+    curr_file_info.m_local_file_idx = i;
   }
 }
 
@@ -335,9 +337,11 @@ void VidMapper::verify_file_partitioning() const
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
-FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool callsets_file_required)
-  : VidMapper()
+void FileBasedVidMapper::common_constructor_initialization(const std::string& filename,
+    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+    const std::string& callset_mapping_file,
+    const std::string& buffer_stream_callset_mapping_json_string,
+    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool is_callset_mapping_required)
 {
   m_lb_callset_row_idx = 0;
   m_ub_callset_row_idx = INT64_MAX-1;
@@ -353,14 +357,23 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
   m_lb_callset_row_idx = lb_callset_row_idx;
   m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
+  std::string real_callset_mapping_file = "";
   if(callset_mapping_file != "")
-    parse_callsets_file(callset_mapping_file);
+    real_callset_mapping_file = callset_mapping_file;
   else
   {
-    VERIFY_OR_THROW(!callsets_file_required || (json_doc.HasMember("callset_mapping_file") && json_doc["callset_mapping_file"].IsString()));
-    if(callsets_file_required || json_doc.HasMember("callset_mapping_file"))
-      parse_callsets_file(json_doc["callset_mapping_file"].GetString());
+    if(json_doc.HasMember("callset_mapping_file"))
+    {
+      VERIFY_OR_THROW(json_doc["callset_mapping_file"].IsString() && "The \"callset_mapping_file\" field must be a string and specify a path to the callsets file");
+      real_callset_mapping_file = json_doc["callset_mapping_file"].GetString();
+    }
+    else
+      if(buffer_stream_callset_mapping_json_string.empty())
+        if(is_callset_mapping_required)
+          throw FileBasedVidMapperException(std::string("Must specify callset mapping either through \"callset_mapping_file\" or through a JSON string for buffer streams"));
   }
+  parse_callsets_json(real_callset_mapping_file, buffer_stream_info_vec, true);
+  parse_callsets_json(buffer_stream_callset_mapping_json_string, buffer_stream_info_vec, false);
   //Contig info parsing
   VERIFY_OR_THROW(json_doc.HasMember("contigs"));
   {
@@ -572,18 +585,29 @@ FileBasedVidMapper::FileBasedVidMapper(const std::string& filename, const std::s
   m_is_initialized = true;
 }
 
-void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
+void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+    const bool is_file)
 {
-  VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
+  if(json.empty())
+    return;
+  std::string filename = is_file ? json : "buffer_stream_callset_mapping_json_string";
   rapidjson::Document json_doc;
-  std::ifstream ifs(filename.c_str());
-  if(!ifs.is_open())
-    throw FileBasedVidMapperException((std::string("Could not open callsets file \"")+filename+"\"").c_str());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
-  if(json_doc.HasParseError())
-    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
-  uint64_t num_files = 0ull;
+  if(is_file)
+  {
+    std::ifstream ifs(filename.c_str());
+    if(!ifs.is_open())
+      throw FileBasedVidMapperException((std::string("Could not open callsets file \"")+filename+"\"").c_str());
+    std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    json_doc.Parse(str.c_str());
+    if(json_doc.HasParseError())
+      throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
+  }
+  else
+  {
+    json_doc.Parse(json.c_str());
+    if(json_doc.HasParseError())
+      throw FileBasedVidMapperException(std::string("Syntax error in JSON ")+filename);
+  }
   //Callset info parsing
   VERIFY_OR_THROW(json_doc.HasMember("callsets"));
   {
@@ -599,43 +623,65 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
     {
       const auto& curr_obj = *b;
       callset_name = curr_obj.name.GetString();
-      if(m_callset_name_to_row_idx.find(callset_name) != m_callset_name_to_row_idx.end())
-        throw FileBasedVidMapperException(std::string("Duplicate sample/callset name ")+callset_name+" found in callsets file "+filename);
       const auto& callset_info_dict = curr_obj.value;
       VERIFY_OR_THROW(callset_info_dict.IsObject());    //must be dict
       VERIFY_OR_THROW(callset_info_dict.HasMember("row_idx"));
       int64_t row_idx = callset_info_dict["row_idx"].GetInt64();
+      //already exists in map
+      if(m_callset_name_to_row_idx.find(callset_name) != m_callset_name_to_row_idx.end())
+        //different row idx
+        if(m_callset_name_to_row_idx[callset_name] != row_idx)
+          throw FileBasedVidMapperException(std::string("Duplicate with conflicting row index for sample/callset name ")+callset_name
+              +" found in callsets mapping "+std::to_string(m_callset_name_to_row_idx[callset_name])+", "+std::to_string(row_idx));
       if(row_idx > m_ub_callset_row_idx)
         continue;
       m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
       //Resize vector
       if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
         m_row_idx_to_info.resize(row_idx+1);
-      int64_t file_idx = -1;
+      auto file_idx = -1ll;
       //idx in file
       auto idx_in_file = 0ll;
-      if(row_idx >= m_lb_callset_row_idx && callset_info_dict.HasMember("filename"))
+      if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
       {
-        std::string filename = std::move(callset_info_dict["filename"].GetString());
+        VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
+            && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
+        std::string filename = callset_info_dict.HasMember("filename")
+          ? std::move(callset_info_dict["filename"].GetString())
+          : std::move(callset_info_dict["stream_name"].GetString());
         auto iter = m_filename_to_idx.find(filename);
         if(iter == m_filename_to_idx.end())
         {
-          iter = m_filename_to_idx.insert(std::make_pair(filename, num_files++)).first;
-          file_idx = num_files-1;
-          if(num_files > m_file_idx_to_info.size())
-            m_file_idx_to_info.resize(2*num_files+1);
+          file_idx = m_file_idx_to_info.size();
+          iter = m_filename_to_idx.insert(std::make_pair(filename, file_idx)).first;
+          m_file_idx_to_info.emplace_back();
           m_file_idx_to_info[file_idx].set_info(file_idx, filename);
         }
         else
           file_idx = (*iter).second;
         if(callset_info_dict.HasMember("idx_in_file"))
           idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
-        assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-        m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
+        //Check for conflicting file/stream info if initialized previously
+        const auto& curr_row_info = m_row_idx_to_info[row_idx];
+        if(curr_row_info.m_is_initialized)
+        {
+          if(curr_row_info.m_file_idx >= 0 && file_idx >= 0
+              && curr_row_info.m_file_idx != file_idx)
+            throw FileBasedVidMapperException(std::string("Conflicting file/stream names specified for sample/callset ")+callset_name
+                +" "+m_file_idx_to_info[curr_row_info.m_file_idx].m_name+", "+filename);
+          if(curr_row_info.m_idx_in_file != idx_in_file)
+            throw FileBasedVidMapperException(std::string("Conflicting values of \"idx_in_file\" specified for sample/callset ")+callset_name
+                +" "+std::to_string(curr_row_info.m_idx_in_file)+", "+std::to_string(idx_in_file));
+        }
+        else
+        {
+          assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
+          m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
+        }
       }
       m_callset_name_to_row_idx[callset_name] = row_idx;
       VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-      if(m_row_idx_to_info[row_idx].m_is_initialized)
+      if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
         throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
             +m_row_idx_to_info[row_idx].m_name);
       m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
@@ -648,9 +694,8 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
         missing_row_idxs_exist = true;
       }
     if(missing_row_idxs_exist)
-      throw FileBasedVidMapperException(std::string("Row indexes with missing sample/callset information found in callsets file: ")+filename);
+      throw FileBasedVidMapperException(std::string("Row indexes with missing sample/callset information found in callsets mapping: ")+filename);
   }
-  m_file_idx_to_info.resize(num_files);
   //File partitioning info
   if(json_doc.HasMember("file_division"))
   {
@@ -677,22 +722,47 @@ void FileBasedVidMapper::parse_callsets_file(const std::string& filename)
       sort_and_assign_local_file_idxs_for_partition(owner_idx);
     }
   }
-  //CSV files
-  for(const auto& val : std::vector<std::string>({"sorted_csv_files", "unsorted_csv_files"}))
+  //File/stream types
+  for(const auto& entry : std::unordered_map<std::string, VidFileTypeEnum>({
+        {"sorted_csv_files", VidFileTypeEnum::SORTED_CSV_FILE_TYPE },
+        {"unsorted_csv_files", VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE },
+        {"vcf_buffer_streams", VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE },
+        {"bcf_buffer_streams", VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE }
+        }))
   {
-    if(json_doc.HasMember(val.c_str()))
+    if(json_doc.HasMember(entry.first.c_str()))
     {
-      const auto& csv_file_array = json_doc[val.c_str()];
-      auto is_sorted_file = (val == "sorted_csv_files");
+      const auto& file_array = json_doc[entry.first.c_str()];
       //is an array
-      VERIFY_OR_THROW(csv_file_array.IsArray());
-      for(rapidjson::SizeType i=0;i<csv_file_array.Size();++i)
+      VERIFY_OR_THROW(file_array.IsArray());
+      for(rapidjson::SizeType i=0;i<file_array.Size();++i)
       {
         int64_t global_file_idx;
-        auto found = get_global_file_idx(csv_file_array[i].GetString(), global_file_idx);
+        auto found = get_global_file_idx(file_array[i].GetString(), global_file_idx);
         if(found)
-          m_file_idx_to_info[global_file_idx].m_type = is_sorted_file ? VidFileTypeEnum::SORTED_CSV_FILE_TYPE : VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE;
+          m_file_idx_to_info[global_file_idx].m_type = entry.second;
       }
     }
   }
+  //For buffer streams
+  m_buffer_stream_idx_to_global_file_idx.resize(buffer_stream_info_vec.size(), -1);
+  auto max_buffer_stream_idx_with_global_file_idx = -1ll;
+  for(auto i=0ull;i<buffer_stream_info_vec.size();++i)
+  {
+    const auto& info = buffer_stream_info_vec[i];
+    int64_t global_file_idx;
+    auto found = get_global_file_idx(info.m_name, global_file_idx);
+    if(found)
+    {
+      auto& curr_file_info = m_file_idx_to_info[global_file_idx];
+      curr_file_info.m_type = info.m_type;
+      curr_file_info.m_buffer_stream_idx = i;
+      curr_file_info.m_buffer_capacity = info.m_buffer_capacity;
+      curr_file_info.m_initialization_buffer = info.m_initialization_buffer;
+      curr_file_info.m_initialization_buffer_num_valid_bytes = info.m_initialization_buffer_num_valid_bytes;
+      m_buffer_stream_idx_to_global_file_idx[i] = global_file_idx;
+      max_buffer_stream_idx_with_global_file_idx = i;
+    }
+  }
+  m_buffer_stream_idx_to_global_file_idx.resize(max_buffer_stream_idx_with_global_file_idx+1);
 }

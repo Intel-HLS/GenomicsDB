@@ -21,10 +21,10 @@
 */
 
 #include "genomicsdb_GenomicsDBQueryStream.h"
-#include "jni_bcf_reader.h"
+#include "genomicsdb_bcf_generator.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
-#define GET_BCF_READER_FROM_HANDLE(X) (reinterpret_cast<JNIBCFReader*>(static_cast<std::uintptr_t>(X)))
+#define GET_BCF_READER_FROM_HANDLE(X) (reinterpret_cast<GenomicsDBBCFGenerator*>(static_cast<std::uintptr_t>(X)))
 
 JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   (JNIEnv* env, jobject curr_obj, jstring loader_configuration_file, jstring query_configuration_file,
@@ -40,7 +40,7 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   VERIFY_OR_THROW(chr_cstr);
   //Create object
   auto output_format = "bu";
-  auto bcf_reader_obj = new JNIBCFReader(loader_configuration_file_cstr, query_configuration_file_cstr,
+  auto bcf_reader_obj = new GenomicsDBBCFGenerator(loader_configuration_file_cstr, query_configuration_file_cstr,
       chr_cstr, start, end,
       rank, buffer_capacity, segment_size, output_format,
       (strcmp(output_format, "bu") == 0), false);

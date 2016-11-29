@@ -82,7 +82,6 @@ class LineBasedTextFileReader : public FileReaderBase
     inline const char* get_line() const { return m_is_record_valid ? m_line_buffer : 0; }
     inline size_t get_line_length() const  { return m_is_record_valid ? m_line_length : 0ull; }
   private:
-    std::string m_filename;
     FILE* m_fptr;
     char* m_line_buffer;
     size_t m_line_buffer_size;
@@ -190,11 +189,11 @@ class LineBasedTextFile2TileDBBinary : public File2TileDBBinaryBase
       m_array_schema = 0;
     }
     /*
-     * Create the subclass of FileReaderBase that must be used
+     * Create the subclass of GenomicsDBImportReaderBase that must be used
      */
-    FileReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
+    GenomicsDBImportReaderBase* create_new_reader_object(const std::string& filename, bool open_file) const
     {
-      return dynamic_cast<FileReaderBase*>(new LineBasedTextFileReader());
+      return dynamic_cast<GenomicsDBImportReaderBase*>(new LineBasedTextFileReader());
     }
   protected:
     VariantArraySchema* m_array_schema;
@@ -270,8 +269,8 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
     /*
      * Seek and/or advance to position in the file as described by partition_info
      */
-    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek,
-        bool advance_reader);
+    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+        bool force_seek, bool advance_reader);
     /*
      * Return #callsets in current line
      */

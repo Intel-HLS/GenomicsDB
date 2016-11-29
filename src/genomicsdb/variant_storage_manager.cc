@@ -325,32 +325,67 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
   auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
   VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
   auto mode_int = (*mode_iter).second;
-  //Try to open the array
-  TileDB_Array* tiledb_array;
-  auto status = tiledb_array_init(
-      m_tiledb_ctx, 
-      &tiledb_array,
-      (m_workspace+'/'+array_name).c_str(),
-      mode_int,
-      0, 0, 0);
-  if(status == TILEDB_OK)
+  //Use tiledb_ls call to avoid non-faulty error message while trying to init array during loading
+  std::vector<char*> ws_entries(1024u);
+  std::vector<int> ws_entry_types;
+  for(auto i=0ull;i<ws_entries.size();++i)
+    ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+  auto num_entries = 0;
+  auto ls_status = TILEDB_ERR;
+  while(ls_status == TILEDB_ERR && ws_entries.size() < 100000ll) //cutoff if too many entries in workspace
   {
-    auto idx = m_open_arrays_info_vector.size();
-    //Schema
-    VariantArraySchema tmp_schema;
-    get_array_schema(array_name, &tmp_schema);
-    //Check for metadata JSON file
-    auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
-    if(fptr == 0) //file doesn't exist
-      define_metadata_schema(&tmp_schema);
-    else
-      fclose(fptr);
-    m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array,
-        GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
-    return idx;
+    num_entries = ws_entries.size();
+    ws_entry_types.resize(ws_entries.size());
+    ls_status = tiledb_ls(m_tiledb_ctx, m_workspace.c_str(), &(ws_entries[0]), &(ws_entry_types[0]), &num_entries);
+    if(ls_status == TILEDB_ERR)
+    {
+      std::cerr << "[GenomicsDB::VariantStorageManager] INFO: ignore message \"[TileDB::StorageManager] Error: Cannot list TileDB directory; Directory buffer overflow.\" in the previous line\n";
+      auto old_size = ws_entries.size();
+      ws_entries.resize(2u*ws_entries.size()+1u);
+      for(auto i=old_size;i<ws_entries.size();++i)
+        ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+    }
   }
-  else
-    return -1;
+  if(ls_status == TILEDB_ERR)
+    throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 100K entries");
+  auto string_length = std::min<size_t>(array_name.length(), TILEDB_NAME_MAX_LEN);
+  auto array_exists = false;
+  for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
+  {
+    if(ws_entry_types[i] == TILEDB_ARRAY && strncmp(array_name.c_str(), ws_entries[i], string_length) == 0)
+      array_exists = true;
+    delete[] ws_entries[i];
+  }
+  for(auto i=static_cast<size_t>(num_entries);i<ws_entries.size();++i)
+    delete[] ws_entries[i];
+  if(array_exists)
+  {
+    //Try to open the array
+    TileDB_Array* tiledb_array;
+    auto status = tiledb_array_init(
+        m_tiledb_ctx, 
+        &tiledb_array,
+        (m_workspace+'/'+array_name).c_str(),
+        mode_int,
+        0, 0, 0);
+    if(status == TILEDB_OK)
+    {
+      auto idx = m_open_arrays_info_vector.size();
+      //Schema
+      VariantArraySchema tmp_schema;
+      get_array_schema(array_name, &tmp_schema);
+      //Check for metadata JSON file
+      auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
+      if(fptr == 0) //file doesn't exist
+        define_metadata_schema(&tmp_schema);
+      else
+        fclose(fptr);
+      m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array,
+          GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
+      return idx;
+    }
+  }
+  return -1;
 }
 
 void VariantStorageManager::close_array(const int ad)

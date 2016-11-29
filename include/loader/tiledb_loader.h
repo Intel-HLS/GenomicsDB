@@ -27,7 +27,6 @@
 #include "column_partition_batch.h"
 #include "tiledb_loader_file_base.h"
 #include "load_operators.h"
-#include "json_config.h"
 
 //Exceptions thrown
 class VCF2TileDBException : public std::exception{
@@ -156,6 +155,14 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     }
     inline size_t get_num_order_values() const { return m_order_to_designated_tiledb_row_idx.size(); }
     void create_and_print_histogram(const std::string& config_filename, std::ostream& fptr=std::cout);
+    //Relevant for buffer streams
+    size_t get_max_num_buffer_stream_identifiers() const { return m_exhausted_buffer_stream_identifiers.capacity(); }
+    bool is_some_buffer_stream_exhausted() const  { return (m_exhausted_buffer_stream_identifiers.size() > 0u); }
+    const std::vector<BufferStreamIdentifier>& get_exhausted_buffer_stream_identifiers() const { return m_exhausted_buffer_stream_identifiers; }
+    /*
+     * Write to buffer stream
+     */
+    void write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx, const uint8_t* data, const size_t num_bytes);
   private:
     void clear();
     void initialize_column_batch_objects();
@@ -170,6 +177,9 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     std::vector<std::vector<std::string>> m_vcf_fields;
     //One per VCF file
     std::vector<File2TileDBBinaryBase*> m_file2binary_handlers;
+    //Exhausted buffer identifiers - determine buffers which are empty and for which the caller must supply more data
+    //Capacity = #partitions*#owned_files
+    std::vector<BufferStreamIdentifier> m_exhausted_buffer_stream_identifiers;
     //Multiple row_idx could point to the same order
     //Ordering of TileDB row idx for this converter - determined by the order of m_file2binary_handlers
     std::vector<int64_t> m_tiledb_row_idx_to_order;
@@ -210,12 +220,39 @@ struct TileDBCellsColumnMajorCompare
 
 typedef std::priority_queue<CellPQElement*, std::vector<CellPQElement*>, TileDBCellsColumnMajorCompare> TileDBColumnMajorPQ; 
 
+class VCF2TileDBLoaderReadState
+{
+  friend class VCF2TileDBLoader;
+  public:
+    VCF2TileDBLoaderReadState(const unsigned num_exchanges, const bool do_ping_pong_buffering,
+        const bool offload_vcf_output_processing)
+    {
+      m_done = false;
+      m_exchange_counter = num_exchanges-1u;
+      m_num_parallel_omp_sections = 1 + (do_ping_pong_buffering ? 1 : 0) +
+        (offload_vcf_output_processing && do_ping_pong_buffering ? 1 : 0);
+    }
+    bool is_done() const { return m_done; }
+  private:
+    bool m_done;
+    size_t m_exchange_counter;
+    //Timers
+    Timer m_fetch_timer;
+    Timer m_load_timer;
+    Timer m_flush_output_timer;
+    int m_num_parallel_omp_sections;
+};
+
 //One per array column partition
 class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
   public:
-    VCF2TileDBLoader(const std::string& config_filename, int idx,
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoader(const std::string& config_filename,
+        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoader(const std::string& config_filename,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+        const std::string& buffer_stream_callset_mapping_json_string,
+        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor
@@ -242,7 +279,45 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
      * of all VCF files
      */
     void read_all();
+    /*
+     * Construct a read state object
+     * Caller is responsible for calling delete
+     */
+    VCF2TileDBLoaderReadState* construct_read_state_object() const
+    {
+      return new VCF2TileDBLoaderReadState(m_owned_exchanges.size(), m_do_ping_pong_buffering, m_offload_vcf_output_processing);
+    }
+    /*
+     * Used when buffered streams are included in the load stage
+     */
+    void read_all(VCF2TileDBLoaderReadState& read_state);
+    void finish_read_all(const VCF2TileDBLoaderReadState& read_state);
 #endif
+    //For buffer streams
+    size_t get_max_num_buffer_stream_identifiers() const
+    {
+#ifdef HTSDIR
+      return m_converter->get_max_num_buffer_stream_identifiers();
+#endif
+    }
+    /*
+     * Get buffer stream identifiers that are exhausted - used by caller to provide more data
+     */
+    const std::vector<BufferStreamIdentifier>& get_exhausted_buffer_stream_identifiers() const
+    {
+#ifdef HTSDIR
+      return m_converter->get_exhausted_buffer_stream_identifiers();
+#endif
+    }
+    /*
+     * Write to buffer stream
+     */
+    void write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx, const uint8_t* data, const size_t num_bytes)
+    {
+#ifdef HTSDIR
+      return m_converter->write_data_to_buffer_stream(buffer_stream_idx, partition_idx, data, num_bytes);
+#endif   
+    }
     /*
      * Get the order value at which the given row idx appears
      */
@@ -275,6 +350,11 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       assert(get_order_for_row_idx(row_idx) >= 0 && get_order_for_row_idx(row_idx) < m_num_callsets_owned);
       return get_order_for_row_idx(row_idx)*m_max_size_per_callset;
     }
+    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
+    {
+      assert(m_vid_mapper);
+      return m_vid_mapper->get_buffer_stream_idx_to_global_file_idx_vec();
+    }
     /*
      * Debug dumper
      * Return true if no more data available
@@ -284,6 +364,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
   private:
+    void common_constructor_initialization(const std::string& config_filename,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+        const std::string& buffer_stream_callset_mapping_json_string,
+        const int idx,const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
@@ -303,6 +387,9 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     std::vector<LoaderOperatorBase*> m_operators;
     std::vector<bool> m_operators_overflow;
     unsigned m_num_operators_overflow_in_last_round;
+    //For checking whether cells are traversed in correct order
+    int64_t m_previous_cell_row_idx;
+    int64_t m_previous_cell_column;
 };
 
 #endif

@@ -20,23 +20,23 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "jni_bcf_reader.h"
+#include "genomicsdb_bcf_generator.h"
 #include "json_config.h"
 
-unsigned JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
+unsigned GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
 
-JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::string& query_config_file,
+GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_file, const std::string& query_config_file,
     const char* chr, const int start, const int end,
     int my_rank, size_t buffer_capacity, size_t tiledb_segment_size, const char* output_format,
     const bool use_missing_values_only_not_vector_end, const bool keep_idx_fields_in_bcf_header)
-  : m_buffer_control(JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header)
+  : m_buffer_control(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header)
 #ifdef DO_PROFILING
     , m_timer()
 #endif
 {
   m_done = false;
   //Buffer sizing
-  m_buffers.resize(JNIBCFReader_NUM_ENTRIES_IN_CIRCULAR_BUFFER, RWBuffer(buffer_capacity+32768u)); //pad buffer to minimize reallocations
+  m_buffers.resize(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER, RWBuffer(buffer_capacity+32768u)); //pad buffer to minimize reallocations
   //Parse loader JSON file
   JSONLoaderConfig loader_config;
   loader_config.read_from_file(loader_config_file, &m_vid_mapper, my_rank);
@@ -69,7 +69,7 @@ JNIBCFReader::JNIBCFReader(const std::string& loader_config_file, const std::str
 #endif
 }
 
-JNIBCFReader::~JNIBCFReader()
+GenomicsDBBCFGenerator::~GenomicsDBBCFGenerator()
 {
   m_buffers.clear();
   if(m_combined_bcf_operator)
@@ -82,11 +82,11 @@ JNIBCFReader::~JNIBCFReader()
     delete m_storage_manager;
   m_storage_manager = 0;
 #ifdef DO_PROFILING
-  m_timer.print_cumulative("JNIBCFReader ", std::cerr);
+  m_timer.print_cumulative("GenomicsDBBCFGenerator ", std::cerr);
 #endif
 }
 
-void JNIBCFReader::produce_next_batch()
+void GenomicsDBBCFGenerator::produce_next_batch()
 {
   if(m_done)
     return;
@@ -112,7 +112,7 @@ void JNIBCFReader::produce_next_batch()
   }
 }
 
-size_t JNIBCFReader::read_and_advance(uint8_t* dst, size_t offset, size_t n)
+size_t GenomicsDBBCFGenerator::read_and_advance(uint8_t* dst, size_t offset, size_t n)
 {
 #ifdef DO_PROFILING
   m_timer.start();
@@ -141,20 +141,20 @@ size_t JNIBCFReader::read_and_advance(uint8_t* dst, size_t offset, size_t n)
   return total_bytes_advanced;
 }
 
-uint8_t JNIBCFReader::read_next_byte()
+uint8_t GenomicsDBBCFGenerator::read_next_byte()
 {
   uint8_t tmp;
   auto num_bytes_read = read_and_advance(&tmp, 0u, 1u);
   return (num_bytes_read > 0u) ? tmp : -1;
 }
 
-void JNIBCFReader::set_write_buffer()
+void GenomicsDBBCFGenerator::set_write_buffer()
 {
   m_vcf_adapter.set_buffer(m_buffers[m_buffer_control.get_write_idx()]);
   m_buffer_control.advance_write_idx();
 }
 
-void JNIBCFReader::reset_read_buffer()
+void GenomicsDBBCFGenerator::reset_read_buffer()
 {
   auto& curr_buffer = m_buffers[m_buffer_control.get_read_idx()];
   curr_buffer.m_next_read_idx = 0ull;

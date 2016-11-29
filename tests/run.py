@@ -75,6 +75,8 @@ loader_json_template_string="""
 
 def create_loader_json(ws_dir, test_name, test_params_dict):
     test_dict=json.loads(loader_json_template_string);
+    if('column_partitions' in test_params_dict):
+        test_dict['column_partitions'] = test_params_dict['column_partitions'];
     test_dict["column_partitions"][0]["workspace"] = ws_dir;
     test_dict["column_partitions"][0]["array"] = test_name;
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
@@ -152,7 +154,19 @@ def main():
                         } }
                     ]
             },
-            { "name" : "t0_overlapping", 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json' },
+            { "name" : "t0_overlapping", 'golden_output': 'golden_outputs/t0_overlapping',
+                'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
+                "query_params": [
+                    { "query_column_ranges" : [12202, 1000000000], "golden_output": {
+                        "vcf"        : "golden_outputs/t0_overlapping_at_12202",
+                        }
+                    }
+                ]
+            },
+            { "name" : "t0_overlapping_at_12202", 'golden_output': 'golden_outputs/t0_overlapping_at_12202',
+                'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
+                'column_partitions': [ {"begin": 12202, "workspace":"", "array": "" }]
+            },
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 "query_params": [
@@ -189,6 +203,26 @@ def main():
                         } }
                     ]
             },
+            { "name" : "java_buffer_stream_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_buffer.json',
+                'stream_name_to_filename_mapping': 'inputs/callsets/t0_1_2_buffer_mapping.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_0",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
+                        } }
+                    ]
+            },
             { "name" : "test_new_fields", 'golden_output' : 'golden_outputs/t6_7_8_new_field_gatk.vcf',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
@@ -205,8 +239,6 @@ def main():
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
         test_loader_dict = create_loader_json(ws_dir, test_name, test_params_dict);
-        if(test_name == "t0_overlapping"):
-            test_loader_dict["produce_combined_vcf"] = False;
         if(test_name == "t0_1_2"):
             test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
@@ -217,6 +249,9 @@ def main():
         if(test_name  == 'java_t0_1_2'):
             pid = subprocess.Popen('java TestGenomicsDB -load '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
+        elif(test_name == 'java_buffer_stream_t0_1_2'):
+            pid = subprocess.Popen('java TestBufferStreamVCF2TileDB '+loader_json_filename+' '+test_params_dict['stream_name_to_filename_mapping'],
+                    shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
