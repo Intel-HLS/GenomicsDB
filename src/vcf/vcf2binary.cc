@@ -28,54 +28,11 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
-//VCFReader functions
-VCFReader::VCFReader()
-  : FileReaderBase()
+void VCFReaderBase::initialize(const char* filename,
+    const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file)
 {
-  m_indexed_reader = 0;
-  m_fptr = 0;
-  m_hdr = 0;
-  m_line = bcf_init();
-  m_buffer.l = 0;
-  m_buffer.m = 4096;    //4KB
-  m_buffer.s = (char*)malloc(m_buffer.m*sizeof(char));
-}
-
-VCFReader::~VCFReader()
-{
-  if(m_indexed_reader)
-    bcf_sr_destroy(m_indexed_reader);
-  if(m_fptr)
-    bcf_close(m_fptr);
-  if(m_hdr)
-    bcf_hdr_destroy(m_hdr);
-  if(m_line)
-    bcf_destroy(m_line);
-  if(m_buffer.s)
-    free(m_buffer.s);
-  m_buffer.s = 0;
-}
-
-void VCFReader::initialize(const char* filename, const char* regions,
-    const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, bool open_file)
-{
-  assert(m_indexed_reader == 0);
-  m_indexed_reader = bcf_sr_init();
-  bcf_sr_set_regions(m_indexed_reader, regions, 0);   //random value
-  m_filename = std::move(std::string(filename));
-  if(open_file)
-  {
-    add_reader();
-    m_hdr = bcf_hdr_dup(bcf_sr_get_header(m_indexed_reader, 0));
-  }
-  else
-  {
-    m_fptr = bcf_open(m_filename.c_str(), "r");
-    VERIFY_OR_THROW(m_fptr && ("Cannot open VCF/BCF file "+m_filename).c_str());
-    m_hdr = bcf_hdr_read(m_fptr);
-    bcf_close(m_fptr);
-    m_fptr = 0;
-  }
+  assert(m_hdr);
+  m_name = std::move(std::string(filename));
   //Add lines in the header for fields that are missing in the VCF, but requested in the input config JSON file
   for(auto field_type_idx=BCF_HL_FLT;field_type_idx<=BCF_HL_FMT;++field_type_idx)
   {
@@ -93,12 +50,102 @@ void VCFReader::initialize(const char* filename, const char* regions,
   }
 }
 
+//VCFBufferReader functions
+void VCFBufferReader::initialize(const char* stream_name,
+    const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file)
+{
+  //Buffer MUST contain header information when initialize is called
+  VERIFY_OR_THROW(contains_unread_data());
+  m_hdr = bcf_hdr_init("r");
+  VERIFY_OR_THROW(m_hdr);
+  size_t hdr_length = 0ull;
+  auto new_offset = bcf_hdr_deserialize(m_hdr, &(BufferReaderBase::m_buffer[0]), 0u, BufferReaderBase::m_num_valid_bytes_in_buffer, m_is_bcf ? 1 : 0);
+  //Header sample line parsed correctly - might have ignored other incorrect lines 
+  if(new_offset == 0u)
+    throw VCF2BinaryException(std::string("Could not parse ")+(m_is_bcf ? "BCF" : "VCF")+" header for stream "+stream_name);
+  advance_offset_by(hdr_length);
+  VCFReaderBase::initialize(stream_name, vcf_field_names, id_mapper, open_file);
+}
+
+void VCFBufferReader::read_and_advance()
+{
+  m_is_record_valid = false;
+  if(BufferReaderBase::contains_unread_data())
+  {
+    auto new_offset = bcf_deserialize(m_line, &(BufferReaderBase::m_buffer[0]), BufferReaderBase::m_offset, BufferReaderBase::m_num_valid_bytes_in_buffer,
+        m_is_bcf ? 1 : 0, m_hdr);
+    //Parsed or made progress
+    assert(new_offset > BufferReaderBase::m_offset);
+    BufferReaderBase::m_offset = new_offset;
+    m_is_record_valid = true;
+  }
+}
+
+//VCFReader functions
+VCFReader::VCFReader()
+  : GenomicsDBImportReaderBase(true), FileReaderBase(), VCFReaderBase(true)
+{
+  m_indexed_reader = 0;
+  m_fptr = 0;
+  m_vcf_file_buffer.l = 0;
+  m_vcf_file_buffer.m = 4096;    //4KB
+  m_vcf_file_buffer.s = (char*)malloc(m_vcf_file_buffer.m*sizeof(char));
+}
+
+VCFReader::~VCFReader()
+{
+  if(m_indexed_reader)
+    bcf_sr_destroy(m_indexed_reader);
+  m_indexed_reader = 0;
+  if(m_fptr)
+    bcf_close(m_fptr);
+  m_fptr = 0;
+  if(m_vcf_file_buffer.s && m_vcf_file_buffer.m)
+    free(m_vcf_file_buffer.s);
+  m_vcf_file_buffer.s = 0;
+  m_vcf_file_buffer.m = 0;
+}
+
+void VCFReader::initialize(const char* filename,
+    const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file)
+{
+  //Build regions list - comma separated contigs - in increasing order of column values
+  //Needed to fix traversal order of indexed reader
+  //So parse the header first
+  m_fptr = bcf_open(filename, "r");
+  VERIFY_OR_THROW(m_fptr && (std::string("Cannot open VCF/BCF file ")+filename).c_str());
+  m_hdr = bcf_hdr_read(m_fptr);
+  bcf_close(m_fptr);
+  m_fptr = 0;
+  std::string regions = "";
+  int64_t column_value = -1ll;
+  std::string contig_name;
+  bool first_valid_contig = true;
+  while(id_mapper->get_next_contig_location(column_value, contig_name, column_value))
+  {
+    auto local_contig_idx = bcf_hdr_name2id(m_hdr, contig_name.c_str());
+    if(local_contig_idx < 0)
+      continue;
+    if(!first_valid_contig)
+      regions += ",";
+    //enclose contig name with quotes to deal with weird contig names containing :,- etc - messes up synced reader
+    regions += ('"' + contig_name + '"');
+    first_valid_contig = false;
+  }
+  assert(m_indexed_reader == 0);
+  m_indexed_reader = bcf_sr_init();
+  bcf_sr_set_regions(m_indexed_reader, regions.c_str(), 0);
+  if(open_file)
+    add_reader();
+  VCFReaderBase::initialize(filename, vcf_field_names, id_mapper, open_file);
+}
+
 void VCFReader::add_reader()
 {
   assert(m_indexed_reader->nreaders == 0);      //no existing files are open
   assert(m_fptr == 0);  //normal file handle should be NULL
-  if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
-    throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
+  if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
+    throw VCF2BinaryException(std::string("Could not open file ")+m_name+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
 }
 
 void VCFReader::remove_reader()
@@ -122,8 +169,8 @@ void VCFReader::seek_read_advance(const char* contig, const int pos, bool discar
     m_fptr = 0;
   }
   if(m_indexed_reader->nreaders == 0)        //index not loaded
-    if(bcf_sr_add_reader(m_indexed_reader, m_filename.c_str()) != 1)
-      throw VCF2BinaryException(std::string("Could not open file ")+m_filename+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
+    if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
+      throw VCF2BinaryException(std::string("Could not open file ")+m_name+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
   assert(m_indexed_reader->nreaders == 1);
   bcf_sr_seek(m_indexed_reader, contig, pos);
   //Only read 1 record at a time
@@ -146,10 +193,10 @@ void VCFReader::read_and_advance()
     if(m_fptr->format.format == htsExactFormat::vcf)
     {
       //Since m_fptr is obtained from an indexed reader, use bgzf_getline function
-      auto status = bgzf_getline(hts_get_bgzfp(m_fptr), '\n', &m_buffer);
+      auto status = bgzf_getline(hts_get_bgzfp(m_fptr), '\n', &m_vcf_file_buffer);
       m_is_record_valid = (status <= 0) ? false : true;
       if(m_is_record_valid)
-        vcf_parse(&m_buffer, m_hdr, m_line);
+        vcf_parse(&m_vcf_file_buffer, m_hdr, m_line);
     }
     else        //BCF
     {
@@ -196,6 +243,7 @@ VCFColumnPartition::~VCFColumnPartition()
 }
 
 //VCF2Binary functions
+//For VCF files
 VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::vector<std::string>>& vcf_fields,
     unsigned file_idx, VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
     size_t max_size_per_callset,
@@ -210,6 +258,37 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
   m_vcf_fields = &vcf_fields;
   m_discard_index = discard_index;
   m_close_file = close_file || discard_index;   //close file if index has to be discarded
+  m_vcf_buffer_reader_buffer_size = 0;
+  m_vcf_buffer_reader_is_bcf = false;
+  m_vcf_buffer_reader_init_buffer = 0;
+  m_vcf_buffer_reader_init_num_valid_bytes = 0;
+  initialize(partition_bounds);
+}
+
+//For VCFBufferReader
+VCF2Binary::VCF2Binary(const std::string& stream_name, const std::vector<std::vector<std::string>>& vcf_fields,
+        unsigned file_idx, const int64_t buffer_stream_idx,
+        VidMapper& vid_mapper, const std::vector<ColumnRange>& partition_bounds,
+        const size_t vcf_buffer_reader_buffer_size, const bool vcf_buffer_reader_is_bcf,
+        const uint8_t* vcf_buffer_reader_init_buffer, const size_t vcf_buffer_reader_init_num_valid_bytes,
+        size_t max_size_per_callset,
+        bool treat_deletions_as_intervals)
+  : File2TileDBBinaryBase(stream_name,
+      file_idx, buffer_stream_idx,
+      vid_mapper,
+      max_size_per_callset,
+      treat_deletions_as_intervals,
+      true, true, false) //must use parallel partitions for buffered reader
+{
+  clear();
+  m_vcf_fields = &vcf_fields;
+  //The next parameter is irrelevant for buffered readers
+  m_discard_index = false;
+  //VCFBufferReader relevant params
+  m_vcf_buffer_reader_buffer_size = vcf_buffer_reader_buffer_size;
+  m_vcf_buffer_reader_is_bcf = vcf_buffer_reader_is_bcf;
+  m_vcf_buffer_reader_init_buffer = vcf_buffer_reader_init_buffer;
+  m_vcf_buffer_reader_init_num_valid_bytes = vcf_buffer_reader_init_num_valid_bytes;
   initialize(partition_bounds);
 }
 
@@ -219,9 +298,13 @@ VCF2Binary::VCF2Binary(VCF2Binary&& other)
 {
   m_vcf_fields = other.m_vcf_fields;
   m_discard_index = other.m_discard_index;
-  m_regions = std::move(other.m_regions);
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);
+  m_vcf_buffer_reader_buffer_size = other.m_vcf_buffer_reader_buffer_size;
+  m_vcf_buffer_reader_is_bcf = other.m_vcf_buffer_reader_is_bcf;
+  //Not useful, but copying to be safe
+  m_vcf_buffer_reader_init_buffer = other.m_vcf_buffer_reader_init_buffer;
+  m_vcf_buffer_reader_init_num_valid_bytes = other.m_vcf_buffer_reader_init_num_valid_bytes;
 }
 
 VCF2Binary::~VCF2Binary()
@@ -231,53 +314,44 @@ VCF2Binary::~VCF2Binary()
 
 void VCF2Binary::clear()
 {
-  m_regions.clear();
   m_local_contig_idx_to_global_contig_idx.clear();
   m_local_field_idx_to_global_field_idx.clear();
+}
+
+GenomicsDBImportReaderBase* VCF2Binary::create_new_reader_object(const std::string& filename, bool open_file) const
+{
+  //either reading from file or buffer parameters initialized
+  assert(m_get_data_from_file || (m_vcf_buffer_reader_init_buffer && m_vcf_buffer_reader_init_num_valid_bytes && m_vcf_buffer_reader_buffer_size));
+  return (m_get_data_from_file ? dynamic_cast<GenomicsDBImportReaderBase*>(new VCFReader())
+      : dynamic_cast<GenomicsDBImportReaderBase*>(new VCFBufferReader(m_vcf_buffer_reader_buffer_size, m_vcf_buffer_reader_is_bcf,
+       m_vcf_buffer_reader_init_buffer,  m_vcf_buffer_reader_init_num_valid_bytes))
+      );
 }
 
 void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
 {
   assert(m_vid_mapper);
+  //Initialize partition info
+  initialize_base_column_partitions(partition_bounds);
   //Setup local-global mappings
-  auto* fptr = bcf_open(m_filename.c_str(), "r");
-  auto* hdr = bcf_hdr_read(fptr);
+  //Get reader from column partition struct if parallel partitions, else use common base reader ptr
+  auto base_reader_ptr = (m_parallel_partitions && m_base_partition_ptrs.size()) ? m_base_partition_ptrs[0]->get_base_reader_ptr()
+    : m_base_reader_ptr;
+  VERIFY_OR_THROW(base_reader_ptr && (std::string("Could not find valid VCF reader for ")+m_filename).c_str());
+  assert(dynamic_cast<VCFReader*>(base_reader_ptr) || dynamic_cast<VCFBufferReader*>(base_reader_ptr));
+  auto hdr = dynamic_cast<VCFReaderBase*>(base_reader_ptr)->get_header();
+  VERIFY_OR_THROW(hdr && (std::string("Could not find valid VCF header for ")+m_filename).c_str());
   //Callset mapping
   //Length might be more than what's available in hdr due to JSON error
   m_local_callset_idx_to_tiledb_row_idx.resize(bcf_hdr_nsamples(hdr), -1ll);
-  //Store only enabled callsets
-  m_enabled_local_callset_idx_vec.clear();
-  for(auto i=0ull;i<m_local_callset_idx_to_tiledb_row_idx.size();++i)
-    if(m_local_callset_idx_to_tiledb_row_idx[i] >= 0)
-      m_enabled_local_callset_idx_vec.push_back(i);
   //Contig mapping
   m_local_contig_idx_to_global_contig_idx = std::move(std::vector<int>(hdr->n[BCF_DT_CTG], -1ll));
   for(auto i=0;i<hdr->n[BCF_DT_CTG];++i)
-    m_vid_mapper->get_global_contig_idx(bcf_hdr_id2name(hdr, i), m_local_contig_idx_to_global_contig_idx[i]);
-  //Build regions list - comma separated contigs - in increasing order of column values
-  m_regions = "";
-  int64_t column_value = -1ll;
-  std::string contig_name;
-  bool first_valid_contig = true;
-  while(m_vid_mapper->get_next_contig_location(column_value, contig_name, column_value))
-  {
-    auto local_contig_idx = bcf_hdr_name2id(hdr, contig_name.c_str());
-    if(local_contig_idx < 0)
-      continue;
-    if(!first_valid_contig)
-      m_regions += ",";
-    //enclose contig name with quotes to deal with weird contig names containing :,- etc - messes up synced reader
-    m_regions += ('"' + contig_name + '"');
-    first_valid_contig = false;
-  }
+    m_vid_mapper->get_global_contig_idx(bcf_hdr_id2name(hdr, i), m_local_contig_idx_to_global_contig_idx[i]); 
   //Field mapping
   m_local_field_idx_to_global_field_idx = std::move(std::vector<int>(hdr->n[BCF_DT_ID], -1));
   for(auto i=0;i<hdr->n[BCF_DT_ID];++i)
     m_vid_mapper->get_global_field_idx(bcf_hdr_int2id(hdr, BCF_DT_ID, i), m_local_field_idx_to_global_field_idx[i]);
-  bcf_hdr_destroy(hdr);
-  bcf_close(fptr);
-  //Initialize partition info
-  initialize_base_column_partitions(partition_bounds);
 }
 
 void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
@@ -285,9 +359,9 @@ void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& pa
   //Initialize reader, if needed
   if(!m_parallel_partitions)
   {
-    auto vcf_reader_ptr = dynamic_cast<VCFReader*>(m_base_reader_ptr);
+    auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(m_base_reader_ptr);
     assert(vcf_reader_ptr);
-    vcf_reader_ptr->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
+    vcf_reader_ptr->initialize(m_filename.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
   }
   for(auto i=0u;i<partition_bounds.size();++i)
   {
@@ -296,9 +370,9 @@ void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& pa
     //If parallel partitions, each interval gets its own reader
     if(m_parallel_partitions)
     {
-      auto vcf_reader_ptr = dynamic_cast<VCFReader*>(vcf_column_partition_ptr->m_base_reader_ptr);
+      auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(vcf_column_partition_ptr->m_base_reader_ptr);
       assert(vcf_reader_ptr);
-      vcf_reader_ptr->initialize(m_filename.c_str(), m_regions.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
+      vcf_reader_ptr->initialize(m_filename.c_str(), *m_vcf_fields, m_vid_mapper, !m_close_file);
     }
     //Indicates that nothing has been read for this interval
     vcf_column_partition_ptr->m_local_contig_idx = -1;
@@ -310,10 +384,11 @@ bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2Til
 {
   auto buffer_full = false;
   auto& vcf_partition = dynamic_cast<VCFColumnPartition&>(partition_info);
-  //Cast to VCFReader
-  auto vcf_reader_ptr = dynamic_cast<VCFReader*>(partition_info.get_base_reader_ptr());
+  //Cast to VCFReaderBase
+  auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(partition_info.get_base_reader_ptr());
   assert(vcf_reader_ptr);
   auto* line = vcf_reader_ptr->get_line();
+  assert(line);
   bcf_unpack(line, BCF_UN_ALL);
   for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
   {
@@ -365,86 +440,112 @@ inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partitio
   }
 }
 
-bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool force_seek, bool advance_reader)
+bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+    bool force_seek, bool advance_reader)
 {
   auto& vcf_partition = static_cast<VCFColumnPartition&>(partition_info);
-  //Cast to VCFReader
-  auto vcf_reader_ptr = dynamic_cast<VCFReader*>(partition_info.get_base_reader_ptr());
-  assert(vcf_reader_ptr);
-  auto hdr = vcf_reader_ptr->get_header();
-  //If valid contig, i.e., continuing from a valid previous position
-  //Common case: m_local_contig_idx >=0 and !force_seek and advance_reader  
-  if(vcf_partition.m_local_contig_idx >= 0)
+  if(!m_get_data_from_file) //handle VCFBufferReader
   {
-    if(force_seek)
-      vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx), vcf_partition.m_contig_position,
-          m_discard_index);
-    else
-      if(advance_reader)
-        vcf_reader_ptr->read_and_advance();
-    auto* line = vcf_reader_ptr->get_line();
-    //Next line exists && (either index is stored in memory or continuing in the same contig) - common case
-    if(line && (!m_discard_index || line->rid == vcf_partition.m_local_contig_idx))
+    //Cast to VCFBufferReader
+    auto vcf_reader_ptr = dynamic_cast<VCFBufferReader*>(partition_info.get_base_reader_ptr());
+    assert(vcf_reader_ptr);
+    //advance or nothing in the buffer has been deserialized yet
+    auto advance_flag = (advance_reader || vcf_reader_ptr->get_offset() == 0u);
+    if(advance_flag)
     {
-      update_local_contig_idx(vcf_partition, line);
-      if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end)
-        return true;
-      else
-        return false;   //past column end
+      vcf_reader_ptr->read_and_advance();
+      auto line = vcf_reader_ptr->get_line();
+      if(line)
+        update_local_contig_idx(vcf_partition, line);
     }
+    //read buffer done
+    is_read_buffer_exhausted = !(vcf_reader_ptr->contains_unread_data());
+    if(vcf_reader_ptr->get_line())
+      return true;
     else
-      if(!m_discard_index)  //index is in memory - implies there are no more lines found in file
-        return false;
-      else   //Index NOT in memory - either no line found or switched to new contig, either way need to re-seek
-        vcf_partition.m_local_contig_idx = -1;
+      return false; //no valid line and the buffer had no valid data at all, this stream is done
   }
-  else //un-initialized
+  else //VCF file
   {
-    std::string contig_name;
-    int64_t contig_position = -1;
-    auto exists_contig = m_vid_mapper->get_contig_location(vcf_partition.m_column_interval_begin, 
-        contig_name, contig_position);
-    if(exists_contig) //decrement below the current contig so that next_contig gets the correct contig subsequently
-      vcf_partition.m_contig_tiledb_column_offset = vcf_partition.m_column_interval_begin - contig_position - 1;
-    else
-      vcf_partition.m_contig_tiledb_column_offset = vcf_partition.m_column_interval_begin;
-  }
-  //while valid contig not found
-  //Exits when valid contig found or next_contig() scans through all known contigs
-  while(vcf_partition.m_local_contig_idx < 0)
-  {
-    std::string contig_name;
-    auto exists_contig = m_vid_mapper->get_next_contig_location(vcf_partition.m_contig_tiledb_column_offset,
-        contig_name, vcf_partition.m_contig_tiledb_column_offset);
-    if(!exists_contig)  //no more valid contigs found, exit
-      return false;
-    //past column end
-    if(vcf_partition.m_contig_tiledb_column_offset > vcf_partition.m_column_interval_end)
-      return false;
-    vcf_partition.m_local_contig_idx = bcf_hdr_name2id(hdr, contig_name.c_str());
+    is_read_buffer_exhausted = false;
+    //Cast to VCFReader
+    auto vcf_reader_ptr = dynamic_cast<VCFReader*>(partition_info.get_base_reader_ptr());
+    assert(vcf_reader_ptr);
+    auto hdr = vcf_reader_ptr->get_header();
+    //If valid contig, i.e., continuing from a valid previous position
+    //Common case: m_local_contig_idx >=0 and !force_seek and advance_reader  
     if(vcf_partition.m_local_contig_idx >= 0)
     {
-      //Contig pos - if interval begin is in the middle of a contig, then compute diff, else start of contig 
-      auto contig_pos = vcf_partition.m_column_interval_begin > vcf_partition.m_contig_tiledb_column_offset
-        ? vcf_partition.m_column_interval_begin - vcf_partition.m_contig_tiledb_column_offset : 0ll;
-      //Seek to start position
-      vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx), contig_pos, m_discard_index);
+      if(force_seek)
+        vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx), vcf_partition.m_contig_position,
+            m_discard_index);
+      else
+        if(advance_reader)
+          vcf_reader_ptr->read_and_advance();
       auto* line = vcf_reader_ptr->get_line();
-      //no more valid lines found, exit
-      if(line == 0)
-        return false;
-      else      //valid VCF record
+      //Next line exists && (either index is stored in memory or continuing in the same contig) - common case
+      if(line && (!m_discard_index || line->rid == vcf_partition.m_local_contig_idx))
       {
         update_local_contig_idx(vcf_partition, line);
-        //and is within this column interval, return true
         if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end)
           return true;
         else
+          return false;   //past column end
+      }
+      else
+        if(!m_discard_index)  //index is in memory - implies there are no more lines found in file
           return false;
+        else   //Index NOT in memory - either no line found or switched to new contig, either way need to re-seek
+          vcf_partition.m_local_contig_idx = -1;
+    }
+    else //un-initialized
+    {
+      std::string contig_name;
+      int64_t contig_position = -1;
+      auto exists_contig = m_vid_mapper->get_contig_location(vcf_partition.m_column_interval_begin, 
+          contig_name, contig_position);
+      if(exists_contig) //decrement below the current contig so that next_contig gets the correct contig subsequently
+        vcf_partition.m_contig_tiledb_column_offset = vcf_partition.m_column_interval_begin - contig_position - 1;
+      else
+        vcf_partition.m_contig_tiledb_column_offset = vcf_partition.m_column_interval_begin;
+    }
+    //while valid contig not found
+    //Exits when valid contig found or next_contig() scans through all known contigs
+    while(vcf_partition.m_local_contig_idx < 0)
+    {
+      std::string contig_name;
+      auto exists_contig = m_vid_mapper->get_next_contig_location(vcf_partition.m_contig_tiledb_column_offset,
+          contig_name, vcf_partition.m_contig_tiledb_column_offset);
+      if(!exists_contig)  //no more valid contigs found, exit
+        return false;
+      //past column end
+      if(vcf_partition.m_contig_tiledb_column_offset > vcf_partition.m_column_interval_end)
+        return false;
+      vcf_partition.m_local_contig_idx = bcf_hdr_name2id(hdr, contig_name.c_str());
+      if(vcf_partition.m_local_contig_idx >= 0)
+      {
+        //Contig pos - if interval begin is in the middle of a contig, then compute diff, else start of contig 
+        auto contig_pos = vcf_partition.m_column_interval_begin > vcf_partition.m_contig_tiledb_column_offset
+          ? vcf_partition.m_column_interval_begin - vcf_partition.m_contig_tiledb_column_offset : 0ll;
+        //Seek to start position
+        vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx), contig_pos, m_discard_index);
+        auto* line = vcf_reader_ptr->get_line();
+        //no more valid lines found, exit
+        if(line == 0)
+          return false;
+        else      //valid VCF record
+        {
+          update_local_contig_idx(vcf_partition, line);
+          //and is within this column interval, return true
+          if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end)
+            return true;
+          else
+            return false;
+        }
       }
     }
+    return false;
   }
-  return false;
 }
 
 template<class FieldType>
@@ -453,7 +554,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     const std::string& field_name, unsigned field_type_idx)
 {
   //Cast to VCFReader
-  auto vcf_reader_ptr = dynamic_cast<VCFReader*>(vcf_partition.get_base_reader_ptr());
+  auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(vcf_partition.get_base_reader_ptr());
   assert(vcf_reader_ptr);
   auto* hdr = vcf_reader_ptr->get_header();
   auto* line = vcf_reader_ptr->get_line();
@@ -561,7 +662,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
     size_t size_per_callset, uint64_t enabled_callsets_idx)
 {
   //Cast to VCFReader
-  auto vcf_reader_ptr = dynamic_cast<VCFReader*>(vcf_partition.get_base_reader_ptr());
+  auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(vcf_partition.get_base_reader_ptr());
   assert(vcf_reader_ptr);
   auto* hdr = vcf_reader_ptr->get_header();
   auto* line = vcf_reader_ptr->get_line();

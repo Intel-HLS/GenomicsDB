@@ -88,7 +88,9 @@ enum VidFileTypeEnum
 {
   VCF_FILE_TYPE=0,
   SORTED_CSV_FILE_TYPE,
-  UNSORTED_CSV_FILE_TYPE
+  UNSORTED_CSV_FILE_TYPE,
+  VCF_BUFFER_STREAM_TYPE,
+  BCF_BUFFER_STREAM_TYPE
 };
 
 class FileInfo
@@ -101,6 +103,10 @@ class FileInfo
       m_local_file_idx = -1;
       m_local_tiledb_row_idx_pairs.clear();
       m_type = VidFileTypeEnum::VCF_FILE_TYPE;
+      //Buffer stream details
+      m_buffer_stream_idx = -1;
+      m_buffer_capacity = 1024; //1KB
+      m_initialization_buffer_num_valid_bytes = 0u;
     }
     void set_info(const int64_t file_idx, const std::string& name)
     {
@@ -122,9 +128,16 @@ class FileInfo
     //A VCF can contain multiple callsets - each entry in this map contains a vector of pair<local_idx,row_idx>,
     //corresponding to each callset in the VCF
     std::vector<std::pair<int64_t, int64_t>> m_local_tiledb_row_idx_pairs;
-    //File type enum
-    unsigned m_type;
+    //File/stream type enum
+    VidFileTypeEnum m_type;
+    //Buffer stream details
+    int64_t m_buffer_stream_idx;
+    size_t m_buffer_capacity;
+    std::vector<uint8_t> m_initialization_buffer;
+    size_t m_initialization_buffer_num_valid_bytes;
 };
+
+typedef FileInfo BufferStreamInfo;
 
 enum VCFFieldCombineOperationEnum
 {
@@ -358,6 +371,30 @@ class VidMapper
       return true;
     }
     /*
+     * For a given owner and local file idx, return the buffer stream idx
+     * If the "file" is not a buffer stream, the return value will be -1
+     */
+    inline int64_t get_buffer_stream_idx_for_local_file_idx(const int owner_idx, const int64_t local_file_idx) const
+    {
+      assert(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
+      assert(static_cast<size_t>(local_file_idx) < m_owner_idx_to_file_idx_vec[owner_idx].size());
+      auto global_file_idx = m_owner_idx_to_file_idx_vec[owner_idx][local_file_idx];
+      assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
+      return m_file_idx_to_info[global_file_idx].m_buffer_stream_idx;
+    }
+    /*
+     * For a given owner and buffer stream idx, return the local file idx
+     * The owner parameter is mostly irrelevant since buffer stream idxs are associated with each process
+     * and buffer streams of a process aren't visible to any other process
+     */
+    inline int64_t get_local_file_idx_for_buffer_stream_idx(const int owner_idx, const int64_t buffer_stream_idx) const
+    {
+      assert(static_cast<size_t>(buffer_stream_idx) < m_buffer_stream_idx_to_global_file_idx.size());
+      auto global_file_idx = m_buffer_stream_idx_to_global_file_idx[buffer_stream_idx];
+      assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
+      return m_file_idx_to_info[global_file_idx].m_local_file_idx;
+    }
+    /*
      * Return list of files owned by owner_idx
      */
     const std::vector<int64_t>& get_global_file_idxs_owned_by(int owner_idx) const
@@ -365,6 +402,7 @@ class VidMapper
       assert(static_cast<size_t>(owner_idx) < m_owner_idx_to_file_idx_vec.size());
       return m_owner_idx_to_file_idx_vec[owner_idx];
     }
+    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const { return m_buffer_stream_idx_to_global_file_idx; }
     void build_file_partitioning(const int partition_idx, const RowRange row_partition);
     void verify_file_partitioning() const;
     /*
@@ -470,6 +508,8 @@ class VidMapper
     //file mappings
     std::unordered_map<std::string, int64_t> m_filename_to_idx;
     std::vector<FileInfo> m_file_idx_to_info;
+    //Buffer stream order index to local file idx
+    std::vector<int64_t> m_buffer_stream_idx_to_global_file_idx;
     //owner idx to file_idx vector
     std::vector<std::vector<int64_t>> m_owner_idx_to_file_idx_vec;
     void sort_and_assign_local_file_idxs_for_partition(const int owner_idx);
@@ -519,10 +559,42 @@ class FileBasedVidMapper : public VidMapper
       m_ub_callset_row_idx = INT64_MAX-1;
     }
     FileBasedVidMapper(const std::string& filename, const std::string& callset_mapping_file="",
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
-        const bool callsets_file_required=true);
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool is_callset_mapping_required=true)
+    : VidMapper()
+    {
+      std::vector<BufferStreamInfo> empty_vec;
+      common_constructor_initialization(filename,
+	  empty_vec,
+	  callset_mapping_file,
+          "",
+	  lb_callset_row_idx, ub_callset_row_idx,
+	  is_callset_mapping_required);
+    }
+    FileBasedVidMapper(const std::string& filename,
+	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+	const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool is_callset_mapping_required=true)
+      : VidMapper()
+    {
+      common_constructor_initialization(filename,
+	  buffer_stream_info_vec,
+	  callset_mapping_file,
+          buffer_stream_callset_mapping_json_string,
+	  lb_callset_row_idx, ub_callset_row_idx,
+	  is_callset_mapping_required);
+    }
   private:
-    void parse_callsets_file(const std::string& filename);
+    void common_constructor_initialization(const std::string& filename,
+	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+	const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
+	const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1,
+	const bool is_callset_mapping_required=true);
+  private:
+    void parse_callsets_json(const std::string& filename, const std::vector<BufferStreamInfo>& buffer_stream_info_vec, const bool is_file);
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
 };

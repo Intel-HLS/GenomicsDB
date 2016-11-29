@@ -6,6 +6,7 @@
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
 CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
+JAVA_BUILD_FLAGS=
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS:=
 #LDFLAGS appear after the list of object files (-lz etc)
@@ -55,6 +56,7 @@ ifeq ($(BUILD),debug)
   LINKFLAGS+=-gdwarf-3 -g3
   TILEDB_BUILD:=debug
   HTSLIB_BUILD="DEBUG=1"
+  JAVA_BUILD_FLAGS+=-g
 endif
 
 ifeq ($(BUILD),debug-coverage)
@@ -215,9 +217,10 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    query_variants.cc \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
-			    jni_bcf_reader.cc \
+			    genomicsdb_bcf_generator.cc \
                             timer.cc \
-			    memory_measure.cc
+			    memory_measure.cc \
+			    genomicsdb_importer.cc
 
 ifdef BUILD_JAVA
     GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
@@ -234,7 +237,8 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    example_libtiledb_variant_driver.cc \
 			    vcf_histogram.cc \
 			    gt_mpi_gather.cc \
-			    test_jni_bcf_reader.cc
+			    test_genomicsdb_bcf_generator.cc \
+			    test_genomicsdb_importer.cc
 
 ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 
@@ -351,7 +355,7 @@ $(GENOMICSDB_SHARED_LIBRARY): $(GENOMICSDB_LIBRARY_OBJ_FILES) \
 $(GENOMICSDB_JAVA_CLASS_FILES): $(GENOMICSDB_JAVA_SOURCES)
 	@echo "Compiling Java files"
 	@mkdir -p $(GENOMICSDB_JAVA_BUILD_DIRECTORY) 
-	@javac -d $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/ $^
+	@javac $(JAVA_BUILD_FLAGS) -d $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/ $^
 
 $(GENOMICSDB_JAR): $(GENOMICSDB_JAVA_CLASS_FILES) $(GENOMICSDB_SHARED_LIBRARY)
 	@echo "Creating GenomicsDB jar file"

@@ -1,0 +1,19 @@
+{
+    "callsets" : {
+        "HG00141" : {
+            "row_idx" : 0,
+            "idx_in_file": 0,
+            "stream_name": "HG00141_stream"
+        },
+        "HG01958" : {
+            "row_idx" : 1,
+            "idx_in_file": 0,
+            "stream_name": "HG01958_stream"
+        },
+        "HG01530" : {
+            "row_idx" : 2,
+            "idx_in_file": 0,
+            "stream_name": "HG01530_stream"
+        }
+    }
+}
