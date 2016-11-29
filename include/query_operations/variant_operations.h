@@ -26,6 +26,17 @@
 #include "variant.h"
 #include "lut.h"
 
+class VariantOperationException : public std::exception {
+  public:
+    VariantOperationException(const std::string m="") : msg_(std::string("Variant operation exception: ")+m) { ; }
+    ~VariantOperationException() { ; }
+    // ACCESSORS
+    /** Returns the exception message. */
+    const char* what() const noexcept { return msg_.c_str(); }
+  private:
+    std::string msg_;
+};
+
 typedef void (*scan_operator_type)(Variant& variant, void* data);
 
 //Base wrapper class for any data that requires re-mapping based on allele order
@@ -94,7 +105,8 @@ class VariantOperations
      * Remaps GT field of Calls in the combined Variant based on new allele order
      */
     static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
-        const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx);
+        const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx,
+        const unsigned num_merged_alleles, const bool has_NON_REF);
     /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
@@ -246,11 +258,15 @@ class VariantFieldHandlerBase
         const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
         unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr) = 0; 
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr) = 0; 
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
+    virtual bool get_valid_mean(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
-        unsigned query_idx, void* output_ptr, unsigned num_elements) = 0;
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
+    virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
         const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false) = 0;
@@ -269,6 +285,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
       m_bcf_missing_value = get_bcf_missing_value<DataType>();
       //Vector to hold data values for computing median - avoid frequent re-allocs
       m_median_compute_vector.resize(100u);
+      //Vector to hold element-wise operations result
+      m_element_wise_operations_result.resize(100u);
     }
     ~VariantFieldHandler() = default;
     /*
@@ -282,17 +300,28 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Computes median for a given field over all Calls (only considers calls with valid field)
      */
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr); 
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements);
     /*
      * Computes sum for a given field over all Calls (only considers calls with valid field)
      */
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, void* output_ptr);
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements);
+    /*
+     * Computes mean for a given field over all Calls (only considers calls with valid field and with valid elements in the field)
+     */
+    virtual bool get_valid_mean(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, void* output_ptr, unsigned& num_valid_elements);
+    /*
+     * Concatenates all elements of a field from all Calls in a Variant into a vector
+     * Includes both valid and invalid values
+     */
+    virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements);
     /*
      * Computes element-wise sum for a given field over all Calls (only considers calls with valid field)
      */
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
-        unsigned query_idx, void* output_ptr, unsigned num_elements);
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements);
     /*
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
@@ -306,6 +335,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<DataType> m_median_compute_vector;
     //Vector to hold extended vector to use in BCF format fields
     std::vector<DataType> m_extended_field_vector;
+    //Vector to hold data for element wise operations
+    std::vector<DataType> m_element_wise_operations_result;
 };
 
 /*

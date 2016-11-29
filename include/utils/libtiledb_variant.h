@@ -21,6 +21,7 @@
 */
 
 #include "query_variants.h"
+#include "vid_mapper.h"
 
 class Factory {
   private:
@@ -63,13 +64,16 @@ extern "C" void db_query_column(std::string workspace,
                                 std::string array_name, 
                                 uint64_t query_interval_idx, 
                                 Variant& v, 
-                                VariantQueryConfig& config); 
+                                VariantQueryConfig& config,
+                                const VidMapper& vid_mapper); 
 
 extern "C" void db_query_column_range(std::string workspace, 
                                       std::string array_name, 
                                       uint64_t query_interval_idx, 
                                       std::vector<Variant>& variants, 
-                                      VariantQueryConfig& query_config, GA4GHPagingInfo* paging_info=0);
+                                      VariantQueryConfig& query_config,
+                                      const VidMapper& vid_mapper,
+                                      GA4GHPagingInfo* paging_info=0);
 
 extern "C" void db_cleanup();
 

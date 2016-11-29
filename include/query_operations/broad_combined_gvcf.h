@@ -30,8 +30,9 @@
 #include "vid_mapper.h"
 
 //known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
-typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string, int> INFO_tuple_type;
-typedef std::tuple<unsigned, unsigned, int, unsigned, unsigned, std::string> FORMAT_tuple_type;
+typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string, int> INFO_tuple_type;
+//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name
+typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string> FORMAT_tuple_type;
 
 //Exceptions thrown 
 class BroadCombinedGVCFException : public std::exception {
@@ -64,6 +65,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void switch_contig();
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     inline bool overflow() const { return m_vcf_adapter->overflow(); }
+    bool handle_VCF_field_combine_operation(const Variant& variant,
+        const INFO_tuple_type& curr_tuple, void*& result_ptr, unsigned& num_result_elements);
     void handle_INFO_fields(const Variant& variant);
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
@@ -84,6 +87,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //alleles pointers buffer
     std::vector<const char*> m_alleles_pointer_buffer;
     bool m_should_add_GQ_field;
+    //If QUAL combine operation is specified
+    INFO_tuple_type m_vcf_qual_tuple;
     //INFO fields enum vector
     std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<FORMAT_tuple_type> m_FORMAT_fields_vec;
@@ -96,6 +101,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //vector of field pointers used for handling remapped fields when dealing with spanning deletions
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
+    std::vector<int> m_spanning_deletion_remapped_GT;
     //Allowed bases
     static const std::unordered_set<char> m_legal_bases;
 };
