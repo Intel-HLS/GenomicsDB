@@ -364,8 +364,7 @@ $(GENOMICSDB_JAR): $(GENOMICSDB_JAVA_CLASS_FILES) $(GENOMICSDB_SHARED_LIBRARY)
 
 #GenomicsDB Spark API
 $(GENOMICSDB_SPARK_JAR): $(GENOMICSDB_JAR) spark/src
-	@cd spark
-	@mvn package -DskipTests
+	cd spark; mvn package -DskipTests
 
 #GenomicsDB examples
 
