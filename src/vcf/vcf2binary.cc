@@ -230,8 +230,10 @@ VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
   m_contig_tiledb_column_offset = other.m_contig_tiledb_column_offset;
   m_vcf_get_buffer_size = other.m_vcf_get_buffer_size;
   m_vcf_get_buffer = other.m_vcf_get_buffer;
+  m_split_output_fptr = other.m_split_output_fptr;
   other.m_vcf_get_buffer = 0;
   other.m_vcf_get_buffer_size = 0;
+  other.m_split_output_fptr = 0;
 }
 
 VCFColumnPartition::~VCFColumnPartition()
@@ -240,6 +242,9 @@ VCFColumnPartition::~VCFColumnPartition()
     free(m_vcf_get_buffer);
   m_vcf_get_buffer = 0;
   m_vcf_get_buffer_size = 0;
+  if(m_split_output_fptr)
+    bcf_close(m_split_output_fptr);
+  m_split_output_fptr = 0;
 }
 
 //VCF2Binary functions
@@ -824,6 +829,71 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   if(buffer_full) return true;
 #endif
   return buffer_full;
+}
+
+//Print partitions of the file - useful when splitting files into partitions
+
+bool VCF2Binary::open_partition_output_file(const std::string& results_directory, std::string& output_filename,
+    const std::string& output_type, File2TileDBBinaryColumnPartitionBase& partition_info, const unsigned partition_idx)
+{
+  auto copy_output_type = output_type;
+  output_filename = m_vid_mapper->get_split_file_path(m_filename, results_directory, copy_output_type, partition_idx);
+  auto valid_output_types = std::unordered_set<std::string>({ "b", "z" });
+  if(valid_output_types.find(copy_output_type) == valid_output_types.end())
+    throw VCF2BinaryException(std::string("Unknown output file type ")+copy_output_type+" for VCF/BCF file "+m_filename
+        +"; only compressed BCF or VCF supported");
+  auto& vcf_partition = static_cast<VCFColumnPartition&>(partition_info);
+  vcf_partition.m_split_filename = output_filename;
+  vcf_partition.m_split_output_fptr = bcf_open(output_filename.c_str(), (std::string("w")+copy_output_type).c_str());
+  if(vcf_partition.m_split_output_fptr == 0)
+    return false;
+  auto status = bcf_hdr_write(vcf_partition.m_split_output_fptr, vcf_partition.get_header());
+  if(status != 0)
+    throw VCF2BinaryException(std::string("Error writing VCF header to output split file ")+output_filename+" for partition "+std::to_string(partition_idx));
+  return true;
+}
+
+void VCF2Binary::write_partition_data(File2TileDBBinaryColumnPartitionBase& partition_info)
+{
+  auto& vcf_partition = static_cast<VCFColumnPartition&>(partition_info);
+  auto hdr = vcf_partition.get_header();
+  auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(vcf_partition.m_base_reader_ptr);
+  auto is_read_buffer_exhausted = false;
+  //If file is re-opened, seek to position from which to begin reading, but do not advance iterator from previous position
+  //The second parameter is useful if the file handler is open, but the buffer was full in a previous call
+  auto has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, m_close_file, false);
+  while(has_data)
+  {
+    bcf_write(vcf_partition.m_split_output_fptr, hdr, vcf_reader_ptr->get_line());
+    has_data = seek_and_fetch_position(partition_info, is_read_buffer_exhausted, false, true);
+  }
+}
+
+void VCF2Binary::close_partition_output_file(File2TileDBBinaryColumnPartitionBase& partition_info)
+{
+  auto& vcf_partition = static_cast<VCFColumnPartition&>(partition_info);
+  if(vcf_partition.m_split_output_fptr == 0)
+    return;
+  auto format_value = vcf_partition.m_split_output_fptr->format.format;
+  bcf_close(vcf_partition.m_split_output_fptr);
+  vcf_partition.m_split_output_fptr = 0;
+  auto status = -1;
+  //Index the split file
+  switch(format_value)
+  {
+    case htsExactFormat::bcf:
+    case htsExactFormat::binary_format:
+      status = bcf_index_build(vcf_partition.m_split_filename.c_str(), 14); //CSI index, min_shift value is what bcftools provides
+      break;
+    case htsExactFormat::vcf:
+    case htsExactFormat::text_format:
+      status = tbx_index_build(vcf_partition.m_split_filename.c_str(), 0, &tbx_conf_vcf); //tabix index
+      break;
+    default:
+      break; //do nothing
+  }
+  if(status != 0)
+    std::cerr << "WARNING: indexing of partition file "<< vcf_partition.m_split_filename <<" failed\n";
 }
 
 #endif //ifdef HTSDIR

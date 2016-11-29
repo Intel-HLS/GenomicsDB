@@ -449,6 +449,14 @@ void VCF2TileDBConverter::create_and_print_histogram(const std::string& config_f
   combined_histogram->print(fptr);
   delete combined_histogram;
 }
+
+void VCF2TileDBConverter::print_all_partitions(const std::string& results_directory, const std::string& output_type, const int rank)
+{
+#pragma omp parallel for default(shared) num_threads(m_num_parallel_vcf_files)
+  for(auto i=0u;i<m_file2binary_handlers.size();++i)
+    m_file2binary_handlers[i]->print_all_partitions(results_directory, output_type, rank, true);
+}
+
 #endif //ifdef HTSLIB
 
 //Loader functions

@@ -31,6 +31,8 @@
 #include "rapidjson/reader.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "rapidjson/filewritestream.h"
+#include "rapidjson/prettywriter.h"
 
 //Exceptions thrown 
 class RunConfigException : public std::exception {
@@ -56,6 +58,9 @@ class JSONConfigBase
       m_single_query_row_ranges_vector = false;
       m_row_partitions_specified = false;
       m_scan_whole_array = false;
+      //Lower and upper bounds of callset row idx to import in this invocation
+      m_lb_callset_row_idx = 0;
+      m_ub_callset_row_idx = INT64_MAX-1;
       clear();
     }
     void clear();
@@ -65,7 +70,7 @@ class JSONConfigBase
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
-    std::pair<std::string, std::string> get_vid_mapping_filename(FileBasedVidMapper* id_mapper, const int rank);
+    std::pair<std::string, std::string> get_vid_mapping_filename_from_loader_JSON(FileBasedVidMapper* id_mapper, const int rank);
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -82,6 +87,9 @@ class JSONConfigBase
     std::vector<std::string> m_attributes;
     std::vector<ColumnRange> m_sorted_column_partitions;
     std::vector<RowRange> m_sorted_row_partitions;
+    //Lower and upper bounds of callset row idx to import in this invocation
+    int64_t m_lb_callset_row_idx;
+    int64_t m_ub_callset_row_idx;
 };
 
 class JSONLoaderConfig;
@@ -113,6 +121,9 @@ class JSONLoaderConfig : public JSONConfigBase
     inline bool delete_and_create_tiledb_array() const { return m_delete_and_create_tiledb_array; }
     inline size_t get_segment_size() const { return m_segment_size; }
     inline size_t get_num_cells_per_tile() const { return m_num_cells_per_tile; }
+    inline const std::string& get_vid_mapping_filename() const { return m_vid_mapping_filename; }
+    inline const std::string& get_callset_mapping_filename() const { return m_callset_mapping_file; }
+    inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -146,9 +157,6 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_segment_size;
     //TileDB array #cells/tile
     size_t m_num_cells_per_tile;
-    //Lower and upper bounds of callset row idx to import in this invocation
-    int64_t m_lb_callset_row_idx;
-    int64_t m_ub_callset_row_idx;
 };
 
 #ifdef HTSDIR

@@ -20,10 +20,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include <libgen.h>
 #include "vid_mapper.h"
 #include "c_api.h"
 #include "json_config.h"
 #include "known_field_info.h"
+#include "vcf.h"
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -330,6 +332,68 @@ void VidMapper::verify_file_partitioning() const
     throw FileBasedVidMapperException("Found files that are not assigned to any partition");
 }
 
+std::string VidMapper::get_split_file_path(const std::string& original_filename, const std::string& results_directory,
+    std::string& output_type, const int rank) const
+{
+  std::string return_value;
+  auto iter = m_filename_to_idx.find(original_filename);
+  //See if the callsets JSON had a path to output
+  if(iter != m_filename_to_idx.end())
+  {
+    assert(static_cast<size_t>((*iter).second) < m_file_idx_to_info.size());
+    const auto& file_info = m_file_idx_to_info[(*iter).second];
+    if(file_info.m_single_split_file_path)
+    {
+      assert(file_info.m_split_files_paths.size() == 1u);
+      return_value = file_info.m_split_files_paths[0u];
+    }
+    else
+    {
+      if(file_info.m_split_files_paths.size()) //split files were specified
+      {
+        if(static_cast<size_t>(rank) >= file_info.m_split_files_paths.size())
+          throw VidMapperException(std::string("Split files entry for file ")+original_filename+" had "
+                +std::to_string(file_info.m_split_files_paths.size())+" entries in the callset mapping JSON;"
+                +" however, entry with index "+std::to_string(rank)+" is requested");
+        return_value = file_info.m_split_files_paths[rank];
+      }
+    }
+  }
+  //No output filename specified - construct one in the same directory as the original file
+  //Callsets JSON had no entry - create filepath
+  if(return_value.empty())
+  {
+    //dirname and basename modify the original string - so pass copies
+    auto copy_filepath = strdup(original_filename.c_str());
+    std::string original_dirname = dirname(copy_filepath);
+    //restore original
+    memcpy(copy_filepath, original_filename.c_str(), original_filename.length());
+    std::string original_basename = basename(copy_filepath);
+    free(copy_filepath);
+    return_value = ((results_directory.empty()) ? original_dirname : results_directory) + '/'
+      + "partition_"+std::to_string(rank)+'_' + original_basename;
+  }
+  if(output_type.empty()) //deduce type by trying to open the original
+  {
+    auto fptr = bcf_open(original_filename.c_str(), "r");
+    if(fptr)
+    {
+      switch(fptr->format.format)
+      {
+        case htsExactFormat::bcf:
+          output_type = "b";
+          break;
+        case htsExactFormat::vcf:
+          output_type = "z";
+          break;
+        default:
+          break; //do nothing
+      }
+      bcf_close(fptr);
+    }
+  }
+  return return_value;
+}
 //FileBasedVidMapper code
 #ifdef VERIFY_OR_THROW
 #undef VERIFY_OR_THROW
@@ -357,8 +421,8 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
   m_lb_callset_row_idx = lb_callset_row_idx;
   m_ub_callset_row_idx = ub_callset_row_idx;
   //Callset info parsing
-  std::string real_callset_mapping_file = "";
-  if(callset_mapping_file != "")
+  std::string real_callset_mapping_file;
+  if(!callset_mapping_file.empty())
     real_callset_mapping_file = callset_mapping_file;
   else
   {
@@ -649,16 +713,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
         std::string filename = callset_info_dict.HasMember("filename")
           ? std::move(callset_info_dict["filename"].GetString())
           : std::move(callset_info_dict["stream_name"].GetString());
-        auto iter = m_filename_to_idx.find(filename);
-        if(iter == m_filename_to_idx.end())
-        {
-          file_idx = m_file_idx_to_info.size();
-          iter = m_filename_to_idx.insert(std::make_pair(filename, file_idx)).first;
-          m_file_idx_to_info.emplace_back();
-          m_file_idx_to_info[file_idx].set_info(file_idx, filename);
-        }
-        else
-          file_idx = (*iter).second;
+        file_idx = get_or_append_global_file_idx(filename);
         if(callset_info_dict.HasMember("idx_in_file"))
           idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
         //Check for conflicting file/stream info if initialized previously
@@ -744,6 +799,43 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
       }
     }
   }
+  //If splitting VCFs, might have split file paths
+  if(json_doc.HasMember("split_files_paths"))
+  {
+    //json_doc["split_files_paths"] must be dictionary of the form:
+    //<original_file>: [ "split_paths" ] or
+    //<original_file>: "split_path"
+    VERIFY_OR_THROW(json_doc["split_files_paths"].IsObject());
+    const auto& split_files_dict = json_doc["split_files_paths"];
+    std::unordered_set<std::string> check_duplicates_set;
+    for(auto b=split_files_dict.MemberBegin(), e=split_files_dict.MemberEnd();b!=e;++b)
+    {
+      const auto& curr_obj = *b;
+      const auto& original_filename = curr_obj.name.GetString();
+      if(check_duplicates_set.find(original_filename) != check_duplicates_set.end())
+        throw FileBasedVidMapperException(std::string("File ")+original_filename+" listed multiple times inside \"split_files_paths\" in the callsets mapping file");
+      check_duplicates_set.insert(original_filename);
+      //Insert if missing
+      auto file_idx = get_or_append_global_file_idx(original_filename);
+      assert(static_cast<size_t>(file_idx) < m_file_idx_to_info.size());
+      auto& file_info = m_file_idx_to_info[file_idx];
+      const auto& split_files_values = curr_obj.value;
+      VERIFY_OR_THROW(split_files_values.IsArray() || split_files_values.IsString());
+      if(split_files_values.IsArray())
+      {
+        for(rapidjson::SizeType i=0u;i<split_files_values.Size();++i)
+        {
+          VERIFY_OR_THROW(split_files_values[i].IsString());
+          file_info.m_split_files_paths.push_back(split_files_values[i].GetString());
+        }
+      }
+      else
+      {
+        file_info.m_single_split_file_path = true;
+        file_info.m_split_files_paths.push_back(split_files_values.GetString());
+      }
+    }
+  }
   //For buffer streams
   m_buffer_stream_idx_to_global_file_idx.resize(buffer_stream_info_vec.size(), -1);
   auto max_buffer_stream_idx_with_global_file_idx = -1ll;
@@ -765,4 +857,110 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
     }
   }
   m_buffer_stream_idx_to_global_file_idx.resize(max_buffer_stream_idx_with_global_file_idx+1);
+}
+
+void FileBasedVidMapper::write_partition_callsets_json_file(const std::string& original_callsets_filename, const std::string& results_directory,
+    const int rank) const
+{
+  rapidjson::Document json_doc(rapidjson::kObjectType);
+  json_doc.SetObject();
+  auto& allocator = json_doc.GetAllocator();
+  rapidjson::Value json_string_value(rapidjson::kStringType);
+  //Callsets dictionary
+  std::string output_type;
+  rapidjson::Value callsets_dict(rapidjson::kObjectType);
+  for(auto i=0ull;i<m_row_idx_to_info.size();++i)
+  {
+    const auto& curr_callset_info = m_row_idx_to_info[i];
+    rapidjson::Value curr_callset_dict(rapidjson::kObjectType);
+    curr_callset_dict.AddMember("row_idx", curr_callset_info.m_row_idx, allocator);
+    curr_callset_dict.AddMember("idx_in_file", curr_callset_info.m_idx_in_file, allocator);
+    if(curr_callset_info.m_file_idx >= 0)
+    {
+      assert(static_cast<size_t>(curr_callset_info.m_file_idx) < m_file_idx_to_info.size());
+      auto& original_filename = m_file_idx_to_info[curr_callset_info.m_file_idx].m_name;
+      output_type.clear();
+      auto output_filename = get_split_file_path(original_filename, results_directory, output_type, rank);
+      json_string_value.SetString(output_filename.c_str(), output_filename.length(), allocator);
+      curr_callset_dict.AddMember("filename", json_string_value, allocator);
+    }
+    callsets_dict.AddMember(rapidjson::StringRef(curr_callset_info.m_name.c_str()), curr_callset_dict, allocator);
+  }
+  json_doc.AddMember("callsets", callsets_dict, allocator);
+  //File/stream types
+  for(const auto& entry : std::unordered_map<std::string, VidFileTypeEnum>({
+        {"sorted_csv_files", VidFileTypeEnum::SORTED_CSV_FILE_TYPE },
+        {"unsorted_csv_files", VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE },
+        {"vcf_buffer_streams", VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE },
+        {"bcf_buffer_streams", VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE }
+        }))
+  {
+    rapidjson::Value file_type_list(rapidjson::kArrayType);
+    for(auto i=0ull;i<m_file_idx_to_info.size();++i)
+    {
+      auto& curr_file_info = m_file_idx_to_info[i];
+      if(curr_file_info.m_type == entry.second)
+      {
+        output_type.clear();
+        auto output_filename = get_split_file_path(curr_file_info.m_name, results_directory, output_type, rank);
+        json_string_value.SetString(output_filename.c_str(), output_filename.length(), allocator);
+        file_type_list.PushBack(json_string_value, allocator);
+      }
+    }
+    if(file_type_list.Size() > 0u)
+    {
+      json_string_value.SetString(entry.first.c_str(), entry.first.length(), allocator);
+      json_doc.AddMember(json_string_value, file_type_list, allocator);
+    }
+  }
+  output_type.clear();
+  auto output_filename = get_split_file_path(original_callsets_filename, results_directory, output_type, rank);
+  auto* fptr = fopen(output_filename.c_str(), "w");
+  if(fptr == 0)
+    throw FileBasedVidMapperException(std::string("Could not write to partitioned callsets JSON file ")+output_filename);
+  char write_buffer[65536];
+  rapidjson::FileWriteStream writer_stream(fptr, write_buffer, sizeof(write_buffer));
+  rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(writer_stream);
+  json_doc.Accept(writer);
+  fclose(fptr);
+}
+
+void FileBasedVidMapper::write_partition_loader_json_file(const std::string& original_loader_filename,
+    const std::string& original_callsets_filename,
+    const std::string& results_directory, const int num_callset_mapping_files, const int rank) const
+{
+  //Parse original loader json
+  rapidjson::Document json_doc;
+  std::ifstream ifs(original_loader_filename.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+  json_doc.Parse(str.c_str());
+  if(json_doc.HasParseError())
+    throw RunConfigException(std::string("Syntax error in JSON file ")+original_loader_filename);
+  auto& allocator = json_doc.GetAllocator();
+  //Partitioned callsets JSON
+  std::string output_type;
+  if(json_doc.HasMember("callset_mapping_file"))
+    json_doc.RemoveMember("callset_mapping_file");
+  rapidjson::Value json_string_value(rapidjson::kStringType);
+  rapidjson::Value partitioned_callset_mapping_file_array(rapidjson::kArrayType);
+  for(auto i=0;i<num_callset_mapping_files;++i)
+  {
+    auto output_filename = get_split_file_path(original_callsets_filename, results_directory, output_type,
+        (num_callset_mapping_files > 1) ? i : rank);
+    json_string_value.SetString(output_filename.c_str(), output_filename.length(), allocator);
+    partitioned_callset_mapping_file_array.PushBack(json_string_value, allocator);
+  }
+  json_doc.AddMember("callset_mapping_file", (num_callset_mapping_files > 1) ? partitioned_callset_mapping_file_array : json_string_value,
+      allocator);
+  output_type.clear();
+  auto output_filename = get_split_file_path(original_loader_filename, results_directory, output_type, rank);
+  auto* fptr = fopen(output_filename.c_str(), "w");
+  if(fptr == 0)
+    throw FileBasedVidMapperException(std::string("Could not write to partitioned loader JSON file ")+output_filename);
+  char write_buffer[65536];
+  rapidjson::FileWriteStream writer_stream(fptr, write_buffer, sizeof(write_buffer));
+  rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(writer_stream);
+  json_doc.Accept(writer);
+  fclose(fptr);
 }

@@ -145,6 +145,7 @@ class File2TileDBBinaryColumnPartitionBase
       m_last_full_line_end_buffer_offset_for_local_callset.clear();
       m_buffer_offset_for_local_callset.clear();
       m_buffer_full_for_local_callset.clear();
+      m_split_filename.clear();
     }
     //Delete copy constructor
     File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
@@ -195,6 +196,8 @@ class File2TileDBBinaryColumnPartitionBase
     //Pointer to buffer
     std::vector<uint8_t>* m_buffer_ptr;
     GenomicsDBImportReaderBase* m_base_reader_ptr;
+    //Split file name for this partition
+    std::string m_split_filename;
 };
 
 //Buffer stream idx, partition idx
@@ -298,6 +301,43 @@ class File2TileDBBinaryBase
      * Return #callsets in current record
      */
     virtual uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const = 0;
+    //Print partitions of the file - useful when splitting files into partitions
+    /*
+     * Print all included partitions
+     */
+    void print_all_partitions(const std::string& results_directory, const std::string& output_type, const int rank, const bool close_file);
+    /*
+     * Print data for partition
+     */
+    void print_partition(File2TileDBBinaryColumnPartitionBase& partition_info,
+        const std::string& results_directory, const std::string& output_type,
+        const unsigned partition_idx, const bool close_file);
+    /*
+     * Opens the file for partition - useful when printing data for a specific partition (splitting files)
+     * Must be implemented by sub-classes
+     */
+    virtual bool open_partition_output_file(const std::string& results_directory, std::string& output_filename,
+        const std::string& output_type, File2TileDBBinaryColumnPartitionBase& partition_info, const unsigned partition_idx)
+    {
+      throw File2TileDBBinaryException("Unimplemented operation");
+      return false;
+    }
+    /*
+     * Prints data of the partition
+     * Must be implemented by sub-classes
+     */
+    virtual void write_partition_data(File2TileDBBinaryColumnPartitionBase& partition_info)
+    {
+      throw File2TileDBBinaryException("Unimplemented operation");
+    }
+    /*
+     * Closes the file for partition - useful when printing data for a specific partition (splitting files)
+     * Must be implemented by sub-classes
+     */
+    virtual void close_partition_output_file(File2TileDBBinaryColumnPartitionBase& partition_info)
+    {
+      throw File2TileDBBinaryException("Unimplemented operation");
+    }
   protected:
     inline int64_t get_enabled_idx_for_local_callset_idx(int64_t local_callset_idx) const
     {

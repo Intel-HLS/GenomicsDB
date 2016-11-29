@@ -12,6 +12,7 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
     std::move(other.m_last_full_line_end_buffer_offset_for_local_callset);
   m_buffer_offset_for_local_callset = std::move(other.m_buffer_offset_for_local_callset);
   m_buffer_full_for_local_callset = std::move(other.m_buffer_full_for_local_callset);
+  m_split_filename = std::move(other.m_split_filename);
   //Move and nullify other
   m_base_reader_ptr = other.m_base_reader_ptr;
   other.m_base_reader_ptr = 0;
@@ -445,4 +446,37 @@ void File2TileDBBinaryBase::create_histogram(uint64_t max_histogram_range, unsig
   }
   if(m_close_file && !m_parallel_partitions)
     m_base_reader_ptr->remove_reader();
+}
+
+void File2TileDBBinaryBase::print_all_partitions(const std::string& results_directory, const std::string& output_type, const int rank,
+    const bool close_file)
+{
+  //Open file handles if needed
+  if(!m_parallel_partitions && m_close_file)
+    m_base_reader_ptr->add_reader();
+#pragma omp parallel for if(m_parallel_partitions)
+  for(auto partition_idx=0u;partition_idx<m_base_partition_ptrs.size();++partition_idx)
+    print_partition(*(m_base_partition_ptrs[partition_idx]), results_directory, output_type, rank < 0 ? partition_idx : rank, close_file);
+  //Close file handles if needed
+  if(!m_parallel_partitions && close_file)
+    m_base_reader_ptr->remove_reader();
+  m_close_file = close_file;
+}
+
+void File2TileDBBinaryBase::print_partition(File2TileDBBinaryColumnPartitionBase& partition_info,
+    const std::string& results_directory, const std::string& output_type,
+    const unsigned partition_idx, const bool close_file)
+{
+  //Open file handles if needed
+  if(m_parallel_partitions && m_close_file)
+    partition_info.m_base_reader_ptr->add_reader();
+  std::string output_filename = "";
+  auto status = open_partition_output_file(results_directory, output_filename, output_type, partition_info, partition_idx);
+  if(!status)
+    throw File2TileDBBinaryException(std::string("Could not open partition output file ")+output_filename);
+  write_partition_data(partition_info);
+  close_partition_output_file(partition_info);
+  //Close file handles if needed
+  if(m_parallel_partitions && close_file)
+    partition_info.m_base_reader_ptr->remove_reader();
 }

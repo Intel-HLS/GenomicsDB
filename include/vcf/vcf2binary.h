@@ -143,6 +143,7 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
       m_vcf_get_buffer = (uint8_t*)malloc(m_vcf_get_buffer_size*sizeof(uint8_t));
       if(m_vcf_get_buffer == 0)
         throw VCF2BinaryException("Malloc failure");
+      m_split_output_fptr = 0;
     }
     //Delete copy constructor
     VCFColumnPartition(const VCFColumnPartition& other) = delete;
@@ -157,6 +158,12 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
       assert(line);
       return (m_contig_tiledb_column_offset + static_cast<int64_t>(line->pos));
     }
+    bcf_hdr_t* get_header()
+    {
+      auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(m_base_reader_ptr);
+      assert(vcf_reader_ptr);
+      return vcf_reader_ptr->get_header();
+    }
   protected:
     //Position in contig from which to fetch next batch of cells
     int m_local_contig_idx;
@@ -165,6 +172,8 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     //Buffer for obtaining data from htslib 
     uint8_t* m_vcf_get_buffer;
     uint64_t m_vcf_get_buffer_size;
+    //File pointer to output partition data - useful when splitting files
+    htsFile* m_split_output_fptr;
 };
 
 class VCF2Binary : public File2TileDBBinaryBase 
@@ -229,6 +238,20 @@ class VCF2Binary : public File2TileDBBinaryBase
     bool convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition, 
         int64_t& buffer_offset, const int64_t buffer_offset_limit, int local_callset_idx,
         const std::string& field_name, unsigned field_type_idx);
+    //Print partitions of the file - useful when splitting files into partitions
+    /*
+     * Opens the file for partition - useful when printing data for a specific partition (splitting files)
+     */
+    bool open_partition_output_file(const std::string& results_directory, std::string& output_filename,
+        const std::string& output_type, File2TileDBBinaryColumnPartitionBase& partition_info, const unsigned partition_idx);
+    /*
+     * Prints data of the partition
+     */
+    void write_partition_data(File2TileDBBinaryColumnPartitionBase& partition_info);
+    /*
+     * Closes the file for partition - useful when printing data for a specific partition (splitting files)
+     */
+    void close_partition_output_file(File2TileDBBinaryColumnPartitionBase& partition_info);
   private:
     bool m_discard_index;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT

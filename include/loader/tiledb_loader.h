@@ -163,6 +163,11 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
      * Write to buffer stream
      */
     void write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx, const uint8_t* data, const size_t num_bytes);
+    //Print partitions of files - useful when splitting files into partitions
+    /*
+     * Print all included partitions
+     */
+    void print_all_partitions(const std::string& results_directory, const std::string& output_type, const int rank);
   private:
     void clear();
     void initialize_column_batch_objects();

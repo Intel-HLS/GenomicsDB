@@ -385,7 +385,7 @@ ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned 
   return m_column_ranges[fixed_rank][idx];
 }
 
-std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(FileBasedVidMapper* id_mapper, const int rank)
+std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename_from_loader_JSON(FileBasedVidMapper* id_mapper, const int rank)
 {
   std::string vid_mapping_file="";
   std::string callset_mapping_file="";
@@ -424,7 +424,7 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename(Fil
     }
   }
   if(id_mapper && vid_mapping_file.length())
-    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, 0, INT64_MAX, false));
+    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, m_lb_callset_row_idx, m_ub_callset_row_idx, false));
   return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
@@ -463,7 +463,7 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
-  //Need to parse here first because id_mapper initialization in get_vid_mapping_filename() requires
+  //Need to parse here first because id_mapper initialization in get_vid_mapping_filename_from_loader_JSON() requires
   //valid m_json object
   std::ifstream ifs(filename.c_str());
   VERIFY_OR_THROW(ifs.is_open());
@@ -473,7 +473,7 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
     throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
   if (id_mapper && !id_mapper->is_initialized())
   {
-    get_vid_mapping_filename(id_mapper, rank);
+    get_vid_mapping_filename_from_loader_JSON(id_mapper, rank);
     VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided");
   }
   JSONConfigBase::read_from_file(filename, id_mapper);
@@ -538,9 +538,6 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_num_converter_processes = 0;
   m_per_partition_size = 0;
   m_max_size_per_callset = 0;
-  //Lower and upper bounds of callset row idx to import in this invocation
-  m_lb_callset_row_idx = 0;
-  m_ub_callset_row_idx = INT64_MAX-1;
   //Array domain
   m_max_num_rows_in_array = INT64_MAX;
   //#VCF files to open/process in parallel
@@ -641,7 +638,7 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
     m_num_cells_per_tile = m_json["num_cells_per_tile"].GetInt64();
   //Must have path to vid_mapping_file
   VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
-  auto filename_pair = get_vid_mapping_filename(id_mapper, rank);
+  auto filename_pair = get_vid_mapping_filename_from_loader_JSON(id_mapper, rank);
   m_vid_mapping_filename = std::move(filename_pair.first);
   m_callset_mapping_file = std::move(filename_pair.second);
 }
