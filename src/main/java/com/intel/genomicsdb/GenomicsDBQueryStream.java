@@ -20,15 +20,17 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package genomicsdb;
+package com.intel.genomicsdb;
 
 import java.io.InputStream;
 import java.io.IOException;
 
 /**
  * Provides a java.io.InputStream interface for the GenomicsDB combine gVCF operation.
- * It can be used as to construct a <a href="https://samtools.github.io/htsjdk/javadoc/htsjdk/htsjdk/tribble/readers/PositionalBufferedStream.html">PositionalBufferedStream</a> object.The PositionalBufferedStream object can then be used by FeatureCodecs such as BCF2Codec to construct
- * VariantContext objects
+ * It can be used as to construct a
+ * <a href="https://samtools.github.io/htsjdk/javadoc/htsjdk/htsjdk/tribble/readers/PositionalBufferedStream.html">
+ *   PositionalBufferedStream</a> object.The PositionalBufferedStream object can
+ *   then be used by FeatureCodecs such as BCF2Codec to construct VariantContext objects
  */
 public class GenomicsDBQueryStream extends InputStream
 {
@@ -106,7 +108,8 @@ public class GenomicsDBQueryStream extends InputStream
             final String chr, final int start, final int end,
             final int rank)
     {
-        this(loaderJSONFile, queryJSONFile, chr, start, end, rank, 10485760, 10485760);
+        this(loaderJSONFile, queryJSONFile, chr, start, end, rank, 10485760,
+          10485760);
     }
 
     /**
@@ -117,7 +120,8 @@ public class GenomicsDBQueryStream extends InputStream
      * @param start start position (1-based)
      * @param end end position, inclusive (1-based)
      * @param rank rank of this object if launched from within an MPI context (not used)
-     * @param bufferCapacity size of buffer in bytes to be used by the native layer to store combined BCF2 records
+     * @param bufferCapacity size of buffer in bytes to be used by the native layer
+     *                       to store combined BCF2 records
      * @param segmentSize buffer to be used for querying TileDB
      */
     public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
@@ -126,7 +130,8 @@ public class GenomicsDBQueryStream extends InputStream
     {
         mLoaderJSONFile = loaderJSONFile;
         mQueryJSONFile = queryJSONFile;
-        mGenomicsDBReadStateHandle = jniGenomicsDBInit(loaderJSONFile, queryJSONFile, chr, start, end, rank, bufferCapacity, segmentSize);
+        mGenomicsDBReadStateHandle = jniGenomicsDBInit(loaderJSONFile, queryJSONFile, chr,
+          start, end, rank, bufferCapacity, segmentSize);
     }
 
     @Override

@@ -20,26 +20,23 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package genomicsdb;
+package com.intel.genomicsdb;
 
-import java.lang.Long;
-import java.lang.Integer;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.List;
-import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.samtools.util.RuntimeIOException;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFHeader;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
+
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -369,7 +366,7 @@ public class VCF2TileDB
      */
     private native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle, final String callsetMappingJSON);
     /**
-     * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
+     * @param handle "pointer" returned by jniInitializeGenomicsDBImporterObject
      * @param streamIdx stream index
      * @param partitionIdx partition index (unused now)
      * @param buffer buffer containing data

@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb;
 
-import genomicsdb.GenomicsDBFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;

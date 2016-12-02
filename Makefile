@@ -2,10 +2,14 @@
 # Macros #
 ##########
 
+# --- Release Version --- #
+RELEASE_VERSION = 0.3.0
+
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
-CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
+CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable \
+           -Wno-unused-but-set-variable -Wno-unused-result
 JAVA_BUILD_FLAGS=
 #LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS:=
@@ -47,7 +51,7 @@ ifdef OPENMP
 endif
 
 # --- Debug/Release/Verbose mode handler --- #
-BUILD ?= debug
+BUILD ?= release
 VERBOSE ?= 0
 HTSLIB_BUILD=
 
@@ -223,14 +227,17 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    genomicsdb_importer.cc
 
 ifdef BUILD_JAVA
-    GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
+  GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
 	genomicsdb_GenomicsDBQueryStream.cc \
 	genomicsdb_VCF2TileDB.cc \
-        genomicsdb_jni_init.cc
+  genomicsdb_jni_init.cc
+
+  # --- Jars --- #
+  GENOMICSDB_JAR = target/genomicsdb-$(RELEASE_VERSION).jar
 endif
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
-    			    create_tiledb_workspace.cc \
+    			create_tiledb_workspace.cc \
 			    gt_verifier.cc \
 			    vcf2tiledb.cc \
 			    vcfdiff.cc \
@@ -254,25 +261,6 @@ GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
 GENOMICSDB_SHARED_LIBRARY_BASENAME:=libtiledbgenomicsdb.$(SHARED_LIBRARY_EXTENSION)
 GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_SHARED_LIBRARY_BASENAME)
 
-GENOMICSDB_JAVA_PKG_NAME:=genomicsdb
-GENOMICSDB_JAVA_SOURCE_DIRECTORY:= src/java/
-GENOMICSDB_JAVA_SOURCES:= $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBException.java \
-    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBUtils.java \
-    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBFeatureReader.java \
-    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBQueryStream.java \
-    $(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/VCF2TileDB.java
-GENOMICSDB_POM_NAME:=pom.xml
-GENOMICSDB_POM_FILE:=$(GENOMICSDB_JAVA_SOURCE_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/$(GENOMICSDB_POM_NAME)
-
-GENOMICSDB_JAR_NAME:=genomicsdb.jar
-GENOMICSDB_SPARK_JAR_NAME:=genomicsdb-sparkapi.jar
-GENOMICSDB_JAR:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_JAR_NAME)
-GENOMICSDB_SPARK_JAR:=./spark/bin/$(GENOMICSDB_SPARK_JAR_NAME)
-GENOMICSDB_JAVA_BUILD_DIRECTORY:=$(GENOMICSDB_OBJ_DIR)/java
-GENOMICSDB_JAR_BUILD_BIN_RELATIVE:=../../bin/
-#List only one as all Java files are built together
-GENOMICSDB_JAVA_CLASS_FILES:=$(GENOMICSDB_JAVA_BUILD_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/GenomicsDBFeatureReader.class
-
 #Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
 ifeq ($(OS), Darwin)
     LDFLAGS:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a $(LDFLAGS)
@@ -294,16 +282,13 @@ ifdef BUILD_JAVA
     ALL_BUILD_TARGETS += $(GENOMICSDB_JAR)
 endif
 
-ifdef BUILD_SPARK
-	ALL_BUILD_TARGETS += $(GENOMICSDB_SPARK_JAR)
-endif
-
 all: $(ALL_BUILD_TARGETS)
 
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
 clean:
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
+	mvn clean
 
 clean-dependencies: TileDB_clean htslib_clean
 
@@ -352,23 +337,10 @@ $(GENOMICSDB_SHARED_LIBRARY): $(GENOMICSDB_LIBRARY_OBJ_FILES) \
 	@echo "Creating dynamic library $@"
 	@$(CXX) $(LINKFLAGS) $(SHARED_LIBRARY_FLAGS) -o $@ $^ $(LDFLAGS)
 
-$(GENOMICSDB_JAVA_CLASS_FILES): $(GENOMICSDB_JAVA_SOURCES)
-	@echo "Compiling Java files"
-	@mkdir -p $(GENOMICSDB_JAVA_BUILD_DIRECTORY) 
-	@javac $(JAVA_BUILD_FLAGS) -d $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/ $^
-
-$(GENOMICSDB_JAR): $(GENOMICSDB_JAVA_CLASS_FILES) $(GENOMICSDB_SHARED_LIBRARY)
+$(GENOMICSDB_JAR): $(GENOMICSDB_SHARED_LIBRARY)
 	@echo "Creating GenomicsDB jar file"
-	@cp -f $(GENOMICSDB_SHARED_LIBRARY) $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/$(GENOMICSDB_JAVA_PKG_NAME)/$(GENOMICSDB_SHARED_LIBRARY_BASENAME)
-	@mkdir -p $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/META-INF
-	@cp -f $(GENOMICSDB_POM_FILE) $(GENOMICSDB_JAVA_BUILD_DIRECTORY)/META-INF
-	@cd $(GENOMICSDB_JAVA_BUILD_DIRECTORY) && jar cf $(GENOMICSDB_JAR_BUILD_BIN_RELATIVE)/$(GENOMICSDB_JAR_NAME) \
-	    $(GENOMICSDB_JAVA_PKG_NAME)/*.class  $(GENOMICSDB_JAVA_PKG_NAME)/$(GENOMICSDB_SHARED_LIBRARY_BASENAME) \
-	    META-INF/$(GENOMICSDB_POM_NAME)
-
-#GenomicsDB Spark API
-$(GENOMICSDB_SPARK_JAR): $(GENOMICSDB_JAR) spark/src
-	cd spark; mvn package -DskipTests
+	@mvn package -DskipTests
+	@cp $(GENOMICSDB_JAR)  $(GENOMICSDB_BIN_DIR)
 
 #GenomicsDB examples
 

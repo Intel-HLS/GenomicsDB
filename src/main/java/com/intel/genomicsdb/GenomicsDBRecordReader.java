@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb;
 
-import genomicsdb.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;
 import org.apache.hadoop.classification.InterfaceAudience;

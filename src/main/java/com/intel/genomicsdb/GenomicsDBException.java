@@ -20,7 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package genomicsdb;
+package com.intel.genomicsdb;
 
 /**
  * Classes in the genomicsdb package throw exceptions of type GenomicsDBException
