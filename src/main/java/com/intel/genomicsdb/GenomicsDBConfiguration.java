@@ -27,8 +27,10 @@ import org.apache.hadoop.conf.Configuration;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * The configuration class enables users to use Java/Scala
@@ -54,7 +56,20 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
 
   public GenomicsDBConfiguration(Configuration configuration) throws FileNotFoundException {
     super(configuration);
-    produceTileDBArray = !produceCombinedVCF;
+  }
+
+  /**
+   * Constructor with partition information
+   * @param configuration  Existing configuration object (can contain Hadoop config values)
+   * @param list  Contains partition information
+   * @throws FileNotFoundException
+   */
+  public GenomicsDBConfiguration(Configuration configuration, List<GenomicsDBPartitionInfo> list)
+    throws FileNotFoundException {
+    super(configuration);
+    for (GenomicsDBPartitionInfo info : list) {
+      addPartitions(info);
+    }
   }
 
   // <String> left for backward compatibility to Java 7
@@ -123,7 +138,7 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
     }
   }
 
-  void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {
+  private void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {
     if (partitionInfoList==null) {
       partitionInfoList = new LinkedList<>();
     }

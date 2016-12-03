@@ -41,9 +41,7 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
   private final GenomicsDBFeatureReader<VCONTEXT, SOURCE> featureReader;
   private CloseableTribbleIterator<VCONTEXT> iterator;
   private VCONTEXT currentVariant;
-  private int currentKey;
-
-  Logger logger = Logger.getLogger(GenomicsDBRecordReader.class);
+  private long currentKey;
 
   GenomicsDBRecordReader(GenomicsDBFeatureReader<VCONTEXT, SOURCE> featureReader) {
     this.featureReader = featureReader;
@@ -73,12 +71,10 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
 
   @Override
   public String getCurrentKey() throws IOException, InterruptedException {
-    logger.error("inside getCurrentKey");
-    return Integer.toString(currentKey);
+    return Long.toString(currentKey);
   }
 
   public VCONTEXT getCurrentValue() throws IOException, InterruptedException {
-    logger.error("inside getCurrentValue");
     return currentVariant;
   }
 

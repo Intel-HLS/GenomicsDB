@@ -1,19 +1,23 @@
+
 ##########
 # Macros #
 ##########
 
 # --- Release Version --- #
-RELEASE_VERSION = 0.3.0
+RELEASE_VERSION = 0.4.0
 
+# --- Build Flags --- #
 # Large file support
 LFS_CFLAGS = -D_FILE_OFFSET_BITS=64
 
 CFLAGS=-Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable \
            -Wno-unused-but-set-variable -Wno-unused-result
 JAVA_BUILD_FLAGS=
-#LINKFLAGS appear before the object file list in the link command (e.g. -fopenmp, -O3)
+# LINKFLAGS appear before the object file list
+# in the link command (e.g. -fopenmp, -O3)
 LINKFLAGS:=
-#LDFLAGS appear after the list of object files (-lz etc)
+
+# LDFLAGS appear after the list of object files (-lz etc)
 LDFLAGS:=
 ifdef MAXIMIZE_STATIC_LINKING
     LINKFLAGS+=-static-libgcc -static-libstdc++
@@ -25,6 +29,7 @@ LDFLAGS+= -lz -lrt
 SHARED_LIBRARY_EXTENSION:=so
 SHARED_LIBRARY_FLAGS:=-shared
 
+# --- OS-specific Build Flags ---#
 OS := $(shell uname)
 #Only build shared library on MacOS
 ifeq ($(OS), Darwin)
@@ -98,10 +103,10 @@ endif
 
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 
-#In the current version, this is mandatory
+# In the current version, this is mandatory
 CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
-#TileDB source
+# --- TileDB Source --- #
 TILEDB_BUILD_NUM_THREADS ?= 1
 ifndef TILEDB_DIR
     TILEDB_DIR=dependencies/TileDB
@@ -113,7 +118,7 @@ else
     LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 endif
 
-#htslib
+# --- Htslib Source --- #
 HTSLIB_BUILD_NUM_THREADS ?= 1
 HTSLIB_EXTRA_CFLAGS=
 ifndef HTSDIR
@@ -129,7 +134,7 @@ ifdef HTSDIR
     endif
 endif
 
-#RapidJSON - header only library
+# --- RapidJSON Source (header only library) --- #
 ifndef RAPIDJSON_INCLUDE_DIR
     RAPIDJSON_INCLUDE_DIR=dependencies/RapidJSON/include
 endif
@@ -146,12 +151,12 @@ else
     endif
 endif
 
-#JNI flag - optional, but required if the JNI library is needed
+# --- JNI flag - optional, but required if the JNI library is needed --- #
 ifdef JNI_FLAGS
     CPPFLAGS+=$(JNI_FLAGS)
 endif
 
-#BigMPI - optional
+# --- BigMPI Flags (optional) --- #
 ifdef USE_BIGMPI
     CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
     LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
@@ -165,7 +170,7 @@ ifdef DO_MEMORY_PROFILING
     CPPFLAGS+=-DDO_MEMORY_PROFILING
 endif
 
-#Google performance tools library - optional
+# --- Google Performance Tools Library (optional) --- #
 ifdef USE_GPERFTOOLS
     ifdef GPERFTOOLSDIR
 	CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
@@ -182,13 +187,14 @@ endif
 GENOMICSDB_OBJ_DIR=./obj
 GENOMICSDB_BIN_DIR=./bin
 
-#Header directories
-GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader include/query_operations include/utils include/vcf \
+# --- Header directories --- #
+GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader \
+    include/query_operations include/utils include/vcf \
     src/java/JNI/include example/include
+
 CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
-#Using vpath to let Makefile know which directories to search for sources
-#For sources
+# 'vpath' to know which directories to search for sources
 vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:src/java/JNI/src:example/src
 
 EMPTY :=
@@ -222,18 +228,45 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
 			    genomicsdb_bcf_generator.cc \
-                            timer.cc \
+                timer.cc \
 			    memory_measure.cc \
 			    genomicsdb_importer.cc
 
 ifdef BUILD_JAVA
-  GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
-	genomicsdb_GenomicsDBQueryStream.cc \
-	genomicsdb_VCF2TileDB.cc \
-  genomicsdb_jni_init.cc
 
   # --- Jars --- #
   GENOMICSDB_JAR = target/genomicsdb-$(RELEASE_VERSION).jar
+  GENOMICSDB_JAR_WITH_DEPS = target/genomicsdb-$(RELEASE_VERSION)-jar-with-dependencies.jar
+
+  # --- Java/Scala Source Directories --- #
+  SCALA_SRCDIR = src/main/scala/com/intel/genomicsdb
+  SCALA_TESTDIR = src/test/scala/com/intel/genomicsdb
+  SCALA_SRC_SUBDIRS = $(wildcard $(SCALA_SRCDIR)/*)
+  SCALA_TEST_SUBDIRS = $(wildcard $(SCALA_TESTDIR)/*)
+  JAVA_SRCDIR = src/main/java/com/intel/genomicsdb
+  JAVA_TESTDIR = src/test/java/com/intel/genomicsdb
+  JAVA_SRC_SUBDIRS = $(wildcard $(JAVA_SRCDIR)/*)
+  JAVA_TEST_SUBDIRS = $(wildcard $(JAVA_TESTDIR)/*)
+
+  # --- C++ Sources --- #
+  GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
+  	genomicsdb_GenomicsDBQueryStream.cc \
+  	genomicsdb_VCF2TileDB.cc \
+    genomicsdb_jni_init.cc
+
+  # --- Java/Scala Sources --- #
+  SCALA_SRC = $(wildcard $(foreach D,$(SCALA_SRC_SUBDIRS),$D/*.scala))
+  SCALA_SRC += $(wildcard $(SCALA_SRCDIR)/*.scala)
+  SCALA_TEST_SRC = $(wildcard $(foreach D,$(SCALA_TEST_SUBDIRS),$D/*.scala))
+  SCALA_TEST_SRC += $(wildcard $(SCALA_TESTDIR)/*.scala)
+
+  JAVA_SRC = $(wildcard $(foreach D,$(JAVA_SRC_SUBDIRS),$D/*.java))
+  JAVA_SRC += $(wildcard $(JAVA_SRCDIR)/*.java)
+  JAVA_TEST_SRC = $(wildcard $(foreach D,$(JAVA_TEST_SUBDIRS),$D/*.java))
+  JAVA_TEST_SRC += $(wildcard $(JAVA_TESTDIR)/*.java)
+
+  # --- Spark Submit shell script --- #
+  GENOMICSDB_SPARK_SUBMIT_SCRIPT=src/resources/genomicsdb-spark-submit.sh
 endif
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
@@ -250,7 +283,6 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 
 GENOMICSDB_LIBRARY_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_SOURCES))
-
 GENOMICSDB_EXAMPLE_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_EXAMPLE_SOURCES))
 GENOMICSDB_EXAMPLE_BIN_FILES := $(patsubst %.cc, $(GENOMICSDB_BIN_DIR)/%, $(GENOMICSDB_EXAMPLE_SOURCES))
 
@@ -272,7 +304,8 @@ endif
 # General Targets #
 ###################
 
-.PHONY: all genomicsdb_library clean clean-dependencies clean-all TileDB_library TileDB_clean htslib_library htslib_clean
+.PHONY: all genomicsdb_library clean clean-dependencies clean-all \
+        TileDB_library TileDB_clean htslib_library htslib_clean
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI
@@ -315,9 +348,11 @@ htslib_clean:
 $(HTSDIR)/libhts.a:
 	$(MAKE) -C $(HTSDIR) $(HTSLIB_BUILD) CPPFLAGS=$(HTSLIB_EXTRA_CFLAGS)
 
-# --- Compilation and dependency genration --- #
+# --- Compilation and dependency generation --- #
 
 -include $(ALL_GENOMICSDB_HEADER_DEPENDENCIES)
+
+.PRECIOUS: $(GENOMICSDB_OBJ_DIR)/%.o
 
 #All object files
 $(GENOMICSDB_OBJ_DIR)/%.o: %.cc
@@ -337,12 +372,16 @@ $(GENOMICSDB_SHARED_LIBRARY): $(GENOMICSDB_LIBRARY_OBJ_FILES) \
 	@echo "Creating dynamic library $@"
 	@$(CXX) $(LINKFLAGS) $(SHARED_LIBRARY_FLAGS) -o $@ $^ $(LDFLAGS)
 
-$(GENOMICSDB_JAR): $(GENOMICSDB_SHARED_LIBRARY)
+$(GENOMICSDB_JAR): $(GENOMICSDB_SHARED_LIBRARY) $(JAVA_SRC) $(JAVA_TEST_SRC) $(SCALA_SRC) \
+                   $(SCALA_TEST_SRC)
 	@echo "Creating GenomicsDB jar file"
-	@mvn package -DskipTests
-	@cp $(GENOMICSDB_JAR)  $(GENOMICSDB_BIN_DIR)
+	@mvn package -DskipTests -Dgenomicsdb.version=$(RELEASE_VERSION)
+	@echo "Copying GenomicsDB jars to bin/"
+	@cp $(GENOMICSDB_JAR) $(GENOMICSDB_JAR_WITH_DEPS) $(GENOMICSDB_BIN_DIR)
+	@cp $(GENOMICSDB_SPARK_SUBMIT_SCRIPT) bin/
 
-#GenomicsDB examples
+
+# --- GenomicsDB examples --- #
 
 #Linking
 $(GENOMICSDB_BIN_DIR)/%: $(GENOMICSDB_OBJ_DIR)/%.o $(GENOMICSDB_STATIC_LIBRARY) \

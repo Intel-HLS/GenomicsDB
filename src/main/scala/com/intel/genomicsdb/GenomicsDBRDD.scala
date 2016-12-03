@@ -104,7 +104,6 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         recordReader.asInstanceOf[GenomicsDBRecordReader[VCONTEXT, SOURCE]]
       gRecordReader.initialize(null, null)
 
-      var havePair = false
       var finished = false
 
       /**
@@ -113,7 +112,7 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         * @return  true or false
         */
       override def hasNext: Boolean = {
-        if (!finished && !havePair) {
+        if (!finished) {
           finished = !gRecordReader.nextKeyValue
           if (finished) {
             // Close and release the reader here; close() will also be called when the task
@@ -121,24 +120,18 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
             // resources early.
             close()
           }
-          havePair = !finished
         }
         !finished
       }
 
       private def close() {
-        if (gRecordReader!=null) {
-          // Note: it's important that we set closed = true before calling close(), since setting it
-          // afterwards would permit us to call close() multiple times if close() threw an exception.
           gRecordReader.close()
-        }
       }
 
       override def next(): VCONTEXT = {
         if (!hasNext) {
           throw new NoSuchElementException("End of stream")
         }
-        havePair = false
         gRecordReader.getCurrentValue
       }
     }

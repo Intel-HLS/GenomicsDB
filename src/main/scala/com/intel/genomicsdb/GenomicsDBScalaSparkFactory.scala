@@ -31,7 +31,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * This factory class exposes the two ways RDD of variant contexts (htsjdk)
   * can be retrieved from GenomicsDB
   */
-object GenomicsDBSparkFactory2 {
+object GenomicsDBScalaSparkFactory {
 
   def usingGenomicsRDD(args: Array[String]): Unit = {
 

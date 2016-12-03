@@ -22,9 +22,13 @@
 
 package com.intel.genomicsdb;
 
-import htsjdk.tribble.*;
-import htsjdk.variant.vcf.VCFContigHeaderLine;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureCodecHeader;
+import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFContigHeaderLine;
 
 import java.io.File;
 import java.io.FileWriter;

@@ -7,7 +7,8 @@
 
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
-    <version>0.3.0</version>
+    <!-- Build version passed from parent Makefile -->
+    <version>${genomicsdb.version}</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>The Spark bindings for GenomicsDB where the getVariantContexts
@@ -49,13 +50,11 @@
         <scala.version>2.11.4</scala.version>
         <java.version>1.8</java.version>
         <spark.version>1.6.1</spark.version>
-        <slf4j.version>1.2.17</slf4j.version>
+        <scalatest.version>2.2.6</scalatest.version>
         <hadoop.version>2.7.2</hadoop.version>
         <htsjdk.version>2.5.0</htsjdk.version>
-        <intelgkl.version>0.1.2</intelgkl.version>
         <json.simple.version>[1.1.1,)</json.simple.version>
-        <typesafe.version>2.4.8</typesafe.version>
-        <scalatest.version>2.2.6</scalatest.version>
+        <log4j.version>1.2.17</log4j.version>
     </properties>
 
     <dependencies>
@@ -80,20 +79,10 @@
             <version>${scalatest.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play-json_2.10</artifactId>
-            <version>${typesafe.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.samtools</groupId>
             <artifactId>htsjdk</artifactId>
             <version>${htsjdk.version}</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -101,15 +90,15 @@
             <version>${hadoop.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.intel.gkl</groupId>
-            <artifactId>gkl</artifactId>
-            <version>${intelgkl.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
             <version>${json.simple.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
     </dependencies>
 
@@ -154,17 +143,6 @@
                             <goal>compile</goal>
                         </goals>
                     </execution>
-
-                    <!-- Run scala compiler in the process-test-resources phase,
-                         so that dependencies on scala classes can be resolved
-                         later in the (Java) test-compile phase -->
-                    <!--execution>
-                        <id>scala-test-compile</id>
-                        <phase>process-test-resources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution-->
                 </executions>
             </plugin>
             <plugin>
@@ -184,20 +162,6 @@
                             </sources>
                         </configuration>
                     </execution>
-
-                    <!-- Add src/test/scala to test source path of Eclipse -->
-                    <!--execution>
-                        <id>add-test-source</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/scala</source>
-                            </sources>
-                        </configuration>
-                    </execution-->
                 </executions>
             </plugin>
             <plugin>
@@ -264,14 +228,6 @@
                     <filereports>WDF TestSuite.txt</filereports>
                     <argLine>-Djava.library.path=${basedir}/lib</argLine>
                 </configuration>
-                <!--executions>
-                    <execution>
-                        <id>test</id>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -282,16 +238,6 @@
                     <nohelp>true</nohelp>
                 </configuration>
             </plugin>
-            <!--plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <configuration>
-                    <includes>
-                        <include>./bin/*.so</include>
-                    </includes>
-                </configuration>
-            </plugin-->
         </plugins>
     </build>
 </project>

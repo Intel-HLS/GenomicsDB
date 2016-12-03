@@ -38,7 +38,7 @@ import java.util.List;
  * is seldom used in the variant contexts as downstream applications in HellBender
  * code uses only the values and ignores the key
  */
-public final class GenomicsDBSparkFactory {
+public final class GenomicsDBJavaSparkFactory {
 
   private static void usingGenomicsRDD(String[] args) {
 

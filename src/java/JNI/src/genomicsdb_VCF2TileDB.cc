@@ -30,7 +30,7 @@
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 #define GET_GENOMICSDB_IMPORTER_FROM_HANDLE(X) (reinterpret_cast<GenomicsDBImporter*>(static_cast<std::uintptr_t>(X)))
 
-JNIEXPORT jint JNICALL Java_genomicsdb_VCF2TileDB_jniVCF2TileDB
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniVCF2TileDB
   (JNIEnv* env, jobject obj, jstring loader_configuration_file, jint rank, jlong lb_callset_row_idx, jlong ub_callset_row_idx)
 {
   //Java string to char*
@@ -48,7 +48,7 @@ JNIEXPORT jint JNICALL Java_genomicsdb_VCF2TileDB_jniVCF2TileDB
   return 0;
 }
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniInitializeGenomicsDBImporterObject
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniInitializeGenomicsDBImporterObject
   (JNIEnv* env, jobject obj, jstring loader_configuration_file, jint rank, jlong lb_callset_row_idx, jlong ub_callset_row_idx)
 {
   //Java string to char*
@@ -62,7 +62,7 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniInitializeGenomicsDBImport
   return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(importer));
 }
 
-JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniAddBufferStream
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniAddBufferStream
   (JNIEnv* env, jobject obj, jlong handle, jstring stream_name, jboolean is_bcf, jlong buffer_capacity, jbyteArray buffer, jlong num_valid_bytes_in_buffer)
 {
   //Java string to char*
@@ -80,7 +80,7 @@ JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniAddBufferStream
   env->ReleaseByteArrayElements(buffer, native_buffer_ptr, 0);
 }
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
   (JNIEnv* env, jobject obj, jlong handle, jstring buffer_stream_callset_mapping_json_string)
 {
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);
@@ -93,7 +93,7 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_VCF2TileDB_jniSetupGenomicsDBLoader
   return importer->get_max_num_buffer_stream_identifiers();
 }
 
-JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniWriteDataToBufferStream
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniWriteDataToBufferStream
   (JNIEnv* env, jobject obj, jlong handle, jint buffer_stream_idx, jint partition_idx,
    jbyteArray buffer, jlong num_valid_bytes_in_buffer)
 {
@@ -110,7 +110,7 @@ JNIEXPORT void JNICALL Java_genomicsdb_VCF2TileDB_jniWriteDataToBufferStream
   env->ReleaseByteArrayElements(buffer, native_buffer_ptr, 0);
 }
 
-JNIEXPORT jboolean JNICALL Java_genomicsdb_VCF2TileDB_jniImportBatch
+JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniImportBatch
   (JNIEnv* env, jobject obj, jlong handle, jlongArray exhausted_buffer_stream_identifiers)
 {
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);

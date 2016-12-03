@@ -25,7 +25,7 @@
 
 JNIMpiInit g_jni_mpi_init;
 
-JNIEXPORT jint JNICALL Java_genomicsdb_GenomicsDBUtils_jniGenomicsDBOneTimeInitialize
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_GenomicsDBUtils_jniGenomicsDBOneTimeInitialize
   (JNIEnv * env, jclass obj)
 {
   g_jni_mpi_init.initialize();
