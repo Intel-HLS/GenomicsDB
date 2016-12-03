@@ -13,7 +13,12 @@ install:
     - sudo apt-get update -q
     - sudo apt-get install g++-4.9 -y
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
-    - sudo apt-get -y install openjdk-8-jdk
+    - sudo apt-get -y install openjdk-8-jdk icedtea-plugin
+    - jdk_switcher use openjdk8
+    - echo $JAVA_HOME
+    - export PATH=$JAVA_HOME/bin:$PATH
+    - which javac && javac -version
+    - which java && java -version
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
@@ -31,9 +36,9 @@ before_script:
 
 script:
     - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
-    - javac -d tests example/java/TestGenomicsDB.java 
-    - javac -d tests example/java/TestBufferStreamVCF2TileDB.java 
-    - python tests/run.py 
+    - javac -version && which javac && javac -d tests example/java/TestGenomicsDB.java
+    - javac -d tests example/java/TestBufferStreamVCF2TileDB.java
+    - java -version && which java && python tests/run.py
 
 after_success:
     - lcov --list tests/coverage.info # debug before upload
