@@ -42,14 +42,11 @@ public final class GenomicsDBJavaSparkFactory {
 
   private static void usingGenomicsRDD(String[] args) {
 
-    String master = args[0];
-    int port = Integer.parseInt(args[1]);
-    String loaderJsonFile = args[2];
-    String queryJsonFile = args[3];
-    String hostfile = args[4];
+    String loaderJsonFile = args[0];
+    String queryJsonFile = args[1];
+    String hostfile = args[2];
 
     SparkConf conf = new SparkConf();
-    conf.setMaster("spark://" + master + ":" + port);
     conf.setAppName("GenomicsDBTest using GenomicsDBRDD");
     JavaSparkContext sc = new JavaSparkContext(conf);
 
@@ -69,14 +66,12 @@ public final class GenomicsDBJavaSparkFactory {
   }
 
   public static void usingNewAPIHadoopRDD(String[] args) {
-    String master = args[0];
-    int port = Integer.parseInt(args[1]);
-    String loaderJsonFile = args[2];
-    String queryJsonFile = args[3];
-    String hostfile = args[4];
+    
+    String loaderJsonFile = args[0];
+    String queryJsonFile = args[1];
+    String hostfile = args[2];
 
     SparkConf conf = new SparkConf();
-    conf.setMaster("spark://" + master + ":" + port);
     conf.setAppName("GenomicsDBTest using newAPIHadoopRDD");
     JavaSparkContext sc = new JavaSparkContext(conf);
 
@@ -89,11 +84,12 @@ public final class GenomicsDBJavaSparkFactory {
     Class gformatClazz = GenomicsDBInputFormat.class;
     variants = sc.newAPIHadoopRDD(hadoopConf, gformatClazz, String.class, VariantContext.class);
 
-    System.out.println(variants.count());
+    System.out.println("Number of variants "+variants.count());
     List variantList = variants.collect();
     for (Object variantObj : variantList) {
       System.out.println(variantObj);
     }
+
   }
 
   public static void main(String[] args) throws Exception {
