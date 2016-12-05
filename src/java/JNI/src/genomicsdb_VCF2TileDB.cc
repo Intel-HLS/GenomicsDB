@@ -55,7 +55,7 @@ JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniInitializeGenomi
   auto loader_configuration_file_cstr = env->GetStringUTFChars(loader_configuration_file, NULL);
   VERIFY_OR_THROW(loader_configuration_file_cstr);
   //GenomicsDBImporter object
-  auto importer = new GenomicsDBImporter(loader_configuration_file_cstr, rank, lb_callset_row_idx, ub_callset_row_idx);
+  auto importer = new GenomicsDBImporter(loader_configuration_file_cstr, g_jni_mpi_init.get_mpi_rank(rank), lb_callset_row_idx, ub_callset_row_idx);
   //Cleanup
   env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);
   //Cast pointer to 64-bit int and return to Java
