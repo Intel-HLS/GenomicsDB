@@ -20,7 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package genomicsdb;
+package com.intel.genomicsdb;
 
 import java.io.File;
 import java.io.InputStream;
@@ -52,7 +52,7 @@ public class GenomicsDBUtils
             //Could not load based on external loader configuration 
             try
             {
-                loadLibraryFromJar("/genomicsdb/"+System.mapLibraryName(mGenomicsDBLibraryName));
+                loadLibraryFromJar("/"+System.mapLibraryName(mGenomicsDBLibraryName));
             }
             catch (IOException ioe)
             {
@@ -85,7 +85,7 @@ public class GenomicsDBUtils
 
         // Obtain filename from path
         String[] parts = path.split("/");
-        String filename = (parts.length > 1) ? parts[parts.length - 1] : null;
+        String filename = (parts.length >= 1) ? parts[parts.length - 1] : null;
 
         // Split filename to prefix and suffix (extension)
         String prefix = "";
@@ -101,15 +101,15 @@ public class GenomicsDBUtils
             throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
         }
 
-        // Prepare temporary file
+				// Prepare temporary file
         File temp = File.createTempFile(prefix, suffix);
-        temp.deleteOnExit();
+        //temp.deleteOnExit();
 
         if (!temp.exists()) {
             throw new FileNotFoundException("File " + temp.getAbsolutePath() + " does not exist.");
         }
 
-        // Prepare buffer for data copying
+				// Prepare buffer for data copying
         byte[] buffer = new byte[1024];
         int readBytes;
 
@@ -119,19 +119,20 @@ public class GenomicsDBUtils
             throw new FileNotFoundException("File " + path + " was not found inside JAR.");
         }
 
-        // Open output stream and copy data between source file in JAR and the temporary file
+				// Open output stream and copy data between source file in JAR and the temporary file
         OutputStream os = new FileOutputStream(temp);
         try {
             while ((readBytes = is.read(buffer)) != -1) {
                 os.write(buffer, 0, readBytes);
             }
         } finally {
+						os.flush();
             // If read/write fails, close streams safely before throwing an exception
             os.close();
             is.close();
         }
 
-        // Finally, load the library
+				// Finally, load the library
         System.load(temp.getAbsolutePath());
     }
 }

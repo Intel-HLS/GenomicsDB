@@ -821,22 +821,31 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
       throw VCF2TileDBException(std::string("Incorrect cell order found - cells must be in column major order. Previous cell: [ ")
           +std::to_string(m_previous_cell_row_idx)+", "+std::to_string(m_previous_cell_column)
           +" ] current cell: [ "+std::to_string(row_idx)+", "+std::to_string(column)+" ]");
-    for(auto i=0u;i<m_operators.size();++i)
-    {
-      auto op = m_operators[i];
-      //An operator is allowed to proceed iff one of the following conditions are satisfied
-      //A. No operators overflowed in the previous call of this function OR
-      //B. This was one of the operators that overflowed in the past call
-      if(m_num_operators_overflow_in_last_round == 0u || m_operators_overflow[i])
+    auto skip_cell = (column > get_column_partition_end());
+    if(skip_cell && !m_ignore_cells_not_in_partition)
+      throw VCF2TileDBException(std::string("Found cell that does not belong to the current partition. Partition bounds: [ ")
+            + std::to_string(get_column_partition_begin()) + ", "
+            + std::to_string(get_column_partition_end()) + " ] - current cell [ "
+            + std::to_string(row_idx) + ", " + std::to_string(column));
+    //Either no overflow or !skip_cell (overflow can occur iff retrying the same cell)
+    assert(m_num_operators_overflow_in_last_round == 0u || !skip_cell);
+    if(!skip_cell)
+      for(auto i=0u;i<m_operators.size();++i)
       {
-        assert(!(op->overflow())); //must have buffer space
-        op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
-        auto curr_overflow = op->overflow();
-        m_operators_overflow[i] = curr_overflow;
-        if(curr_overflow)
-          ++num_operators_overflow_in_this_round;
+        auto op = m_operators[i];
+        //An operator is allowed to proceed iff one of the following conditions are satisfied
+        //A. No operators overflowed in the previous call of this function OR
+        //B. This was one of the operators that overflowed in the past call
+        if(m_num_operators_overflow_in_last_round == 0u || m_operators_overflow[i])
+        {
+          assert(!(op->overflow())); //must have buffer space
+          op->operate(reinterpret_cast<const void*>(&(buffer[offset])));
+          auto curr_overflow = op->overflow();
+          m_operators_overflow[i] = curr_overflow;
+          if(curr_overflow)
+            ++num_operators_overflow_in_this_round;
+        }
       }
-    }
     //Advance to next cell iff no operators are overflowing
     if(num_operators_overflow_in_this_round == 0u)
     {

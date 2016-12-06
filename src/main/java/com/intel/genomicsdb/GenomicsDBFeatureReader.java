@@ -20,26 +20,21 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package genomicsdb;
+package com.intel.genomicsdb;
 
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
-import htsjdk.tribble.readers.PositionalBufferedStream;
-import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
 
-import java.io.InputStream;
-import java.io.IOException;
 import java.io.File;
-import java.io.ByteArrayInputStream;
 import java.io.FileWriter;
-import java.util.List;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.lang.RuntimeException;
+import java.util.List;
 
 /**
  * A reader for GenomicsDB that implements {@link htsjdk.tribble.FeatureReader}
@@ -79,8 +74,10 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param tiledbWorkspace TileDB workspace path
      * @param arrayName TileDB array name
      * @param referenceGenome Path to reference genome (fasta file)
-     * @param templateVCFHeaderFilename Template VCF header to be used for the combined gVCF records
-     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param templateVCFHeaderFilename Template VCF header to be used for
+     *                                  the combined gVCF records
+     * @param codec FeatureCodec, currently only
+     *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
@@ -95,7 +92,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         queryJSON += indentString + "\"array\": \""+arrayName+"\",\n";
         queryJSON += indentString + "\"reference_genome\": \""+referenceGenome+"\",\n";
         if(templateVCFHeaderFilename != null)
-            queryJSON += indentString + "\"vcf_header_filename\": \""+templateVCFHeaderFilename+"\"\n";
+            queryJSON += indentString + "\"vcf_header_filename\": \"" +
+              templateVCFHeaderFilename+"\"\n";
         queryJSON += "}\n";
         File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
         tmpQueryJSONFile.deleteOnExit();
@@ -165,7 +163,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     /**
-     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects for the specified TileDB array and query configuration
+     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext}
+     * objects for the specified TileDB array and query configuration
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> iterator() throws IOException
@@ -174,20 +173,24 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     /**
-     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects for the specified TileDB array and queried position
+     * Return an iterator over {@link htsjdk.variant.variantcontext.VariantContext}
+     * objects for the specified TileDB array and queried position
      * @param chr contig name
      * @param start start position (1-based)
      * @param end end position, inclusive (1-based)
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
-    public CloseableTribbleIterator<T> query(final String chr, final int start, final int end) throws IOException
+    public CloseableTribbleIterator<T> query(final String chr, final int start, final int end)
+      throws IOException
     {
-        return new GenomicsDBFeatureIterator(mLoaderJSONFile, mQueryJSONFile, mCodec, chr, start, end);
+        return new GenomicsDBFeatureIterator(mLoaderJSONFile, mQueryJSONFile,
+          mCodec, chr, start, end);
     }
 
     /**
      * Iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects.
-     * Uses {@link GenomicsDBQueryStream} to obtain combined gVCF records (as BCF2) from TileDB/GenomicsDB
+     * Uses {@link GenomicsDBQueryStream} to obtain combined gVCF records
+     * (as BCF2) from TileDB/GenomicsDB
      */
     class GenomicsDBFeatureIterator implements CloseableTribbleIterator<T>
     {
@@ -199,7 +202,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * Constructor
          * @param loaderJSONFile GenomicsDB loader JSON configuration file
          * @param queryJSONFile GenomicsDB query JSON configuration file
-         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         * @param codec FeatureCodec, currently only
+         *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
          */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
                 final FeatureCodec<T, SOURCE> codec) throws IOException
@@ -211,7 +215,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * Constructor
          * @param loaderJSONFile GenomicsDB loader JSON configuration file
          * @param queryJSONFile GenomicsDB query JSON configuration file
-         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+         *              is tested
          * @param chr contig name
          * @param start start position (1-based)
          * @param end end position, inclusive (1-based)

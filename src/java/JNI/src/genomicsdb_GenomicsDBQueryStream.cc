@@ -26,7 +26,7 @@
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 #define GET_BCF_READER_FROM_HANDLE(X) (reinterpret_cast<GenomicsDBBCFGenerator*>(static_cast<std::uintptr_t>(X)))
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   (JNIEnv* env, jobject curr_obj, jstring loader_configuration_file, jstring query_configuration_file,
    jstring chr, jint start, jint end,
    jint rank, jlong buffer_capacity, jlong segment_size)
@@ -52,7 +52,7 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
   return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(bcf_reader_obj));
 }
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBClose
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBClose
   (JNIEnv* env, jobject curr_obj, jlong handle)
 {
   auto bcf_reader_obj = GET_BCF_READER_FROM_HANDLE(handle);
@@ -61,21 +61,21 @@ JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBClose
   return 0;
 }
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBGetNumBytesAvailable
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBGetNumBytesAvailable
   (JNIEnv* env, jobject curr_obj, jlong handle)
 {
   auto bcf_reader_obj = GET_BCF_READER_FROM_HANDLE(handle);
   return (bcf_reader_obj) ? bcf_reader_obj->get_buffer_capacity() : 0;
 }
 
-JNIEXPORT jbyte JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBReadNextByte
+JNIEXPORT jbyte JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBReadNextByte
   (JNIEnv* env, jobject curr_obj, jlong handle)
 {
   auto bcf_reader_obj = GET_BCF_READER_FROM_HANDLE(handle);
   return (bcf_reader_obj) ? bcf_reader_obj->read_next_byte() : -1;
 }
 
-JNIEXPORT jint JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBRead
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBRead
   (JNIEnv* env, jobject curr_obj, jlong handle, jbyteArray java_byte_array, jint offset, jint n)
 {
   auto bcf_reader_obj = GET_BCF_READER_FROM_HANDLE(handle);
@@ -100,7 +100,7 @@ JNIEXPORT jint JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBRead
   return total_num_bytes_read;
 }
 
-JNIEXPORT jlong JNICALL Java_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBSkip
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBSkip
   (JNIEnv* env, jobject curr_obj, jlong handle, jlong n)
 {
   auto bcf_reader_obj = GET_BCF_READER_FROM_HANDLE(handle);

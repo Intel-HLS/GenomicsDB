@@ -20,6 +20,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package com.intel.genomicsdb;
+
 import java.io.IOException;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.tribble.readers.PositionalBufferedStream;
@@ -30,8 +32,6 @@ import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import java.lang.Long;
-import com.intel.genomicsdb.GenomicsDBFeatureReader;
-import com.intel.genomicsdb.VCF2TileDB;
 
 public final class TestGenomicsDB
 {
