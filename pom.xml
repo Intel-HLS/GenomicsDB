@@ -85,6 +85,7 @@
                 <directory>bin</directory>
                 <includes>
                     <include>**/libtiledbgenomicsdb.so</include>
+                    <include>**/libtiledbgenomicsdb.dylib</include>
                 </includes>
             </resource>
         </resources>
