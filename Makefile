@@ -321,7 +321,7 @@ genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
 clean:
 	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
-	mvn clean
+	mvn clean -Dgenomicsdb.version=$(RELEASE_VERSION)
 
 clean-dependencies: TileDB_clean htslib_clean
 
