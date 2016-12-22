@@ -55,7 +55,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   public List<InputSplit> getSplits(JobContext jobContext) throws FileNotFoundException {
 
 
-    genomicsDBConfiguration = new com.intel.genomicsdb.GenomicsDBConfiguration(configuration);
+    genomicsDBConfiguration = new GenomicsDBConfiguration(configuration);
     genomicsDBConfiguration.setLoaderJsonFile(
       configuration.get(GenomicsDBConfiguration.LOADERJSON));
     genomicsDBConfiguration.setQueryJsonFile(
