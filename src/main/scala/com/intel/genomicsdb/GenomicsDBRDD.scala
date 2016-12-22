@@ -25,10 +25,11 @@ package com.intel.genomicsdb
 import htsjdk.tribble.Feature
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.Writable
-import org.apache.hadoop.mapreduce.InputSplit
+import org.apache.hadoop.mapreduce.{InputSplit, RecordReader}
 import org.apache.spark._
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
@@ -54,10 +55,12 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
   private val confBroadcast = gc.sparkContext.broadcast(
     new GenomicsDBConfiguration(gc.sparkContext.hadoopConfiguration))
 
-  val loaderJsonBroadcast = sparkContext.broadcast(
+  val loaderJsonBroadcast: Broadcast[String] = sparkContext.broadcast(
     confBroadcast.value.get(GenomicsDBConfiguration.LOADERJSON))
-  val queryJsonBroadcast = sparkContext.broadcast(
+  val queryJsonBroadcast: Broadcast[String] = sparkContext.broadcast(
     confBroadcast.value.get(GenomicsDBConfiguration.QUERYJSON))
+  val hostsBroadcast: Broadcast[String] = sparkContext.broadcast(
+    confBroadcast.value.get(GenomicsDBConfiguration.MPIHOSTFILE))
 
   def getConf: Configuration = {
     val conf: Configuration = confBroadcast.value
@@ -74,6 +77,7 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     } else {
       conf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonBroadcast.value)
       conf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonBroadcast.value)
+      conf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostsBroadcast.value)
       conf
     }
   }
@@ -94,17 +98,20 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
   def compute(thisSplit: Partition, context: TaskContext): Iterator[VCONTEXT] = {
 
     val iterator = new Iterator[VCONTEXT] {
-      val split = thisSplit.asInstanceOf[GenomicsDBPartition[VCONTEXT, SOURCE]]
-      val conf = getConf
+      val split: GenomicsDBPartition[VCONTEXT, SOURCE] =
+        thisSplit.asInstanceOf[GenomicsDBPartition[VCONTEXT, SOURCE]]
+      val conf: Configuration = getConf
       val inputFormat = new GenomicsDBInputFormat[VCONTEXT, SOURCE]
       inputFormat.setConf(conf)
 
-      val recordReader = inputFormat.createRecordReader(split.serializableSplit.value, null)
-      val gRecordReader =
+      val recordReader: RecordReader[String, VCONTEXT] =
+        inputFormat.createRecordReader(split.serializableSplit.value, null)
+      val gRecordReader: GenomicsDBRecordReader[VCONTEXT, SOURCE] =
         recordReader.asInstanceOf[GenomicsDBRecordReader[VCONTEXT, SOURCE]]
       gRecordReader.initialize(null, null)
 
       var finished = false
+      var havePair = false
 
       /**
         * Check whether more variants exist or not
@@ -112,7 +119,7 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
         * @return  true or false
         */
       override def hasNext: Boolean = {
-        if (!finished) {
+        if (!finished && !havePair) {
           finished = !gRecordReader.nextKeyValue
           if (finished) {
             // Close and release the reader here; close() will also be called when the task
@@ -120,18 +127,20 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
             // resources early.
             close()
           }
+          havePair = !finished
         }
         !finished
       }
 
       private def close() {
-          gRecordReader.close()
+        gRecordReader.close()
       }
 
       override def next(): VCONTEXT = {
         if (!hasNext) {
           throw new NoSuchElementException("End of stream")
         }
+        havePair = false
         gRecordReader.getCurrentValue
       }
     }
@@ -177,7 +186,7 @@ class GenomicsDBRDD[VCONTEXT <: Feature: ClassTag, SOURCE: ClassTag](
     *
     * @return  integer count of variants
     */
-  override def count() = {
+  override def count(): Long = {
     super.count()
   }
 

@@ -56,12 +56,12 @@ public final class GenomicsDBJavaSparkFactory {
     hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile);
 
     GenomicsDBContext gc = new GenomicsDBContext(hadoopConf, sc.sc());
-    JavaRDD<VariantContext> myrdd = gc.getVariantContexts().toJavaRDD();
-    System.out.println(myrdd.count());
+    JavaRDD<VariantContext> variants = gc.getVariantContexts().toJavaRDD();
+    System.out.println("Number of variants "+variants.count());
 
-    List<VariantContext> vlist = myrdd.collect();
-    for (Object aVlist : vlist) {
-      System.out.println(aVlist);
+    List<VariantContext> variantList = variants.collect();
+    for (Object variantObj : variantList) {
+      System.out.println(variantObj);
     }
   }
 
@@ -89,11 +89,10 @@ public final class GenomicsDBJavaSparkFactory {
     for (Object variantObj : variantList) {
       System.out.println(variantObj);
     }
-
   }
 
   public static void main(String[] args) throws Exception {
-//    usingGenomicsRDD(args);
-    usingNewAPIHadoopRDD(args);
+    usingGenomicsRDD(args);
+//    usingNewAPIHadoopRDD(args);
   }
 }
