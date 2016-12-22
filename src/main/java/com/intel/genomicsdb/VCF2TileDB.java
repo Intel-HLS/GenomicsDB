@@ -238,6 +238,7 @@ public class VCF2TileDB
      * @param vcfHeader VCF header for the stream
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
+     * @param vcIterator iterator over VariantContext objects, can be null if the caller is managing the buffer explicitly
      */
     public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
                                            final VariantContextWriterBuilder.OutputType streamType,
@@ -287,8 +288,8 @@ public class VCF2TileDB
     }
 
     /**
-     * Returns true if a non-null Iterator<VariantContext> object was provided for this stream
-     * @return true if a non-null Iterator<VariantContext> object was provided for this stream
+     * Returns true if a non-null Iterator over VariantContext objects was provided for this stream
+     * @return true if a non-null Iterator over VariantContext objects was provided for this stream
      */
     public boolean hasIterator()
     {
@@ -296,7 +297,7 @@ public class VCF2TileDB
     }
 
     /**
-     * Returns the next VariantContext object iff the Iterator<VariantContext>
+     * Returns the next VariantContext object iff the Iterator over VariantContext objects
      * is non-null and has a next() object,
      * else returns null. Stores the result in mCurrentVC
      * @return the next VariantContext object or null
@@ -363,7 +364,8 @@ public class VCF2TileDB
   /**
    * Notify importer object that a new stream is to be added
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
-   * @param isBCF
+   * @param streamName name of the stream
+   * @param isBCF use BCF format to pass data to C++ layer
    * @param bufferCapacity in bytes
    * @param buffer initialization buffer containing the VCF/BCF header
    * @param numValidBytesInBuffer num valid bytes in the buffer (length of the header)
@@ -480,7 +482,7 @@ public class VCF2TileDB
    * The function assumes that the samples will be assigned row indexes beginning at rowIdx
    * and that the sample names specified in the header
    * are globally unique (across all streams/files)
-   * @param sampleIndexToInfo  <sampleIndex in vcfHeader: SampleInfo> map
+   * @param sampleIndexToInfo  map: key=sampleIndex in vcfHeader: value=SampleInfo
    * @param vcfHeader VCF header
    * @param rowIdx Starting row index from which to assign
    * @return rowIdx+#samples in the header
@@ -511,6 +513,7 @@ public class VCF2TileDB
    * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which
    *                          contains row index and globally unique name
    * can be set to null, which implies that the mapping is stored in a callsets JSON file
+   * @return returns buffer stream index
    */
   public int addBufferStream(final String streamName, final VCFHeader vcfHeader,
                              final long bufferCapacity,
@@ -537,6 +540,7 @@ public class VCF2TileDB
    *                          which contains row index and globally unique name
    *                          can be set to null, which implies that the mapping is
    *                          stored in a callsets JSON file
+   * @return returns the stream index
    */
   public int addSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
                                              Iterator<VariantContext> vcIterator,
@@ -565,6 +569,10 @@ public class VCF2TileDB
    *                          object which contains row index and globally unique name
    *                          can be set to null, which implies that the mapping is stored in a
    *                          callsets JSON file
+   * @return returns the stream index
+   * @throws GenomicsDBException thrown if incorrect iterator or missing JSON configuration
+   * @throws IOException thrown if incorrect iterator or missing JSON configuration
+   *                          files
    */
   public int setSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
                                              Iterator<VariantContext> vcIterator,
@@ -590,6 +598,7 @@ public class VCF2TileDB
    * @param sampleIndexToInfo map from sample index in the vcfHeader to SampleInfo object which
    *                          contains row index and globally unique name can be set to null,
    *                          which implies that the mapping is stored in a callsets JSON file
+   * @return returns the stream index
    */
   private int addBufferStream(final String streamName, final VCFHeader vcfHeader,
                               final long bufferCapacity,
@@ -637,6 +646,7 @@ public class VCF2TileDB
    * Setup the importer after all the buffer streams are added, but before any
    * data is inserted into any stream
    * No more buffer streams can be added once setupGenomicsDBImporter() is called
+   * @throws IOException throws IOException if modified callsets JSON cannot be written
    */
   public void setupGenomicsDBImporter() throws IOException
   {
@@ -717,6 +727,7 @@ public class VCF2TileDB
 
   /**
    * @return true if the import process is done
+   * @throws IOException if the wimport fails
    */
   public boolean importBatch() throws IOException
   {
@@ -789,6 +800,7 @@ public class VCF2TileDB
    * with indexes getExhaustedBufferStreamIndex(0), getExhaustedBufferStreamIndex(1),...,
    * getExhaustedBufferStreamIndex(mNumExhaustedBufferStreams-1)
    * @param i i-th exhausted buffer stream
+   * @return the buffer stream index of the i-th exhausted stream
    */
   public int getExhaustedBufferStreamIndex(final long i)
   {

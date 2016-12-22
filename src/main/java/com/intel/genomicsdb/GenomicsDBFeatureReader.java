@@ -57,6 +57,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param arrayName TileDB array name
      * @param referenceGenome Path to reference genome (fasta file)
      * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
@@ -78,6 +79,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      *                                  the combined gVCF records
      * @param codec FeatureCodec, currently only
      *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
             final String tiledbWorkspace, final String arrayName,
@@ -108,6 +110,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param queryJSONFile GenomicsDB query JSON configuration file
      * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile, final String queryJSONFile,
             final FeatureCodec<T, SOURCE> codec) throws IOException
@@ -120,6 +123,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param queryJSONFile GenomicsDB query JSON configuration file
      * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @throws IOException when data cannot be read from the stream 
      */
     public void initialize(final String loaderJSONFile, final String queryJSONFile,
             final FeatureCodec<T, SOURCE> codec) throws IOException
@@ -204,6 +208,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * @param queryJSONFile GenomicsDB query JSON configuration file
          * @param codec FeatureCodec, currently only
          *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         * @throws IOException when data cannot be read from the stream 
          */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
                 final FeatureCodec<T, SOURCE> codec) throws IOException
@@ -220,6 +225,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * @param chr contig name
          * @param start start position (1-based)
          * @param end end position, inclusive (1-based)
+         * @throws IOException when data cannot be read from the stream 
          */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
                 final FeatureCodec<T, SOURCE> codec,

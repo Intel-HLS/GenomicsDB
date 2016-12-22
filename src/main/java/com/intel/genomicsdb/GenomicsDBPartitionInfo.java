@@ -64,6 +64,7 @@ class GenomicsDBPartitionInfo implements Serializable {
    * Create a JSON string from the partition info object
    *
    * @return  A JSON string of the partition info
+   * @throws IOException write throws IOException
    */
   public String toJSON() throws IOException {
     ObjectMapper mapper = new ObjectMapper();
