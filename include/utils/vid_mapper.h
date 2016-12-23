@@ -107,6 +107,8 @@ class FileInfo
       m_buffer_stream_idx = -1;
       m_buffer_capacity = 1024; //1KB
       m_initialization_buffer_num_valid_bytes = 0u;
+      //Split files info
+      m_single_split_file_path = false;
     }
     void set_info(const int64_t file_idx, const std::string& name)
     {
@@ -135,6 +137,9 @@ class FileInfo
     size_t m_buffer_capacity;
     std::vector<uint8_t> m_initialization_buffer;
     size_t m_initialization_buffer_num_valid_bytes;
+    //Split files output locations
+    bool m_single_split_file_path;
+    std::vector<std::string> m_split_files_paths;
 };
 
 typedef FileInfo BufferStreamInfo;
@@ -319,6 +324,21 @@ class VidMapper
       return m_row_idx_to_info[row_idx].m_idx_in_file;
     }
     /*
+     * Get global file idx for filename, if not exist append and return last index
+     */
+    int64_t get_or_append_global_file_idx(const std::string& filename)
+    {
+      auto iter = m_filename_to_idx.find(filename);
+      if(iter == m_filename_to_idx.end())
+      {
+        auto file_idx = m_file_idx_to_info.size();
+        iter = m_filename_to_idx.insert(std::make_pair(filename, file_idx)).first;
+        m_file_idx_to_info.emplace_back();
+        m_file_idx_to_info[file_idx].set_info(file_idx, filename);
+      }
+      return (*iter).second;
+    }
+    /*
      * Given a filename, return #callsets within that file being processed 
      */
     bool get_num_callsets_in_file(const std::string& filename, int& num_callsets) const
@@ -405,6 +425,20 @@ class VidMapper
     inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const { return m_buffer_stream_idx_to_global_file_idx; }
     void build_file_partitioning(const int partition_idx, const RowRange row_partition);
     void verify_file_partitioning() const;
+    //Set path of split file
+    void set_single_split_file_path(const int64_t global_file_idx, const std::string& split_output_filename)
+    {
+      assert(static_cast<size_t>(global_file_idx) < m_file_idx_to_info.size());
+      auto& file_info = m_file_idx_to_info[global_file_idx];
+      file_info.m_single_split_file_path = true;
+      file_info.m_split_files_paths.resize(1u);
+      file_info.m_split_files_paths[0u] = split_output_filename;
+    }
+    /*
+     * While splitting files, get path of output split file
+     */
+    std::string get_split_file_path(const std::string& original_filename, const std::string& results_directory,
+        std::string& output_type, const int rank) const;
     /*
      * Given a contig name, return global contig idx
      */
@@ -586,6 +620,12 @@ class FileBasedVidMapper : public VidMapper
 	  lb_callset_row_idx, ub_callset_row_idx,
 	  is_callset_mapping_required);
     }
+    //Useful when writing partitioned data
+    void write_partition_callsets_json_file(const std::string& original_callsets_filename, const std::string& results_directory,
+        const int rank) const;
+    void write_partition_loader_json_file(const std::string& original_loader_filename,
+        const std::string& original_callsets_filename,
+        const std::string& results_directory, const int num_partition_callset_mapping_files, const int rank) const;
   private:
     void common_constructor_initialization(const std::string& filename,
 	const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
