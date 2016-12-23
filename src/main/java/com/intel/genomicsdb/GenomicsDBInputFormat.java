@@ -65,7 +65,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
     List<String> hosts = genomicsDBConfiguration.getHosts();
 
-    ArrayList<InputSplit> inputSplits = new ArrayList<InputSplit>(hosts.size());
+    ArrayList<InputSplit> inputSplits = new ArrayList<>(hosts.size());
     for (int i = 0; i < hosts.size(); ++i) {
       GenomicsDBInputSplit split = new GenomicsDBInputSplit();
       inputSplits.add(split);

@@ -55,10 +55,6 @@ public class GenomicsDBRecordReader<VCONTEXT extends Feature, SOURCE>
 
   private void initialize() throws IOException {
     this.iterator = featureReader.iterator();
-    if (iterator.hasNext()) {
-      this.currentVariant = iterator.next();
-      this.currentKey++;
-    }
   }
 
   public boolean nextKeyValue() throws IOException, InterruptedException {
