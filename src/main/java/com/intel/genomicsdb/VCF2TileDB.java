@@ -238,7 +238,8 @@ public class VCF2TileDB
      * @param vcfHeader VCF header for the stream
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
-     * @param vcIterator iterator over VariantContext objects, can be null if the caller is managing the buffer explicitly
+     * @param vcIterator iterator over VariantContext objects, can be null if the caller is managing
+     * the buffer explicitly
      */
     public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
                                            final VariantContextWriterBuilder.OutputType streamType,
