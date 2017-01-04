@@ -370,7 +370,9 @@ RowRange JSONConfigBase::get_row_partition(const int rank, const unsigned idx) c
   if(!m_row_partitions_specified)
     return RowRange(0, INT64_MAX-1);
   auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
-  VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_row_ranges.size());
+  if(static_cast<size_t>(fixed_rank) >= m_row_ranges.size())
+    throw RunConfigException(std::string("No row partition/query interval available for process with rank ")
+        +std::to_string(rank));
   VERIFY_OR_THROW(idx < m_row_ranges[fixed_rank].size());
   return m_row_ranges[fixed_rank][idx];
 }
@@ -380,7 +382,9 @@ ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned 
   if(!m_column_partitions_specified)
     return ColumnRange(0, INT64_MAX-1);
   auto fixed_rank = m_single_query_column_ranges_vector ? 0 : rank;
-  VERIFY_OR_THROW(static_cast<size_t>(fixed_rank) < m_column_ranges.size());
+  if(static_cast<size_t>(fixed_rank) >= m_column_ranges.size())
+    throw RunConfigException(std::string("No column partition/query interval available for process with rank ")
+        +std::to_string(rank));
   VERIFY_OR_THROW(idx < m_column_ranges[fixed_rank].size());
   return m_column_ranges[fixed_rank][idx];
 }

@@ -139,6 +139,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
    * Set the host file path
    * @param hostFile  Full qualified path of the hosts file
    * @return  Returns the same object for forward function calls
+   * @throws FileNotFoundException thrown if the hosts file is not found
    */
   public GenomicsDBInputFormat<VCONTEXT, SOURCE> setHostFile(String hostFile)
       throws FileNotFoundException {

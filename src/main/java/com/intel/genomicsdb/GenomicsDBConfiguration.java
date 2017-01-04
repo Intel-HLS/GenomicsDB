@@ -62,7 +62,7 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
    * Constructor with partition information
    * @param configuration  Existing configuration object (can contain Hadoop config values)
    * @param list  Contains partition information
-   * @throws FileNotFoundException
+   * @throws FileNotFoundException thrown when loader file not found
    */
   public GenomicsDBConfiguration(Configuration configuration, List<GenomicsDBPartitionInfo> list)
     throws FileNotFoundException {

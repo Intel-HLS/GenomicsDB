@@ -10,8 +10,8 @@ shift
 
 CLASS=com.intel.genomicsdb.GenomicsDBJavaSparkFactory
 GENOMICSDB_JAR=genomicsdb-0.4.0-jar-with-dependencies.jar
-GENOMICSDB_SPARK_HOME="$(cd `dirname $0`; pwd)"
-GENOMICSDB_JAR_PATH=$GENOMICSDB_SPARK_HOME/../../target/$GENOMICSDB_JAR
+GENOMICSDB_BIN_DIR="$(cd `dirname $0`; pwd)"
+GENOMICSDB_JAR_PATH=$GENOMICSDB_BIN_DIR/$GENOMICSDB_JAR
 
 CLASSPATH=$CLASSPATH:$GENOMICSDB_JAR_PATH
 
