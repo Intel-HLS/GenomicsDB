@@ -641,13 +641,15 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
+    auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     auto length_descriptor = BCF_VL_FIXED;
     if(vid_field_info)
     {
       length_descriptor = vid_field_info->m_length_descriptor;
-      query_config.set_query_attribute_info_parameters(i, length_descriptor, vid_field_info->m_num_elements,
+      query_config.set_query_attribute_info_parameters(i,
+          array_schema.type(schema_idx), length_descriptor, vid_field_info->m_num_elements,
           vid_field_info->m_VCF_field_combine_operation);
     }
     else //No information in vid file, see if something can be gleaned from known fields
@@ -656,7 +658,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       if(KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum))
       {
         length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-        query_config.set_query_attribute_info_parameters(i, length_descriptor,
+        query_config.set_query_attribute_info_parameters(i,
+            array_schema.type(schema_idx), length_descriptor,
             KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u),
             KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum)
             );

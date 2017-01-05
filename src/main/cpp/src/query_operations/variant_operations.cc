@@ -519,7 +519,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
                 curr_ploidy, 0u);  //#alt alleles, current ploidy
           remapped_field->resize(num_merged_elements);
           //Get handler for current type
-          auto& handler = get_handler_for_type(remapped_field->get_element_type());
+          auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
           assert(handler.get());
           //Call remap function
           handler->remap_vector_data(

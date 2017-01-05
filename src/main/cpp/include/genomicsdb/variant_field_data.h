@@ -111,8 +111,6 @@ class VariantFieldBase
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Get raw pointer(s) to data */
     virtual const void* get_raw_pointer() const = 0;
-    /* Return type of data */
-    virtual std::type_index get_element_type() const = 0;
     /* Return #elements */
     virtual size_t length() const = 0;
     /* Create copy and return pointer - avoid using as much as possible*/
@@ -192,7 +190,7 @@ class VariantFieldData : public VariantFieldBase
       return get_element_type();
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<void*>(&m_data); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
+    std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual size_t length() const { return 1u; };
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -286,7 +284,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       return get_element_type();
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.c_str()); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(char)); }
+    std::type_index get_element_type() const { return std::type_index(typeid(char)); }
     virtual size_t length() const { return m_data.length(); };
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -461,7 +459,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       return get_element_type();
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
+    std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual size_t length() const { return m_data.size(); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, PrintType>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -616,7 +614,7 @@ class VariantFieldALTData : public VariantFieldBase
       return std::type_index(typeid(char));
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
+    std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
     virtual size_t length() const { return m_data.size(); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
