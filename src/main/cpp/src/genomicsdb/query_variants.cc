@@ -981,7 +981,7 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
 {
   auto schema_idx = query_config.get_schema_idx_for_query_idx(query_idx);
   if(field_ptr.get() == nullptr)       //Allocate only if null
-    field_ptr = std::move(m_field_factory.Create(schema_idx));
+    field_ptr = std::move(m_field_factory.Create(schema_idx, m_array_schema->is_variable_length_field(schema_idx)));
   length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_idx);
   num_elements = query_config.get_num_elements_for_query_attribute_idx(query_idx);
   field_ptr->set_valid(true);  //mark as valid
@@ -1024,7 +1024,8 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
         unsigned length_descriptor = BCF_VL_FIXED;
         unsigned num_elements = 1u;
         fill_field_prep(field_ptr, query_config, j, length_descriptor, num_elements);
-        field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+        field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
+            length_descriptor != BCF_VL_FIXED, num_elements);
       }
     }
   }
@@ -1044,7 +1045,8 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       unsigned length_descriptor = BCF_VL_FIXED;
       unsigned num_elements = 1u;
       fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
-      field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+      field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
+          length_descriptor != BCF_VL_FIXED, num_elements);
     }
   }
 }
