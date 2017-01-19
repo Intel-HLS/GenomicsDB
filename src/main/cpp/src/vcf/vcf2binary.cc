@@ -226,7 +226,6 @@ VCFColumnPartition::VCFColumnPartition(VCFColumnPartition&& other)
   : File2TileDBBinaryColumnPartitionBase(std::move(other))
 {
   m_local_contig_idx = other.m_local_contig_idx;
-  m_contig_position = other.m_contig_position;
   m_contig_tiledb_column_offset = other.m_contig_tiledb_column_offset;
   m_vcf_get_buffer_size = other.m_vcf_get_buffer_size;
   m_vcf_get_buffer = other.m_vcf_get_buffer;
@@ -381,7 +380,6 @@ void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& pa
     }
     //Indicates that nothing has been read for this interval
     vcf_column_partition_ptr->m_local_contig_idx = -1;
-    vcf_column_partition_ptr->m_contig_position = -1;
   }
 }
 
@@ -401,7 +399,6 @@ bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2Til
     if(buffer_full)
       break;
   }
-  vcf_partition.m_contig_position = line->pos;      //keep track of position from which to seek next time
   return buffer_full;
 }
 
@@ -432,7 +429,7 @@ void VCF2Binary::list_active_row_idxs(const ColumnPartitionBatch& partition_batc
   }
 }
 
-inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf1_t* line)
+inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf_hdr_t* hdr, bcf1_t* line)
 {
   //Different contig, update offset value
   if(line->rid != vcf_partition.m_local_contig_idx)
@@ -443,17 +440,25 @@ inline void VCF2Binary::update_local_contig_idx(VCFColumnPartition& vcf_partitio
     vcf_partition.m_contig_tiledb_column_offset = m_vid_mapper->get_contig_info(global_contig_idx).m_tiledb_column_offset;
     vcf_partition.m_local_contig_idx = line->rid;
   }
+  vcf_partition.m_current_column_position = vcf_partition.m_contig_tiledb_column_offset + static_cast<int64_t>(line->pos);
+  bcf_set_end_point_from_info(hdr, line);
+  vcf_partition.m_current_end_position = vcf_partition.m_contig_tiledb_column_offset + static_cast<int64_t>(line->m_end_point);
+  //By default, bcf_set_end_point_from_info treats deletions as intervals
+  if(!m_treat_deletions_as_intervals && (line->d.var_type & VCF_INDEL))
+    vcf_partition.m_current_end_position = vcf_partition.m_current_column_position;
 }
 
 bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
     bool force_seek, bool advance_reader)
 {
   auto& vcf_partition = static_cast<VCFColumnPartition&>(partition_info);
+  bcf_hdr_t* hdr = 0;
   if(!m_get_data_from_file) //handle VCFBufferReader
   {
     //Cast to VCFBufferReader
     auto vcf_reader_ptr = dynamic_cast<VCFBufferReader*>(partition_info.get_base_reader_ptr());
     assert(vcf_reader_ptr);
+    hdr = vcf_reader_ptr->get_header();
     //advance or nothing in the buffer has been deserialized yet
     auto advance_flag = (advance_reader || vcf_reader_ptr->get_offset() == 0u);
     if(advance_flag)
@@ -461,7 +466,7 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
       vcf_reader_ptr->read_and_advance();
       auto line = vcf_reader_ptr->get_line();
       if(line)
-        update_local_contig_idx(vcf_partition, line);
+        update_local_contig_idx(vcf_partition, hdr, line);
     }
     //read buffer done
     is_read_buffer_exhausted = !(vcf_reader_ptr->contains_unread_data());
@@ -476,13 +481,14 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
     //Cast to VCFReader
     auto vcf_reader_ptr = dynamic_cast<VCFReader*>(partition_info.get_base_reader_ptr());
     assert(vcf_reader_ptr);
-    auto hdr = vcf_reader_ptr->get_header();
+    hdr = vcf_reader_ptr->get_header();
     //If valid contig, i.e., continuing from a valid previous position
     //Common case: m_local_contig_idx >=0 and !force_seek and advance_reader  
     if(vcf_partition.m_local_contig_idx >= 0)
     {
       if(force_seek)
-        vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx), vcf_partition.m_contig_position,
+        vcf_reader_ptr->seek_read_advance(bcf_hdr_id2name(hdr, vcf_partition.m_local_contig_idx),
+            vcf_partition.get_column_position_in_record()-vcf_partition.m_contig_tiledb_column_offset,
             m_discard_index);
       else
         if(advance_reader)
@@ -491,8 +497,8 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
       //Next line exists && (either index is stored in memory or continuing in the same contig) - common case
       if(line && (!m_discard_index || line->rid == vcf_partition.m_local_contig_idx))
       {
-        update_local_contig_idx(vcf_partition, line);
-        if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end)
+        update_local_contig_idx(vcf_partition, hdr, line);
+        if(vcf_partition.get_column_position_in_record() <= vcf_partition.m_column_interval_end)
           return true;
         else
           return false;   //past column end
@@ -540,9 +546,9 @@ bool VCF2Binary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& p
           return false;
         else      //valid VCF record
         {
-          update_local_contig_idx(vcf_partition, line);
+          update_local_contig_idx(vcf_partition, hdr, line);
           //and is within this column interval, return true
-          if(vcf_partition.m_contig_tiledb_column_offset+static_cast<int64_t>(line->pos) <= vcf_partition.m_column_interval_end)
+          if(vcf_partition.get_column_position_in_record() <= vcf_partition.m_column_interval_end)
             return true;
           else
             return false;
@@ -696,7 +702,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, row_idx, false);
   if(buffer_full) return true;
   //Column
-  int64_t column_idx = vcf_partition.m_contig_tiledb_column_offset + line->pos;
+  int64_t column_idx = vcf_partition.get_column_position_in_record();
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, column_idx);
   if(buffer_full) return true;
 #ifdef PRODUCE_BINARY_CELLS
@@ -705,30 +711,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   buffer_offset += sizeof(size_t);
 #endif
   //END position
-  int max_num_values = vcf_partition.m_vcf_get_buffer_size/sizeof(int);
-  //FIXME: avoid strings
-  auto num_values = bcf_get_info_int32(hdr, line, "END", &(vcf_partition.m_vcf_get_buffer), &max_num_values);
-  assert(num_values == 1 || num_values == -3);
-  auto end_column_idx = column_idx;
-  if(num_values < 0)    //missing end value
-  {
-    //handle spanning deletions
-    if(m_treat_deletions_as_intervals)
-    {
-      auto alleles = line->d.allele;
-      auto ref_length = strlen(alleles[0]);
-      for(auto j=1;j<line->n_allele;++j)
-      {    
-        if(bcf_get_variant_type(line, j) == VCF_INDEL && ref_length > strlen(alleles[j]))
-        {    
-          end_column_idx = column_idx + ref_length - 1;
-          break;
-        }    
-      }    
-    }
-  }
-  else  //valid END found
-    end_column_idx = vcf_partition.m_contig_tiledb_column_offset + *(reinterpret_cast<int*>(vcf_partition.m_vcf_get_buffer)) - 1; //convert 1-based END to 0-based
+  auto end_column_idx = vcf_partition.get_end_position_in_record();
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, end_column_idx);
   if(buffer_full) return true;
   //REF

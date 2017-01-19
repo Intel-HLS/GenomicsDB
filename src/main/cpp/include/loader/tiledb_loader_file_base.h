@@ -135,6 +135,8 @@ class File2TileDBBinaryColumnPartitionBase
   public:
     File2TileDBBinaryColumnPartitionBase()
     {
+      m_current_column_position = -1;
+      m_current_end_position = -1;
       m_base_reader_ptr = 0;
       m_buffer_ptr = 0;
     }
@@ -177,13 +179,13 @@ class File2TileDBBinaryColumnPartitionBase
       assert(m_buffer_ptr);
       return *m_buffer_ptr;
     }
-    /*
-     * abstract virtual functions
-     */
-    virtual int64_t get_column_position_in_record() const = 0;
+    inline int64_t get_column_position_in_record() const { return m_current_column_position; }
+    inline int64_t get_end_position_in_record() const { return m_current_end_position; }
   protected:
     int64_t m_column_interval_begin;
     int64_t m_column_interval_end;
+    int64_t m_current_column_position;
+    int64_t m_current_end_position;
     //Buffer offsets - 1 per callset
     //Offset at which data should be copied for the current batch
     std::vector<int64_t> m_begin_buffer_offset_for_local_callset;

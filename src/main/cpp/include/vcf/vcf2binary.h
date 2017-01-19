@@ -136,7 +136,6 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     {
       //Initialize as invalid
       m_local_contig_idx = -1;
-      m_contig_position = -1;
       m_contig_tiledb_column_offset = -1;
       //buffer for vcf get functions - 16 KB
       m_vcf_get_buffer_size = 16*1024;
@@ -150,14 +149,6 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     //Define move constructor
     VCFColumnPartition(VCFColumnPartition&& other);
     ~VCFColumnPartition();
-    int64_t get_column_position_in_record() const
-    {
-      auto vcf_reader_ptr = dynamic_cast<VCFReader*>(m_base_reader_ptr);
-      assert(vcf_reader_ptr);
-      auto line = vcf_reader_ptr->get_line();
-      assert(line);
-      return (m_contig_tiledb_column_offset + static_cast<int64_t>(line->pos));
-    }
     bcf_hdr_t* get_header()
     {
       auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(m_base_reader_ptr);
@@ -165,9 +156,8 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
       return vcf_reader_ptr->get_header();
     }
   protected:
-    //Position in contig from which to fetch next batch of cells
+    //Contig information
     int m_local_contig_idx;
-    int64_t m_contig_position;  //position in contig (0-based)
     int64_t m_contig_tiledb_column_offset;
     //Buffer for obtaining data from htslib 
     uint8_t* m_vcf_get_buffer;
@@ -227,7 +217,7 @@ class VCF2Binary : public File2TileDBBinaryBase
     uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const
     { return m_enabled_local_callset_idx_vec.size(); }
     //Helper functions
-    void update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf1_t* line);
+    void update_local_contig_idx(VCFColumnPartition& vcf_partition, const bcf_hdr_t* hdr, bcf1_t* line);
     //VCF->TileDB conversion functions
     bool convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition,
         size_t size_per_callset, uint64_t enabled_callsets_idx);

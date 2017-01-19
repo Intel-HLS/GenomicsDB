@@ -7,6 +7,8 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
 {
   m_column_interval_begin = other.m_column_interval_begin;
   m_column_interval_end = other.m_column_interval_end;
+  m_current_column_position = other.m_current_column_position;
+  m_current_end_position = other.m_current_end_position;
   m_begin_buffer_offset_for_local_callset = std::move(other.m_begin_buffer_offset_for_local_callset);
   m_last_full_line_end_buffer_offset_for_local_callset =
     std::move(other.m_last_full_line_end_buffer_offset_for_local_callset);

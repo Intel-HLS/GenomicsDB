@@ -126,8 +126,6 @@ class DelimitedLineBasedTextFile2TileDBBinaryColumnPartition : public LineBasedT
   public:
     DelimitedLineBasedTextFile2TileDBBinaryColumnPartition(const unsigned char delim=',') : LineBasedTextFile2TileDBBinaryColumnPartition()
     {
-      m_current_column_position = -1;
-      m_current_end_position = -1;
 #ifdef USE_LIBCSV
       csv_init(&m_csv_parser, CSV_STRICT|CSV_APPEND_NULL);
       csv_set_delim(&m_csv_parser, delim);
@@ -141,8 +139,6 @@ class DelimitedLineBasedTextFile2TileDBBinaryColumnPartition : public LineBasedT
     DelimitedLineBasedTextFile2TileDBBinaryColumnPartition(DelimitedLineBasedTextFile2TileDBBinaryColumnPartition&& other)
       : LineBasedTextFile2TileDBBinaryColumnPartition(std::move(other))
     {
-      m_current_column_position = other.m_current_column_position;
-      m_current_end_position = other.m_current_end_position;
 #ifdef USE_LIBCSV
       std::swap(m_csv_parser, other.m_csv_parser);
 #endif
@@ -153,11 +149,7 @@ class DelimitedLineBasedTextFile2TileDBBinaryColumnPartition : public LineBasedT
       csv_free(&m_csv_parser);
 #endif
     }
-    int64_t get_column_position_in_record() const { return m_current_column_position; }
-    int64_t get_end_position_in_record() const { return m_current_end_position; }
   private:
-    int64_t m_current_column_position;
-    int64_t m_current_end_position;
 #ifdef USE_LIBCSV
     struct csv_parser m_csv_parser;
 #endif
