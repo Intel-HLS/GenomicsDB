@@ -301,7 +301,9 @@ void VidMapper::build_coverage_cell(std::vector<uint8_t>& buffer) const
       buffer.resize(buffer.size()+sizeof(int), 0u); //put 0 for length of field and move on
     else //must pad with null values
     {
-      uint8_t ptr[32u]; //placeholder for null data - should be as large as largest primitive data type
+      auto offset = buffer.size();
+      buffer.resize(offset+32u); //placeholder for null data - should be as large as largest primitive data type
+      auto ptr = &(buffer[offset]);
       auto variant_field_type_enum = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema->type(i));
       switch(variant_field_type_enum)
       {
@@ -329,9 +331,10 @@ void VidMapper::build_coverage_cell(std::vector<uint8_t>& buffer) const
           break;
       }
       auto element_size = VariantFieldTypeUtil::size(variant_field_type_enum);
-      auto offset = buffer.size();
       buffer.resize(offset+element_size*(schema->val_num(i))); //allocate memory
-      for(auto j=0ull;j<static_cast<size_t>(schema->val_num(i));++j)
+      //First element is already ready
+      offset += element_size;
+      for(auto j=1ull;j<static_cast<size_t>(schema->val_num(i));++j)
       {
         memcpy(&(buffer[offset]), ptr, element_size);
         offset += element_size;
