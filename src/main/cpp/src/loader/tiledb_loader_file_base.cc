@@ -13,6 +13,7 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
   m_current_end_position = other.m_current_end_position;
   //Useful for dealing with coverage files
   m_min_current_tiledb_row_idx = other.m_min_current_tiledb_row_idx;
+  m_last_variant_end_position = other.m_last_variant_end_position;
   m_current_enabled_local_callset_idx_vec =  std::move(other.m_current_enabled_local_callset_idx_vec);
   m_begin_buffer_offset_for_local_callset = std::move(other.m_begin_buffer_offset_for_local_callset);
   m_last_full_line_end_buffer_offset_for_local_callset =
@@ -498,10 +499,37 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
     auto top_partition_info_ptr = curr_pq.top();
     auto use_data_from_variant_file = (top_partition_info_ptr == &partition_info);
     if(use_data_from_variant_file)
+    {
+      //Update last variant end position for coverage files
+      if(m_coverage_file2tiledb_binary_ptr_vec.size())
+      {
+        const auto& vec = top_partition_info_ptr->get_enabled_local_callset_idx_vec_in_record();
+        for(auto i=0ull;i<vec.size();++i)
+        {
+          auto enabled_local_callset_idx = vec[i];
+          assert(static_cast<size_t>(enabled_local_callset_idx) < m_coverage_file2tiledb_binary_ptr_vec.size());
+          auto ptr = m_coverage_file2tiledb_binary_ptr_vec[enabled_local_callset_idx];
+          if(ptr)
+            ptr->get_base_column_partition_info(partition_idx)->m_last_variant_end_position
+              = top_partition_info_ptr->get_end_position_in_record();
+          //max to deal with weird overlapping intervals within the VCF??
+        }
+      }
       buffer_full = convert_record_to_binary(buffer, partition_info); //write data from variant file
+    }
     else
     {
-      //FIXME: starting point may need to be modified
+      //starting point may need to be modified
+      if(top_partition_info_ptr->get_column_position_in_record()
+          <= top_partition_info_ptr->get_last_variant_end_position())
+      {
+        //Modify column begin position and re-enter the PQ
+        curr_pq.pop();
+        top_partition_info_ptr->m_current_column_position =
+          top_partition_info_ptr->get_last_variant_end_position() + 1;
+        curr_pq.push(top_partition_info_ptr);
+        continue; //retry PQ top
+      }
       //determine end point of coverage data
       //if variant data exists and end point is >= begin position of the variant data, terminate coverage interval
       auto coverage_interval_column_end = (variant_file_has_data

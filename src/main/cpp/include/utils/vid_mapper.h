@@ -120,10 +120,10 @@ class FileInfo
       //Coverage file
       m_is_coverage_file = false;
     }
-    void set_info(const int64_t file_idx, const std::string& name)
+    void set_info(const int64_t file_idx, const std::string& name, const int64_t local_file_idx)
     {
       m_file_idx = file_idx;
-      m_local_file_idx = file_idx;
+      m_local_file_idx = local_file_idx;
       m_name = name;
     }
     void add_local_tiledb_row_idx_pair(int local, int64_t global)
@@ -217,6 +217,7 @@ class VidMapper
       m_is_initialized = false;
       m_is_callset_mapping_initialized = false;
       m_max_callset_row_idx = -1;
+      m_num_variant_files = 0;
     }
     void clear();
     inline bool is_initialized() const { return m_is_initialized; }
@@ -295,7 +296,30 @@ class VidMapper
     /*
      * Total #files
      */
-    int64_t get_num_files() const { return m_file_idx_to_info.size(); }
+    size_t get_num_files() const { return m_file_idx_to_info.size(); }
+    /*
+     * Number of variant files - excludes coverage files
+     * == get_num_files() - #coverage_files
+     */
+    size_t get_num_variant_files() const { return m_num_variant_files; }
+    /*
+     * Get global file idx for filename, if not exist append and return last index
+     */
+    int64_t get_or_append_global_file_idx(const std::string& filename, const bool is_coverage_file=false)
+    {
+      auto iter = m_filename_to_idx.find(filename);
+      if(iter == m_filename_to_idx.end())
+      {
+        auto file_idx = m_file_idx_to_info.size();
+        iter = m_filename_to_idx.insert(std::make_pair(filename, file_idx)).first;
+        m_file_idx_to_info.emplace_back();
+        if(is_coverage_file)
+          m_file_idx_to_info[file_idx].set_info(file_idx, filename, file_idx);
+        else
+          m_file_idx_to_info[file_idx].set_info(file_idx, filename, m_num_variant_files++);
+      }
+      return (*iter).second;
+    }
     /*
      * Given a filename, return local-global idx pairs for callsets
      */
@@ -336,21 +360,6 @@ class VidMapper
     {
       assert(row_idx >= 0 && static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
       return m_row_idx_to_info[row_idx].m_idx_in_file;
-    }
-    /*
-     * Get global file idx for filename, if not exist append and return last index
-     */
-    int64_t get_or_append_global_file_idx(const std::string& filename)
-    {
-      auto iter = m_filename_to_idx.find(filename);
-      if(iter == m_filename_to_idx.end())
-      {
-        auto file_idx = m_file_idx_to_info.size();
-        iter = m_filename_to_idx.insert(std::make_pair(filename, file_idx)).first;
-        m_file_idx_to_info.emplace_back();
-        m_file_idx_to_info[file_idx].set_info(file_idx, filename);
-      }
-      return (*iter).second;
     }
     /*
      * Given a filename, return #callsets within that file being processed 
@@ -569,6 +578,7 @@ class VidMapper
     std::unordered_map<std::string, int> m_field_name_to_idx;
     std::vector<FieldInfo> m_field_idx_to_info;
     //file mappings
+    uint64_t m_num_variant_files; //does not count coverage files
     std::unordered_map<std::string, int64_t> m_filename_to_idx;
     std::vector<FileInfo> m_file_idx_to_info;
     //Buffer stream order index to local file idx

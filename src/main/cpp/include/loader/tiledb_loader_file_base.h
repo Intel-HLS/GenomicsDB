@@ -139,6 +139,7 @@ class File2TileDBBinaryColumnPartitionBase
       m_current_column_position = -1;
       m_current_end_position = -1;
       m_min_current_tiledb_row_idx = -1;
+      m_last_variant_end_position = -1;
       m_base_reader_ptr = 0;
       m_buffer_ptr = 0;
     }
@@ -184,6 +185,7 @@ class File2TileDBBinaryColumnPartitionBase
     }
     inline int64_t get_column_position_in_record() const { return m_current_column_position; }
     inline int64_t get_end_position_in_record() const { return m_current_end_position; }
+    inline int64_t get_last_variant_end_position() const { return m_last_variant_end_position; }
     inline const std::vector<int64_t>& get_enabled_local_callset_idx_vec_in_record() const
     { return m_current_enabled_local_callset_idx_vec; }
     bool column_major_compare(const File2TileDBBinaryColumnPartitionBase* other) const
@@ -210,6 +212,7 @@ class File2TileDBBinaryColumnPartitionBase
     int64_t m_current_column_position;
     int64_t m_current_end_position;
     int64_t m_min_current_tiledb_row_idx;  //Useful for dealing with coverage files - should be set to the min row idx in the current record
+    int64_t m_last_variant_end_position;   //Useful for dealing with coverage files - this is set based on the last variant interval
     std::vector<int64_t> m_current_enabled_local_callset_idx_vec; //enabled callset idx vec in current record
     //Buffer offsets - 1 per callset
     //Offset at which data should be copied for the current batch
@@ -340,6 +343,7 @@ class File2TileDBBinaryBase
     {
       return m_base_partition_ptrs;
     }
+    int64_t get_file_idx() const { return m_file_idx; }
     //Functions that must be over-ridden by all sub-classes
     /*
      * Initialization of column partitions by sub class
