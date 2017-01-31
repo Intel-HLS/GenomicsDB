@@ -1,15 +1,19 @@
 #include "tiledb_loader_file_base.h"
+#include "tiledb_loader_text_file.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw File2TileDBBinaryException(#X);
 
 //Move constructor
 File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2TileDBBinaryColumnPartitionBase&& other)
 {
+  m_is_coverage_partition = other.m_is_coverage_partition;
   m_column_interval_begin = other.m_column_interval_begin;
   m_column_interval_end = other.m_column_interval_end;
   m_current_column_position = other.m_current_column_position;
   m_current_end_position = other.m_current_end_position;
-  m_enabled_local_callset_idx = other.m_enabled_local_callset_idx;
+  //Useful for dealing with coverage files
+  m_min_current_tiledb_row_idx = other.m_min_current_tiledb_row_idx;
+  m_current_enabled_local_callset_idx_vec =  std::move(other.m_current_enabled_local_callset_idx_vec);
   m_begin_buffer_offset_for_local_callset = std::move(other.m_begin_buffer_offset_for_local_callset);
   m_last_full_line_end_buffer_offset_for_local_callset =
     std::move(other.m_last_full_line_end_buffer_offset_for_local_callset);
@@ -252,6 +256,63 @@ void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<
   m_column_partition_pq_vec.resize(partition_bounds.size());
   //Sub-class virtual function
   initialize_column_partitions(partition_bounds);
+  //Coverage files
+  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+  {
+    auto local_callset_idx = m_enabled_local_callset_idx_vec[i];
+    assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+    auto tiledb_row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+    auto coverage_file_idx = m_vid_mapper->get_callset_info(tiledb_row_idx).m_coverage_file_idx;
+    //Coverage file specified
+    if(coverage_file_idx >= 0)
+    {
+      if(m_coverage_file2tiledb_binary_ptr_vec.size() == 0u)
+        m_coverage_file2tiledb_binary_ptr_vec.resize(m_enabled_local_callset_idx_vec.size(), 0);
+      const auto& coverage_file_info = m_vid_mapper->get_file_info(coverage_file_idx);
+      File2TileDBBinaryBase* file2binary_base_ptr = 0;
+      switch(coverage_file_info.m_type)
+      {
+        case VidFileTypeEnum::SORTED_CSV_FILE_TYPE:
+        case VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE:
+          file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new CSV2TileDBBinary(
+                coverage_file_info.m_name, m_file_idx, *m_vid_mapper,
+                m_max_size_per_callset,
+                partition_bounds,
+                m_treat_deletions_as_intervals,
+                m_parallel_partitions, m_noupdates, m_close_file
+                ));
+          break;
+        case VidFileTypeEnum::SORTED_BED_FILE_TYPE:
+          file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new BED2TileDBBinary(
+                coverage_file_info.m_name, m_file_idx, *m_vid_mapper,
+                m_max_size_per_callset,
+                partition_bounds,
+                m_treat_deletions_as_intervals,
+                m_parallel_partitions, m_noupdates, m_close_file
+                ));
+          break;
+        default:
+          throw File2TileDBBinaryException(std::string("Cannot deal with coverage files of type ")
+              +std::to_string(coverage_file_info.m_type));
+          break;
+      }
+      //Set coverage partition information
+      auto& coverage_partition_info_vec = file2binary_base_ptr->get_base_column_partition_info_vec();
+      for(auto coverage_partition_info : coverage_partition_info_vec)
+      {
+        assert(coverage_partition_info);
+        coverage_partition_info->m_is_coverage_partition = true;
+        coverage_partition_info->m_current_enabled_local_callset_idx_vec.resize(1u);
+        coverage_partition_info->m_current_enabled_local_callset_idx_vec[0u] = i;
+        coverage_partition_info->m_min_current_tiledb_row_idx = tiledb_row_idx;
+      }
+      assert(m_coverage_file2tiledb_binary_ptr_vec[i] == 0);
+      m_coverage_file2tiledb_binary_ptr_vec[i] = file2binary_base_ptr;
+      //Build coverage cell with "null" values
+      if(m_coverage_cell.size() == 0u)
+        m_vid_mapper->build_coverage_cell(m_coverage_cell);
+    }
+  }
 }
 
 void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& other)
@@ -305,14 +366,13 @@ File2TileDBBinaryBase::~File2TileDBBinaryBase()
     delete m_base_reader_ptr;
   m_base_reader_ptr = 0;
   m_vid_mapper = 0;
-  clear();
   if(m_histogram)
     delete m_histogram;
   m_histogram = 0;
-  for(auto& ptr : m_coverage_file2tiledb_binary_ptr_vec)
+  for(auto ptr : m_coverage_file2tiledb_binary_ptr_vec)
     if(ptr)
       delete ptr;
-  m_coverage_file2tiledb_binary_ptr_vec.clear();
+  clear(); //should be the last line
 }
 
 void File2TileDBBinaryBase::clear()
@@ -322,6 +382,8 @@ void File2TileDBBinaryBase::clear()
   m_enabled_local_callset_idx_vec.clear();
   m_local_callset_idx_to_enabled_idx.clear();
   m_base_partition_ptrs.clear();
+  m_column_partition_pq_vec.clear();
+  m_coverage_file2tiledb_binary_ptr_vec.clear();
   m_coverage_cell.clear();
 }
 
@@ -439,6 +501,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
       buffer_full = convert_record_to_binary(buffer, partition_info); //write data from variant file
     else
     {
+      //FIXME: starting point may need to be modified
       //determine end point of coverage data
       //if variant data exists and end point is >= begin position of the variant data, terminate coverage interval
       auto coverage_interval_column_end = (variant_file_has_data
@@ -448,7 +511,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
         : top_partition_info_ptr->get_end_position_in_record();
       //Write a null cell that indicates coverage
       buffer_full = write_coverage_cell(buffer, partition_info,
-          top_partition_info_ptr->get_enabled_local_callset_idx(),
+          top_partition_info_ptr->get_enabled_local_callset_idx_vec_in_record()[0u],
           top_partition_info_ptr->get_column_position_in_record(),
           coverage_interval_column_end);
     }
@@ -491,7 +554,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
         }
         else //advance coverage file ptr
         {
-          auto has_data = m_coverage_file2tiledb_binary_ptr_vec[top_partition_info_ptr->get_enabled_local_callset_idx()]->
+          auto has_data = m_coverage_file2tiledb_binary_ptr_vec[top_partition_info_ptr->get_enabled_local_callset_idx_vec_in_record()[0u]]->
             seek_and_fetch_position(*top_partition_info_ptr,
               is_read_buffer_exhausted, false, true);
           if(has_data)
@@ -535,6 +598,7 @@ bool File2TileDBBinaryBase::write_coverage_cell(std::vector<uint8_t>& buffer, Fi
     const int64_t enabled_local_callset_idx,
     const int64_t column_begin, const int64_t column_end)
 {
+  assert(static_cast<size_t>(enabled_local_callset_idx) < m_enabled_local_callset_idx_vec.size());
   const int64_t begin_buffer_offset = partition_info.m_begin_buffer_offset_for_local_callset[enabled_local_callset_idx];
   const int64_t line_begin_buffer_offset = partition_info.m_last_full_line_end_buffer_offset_for_local_callset[enabled_local_callset_idx];
   int64_t& buffer_offset = partition_info.m_buffer_offset_for_local_callset[enabled_local_callset_idx];
@@ -544,7 +608,6 @@ bool File2TileDBBinaryBase::write_coverage_cell(std::vector<uint8_t>& buffer, Fi
   const int64_t buffer_offset_limit = begin_buffer_offset + m_max_size_per_callset;
   if(static_cast<uint64_t>(buffer_offset) + m_coverage_cell.size() > static_cast<uint64_t>(buffer_offset_limit))
     return true;
-  assert(static_cast<size_t>(enabled_local_callset_idx) < m_enabled_local_callset_idx_vec.size());
   auto local_callset_idx = m_enabled_local_callset_idx_vec[enabled_local_callset_idx];
   auto tiledb_row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
   auto buffer_ptr = &(m_coverage_cell[0]);

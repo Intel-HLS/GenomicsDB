@@ -291,7 +291,8 @@ void VCF2TileDBConverter::initialize_file2binary_objects()
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
     auto partition_bounds = std::vector<ColumnRange>(1u, get_column_partition());
     for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i, partition_bounds));
+      if(!(m_vid_mapper->get_file_info(i).m_is_coverage_file)) //not a coverage file
+        m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i, partition_bounds));
   }
 }
 

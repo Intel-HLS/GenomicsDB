@@ -122,6 +122,7 @@ void DelimitedLineBasedTextFile2TileDBBinary::initialize_column_partitions(const
       assert(csv_reader_ptr);
       csv_reader_ptr->initialize(m_filename.c_str(), !m_close_file);
     }
+    csv_column_partition_ptr->m_current_enabled_local_callset_idx_vec.resize(1u, -1ll);
   }
 }
 
@@ -327,6 +328,8 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
         auto local_callset_idx = m_vid_mapper->get_idx_in_file_for_row_idx(row_idx);
         auto enabled_idx_in_file = get_enabled_idx_for_local_callset_idx(local_callset_idx);
         csv_line_parse_ptr->set_enabled_idx_in_file(enabled_idx_in_file);
+        csv_partition_info.m_current_enabled_local_callset_idx_vec[0] = enabled_idx_in_file;
+        csv_partition_info.m_min_current_tiledb_row_idx = row_idx;
         break;
       }
     case TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX:
@@ -529,7 +532,7 @@ BED2TileDBBinary::BED2TileDBBinary(const std::string& filename,
       : DelimitedLineBasedTextFile2TileDBBinary(filename, file_idx, vid_mapper,
           max_size_per_callset,
           treat_deletions_as_intervals,
-          BEDFieldPosIdxEnum::BED_FILE_END_FIELD_IDX,
+          BEDFieldPosIdxEnum::BED_FILE_CONTIG_END_FIELD_IDX,
           parallel_partitions, noupdates, close_file)
 {
   //Initialize partition info
@@ -576,7 +579,7 @@ void BED2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
         csv_partition_info.m_current_end_position = contig_info.m_tiledb_column_offset;
         break;
       }
-    case BEDFieldPosIdxEnum::BED_FILE_BEGIN_FIELD_IDX:
+    case BEDFieldPosIdxEnum::BED_FILE_CONTIG_BEGIN_FIELD_IDX:
       {
         //m_current_column_position is initialized to TileDB column for the contig - add position within contig
         //-1 since BED file position is 1-based
@@ -584,7 +587,7 @@ void BED2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
         VERIFY_OR_THROW((endptr != token_ptr) && "Could not parse column field");
         break;
       }
-    case BEDFieldPosIdxEnum::BED_FILE_END_FIELD_IDX:
+    case BEDFieldPosIdxEnum::BED_FILE_CONTIG_END_FIELD_IDX:
       {
         //m_current_end_position is initialized to TileDB column for the contig - add position within contig
         //-1 since BED file position is 1-based

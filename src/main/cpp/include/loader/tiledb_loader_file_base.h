@@ -135,9 +135,10 @@ class File2TileDBBinaryColumnPartitionBase
   public:
     File2TileDBBinaryColumnPartitionBase()
     {
+      m_is_coverage_partition = false;
       m_current_column_position = -1;
       m_current_end_position = -1;
-      m_enabled_local_callset_idx = -1;
+      m_min_current_tiledb_row_idx = -1;
       m_base_reader_ptr = 0;
       m_buffer_ptr = 0;
     }
@@ -149,6 +150,7 @@ class File2TileDBBinaryColumnPartitionBase
       m_buffer_offset_for_local_callset.clear();
       m_buffer_full_for_local_callset.clear();
       m_split_filename.clear();
+      m_current_enabled_local_callset_idx_vec.clear();
     }
     //Delete copy constructor
     File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
@@ -182,21 +184,33 @@ class File2TileDBBinaryColumnPartitionBase
     }
     inline int64_t get_column_position_in_record() const { return m_current_column_position; }
     inline int64_t get_end_position_in_record() const { return m_current_end_position; }
-    inline int64_t get_enabled_local_callset_idx() const { return m_enabled_local_callset_idx; }
-    /*
-     * Must be implemented by sub-class - for coverage file
-     */
-    virtual bool column_major_compare(const File2TileDBBinaryColumnPartitionBase* other) const
+    inline const std::vector<int64_t>& get_enabled_local_callset_idx_vec_in_record() const
+    { return m_current_enabled_local_callset_idx_vec; }
+    bool column_major_compare(const File2TileDBBinaryColumnPartitionBase* other) const
     {
+      //both should not be variant file data
+      assert(m_is_coverage_partition || (other->m_is_coverage_partition));
+      assert(m_min_current_tiledb_row_idx >= 0 && other->m_min_current_tiledb_row_idx >= 0);
+      if(m_current_column_position < other->get_column_position_in_record())
+        return true;
+      if(m_current_column_position == other->get_column_position_in_record())
+      {
+        if(m_min_current_tiledb_row_idx < other->m_min_current_tiledb_row_idx)
+          return true;
+        if(m_min_current_tiledb_row_idx == other->m_min_current_tiledb_row_idx
+            && !m_is_coverage_partition)
+          return true;
+      }
       return false;
-      /*throw File2TileDBBinaryException("Unimplemented operation: column_major_compare for this object\n");*/
     }
   protected:
+    bool m_is_coverage_partition;
     int64_t m_column_interval_begin;
     int64_t m_column_interval_end;
     int64_t m_current_column_position;
     int64_t m_current_end_position;
-    int64_t m_enabled_local_callset_idx; //useful for coverage files only
+    int64_t m_min_current_tiledb_row_idx;  //Useful for dealing with coverage files - should be set to the min row idx in the current record
+    std::vector<int64_t> m_current_enabled_local_callset_idx_vec; //enabled callset idx vec in current record
     //Buffer offsets - 1 per callset
     //Offset at which data should be copied for the current batch
     std::vector<int64_t> m_begin_buffer_offset_for_local_callset;
@@ -221,7 +235,7 @@ struct File2TileDBBinaryColumnPartitionBaseColumnMajorCompare
 {
   bool operator()(const File2TileDBBinaryColumnPartitionBase* a, const File2TileDBBinaryColumnPartitionBase* b)
   {
-    return a->column_major_compare(b);
+    return !(a->column_major_compare(b)); //For min-heap
   }
 };
 
@@ -318,7 +332,14 @@ class File2TileDBBinaryBase
       assert(partition_idx < m_base_partition_ptrs.size());
       return m_base_partition_ptrs[partition_idx];
     }
-
+    std::vector<File2TileDBBinaryColumnPartitionBase*>& get_base_column_partition_info_vec()
+    {
+      return m_base_partition_ptrs;
+    }
+    const std::vector<File2TileDBBinaryColumnPartitionBase*>& get_base_column_partition_info_vec() const
+    {
+      return m_base_partition_ptrs;
+    }
     //Functions that must be over-ridden by all sub-classes
     /*
      * Initialization of column partitions by sub class

@@ -46,19 +46,23 @@ class CallSetInfo
       m_row_idx = -1;
       m_file_idx = -1;
       m_idx_in_file = 0;
+      m_coverage_file_idx = -1ll;
     }
-    void set_info(const int64_t row_idx, const std::string& name, const int64_t file_idx=-1, const int64_t idx_in_file=0)
+    void set_info(const int64_t row_idx, const std::string& name, const int64_t file_idx=-1, const int64_t idx_in_file=0,
+        const int64_t coverage_file_idx=-1ll)
     {
       m_is_initialized = true;
       m_row_idx = row_idx;
       m_file_idx = file_idx;
       m_name = name;
       m_idx_in_file = idx_in_file;
+      m_coverage_file_idx = coverage_file_idx;
     }
     bool m_is_initialized;
     int64_t m_row_idx;
     int64_t m_file_idx;
     int64_t m_idx_in_file;
+    int64_t m_coverage_file_idx;
     std::string m_name;
 };
 
@@ -92,7 +96,9 @@ enum VidFileTypeEnum
   SORTED_CSV_FILE_TYPE,
   UNSORTED_CSV_FILE_TYPE,
   VCF_BUFFER_STREAM_TYPE,
-  BCF_BUFFER_STREAM_TYPE
+  BCF_BUFFER_STREAM_TYPE,
+  SORTED_BED_FILE_TYPE,
+  UNSORTED_BED_FILE_TYPE
 };
 
 class FileInfo
@@ -111,6 +117,8 @@ class FileInfo
       m_initialization_buffer_num_valid_bytes = 0u;
       //Split files info
       m_single_split_file_path = false;
+      //Coverage file
+      m_is_coverage_file = false;
     }
     void set_info(const int64_t file_idx, const std::string& name)
     {
@@ -142,6 +150,8 @@ class FileInfo
     //Split files output locations
     bool m_single_split_file_path;
     std::vector<std::string> m_split_files_paths;
+    //Coverage file
+    bool m_is_coverage_file;
 };
 
 typedef FileInfo BufferStreamInfo;
@@ -503,6 +513,10 @@ class VidMapper
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
     void build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
         const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
+    /*
+     * Creates a valid "null" cell as per the TileDB schema
+     */
+    void build_coverage_cell(std::vector<uint8_t>& buffer) const;
     /*
      * Get num contigs
      */

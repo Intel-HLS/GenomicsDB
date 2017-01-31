@@ -290,6 +290,58 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   array_schema = new VariantArraySchema(array_name, attribute_names, dim_names, dim_domains, types, num_vals, compression);
 }
 
+void VidMapper::build_coverage_cell(std::vector<uint8_t>& buffer) const
+{
+  VariantArraySchema* schema = 0;
+  build_tiledb_array_schema(schema, "blank", false, RowRange(0, INT64_MAX-1), false);
+  buffer.resize(2*sizeof(int64_t)+sizeof(size_t)); //row,column,cell_size
+  for(auto i=0ull;i<schema->attribute_num();++i)
+  {
+    if(schema->is_variable_length_field(i))
+      buffer.resize(buffer.size()+sizeof(int), 0u); //put 0 for length of field and move on
+    else //must pad with null values
+    {
+      uint8_t ptr[32u]; //placeholder for null data - should be as large as largest primitive data type
+      auto variant_field_type_enum = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema->type(i));
+      switch(variant_field_type_enum)
+      {
+        case VariantFieldTypeEnum::VARIANT_FIELD_INT:
+        case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
+          *(reinterpret_cast<int*>(ptr)) = get_tiledb_null_value<int>();
+          break;
+        case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
+        case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
+          *(reinterpret_cast<int64_t*>(ptr)) = get_tiledb_null_value<int64_t>();
+          break;
+        case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+          *(reinterpret_cast<float*>(ptr)) = get_tiledb_null_value<float>();
+          break;
+        case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
+          *(reinterpret_cast<double*>(ptr)) = get_tiledb_null_value<double>();
+          break;
+        case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
+        case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
+          *(reinterpret_cast<char*>(ptr)) = get_tiledb_null_value<char>();
+          break;
+        default:
+          throw VidMapperException(std::string("Cannot create coverage cell with data type ")
+              +std::to_string(variant_field_type_enum));
+          break;
+      }
+      auto element_size = VariantFieldTypeUtil::size(variant_field_type_enum);
+      auto offset = buffer.size();
+      buffer.resize(offset+element_size*(schema->val_num(i))); //allocate memory
+      for(auto j=0ull;j<static_cast<size_t>(schema->val_num(i));++j)
+      {
+        memcpy(&(buffer[offset]), ptr, element_size);
+        offset += element_size;
+      }
+    }
+  }
+  *(reinterpret_cast<size_t*>(&(buffer[2*sizeof(int64_t)]))) = buffer.size();
+  delete schema;
+}
+
 void VidMapper::build_file_partitioning(const int partition_idx, const RowRange row_partition)
 {
   if(static_cast<size_t>(partition_idx) >= m_owner_idx_to_file_idx_vec.size())
@@ -866,6 +918,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
         if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
           m_row_idx_to_info.resize(row_idx+1);
         auto file_idx = -1ll;
+        auto coverage_file_idx = -1ll;
         //idx in file
         auto idx_in_file = 0ll;
         if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
@@ -894,14 +947,19 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
           {
             assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
             m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
+            if(callset_info_dict.HasMember("coverage_file") && callset_info_dict["coverage_file"].IsString())
+            {
+              coverage_file_idx = get_or_append_global_file_idx(callset_info_dict["coverage_file"].GetString());
+              m_file_idx_to_info[coverage_file_idx].m_is_coverage_file = true;
+            }
           }
+          m_callset_name_to_row_idx[callset_name] = row_idx;
+          VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+          if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
+            throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
+                +m_row_idx_to_info[row_idx].m_name);
+          m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file, coverage_file_idx);
         }
-        m_callset_name_to_row_idx[callset_name] = row_idx;
-        VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-        if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
-          throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
-              +m_row_idx_to_info[row_idx].m_name);
-        m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
       }
       ++json_callset_idx;
       if(!is_array)
@@ -949,7 +1007,9 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
         {"sorted_csv_files", VidFileTypeEnum::SORTED_CSV_FILE_TYPE },
         {"unsorted_csv_files", VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE },
         {"vcf_buffer_streams", VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE },
-        {"bcf_buffer_streams", VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE }
+        {"bcf_buffer_streams", VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE },
+        {"sorted_BED_files", VidFileTypeEnum::SORTED_BED_FILE_TYPE },
+        {"unsorted_BED_files", VidFileTypeEnum::UNSORTED_BED_FILE_TYPE }
         }))
   {
     if(json_doc.HasMember(entry.first.c_str()))

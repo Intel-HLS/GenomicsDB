@@ -380,6 +380,20 @@ void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& pa
     }
     //Indicates that nothing has been read for this interval
     vcf_column_partition_ptr->m_local_contig_idx = -1;
+    //Since every line in the VCF contains data from all samples, use the sample with the smallest tiledb row idx
+    //for filling the m_min_current_tiledb_row_idx field
+    auto min_row_idx = INT64_MAX;
+    //All enabled samples are present in every record
+    vcf_column_partition_ptr->m_current_enabled_local_callset_idx_vec = m_enabled_local_callset_idx_vec;
+    for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+    {
+      auto tiledb_row_idx = m_local_callset_idx_to_tiledb_row_idx[m_enabled_local_callset_idx_vec[i]];
+      if(tiledb_row_idx < min_row_idx)
+      {
+        vcf_column_partition_ptr->m_min_current_tiledb_row_idx = tiledb_row_idx;
+        min_row_idx = tiledb_row_idx;
+      }
+    }
   }
 }
 
