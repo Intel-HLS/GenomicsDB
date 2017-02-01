@@ -352,6 +352,15 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
                 "vid_mapping_file": "inputs/vid_as_array.json",
             },
+            { "name" : "t0_1_2_coverage", 'golden_output' : 'golden_outputs/t0_1_2_coverage',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_coverage.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_coverage_calls_at_0",
+                        "variants"      : "golden_outputs/t0_1_2_coverage_variants_at_0",
+                        } },
+                    ]
+            }
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -436,6 +445,24 @@ def main():
                         cleanup_and_exit(tmpdir, -1);
                     md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
+                        if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type == 'java_vcf'):
+                            test_query_dict['query_attributes'] = vcf_query_attributes_order;
+                        query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
+                        with open(query_json_filename, 'wb') as fptr:
+                            json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
+                            fptr.close();
+                        if(query_type == 'java_vcf'):
+                            pid = subprocess.Popen('java TestGenomicsDB -query '+loader_json_filename+' '+query_json_filename,
+                                    shell=True, stdout=subprocess.PIPE);
+                        else:
+                            pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d -l '+loader_json_filename+' -j '
+                                    +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
+                                    stdout=subprocess.PIPE);
+                        stdout_string = pid.communicate()[0]
+                        if(pid.returncode != 0):
+                            sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
+                            cleanup_and_exit(tmpdir, -1);
+                        md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                         golden_stdout, golden_md5sum = get_file_content_and_md5sum(query_param_dict['golden_output'][query_type]);
                         if(golden_md5sum != md5sum_hash_str):
                             sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
