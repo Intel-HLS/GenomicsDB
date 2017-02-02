@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Iterator;
 import com.intel.genomicsdb.VCF2TileDB;
 import com.intel.genomicsdb.GenomicsDBException;
 
@@ -54,19 +55,23 @@ public final class TestBufferStreamVCF2TileDB
   {
     public int mStreamIdx = -1;
     public VCFHeader mVCFHeader = null;
-    public CloseableTribbleIterator<VariantContext> mIterator = null;
+    public Iterator<VariantContext> mIterator = null;
     public VariantContext mNextVC = null;
 
     /**
      * Constructor
      * @param fileName path to VCF file
      */
-    public VCFFileStreamInfo(final String fileName) throws IOException
+    public VCFFileStreamInfo(final String fileName,
+        final String loaderJSONFile, final int rank, final boolean useMultiChromosomeIterator) throws IOException, ParseException
     {
       AbstractFeatureReader<VariantContext, LineIterator> reader =
         AbstractFeatureReader.getFeatureReader(fileName, new VCFCodec(), false);
       mVCFHeader = (VCFHeader)(reader.getHeader());
-      mIterator = reader.iterator();
+      if(useMultiChromosomeIterator)
+        mIterator = VCF2TileDB.columnPartitionIterator(reader, loaderJSONFile, rank);
+      else
+        mIterator = reader.iterator();
     }
   }
 
@@ -101,7 +106,7 @@ public final class TestBufferStreamVCF2TileDB
     if(args.length < 2)
     {
       System.err.println("For loading: [-iterators] <loader.json> "
-        +"<stream_name_to_file.json> [bufferCapacity rank lbRowIdx ubRowIdx]");
+        +"<stream_name_to_file.json> [bufferCapacity rank lbRowIdx ubRowIdx useMultiChromosomeIterator]");
       System.exit(-1);
     }
     int argsLoaderFileIdx = 0;
@@ -120,8 +125,12 @@ public final class TestBufferStreamVCF2TileDB
     //Specify largest row idx up to which loading should be performed - for completeness
     long ubRowIdx = (args.length >= argsLoaderFileIdx+6) ?
       Long.parseLong(args[argsLoaderFileIdx+5]) : Long.MAX_VALUE-1;
+    //Boolean to use MultipleChromosomeIterator
+    boolean useMultiChromosomeIterator = (args.length >= argsLoaderFileIdx+7) ?
+        Boolean.parseBoolean(args[argsLoaderFileIdx+6]) : false;
     //<loader.json> first arg
-    VCF2TileDB loader = new VCF2TileDB(args[argsLoaderFileIdx], rank, lbRowIdx, ubRowIdx);
+    String loaderJSONFile = args[argsLoaderFileIdx];
+    VCF2TileDB loader = new VCF2TileDB(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     //<stream_name_to_file.json> - useful for the driver only
     //JSON file that contains "stream_name": "vcf_file_path" entries
     FileReader mappingReader = new FileReader(args[argsLoaderFileIdx+1]);
@@ -133,7 +142,7 @@ public final class TestBufferStreamVCF2TileDB
     for(Object currObj : streamNameToFileName.entrySet())
     {
       Map.Entry<String, String> entry = (Map.Entry<String, String>)currObj;
-      VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue());
+      VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue(), loaderJSONFile, rank, useMultiChromosomeIterator);
 
       /** The following 2 lines are not mandatory - use initializeSampleInfoMapFromHeader()
        * iff you know for sure that sample names in the VCF header are globally unique

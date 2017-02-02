@@ -26,6 +26,7 @@
 #include "genomicsdb_jni_exception.h"
 #include "genomicsdb_VCF2TileDB.h"
 #include "jni_mpi_init.h"
+#include "json_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 #define GET_GENOMICSDB_IMPORTER_FROM_HANDLE(X) (reinterpret_cast<GenomicsDBImporter*>(static_cast<std::uintptr_t>(X)))
@@ -138,4 +139,36 @@ JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniImportBatch
   }
   else
     return false;
+}
+
+JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniGetChromosomeIntervalsForColumnPartition
+  (JNIEnv* env, jclass currClass, jstring loader_configuration_file, jint rank)
+{
+  //Java string to char*
+  auto loader_configuration_file_cstr = env->GetStringUTFChars(loader_configuration_file, NULL);
+  VERIFY_OR_THROW(loader_configuration_file_cstr);
+  auto contig_intervals = VidMapper::get_contig_intervals_for_column_partition(loader_configuration_file_cstr,
+     g_jni_mpi_init.get_mpi_rank(rank), false);
+  //Create a JSON formatted string
+  rapidjson::Document json_doc;
+  json_doc.SetObject();
+  rapidjson::Value json_contig_intervals(rapidjson::kArrayType);
+  for(const auto& curr_interval : contig_intervals)
+  {
+    rapidjson::Value array(rapidjson::kArrayType);
+    array.PushBack(std::get<1>(curr_interval), json_doc.GetAllocator());
+    array.PushBack(std::get<2>(curr_interval), json_doc.GetAllocator());
+    rapidjson::Value contig_dict(rapidjson::kObjectType);
+    rapidjson::Value contig_name(rapidjson::kStringType);
+    contig_name.SetString(std::get<0>(curr_interval).c_str(), std::get<0>(curr_interval).length(), json_doc.GetAllocator());
+    contig_dict.AddMember(contig_name, array, json_doc.GetAllocator());
+    json_contig_intervals.PushBack(contig_dict, json_doc.GetAllocator());
+  }
+  json_doc.AddMember("contigs", json_contig_intervals, json_doc.GetAllocator());
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  json_doc.Accept(writer);
+  //Cleanup
+  env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);
+  return env->NewStringUTF(buffer.GetString());
 }

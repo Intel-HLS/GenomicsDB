@@ -394,6 +394,59 @@ std::string VidMapper::get_split_file_path(const std::string& original_filename,
   }
   return return_value;
 }
+
+std::vector<ContigIntervalTuple> VidMapper::get_contig_intervals_for_column_partition(
+        const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const
+{
+  auto to_add = is_zero_based ? 0 : 1;
+  std::string contig_name = "";
+  auto current_column = column_partition_begin;
+  int64_t contig_position = -1ll;
+  auto status = get_contig_location(current_column, contig_name, contig_position);
+  std::vector<ContigIntervalTuple> contig_intervals;
+  ContigInfo contig_info;
+  if(status)
+  {
+    status = get_contig_info(contig_name, contig_info);
+    assert(status);
+    contig_intervals.emplace_back(contig_name, contig_position+to_add,
+        contig_info.m_tiledb_column_offset+contig_info.m_length > column_partition_end //contig crosses the end of partition
+        ? column_partition_end-contig_info.m_tiledb_column_offset+to_add
+        : contig_info.m_length-1+to_add);
+  }
+  int64_t contig_offset = -1ll;
+  auto next_contig_exists = get_next_contig_location(current_column, contig_name, contig_offset);
+  while(next_contig_exists && contig_offset <= column_partition_end)
+  {
+    status = get_contig_info(contig_name, contig_info);
+    assert(status);
+    contig_intervals.emplace_back(contig_name, to_add,
+        contig_info.m_tiledb_column_offset+contig_info.m_length > column_partition_end //contig crosses the end of partition
+        ? column_partition_end-contig_info.m_tiledb_column_offset+to_add
+        : contig_info.m_length-1+to_add);
+    current_column = contig_offset;
+    next_contig_exists = get_next_contig_location(current_column, contig_name, contig_offset);
+  }
+  return contig_intervals;
+}
+
+std::vector<ContigIntervalTuple> VidMapper::get_contig_intervals_for_column_partition(
+        const std::string& loader_filename,
+        const int rank, const bool is_zero_based)
+{
+  JSONLoaderConfig loader_config;
+  loader_config.read_from_file(loader_filename);
+  //don't need a callset file
+  FileBasedVidMapper vid_mapper(loader_config.get_vid_mapping_filename(), "", 0, INT64_MAX-1, false);
+  if(loader_config.is_partitioned_by_row())
+    return vid_mapper.get_contig_intervals_for_column_partition(0, INT64_MAX-1, is_zero_based);
+  else
+  {
+    auto column_partition = loader_config.get_column_partition(rank);
+    return vid_mapper.get_contig_intervals_for_column_partition(column_partition.first, column_partition.second, is_zero_based);
+  }
+}
+
 //FileBasedVidMapper code
 #ifdef VERIFY_OR_THROW
 #undef VERIFY_OR_THROW
