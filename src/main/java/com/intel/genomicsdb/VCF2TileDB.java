@@ -945,21 +945,15 @@ public class VCF2TileDB
   }
 
   /**
-   * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
-   * that will iterate over the VariantContext objects provided by the reader belonging
-   * to the column partition specified by the loader JSON file and rank/partition index
-   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * Utility function that returns a list of ChromosomeInterval objects for
+   * the column partition specified by the loader JSON file and rank/partition index
    * @param loaderJSONFile path to loader JSON file
    * @param partitionIdx rank/partition index
-   * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
-   *         belonging to the specified column partition
-   * @throws IOException when the reader's query method throws an IOException
+   * @return list of ChromosomeInterval objects for the specified partition 
    * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
    */
-  public static <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
-      AbstractFeatureReader<VariantContext, SOURCE> reader,
-      final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
+  public static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
+      final String loaderJSONFile, final int partitionIdx) throws ParseException
   {
     final String chromosomeIntervalsJSONString = jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile,
         partitionIdx);
@@ -989,7 +983,27 @@ public class VCF2TileDB
               (Long)(currValue.get(1))));
       }
     }
-    return new MultiChromosomeIterator<SOURCE>(reader, chromosomeIntervals);
+    return chromosomeIntervals;
+  }
+  /**
+   * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
+   * that will iterate over the VariantContext objects provided by the reader belonging
+   * to the column partition specified by the loader JSON file and rank/partition index
+   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
+   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param loaderJSONFile path to loader JSON file
+   * @param partitionIdx rank/partition index
+   * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
+   *         belonging to the specified column partition
+   * @throws IOException when the reader's query method throws an IOException
+   * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
+   */
+  public static <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
+      AbstractFeatureReader<VariantContext, SOURCE> reader,
+      final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
+  {
+    return new MultiChromosomeIterator<SOURCE>(reader,
+            VCF2TileDB.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
   }
   
   /**
