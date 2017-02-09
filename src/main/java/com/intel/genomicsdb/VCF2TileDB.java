@@ -28,7 +28,15 @@ import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.tribble.CloseableTribbleIterator;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.samtools.SAMSequenceDictionary;
+
+//JSON operations
+import org.json.simple.parser.JSONParser;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -338,6 +347,107 @@ public class VCF2TileDB
   }
 
   /**
+   * Utility class to represent a chromosome interval
+   * Contains 3 members - chr name, start, end (1-based)
+   */
+  public static class ChromosomeInterval
+  {
+    public String mChromosomeName = null;
+    public long mBegin = -1;
+    public long mEnd = -1;
+
+    public ChromosomeInterval(final String name, final long begin, final long end)
+    {
+      mChromosomeName = name;
+      mBegin = begin;
+      mEnd = end;
+    }
+  }
+
+  /**
+   * Given an AbstractFeatureReader over VariantContext objects
+   * and a list of ChromosomeInterval objects, this class 
+   * is an Iterator over VariantContext for all the chromosome intervals in the
+   * list
+   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
+   */
+  public static class MultiChromosomeIterator<SOURCE> implements Iterator<VariantContext>
+  {
+    private ArrayList<ChromosomeInterval> mChromosomeIntervals = null;
+    private AbstractFeatureReader<VariantContext, SOURCE> mReader = null;
+    private int mIdxInIntervalList = 0;
+    private CloseableTribbleIterator<VariantContext> mIterator = null;
+    private VCFHeader mHeader = null;
+
+    /**
+     * Constructor
+     * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+     * @param chromosomeIntervals chromosome intervals over which to iterate
+     * @throws IOException when the reader's query method throws an IOException
+     */
+    public MultiChromosomeIterator(AbstractFeatureReader<VariantContext, SOURCE> reader,
+        final List<ChromosomeInterval> chromosomeIntervals) throws IOException
+    {
+      mReader = reader;
+      mHeader = (VCFHeader)(reader.getHeader());
+      mChromosomeIntervals = new ArrayList<ChromosomeInterval>();
+      //Only add intervals whose chromosomes are present in the VCF header
+      final SAMSequenceDictionary contigDictionary = mHeader.getSequenceDictionary();
+      for(ChromosomeInterval currInterval : chromosomeIntervals)
+        if(contigDictionary.getSequenceIndex(currInterval.mChromosomeName) != -1)
+          mChromosomeIntervals.add(currInterval);
+      if(mChromosomeIntervals.size() > 0)
+      {
+        ChromosomeInterval currInterval = mChromosomeIntervals.get(0);
+        mIterator = mReader.query(currInterval.mChromosomeName,
+            (int)currInterval.mBegin,
+            (int)currInterval.mEnd);
+      }
+    }
+
+    @Override
+    public boolean hasNext()
+    {
+      if(mIterator == null)
+        return false;
+      return mIterator.hasNext();
+    }
+
+    @Override
+    public VariantContext next() throws NoSuchElementException
+    {
+      try
+      {
+        if(mIterator == null)
+          throw new NoSuchElementException("next() called for iterator with no more elements");
+        VariantContext returnValue = mIterator.next();
+        //within the same chromosome
+        if(mIterator.hasNext())
+          return returnValue;
+        //move to next chromosome and iterate
+        //It's possible that the reader has no record for the next contig, but could have records
+        //for subsequent contigs
+        for(mIdxInIntervalList=mIdxInIntervalList+1;mIdxInIntervalList<mChromosomeIntervals.size();
+            ++mIdxInIntervalList)
+        {
+          ChromosomeInterval currInterval = mChromosomeIntervals.get(mIdxInIntervalList);
+          mIterator = mReader.query(currInterval.mChromosomeName,
+              (int)currInterval.mBegin,
+              (int)currInterval.mEnd);
+          if(mIterator.hasNext())
+            return returnValue;
+        }
+        mIterator = null;
+        return returnValue;
+      }
+      catch(IOException e)
+      {
+        throw new NoSuchElementException("Caught IOException: "+e.getMessage());
+      }
+    }
+  }
+
+  /**
    * JNI functions
    */
   /**
@@ -405,6 +515,21 @@ public class VCF2TileDB
    */
   private native boolean jniImportBatch(long genomicsDBImporterHandle,
                                         long[] exhaustedBufferIdentifiers);
+
+  /**
+   * Obtain the chromosome intervals for the column partition specified in the loader JSON file
+   * identified by the rank. The information is returned as a string in JSON format
+   * {
+   *   "contigs": [
+   *      { "chr1": [ 100, 200] },
+   *      { "chr2": [ 500, 600] }
+   *   ]
+   * }
+   * @param loaderJSONFile path to loader JSON file
+   * @param rank rank/partition index
+   * @return chromosome intervals for the queried column partition in JSON format
+   */
+  private static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
 
   private String mLoaderJSONFile = null;
   private int mRank = 0;
@@ -817,6 +942,85 @@ public class VCF2TileDB
   public boolean isDone()
   {
     return mDone;
+  }
+
+  /**
+   * Utility function that returns a list of ChromosomeInterval objects for
+   * the column partition specified by the loader JSON file and rank/partition index
+   * @param loaderJSONFile path to loader JSON file
+   * @param partitionIdx rank/partition index
+   * @return list of ChromosomeInterval objects for the specified partition 
+   * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
+   */
+  public static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
+      final String loaderJSONFile, final int partitionIdx) throws ParseException
+  {
+    final String chromosomeIntervalsJSONString = jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile,
+        partitionIdx);
+    /* JSON format
+      {
+        "contigs": [
+           { "chr1": [ 100, 200] },
+           { "chr2": [ 500, 600] }
+        ]
+      }
+    */
+    ArrayList<ChromosomeInterval> chromosomeIntervals = new ArrayList<ChromosomeInterval>();
+    JSONParser parser = new JSONParser();
+    JSONObject topObj = (JSONObject)(parser.parse(chromosomeIntervalsJSONString));
+    assert topObj.containsKey("contigs");
+    JSONArray listOfDictionaries = (JSONArray)(topObj.get("contigs"));
+    for(Object currDictObj : listOfDictionaries)
+    {
+      JSONObject currDict = (JSONObject)currDictObj;
+      assert currDict.size() == 1; //1 entry
+      for(Object currEntryObj : currDict.entrySet())
+      {
+        Map.Entry<String, JSONArray> currEntry = (Map.Entry<String, JSONArray>)currEntryObj;
+        JSONArray currValue = currEntry.getValue();
+        assert currValue.size() == 2;
+        chromosomeIntervals.add(new ChromosomeInterval(currEntry.getKey(), (Long)(currValue.get(0)),
+              (Long)(currValue.get(1))));
+      }
+    }
+    return chromosomeIntervals;
+  }
+  /**
+   * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
+   * that will iterate over the VariantContext objects provided by the reader belonging
+   * to the column partition specified by the loader JSON file and rank/partition index
+   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
+   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param loaderJSONFile path to loader JSON file
+   * @param partitionIdx rank/partition index
+   * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
+   *         belonging to the specified column partition
+   * @throws IOException when the reader's query method throws an IOException
+   * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
+   */
+  public static <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
+      AbstractFeatureReader<VariantContext, SOURCE> reader,
+      final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
+  {
+    return new MultiChromosomeIterator<SOURCE>(reader,
+            VCF2TileDB.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
+  }
+  
+  /**
+   * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
+   * that will iterate over the VariantContext objects provided by the reader belonging
+   * to the column partition specified by this object's loader JSON file and rank/partition index
+   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
+   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
+   *         belonging to the specified column partition
+   * @throws IOException when the reader's query method throws an IOException
+   * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
+   */
+  public <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
+      AbstractFeatureReader<VariantContext, SOURCE> reader) throws ParseException, IOException
+  {
+    return VCF2TileDB.columnPartitionIterator(reader, mLoaderJSONFile, mRank);
   }
 
   /**

@@ -27,6 +27,8 @@
 #include "vcf.h"
 #include "variant_array_schema.h"
 
+typedef std::tuple<std::string, int64_t, int64_t> ContigIntervalTuple;
+
 inline bool contig_offset_idx_pair_cmp(const std::pair<int64_t, int>& first, const std::pair<int64_t, int>& second)
 {
   return (first.first < second.first);
@@ -524,6 +526,15 @@ class VidMapper
       return true;
     }
     inline int64_t get_max_callset_row_idx() const { return m_max_callset_row_idx; }
+    /*
+     * Utility function for obtaining contigs given a column partition
+     * is_zero_based - return 0-based or 1-based chromosome intervals
+     */
+    static std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
+        const std::string& loader_filename,
+        const int rank, const bool is_zero_based);
+    std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
+        const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const;
   protected:
     //Is initialized
     bool m_is_initialized;

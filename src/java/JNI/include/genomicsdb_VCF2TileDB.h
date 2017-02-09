@@ -55,6 +55,14 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniWriteDataToBuffer
 JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniImportBatch
   (JNIEnv *, jobject, jlong, jlongArray);
 
+/*
+ * Class:     com_intel_genomicsdb_VCF2TileDB
+ * Method:    jniGetChromosomeIntervalsForColumnPartition
+ * Signature: (Ljava/lang/String;I)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_VCF2TileDB_jniGetChromosomeIntervalsForColumnPartition
+  (JNIEnv *, jclass, jstring, jint);
+
 #ifdef __cplusplus
 }
 #endif
