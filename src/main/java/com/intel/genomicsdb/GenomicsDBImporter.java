@@ -52,7 +52,7 @@ import java.util.NoSuchElementException;
  * All vid information is assumed to be set correctly by the user (JSON files)
  */
 
-public class VCF2TileDB
+public class GenomicsDBImporter
 {
   static
   {
@@ -451,7 +451,7 @@ public class VCF2TileDB
    * JNI functions
    */
   /**
-   * Creates VCF2TileDB object when importing VCF files (no streams)
+   * Creates GenomicsDBImporter object when importing VCF files (no streams)
    * @param loaderJSONFile Path to loader JSON file
    * @param rank Rank of object - corresponds to the partition index in the loader
    *             for which this object will import data
@@ -459,9 +459,9 @@ public class VCF2TileDB
    * @param ubRowIdx Largest row idx which should be imported by this object
    * @return status - 0 if everything was ok, -1 otherwise
    */
-  private native int jniVCF2TileDB(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
+  private native int jniGenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
   /**
-   * Creates VCF2TileDB object when importing VCF files (no streams)
+   * Creates GenomicsDBImporter object when importing VCF files (no streams)
    * @param loaderJSONFile Path to loader JSON file
    * @param rank Rank of object - corresponds to the partition index in the
    *             loader for which this object will import data
@@ -553,7 +553,7 @@ public class VCF2TileDB
   /**
    * Constructor
    */
-  public VCF2TileDB()
+  public GenomicsDBImporter()
   {
   }
 
@@ -561,7 +561,7 @@ public class VCF2TileDB
    * Constructor
    * @param loaderJSONFile GenomicsDB loader JSON configuration file
    */
-  public VCF2TileDB(String loaderJSONFile)
+  public GenomicsDBImporter(String loaderJSONFile)
   {
     initialize(loaderJSONFile, 0, 0,
       Long.MAX_VALUE-1);
@@ -572,7 +572,7 @@ public class VCF2TileDB
    * @param loaderJSONFile GenomicsDB loader JSON configuration file
    * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
    */
-  public VCF2TileDB(String loaderJSONFile, int rank)
+  public GenomicsDBImporter(String loaderJSONFile, int rank)
   {
     initialize(loaderJSONFile, rank, 0, Long.MAX_VALUE-1);
   }
@@ -583,7 +583,7 @@ public class VCF2TileDB
    * @param lbRowIdx Smallest row idx which should be imported by this object
    * @param ubRowIdx Largest row idx which should be imported by this object
    */
-  public VCF2TileDB(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx)
+  public GenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx)
   {
     initialize(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
   }
@@ -632,7 +632,7 @@ public class VCF2TileDB
    *    getExhaustedBufferStreamIndex()
    * 5. If !isDone() goto 2
    * @param streamName Name of the stream being added - must be unique with respect to this
-   *                   VCF2TileDB object
+   *                   GenomicsDBImporter object
    * @param vcfHeader VCF header for the stream
    * @param bufferCapacity Capacity of the stream buffer in bytes
    * @param streamType BCF_STREAM or VCF_STREAM
@@ -657,7 +657,7 @@ public class VCF2TileDB
    * 2. Call importBatch()
    * 3. Done!
    * @param streamName Name of the stream being added - must be unique with respect
-   *                   to this VCF2TileDB object
+   *                   to this GenomicsDBImporter object
    * @param vcfHeader VCF header for the stream
    * @param vcIterator Iterator over VariantContext objects
    * @param bufferCapacity Capacity of the stream buffer in bytes
@@ -686,7 +686,7 @@ public class VCF2TileDB
    * 1. Call importBatch()
    * 2. Done!
    * @param streamName Name of the stream being added - must be unique with respect to
-   *                   this VCF2TileDB object
+   *                   this GenomicsDBImporter object
    * @param vcfHeader VCF header for the stream
    * @param vcIterator Iterator over VariantContext objects
    * @param bufferCapacity Capacity of the stream buffer in bytes
@@ -716,7 +716,7 @@ public class VCF2TileDB
   /**
    * Add a buffer stream or VC iterator - internal function
    * @param streamName Name of the stream being added - must be unique with respect to this
-   *                   VCF2TileDB object
+   *                   GenomicsDBImporter object
    * @param vcfHeader VCF header for the stream
    * @param bufferCapacity Capacity of the stream buffer in bytes
    * @param streamType BCF_STREAM or VCF_STREAM
@@ -1003,7 +1003,7 @@ public class VCF2TileDB
       final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
   {
     return new MultiChromosomeIterator<SOURCE>(reader,
-            VCF2TileDB.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
+            GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
   }
   
   /**
@@ -1020,7 +1020,7 @@ public class VCF2TileDB
   public <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
       AbstractFeatureReader<VariantContext, SOURCE> reader) throws ParseException, IOException
   {
-    return VCF2TileDB.columnPartitionIterator(reader, mLoaderJSONFile, mRank);
+    return GenomicsDBImporter.columnPartitionIterator(reader, mLoaderJSONFile, mRank);
   }
 
   /**
@@ -1080,9 +1080,9 @@ public class VCF2TileDB
       throw new GenomicsDBException("Loader JSON file not specified");
     if(mContainsBufferStreams)
       throw new GenomicsDBException("Cannot call write() functions if buffer streams are added");
-    int status = jniVCF2TileDB(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
+    int status = jniGenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     if(status != 0)
-      throw new GenomicsDBException("VCF2TileDB write failed for loader JSON: "
+      throw new GenomicsDBException("GenomicsDBImporter write failed for loader JSON: "
         +loaderJSONFile+" rank: "+rank);
     mDone = true;
   }

@@ -37,7 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
-import com.intel.genomicsdb.VCF2TileDB;
+import com.intel.genomicsdb.GenomicsDBImporter;
 import com.intel.genomicsdb.GenomicsDBException;
 
 /**
@@ -45,11 +45,11 @@ import com.intel.genomicsdb.GenomicsDBException;
  * The class can maintains
  * (a) VCFHeader
  * (b) CloseableTribbleIterator<VariantContext>
- * (c) mNextVC the next VariantContext object to be sent to VCF2TileDB iff the buffer
- *     interface of VCF2TileDB is used (addBufferStream()) and not the
+ * (c) mNextVC the next VariantContext object to be sent to GenomicsDBImporter iff the buffer
+ *     interface of GenomicsDBImporter is used (addBufferStream()) and not the
  *     Iterator<VariantContext> interface (addSortedVariantContextIterator())
  */
-public final class TestBufferStreamVCF2TileDB
+public final class TestBufferStreamGenomicsDBImporter
 {
   private static class VCFFileStreamInfo
   {
@@ -69,7 +69,7 @@ public final class TestBufferStreamVCF2TileDB
         AbstractFeatureReader.getFeatureReader(fileName, new VCFCodec(), false);
       mVCFHeader = (VCFHeader)(reader.getHeader());
       if(useMultiChromosomeIterator)
-        mIterator = VCF2TileDB.columnPartitionIterator(reader, loaderJSONFile, rank);
+        mIterator = GenomicsDBImporter.columnPartitionIterator(reader, loaderJSONFile, rank);
       else
         mIterator = reader.iterator();
     }
@@ -130,7 +130,7 @@ public final class TestBufferStreamVCF2TileDB
         Boolean.parseBoolean(args[argsLoaderFileIdx+6]) : false;
     //<loader.json> first arg
     String loaderJSONFile = args[argsLoaderFileIdx];
-    VCF2TileDB loader = new VCF2TileDB(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
+    GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     //<stream_name_to_file.json> - useful for the driver only
     //JSON file that contains "stream_name": "vcf_file_path" entries
     FileReader mappingReader = new FileReader(args[argsLoaderFileIdx+1]);
@@ -152,9 +152,9 @@ public final class TestBufferStreamVCF2TileDB
        *   (b) specify the mapping in the callset_mapping_file (JSON) and pass null to
        *       addSortedVariantContextIterator()
        */
-      LinkedHashMap<Integer, VCF2TileDB.SampleInfo> sampleIndexToInfo =
-        new LinkedHashMap<Integer, VCF2TileDB.SampleInfo>();
-      rowIdx = VCF2TileDB.initializeSampleInfoMapFromHeader(sampleIndexToInfo,
+      LinkedHashMap<Integer, GenomicsDBImporter.SampleInfo> sampleIndexToInfo =
+        new LinkedHashMap<Integer, GenomicsDBImporter.SampleInfo>();
+      rowIdx = GenomicsDBImporter.initializeSampleInfoMapFromHeader(sampleIndexToInfo,
         currInfo.mVCFHeader, rowIdx);
       int streamIdx = -1;
       if(args[0].equals("-iterators"))

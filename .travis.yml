@@ -37,7 +37,7 @@ before_script:
 script:
     - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
     - javac -version && which javac && javac -d tests example/java/TestGenomicsDB.java
-    - javac -d tests example/java/TestBufferStreamVCF2TileDB.java
+    - javac -d tests example/java/TestBufferStreamGenomicsDBImporter.java
     - java -version && which java && python tests/run.py
 
 after_success:
