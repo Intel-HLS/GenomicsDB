@@ -582,27 +582,43 @@ void VCF2TileDBLoader::finish_read_all(const VCF2TileDBLoaderReadState& read_sta
   fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
   load_timer.print_cumulative("Combining cells", std::cerr);
   flush_output_timer.print_cumulative("Flush output", std::cerr);
+  read_state.m_sections_timer.print_cumulative("Sections time", std::cerr);
+  read_state.m_single_thread_phase_timer.print_cumulative("Time in single thread phase()", std::cerr);
+  read_state.m_time_in_read_all.print_cumulative("Time in read_all()", std::cerr);
 }
 
 void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)
 {
+  read_state.m_time_in_read_all.start();
   auto num_exchanges = m_owned_exchanges.size();
   const auto num_parallel_omp_sections = read_state.m_num_parallel_omp_sections;
   auto exchange_counter = read_state.m_exchange_counter;
+  auto fetch_exchange_counter = exchange_counter;
+  auto load_exchange_counter = exchange_counter;
+  auto done = false;
   //Timers
   auto& fetch_timer = read_state.m_fetch_timer;
   auto& load_timer = read_state.m_load_timer;
   auto& flush_output_timer = read_state.m_flush_output_timer;
-  auto done = false;
-  while(true)
+  auto& single_thread_phase_timer = read_state.m_single_thread_phase_timer;
+  auto& sections_timer = read_state.m_sections_timer;
+  auto exit_loop = false;
+#pragma omp parallel default(shared) num_threads(num_parallel_omp_sections)
+  while(!exit_loop)
   {
-    auto fetch_exchange_counter = (exchange_counter+1u)%num_exchanges;
-    auto load_exchange_counter = exchange_counter;
-    //For row idx requested, reserve entries
-    reserve_entries_in_circular_buffer(fetch_exchange_counter);
-    for(auto op : m_operators)
-      op->pre_operate_sequential();
-#pragma omp parallel sections default(shared) num_threads(num_parallel_omp_sections)
+#pragma omp single
+    {
+      single_thread_phase_timer.start();
+      fetch_exchange_counter = (exchange_counter+1u)%num_exchanges;
+      load_exchange_counter = exchange_counter;
+      //For row idx requested, reserve entries
+      reserve_entries_in_circular_buffer(fetch_exchange_counter);
+      for(auto op : m_operators)
+        op->pre_operate_sequential();
+      single_thread_phase_timer.stop();
+      sections_timer.start();
+    }
+#pragma omp sections
     {
 #pragma omp section
       {
@@ -636,24 +652,39 @@ void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)
         flush_output_timer.stop();
       }
     }
-    if(m_do_ping_pong_buffering)
-      advance_write_idxs(fetch_exchange_counter);
-    for(auto op : m_operators)
-      op->post_operate_sequential();
-    if(done)
+#pragma omp single
     {
-      //Final flush output
+      sections_timer.stop();
+      single_thread_phase_timer.start();
+      if(m_do_ping_pong_buffering)
+        advance_write_idxs(fetch_exchange_counter);
       for(auto op : m_operators)
-        op->flush_output();
-      break;
+        op->post_operate_sequential();
+      if(done)
+      {
+        //Final flush output
+        for(auto op : m_operators)
+          op->flush_output();
+        exit_loop = true;
+      }
+      else
+      {
+        exchange_counter = (exchange_counter+1u)%num_exchanges;
+        //Return to caller so that more data can be provided
+        if(m_converter->is_some_buffer_stream_exhausted())
+          exit_loop = true;
+      }
+      single_thread_phase_timer.stop();
+      //Critical path update
+      std::sort(read_state.m_timer_vec.begin(), read_state.m_timer_vec.end(), TimerCompareWallClockTime());
+      auto critical_path_timer = read_state.m_timer_vec.back();
+      critical_path_timer->accumulate_critical_path_wall_clock_time(critical_path_timer->get_last_interval_wall_clock_time());
+      critical_path_timer->accumulate_critical_path_cpu_time(critical_path_timer->get_last_interval_cpu_time());
     }
-    exchange_counter = (exchange_counter+1u)%num_exchanges;
-    //Return to caller so that more data can be provided
-    if(m_converter->is_some_buffer_stream_exhausted())
-      break;
   }
   read_state.m_done = done;
   read_state.m_exchange_counter = exchange_counter;
+  read_state.m_time_in_read_all.stop();
 }
 #endif
 

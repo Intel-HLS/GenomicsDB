@@ -41,11 +41,18 @@ class Timer
 {
   public:
     Timer()
-    { 
-      m_cumulative_cpu_time = 0;
+    {
+      m_last_interval_wall_clock_time = 0;
+      m_last_interval_cpu_time = 0;
       m_cumulative_wall_clock_time = 0;
+      m_cumulative_cpu_time = 0;
+      m_critical_path_wall_clock_time = 0;
+      m_critical_path_cpu_time = 0;
+      m_num_times_in_critical_path = 0;
       start();
     };
+    //Copy constructor
+    Timer(const Timer& other) = default;
     inline void start()
     {
       /*m_begin_cpu_time = clock();*/
@@ -80,7 +87,9 @@ class Timer
       if(prefix.size() > 0u)
         fptr << prefix <<" : ";
       fptr << "Wall-clock time(s) : "<< std::setprecision(6) << m_cumulative_wall_clock_time << " Cpu time(s) : "
-        << m_cumulative_cpu_time << "\n";
+        << m_cumulative_cpu_time << " Critical path wall-clock time(s) : " << m_critical_path_wall_clock_time
+        << " Cpu time(s): " << m_critical_path_cpu_time
+        << " #critical path "<< m_num_times_in_critical_path << "\n";
     }
     void get_last_interval_times(std::vector<double>& timings, unsigned timer_idx) const
     {
@@ -88,6 +97,23 @@ class Timer
       assert(idx + 2u <= timings.size());
       timings[idx] = m_last_interval_cpu_time;
       timings[idx+1] = m_last_interval_wall_clock_time;
+    }
+    void accumulate(const Timer& other)
+    {
+      m_cumulative_cpu_time += other.m_cumulative_cpu_time;
+      m_cumulative_wall_clock_time += other.m_cumulative_wall_clock_time;
+    }
+    inline double get_last_interval_wall_clock_time() const { return m_last_interval_wall_clock_time; }
+    inline double get_last_interval_cpu_time() const { return m_last_interval_cpu_time; }
+    //Critical path updates
+    inline void accumulate_critical_path_wall_clock_time(const double val)
+    {
+      ++m_num_times_in_critical_path;
+      m_critical_path_wall_clock_time += val;
+    }
+    inline void accumulate_critical_path_cpu_time(const double val)
+    {
+      m_critical_path_cpu_time += val;
     }
   private:
     /*clock_t m_begin_cpu_time;*/
@@ -98,6 +124,22 @@ class Timer
     double m_last_interval_wall_clock_time;
     double m_cumulative_cpu_time;
     double m_cumulative_wall_clock_time;
+    //critical path contribution
+    double m_critical_path_wall_clock_time;
+    double m_critical_path_cpu_time;
+    uint64_t m_num_times_in_critical_path;
+};
+
+struct TimerCompareWallClockTime
+{
+  bool operator()(const Timer* a, const Timer* b)
+  {
+    return (a->get_last_interval_wall_clock_time() < b->get_last_interval_wall_clock_time());
+  }
+  bool operator()(const Timer& a, const Timer& b)
+  {
+    return (a.get_last_interval_wall_clock_time() < b.get_last_interval_wall_clock_time());
+  }
 };
 
 #endif
