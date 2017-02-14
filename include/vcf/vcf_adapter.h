@@ -29,6 +29,7 @@
 #include "gt_common.h"
 #include "htslib/vcf.h"
 #include "htslib/faidx.h"
+#include "timer.h"
 
 //Exceptions thrown
 class VCFAdapterException : public std::exception {
@@ -123,6 +124,10 @@ class VCFAdapter
     size_t m_combined_vcf_records_buffer_size_limit;
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     bool m_produce_GT_field;
+#ifdef DO_PROFILING
+    //Timer
+    Timer m_vcf_serialization_timer;
+#endif
 };
 
 class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController

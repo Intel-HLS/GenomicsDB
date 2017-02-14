@@ -75,21 +75,31 @@ class Timer
       m_cumulative_cpu_time += m_last_interval_cpu_time;
       m_cumulative_wall_clock_time += m_last_interval_wall_clock_time;
     }
-    void print(const std::string& prefix="", std::ostream& fptr = std::cout) const
+    void print_last_interval(const std::string& prefix="", std::ostream& fptr = std::cout) const
     {
-      if(prefix.size() > 0u)
-        fptr << prefix <<" : ";
-      fptr << "Wall-clock time(s) : "<< std::setprecision(6) << m_last_interval_wall_clock_time << " Cpu time(s) : "
+      fptr<<"GENOMICSDB_TIMER,";
+      if(!prefix.empty())
+        fptr << prefix <<",";
+      fptr << "Wall-clock time(s),"<< std::setprecision(6) << m_last_interval_wall_clock_time << ",Cpu time(s),"
         << m_last_interval_cpu_time << "\n";
     }
-    void print_cumulative(const std::string& prefix="", std::ostream& fptr = std::cout) const
+    void print(const std::string& prefix="", std::ostream& fptr = std::cout) const
     {
-      if(prefix.size() > 0u)
-        fptr << prefix <<" : ";
-      fptr << "Wall-clock time(s) : "<< std::setprecision(6) << m_cumulative_wall_clock_time << " Cpu time(s) : "
-        << m_cumulative_cpu_time << " Critical path wall-clock time(s) : " << m_critical_path_wall_clock_time
-        << " Cpu time(s): " << m_critical_path_cpu_time
-        << " #critical path "<< m_num_times_in_critical_path << "\n";
+      fptr<<"GENOMICSDB_TIMER,";
+      if(!prefix.empty())
+        fptr << prefix <<",";
+      fptr << "Wall-clock time(s),"<< std::setprecision(6) << m_cumulative_wall_clock_time << ",Cpu time(s),"
+        << m_cumulative_cpu_time << "\n";
+    }
+    void print_detail(const std::string& prefix="", std::ostream& fptr = std::cout) const
+    {
+      fptr<<"GENOMICSDB_TIMER,";
+      if(!prefix.empty())
+        fptr << prefix <<",";
+      fptr << "Wall-clock time(s),"<< std::setprecision(6) << m_cumulative_wall_clock_time << ",Cpu time(s),"
+        << m_cumulative_cpu_time << ",Critical path wall-clock time(s)," << m_critical_path_wall_clock_time
+        << ",Cpu time(s)," << m_critical_path_cpu_time
+        << ",#critical path,"<< m_num_times_in_critical_path << "\n";
     }
     void get_last_interval_times(std::vector<double>& timings, unsigned timer_idx) const
     {

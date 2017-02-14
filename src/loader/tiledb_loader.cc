@@ -579,12 +579,12 @@ void VCF2TileDBLoader::finish_read_all(const VCF2TileDBLoaderReadState& read_sta
   auto& flush_output_timer = read_state.m_flush_output_timer;
   for(auto op : m_operators)
     op->finish(get_column_partition_end());
-  fetch_timer.print_cumulative("Fetch from VCF", std::cerr);
-  load_timer.print_cumulative("Combining cells", std::cerr);
-  flush_output_timer.print_cumulative("Flush output", std::cerr);
-  read_state.m_sections_timer.print_cumulative("Sections time", std::cerr);
-  read_state.m_single_thread_phase_timer.print_cumulative("Time in single thread phase()", std::cerr);
-  read_state.m_time_in_read_all.print_cumulative("Time in read_all()", std::cerr);
+  fetch_timer.print_detail("Fetch from VCF", std::cerr);
+  load_timer.print_detail("Combining cells", std::cerr);
+  flush_output_timer.print_detail("Flush output", std::cerr);
+  read_state.m_sections_timer.print_detail("Sections time", std::cerr);
+  read_state.m_single_thread_phase_timer.print_detail("Time in single thread phase()", std::cerr);
+  read_state.m_time_in_read_all.print_detail("Time in read_all()", std::cerr);
 }
 
 void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)

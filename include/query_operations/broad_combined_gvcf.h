@@ -28,6 +28,7 @@
 #include "variant_operations.h"
 #include "vcf_adapter.h"
 #include "vid_mapper.h"
+#include "timer.h"
 
 //known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
 typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string, int> INFO_tuple_type;
@@ -60,6 +61,9 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     {
       bcf_destroy(m_bcf_out);
       clear();
+#ifdef DO_PROFILING
+      m_bcf_t_creation_timer.print("bcf_t creation time", std::cerr);
+#endif
     }
     void clear();
     void switch_contig();
@@ -104,6 +108,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     std::vector<int> m_spanning_deletion_remapped_GT;
     //Allowed bases
     static const std::unordered_set<char> m_legal_bases;
+    //For profiling
+    Timer m_bcf_t_creation_timer;
 };
 
 #endif //ifdef HTSDIR

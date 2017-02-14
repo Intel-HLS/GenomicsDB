@@ -72,6 +72,8 @@ class GTProfileStats {
       GT_NUM_CELLS_IN_LEFT_SWEEP,//total #cells traversed in the query left sweep, coord cells are accessed for every time
       GT_NUM_VALID_CELLS_IN_QUERY,//#valid cells actually returned in query 
       GT_NUM_ATTR_CELLS_ACCESSED,//#attribute cells accessed in the query
+      GT_NUM_PQ_FLUSHES_DUE_TO_OVERLAPPING_CELLS,//#times PQ gets flushed due to overlapping cells in the input
+      GT_NUM_OPERATOR_INVOCATIONS, //#times operator gets invoked
       GT_NUM_STATS
     };
     GTProfileStats();
@@ -109,6 +111,10 @@ class GTProfileStats {
     }
     void print_stats(std::ostream& fptr=std::cout) const;
     void increment_num_queries() { ++m_num_queries; }
+  public:
+    Timer m_interval_sweep_timer;
+    Timer m_operator_timer;
+    Timer m_genomicsdb_cell_fill_timer;
   private:
     std::vector<uint64_t> m_stats_sum_vector;
     std::vector<uint64_t> m_stats_tmp_count_vector;
@@ -122,10 +128,12 @@ class VariantQueryProcessorScanState
   friend class VariantQueryProcessor;
   public:
     VariantQueryProcessorScanState()
+      : m_stats()
     {
       reset();
     }
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
+      : m_stats()
     {
       reset();
       m_iter = iter;
@@ -169,6 +177,7 @@ class VariantQueryProcessorScanState
     uint64_t m_num_calls_with_deletions;
     VariantCallEndPQ m_end_pq;
     Variant m_variant;
+    GTProfileStats m_stats;
 };
 
 /*
@@ -227,7 +236,8 @@ class VariantQueryProcessor {
     void handle_gvcf_ranges(VariantCallEndPQ& end_pq, 
         const VariantQueryConfig& queryConfig, Variant& variant,
         SingleVariantOperatorBase& variant_operator,
-        int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const;
+        int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions,
+        GTProfileStats* stats_ptr) const;
     //while scan breaks up the intervals, iterate does not
     void iterate_over_cells(
         const int ad,

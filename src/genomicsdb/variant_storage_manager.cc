@@ -46,6 +46,7 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
   m_variant_array_schema(&variant_array_schema), m_cell(variant_array_schema, attribute_ids)
 #ifdef DO_PROFILING
   , m_tiledb_timer()
+  , m_tiledb_to_buffer_cell_timer()
 #endif
 {
   m_buffers.clear();
@@ -99,6 +100,9 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
 
 const BufferVariantCell& VariantArrayCellIterator::operator*()
 {
+#ifdef DO_PROFILING
+  m_tiledb_to_buffer_cell_timer.start();
+#endif
   const uint8_t* field_ptr = 0;
   size_t field_size = 0u;
   for(auto i=0u;i<m_num_queried_attributes;++i)
@@ -116,6 +120,9 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
   assert(field_size == m_variant_array_schema->dim_size_in_bytes());
   auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
   m_cell.set_coordinates(coords_ptr[0], coords_ptr[1]);
+#ifdef DO_PROFILING
+  m_tiledb_to_buffer_cell_timer.stop();
+#endif
   return m_cell;
 }
 

@@ -388,6 +388,9 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
 
 void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
+#ifdef DO_PROFILING
+  m_bcf_t_creation_timer.start();
+#endif
   //Handle spanning deletions - change ALT alleles in calls with deletions to *, <NON_REF>
   handle_deletions(variant, query_config);
   GA4GHOperator::operate(variant, query_config);
@@ -459,6 +462,9 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_INFO_fields(variant);
   //FORMAT fields
   handle_FORMAT_fields(variant);
+#ifdef DO_PROFILING
+  m_bcf_t_creation_timer.stop();
+#endif
   m_vcf_adapter->handoff_output_bcf_line(m_bcf_out, m_bcf_record_size);
 }
 
