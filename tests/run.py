@@ -270,12 +270,12 @@ def main():
             pid = subprocess.Popen('java TestGenomicsDB -load '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_multi_contig_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamVCF2TileDB -iterators '+loader_json_filename+' '
+            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
                     +test_params_dict['stream_name_to_filename_mapping']
                     +' 1024 0 0 100 true ',
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamVCF2TileDB '+loader_json_filename
+            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter '+loader_json_filename
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         else:

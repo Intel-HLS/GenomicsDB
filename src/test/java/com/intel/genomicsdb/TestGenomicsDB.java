@@ -83,7 +83,7 @@ public final class TestGenomicsDB
     if(args[0].equals("-load")) //load data
     {
       //<loader.json>
-      VCF2TileDB loader = new VCF2TileDB(args[1]);
+      GenomicsDBImporter loader = new GenomicsDBImporter(args[1]);
       //Specify rank (or partition idx) of this process
       int rank = (args.length >= 3) ? Integer.parseInt(args[2]) : 0;
       //Specify smallest row idx from which to start loading - useful for

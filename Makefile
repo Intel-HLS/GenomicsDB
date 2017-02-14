@@ -190,12 +190,12 @@ GENOMICSDB_BIN_DIR=./bin
 # --- Header directories --- #
 GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader \
     include/query_operations include/utils include/vcf \
-    src/java/JNI/include example/include
+    src/java/JNI/include example/include tools/include
 
 CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
 # 'vpath' to know which directories to search for sources
-vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:src/java/JNI/src:example/src
+vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:src/java/JNI/src:example/src:tools/src
 
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -251,7 +251,7 @@ ifdef BUILD_JAVA
   # --- C++ Sources --- #
   GENOMICSDB_LIBRARY_SOURCES:= $(GENOMICSDB_LIBRARY_SOURCES) \
   	genomicsdb_GenomicsDBQueryStream.cc \
-  	genomicsdb_VCF2TileDB.cc \
+  	genomicsdb_GenomicsDBImporter.cc \
     genomicsdb_jni_init.cc
 
   # --- Java/Scala Sources --- #
@@ -271,7 +271,6 @@ endif
 
 GENOMICSDB_EXAMPLE_SOURCES:= \
     			create_tiledb_workspace.cc \
-			    gt_verifier.cc \
 			    vcf2tiledb.cc \
 			    vcfdiff.cc \
 			    example_libtiledb_variant_driver.cc \
