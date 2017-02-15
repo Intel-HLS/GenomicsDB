@@ -20,10 +20,10 @@ LINKFLAGS:=
 # LDFLAGS appear after the list of object files (-lz etc)
 LDFLAGS:=
 ifdef MAXIMIZE_STATIC_LINKING
-    LINKFLAGS+=-static-libgcc -static-libstdc++
-    LDFLAGS+=-Wl,-Bstatic -lcrypto -Wl,-Bdynamic
+  LINKFLAGS+=-static-libgcc -static-libstdc++
+  LDFLAGS+=-Wl,-Bstatic -lcrypto -Wl,-Bdynamic
 else
-    LDFLAGS+=-lcrypto
+  LDFLAGS+=-lcrypto
 endif
 LDFLAGS+= -lz -lrt
 SHARED_LIBRARY_EXTENSION:=so
@@ -37,9 +37,9 @@ ifeq ($(OS), Darwin)
   CFLAGS=-mmacosx-version-min=10.9
   LINKFLAGS:=
   ifdef MAXIMIZE_STATIC_LINKING
-      LDFLAGS:=$(OPENSSL_PREFIX_DIR)/lib/libcrypto.a -lz
+    LDFLAGS:=$(OPENSSL_PREFIX_DIR)/lib/libcrypto.a -lz
   else
-      LDFLAGS:=-L$(OPENSSL_PREFIX_DIR)/lib -lcrypto -lz
+    LDFLAGS:=-L$(OPENSSL_PREFIX_DIR)/lib -lcrypto -lz
   endif
   SHARED_LIBRARY_EXTENSION=dylib
   SHARED_LIBRARY_FLAGS:=-dynamiclib -mmacosx-version-min=10.9
@@ -82,23 +82,23 @@ ifeq ($(BUILD),release)
 endif
 
 ifdef DISABLE_MPI
-    CC = gcc
-    CXX = g++
-    CFLAGS += -DDISABLE_MPI
+  CC = gcc
+  CXX = g++
+  CFLAGS += -DDISABLE_MPI
 else
-    # MPI compiler for C++
-    ifdef MPIPATH
-	CC  = $(MPIPATH)/mpicc
-	CXX = $(MPIPATH)/mpicxx
-    else
-	MPIPATH=
-	CC  = mpicc
-	CXX = mpicxx
-    endif
+  # MPI compiler for C++
+  ifdef MPIPATH
+    CC  = $(MPIPATH)/mpicc
+    CXX = $(MPIPATH)/mpicxx
+  else
+    MPIPATH=
+    CC  = mpicc
+    CXX = mpicxx
+  endif
 endif
 
 ifdef DISABLE_OPENMP
-CFLAGS+=-DDISABLE_OPENMP
+  CFLAGS+=-DDISABLE_OPENMP
 endif
 
 CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
@@ -107,79 +107,78 @@ CPPFLAGS=-std=c++11 -fPIC $(LFS_CFLAGS) $(CFLAGS)
 CPPFLAGS += -DDUPLICATE_CELL_AT_END
 
 # --- TileDB Source --- #
-TILEDB_BUILD_NUM_THREADS ?= 1
 ifndef TILEDB_DIR
-    TILEDB_DIR=dependencies/TileDB
+  TILEDB_DIR=dependencies/TileDB
 endif
 CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
 ifeq ($(OS), Darwin)
-    LDFLAGS:= $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(LDFLAGS)
+  LDFLAGS:= $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(LDFLAGS)
 else
-    LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
+  LDFLAGS:= -Wl,-Bstatic -L$(TILEDB_DIR)/core/lib/$(TILEDB_BUILD) -ltiledb -Wl,-Bdynamic $(LDFLAGS)
 endif
 
 # --- Htslib Source --- #
 HTSLIB_BUILD_NUM_THREADS ?= 1
 HTSLIB_EXTRA_CFLAGS=
 ifndef HTSDIR
-    HTSDIR=dependencies/htslib
+  HTSDIR=dependencies/htslib
 endif
 ifdef HTSDIR
-    CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
-    ifeq ($(OS), Darwin)
-        LDFLAGS:=$(HTSDIR)/libhts.a $(LDFLAGS)
-        HTSLIB_EXTRA_CFLAGS=-mmacosx-version-min=10.9
-    else
-        LDFLAGS:=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic $(LDFLAGS)
-    endif
+  CPPFLAGS+=-I$(HTSDIR) -DHTSDIR
+  ifeq ($(OS), Darwin)
+    LDFLAGS:=$(HTSDIR)/libhts.a $(LDFLAGS)
+    HTSLIB_EXTRA_CFLAGS=-mmacosx-version-min=10.9
+  else
+    LDFLAGS:=-Wl,-Bstatic -L$(HTSDIR) -lhts -Wl,-Bdynamic $(LDFLAGS)
+  endif
 endif
 
 # --- RapidJSON Source (header only library) --- #
 ifndef RAPIDJSON_INCLUDE_DIR
-    RAPIDJSON_INCLUDE_DIR=dependencies/RapidJSON/include
+  RAPIDJSON_INCLUDE_DIR=dependencies/RapidJSON/include
 endif
 CPPFLAGS+=-I$(RAPIDJSON_INCLUDE_DIR)
 
 #libcsv - optional, but required if csvs need to be imported
 ifdef LIBCSV_DIR
-    CPPFLAGS+=-DUSE_LIBCSV -I$(LIBCSV_DIR)
-    LDFLAGS+=-L$(LIBCSV_DIR)/.libs -L$(LIBCSV_DIR)/lib -lcsv
+  CPPFLAGS+=-DUSE_LIBCSV -I$(LIBCSV_DIR)
+  LDFLAGS+=-L$(LIBCSV_DIR)/.libs -L$(LIBCSV_DIR)/lib -lcsv
 else
-    ifdef USE_LIBCSV
-	CPPFLAGS+=-DUSE_LIBCSV
-	LDFLAGS+=-lcsv
-    endif
+  ifdef USE_LIBCSV
+    CPPFLAGS+=-DUSE_LIBCSV
+    LDFLAGS+=-lcsv
+  endif
 endif
 
 # --- JNI flag - optional, but required if the JNI library is needed --- #
 ifdef JNI_FLAGS
-    CPPFLAGS+=$(JNI_FLAGS)
+  CPPFLAGS+=$(JNI_FLAGS)
 endif
 
 # --- BigMPI Flags (optional) --- #
 ifdef USE_BIGMPI
-    CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
-    LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
+  CPPFLAGS+=-I$(USE_BIGMPI)/src -DUSE_BIGMPI
+  LDFLAGS+=-L$(USE_BIGMPI)/src -lbigmpi
 endif
 
 ifdef DO_PROFILING
-    CPPFLAGS+=-DDO_PROFILING
+  CPPFLAGS+=-DDO_PROFILING
 endif
 
 ifdef DO_MEMORY_PROFILING
-    CPPFLAGS+=-DDO_MEMORY_PROFILING
+  CPPFLAGS+=-DDO_MEMORY_PROFILING
 endif
 
 # --- Google Performance Tools Library (optional) --- #
 ifdef USE_GPERFTOOLS
-    ifdef GPERFTOOLSDIR
-	CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
-	LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind
-    endif
+  ifdef GPERFTOOLSDIR
+    CPPFLAGS+=-DUSE_GPERFTOOLS -I$(GPERFTOOLSDIR)/include
+    LDFLAGS += -Wl,-Bstatic -L$(GPERFTOOLSDIR)/lib -lprofiler -Wl,-Bdynamic  -lunwind
+  endif
 endif
 
 ifdef VERBOSE
-    CPPFLAGS+= -DVERBOSE=$(VERBOSE)
+  CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
 # --- Directories --- #
@@ -188,14 +187,20 @@ GENOMICSDB_OBJ_DIR=./obj
 GENOMICSDB_BIN_DIR=./bin
 
 # --- Header directories --- #
-GENOMICSDB_LIBRARY_INCLUDE_DIRS:=include/genomicsdb include/loader \
-    include/query_operations include/utils include/vcf \
-    src/java/JNI/include example/include tools/include
+GENOMICSDB_LIBRARY_INCLUDE_DIRS:=\
+  src/main/cpp/include/genomicsdb \
+  src/main/cpp/include/loader \
+  src/main/cpp/include/query_operations \
+  src/main/cpp/include/utils \
+  src/main/cpp/include/vcf \
+  src/main/jni/include \
+  example/include \
+  tools/include
 
 CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
 # 'vpath' to know which directories to search for sources
-vpath %.cc src/genomicsdb:src/loader:src/query_operations:src/utils:src/vcf:src/java/JNI/src:example/src:tools/src
+vpath %.cc src/main/cpp/src/genomicsdb:src/main/cpp/src/loader:src/main/cpp/src/query_operations:src/main/cpp/src/utils:src/main/cpp/src/vcf:src/main/jni/src:example/src:tools/src
 
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -228,7 +233,7 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
 			    genomicsdb_bcf_generator.cc \
-                timer.cc \
+          timer.cc \
 			    memory_measure.cc \
 			    genomicsdb_importer.cc
 
@@ -294,9 +299,9 @@ GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_SHARED_LIBRARY_BAS
 
 #Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
 ifeq ($(OS), Darwin)
-    LDFLAGS:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a $(LDFLAGS)
+  LDFLAGS:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a $(LDFLAGS)
 else
-    LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
+  LDFLAGS:=-Wl,-Bstatic -L$(GENOMICSDB_BIN_DIR) -lgenomicsdb -Wl,-Bdynamic $(LDFLAGS)
 endif
 
 ###################
@@ -308,10 +313,10 @@ endif
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI
-    ALL_BUILD_TARGETS += $(GENOMICSDB_EXAMPLE_BIN_FILES)
+  ALL_BUILD_TARGETS += $(GENOMICSDB_EXAMPLE_BIN_FILES)
 endif
 ifdef BUILD_JAVA
-    ALL_BUILD_TARGETS += $(GENOMICSDB_JAR)
+  ALL_BUILD_TARGETS += $(GENOMICSDB_JAR)
 endif
 
 all: $(ALL_BUILD_TARGETS)
