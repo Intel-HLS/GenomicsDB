@@ -235,7 +235,9 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    genomicsdb_bcf_generator.cc \
           timer.cc \
 			    memory_measure.cc \
-			    genomicsdb_importer.cc
+			    genomicsdb_importer.cc \
+          genomicsdb_import_config.pb.cc \
+          genomicsdb_export_config.pb.cc
 
 ifdef BUILD_JAVA
 

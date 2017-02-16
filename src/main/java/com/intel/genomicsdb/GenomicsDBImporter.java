@@ -27,6 +27,7 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.VCFFileReader;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -38,6 +39,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.ParseException;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -51,7 +53,6 @@ import java.util.NoSuchElementException;
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
  * All vid information is assumed to be set correctly by the user (JSON files)
  */
-
 public class GenomicsDBImporter
 {
   static
@@ -67,6 +68,7 @@ public class GenomicsDBImporter
       throw new GenomicsDBException("Could not load genomicsdb native library");
     }
   }
+
   private static long mDefaultBufferCapacity = 20480; //20KB
 
   /**
@@ -227,13 +229,13 @@ public class GenomicsDBImporter
     {
       return mBuffer;
     }
-  }
+  } // End of class SilentByteBufferStream
 
   /**
    * Utility class wrapping a stream and a VariantContextWriter for a given stream
    * Each GenomicsDB import stream consists of a buffer stream and a writer object
-   * If the caller provides an iterator, then mCurrentVC points to the VariantContext object
-   * to be written, if any.
+   * If the caller provides an iterator, then mCurrentVC points to the VariantContext
+   * object to be written, if any.
    */
   private class GenomicsDBImporterStreamWrapper
   {
@@ -247,10 +249,12 @@ public class GenomicsDBImporter
      * @param vcfHeader VCF header for the stream
      * @param bufferCapacity Capacity of the stream buffer in bytes
      * @param streamType BCF_STREAM or VCF_STREAM
-     * @param vcIterator iterator over VariantContext objects, can be null if the caller is managing
-     * the buffer explicitly
+     * @param vcIterator iterator over VariantContext objects,
+     *                   can be null if the caller is managing
+     *                   the buffer explicitly
      */
-    public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
+    public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader,
+                                           final long bufferCapacity,
                                            final VariantContextWriterBuilder.OutputType streamType,
                                            Iterator<VariantContext> vcIterator)
       throws GenomicsDBException
@@ -298,8 +302,9 @@ public class GenomicsDBImporter
     }
 
     /**
-     * Returns true if a non-null Iterator over VariantContext objects was provided for this stream
-     * @return true if a non-null Iterator over VariantContext objects was provided for this stream
+     * Returns true if a non-null Iterator over VariantContext
+     * objects was provided for this stream
+     * @return True if iterator was provided, False otherwise
      */
     public boolean hasIterator()
     {
@@ -329,7 +334,7 @@ public class GenomicsDBImporter
     {
       return mCurrentVC;
     }
-  }
+  } // End of class GenomicsDBImporterStreamWrapper
 
   /**
    * Utility class that stores row index and globally unique name for a given sample
@@ -381,7 +386,8 @@ public class GenomicsDBImporter
 
     /**
      * Constructor
-     * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+     * @param reader AbstractFeatureReader over VariantContext objects -
+     *               SOURCE can vary - BCF v/s VCF for example
      * @param chromosomeIntervals chromosome intervals over which to iterate
      * @throws IOException when the reader's query method throws an IOException
      */
@@ -445,7 +451,7 @@ public class GenomicsDBImporter
         throw new NoSuchElementException("Caught IOException: "+e.getMessage());
       }
     }
-  }
+  } // End of class MultiChromosomeIterator
 
   /**
    * JNI functions
@@ -459,7 +465,10 @@ public class GenomicsDBImporter
    * @param ubRowIdx Largest row idx which should be imported by this object
    * @return status - 0 if everything was ok, -1 otherwise
    */
-  private native int jniGenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
+  private native int jniGenomicsDBImporter(String loaderJSONFile,
+                                           int rank,
+                                           long lbRowIdx,
+                                           long ubRowIdx);
   /**
    * Creates GenomicsDBImporter object when importing VCF files (no streams)
    * @param loaderJSONFile Path to loader JSON file
@@ -470,8 +479,10 @@ public class GenomicsDBImporter
    * @return "pointer"/address to GenomicsDBImporter object in memory,
    *         if 0, then something went wrong
    */
-  private native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile, int rank,
-                                                            long lbRowIdx, long ubRowIdx);
+  private native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile,
+                                                            int rank,
+                                                            long lbRowIdx,
+                                                            long ubRowIdx);
   /**
    * Notify importer object that a new stream is to be added
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
@@ -482,8 +493,10 @@ public class GenomicsDBImporter
    * @param numValidBytesInBuffer num valid bytes in the buffer (length of the header)
    */
   private native void jniAddBufferStream(long genomicsDBImporterHandle,
-                                         String streamName, boolean isBCF,
-                                         long bufferCapacity, byte[] buffer,
+                                         String streamName,
+                                         boolean isBCF,
+                                         long bufferCapacity,
+                                         byte[] buffer,
                                          long numValidBytesInBuffer);
   /**
    * Setup loader after all the buffer streams are added
@@ -503,8 +516,11 @@ public class GenomicsDBImporter
    * @param buffer buffer containing data
    * @param numValidBytesInBuffer num valid bytes in the buffer
    */
-  private native void jniWriteDataToBufferStream(long handle, int streamIdx, int partitionIdx,
-                                                 byte[] buffer, long numValidBytesInBuffer);
+  private native void jniWriteDataToBufferStream(long handle,
+                                                 int streamIdx,
+                                                 int partitionIdx,
+                                                 byte[] buffer,
+                                                 long numValidBytesInBuffer);
   /**
    * Import the next batch of data into TileDB/GenomicsDB
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
@@ -529,7 +545,9 @@ public class GenomicsDBImporter
    * @param rank rank/partition index
    * @return chromosome intervals for the queried column partition in JSON format
    */
-  private static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
+  private static native String jniGetChromosomeIntervalsForColumnPartition(
+    final String loaderJSONFile,
+    final int rank);
 
   private String mLoaderJSONFile = null;
   private int mRank = 0;
@@ -551,7 +569,7 @@ public class GenomicsDBImporter
   private JSONObject mCallsetMappingJSON = null;
 
   /**
-   * Constructor
+   * Default Constructor
    */
   public GenomicsDBImporter()
   {
@@ -589,6 +607,22 @@ public class GenomicsDBImporter
   }
 
   /**
+   * Constructor developed specifically for GATK4 GenomicsDBImport tool.
+   * This will create a GenomicsDB importer object from a given list of
+   * GVCFs and an interval to read from
+   *
+   * @param fileReaders  VCF File readers
+   * @param chromosomeInterval  Positional intervals for a given chromosome
+   */
+  public GenomicsDBImporter(List<VCFFileReader> fileReaders,
+                            ChromosomeInterval chromosomeInterval,
+                            GenomicsDBImportConfiguration importConfiguration) {
+
+
+  }
+
+
+  /**
    * Initialize variables
    * @param loaderJSONFile GenomicsDB loader JSON configuration file
    * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
@@ -614,7 +648,8 @@ public class GenomicsDBImporter
    * @return rowIdx+#samples in the header
    */
   public static long initializeSampleInfoMapFromHeader(Map<Integer, SampleInfo> sampleIndexToInfo,
-                                                       final VCFHeader vcfHeader, final long rowIdx)
+                                                       final VCFHeader vcfHeader,
+                                                       final long rowIdx)
   {
     final List<String> headerSampleNames = vcfHeader.getGenotypeSamples();
     final int numSamplesInHeader = headerSampleNames.size();
@@ -641,7 +676,8 @@ public class GenomicsDBImporter
    * can be set to null, which implies that the mapping is stored in a callsets JSON file
    * @return returns buffer stream index
    */
-  public int addBufferStream(final String streamName, final VCFHeader vcfHeader,
+  public int addBufferStream(final String streamName,
+                             final VCFHeader vcfHeader,
                              final long bufferCapacity,
                              final VariantContextWriterBuilder.OutputType streamType,
                              final Map<Integer, SampleInfo> sampleIndexToInfo)
@@ -668,12 +704,13 @@ public class GenomicsDBImporter
    *                          stored in a callsets JSON file
    * @return returns the stream index
    */
-  public int addSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
-                                             Iterator<VariantContext> vcIterator,
-                                             final long bufferCapacity,
-                                             final VariantContextWriterBuilder.OutputType streamType,
-                                             final Map<Integer, SampleInfo> sampleIndexToInfo)
-    throws GenomicsDBException
+  public int addSortedVariantContextIterator(
+    final String streamName,
+    final VCFHeader vcfHeader,
+    Iterator<VariantContext> vcIterator,
+    final long bufferCapacity,
+    final VariantContextWriterBuilder.OutputType streamType,
+    final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException
   {
     return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType,
       vcIterator, sampleIndexToInfo);
@@ -700,12 +737,13 @@ public class GenomicsDBImporter
    * @throws IOException thrown if incorrect iterator or missing JSON configuration
    *                          files
    */
-  public int setSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
-                                             Iterator<VariantContext> vcIterator,
-                                             final long bufferCapacity,
-                                             final VariantContextWriterBuilder.OutputType streamType,
-                                             final Map<Integer, SampleInfo> sampleIndexToInfo)
-    throws GenomicsDBException, IOException
+  public int setSortedVariantContextIterator(
+    final String streamName,
+    final VCFHeader vcfHeader,
+    Iterator<VariantContext> vcIterator,
+    final long bufferCapacity,
+    final VariantContextWriterBuilder.OutputType streamType,
+    final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException, IOException
   {
     int streamIdx = addSortedVariantContextIterator(streamName, vcfHeader, vcIterator,
       bufferCapacity, streamType, sampleIndexToInfo);
@@ -726,7 +764,8 @@ public class GenomicsDBImporter
    *                          which implies that the mapping is stored in a callsets JSON file
    * @return returns the stream index
    */
-  private int addBufferStream(final String streamName, final VCFHeader vcfHeader,
+  private int addBufferStream(final String streamName,
+                              final VCFHeader vcfHeader,
                               final long bufferCapacity,
                               final VariantContextWriterBuilder.OutputType streamType,
                               Iterator<VariantContext> vcIterator,
@@ -955,8 +994,8 @@ public class GenomicsDBImporter
   public static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
       final String loaderJSONFile, final int partitionIdx) throws ParseException
   {
-    final String chromosomeIntervalsJSONString = jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile,
-        partitionIdx);
+    final String chromosomeIntervalsJSONString =
+      jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx);
     /* JSON format
       {
         "contigs": [
@@ -985,12 +1024,15 @@ public class GenomicsDBImporter
     }
     return chromosomeIntervals;
   }
+  
   /**
    * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
    * that will iterate over the VariantContext objects provided by the reader belonging
    * to the column partition specified by the loader JSON file and rank/partition index
+   * 
    * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param reader AbstractFeatureReader over VariantContext objects -
+   *               SOURCE can vary - BCF v/s VCF for example
    * @param loaderJSONFile path to loader JSON file
    * @param partitionIdx rank/partition index
    * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
@@ -1000,18 +1042,22 @@ public class GenomicsDBImporter
    */
   public static <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
       AbstractFeatureReader<VariantContext, SOURCE> reader,
-      final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
+      final String loaderJSONFile,
+      final int partitionIdx) throws ParseException, IOException
   {
     return new MultiChromosomeIterator<SOURCE>(reader,
-            GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
+            GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(
+              loaderJSONFile, partitionIdx));
   }
   
   /**
    * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
    * that will iterate over the VariantContext objects provided by the reader belonging
    * to the column partition specified by this object's loader JSON file and rank/partition index
+   *
    * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param reader AbstractFeatureReader over VariantContext objects -
+   *               SOURCE can vary - BCF v/s VCF for example
    * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
    *         belonging to the specified column partition
    * @throws IOException when the reader's query method throws an IOException

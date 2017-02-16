@@ -52,6 +52,7 @@
         <htsjdk.version>2.5.0</htsjdk.version>
         <json.simple.version>[1.1.1,)</json.simple.version>
         <log4j.version>1.2.17</log4j.version>
+        <protobuf.version>2.3.0</protobuf.version>
     </properties>
 
     <dependencies>
@@ -77,6 +78,17 @@
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>RELEASE</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -214,6 +226,9 @@
                 <configuration>
                     <show>private</show>
                     <nohelp>true</nohelp>
+                    <sourceFileExcludes>
+                        <sourceFileExclude>src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
+                    </sourceFileExcludes>
                 </configuration>
                 <executions>
                     <execution>
