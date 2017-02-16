@@ -201,6 +201,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         private FeatureCodec<T, SOURCE> mCodec = null;
         private GenomicsDBQueryStream mStream = null;
         private SOURCE mSource = null;
+        private GenomicsDBTimer mTimer = null;
+        private boolean mClosedBefore = false;
 
         /**
          * Constructor
@@ -235,12 +237,16 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             mStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile, chr, start, end);
             mStream.skip(mFCHeader.getHeaderEnd());
             mSource = codec.makeSourceFromStream(mStream);
+            mTimer = new GenomicsDBTimer();
         }
 
         @Override
         public boolean hasNext()
         {
-            return !(mCodec.isDone(mSource));
+            boolean isDone = (mCodec.isDone(mSource));
+            if(isDone)
+                close();
+            return !isDone;
         }
 
         @Override
@@ -248,9 +254,12 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         {
             try
             {
+                mTimer.start();
                 if(mCodec.isDone(mSource))
                     throw new RuntimeException("No more valid records exist");
-                return mCodec.decode(mSource);
+                T nextObj = mCodec.decode(mSource);
+                mTimer.stop();
+                return nextObj;
             }
             catch(IOException e)
             {
@@ -261,7 +270,12 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         @Override
         public void close()
         {
-            mCodec.close(mSource);
+            if(!mClosedBefore)
+            {
+                mTimer.print("GenomicsDB iterator next() timer", System.err);
+                mCodec.close(mSource);
+                mClosedBefore = true;
+            }
         }
 
         @Override

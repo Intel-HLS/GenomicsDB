@@ -236,6 +236,11 @@ class VCF2TileDBLoaderReadState
       m_exchange_counter = num_exchanges-1u;
       m_num_parallel_omp_sections = 1 + (do_ping_pong_buffering ? 1 : 0) +
         (offload_vcf_output_processing && do_ping_pong_buffering ? 1 : 0);
+      m_timer_vec = std::move(std::vector<Timer*>({
+            &m_fetch_timer,
+            &m_load_timer,
+            &m_flush_output_timer
+            }));
     }
     bool is_done() const { return m_done; }
   private:
@@ -245,6 +250,10 @@ class VCF2TileDBLoaderReadState
     Timer m_fetch_timer;
     Timer m_load_timer;
     Timer m_flush_output_timer;
+    Timer m_single_thread_phase_timer;
+    Timer m_time_in_read_all;
+    Timer m_sections_timer;
+    std::vector<Timer*> m_timer_vec; //for critical path
     int m_num_parallel_omp_sections;
 };
 

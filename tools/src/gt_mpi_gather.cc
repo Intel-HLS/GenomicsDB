@@ -333,7 +333,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
     }
   }
   timer.stop();
-  timer.print("Rank : "+std::to_string(my_world_mpi_rank)+" ", std::cerr);
+  timer.print(std::string("Total scan_and_produce_Broad_GVCF time")+" for rank "+std::to_string(my_world_mpi_rank), std::cerr);
 }
 #endif
 

@@ -51,11 +51,9 @@ class VariantArrayCellIterator
       if(m_tiledb_array_iterator)
         tiledb_array_iterator_finalize(m_tiledb_array_iterator);
       m_tiledb_array_iterator = 0;
-#ifdef DEBUG
-      std::cerr << "#cells traversed "<<m_num_cells_iterated_over<<"\n";
-#endif
 #ifdef DO_PROFILING
-      m_tiledb_timer.print_cumulative("TileDB iterator", std::cerr);
+      m_tiledb_timer.print("TileDB iterator", std::cerr);
+      m_tiledb_to_buffer_cell_timer.print("TileDB to buffer cell", std::cerr);
 #endif
     }
     //Delete copy and move constructors
@@ -114,6 +112,7 @@ class VariantArrayCellIterator
 #endif
 #ifdef DO_PROFILING
     Timer m_tiledb_timer;
+    Timer m_tiledb_to_buffer_cell_timer;
 #endif
 };
 

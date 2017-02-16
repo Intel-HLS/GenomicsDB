@@ -202,6 +202,9 @@ VCFAdapter::~VCFAdapter()
   if(m_open_output && m_output_fptr)
     bcf_close(m_output_fptr);
   m_output_fptr = 0;
+#ifdef DO_PROFILING
+  m_vcf_serialization_timer.print("bcf_t serialization", std::cerr);
+#endif
 }
 
 void VCFAdapter::clear()
@@ -368,6 +371,9 @@ void VCFSerializedBufferAdapter::print_header()
 
 void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size)
 {
+#ifdef DO_PROFILING
+  m_vcf_serialization_timer.start();
+#endif
   assert(m_rw_buffer);
   auto offset = bcf_serialize(line, &(m_rw_buffer->m_buffer[0]), m_rw_buffer->m_num_valid_bytes, m_rw_buffer->m_buffer.size(),
        m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
@@ -379,6 +385,9 @@ void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line, const si
        m_is_bcf ? 1u : 0u, m_template_vcf_hdr, &m_hts_string);
   }
   m_rw_buffer->m_num_valid_bytes = offset;
+#ifdef DO_PROFILING
+  m_vcf_serialization_timer.stop();
+#endif
 }
 
 #endif //ifdef HTSDIR

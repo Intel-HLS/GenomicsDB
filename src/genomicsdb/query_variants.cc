@@ -22,6 +22,7 @@
 
 #include "gt_common.h"
 #include "query_variants.h"
+#include "timer.h"
 
 using namespace std;
 
@@ -80,7 +81,9 @@ GTProfileStats::GTProfileStats()
     "GT_NUM_CELLS",   //total #cells traversed in the query, coord cells are accessed for every time
       "GT_NUM_CELLS_IN_LEFT_SWEEP",//total #cells traversed in the query left sweep, coord cells are accessed for every time
       "GT_NUM_VALID_CELLS_IN_QUERY",//#valid cells actually returned in query 
-      "GT_NUM_ATTR_CELLS_ACCESSED"//#attribute cells accessed in the query
+      "GT_NUM_ATTR_CELLS_ACCESSED",//#attribute cells accessed in the query
+      "GT_NUM_PQ_FLUSHES_DUE_TO_OVERLAPPING_CELLS",//#times PQ gets flushed due to overlapping cells in the input
+      "GT_NUM_OPERATOR_INVOCATIONS" //#times operator gets invoked
   };
 }
 
@@ -90,17 +93,20 @@ void GTProfileStats::print_stats(std::ostream& fptr) const
   for(auto i=0u;i<GTProfileStats::GT_NUM_STATS;++i)
   {
     fptr << m_stats_name_vector[i];
-    fptr << "," << m_stats_sum_vector[i] << "," << std::setprecision(3) << m_stats_sum_sq_vector[i];
+    fptr << "," << m_stats_sum_vector[i] << "," << std::setprecision(6) << m_stats_sum_sq_vector[i];
     if(m_num_queries == 0)
       fptr << ",*,*";
     else
     {
       double mean = ((double)m_stats_sum_vector[i])/m_num_queries;
       double std_dev = sqrt(abs((m_stats_sum_sq_vector[i]/m_num_queries) - (mean*mean)));
-      fptr << "," << std::setprecision(3) << mean << "," << std_dev; 
+      fptr << "," << std::setprecision(6) << mean << "," << std_dev;
     }
     fptr << "\n";
   }
+  m_interval_sweep_timer.print("Sweep at query begin position", std::cerr);
+  m_operator_timer.print("Operator time", std::cerr);
+  m_genomicsdb_cell_fill_timer.print("GenomicsDB cell fill timer", std::cerr);
 }
 
 //Static members
@@ -262,8 +268,12 @@ void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchem
 void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     const VariantQueryConfig& query_config, Variant& variant,
     SingleVariantOperatorBase& variant_operator,
-    int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions) const
+    int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions,
+    GTProfileStats* stats_ptr) const
 {
+#ifdef DO_PROFILING
+  assert(stats_ptr);
+#endif
   while(!end_pq.empty() && (current_start_position < next_start_position || is_last_call) && !(variant_operator.overflow()))
   {
     int64_t top_end_pq = end_pq.top()->get_column_end();
@@ -272,7 +282,14 @@ void VariantQueryProcessor::handle_gvcf_ranges(VariantCallEndPQ& end_pq,
     min_end_point = num_calls_with_deletions ? current_start_position : min_end_point;
     //Prepare variant for aligned column interval
     variant.set_column_interval(current_start_position, min_end_point);
+#ifdef DO_PROFILING
+    stats_ptr->m_operator_timer.start();
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_OPERATOR_INVOCATIONS, 1u);
+#endif
     variant_operator.operate(variant, query_config);
+#ifdef DO_PROFILING
+    stats_ptr->m_operator_timer.stop();
+#endif
     //The following intervals have been completely processed
     while(!end_pq.empty() && static_cast<int64_t>(end_pq.top()->get_column_end()) == min_end_point)
     {
@@ -320,6 +337,9 @@ void VariantQueryProcessor::scan_and_operate(
   {
     current_start_position = scan_state->m_current_start_position;
     forward_iter = scan_state->m_iter;
+#ifdef DO_PROFILING
+    stats_ptr = &(scan_state->m_stats);
+#endif
   }
   else //new scan
   {
@@ -366,6 +386,10 @@ void VariantQueryProcessor::scan_and_operate(
   for(;!(forward_iter->end()) && !end_loop && (scan_state == 0 || !(variant_operator.overflow()));++(*forward_iter))
   {
     auto& cell = **forward_iter;
+#ifdef DO_PROFILING
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_CELLS, 1u);
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
+#endif
 #ifdef DUPLICATE_CELL_AT_END
     //Ignore cell copies at END positions
     auto cell_column_value = cell.get_begin_column();
@@ -382,13 +406,17 @@ void VariantQueryProcessor::scan_and_operate(
   //Loop is over - no more data available from TileDB array
   if(end_loop || forward_iter->end())
   {
-    auto completed_iter = forward_iter->end();
-    next_start_position =  completed_iter ? 0 //iterator end, don't care about next
-      : query_config.get_column_end(column_interval_idx)+1; //else don't bother after queried end
+    next_start_position =  (query_config.get_num_column_intervals() > 0u)
+      ? query_config.get_column_end(column_interval_idx)+1 //terminate at queried end
+      : 0; //else don't bother with next_start_position, forward_iter->end() must be true
     //handle last interval
-    handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position, completed_iter, num_calls_with_deletions);
+    handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position,
+        forward_iter->end(), num_calls_with_deletions, stats_ptr);
     if(!variant_operator.overflow())
       delete forward_iter;
+#ifdef DO_PROFILING
+    stats_ptr->print_stats(std::cerr);
+#endif
     if(scan_state)
     {
       if(variant_operator.overflow()) //buffer full
@@ -425,7 +453,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     next_start_position = cell.get_begin_column();
     assert(cell.get_begin_column() > current_start_position);
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position,
-        next_start_position, false, num_calls_with_deletions);
+        next_start_position, false, num_calls_with_deletions, stats_ptr);
     assert(end_pq.empty() || static_cast<int64_t>(end_pq.top()->get_column_end()) >= next_start_position || variant_operator.overflow());  //invariant
     //Buffer overflow, don't process anymore
     if(variant_operator.overflow())
@@ -649,9 +677,9 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
 void VariantQueryProcessor::gt_get_column_interval(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    vector<Variant>& variants, GA4GHPagingInfo* paging_info, GTProfileStats* stats) const {
+    vector<Variant>& variants, GA4GHPagingInfo* paging_info, GTProfileStats* stats_ptr) const {
 #ifdef DO_PROFILING
-  assert(stats);
+  assert(stats_ptr);
 #endif
   if(paging_info)
     paging_info->init_page_query();
@@ -682,7 +710,7 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
     std::cerr << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
 #endif
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats,
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
 #ifdef DUPLICATE_CELL_AT_END
         0
 #else
@@ -729,9 +757,9 @@ void VariantQueryProcessor::gt_get_column_interval(
     for(;!(forward_iter->end());++(*forward_iter))
     {
 #ifdef DO_PROFILING
-      stats->increment_tmp_counter(GTProfileStats::GT_NUM_CELLS, 1u);
+      stats_ptr->update_stat(GTProfileStats::GT_NUM_CELLS, 1u);
       //FIXME: in the current implementation, every *iter accesses every attribute
-      stats->increment_tmp_counter(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
+      stats_ptr->update_stat(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
 #endif
       auto& cell = **forward_iter;
       curr_row_idx = cell.get_row();
@@ -752,7 +780,7 @@ void VariantQueryProcessor::gt_get_column_interval(
         tmp_variant.reset_for_new_interval();
         tmp_variant.get_call(0u).set_row_idx(curr_row_idx); //set row idx
         tmp_variant.set_column_interval(curr_column_idx, curr_column_idx);
-        gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, stats);
+        gt_fill_row(tmp_variant, curr_row_idx, curr_column_idx, subset_query_config, cell, stats_ptr);
         assert(tmp_variant.get_num_calls() == 1u);      //exactly 1 call
         //When cells are duplicated at the END, then the VariantCall object need not be valid
         if(tmp_variant.get_call(0).is_valid())
@@ -786,8 +814,14 @@ void VariantQueryProcessor::gt_get_column_interval(
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
     {
+#ifdef DO_PROFILING
+      stats_ptr->m_operator_timer.start();
+#endif
       variant_operator.operate(variants[i], query_config);
       variant_operator.copy_back_remapped_fields(variants[i]); //copy back fields that have been remapped
+#ifdef DO_PROFILING
+      stats_ptr->m_operator_timer.stop();
+#endif
     }
   if(paging_info)
     paging_info->serialize_page_end(m_array_schema->array_name());
@@ -799,9 +833,10 @@ void VariantQueryProcessor::gt_get_column_interval(
 void VariantQueryProcessor::gt_get_column(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    Variant& variant, GTProfileStats* stats, std::vector<uint64_t>* query_row_idx_in_order) const {
+    Variant& variant, GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
 #ifdef DO_PROFILING
-  assert(stats);
+  assert(stats_ptr);
+  stats_ptr->m_interval_sweep_timer.start();
 #endif
   //New interval starts
   variant.reset_for_new_interval();
@@ -829,10 +864,10 @@ void VariantQueryProcessor::gt_get_column(
   // Fill the genotyping column
   while(!(cell_iter->end()) && filled_rows < query_config.get_num_rows_to_query()) {
 #ifdef DO_PROFILING
-    stats->increment_tmp_counter(GTProfileStats::GT_NUM_CELLS, 1u);
-    stats->increment_tmp_counter(GTProfileStats::GT_NUM_CELLS_IN_LEFT_SWEEP, 1u);
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_CELLS, 1u);
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_CELLS_IN_LEFT_SWEEP, 1u);
     //FIXME: in the current implementation, every *iter accesses every attribute
-    stats->increment_tmp_counter(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
+    stats_ptr->update_stat(GTProfileStats::GT_NUM_ATTR_CELLS_ACCESSED, query_config.get_num_queried_attributes());
 #endif
     auto& cell = **cell_iter;
 #ifdef DUPLICATE_CELL_AT_END
@@ -851,7 +886,7 @@ void VariantQueryProcessor::gt_get_column(
       auto& curr_call = variant.get_call(curr_query_row_idx);
       if(!(curr_call.is_initialized()))
       {
-        gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats
+        gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr
 #ifdef DUPLICATE_CELL_AT_END
             , true
 #endif
@@ -879,6 +914,10 @@ void VariantQueryProcessor::gt_get_column(
 #ifndef DUPLICATE_CELL_AT_END
   if(query_row_idx_in_order)
     query_row_idx_in_order->resize(num_valid_rows);
+#endif
+
+#ifdef DO_PROFILING
+  stats_ptr->m_interval_sweep_timer.stop();
 #endif
 }
 
@@ -959,14 +998,18 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 void VariantQueryProcessor::gt_fill_row(
     Variant& variant, int64_t row, int64_t column,
     const VariantQueryConfig& query_config,
-    const BufferVariantCell& cell, GTProfileStats* stats
+    const BufferVariantCell& cell, GTProfileStats* stats_ptr
 #ifdef DUPLICATE_CELL_AT_END
     , bool traverse_end_copies
 #endif
     ) const {
-  #if VERBOSE>1
-    std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
-  #endif
+#ifdef DO_PROFILING
+  assert(stats_ptr);
+  stats_ptr->m_genomicsdb_cell_fill_timer.start();
+#endif
+#if VERBOSE>1
+  std::cerr << "[query_variants:gt_fill_row] Fill Row " << row << " column " << column << std::endl;
+#endif
   //Current row should be part of query
   assert(query_config.is_queried_array_row_idx(row));
   VariantCall& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(row));
@@ -1003,8 +1046,7 @@ void VariantQueryProcessor::gt_fill_row(
   }
   curr_call.mark_valid(true);   //contains valid data for this query
 #ifdef DO_PROFILING
-  assert(stats);
-  stats->increment_tmp_counter(GTProfileStats::GT_NUM_VALID_CELLS_IN_QUERY, 1u);
+  stats_ptr->update_stat(GTProfileStats::GT_NUM_VALID_CELLS_IN_QUERY, 1u);
 #endif
 #ifdef DUPLICATE_CELL_AT_END
   if(column > END_v)
@@ -1053,6 +1095,9 @@ void VariantQueryProcessor::gt_fill_row(
     curr_call.set_contains_deletion(has_deletion);
     curr_call.set_is_reference_block(VariantUtils::is_reference_block(REF_field_ptr->get(), ALT_field_ptr->get()));
   }
+#ifdef DO_PROFILING
+  stats_ptr->m_genomicsdb_cell_fill_timer.stop();
+#endif
 }
 
 inline
