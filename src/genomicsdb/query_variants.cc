@@ -582,7 +582,7 @@ void VariantQueryProcessor::iterate_over_cells(
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
-    VariantQueryConfig& query_config, const VidMapper& vid_mapper) const
+    VariantQueryConfig& query_config, const VidMapper& vid_mapper, const bool alleles_required) const
 {
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
@@ -590,7 +590,7 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
           m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_END_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(END_schema_idx));
   query_config.add_attribute_to_query("END", END_schema_idx);
-  //Check if ALT needs to be added as part of queried attributes
+  //Check if REF, ALT needs to be added as part of queried attributes
   unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   unsigned ALT_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
@@ -599,6 +599,13 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_REF_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(REF_schema_idx));
   auto added_ALT_REF = false;
+  //Required by the caller
+  if(alleles_required)
+  {
+    query_config.add_attribute_to_query("ALT", ALT_schema_idx);
+    query_config.add_attribute_to_query("REF", REF_schema_idx);
+    added_ALT_REF = true;
+  }
   for(auto i=0u;i<num_queried_attributes;++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
