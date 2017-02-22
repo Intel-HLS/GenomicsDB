@@ -1,5 +1,5 @@
 #ifndef GENOMICSDB_VID_MAPPER_PB_H
-#define #ifndef GENOMICSDB_VID_MAPPER_PB_H
+#define GENOMICSDB_VID_MAPPER_PB_H
 
 #include "vid_mapper.h"
 

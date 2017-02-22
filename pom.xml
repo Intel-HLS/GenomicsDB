@@ -203,7 +203,7 @@
                     </includes>
                     <forkMode>once</forkMode>
                     <argLine>-Djava.library.path=${project.basedir}/lib:${java.library.path}</argLine>
-                    <skipTests>true</skipTests>
+                    <!--<skipTests>true</skipTests>-->
                 </configuration>
             </plugin>
             <!-- disable surefire -->
@@ -226,9 +226,6 @@
                 <configuration>
                     <show>private</show>
                     <nohelp>true</nohelp>
-                    <sourceFileExcludes>
-                        <sourceFileExclude>src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
-                    </sourceFileExcludes>
                 </configuration>
                 <executions>
                     <execution>

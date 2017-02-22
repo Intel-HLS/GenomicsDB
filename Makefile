@@ -311,7 +311,7 @@ endif
 ###################
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all \
-        TileDB_library TileDB_clean htslib_library htslib_clean
+        TileDB_library TileDB_clean htslib_library htslib_clean	
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI
