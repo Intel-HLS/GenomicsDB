@@ -1,18 +1,48 @@
 package com.intel.genomicsdb;
 
+import htsjdk.variant.vcf.VCFFileReader;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GenomicsDBImportConfigurationSpec {
+public class GenomicsDBImporterSpec {
 
-  private static final String ARRAY_FOR_PARTITION0 = "array0";
-  private static final String ARRAY_FOR_PARTITION1 = "array1";
-  private final String TILEDB_WORKSPACE = "/path/to/junk/folder";
+  private static final String TILEDB_WORKSPACE = "./__workspace";
+  private static final String ARRAY_FOR_PARTITION0 = "array_test0";
+  private static final String ARRAY_FOR_PARTITION1 = "array_test1";
 
-  @Test(groups = {"configuration tests"})
-  public void testImportConfiguration() {
+  @Test(groups = {"genomicsdb importer with an interval and multiple GVCFs"})
+  public void testMultiGVCFInputs() throws IOException {
+
+    File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
+    File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
+    File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
+    List< VCFFileReader> variantReaders = new ArrayList<>();
+
+    VCFFileReader reader_t6 = new VCFFileReader(t6);
+    VCFFileReader reader_t7 = new VCFFileReader(t7);
+    VCFFileReader reader_t8 = new VCFFileReader(t8);
+    variantReaders.add(reader_t6);
+    variantReaders.add(reader_t7);
+    variantReaders.add(reader_t8);
+
+
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+      generateTestLoaderConfiguration();
+
+    ChromosomeInterval chromosomeInterval =
+      new ChromosomeInterval("1",1, 249250621);
+    GenomicsDBImporter importer =
+      new GenomicsDBImporter(variantReaders, chromosomeInterval, null);
+
+    importer.importBatch();
+    assert importer.isDone();
+  }
+
+  private GenomicsDBImportConfiguration.ImportConfiguration generateTestLoaderConfiguration() {
     List<GenomicsDBImportConfiguration.Partition> partitions = new ArrayList<>(2);
 
     GenomicsDBImportConfiguration.TileDBConfig.Builder tB0 =
@@ -62,28 +92,6 @@ public class GenomicsDBImportConfigurationSpec {
         .addAllColumnPartitions(partitions)
         .build();
 
-    assert importConfiguration.isInitialized();
-
-    // Assert has methods
-    assert !importConfiguration.hasCallsetMappingFile();
-    assert importConfiguration.hasDoPingPongBuffering();
-    assert importConfiguration.hasDeleteAndCreateTiledbArray();
-    assert !importConfiguration.hasDiscardVcfIndex();
-    assert importConfiguration.hasNumParallelVcfFiles();
-    assert !importConfiguration.hasOffloadVcfOutputProcessing();
-    assert !importConfiguration.hasProduceCombinedVcf();
-    assert importConfiguration.hasProduceTiledbArray();
-    assert importConfiguration.hasSizePerColumnPartition();
-
-    // Assert gets
-    assert importConfiguration.getDoPingPongBuffering();
-    assert importConfiguration.getDoPingPongBuffering();
-    assert importConfiguration.getDeleteAndCreateTiledbArray();
-    assert importConfiguration.getNumParallelVcfFiles() == 1;
-    assert importConfiguration.getProduceTiledbArray();
-    assert importConfiguration.getSizePerColumnPartition() == 10000;
-    assert importConfiguration.getColumnPartitionsCount() == 2;
-    assert importConfiguration.getColumnPartitions(0) == p0;
-    assert importConfiguration.getColumnPartitions(1) == p1;
+    return importConfiguration;
   }
 }

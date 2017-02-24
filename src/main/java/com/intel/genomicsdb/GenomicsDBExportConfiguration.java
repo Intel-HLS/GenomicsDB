@@ -6,230 +6,420 @@ package com.intel.genomicsdb;
 public final class GenomicsDBExportConfiguration {
   private GenomicsDBExportConfiguration() {}
   public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistry registry) {
+      com.google.protobuf.ExtensionRegistryLite registry) {
   }
-  public static final class ColumnRange extends
-      com.google.protobuf.GeneratedMessage {
+
+  public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
+  }
+  public interface ColumnRangeOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:ColumnRange)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>required int64 low = 1;</code>
+     */
+    boolean hasLow();
+    /**
+     * <code>required int64 low = 1;</code>
+     */
+    long getLow();
+
+    /**
+     * <code>required int64 high = 2;</code>
+     */
+    boolean hasHigh();
+    /**
+     * <code>required int64 high = 2;</code>
+     */
+    long getHigh();
+  }
+  /**
+   * Protobuf type {@code ColumnRange}
+   */
+  public  static final class ColumnRange extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:ColumnRange)
+      ColumnRangeOrBuilder {
     // Use ColumnRange.newBuilder() to construct.
+    private ColumnRange(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
     private ColumnRange() {
-      initFields();
+      low_ = 0L;
+      high_ = 0L;
     }
-    private ColumnRange(boolean noInit) {}
-    
-    private static final ColumnRange defaultInstance;
-    public static ColumnRange getDefaultInstance() {
-      return defaultInstance;
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
     }
-    
-    public ColumnRange getDefaultInstanceForType() {
-      return defaultInstance;
+    private ColumnRange(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              low_ = input.readInt64();
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              high_ = input.readInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
     }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder.class);
     }
-    
-    // required int64 low = 1;
+
+    private int bitField0_;
     public static final int LOW_FIELD_NUMBER = 1;
-    private boolean hasLow;
-    private long low_ = 0L;
-    public boolean hasLow() { return hasLow; }
-    public long getLow() { return low_; }
-    
-    // required int64 high = 2;
-    public static final int HIGH_FIELD_NUMBER = 2;
-    private boolean hasHigh;
-    private long high_ = 0L;
-    public boolean hasHigh() { return hasHigh; }
-    public long getHigh() { return high_; }
-    
-    private void initFields() {
+    private long low_;
+    /**
+     * <code>required int64 low = 1;</code>
+     */
+    public boolean hasLow() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+    /**
+     * <code>required int64 low = 1;</code>
+     */
+    public long getLow() {
+      return low_;
+    }
+
+    public static final int HIGH_FIELD_NUMBER = 2;
+    private long high_;
+    /**
+     * <code>required int64 high = 2;</code>
+     */
+    public boolean hasHigh() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required int64 high = 2;</code>
+     */
+    public long getHigh() {
+      return high_;
+    }
+
+    private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
-      if (!hasLow) return false;
-      if (!hasHigh) return false;
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      if (!hasLow()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasHigh()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (hasLow()) {
-        output.writeInt64(1, getLow());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt64(1, low_);
       }
-      if (hasHigh()) {
-        output.writeInt64(2, getHigh());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt64(2, high_);
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      if (hasLow()) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(1, getLow());
+          .computeInt64Size(1, low_);
       }
-      if (hasHigh()) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(2, getHigh());
+          .computeInt64Size(2, high_);
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange other = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange) obj;
+
+      boolean result = true;
+      result = result && (hasLow() == other.hasLow());
+      if (hasLow()) {
+        result = result && (getLow()
+            == other.getLow());
+      }
+      result = result && (hasHigh() == other.hasHigh());
+      if (hasHigh()) {
+        result = result && (getHigh()
+            == other.getHigh());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasLow()) {
+        hash = (37 * hash) + LOW_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getLow());
+      }
+      if (hasHigh()) {
+        hash = (37 * hash) + HIGH_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getHigh());
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ColumnRange}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:ColumnRange)
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
-        result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange();
+      }
+      public Builder clear() {
+        super.clear();
+        low_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        high_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRange_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange returnMe = result;
-        result = null;
-        return returnMe;
+        result.low_ = low_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.high_ = high_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange)other);
@@ -238,7 +428,7 @@ public final class GenomicsDBExportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange other) {
         if (other == com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.getDefaultInstance()) return this;
         if (other.hasLow()) {
@@ -247,310 +437,548 @@ public final class GenomicsDBExportConfiguration {
         if (other.hasHigh()) {
           setHigh(other.getHigh());
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        if (!hasLow()) {
+          return false;
+        }
+        if (!hasHigh()) {
+          return false;
+        }
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private long low_ ;
+      /**
+       * <code>required int64 low = 1;</code>
+       */
+      public boolean hasLow() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int64 low = 1;</code>
+       */
+      public long getLow() {
+        return low_;
+      }
+      /**
+       * <code>required int64 low = 1;</code>
+       */
+      public Builder setLow(long value) {
+        bitField0_ |= 0x00000001;
+        low_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 low = 1;</code>
+       */
+      public Builder clearLow() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        low_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long high_ ;
+      /**
+       * <code>required int64 high = 2;</code>
+       */
+      public boolean hasHigh() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>required int64 high = 2;</code>
+       */
+      public long getHigh() {
+        return high_;
+      }
+      /**
+       * <code>required int64 high = 2;</code>
+       */
+      public Builder setHigh(long value) {
+        bitField0_ |= 0x00000002;
+        high_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 high = 2;</code>
+       */
+      public Builder clearHigh() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        high_ = 0L;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:ColumnRange)
+    }
+
+    // @@protoc_insertion_point(class_scope:ColumnRange)
+    private static final com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<ColumnRange>
+        PARSER = new com.google.protobuf.AbstractParser<ColumnRange>() {
+      public ColumnRange parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new ColumnRange(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<ColumnRange> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ColumnRange> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface ColumnRangeListOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:ColumnRangeList)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> 
+        getRangeListList();
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getRangeList(int index);
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    int getRangeListCount();
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder> 
+        getRangeListOrBuilderList();
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder getRangeListOrBuilder(
+        int index);
+  }
+  /**
+   * Protobuf type {@code ColumnRangeList}
+   */
+  public  static final class ColumnRangeList extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:ColumnRangeList)
+      ColumnRangeListOrBuilder {
+    // Use ColumnRangeList.newBuilder() to construct.
+    private ColumnRangeList(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private ColumnRangeList() {
+      rangeList_ = java.util.Collections.emptyList();
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ColumnRangeList(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
           int tag = input.readTag();
           switch (tag) {
             case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
+              done = true;
+              break;
             default: {
               if (!parseUnknownField(input, unknownFields,
                                      extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
+                done = true;
               }
               break;
             }
-            case 8: {
-              setLow(input.readInt64());
-              break;
-            }
-            case 16: {
-              setHigh(input.readInt64());
+            case 10: {
+              if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+                rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>();
+                mutable_bitField0_ |= 0x00000001;
+              }
+              rangeList_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.PARSER, extensionRegistry));
               break;
             }
           }
         }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
+          rangeList_ = java.util.Collections.unmodifiableList(rangeList_);
+        }
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
       }
-      
-      
-      // required int64 low = 1;
-      public boolean hasLow() {
-        return result.hasLow();
-      }
-      public long getLow() {
-        return result.getLow();
-      }
-      public Builder setLow(long value) {
-        result.hasLow = true;
-        result.low_ = value;
-        return this;
-      }
-      public Builder clearLow() {
-        result.hasLow = false;
-        result.low_ = 0L;
-        return this;
-      }
-      
-      // required int64 high = 2;
-      public boolean hasHigh() {
-        return result.hasHigh();
-      }
-      public long getHigh() {
-        return result.getHigh();
-      }
-      public Builder setHigh(long value) {
-        result.hasHigh = true;
-        result.high_ = value;
-        return this;
-      }
-      public Builder clearHigh() {
-        result.hasHigh = false;
-        result.high_ = 0L;
-        return this;
-      }
-      
-      // @@protoc_insertion_point(builder_scope:ColumnRange)
     }
-    
-    static {
-      defaultInstance = new ColumnRange(true);
-      com.intel.genomicsdb.GenomicsDBExportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
-    // @@protoc_insertion_point(class_scope:ColumnRange)
-  }
-  
-  public static final class ColumnRangeList extends
-      com.google.protobuf.GeneratedMessage {
-    // Use ColumnRangeList.newBuilder() to construct.
-    private ColumnRangeList() {
-      initFields();
-    }
-    private ColumnRangeList(boolean noInit) {}
-    
-    private static final ColumnRangeList defaultInstance;
-    public static ColumnRangeList getDefaultInstance() {
-      return defaultInstance;
-    }
-    
-    public ColumnRangeList getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder.class);
     }
-    
-    // repeated .ColumnRange range_list = 1;
+
     public static final int RANGE_LIST_FIELD_NUMBER = 1;
-    private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> rangeList_ =
-      java.util.Collections.emptyList();
+    private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> rangeList_;
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
     public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> getRangeListList() {
       return rangeList_;
     }
-    public int getRangeListCount() { return rangeList_.size(); }
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    public java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder> 
+        getRangeListOrBuilderList() {
+      return rangeList_;
+    }
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    public int getRangeListCount() {
+      return rangeList_.size();
+    }
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
     public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getRangeList(int index) {
       return rangeList_.get(index);
     }
-    
-    private void initFields() {
+    /**
+     * <code>repeated .ColumnRange range_list = 1;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder getRangeListOrBuilder(
+        int index) {
+      return rangeList_.get(index);
     }
+
+    private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange element : getRangeListList()) {
-        if (!element.isInitialized()) return false;
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      for (int i = 0; i < getRangeListCount(); i++) {
+        if (!getRangeList(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
       }
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange element : getRangeListList()) {
-        output.writeMessage(1, element);
+      for (int i = 0; i < rangeList_.size(); i++) {
+        output.writeMessage(1, rangeList_.get(i));
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange element : getRangeListList()) {
+      for (int i = 0; i < rangeList_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, element);
+          .computeMessageSize(1, rangeList_.get(i));
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList other = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList) obj;
+
+      boolean result = true;
+      result = result && getRangeListList()
+          .equals(other.getRangeListList());
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (getRangeListCount() > 0) {
+        hash = (37 * hash) + RANGE_LIST_FIELD_NUMBER;
+        hash = (53 * hash) + getRangeListList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ColumnRangeList}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:ColumnRangeList)
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getRangeListFieldBuilder();
         }
-        result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList();
+      }
+      public Builder clear() {
+        super.clear();
+        if (rangeListBuilder_ == null) {
+          rangeList_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+        } else {
+          rangeListBuilder_.clear();
+        }
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ColumnRangeList_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList(this);
+        int from_bitField0_ = bitField0_;
+        if (rangeListBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001)) {
+            rangeList_ = java.util.Collections.unmodifiableList(rangeList_);
+            bitField0_ = (bitField0_ & ~0x00000001);
+          }
+          result.rangeList_ = rangeList_;
+        } else {
+          result.rangeList_ = rangeListBuilder_.build();
         }
-        if (result.rangeList_ != java.util.Collections.EMPTY_LIST) {
-          result.rangeList_ =
-            java.util.Collections.unmodifiableList(result.rangeList_);
-        }
-        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList returnMe = result;
-        result = null;
-        return returnMe;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList)other);
@@ -559,405 +987,1104 @@ public final class GenomicsDBExportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList other) {
         if (other == com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.getDefaultInstance()) return this;
-        if (!other.rangeList_.isEmpty()) {
-          if (result.rangeList_.isEmpty()) {
-            result.rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>();
+        if (rangeListBuilder_ == null) {
+          if (!other.rangeList_.isEmpty()) {
+            if (rangeList_.isEmpty()) {
+              rangeList_ = other.rangeList_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+            } else {
+              ensureRangeListIsMutable();
+              rangeList_.addAll(other.rangeList_);
+            }
+            onChanged();
           }
-          result.rangeList_.addAll(other.rangeList_);
+        } else {
+          if (!other.rangeList_.isEmpty()) {
+            if (rangeListBuilder_.isEmpty()) {
+              rangeListBuilder_.dispose();
+              rangeListBuilder_ = null;
+              rangeList_ = other.rangeList_;
+              bitField0_ = (bitField0_ & ~0x00000001);
+              rangeListBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getRangeListFieldBuilder() : null;
+            } else {
+              rangeListBuilder_.addAllMessages(other.rangeList_);
+            }
+          }
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        for (int i = 0; i < getRangeListCount(); i++) {
+          if (!getRangeList(i).isInitialized()) {
+            return false;
+          }
+        }
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> rangeList_ =
+        java.util.Collections.emptyList();
+      private void ensureRangeListIsMutable() {
+        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
+          rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>(rangeList_);
+          bitField0_ |= 0x00000001;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder> rangeListBuilder_;
+
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> getRangeListList() {
+        if (rangeListBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(rangeList_);
+        } else {
+          return rangeListBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public int getRangeListCount() {
+        if (rangeListBuilder_ == null) {
+          return rangeList_.size();
+        } else {
+          return rangeListBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getRangeList(int index) {
+        if (rangeListBuilder_ == null) {
+          return rangeList_.get(index);
+        } else {
+          return rangeListBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder setRangeList(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange value) {
+        if (rangeListBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureRangeListIsMutable();
+          rangeList_.set(index, value);
+          onChanged();
+        } else {
+          rangeListBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder setRangeList(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder builderForValue) {
+        if (rangeListBuilder_ == null) {
+          ensureRangeListIsMutable();
+          rangeList_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          rangeListBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder addRangeList(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange value) {
+        if (rangeListBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureRangeListIsMutable();
+          rangeList_.add(value);
+          onChanged();
+        } else {
+          rangeListBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder addRangeList(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange value) {
+        if (rangeListBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureRangeListIsMutable();
+          rangeList_.add(index, value);
+          onChanged();
+        } else {
+          rangeListBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder addRangeList(
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder builderForValue) {
+        if (rangeListBuilder_ == null) {
+          ensureRangeListIsMutable();
+          rangeList_.add(builderForValue.build());
+          onChanged();
+        } else {
+          rangeListBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder addRangeList(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder builderForValue) {
+        if (rangeListBuilder_ == null) {
+          ensureRangeListIsMutable();
+          rangeList_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          rangeListBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder addAllRangeList(
+          java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> values) {
+        if (rangeListBuilder_ == null) {
+          ensureRangeListIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, rangeList_);
+          onChanged();
+        } else {
+          rangeListBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder clearRangeList() {
+        if (rangeListBuilder_ == null) {
+          rangeList_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);
+          onChanged();
+        } else {
+          rangeListBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public Builder removeRangeList(int index) {
+        if (rangeListBuilder_ == null) {
+          ensureRangeListIsMutable();
+          rangeList_.remove(index);
+          onChanged();
+        } else {
+          rangeListBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder getRangeListBuilder(
+          int index) {
+        return getRangeListFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder getRangeListOrBuilder(
+          int index) {
+        if (rangeListBuilder_ == null) {
+          return rangeList_.get(index);  } else {
+          return rangeListBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder> 
+           getRangeListOrBuilderList() {
+        if (rangeListBuilder_ != null) {
+          return rangeListBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(rangeList_);
+        }
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder addRangeListBuilder() {
+        return getRangeListFieldBuilder().addBuilder(
+            com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder addRangeListBuilder(
+          int index) {
+        return getRangeListFieldBuilder().addBuilder(
+            index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .ColumnRange range_list = 1;</code>
+       */
+      public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder> 
+           getRangeListBuilderList() {
+        return getRangeListFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder> 
+          getRangeListFieldBuilder() {
+        if (rangeListBuilder_ == null) {
+          rangeListBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeOrBuilder>(
+                  rangeList_,
+                  ((bitField0_ & 0x00000001) == 0x00000001),
+                  getParentForChildren(),
+                  isClean());
+          rangeList_ = null;
+        }
+        return rangeListBuilder_;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:ColumnRangeList)
+    }
+
+    // @@protoc_insertion_point(class_scope:ColumnRangeList)
+    private static final com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<ColumnRangeList>
+        PARSER = new com.google.protobuf.AbstractParser<ColumnRangeList>() {
+      public ColumnRangeList parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new ColumnRangeList(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<ColumnRangeList> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ColumnRangeList> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface ExportConfigurationOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:ExportConfiguration)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    boolean hasTiledbWorkspace();
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    java.lang.String getTiledbWorkspace();
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes();
+
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    boolean hasTiledbArrayName();
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    java.lang.String getTiledbArrayName();
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getTiledbArrayNameBytes();
+
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    boolean hasReferenceGenome();
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    java.lang.String getReferenceGenome();
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getReferenceGenomeBytes();
+
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> 
+        getQueryColumnRangesList();
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getQueryColumnRanges(int index);
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    int getQueryColumnRangesCount();
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder> 
+        getQueryColumnRangesOrBuilderList();
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder getQueryColumnRangesOrBuilder(
+        int index);
+
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    java.util.List<java.lang.String>
+        getAttributesList();
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    int getAttributesCount();
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    java.lang.String getAttributes(int index);
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    com.google.protobuf.ByteString
+        getAttributesBytes(int index);
+  }
+  /**
+   * Protobuf type {@code ExportConfiguration}
+   */
+  public  static final class ExportConfiguration extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:ExportConfiguration)
+      ExportConfigurationOrBuilder {
+    // Use ExportConfiguration.newBuilder() to construct.
+    private ExportConfiguration(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private ExportConfiguration() {
+      tiledbWorkspace_ = "";
+      tiledbArrayName_ = "";
+      referenceGenome_ = "";
+      queryColumnRanges_ = java.util.Collections.emptyList();
+      attributes_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ExportConfiguration(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
           int tag = input.readTag();
           switch (tag) {
             case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
+              done = true;
+              break;
             default: {
               if (!parseUnknownField(input, unknownFields,
                                      extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
+                done = true;
               }
               break;
             }
             case 10: {
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder subBuilder = com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.newBuilder();
-              input.readMessage(subBuilder, extensionRegistry);
-              addRangeList(subBuilder.buildPartial());
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000001;
+              tiledbWorkspace_ = bs;
+              break;
+            }
+            case 18: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000002;
+              tiledbArrayName_ = bs;
+              break;
+            }
+            case 26: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000004;
+              referenceGenome_ = bs;
+              break;
+            }
+            case 34: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+                queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              queryColumnRanges_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.PARSER, extensionRegistry));
+              break;
+            }
+            case 42: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              if (!((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+                attributes_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000010;
+              }
+              attributes_.add(bs);
               break;
             }
           }
         }
-      }
-      
-      
-      // repeated .ColumnRange range_list = 1;
-      public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> getRangeListList() {
-        return java.util.Collections.unmodifiableList(result.rangeList_);
-      }
-      public int getRangeListCount() {
-        return result.getRangeListCount();
-      }
-      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange getRangeList(int index) {
-        return result.getRangeList(index);
-      }
-      public Builder setRangeList(int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange value) {
-        if (value == null) {
-          throw new NullPointerException();
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          queryColumnRanges_ = java.util.Collections.unmodifiableList(queryColumnRanges_);
         }
-        result.rangeList_.set(index, value);
-        return this;
-      }
-      public Builder setRangeList(int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder builderForValue) {
-        result.rangeList_.set(index, builderForValue.build());
-        return this;
-      }
-      public Builder addRangeList(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange value) {
-        if (value == null) {
-          throw new NullPointerException();
+        if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+          attributes_ = attributes_.getUnmodifiableView();
         }
-        if (result.rangeList_.isEmpty()) {
-          result.rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>();
-        }
-        result.rangeList_.add(value);
-        return this;
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
       }
-      public Builder addRangeList(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder builderForValue) {
-        if (result.rangeList_.isEmpty()) {
-          result.rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>();
-        }
-        result.rangeList_.add(builderForValue.build());
-        return this;
-      }
-      public Builder addAllRangeList(
-          java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange> values) {
-        if (result.rangeList_.isEmpty()) {
-          result.rangeList_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange>();
-        }
-        super.addAll(values, result.rangeList_);
-        return this;
-      }
-      public Builder clearRangeList() {
-        result.rangeList_ = java.util.Collections.emptyList();
-        return this;
-      }
-      
-      // @@protoc_insertion_point(builder_scope:ColumnRangeList)
     }
-    
-    static {
-      defaultInstance = new ColumnRangeList(true);
-      com.intel.genomicsdb.GenomicsDBExportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
-    // @@protoc_insertion_point(class_scope:ColumnRangeList)
-  }
-  
-  public static final class ExportConfiguration extends
-      com.google.protobuf.GeneratedMessage {
-    // Use ExportConfiguration.newBuilder() to construct.
-    private ExportConfiguration() {
-      initFields();
-    }
-    private ExportConfiguration(boolean noInit) {}
-    
-    private static final ExportConfiguration defaultInstance;
-    public static ExportConfiguration getDefaultInstance() {
-      return defaultInstance;
-    }
-    
-    public ExportConfiguration getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.Builder.class);
     }
-    
-    // required string tiledb_workspace = 1;
+
+    private int bitField0_;
     public static final int TILEDB_WORKSPACE_FIELD_NUMBER = 1;
-    private boolean hasTiledbWorkspace;
-    private java.lang.String tiledbWorkspace_ = "";
-    public boolean hasTiledbWorkspace() { return hasTiledbWorkspace; }
-    public java.lang.String getTiledbWorkspace() { return tiledbWorkspace_; }
-    
-    // required string tiledb_array_name = 2;
+    private volatile java.lang.Object tiledbWorkspace_;
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    public boolean hasTiledbWorkspace() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    public java.lang.String getTiledbWorkspace() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbWorkspace_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string tiledb_workspace = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbWorkspace_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 2;
-    private boolean hasTiledbArrayName;
-    private java.lang.String tiledbArrayName_ = "";
-    public boolean hasTiledbArrayName() { return hasTiledbArrayName; }
-    public java.lang.String getTiledbArrayName() { return tiledbArrayName_; }
-    
-    // required string reference_genome = 3;
+    private volatile java.lang.Object tiledbArrayName_;
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    public boolean hasTiledbArrayName() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    public java.lang.String getTiledbArrayName() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbArrayName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string tiledb_array_name = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTiledbArrayNameBytes() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbArrayName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     public static final int REFERENCE_GENOME_FIELD_NUMBER = 3;
-    private boolean hasReferenceGenome;
-    private java.lang.String referenceGenome_ = "";
-    public boolean hasReferenceGenome() { return hasReferenceGenome; }
-    public java.lang.String getReferenceGenome() { return referenceGenome_; }
-    
-    // repeated .ColumnRangeList query_column_ranges = 4;
+    private volatile java.lang.Object referenceGenome_;
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    public boolean hasReferenceGenome() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    public java.lang.String getReferenceGenome() {
+      java.lang.Object ref = referenceGenome_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          referenceGenome_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>required string reference_genome = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getReferenceGenomeBytes() {
+      java.lang.Object ref = referenceGenome_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        referenceGenome_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     public static final int QUERY_COLUMN_RANGES_FIELD_NUMBER = 4;
-    private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> queryColumnRanges_ =
-      java.util.Collections.emptyList();
+    private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> queryColumnRanges_;
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
     public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> getQueryColumnRangesList() {
       return queryColumnRanges_;
     }
-    public int getQueryColumnRangesCount() { return queryColumnRanges_.size(); }
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    public java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder> 
+        getQueryColumnRangesOrBuilderList() {
+      return queryColumnRanges_;
+    }
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    public int getQueryColumnRangesCount() {
+      return queryColumnRanges_.size();
+    }
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
     public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getQueryColumnRanges(int index) {
       return queryColumnRanges_.get(index);
     }
-    
-    // repeated string attributes = 5;
+    /**
+     * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder getQueryColumnRangesOrBuilder(
+        int index) {
+      return queryColumnRanges_.get(index);
+    }
+
     public static final int ATTRIBUTES_FIELD_NUMBER = 5;
-    private java.util.List<java.lang.String> attributes_ =
-      java.util.Collections.emptyList();
-    public java.util.List<java.lang.String> getAttributesList() {
+    private com.google.protobuf.LazyStringList attributes_;
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    public com.google.protobuf.ProtocolStringList
+        getAttributesList() {
       return attributes_;
     }
-    public int getAttributesCount() { return attributes_.size(); }
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    public int getAttributesCount() {
+      return attributes_.size();
+    }
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
     public java.lang.String getAttributes(int index) {
       return attributes_.get(index);
     }
-    
-    private void initFields() {
+    /**
+     * <code>repeated string attributes = 5;</code>
+     */
+    public com.google.protobuf.ByteString
+        getAttributesBytes(int index) {
+      return attributes_.getByteString(index);
     }
+
+    private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
-      if (!hasTiledbWorkspace) return false;
-      if (!hasTiledbArrayName) return false;
-      if (!hasReferenceGenome) return false;
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList element : getQueryColumnRangesList()) {
-        if (!element.isInitialized()) return false;
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      if (!hasTiledbWorkspace()) {
+        memoizedIsInitialized = 0;
+        return false;
       }
+      if (!hasTiledbArrayName()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasReferenceGenome()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getQueryColumnRangesCount(); i++) {
+        if (!getQueryColumnRanges(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (hasTiledbWorkspace()) {
-        output.writeString(1, getTiledbWorkspace());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, tiledbWorkspace_);
       }
-      if (hasTiledbArrayName()) {
-        output.writeString(2, getTiledbArrayName());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, tiledbArrayName_);
       }
-      if (hasReferenceGenome()) {
-        output.writeString(3, getReferenceGenome());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, referenceGenome_);
       }
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList element : getQueryColumnRangesList()) {
-        output.writeMessage(4, element);
+      for (int i = 0; i < queryColumnRanges_.size(); i++) {
+        output.writeMessage(4, queryColumnRanges_.get(i));
       }
-      for (java.lang.String element : getAttributesList()) {
-        output.writeString(5, element);
+      for (int i = 0; i < attributes_.size(); i++) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 5, attributes_.getRaw(i));
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      if (hasTiledbWorkspace()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(1, getTiledbWorkspace());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, tiledbWorkspace_);
       }
-      if (hasTiledbArrayName()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(2, getTiledbArrayName());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, tiledbArrayName_);
       }
-      if (hasReferenceGenome()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(3, getReferenceGenome());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, referenceGenome_);
       }
-      for (com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList element : getQueryColumnRangesList()) {
+      for (int i = 0; i < queryColumnRanges_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, element);
+          .computeMessageSize(4, queryColumnRanges_.get(i));
       }
       {
         int dataSize = 0;
-        for (java.lang.String element : getAttributesList()) {
-          dataSize += com.google.protobuf.CodedOutputStream
-            .computeStringSizeNoTag(element);
+        for (int i = 0; i < attributes_.size(); i++) {
+          dataSize += computeStringSizeNoTag(attributes_.getRaw(i));
         }
         size += dataSize;
         size += 1 * getAttributesList().size();
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration other = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration) obj;
+
+      boolean result = true;
+      result = result && (hasTiledbWorkspace() == other.hasTiledbWorkspace());
+      if (hasTiledbWorkspace()) {
+        result = result && getTiledbWorkspace()
+            .equals(other.getTiledbWorkspace());
+      }
+      result = result && (hasTiledbArrayName() == other.hasTiledbArrayName());
+      if (hasTiledbArrayName()) {
+        result = result && getTiledbArrayName()
+            .equals(other.getTiledbArrayName());
+      }
+      result = result && (hasReferenceGenome() == other.hasReferenceGenome());
+      if (hasReferenceGenome()) {
+        result = result && getReferenceGenome()
+            .equals(other.getReferenceGenome());
+      }
+      result = result && getQueryColumnRangesList()
+          .equals(other.getQueryColumnRangesList());
+      result = result && getAttributesList()
+          .equals(other.getAttributesList());
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasTiledbWorkspace()) {
+        hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbWorkspace().hashCode();
+      }
+      if (hasTiledbArrayName()) {
+        hash = (37 * hash) + TILEDB_ARRAY_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbArrayName().hashCode();
+      }
+      if (hasReferenceGenome()) {
+        hash = (37 * hash) + REFERENCE_GENOME_FIELD_NUMBER;
+        hash = (53 * hash) + getReferenceGenome().hashCode();
+      }
+      if (getQueryColumnRangesCount() > 0) {
+        hash = (37 * hash) + QUERY_COLUMN_RANGES_FIELD_NUMBER;
+        hash = (53 * hash) + getQueryColumnRangesList().hashCode();
+      }
+      if (getAttributesCount() > 0) {
+        hash = (37 * hash) + ATTRIBUTES_FIELD_NUMBER;
+        hash = (53 * hash) + getAttributesList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ExportConfiguration}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:ExportConfiguration)
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfigurationOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.class, com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getQueryColumnRangesFieldBuilder();
         }
-        result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration();
+      }
+      public Builder clear() {
+        super.clear();
+        tiledbWorkspace_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        tiledbArrayName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        referenceGenome_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
+        if (queryColumnRangesBuilder_ == null) {
+          queryColumnRanges_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+        } else {
+          queryColumnRangesBuilder_.clear();
+        }
+        attributes_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBExportConfiguration.internal_static_ExportConfiguration_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration result = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-        if (result.queryColumnRanges_ != java.util.Collections.EMPTY_LIST) {
-          result.queryColumnRanges_ =
-            java.util.Collections.unmodifiableList(result.queryColumnRanges_);
+        result.tiledbWorkspace_ = tiledbWorkspace_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
-        if (result.attributes_ != java.util.Collections.EMPTY_LIST) {
-          result.attributes_ =
-            java.util.Collections.unmodifiableList(result.attributes_);
+        result.tiledbArrayName_ = tiledbArrayName_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
         }
-        com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration returnMe = result;
-        result = null;
-        return returnMe;
+        result.referenceGenome_ = referenceGenome_;
+        if (queryColumnRangesBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
+            queryColumnRanges_ = java.util.Collections.unmodifiableList(queryColumnRanges_);
+            bitField0_ = (bitField0_ & ~0x00000008);
+          }
+          result.queryColumnRanges_ = queryColumnRanges_;
+        } else {
+          result.queryColumnRanges_ = queryColumnRangesBuilder_.build();
+        }
+        if (((bitField0_ & 0x00000010) == 0x00000010)) {
+          attributes_ = attributes_.getUnmodifiableView();
+          bitField0_ = (bitField0_ & ~0x00000010);
+        }
+        result.attributes_ = attributes_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration)other);
@@ -966,269 +2093,732 @@ public final class GenomicsDBExportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration other) {
         if (other == com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.getDefaultInstance()) return this;
         if (other.hasTiledbWorkspace()) {
-          setTiledbWorkspace(other.getTiledbWorkspace());
+          bitField0_ |= 0x00000001;
+          tiledbWorkspace_ = other.tiledbWorkspace_;
+          onChanged();
         }
         if (other.hasTiledbArrayName()) {
-          setTiledbArrayName(other.getTiledbArrayName());
+          bitField0_ |= 0x00000002;
+          tiledbArrayName_ = other.tiledbArrayName_;
+          onChanged();
         }
         if (other.hasReferenceGenome()) {
-          setReferenceGenome(other.getReferenceGenome());
+          bitField0_ |= 0x00000004;
+          referenceGenome_ = other.referenceGenome_;
+          onChanged();
         }
-        if (!other.queryColumnRanges_.isEmpty()) {
-          if (result.queryColumnRanges_.isEmpty()) {
-            result.queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>();
+        if (queryColumnRangesBuilder_ == null) {
+          if (!other.queryColumnRanges_.isEmpty()) {
+            if (queryColumnRanges_.isEmpty()) {
+              queryColumnRanges_ = other.queryColumnRanges_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+            } else {
+              ensureQueryColumnRangesIsMutable();
+              queryColumnRanges_.addAll(other.queryColumnRanges_);
+            }
+            onChanged();
           }
-          result.queryColumnRanges_.addAll(other.queryColumnRanges_);
+        } else {
+          if (!other.queryColumnRanges_.isEmpty()) {
+            if (queryColumnRangesBuilder_.isEmpty()) {
+              queryColumnRangesBuilder_.dispose();
+              queryColumnRangesBuilder_ = null;
+              queryColumnRanges_ = other.queryColumnRanges_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+              queryColumnRangesBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getQueryColumnRangesFieldBuilder() : null;
+            } else {
+              queryColumnRangesBuilder_.addAllMessages(other.queryColumnRanges_);
+            }
+          }
         }
         if (!other.attributes_.isEmpty()) {
-          if (result.attributes_.isEmpty()) {
-            result.attributes_ = new java.util.ArrayList<java.lang.String>();
+          if (attributes_.isEmpty()) {
+            attributes_ = other.attributes_;
+            bitField0_ = (bitField0_ & ~0x00000010);
+          } else {
+            ensureAttributesIsMutable();
+            attributes_.addAll(other.attributes_);
           }
-          result.attributes_.addAll(other.attributes_);
+          onChanged();
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        if (!hasTiledbWorkspace()) {
+          return false;
+        }
+        if (!hasTiledbArrayName()) {
+          return false;
+        }
+        if (!hasReferenceGenome()) {
+          return false;
+        }
+        for (int i = 0; i < getQueryColumnRangesCount(); i++) {
+          if (!getQueryColumnRanges(i).isInitialized()) {
+            return false;
+          }
+        }
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
-              }
-              break;
-            }
-            case 10: {
-              setTiledbWorkspace(input.readString());
-              break;
-            }
-            case 18: {
-              setTiledbArrayName(input.readString());
-              break;
-            }
-            case 26: {
-              setReferenceGenome(input.readString());
-              break;
-            }
-            case 34: {
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder subBuilder = com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.newBuilder();
-              input.readMessage(subBuilder, extensionRegistry);
-              addQueryColumnRanges(subBuilder.buildPartial());
-              break;
-            }
-            case 42: {
-              addAttributes(input.readString());
-              break;
-            }
+        com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
           }
         }
+        return this;
       }
-      
-      
-      // required string tiledb_workspace = 1;
+      private int bitField0_;
+
+      private java.lang.Object tiledbWorkspace_ = "";
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
       public boolean hasTiledbWorkspace() {
-        return result.hasTiledbWorkspace();
+        return ((bitField0_ & 0x00000001) == 0x00000001);
       }
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
       public java.lang.String getTiledbWorkspace() {
-        return result.getTiledbWorkspace();
+        java.lang.Object ref = tiledbWorkspace_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbWorkspace_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
       }
-      public Builder setTiledbWorkspace(java.lang.String value) {
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTiledbWorkspaceBytes() {
+        java.lang.Object ref = tiledbWorkspace_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbWorkspace_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
+      public Builder setTiledbWorkspace(
+          java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.hasTiledbWorkspace = true;
-        result.tiledbWorkspace_ = value;
+  bitField0_ |= 0x00000001;
+        tiledbWorkspace_ = value;
+        onChanged();
         return this;
       }
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
       public Builder clearTiledbWorkspace() {
-        result.hasTiledbWorkspace = false;
-        result.tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
+        bitField0_ = (bitField0_ & ~0x00000001);
+        tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
+        onChanged();
         return this;
       }
-      
-      // required string tiledb_array_name = 2;
+      /**
+       * <code>required string tiledb_workspace = 1;</code>
+       */
+      public Builder setTiledbWorkspaceBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        tiledbWorkspace_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object tiledbArrayName_ = "";
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
       public boolean hasTiledbArrayName() {
-        return result.hasTiledbArrayName();
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
       public java.lang.String getTiledbArrayName() {
-        return result.getTiledbArrayName();
+        java.lang.Object ref = tiledbArrayName_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbArrayName_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
       }
-      public Builder setTiledbArrayName(java.lang.String value) {
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTiledbArrayNameBytes() {
+        java.lang.Object ref = tiledbArrayName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbArrayName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
+      public Builder setTiledbArrayName(
+          java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.hasTiledbArrayName = true;
-        result.tiledbArrayName_ = value;
+  bitField0_ |= 0x00000002;
+        tiledbArrayName_ = value;
+        onChanged();
         return this;
       }
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
       public Builder clearTiledbArrayName() {
-        result.hasTiledbArrayName = false;
-        result.tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
+        bitField0_ = (bitField0_ & ~0x00000002);
+        tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
+        onChanged();
         return this;
       }
-      
-      // required string reference_genome = 3;
-      public boolean hasReferenceGenome() {
-        return result.hasReferenceGenome();
-      }
-      public java.lang.String getReferenceGenome() {
-        return result.getReferenceGenome();
-      }
-      public Builder setReferenceGenome(java.lang.String value) {
+      /**
+       * <code>required string tiledb_array_name = 2;</code>
+       */
+      public Builder setTiledbArrayNameBytes(
+          com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.hasReferenceGenome = true;
-        result.referenceGenome_ = value;
+  bitField0_ |= 0x00000002;
+        tiledbArrayName_ = value;
+        onChanged();
         return this;
       }
+
+      private java.lang.Object referenceGenome_ = "";
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
+      public boolean hasReferenceGenome() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
+      public java.lang.String getReferenceGenome() {
+        java.lang.Object ref = referenceGenome_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            referenceGenome_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
+      public com.google.protobuf.ByteString
+          getReferenceGenomeBytes() {
+        java.lang.Object ref = referenceGenome_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          referenceGenome_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
+      public Builder setReferenceGenome(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        referenceGenome_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
       public Builder clearReferenceGenome() {
-        result.hasReferenceGenome = false;
-        result.referenceGenome_ = getDefaultInstance().getReferenceGenome();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        referenceGenome_ = getDefaultInstance().getReferenceGenome();
+        onChanged();
         return this;
       }
-      
-      // repeated .ColumnRangeList query_column_ranges = 4;
+      /**
+       * <code>required string reference_genome = 3;</code>
+       */
+      public Builder setReferenceGenomeBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        referenceGenome_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> queryColumnRanges_ =
+        java.util.Collections.emptyList();
+      private void ensureQueryColumnRangesIsMutable() {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
+          queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>(queryColumnRanges_);
+          bitField0_ |= 0x00000008;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder> queryColumnRangesBuilder_;
+
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> getQueryColumnRangesList() {
-        return java.util.Collections.unmodifiableList(result.queryColumnRanges_);
+        if (queryColumnRangesBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(queryColumnRanges_);
+        } else {
+          return queryColumnRangesBuilder_.getMessageList();
+        }
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public int getQueryColumnRangesCount() {
-        return result.getQueryColumnRangesCount();
+        if (queryColumnRangesBuilder_ == null) {
+          return queryColumnRanges_.size();
+        } else {
+          return queryColumnRangesBuilder_.getCount();
+        }
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList getQueryColumnRanges(int index) {
-        return result.getQueryColumnRanges(index);
-      }
-      public Builder setQueryColumnRanges(int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList value) {
-        if (value == null) {
-          throw new NullPointerException();
+        if (queryColumnRangesBuilder_ == null) {
+          return queryColumnRanges_.get(index);
+        } else {
+          return queryColumnRangesBuilder_.getMessage(index);
         }
-        result.queryColumnRanges_.set(index, value);
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder setQueryColumnRanges(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList value) {
+        if (queryColumnRangesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.set(index, value);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.setMessage(index, value);
+        }
         return this;
       }
-      public Builder setQueryColumnRanges(int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder builderForValue) {
-        result.queryColumnRanges_.set(index, builderForValue.build());
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder setQueryColumnRanges(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder builderForValue) {
+        if (queryColumnRangesBuilder_ == null) {
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.setMessage(index, builderForValue.build());
+        }
         return this;
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public Builder addQueryColumnRanges(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList value) {
-        if (value == null) {
-          throw new NullPointerException();
+        if (queryColumnRangesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.add(value);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.addMessage(value);
         }
-        if (result.queryColumnRanges_.isEmpty()) {
-          result.queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>();
-        }
-        result.queryColumnRanges_.add(value);
         return this;
       }
-      public Builder addQueryColumnRanges(com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder builderForValue) {
-        if (result.queryColumnRanges_.isEmpty()) {
-          result.queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>();
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder addQueryColumnRanges(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList value) {
+        if (queryColumnRangesBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.add(index, value);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.addMessage(index, value);
         }
-        result.queryColumnRanges_.add(builderForValue.build());
         return this;
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder addQueryColumnRanges(
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder builderForValue) {
+        if (queryColumnRangesBuilder_ == null) {
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.add(builderForValue.build());
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder addQueryColumnRanges(
+          int index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder builderForValue) {
+        if (queryColumnRangesBuilder_ == null) {
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public Builder addAllQueryColumnRanges(
           java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList> values) {
-        if (result.queryColumnRanges_.isEmpty()) {
-          result.queryColumnRanges_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList>();
+        if (queryColumnRangesBuilder_ == null) {
+          ensureQueryColumnRangesIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, queryColumnRanges_);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.addAllMessages(values);
         }
-        super.addAll(values, result.queryColumnRanges_);
         return this;
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
       public Builder clearQueryColumnRanges() {
-        result.queryColumnRanges_ = java.util.Collections.emptyList();
+        if (queryColumnRangesBuilder_ == null) {
+          queryColumnRanges_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.clear();
+        }
         return this;
       }
-      
-      // repeated string attributes = 5;
-      public java.util.List<java.lang.String> getAttributesList() {
-        return java.util.Collections.unmodifiableList(result.attributes_);
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public Builder removeQueryColumnRanges(int index) {
+        if (queryColumnRangesBuilder_ == null) {
+          ensureQueryColumnRangesIsMutable();
+          queryColumnRanges_.remove(index);
+          onChanged();
+        } else {
+          queryColumnRangesBuilder_.remove(index);
+        }
+        return this;
       }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder getQueryColumnRangesBuilder(
+          int index) {
+        return getQueryColumnRangesFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder getQueryColumnRangesOrBuilder(
+          int index) {
+        if (queryColumnRangesBuilder_ == null) {
+          return queryColumnRanges_.get(index);  } else {
+          return queryColumnRangesBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public java.util.List<? extends com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder> 
+           getQueryColumnRangesOrBuilderList() {
+        if (queryColumnRangesBuilder_ != null) {
+          return queryColumnRangesBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(queryColumnRanges_);
+        }
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder addQueryColumnRangesBuilder() {
+        return getQueryColumnRangesFieldBuilder().addBuilder(
+            com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder addQueryColumnRangesBuilder(
+          int index) {
+        return getQueryColumnRangesFieldBuilder().addBuilder(
+            index, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .ColumnRangeList query_column_ranges = 4;</code>
+       */
+      public java.util.List<com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder> 
+           getQueryColumnRangesBuilderList() {
+        return getQueryColumnRangesFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder> 
+          getQueryColumnRangesFieldBuilder() {
+        if (queryColumnRangesBuilder_ == null) {
+          queryColumnRangesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder, com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeListOrBuilder>(
+                  queryColumnRanges_,
+                  ((bitField0_ & 0x00000008) == 0x00000008),
+                  getParentForChildren(),
+                  isClean());
+          queryColumnRanges_ = null;
+        }
+        return queryColumnRangesBuilder_;
+      }
+
+      private com.google.protobuf.LazyStringList attributes_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureAttributesIsMutable() {
+        if (!((bitField0_ & 0x00000010) == 0x00000010)) {
+          attributes_ = new com.google.protobuf.LazyStringArrayList(attributes_);
+          bitField0_ |= 0x00000010;
+         }
+      }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
+      public com.google.protobuf.ProtocolStringList
+          getAttributesList() {
+        return attributes_.getUnmodifiableView();
+      }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
       public int getAttributesCount() {
-        return result.getAttributesCount();
+        return attributes_.size();
       }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
       public java.lang.String getAttributes(int index) {
-        return result.getAttributes(index);
+        return attributes_.get(index);
       }
-      public Builder setAttributes(int index, java.lang.String value) {
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
+      public com.google.protobuf.ByteString
+          getAttributesBytes(int index) {
+        return attributes_.getByteString(index);
+      }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
+      public Builder setAttributes(
+          int index, java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.attributes_.set(index, value);
+  ensureAttributesIsMutable();
+        attributes_.set(index, value);
+        onChanged();
         return this;
       }
-      public Builder addAttributes(java.lang.String value) {
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
+      public Builder addAttributes(
+          java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  if (result.attributes_.isEmpty()) {
-          result.attributes_ = new java.util.ArrayList<java.lang.String>();
-        }
-        result.attributes_.add(value);
+  ensureAttributesIsMutable();
+        attributes_.add(value);
+        onChanged();
         return this;
       }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
       public Builder addAllAttributes(
-          java.lang.Iterable<? extends java.lang.String> values) {
-        if (result.attributes_.isEmpty()) {
-          result.attributes_ = new java.util.ArrayList<java.lang.String>();
-        }
-        super.addAll(values, result.attributes_);
+          java.lang.Iterable<java.lang.String> values) {
+        ensureAttributesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, attributes_);
+        onChanged();
         return this;
       }
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
       public Builder clearAttributes() {
-        result.attributes_ = java.util.Collections.emptyList();
+        attributes_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        onChanged();
         return this;
       }
-      
+      /**
+       * <code>repeated string attributes = 5;</code>
+       */
+      public Builder addAttributesBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAttributesIsMutable();
+        attributes_.add(value);
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
       // @@protoc_insertion_point(builder_scope:ExportConfiguration)
     }
-    
-    static {
-      defaultInstance = new ExportConfiguration(true);
-      com.intel.genomicsdb.GenomicsDBExportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
+
     // @@protoc_insertion_point(class_scope:ExportConfiguration)
+    private static final com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<ExportConfiguration>
+        PARSER = new com.google.protobuf.AbstractParser<ExportConfiguration>() {
+      public ExportConfiguration parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new ExportConfiguration(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<ExportConfiguration> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ExportConfiguration> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
   }
-  
-  private static com.google.protobuf.Descriptors.Descriptor
+
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ColumnRange_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ColumnRange_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ColumnRangeList_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ColumnRangeList_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ExportConfiguration_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ExportConfiguration_fieldAccessorTable;
-  
+
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -1243,44 +2833,36 @@ public final class GenomicsDBExportConfiguration {
       "bB\035GenomicsDBExportConfiguration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-        public com.google.protobuf.ExtensionRegistry assignDescriptors(
-            com.google.protobuf.Descriptors.FileDescriptor root) {
-          descriptor = root;
-          internal_static_ColumnRange_descriptor =
-            getDescriptor().getMessageTypes().get(0);
-          internal_static_ColumnRange_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_ColumnRange_descriptor,
-              new java.lang.String[] { "Low", "High", },
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.class,
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRange.Builder.class);
-          internal_static_ColumnRangeList_descriptor =
-            getDescriptor().getMessageTypes().get(1);
-          internal_static_ColumnRangeList_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_ColumnRangeList_descriptor,
-              new java.lang.String[] { "RangeList", },
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.class,
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ColumnRangeList.Builder.class);
-          internal_static_ExportConfiguration_descriptor =
-            getDescriptor().getMessageTypes().get(2);
-          internal_static_ExportConfiguration_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_ExportConfiguration_descriptor,
-              new java.lang.String[] { "TiledbWorkspace", "TiledbArrayName", "ReferenceGenome", "QueryColumnRanges", "Attributes", },
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.class,
-              com.intel.genomicsdb.GenomicsDBExportConfiguration.ExportConfiguration.Builder.class);
-          return null;
-        }
-      };
+        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
+          public com.google.protobuf.ExtensionRegistry assignDescriptors(
+              com.google.protobuf.Descriptors.FileDescriptor root) {
+            descriptor = root;
+            return null;
+          }
+        };
     com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
+    internal_static_ColumnRange_descriptor =
+      getDescriptor().getMessageTypes().get(0);
+    internal_static_ColumnRange_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ColumnRange_descriptor,
+        new java.lang.String[] { "Low", "High", });
+    internal_static_ColumnRangeList_descriptor =
+      getDescriptor().getMessageTypes().get(1);
+    internal_static_ColumnRangeList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ColumnRangeList_descriptor,
+        new java.lang.String[] { "RangeList", });
+    internal_static_ExportConfiguration_descriptor =
+      getDescriptor().getMessageTypes().get(2);
+    internal_static_ExportConfiguration_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ExportConfiguration_descriptor,
+        new java.lang.String[] { "TiledbWorkspace", "TiledbArrayName", "ReferenceGenome", "QueryColumnRanges", "Attributes", });
   }
-  
-  public static void internalForceInit() {}
-  
+
   // @@protoc_insertion_point(outer_class_scope)
 }

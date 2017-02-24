@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -15,177 +16,183 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
+class ColumnRangeDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<ColumnRange> {
+} _ColumnRange_default_instance_;
+class ColumnRangeListDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<ColumnRangeList> {
+} _ColumnRangeList_default_instance_;
+class ExportConfigurationDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<ExportConfiguration> {
+} _ExportConfiguration_default_instance_;
+
+namespace protobuf_genomicsdb_5fexport_5fconfig_2eproto {
+
 
 namespace {
 
-const ::google::protobuf::Descriptor* ColumnRange_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  ColumnRange_reflection_ = NULL;
-const ::google::protobuf::Descriptor* ColumnRangeList_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  ColumnRangeList_reflection_ = NULL;
-const ::google::protobuf::Descriptor* ExportConfiguration_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  ExportConfiguration_reflection_ = NULL;
+::google::protobuf::Metadata file_level_metadata[3];
 
 }  // namespace
 
+const ::google::protobuf::uint32 TableStruct::offsets[] = {
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, _has_bits_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, low_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, high_),
+  0,
+  1,
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _has_bits_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, range_list_),
+  ~0u,
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, _has_bits_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_workspace_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_array_name_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, reference_genome_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_column_ranges_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, attributes_),
+  0,
+  1,
+  2,
+  ~0u,
+  ~0u,
+};
 
-void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
-  protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
-  const ::google::protobuf::FileDescriptor* file =
-    ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
-      "genomicsdb_export_config.proto");
-  GOOGLE_CHECK(file != NULL);
-  ColumnRange_descriptor_ = file->message_type(0);
-  static const int ColumnRange_offsets_[2] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, low_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, high_),
-  };
-  ColumnRange_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      ColumnRange_descriptor_,
-      ColumnRange::default_instance_,
-      ColumnRange_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRange, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(ColumnRange));
-  ColumnRangeList_descriptor_ = file->message_type(1);
-  static const int ColumnRangeList_offsets_[1] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, range_list_),
-  };
-  ColumnRangeList_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      ColumnRangeList_descriptor_,
-      ColumnRangeList::default_instance_,
-      ColumnRangeList_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(ColumnRangeList));
-  ExportConfiguration_descriptor_ = file->message_type(2);
-  static const int ExportConfiguration_offsets_[5] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_workspace_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_array_name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, reference_genome_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_column_ranges_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, attributes_),
-  };
-  ExportConfiguration_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      ExportConfiguration_descriptor_,
-      ExportConfiguration::default_instance_,
-      ExportConfiguration_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(ExportConfiguration));
-}
+static const ::google::protobuf::internal::MigrationSchema schemas[] = {
+  { 0, 6, sizeof(ColumnRange)},
+  { 8, 13, sizeof(ColumnRangeList)},
+  { 14, 23, sizeof(ExportConfiguration)},
+};
+
+static ::google::protobuf::Message const * const file_default_instances[] = {
+  reinterpret_cast<const ::google::protobuf::Message*>(&_ColumnRange_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&_ColumnRangeList_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&_ExportConfiguration_default_instance_),
+};
 
 namespace {
 
-GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AssignDescriptors_once_);
-inline void protobuf_AssignDescriptorsOnce() {
-  ::google::protobuf::GoogleOnceInit(&protobuf_AssignDescriptors_once_,
-                 &protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto);
+void protobuf_AssignDescriptors() {
+  AddDescriptors();
+  ::google::protobuf::MessageFactory* factory = NULL;
+  AssignDescriptors(
+      "genomicsdb_export_config.proto", schemas, file_default_instances, TableStruct::offsets, factory,
+      file_level_metadata, NULL, NULL);
 }
 
+void protobuf_AssignDescriptorsOnce() {
+  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
+  ::google::protobuf::GoogleOnceInit(&once, &protobuf_AssignDescriptors);
+}
+
+void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    ColumnRange_descriptor_, &ColumnRange::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    ColumnRangeList_descriptor_, &ColumnRangeList::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    ExportConfiguration_descriptor_, &ExportConfiguration::default_instance());
+  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 3);
 }
 
 }  // namespace
 
-void protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto() {
-  delete ColumnRange::default_instance_;
-  delete ColumnRange_reflection_;
-  delete ColumnRangeList::default_instance_;
-  delete ColumnRangeList_reflection_;
-  delete ExportConfiguration::default_instance_;
-  delete ExportConfiguration_reflection_;
+void TableStruct::Shutdown() {
+  _ColumnRange_default_instance_.Shutdown();
+  delete file_level_metadata[0].reflection;
+  _ColumnRangeList_default_instance_.Shutdown();
+  delete file_level_metadata[1].reflection;
+  _ExportConfiguration_default_instance_.Shutdown();
+  delete file_level_metadata[2].reflection;
 }
 
-void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
-  static bool already_here = false;
-  if (already_here) return;
-  already_here = true;
+void TableStruct::InitDefaultsImpl() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\036genomicsdb_export_config.proto\"(\n\013Colu"
-    "mnRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high\030\002 \002(\003\"3\n\017Co"
-    "lumnRangeList\022 \n\nrange_list\030\001 \003(\0132\014.Colu"
-    "mnRange\"\247\001\n\023ExportConfiguration\022\030\n\020tiled"
-    "b_workspace\030\001 \002(\t\022\031\n\021tiledb_array_name\030\002"
-    " \002(\t\022\030\n\020reference_genome\030\003 \002(\t\022-\n\023query_"
-    "column_ranges\030\004 \003(\0132\020.ColumnRangeList\022\022\n"
-    "\nattributes\030\005 \003(\t", 297);
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
-    "genomicsdb_export_config.proto", &protobuf_RegisterTypes);
-  ColumnRange::default_instance_ = new ColumnRange();
-  ColumnRangeList::default_instance_ = new ColumnRangeList();
-  ExportConfiguration::default_instance_ = new ExportConfiguration();
-  ColumnRange::default_instance_->InitAsDefaultInstance();
-  ColumnRangeList::default_instance_->InitAsDefaultInstance();
-  ExportConfiguration::default_instance_->InitAsDefaultInstance();
-  ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto);
+  ::google::protobuf::internal::InitProtobufDefaults();
+  _ColumnRange_default_instance_.DefaultConstruct();
+  _ColumnRangeList_default_instance_.DefaultConstruct();
+  _ExportConfiguration_default_instance_.DefaultConstruct();
 }
 
+void InitDefaults() {
+  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
+  ::google::protobuf::GoogleOnceInit(&once, &TableStruct::InitDefaultsImpl);
+}
+void AddDescriptorsImpl() {
+  InitDefaults();
+  static const char descriptor[] = {
+      "\n\036genomicsdb_export_config.proto\"(\n\013Colu"
+      "mnRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high\030\002 \002(\003\"3\n\017Co"
+      "lumnRangeList\022 \n\nrange_list\030\001 \003(\0132\014.Colu"
+      "mnRange\"\247\001\n\023ExportConfiguration\022\030\n\020tiled"
+      "b_workspace\030\001 \002(\t\022\031\n\021tiledb_array_name\030\002"
+      " \002(\t\022\030\n\020reference_genome\030\003 \002(\t\022-\n\023query_"
+      "column_ranges\030\004 \003(\0132\020.ColumnRangeList\022\022\n"
+      "\nattributes\030\005 \003(\tB5\n\024com.intel.genomicsd"
+      "bB\035GenomicsDBExportConfiguration"
+  };
+  ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
+      descriptor, 352);
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
+    "genomicsdb_export_config.proto", &protobuf_RegisterTypes);
+  ::google::protobuf::internal::OnShutdown(&TableStruct::Shutdown);
+}
+
+void AddDescriptors() {
+  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
+  ::google::protobuf::GoogleOnceInit(&once, &AddDescriptorsImpl);
+}
 // Force AddDescriptors() to be called at static initialization time.
-struct StaticDescriptorInitializer_genomicsdb_5fexport_5fconfig_2eproto {
-  StaticDescriptorInitializer_genomicsdb_5fexport_5fconfig_2eproto() {
-    protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
+struct StaticDescriptorInitializer {
+  StaticDescriptorInitializer() {
+    AddDescriptors();
   }
-} static_descriptor_initializer_genomicsdb_5fexport_5fconfig_2eproto_;
+} static_descriptor_initializer;
+
+}  // namespace protobuf_genomicsdb_5fexport_5fconfig_2eproto
+
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ColumnRange::kLowFieldNumber;
 const int ColumnRange::kHighFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ColumnRange::ColumnRange()
-  : ::google::protobuf::Message() {
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
+    protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  }
   SharedCtor();
+  // @@protoc_insertion_point(constructor:ColumnRange)
 }
-
-void ColumnRange::InitAsDefaultInstance() {
-}
-
 ColumnRange::ColumnRange(const ColumnRange& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      _has_bits_(from._has_bits_),
+      _cached_size_(0) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::memcpy(&low_, &from.low_,
+    reinterpret_cast<char*>(&high_) -
+    reinterpret_cast<char*>(&low_) + sizeof(high_));
+  // @@protoc_insertion_point(copy_constructor:ColumnRange)
 }
 
 void ColumnRange::SharedCtor() {
   _cached_size_ = 0;
-  low_ = GOOGLE_LONGLONG(0);
-  high_ = GOOGLE_LONGLONG(0);
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  ::memset(&low_, 0, reinterpret_cast<char*>(&high_) -
+    reinterpret_cast<char*>(&low_) + sizeof(high_));
 }
 
 ColumnRange::~ColumnRange() {
+  // @@protoc_insertion_point(destructor:ColumnRange)
   SharedDtor();
 }
 
 void ColumnRange::SharedDtor() {
-  if (this != default_instance_) {
-  }
 }
 
 void ColumnRange::SetCachedSize(int size) const {
@@ -194,72 +201,77 @@ void ColumnRange::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
 const ::google::protobuf::Descriptor* ColumnRange::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return ColumnRange_descriptor_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[0].descriptor;
 }
 
 const ColumnRange& ColumnRange::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
-  return *default_instance_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  return *internal_default_instance();
 }
 
-ColumnRange* ColumnRange::default_instance_ = NULL;
-
-ColumnRange* ColumnRange::New() const {
-  return new ColumnRange;
+ColumnRange* ColumnRange::New(::google::protobuf::Arena* arena) const {
+  ColumnRange* n = new ColumnRange;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void ColumnRange::Clear() {
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    low_ = GOOGLE_LONGLONG(0);
-    high_ = GOOGLE_LONGLONG(0);
+// @@protoc_insertion_point(message_clear_start:ColumnRange)
+  if (_has_bits_[0 / 32] & 3u) {
+    ::memset(&low_, 0, reinterpret_cast<char*>(&high_) -
+      reinterpret_cast<char*>(&low_) + sizeof(high_));
   }
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
+  _has_bits_.Clear();
+  _internal_metadata_.Clear();
 }
 
 bool ColumnRange::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
+  // @@protoc_insertion_point(parse_start:ColumnRange)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
       // required int64 low = 1;
       case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(8u)) {
+          set_has_low();
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &low_)));
-          set_has_low();
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(16)) goto parse_high;
         break;
       }
 
       // required int64 high = 2;
       case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_high:
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(16u)) {
+          set_has_high();
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &high_)));
-          set_has_high();
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectAtEnd()) return true;
         break;
       }
 
       default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
+          goto success;
         }
         DO_(::google::protobuf::internal::WireFormat::SkipField(
               input, tag, mutable_unknown_fields()));
@@ -267,12 +279,18 @@ bool ColumnRange::MergePartialFromCodedStream(
       }
     }
   }
+success:
+  // @@protoc_insertion_point(parse_success:ColumnRange)
   return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:ColumnRange)
+  return false;
 #undef DO_
 }
 
 void ColumnRange::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt64(1, this->low(), output);
@@ -283,14 +301,17 @@ void ColumnRange::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->high(), output);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
   }
+  // @@protoc_insertion_point(serialize_end:ColumnRange)
 }
 
-::google::protobuf::uint8* ColumnRange::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ColumnRange::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic;  // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(1, this->low(), target);
@@ -301,58 +322,84 @@ void ColumnRange::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->high(), target);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
   }
+  // @@protoc_insertion_point(serialize_to_array_end:ColumnRange)
   return target;
 }
 
-int ColumnRange::ByteSize() const {
-  int total_size = 0;
+size_t ColumnRange::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ColumnRange)
+  size_t total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+  if (has_low()) {
     // required int64 low = 1;
-    if (has_low()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int64Size(
-          this->low());
-    }
-
-    // required int64 high = 2;
-    if (has_high()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int64Size(
-          this->high());
-    }
-
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->low());
   }
-  if (!unknown_fields().empty()) {
+
+  if (has_high()) {
+    // required int64 high = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->high());
+  }
+
+  return total_size;
+}
+size_t ColumnRange::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:ColumnRange)
+  size_t total_size = 0;
+
+  if (_internal_metadata_.have_unknown_fields()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
         unknown_fields());
   }
+  if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
+    // required int64 low = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->low());
+
+    // required int64 high = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->high());
+
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
+  }
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void ColumnRange::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(generalized_merge_from_start:ColumnRange)
+  GOOGLE_DCHECK_NE(&from, this);
   const ColumnRange* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const ColumnRange*>(
-      &from);
+      ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRange>(
+          &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRange)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRange)
     MergeFrom(*source);
   }
 }
 
 void ColumnRange::MergeFrom(const ColumnRange& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRange)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  if (from._has_bits_[0 / 32] & 3u) {
     if (from.has_low()) {
       set_low(from.low());
     }
@@ -360,16 +407,17 @@ void ColumnRange::MergeFrom(const ColumnRange& from) {
       set_high(from.high());
     }
   }
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
 void ColumnRange::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRange::CopyFrom(const ColumnRange& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -377,61 +425,113 @@ void ColumnRange::CopyFrom(const ColumnRange& from) {
 
 bool ColumnRange::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
-
   return true;
 }
 
 void ColumnRange::Swap(ColumnRange* other) {
-  if (other != this) {
-    std::swap(low_, other->low_);
-    std::swap(high_, other->high_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void ColumnRange::InternalSwap(ColumnRange* other) {
+  std::swap(low_, other->low_);
+  std::swap(high_, other->high_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata ColumnRange::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = ColumnRange_descriptor_;
-  metadata.reflection = ColumnRange_reflection_;
-  return metadata;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[0];
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// ColumnRange
+
+// required int64 low = 1;
+bool ColumnRange::has_low() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void ColumnRange::set_has_low() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void ColumnRange::clear_has_low() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void ColumnRange::clear_low() {
+  low_ = GOOGLE_LONGLONG(0);
+  clear_has_low();
+}
+::google::protobuf::int64 ColumnRange::low() const {
+  // @@protoc_insertion_point(field_get:ColumnRange.low)
+  return low_;
+}
+void ColumnRange::set_low(::google::protobuf::int64 value) {
+  set_has_low();
+  low_ = value;
+  // @@protoc_insertion_point(field_set:ColumnRange.low)
+}
+
+// required int64 high = 2;
+bool ColumnRange::has_high() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void ColumnRange::set_has_high() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void ColumnRange::clear_has_high() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void ColumnRange::clear_high() {
+  high_ = GOOGLE_LONGLONG(0);
+  clear_has_high();
+}
+::google::protobuf::int64 ColumnRange::high() const {
+  // @@protoc_insertion_point(field_get:ColumnRange.high)
+  return high_;
+}
+void ColumnRange::set_high(::google::protobuf::int64 value) {
+  set_has_high();
+  high_ = value;
+  // @@protoc_insertion_point(field_set:ColumnRange.high)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ColumnRangeList::kRangeListFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ColumnRangeList::ColumnRangeList()
-  : ::google::protobuf::Message() {
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
+    protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  }
   SharedCtor();
+  // @@protoc_insertion_point(constructor:ColumnRangeList)
 }
-
-void ColumnRangeList::InitAsDefaultInstance() {
-}
-
 ColumnRangeList::ColumnRangeList(const ColumnRangeList& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      _has_bits_(from._has_bits_),
+      _cached_size_(0),
+      range_list_(from.range_list_) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:ColumnRangeList)
 }
 
 void ColumnRangeList::SharedCtor() {
   _cached_size_ = 0;
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
 ColumnRangeList::~ColumnRangeList() {
+  // @@protoc_insertion_point(destructor:ColumnRangeList)
   SharedDtor();
 }
 
 void ColumnRangeList::SharedDtor() {
-  if (this != default_instance_) {
-  }
 }
 
 void ColumnRangeList::SetCachedSize(int size) const {
@@ -440,53 +540,60 @@ void ColumnRangeList::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
 const ::google::protobuf::Descriptor* ColumnRangeList::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return ColumnRangeList_descriptor_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[1].descriptor;
 }
 
 const ColumnRangeList& ColumnRangeList::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
-  return *default_instance_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  return *internal_default_instance();
 }
 
-ColumnRangeList* ColumnRangeList::default_instance_ = NULL;
-
-ColumnRangeList* ColumnRangeList::New() const {
-  return new ColumnRangeList;
+ColumnRangeList* ColumnRangeList::New(::google::protobuf::Arena* arena) const {
+  ColumnRangeList* n = new ColumnRangeList;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void ColumnRangeList::Clear() {
+// @@protoc_insertion_point(message_clear_start:ColumnRangeList)
   range_list_.Clear();
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
+  _has_bits_.Clear();
+  _internal_metadata_.Clear();
 }
 
 bool ColumnRangeList::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
+  // @@protoc_insertion_point(parse_start:ColumnRangeList)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
       // repeated .ColumnRange range_list = 1;
       case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_range_list:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(10u)) {
+          DO_(input->IncrementRecursionDepth());
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
                 input, add_range_list()));
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(10)) goto parse_range_list;
-        if (input->ExpectAtEnd()) return true;
+        input->UnsafeDecrementRecursionDepth();
         break;
       }
 
       default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
+          goto success;
         }
         DO_(::google::protobuf::internal::WireFormat::SkipField(
               input, tag, mutable_unknown_fields()));
@@ -494,166 +601,226 @@ bool ColumnRangeList::MergePartialFromCodedStream(
       }
     }
   }
+success:
+  // @@protoc_insertion_point(parse_success:ColumnRangeList)
   return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:ColumnRangeList)
+  return false;
 #undef DO_
 }
 
 void ColumnRangeList::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
-  for (int i = 0; i < this->range_list_size(); i++) {
+  for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->range_list(i), output);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
   }
+  // @@protoc_insertion_point(serialize_end:ColumnRangeList)
 }
 
-::google::protobuf::uint8* ColumnRangeList::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ColumnRangeList::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic;  // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
-  for (int i = 0; i < this->range_list_size(); i++) {
+  for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        1, this->range_list(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        1, this->range_list(i), false, target);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
   }
+  // @@protoc_insertion_point(serialize_to_array_end:ColumnRangeList)
   return target;
 }
 
-int ColumnRangeList::ByteSize() const {
-  int total_size = 0;
+size_t ColumnRangeList::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:ColumnRangeList)
+  size_t total_size = 0;
 
-  // repeated .ColumnRange range_list = 1;
-  total_size += 1 * this->range_list_size();
-  for (int i = 0; i < this->range_list_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->range_list(i));
-  }
-
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
         unknown_fields());
   }
+  // repeated .ColumnRange range_list = 1;
+  {
+    unsigned int count = this->range_list_size();
+    total_size += 1UL * count;
+    for (unsigned int i = 0; i < count; i++) {
+      total_size +=
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->range_list(i));
+    }
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void ColumnRangeList::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(generalized_merge_from_start:ColumnRangeList)
+  GOOGLE_DCHECK_NE(&from, this);
   const ColumnRangeList* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const ColumnRangeList*>(
-      &from);
+      ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRangeList>(
+          &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRangeList)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRangeList)
     MergeFrom(*source);
   }
 }
 
 void ColumnRangeList::MergeFrom(const ColumnRangeList& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRangeList)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
   range_list_.MergeFrom(from.range_list_);
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
 void ColumnRangeList::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRangeList::CopyFrom(const ColumnRangeList& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 bool ColumnRangeList::IsInitialized() const {
-
-  for (int i = 0; i < range_list_size(); i++) {
-    if (!this->range_list(i).IsInitialized()) return false;
-  }
+  if (!::google::protobuf::internal::AllAreInitialized(this->range_list())) return false;
   return true;
 }
 
 void ColumnRangeList::Swap(ColumnRangeList* other) {
-  if (other != this) {
-    range_list_.Swap(&other->range_list_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void ColumnRangeList::InternalSwap(ColumnRangeList* other) {
+  range_list_.UnsafeArenaSwap(&other->range_list_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata ColumnRangeList::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = ColumnRangeList_descriptor_;
-  metadata.reflection = ColumnRangeList_reflection_;
-  return metadata;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[1];
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// ColumnRangeList
+
+// repeated .ColumnRange range_list = 1;
+int ColumnRangeList::range_list_size() const {
+  return range_list_.size();
+}
+void ColumnRangeList::clear_range_list() {
+  range_list_.Clear();
+}
+const ::ColumnRange& ColumnRangeList::range_list(int index) const {
+  // @@protoc_insertion_point(field_get:ColumnRangeList.range_list)
+  return range_list_.Get(index);
+}
+::ColumnRange* ColumnRangeList::mutable_range_list(int index) {
+  // @@protoc_insertion_point(field_mutable:ColumnRangeList.range_list)
+  return range_list_.Mutable(index);
+}
+::ColumnRange* ColumnRangeList::add_range_list() {
+  // @@protoc_insertion_point(field_add:ColumnRangeList.range_list)
+  return range_list_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::ColumnRange >*
+ColumnRangeList::mutable_range_list() {
+  // @@protoc_insertion_point(field_mutable_list:ColumnRangeList.range_list)
+  return &range_list_;
+}
+const ::google::protobuf::RepeatedPtrField< ::ColumnRange >&
+ColumnRangeList::range_list() const {
+  // @@protoc_insertion_point(field_list:ColumnRangeList.range_list)
+  return range_list_;
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ExportConfiguration::kTiledbWorkspaceFieldNumber;
 const int ExportConfiguration::kTiledbArrayNameFieldNumber;
 const int ExportConfiguration::kReferenceGenomeFieldNumber;
 const int ExportConfiguration::kQueryColumnRangesFieldNumber;
 const int ExportConfiguration::kAttributesFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ExportConfiguration::ExportConfiguration()
-  : ::google::protobuf::Message() {
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
+    protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  }
   SharedCtor();
+  // @@protoc_insertion_point(constructor:ExportConfiguration)
 }
-
-void ExportConfiguration::InitAsDefaultInstance() {
-}
-
 ExportConfiguration::ExportConfiguration(const ExportConfiguration& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL),
+      _has_bits_(from._has_bits_),
+      _cached_size_(0),
+      query_column_ranges_(from.query_column_ranges_),
+      attributes_(from.attributes_) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.has_tiledb_workspace()) {
+    tiledb_workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_workspace_);
+  }
+  tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.has_tiledb_array_name()) {
+    tiledb_array_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_array_name_);
+  }
+  reference_genome_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.has_reference_genome()) {
+    reference_genome_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.reference_genome_);
+  }
+  // @@protoc_insertion_point(copy_constructor:ExportConfiguration)
 }
 
 void ExportConfiguration::SharedCtor() {
   _cached_size_ = 0;
-  tiledb_workspace_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  tiledb_array_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  reference_genome_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  reference_genome_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 ExportConfiguration::~ExportConfiguration() {
+  // @@protoc_insertion_point(destructor:ExportConfiguration)
   SharedDtor();
 }
 
 void ExportConfiguration::SharedDtor() {
-  if (tiledb_workspace_ != &::google::protobuf::internal::kEmptyString) {
-    delete tiledb_workspace_;
-  }
-  if (tiledb_array_name_ != &::google::protobuf::internal::kEmptyString) {
-    delete tiledb_array_name_;
-  }
-  if (reference_genome_ != &::google::protobuf::internal::kEmptyString) {
-    delete reference_genome_;
-  }
-  if (this != default_instance_) {
-  }
+  tiledb_workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  tiledb_array_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  reference_genome_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void ExportConfiguration::SetCachedSize(int size) const {
@@ -662,140 +829,140 @@ void ExportConfiguration::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
 const ::google::protobuf::Descriptor* ExportConfiguration::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return ExportConfiguration_descriptor_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[2].descriptor;
 }
 
 const ExportConfiguration& ExportConfiguration::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
-  return *default_instance_;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::InitDefaults();
+  return *internal_default_instance();
 }
 
-ExportConfiguration* ExportConfiguration::default_instance_ = NULL;
-
-ExportConfiguration* ExportConfiguration::New() const {
-  return new ExportConfiguration;
+ExportConfiguration* ExportConfiguration::New(::google::protobuf::Arena* arena) const {
+  ExportConfiguration* n = new ExportConfiguration;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void ExportConfiguration::Clear() {
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_tiledb_workspace()) {
-      if (tiledb_workspace_ != &::google::protobuf::internal::kEmptyString) {
-        tiledb_workspace_->clear();
-      }
-    }
-    if (has_tiledb_array_name()) {
-      if (tiledb_array_name_ != &::google::protobuf::internal::kEmptyString) {
-        tiledb_array_name_->clear();
-      }
-    }
-    if (has_reference_genome()) {
-      if (reference_genome_ != &::google::protobuf::internal::kEmptyString) {
-        reference_genome_->clear();
-      }
-    }
-  }
+// @@protoc_insertion_point(message_clear_start:ExportConfiguration)
   query_column_ranges_.Clear();
   attributes_.Clear();
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
+  if (_has_bits_[0 / 32] & 7u) {
+    if (has_tiledb_workspace()) {
+      GOOGLE_DCHECK(!tiledb_workspace_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
+      (*tiledb_workspace_.UnsafeRawStringPointer())->clear();
+    }
+    if (has_tiledb_array_name()) {
+      GOOGLE_DCHECK(!tiledb_array_name_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
+      (*tiledb_array_name_.UnsafeRawStringPointer())->clear();
+    }
+    if (has_reference_genome()) {
+      GOOGLE_DCHECK(!reference_genome_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
+      (*reference_genome_.UnsafeRawStringPointer())->clear();
+    }
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear();
 }
 
 bool ExportConfiguration::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
+  // @@protoc_insertion_point(parse_start:ExportConfiguration)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
       // required string tiledb_workspace = 1;
       case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(10u)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_tiledb_workspace()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
             this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.tiledb_workspace");
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(18)) goto parse_tiledb_array_name;
         break;
       }
 
       // required string tiledb_array_name = 2;
       case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_tiledb_array_name:
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(18u)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_tiledb_array_name()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
             this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.tiledb_array_name");
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(26)) goto parse_reference_genome;
         break;
       }
 
       // required string reference_genome = 3;
       case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_reference_genome:
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(26u)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_reference_genome()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
             this->reference_genome().data(), this->reference_genome().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.reference_genome");
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(34)) goto parse_query_column_ranges;
         break;
       }
 
       // repeated .ColumnRangeList query_column_ranges = 4;
       case 4: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_query_column_ranges:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(34u)) {
+          DO_(input->IncrementRecursionDepth());
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
                 input, add_query_column_ranges()));
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(34)) goto parse_query_column_ranges;
-        if (input->ExpectTag(42)) goto parse_attributes;
+        input->UnsafeDecrementRecursionDepth();
         break;
       }
 
       // repeated string attributes = 5;
       case 5: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_attributes:
+        if (static_cast<::google::protobuf::uint8>(tag) ==
+            static_cast<::google::protobuf::uint8>(42u)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->add_attributes()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
             this->attributes(this->attributes_size() - 1).data(),
             this->attributes(this->attributes_size() - 1).length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.attributes");
         } else {
-          goto handle_uninterpreted;
+          goto handle_unusual;
         }
-        if (input->ExpectTag(42)) goto parse_attributes;
-        if (input->ExpectAtEnd()) return true;
         break;
       }
 
       default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
+          goto success;
         }
         DO_(::google::protobuf::internal::WireFormat::SkipField(
               input, tag, mutable_unknown_fields()));
@@ -803,67 +970,81 @@ bool ExportConfiguration::MergePartialFromCodedStream(
       }
     }
   }
+success:
+  // @@protoc_insertion_point(parse_success:ExportConfiguration)
   return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:ExportConfiguration)
+  return false;
 #undef DO_
 }
 
 void ExportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:ExportConfiguration)
   // required string tiledb_workspace = 1;
   if (has_tiledb_workspace()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.tiledb_workspace");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       1, this->tiledb_workspace(), output);
   }
 
   // required string tiledb_array_name = 2;
   if (has_tiledb_array_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.tiledb_array_name");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       2, this->tiledb_array_name(), output);
   }
 
   // required string reference_genome = 3;
   if (has_reference_genome()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->reference_genome().data(), this->reference_genome().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.reference_genome");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
       3, this->reference_genome(), output);
   }
 
   // repeated .ColumnRangeList query_column_ranges = 4;
-  for (int i = 0; i < this->query_column_ranges_size(); i++) {
+  for (unsigned int i = 0, n = this->query_column_ranges_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       4, this->query_column_ranges(i), output);
   }
 
   // repeated string attributes = 5;
-  for (int i = 0; i < this->attributes_size(); i++) {
-  ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-    this->attributes(i).data(), this->attributes(i).length(),
-    ::google::protobuf::internal::WireFormat::SERIALIZE);
+  for (int i = 0, n = this->attributes_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->attributes(i).data(), this->attributes(i).length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.attributes");
     ::google::protobuf::internal::WireFormatLite::WriteString(
       5, this->attributes(i), output);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
   }
+  // @@protoc_insertion_point(serialize_end:ExportConfiguration)
 }
 
-::google::protobuf::uint8* ExportConfiguration::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ExportConfiguration::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic;  // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
   // required string tiledb_workspace = 1;
   if (has_tiledb_workspace()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.tiledb_workspace");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         1, this->tiledb_workspace(), target);
@@ -871,9 +1052,10 @@ void ExportConfiguration::SerializeWithCachedSizes(
 
   // required string tiledb_array_name = 2;
   if (has_tiledb_array_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.tiledb_array_name");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         2, this->tiledb_array_name(), target);
@@ -881,126 +1063,167 @@ void ExportConfiguration::SerializeWithCachedSizes(
 
   // required string reference_genome = 3;
   if (has_reference_genome()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->reference_genome().data(), this->reference_genome().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.reference_genome");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         3, this->reference_genome(), target);
   }
 
   // repeated .ColumnRangeList query_column_ranges = 4;
-  for (int i = 0; i < this->query_column_ranges_size(); i++) {
+  for (unsigned int i = 0, n = this->query_column_ranges_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->query_column_ranges(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        4, this->query_column_ranges(i), false, target);
   }
 
   // repeated string attributes = 5;
-  for (int i = 0; i < this->attributes_size(); i++) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+  for (int i = 0, n = this->attributes_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->attributes(i).data(), this->attributes(i).length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.attributes");
     target = ::google::protobuf::internal::WireFormatLite::
       WriteStringToArray(5, this->attributes(i), target);
   }
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
   }
+  // @@protoc_insertion_point(serialize_to_array_end:ExportConfiguration)
   return target;
 }
 
-int ExportConfiguration::ByteSize() const {
-  int total_size = 0;
+size_t ExportConfiguration::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ExportConfiguration)
+  size_t total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+  if (has_tiledb_workspace()) {
     // required string tiledb_workspace = 1;
-    if (has_tiledb_workspace()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->tiledb_workspace());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->tiledb_workspace());
+  }
 
+  if (has_tiledb_array_name()) {
     // required string tiledb_array_name = 2;
-    if (has_tiledb_array_name()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->tiledb_array_name());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->tiledb_array_name());
+  }
 
+  if (has_reference_genome()) {
     // required string reference_genome = 3;
-    if (has_reference_genome()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->reference_genome());
-    }
-
-  }
-  // repeated .ColumnRangeList query_column_ranges = 4;
-  total_size += 1 * this->query_column_ranges_size();
-  for (int i = 0; i < this->query_column_ranges_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->query_column_ranges(i));
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->reference_genome());
   }
 
-  // repeated string attributes = 5;
-  total_size += 1 * this->attributes_size();
-  for (int i = 0; i < this->attributes_size(); i++) {
-    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-      this->attributes(i));
-  }
+  return total_size;
+}
+size_t ExportConfiguration::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:ExportConfiguration)
+  size_t total_size = 0;
 
-  if (!unknown_fields().empty()) {
+  if (_internal_metadata_.have_unknown_fields()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
         unknown_fields());
   }
+  if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
+    // required string tiledb_workspace = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->tiledb_workspace());
+
+    // required string tiledb_array_name = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->tiledb_array_name());
+
+    // required string reference_genome = 3;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->reference_genome());
+
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
+  }
+  // repeated .ColumnRangeList query_column_ranges = 4;
+  {
+    unsigned int count = this->query_column_ranges_size();
+    total_size += 1UL * count;
+    for (unsigned int i = 0; i < count; i++) {
+      total_size +=
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->query_column_ranges(i));
+    }
+  }
+
+  // repeated string attributes = 5;
+  total_size += 1 *
+      ::google::protobuf::internal::FromIntSize(this->attributes_size());
+  for (int i = 0, n = this->attributes_size(); i < n; i++) {
+    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+      this->attributes(i));
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
+  _cached_size_ = cached_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void ExportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(generalized_merge_from_start:ExportConfiguration)
+  GOOGLE_DCHECK_NE(&from, this);
   const ExportConfiguration* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const ExportConfiguration*>(
-      &from);
+      ::google::protobuf::internal::DynamicCastToGenerated<const ExportConfiguration>(
+          &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ExportConfiguration)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ExportConfiguration)
     MergeFrom(*source);
   }
 }
 
 void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:ExportConfiguration)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
   query_column_ranges_.MergeFrom(from.query_column_ranges_);
   attributes_.MergeFrom(from.attributes_);
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+  if (from._has_bits_[0 / 32] & 7u) {
     if (from.has_tiledb_workspace()) {
-      set_tiledb_workspace(from.tiledb_workspace());
+      set_has_tiledb_workspace();
+      tiledb_workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_workspace_);
     }
     if (from.has_tiledb_array_name()) {
-      set_tiledb_array_name(from.tiledb_array_name());
+      set_has_tiledb_array_name();
+      tiledb_array_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_array_name_);
     }
     if (from.has_reference_genome()) {
-      set_reference_genome(from.reference_genome());
+      set_has_reference_genome();
+      reference_genome_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.reference_genome_);
     }
   }
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
 void ExportConfiguration::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ExportConfiguration::CopyFrom(const ExportConfiguration& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1008,34 +1231,317 @@ void ExportConfiguration::CopyFrom(const ExportConfiguration& from) {
 
 bool ExportConfiguration::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000007) != 0x00000007) return false;
-
-  for (int i = 0; i < query_column_ranges_size(); i++) {
-    if (!this->query_column_ranges(i).IsInitialized()) return false;
-  }
+  if (!::google::protobuf::internal::AllAreInitialized(this->query_column_ranges())) return false;
   return true;
 }
 
 void ExportConfiguration::Swap(ExportConfiguration* other) {
-  if (other != this) {
-    std::swap(tiledb_workspace_, other->tiledb_workspace_);
-    std::swap(tiledb_array_name_, other->tiledb_array_name_);
-    std::swap(reference_genome_, other->reference_genome_);
-    query_column_ranges_.Swap(&other->query_column_ranges_);
-    attributes_.Swap(&other->attributes_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void ExportConfiguration::InternalSwap(ExportConfiguration* other) {
+  query_column_ranges_.UnsafeArenaSwap(&other->query_column_ranges_);
+  attributes_.UnsafeArenaSwap(&other->attributes_);
+  tiledb_workspace_.Swap(&other->tiledb_workspace_);
+  tiledb_array_name_.Swap(&other->tiledb_array_name_);
+  reference_genome_.Swap(&other->reference_genome_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata ExportConfiguration::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = ExportConfiguration_descriptor_;
-  metadata.reflection = ExportConfiguration_reflection_;
-  return metadata;
+  protobuf_genomicsdb_5fexport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_genomicsdb_5fexport_5fconfig_2eproto::file_level_metadata[2];
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// ExportConfiguration
+
+// required string tiledb_workspace = 1;
+bool ExportConfiguration::has_tiledb_workspace() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void ExportConfiguration::set_has_tiledb_workspace() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void ExportConfiguration::clear_has_tiledb_workspace() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void ExportConfiguration::clear_tiledb_workspace() {
+  tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_tiledb_workspace();
+}
+const ::std::string& ExportConfiguration::tiledb_workspace() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_workspace)
+  return tiledb_workspace_.GetNoArena();
+}
+void ExportConfiguration::set_tiledb_workspace(const ::std::string& value) {
+  set_has_tiledb_workspace();
+  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_workspace)
+}
+#if LANG_CXX11
+void ExportConfiguration::set_tiledb_workspace(::std::string&& value) {
+  set_has_tiledb_workspace();
+  tiledb_workspace_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:ExportConfiguration.tiledb_workspace)
+}
+#endif
+void ExportConfiguration::set_tiledb_workspace(const char* value) {
+  set_has_tiledb_workspace();
+  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_workspace)
+}
+void ExportConfiguration::set_tiledb_workspace(const char* value, size_t size) {
+  set_has_tiledb_workspace();
+  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_workspace)
+}
+::std::string* ExportConfiguration::mutable_tiledb_workspace() {
+  set_has_tiledb_workspace();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_workspace)
+  return tiledb_workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+::std::string* ExportConfiguration::release_tiledb_workspace() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.tiledb_workspace)
+  clear_has_tiledb_workspace();
+  return tiledb_workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+void ExportConfiguration::set_allocated_tiledb_workspace(::std::string* tiledb_workspace) {
+  if (tiledb_workspace != NULL) {
+    set_has_tiledb_workspace();
+  } else {
+    clear_has_tiledb_workspace();
+  }
+  tiledb_workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_workspace);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_workspace)
+}
+
+// required string tiledb_array_name = 2;
+bool ExportConfiguration::has_tiledb_array_name() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void ExportConfiguration::set_has_tiledb_array_name() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void ExportConfiguration::clear_has_tiledb_array_name() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void ExportConfiguration::clear_tiledb_array_name() {
+  tiledb_array_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_tiledb_array_name();
+}
+const ::std::string& ExportConfiguration::tiledb_array_name() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_array_name)
+  return tiledb_array_name_.GetNoArena();
+}
+void ExportConfiguration::set_tiledb_array_name(const ::std::string& value) {
+  set_has_tiledb_array_name();
+  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_array_name)
+}
+#if LANG_CXX11
+void ExportConfiguration::set_tiledb_array_name(::std::string&& value) {
+  set_has_tiledb_array_name();
+  tiledb_array_name_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:ExportConfiguration.tiledb_array_name)
+}
+#endif
+void ExportConfiguration::set_tiledb_array_name(const char* value) {
+  set_has_tiledb_array_name();
+  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_array_name)
+}
+void ExportConfiguration::set_tiledb_array_name(const char* value, size_t size) {
+  set_has_tiledb_array_name();
+  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_array_name)
+}
+::std::string* ExportConfiguration::mutable_tiledb_array_name() {
+  set_has_tiledb_array_name();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_array_name)
+  return tiledb_array_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+::std::string* ExportConfiguration::release_tiledb_array_name() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.tiledb_array_name)
+  clear_has_tiledb_array_name();
+  return tiledb_array_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+void ExportConfiguration::set_allocated_tiledb_array_name(::std::string* tiledb_array_name) {
+  if (tiledb_array_name != NULL) {
+    set_has_tiledb_array_name();
+  } else {
+    clear_has_tiledb_array_name();
+  }
+  tiledb_array_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_array_name);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_array_name)
+}
+
+// required string reference_genome = 3;
+bool ExportConfiguration::has_reference_genome() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void ExportConfiguration::set_has_reference_genome() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void ExportConfiguration::clear_has_reference_genome() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void ExportConfiguration::clear_reference_genome() {
+  reference_genome_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_reference_genome();
+}
+const ::std::string& ExportConfiguration::reference_genome() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.reference_genome)
+  return reference_genome_.GetNoArena();
+}
+void ExportConfiguration::set_reference_genome(const ::std::string& value) {
+  set_has_reference_genome();
+  reference_genome_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.reference_genome)
+}
+#if LANG_CXX11
+void ExportConfiguration::set_reference_genome(::std::string&& value) {
+  set_has_reference_genome();
+  reference_genome_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:ExportConfiguration.reference_genome)
+}
+#endif
+void ExportConfiguration::set_reference_genome(const char* value) {
+  set_has_reference_genome();
+  reference_genome_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.reference_genome)
+}
+void ExportConfiguration::set_reference_genome(const char* value, size_t size) {
+  set_has_reference_genome();
+  reference_genome_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.reference_genome)
+}
+::std::string* ExportConfiguration::mutable_reference_genome() {
+  set_has_reference_genome();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.reference_genome)
+  return reference_genome_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+::std::string* ExportConfiguration::release_reference_genome() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.reference_genome)
+  clear_has_reference_genome();
+  return reference_genome_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+void ExportConfiguration::set_allocated_reference_genome(::std::string* reference_genome) {
+  if (reference_genome != NULL) {
+    set_has_reference_genome();
+  } else {
+    clear_has_reference_genome();
+  }
+  reference_genome_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), reference_genome);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.reference_genome)
+}
+
+// repeated .ColumnRangeList query_column_ranges = 4;
+int ExportConfiguration::query_column_ranges_size() const {
+  return query_column_ranges_.size();
+}
+void ExportConfiguration::clear_query_column_ranges() {
+  query_column_ranges_.Clear();
+}
+const ::ColumnRangeList& ExportConfiguration::query_column_ranges(int index) const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.query_column_ranges)
+  return query_column_ranges_.Get(index);
+}
+::ColumnRangeList* ExportConfiguration::mutable_query_column_ranges(int index) {
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.query_column_ranges)
+  return query_column_ranges_.Mutable(index);
+}
+::ColumnRangeList* ExportConfiguration::add_query_column_ranges() {
+  // @@protoc_insertion_point(field_add:ExportConfiguration.query_column_ranges)
+  return query_column_ranges_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::ColumnRangeList >*
+ExportConfiguration::mutable_query_column_ranges() {
+  // @@protoc_insertion_point(field_mutable_list:ExportConfiguration.query_column_ranges)
+  return &query_column_ranges_;
+}
+const ::google::protobuf::RepeatedPtrField< ::ColumnRangeList >&
+ExportConfiguration::query_column_ranges() const {
+  // @@protoc_insertion_point(field_list:ExportConfiguration.query_column_ranges)
+  return query_column_ranges_;
+}
+
+// repeated string attributes = 5;
+int ExportConfiguration::attributes_size() const {
+  return attributes_.size();
+}
+void ExportConfiguration::clear_attributes() {
+  attributes_.Clear();
+}
+const ::std::string& ExportConfiguration::attributes(int index) const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.attributes)
+  return attributes_.Get(index);
+}
+::std::string* ExportConfiguration::mutable_attributes(int index) {
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.attributes)
+  return attributes_.Mutable(index);
+}
+void ExportConfiguration::set_attributes(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:ExportConfiguration.attributes)
+  attributes_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+void ExportConfiguration::set_attributes(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:ExportConfiguration.attributes)
+  attributes_.Mutable(index)->assign(std::move(value));
+}
+#endif
+void ExportConfiguration::set_attributes(int index, const char* value) {
+  attributes_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.attributes)
+}
+void ExportConfiguration::set_attributes(int index, const char* value, size_t size) {
+  attributes_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.attributes)
+}
+::std::string* ExportConfiguration::add_attributes() {
+  // @@protoc_insertion_point(field_add_mutable:ExportConfiguration.attributes)
+  return attributes_.Add();
+}
+void ExportConfiguration::add_attributes(const ::std::string& value) {
+  attributes_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:ExportConfiguration.attributes)
+}
+#if LANG_CXX11
+void ExportConfiguration::add_attributes(::std::string&& value) {
+  attributes_.Add()->assign(std::move(value));
+  // @@protoc_insertion_point(field_add:ExportConfiguration.attributes)
+}
+#endif
+void ExportConfiguration::add_attributes(const char* value) {
+  attributes_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:ExportConfiguration.attributes)
+}
+void ExportConfiguration::add_attributes(const char* value, size_t size) {
+  attributes_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:ExportConfiguration.attributes)
+}
+const ::google::protobuf::RepeatedPtrField< ::std::string>&
+ExportConfiguration::attributes() const {
+  // @@protoc_insertion_point(field_list:ExportConfiguration.attributes)
+  return attributes_;
+}
+::google::protobuf::RepeatedPtrField< ::std::string>*
+ExportConfiguration::mutable_attributes() {
+  // @@protoc_insertion_point(field_mutable_list:ExportConfiguration.attributes)
+  return &attributes_;
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // @@protoc_insertion_point(namespace_scope)
 

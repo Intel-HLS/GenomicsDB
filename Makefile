@@ -181,6 +181,8 @@ ifdef VERBOSE
   CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
+LDFLAGS+=-lprotobuf
+
 # --- Directories --- #
 
 GENOMICSDB_OBJ_DIR=./obj
@@ -212,6 +214,7 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    vcf_adapter.cc \
 			    json_config.cc \
 			    vid_mapper.cc \
+			    vid_mapper_pb.cc \
 			    libtiledb_variant.cc \
 			    variant_cell.cc \
 			    variant_query_config.cc \
@@ -233,11 +236,12 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    tiledb_loader_file_base.cc \
 			    tiledb_loader_text_file.cc \
 			    genomicsdb_bcf_generator.cc \
-          timer.cc \
+			    timer.cc \
 			    memory_measure.cc \
 			    genomicsdb_importer.cc \
-          genomicsdb_import_config.pb.cc \
-          genomicsdb_export_config.pb.cc
+			    genomicsdb_import_config.pb.cc \
+			    genomicsdb_export_config.pb.cc \
+			    genomicsdb_vid_mapping.pb.cc
 
 ifdef BUILD_JAVA
 
@@ -311,7 +315,7 @@ endif
 ###################
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all \
-        TileDB_library TileDB_clean htslib_library htslib_clean	
+        TileDB_library TileDB_clean htslib_library htslib_clean
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI

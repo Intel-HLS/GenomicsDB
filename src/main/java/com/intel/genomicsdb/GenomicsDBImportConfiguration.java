@@ -6,256 +6,580 @@ package com.intel.genomicsdb;
 public final class GenomicsDBImportConfiguration {
   private GenomicsDBImportConfiguration() {}
   public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistry registry) {
+      com.google.protobuf.ExtensionRegistryLite registry) {
   }
-  public static final class TileDBConfig extends
-      com.google.protobuf.GeneratedMessage {
+
+  public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
+  }
+  public interface TileDBConfigOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:TileDBConfig)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    boolean hasTiledbWorkspace();
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    java.lang.String getTiledbWorkspace();
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes();
+
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    boolean hasTiledbArrayName();
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    java.lang.String getTiledbArrayName();
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getTiledbArrayNameBytes();
+
+    /**
+     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+     */
+    boolean hasCompressTiledbArray();
+    /**
+     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+     */
+    boolean getCompressTiledbArray();
+
+    /**
+     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+     */
+    boolean hasNumCellsPerTile();
+    /**
+     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+     */
+    long getNumCellsPerTile();
+  }
+  /**
+   * Protobuf type {@code TileDBConfig}
+   */
+  public  static final class TileDBConfig extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:TileDBConfig)
+      TileDBConfigOrBuilder {
     // Use TileDBConfig.newBuilder() to construct.
+    private TileDBConfig(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
     private TileDBConfig() {
-      initFields();
+      tiledbWorkspace_ = "";
+      tiledbArrayName_ = "";
+      compressTiledbArray_ = true;
+      numCellsPerTile_ = 1000L;
     }
-    private TileDBConfig(boolean noInit) {}
-    
-    private static final TileDBConfig defaultInstance;
-    public static TileDBConfig getDefaultInstance() {
-      return defaultInstance;
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
     }
-    
-    public TileDBConfig getDefaultInstanceForType() {
-      return defaultInstance;
+    private TileDBConfig(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000001;
+              tiledbWorkspace_ = bs;
+              break;
+            }
+            case 18: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000002;
+              tiledbArrayName_ = bs;
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              compressTiledbArray_ = input.readBool();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              numCellsPerTile_ = input.readInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
     }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder.class);
     }
-    
-    // optional string tiledb_workspace = 1;
+
+    private int bitField0_;
     public static final int TILEDB_WORKSPACE_FIELD_NUMBER = 1;
-    private boolean hasTiledbWorkspace;
-    private java.lang.String tiledbWorkspace_ = "";
-    public boolean hasTiledbWorkspace() { return hasTiledbWorkspace; }
-    public java.lang.String getTiledbWorkspace() { return tiledbWorkspace_; }
-    
-    // optional string tiledb_array_name = 2;
-    public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 2;
-    private boolean hasTiledbArrayName;
-    private java.lang.String tiledbArrayName_ = "";
-    public boolean hasTiledbArrayName() { return hasTiledbArrayName; }
-    public java.lang.String getTiledbArrayName() { return tiledbArrayName_; }
-    
-    // optional bool compress_tiledb_array = 3 [default = true];
-    public static final int COMPRESS_TILEDB_ARRAY_FIELD_NUMBER = 3;
-    private boolean hasCompressTiledbArray;
-    private boolean compressTiledbArray_ = true;
-    public boolean hasCompressTiledbArray() { return hasCompressTiledbArray; }
-    public boolean getCompressTiledbArray() { return compressTiledbArray_; }
-    
-    // optional int64 num_cells_per_tile = 4 [default = 1000];
-    public static final int NUM_CELLS_PER_TILE_FIELD_NUMBER = 4;
-    private boolean hasNumCellsPerTile;
-    private long numCellsPerTile_ = 1000L;
-    public boolean hasNumCellsPerTile() { return hasNumCellsPerTile; }
-    public long getNumCellsPerTile() { return numCellsPerTile_; }
-    
-    private void initFields() {
+    private volatile java.lang.Object tiledbWorkspace_;
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    public boolean hasTiledbWorkspace() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    public java.lang.String getTiledbWorkspace() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbWorkspace_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string tiledb_workspace = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbWorkspace_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 2;
+    private volatile java.lang.Object tiledbArrayName_;
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    public boolean hasTiledbArrayName() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    public java.lang.String getTiledbArrayName() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbArrayName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string tiledb_array_name = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTiledbArrayNameBytes() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbArrayName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int COMPRESS_TILEDB_ARRAY_FIELD_NUMBER = 3;
+    private boolean compressTiledbArray_;
+    /**
+     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+     */
+    public boolean hasCompressTiledbArray() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+     */
+    public boolean getCompressTiledbArray() {
+      return compressTiledbArray_;
+    }
+
+    public static final int NUM_CELLS_PER_TILE_FIELD_NUMBER = 4;
+    private long numCellsPerTile_;
+    /**
+     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+     */
+    public boolean hasNumCellsPerTile() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+     */
+    public long getNumCellsPerTile() {
+      return numCellsPerTile_;
+    }
+
+    private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (hasTiledbWorkspace()) {
-        output.writeString(1, getTiledbWorkspace());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, tiledbWorkspace_);
       }
-      if (hasTiledbArrayName()) {
-        output.writeString(2, getTiledbArrayName());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, tiledbArrayName_);
       }
-      if (hasCompressTiledbArray()) {
-        output.writeBool(3, getCompressTiledbArray());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBool(3, compressTiledbArray_);
       }
-      if (hasNumCellsPerTile()) {
-        output.writeInt64(4, getNumCellsPerTile());
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt64(4, numCellsPerTile_);
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      if (hasTiledbWorkspace()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(1, getTiledbWorkspace());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, tiledbWorkspace_);
       }
-      if (hasTiledbArrayName()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(2, getTiledbArrayName());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, tiledbArrayName_);
       }
-      if (hasCompressTiledbArray()) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(3, getCompressTiledbArray());
+          .computeBoolSize(3, compressTiledbArray_);
       }
-      if (hasNumCellsPerTile()) {
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(4, getNumCellsPerTile());
+          .computeInt64Size(4, numCellsPerTile_);
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) obj;
+
+      boolean result = true;
+      result = result && (hasTiledbWorkspace() == other.hasTiledbWorkspace());
+      if (hasTiledbWorkspace()) {
+        result = result && getTiledbWorkspace()
+            .equals(other.getTiledbWorkspace());
+      }
+      result = result && (hasTiledbArrayName() == other.hasTiledbArrayName());
+      if (hasTiledbArrayName()) {
+        result = result && getTiledbArrayName()
+            .equals(other.getTiledbArrayName());
+      }
+      result = result && (hasCompressTiledbArray() == other.hasCompressTiledbArray());
+      if (hasCompressTiledbArray()) {
+        result = result && (getCompressTiledbArray()
+            == other.getCompressTiledbArray());
+      }
+      result = result && (hasNumCellsPerTile() == other.hasNumCellsPerTile());
+      if (hasNumCellsPerTile()) {
+        result = result && (getNumCellsPerTile()
+            == other.getNumCellsPerTile());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasTiledbWorkspace()) {
+        hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbWorkspace().hashCode();
+      }
+      if (hasTiledbArrayName()) {
+        hash = (37 * hash) + TILEDB_ARRAY_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbArrayName().hashCode();
+      }
+      if (hasCompressTiledbArray()) {
+        hash = (37 * hash) + COMPRESS_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getCompressTiledbArray());
+      }
+      if (hasNumCellsPerTile()) {
+        hash = (37 * hash) + NUM_CELLS_PER_TILE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getNumCellsPerTile());
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code TileDBConfig}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:TileDBConfig)
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
-        result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig();
+      }
+      public Builder clear() {
+        super.clear();
+        tiledbWorkspace_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        tiledbArrayName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        compressTiledbArray_ = true;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        numCellsPerTile_ = 1000L;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig returnMe = result;
-        result = null;
-        return returnMe;
+        result.tiledbWorkspace_ = tiledbWorkspace_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.tiledbArrayName_ = tiledbArrayName_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.compressTiledbArray_ = compressTiledbArray_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.numCellsPerTile_ = numCellsPerTile_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig)other);
@@ -264,14 +588,18 @@ public final class GenomicsDBImportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig other) {
         if (other == com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) return this;
         if (other.hasTiledbWorkspace()) {
-          setTiledbWorkspace(other.getTiledbWorkspace());
+          bitField0_ |= 0x00000001;
+          tiledbWorkspace_ = other.tiledbWorkspace_;
+          onChanged();
         }
         if (other.hasTiledbArrayName()) {
-          setTiledbArrayName(other.getTiledbArrayName());
+          bitField0_ |= 0x00000002;
+          tiledbArrayName_ = other.tiledbArrayName_;
+          onChanged();
         }
         if (other.hasCompressTiledbArray()) {
           setCompressTiledbArray(other.getCompressTiledbArray());
@@ -279,378 +607,809 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasNumCellsPerTile()) {
           setNumCellsPerTile(other.getNumCellsPerTile());
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.lang.Object tiledbWorkspace_ = "";
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public boolean hasTiledbWorkspace() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public java.lang.String getTiledbWorkspace() {
+        java.lang.Object ref = tiledbWorkspace_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbWorkspace_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTiledbWorkspaceBytes() {
+        java.lang.Object ref = tiledbWorkspace_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbWorkspace_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public Builder setTiledbWorkspace(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        tiledbWorkspace_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public Builder clearTiledbWorkspace() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_workspace = 1;</code>
+       */
+      public Builder setTiledbWorkspaceBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        tiledbWorkspace_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object tiledbArrayName_ = "";
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public boolean hasTiledbArrayName() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public java.lang.String getTiledbArrayName() {
+        java.lang.Object ref = tiledbArrayName_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbArrayName_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getTiledbArrayNameBytes() {
+        java.lang.Object ref = tiledbArrayName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbArrayName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public Builder setTiledbArrayName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        tiledbArrayName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public Builder clearTiledbArrayName() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_array_name = 2;</code>
+       */
+      public Builder setTiledbArrayNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        tiledbArrayName_ = value;
+        onChanged();
+        return this;
+      }
+
+      private boolean compressTiledbArray_ = true;
+      /**
+       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+       */
+      public boolean hasCompressTiledbArray() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+       */
+      public boolean getCompressTiledbArray() {
+        return compressTiledbArray_;
+      }
+      /**
+       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+       */
+      public Builder setCompressTiledbArray(boolean value) {
+        bitField0_ |= 0x00000004;
+        compressTiledbArray_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
+       */
+      public Builder clearCompressTiledbArray() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        compressTiledbArray_ = true;
+        onChanged();
+        return this;
+      }
+
+      private long numCellsPerTile_ = 1000L;
+      /**
+       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+       */
+      public boolean hasNumCellsPerTile() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+       */
+      public long getNumCellsPerTile() {
+        return numCellsPerTile_;
+      }
+      /**
+       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+       */
+      public Builder setNumCellsPerTile(long value) {
+        bitField0_ |= 0x00000008;
+        numCellsPerTile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
+       */
+      public Builder clearNumCellsPerTile() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        numCellsPerTile_ = 1000L;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:TileDBConfig)
+    }
+
+    // @@protoc_insertion_point(class_scope:TileDBConfig)
+    private static final com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<TileDBConfig>
+        PARSER = new com.google.protobuf.AbstractParser<TileDBConfig>() {
+      public TileDBConfig parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new TileDBConfig(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<TileDBConfig> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<TileDBConfig> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface PartitionOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:Partition)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>required int64 begin = 1;</code>
+     */
+    boolean hasBegin();
+    /**
+     * <code>required int64 begin = 1;</code>
+     */
+    long getBegin();
+
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    boolean hasTiledbConfig();
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig();
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder();
+
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    boolean hasVcfFileName();
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    java.lang.String getVcfFileName();
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getVcfFileNameBytes();
+  }
+  /**
+   * Protobuf type {@code Partition}
+   */
+  public  static final class Partition extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:Partition)
+      PartitionOrBuilder {
+    // Use Partition.newBuilder() to construct.
+    private Partition(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private Partition() {
+      begin_ = 0L;
+      vcfFileName_ = "";
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private Partition(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
           int tag = input.readTag();
           switch (tag) {
             case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
+              done = true;
+              break;
             default: {
               if (!parseUnknownField(input, unknownFields,
                                      extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
+                done = true;
               }
               break;
             }
-            case 10: {
-              setTiledbWorkspace(input.readString());
+            case 8: {
+              bitField0_ |= 0x00000001;
+              begin_ = input.readInt64();
               break;
             }
             case 18: {
-              setTiledbArrayName(input.readString());
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000002) == 0x00000002)) {
+                subBuilder = tiledbConfig_.toBuilder();
+              }
+              tiledbConfig_ = input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(tiledbConfig_);
+                tiledbConfig_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000002;
               break;
             }
-            case 24: {
-              setCompressTiledbArray(input.readBool());
-              break;
-            }
-            case 32: {
-              setNumCellsPerTile(input.readInt64());
+            case 26: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000004;
+              vcfFileName_ = bs;
               break;
             }
           }
         }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
       }
-      
-      
-      // optional string tiledb_workspace = 1;
-      public boolean hasTiledbWorkspace() {
-        return result.hasTiledbWorkspace();
-      }
-      public java.lang.String getTiledbWorkspace() {
-        return result.getTiledbWorkspace();
-      }
-      public Builder setTiledbWorkspace(java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasTiledbWorkspace = true;
-        result.tiledbWorkspace_ = value;
-        return this;
-      }
-      public Builder clearTiledbWorkspace() {
-        result.hasTiledbWorkspace = false;
-        result.tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
-        return this;
-      }
-      
-      // optional string tiledb_array_name = 2;
-      public boolean hasTiledbArrayName() {
-        return result.hasTiledbArrayName();
-      }
-      public java.lang.String getTiledbArrayName() {
-        return result.getTiledbArrayName();
-      }
-      public Builder setTiledbArrayName(java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasTiledbArrayName = true;
-        result.tiledbArrayName_ = value;
-        return this;
-      }
-      public Builder clearTiledbArrayName() {
-        result.hasTiledbArrayName = false;
-        result.tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
-        return this;
-      }
-      
-      // optional bool compress_tiledb_array = 3 [default = true];
-      public boolean hasCompressTiledbArray() {
-        return result.hasCompressTiledbArray();
-      }
-      public boolean getCompressTiledbArray() {
-        return result.getCompressTiledbArray();
-      }
-      public Builder setCompressTiledbArray(boolean value) {
-        result.hasCompressTiledbArray = true;
-        result.compressTiledbArray_ = value;
-        return this;
-      }
-      public Builder clearCompressTiledbArray() {
-        result.hasCompressTiledbArray = false;
-        result.compressTiledbArray_ = true;
-        return this;
-      }
-      
-      // optional int64 num_cells_per_tile = 4 [default = 1000];
-      public boolean hasNumCellsPerTile() {
-        return result.hasNumCellsPerTile();
-      }
-      public long getNumCellsPerTile() {
-        return result.getNumCellsPerTile();
-      }
-      public Builder setNumCellsPerTile(long value) {
-        result.hasNumCellsPerTile = true;
-        result.numCellsPerTile_ = value;
-        return this;
-      }
-      public Builder clearNumCellsPerTile() {
-        result.hasNumCellsPerTile = false;
-        result.numCellsPerTile_ = 1000L;
-        return this;
-      }
-      
-      // @@protoc_insertion_point(builder_scope:TileDBConfig)
     }
-    
-    static {
-      defaultInstance = new TileDBConfig(true);
-      com.intel.genomicsdb.GenomicsDBImportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
-    // @@protoc_insertion_point(class_scope:TileDBConfig)
-  }
-  
-  public static final class Partition extends
-      com.google.protobuf.GeneratedMessage {
-    // Use Partition.newBuilder() to construct.
-    private Partition() {
-      initFields();
-    }
-    private Partition(boolean noInit) {}
-    
-    private static final Partition defaultInstance;
-    public static Partition getDefaultInstance() {
-      return defaultInstance;
-    }
-    
-    public Partition getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder.class);
     }
-    
-    // required int64 begin = 1;
+
+    private int bitField0_;
     public static final int BEGIN_FIELD_NUMBER = 1;
-    private boolean hasBegin;
-    private long begin_ = 0L;
-    public boolean hasBegin() { return hasBegin; }
-    public long getBegin() { return begin_; }
-    
-    // optional .TileDBConfig tiledb_config = 2;
-    public static final int TILEDB_CONFIG_FIELD_NUMBER = 2;
-    private boolean hasTiledbConfig;
-    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
-    public boolean hasTiledbConfig() { return hasTiledbConfig; }
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() { return tiledbConfig_; }
-    
-    // optional string vcf_file_name = 3;
-    public static final int VCF_FILE_NAME_FIELD_NUMBER = 3;
-    private boolean hasVcfFileName;
-    private java.lang.String vcfFileName_ = "";
-    public boolean hasVcfFileName() { return hasVcfFileName; }
-    public java.lang.String getVcfFileName() { return vcfFileName_; }
-    
-    private void initFields() {
-      tiledbConfig_ = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
+    private long begin_;
+    /**
+     * <code>required int64 begin = 1;</code>
+     */
+    public boolean hasBegin() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+    /**
+     * <code>required int64 begin = 1;</code>
+     */
+    public long getBegin() {
+      return begin_;
+    }
+
+    public static final int TILEDB_CONFIG_FIELD_NUMBER = 2;
+    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    public boolean hasTiledbConfig() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
+      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    }
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
+      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    }
+
+    public static final int VCF_FILE_NAME_FIELD_NUMBER = 3;
+    private volatile java.lang.Object vcfFileName_;
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    public boolean hasVcfFileName() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    public java.lang.String getVcfFileName() {
+      java.lang.Object ref = vcfFileName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          vcfFileName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string vcf_file_name = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getVcfFileNameBytes() {
+      java.lang.Object ref = vcfFileName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        vcfFileName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
-      if (!hasBegin) return false;
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      if (!hasBegin()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (hasBegin()) {
-        output.writeInt64(1, getBegin());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeInt64(1, begin_);
       }
-      if (hasTiledbConfig()) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeMessage(2, getTiledbConfig());
       }
-      if (hasVcfFileName()) {
-        output.writeString(3, getVcfFileName());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFileName_);
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      if (hasBegin()) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(1, getBegin());
+          .computeInt64Size(1, begin_);
       }
-      if (hasTiledbConfig()) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getTiledbConfig());
       }
-      if (hasVcfFileName()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(3, getVcfFileName());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, vcfFileName_);
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) obj;
+
+      boolean result = true;
+      result = result && (hasBegin() == other.hasBegin());
+      if (hasBegin()) {
+        result = result && (getBegin()
+            == other.getBegin());
+      }
+      result = result && (hasTiledbConfig() == other.hasTiledbConfig());
+      if (hasTiledbConfig()) {
+        result = result && getTiledbConfig()
+            .equals(other.getTiledbConfig());
+      }
+      result = result && (hasVcfFileName() == other.hasVcfFileName());
+      if (hasVcfFileName()) {
+        result = result && getVcfFileName()
+            .equals(other.getVcfFileName());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasBegin()) {
+        hash = (37 * hash) + BEGIN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getBegin());
+      }
+      if (hasTiledbConfig()) {
+        hash = (37 * hash) + TILEDB_CONFIG_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbConfig().hashCode();
+      }
+      if (hasVcfFileName()) {
+        hash = (37 * hash) + VCF_FILE_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getVcfFileName().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code Partition}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:Partition)
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getTiledbConfigFieldBuilder();
         }
-        result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition();
+      }
+      public Builder clear() {
+        super.clear();
+        begin_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = null;
+        } else {
+          tiledbConfigBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000002);
+        vcfFileName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition returnMe = result;
-        result = null;
-        return returnMe;
+        result.begin_ = begin_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        if (tiledbConfigBuilder_ == null) {
+          result.tiledbConfig_ = tiledbConfig_;
+        } else {
+          result.tiledbConfig_ = tiledbConfigBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.vcfFileName_ = vcfFileName_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition)other);
@@ -659,7 +1418,7 @@ public final class GenomicsDBImportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition other) {
         if (other == com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.getDefaultInstance()) return this;
         if (other.hasBegin()) {
@@ -669,559 +1428,1546 @@ public final class GenomicsDBImportConfiguration {
           mergeTiledbConfig(other.getTiledbConfig());
         }
         if (other.hasVcfFileName()) {
-          setVcfFileName(other.getVcfFileName());
+          bitField0_ |= 0x00000004;
+          vcfFileName_ = other.vcfFileName_;
+          onChanged();
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        if (!hasBegin()) {
+          return false;
+        }
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private long begin_ ;
+      /**
+       * <code>required int64 begin = 1;</code>
+       */
+      public boolean hasBegin() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>required int64 begin = 1;</code>
+       */
+      public long getBegin() {
+        return begin_;
+      }
+      /**
+       * <code>required int64 begin = 1;</code>
+       */
+      public Builder setBegin(long value) {
+        bitField0_ |= 0x00000001;
+        begin_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 begin = 1;</code>
+       */
+      public Builder clearBegin() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        begin_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_ = null;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> tiledbConfigBuilder_;
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public boolean hasTiledbConfig() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
+        if (tiledbConfigBuilder_ == null) {
+          return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+        } else {
+          return tiledbConfigBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
+        if (tiledbConfigBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          tiledbConfig_ = value;
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public Builder setTiledbConfig(
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = builderForValue.build();
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
+        if (tiledbConfigBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) == 0x00000002) &&
+              tiledbConfig_ != null &&
+              tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
+            tiledbConfig_ =
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(tiledbConfig_).mergeFrom(value).buildPartial();
+          } else {
+            tiledbConfig_ = value;
+          }
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000002;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public Builder clearTiledbConfig() {
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = null;
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000002);
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder getTiledbConfigBuilder() {
+        bitField0_ |= 0x00000002;
+        onChanged();
+        return getTiledbConfigFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
+        if (tiledbConfigBuilder_ != null) {
+          return tiledbConfigBuilder_.getMessageOrBuilder();
+        } else {
+          return tiledbConfig_ == null ?
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+        }
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> 
+          getTiledbConfigFieldBuilder() {
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfigBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder>(
+                  getTiledbConfig(),
+                  getParentForChildren(),
+                  isClean());
+          tiledbConfig_ = null;
+        }
+        return tiledbConfigBuilder_;
+      }
+
+      private java.lang.Object vcfFileName_ = "";
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public boolean hasVcfFileName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public java.lang.String getVcfFileName() {
+        java.lang.Object ref = vcfFileName_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            vcfFileName_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public com.google.protobuf.ByteString
+          getVcfFileNameBytes() {
+        java.lang.Object ref = vcfFileName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          vcfFileName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public Builder setVcfFileName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        vcfFileName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public Builder clearVcfFileName() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        vcfFileName_ = getDefaultInstance().getVcfFileName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string vcf_file_name = 3;</code>
+       */
+      public Builder setVcfFileNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        vcfFileName_ = value;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:Partition)
+    }
+
+    // @@protoc_insertion_point(class_scope:Partition)
+    private static final com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<Partition>
+        PARSER = new com.google.protobuf.AbstractParser<Partition>() {
+      public Partition parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new Partition(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<Partition> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<Partition> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
+  public interface ImportConfigurationOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:ImportConfiguration)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     */
+    boolean hasRowBasedPartitioning();
+    /**
+     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     */
+    boolean getRowBasedPartitioning();
+
+    /**
+     * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+     */
+    boolean hasProduceCombinedVcf();
+    /**
+     * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+     */
+    boolean getProduceCombinedVcf();
+
+    /**
+     * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+     */
+    boolean hasProduceTiledbArray();
+    /**
+     * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+     */
+    boolean getProduceTiledbArray();
+
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> 
+        getColumnPartitionsList();
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getColumnPartitions(int index);
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    int getColumnPartitionsCount();
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    java.util.List<? extends com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> 
+        getColumnPartitionsOrBuilderList();
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder getColumnPartitionsOrBuilder(
+        int index);
+
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    boolean hasVidMappingFile();
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    java.lang.String getVidMappingFile();
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    com.google.protobuf.ByteString
+        getVidMappingFileBytes();
+
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    boolean hasCallsetMappingFile();
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    java.lang.String getCallsetMappingFile();
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    com.google.protobuf.ByteString
+        getCallsetMappingFileBytes();
+
+    /**
+     * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+     */
+    boolean hasSizePerColumnPartition();
+    /**
+     * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+     */
+    long getSizePerColumnPartition();
+
+    /**
+     * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+     */
+    boolean hasTreatDeletionsAsIntervals();
+    /**
+     * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+     */
+    boolean getTreatDeletionsAsIntervals();
+
+    /**
+     * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+     */
+    boolean hasNumParallelVcfFiles();
+    /**
+     * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+     */
+    int getNumParallelVcfFiles();
+
+    /**
+     * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+     */
+    boolean hasDeleteAndCreateTiledbArray();
+    /**
+     * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+     */
+    boolean getDeleteAndCreateTiledbArray();
+
+    /**
+     * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+     */
+    boolean hasDoPingPongBuffering();
+    /**
+     * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+     */
+    boolean getDoPingPongBuffering();
+
+    /**
+     * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+     */
+    boolean hasOffloadVcfOutputProcessing();
+    /**
+     * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+     */
+    boolean getOffloadVcfOutputProcessing();
+
+    /**
+     * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+     */
+    boolean hasDiscardVcfIndex();
+    /**
+     * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+     */
+    boolean getDiscardVcfIndex();
+
+    /**
+     * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+     */
+    boolean hasSegmentSize();
+    /**
+     * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+     */
+    long getSegmentSize();
+
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    boolean hasTiledbConfig();
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig();
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder();
+  }
+  /**
+   * Protobuf type {@code ImportConfiguration}
+   */
+  public  static final class ImportConfiguration extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:ImportConfiguration)
+      ImportConfigurationOrBuilder {
+    // Use ImportConfiguration.newBuilder() to construct.
+    private ImportConfiguration(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private ImportConfiguration() {
+      rowBasedPartitioning_ = false;
+      produceCombinedVcf_ = false;
+      produceTiledbArray_ = true;
+      columnPartitions_ = java.util.Collections.emptyList();
+      vidMappingFile_ = "";
+      callsetMappingFile_ = "";
+      sizePerColumnPartition_ = 3000L;
+      treatDeletionsAsIntervals_ = true;
+      numParallelVcfFiles_ = 1;
+      deleteAndCreateTiledbArray_ = false;
+      doPingPongBuffering_ = true;
+      offloadVcfOutputProcessing_ = true;
+      discardVcfIndex_ = true;
+      segmentSize_ = 10485760L;
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private ImportConfiguration(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
           int tag = input.readTag();
           switch (tag) {
             case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
+              done = true;
+              break;
             default: {
               if (!parseUnknownField(input, unknownFields,
                                      extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
+                done = true;
               }
               break;
             }
             case 8: {
-              setBegin(input.readInt64());
+              bitField0_ |= 0x00000001;
+              rowBasedPartitioning_ = input.readBool();
               break;
             }
-            case 18: {
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-              if (hasTiledbConfig()) {
-                subBuilder.mergeFrom(getTiledbConfig());
+            case 16: {
+              bitField0_ |= 0x00000002;
+              produceCombinedVcf_ = input.readBool();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              produceTiledbArray_ = input.readBool();
+              break;
+            }
+            case 34: {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+                columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
+                mutable_bitField0_ |= 0x00000008;
               }
-              input.readMessage(subBuilder, extensionRegistry);
-              setTiledbConfig(subBuilder.buildPartial());
+              columnPartitions_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.PARSER, extensionRegistry));
               break;
             }
-            case 26: {
-              setVcfFileName(input.readString());
+            case 42: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000008;
+              vidMappingFile_ = bs;
+              break;
+            }
+            case 50: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000010;
+              callsetMappingFile_ = bs;
+              break;
+            }
+            case 56: {
+              bitField0_ |= 0x00000020;
+              sizePerColumnPartition_ = input.readInt64();
+              break;
+            }
+            case 64: {
+              bitField0_ |= 0x00000040;
+              treatDeletionsAsIntervals_ = input.readBool();
+              break;
+            }
+            case 72: {
+              bitField0_ |= 0x00000080;
+              numParallelVcfFiles_ = input.readInt32();
+              break;
+            }
+            case 80: {
+              bitField0_ |= 0x00000100;
+              deleteAndCreateTiledbArray_ = input.readBool();
+              break;
+            }
+            case 88: {
+              bitField0_ |= 0x00000200;
+              doPingPongBuffering_ = input.readBool();
+              break;
+            }
+            case 96: {
+              bitField0_ |= 0x00000400;
+              offloadVcfOutputProcessing_ = input.readBool();
+              break;
+            }
+            case 104: {
+              bitField0_ |= 0x00000800;
+              discardVcfIndex_ = input.readBool();
+              break;
+            }
+            case 112: {
+              bitField0_ |= 0x00001000;
+              segmentSize_ = input.readInt64();
+              break;
+            }
+            case 122: {
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = null;
+              if (((bitField0_ & 0x00002000) == 0x00002000)) {
+                subBuilder = tiledbConfig_.toBuilder();
+              }
+              tiledbConfig_ = input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(tiledbConfig_);
+                tiledbConfig_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00002000;
               break;
             }
           }
         }
-      }
-      
-      
-      // required int64 begin = 1;
-      public boolean hasBegin() {
-        return result.hasBegin();
-      }
-      public long getBegin() {
-        return result.getBegin();
-      }
-      public Builder setBegin(long value) {
-        result.hasBegin = true;
-        result.begin_ = value;
-        return this;
-      }
-      public Builder clearBegin() {
-        result.hasBegin = false;
-        result.begin_ = 0L;
-        return this;
-      }
-      
-      // optional .TileDBConfig tiledb_config = 2;
-      public boolean hasTiledbConfig() {
-        return result.hasTiledbConfig();
-      }
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-        return result.getTiledbConfig();
-      }
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (value == null) {
-          throw new NullPointerException();
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          columnPartitions_ = java.util.Collections.unmodifiableList(columnPartitions_);
         }
-        result.hasTiledbConfig = true;
-        result.tiledbConfig_ = value;
-        return this;
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
       }
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
-        result.hasTiledbConfig = true;
-        result.tiledbConfig_ = builderForValue.build();
-        return this;
-      }
-      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (result.hasTiledbConfig() &&
-            result.tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
-          result.tiledbConfig_ =
-            com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(result.tiledbConfig_).mergeFrom(value).buildPartial();
-        } else {
-          result.tiledbConfig_ = value;
-        }
-        result.hasTiledbConfig = true;
-        return this;
-      }
-      public Builder clearTiledbConfig() {
-        result.hasTiledbConfig = false;
-        result.tiledbConfig_ = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
-        return this;
-      }
-      
-      // optional string vcf_file_name = 3;
-      public boolean hasVcfFileName() {
-        return result.hasVcfFileName();
-      }
-      public java.lang.String getVcfFileName() {
-        return result.getVcfFileName();
-      }
-      public Builder setVcfFileName(java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasVcfFileName = true;
-        result.vcfFileName_ = value;
-        return this;
-      }
-      public Builder clearVcfFileName() {
-        result.hasVcfFileName = false;
-        result.vcfFileName_ = getDefaultInstance().getVcfFileName();
-        return this;
-      }
-      
-      // @@protoc_insertion_point(builder_scope:Partition)
     }
-    
-    static {
-      defaultInstance = new Partition(true);
-      com.intel.genomicsdb.GenomicsDBImportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
-    // @@protoc_insertion_point(class_scope:Partition)
-  }
-  
-  public static final class ImportConfiguration extends
-      com.google.protobuf.GeneratedMessage {
-    // Use ImportConfiguration.newBuilder() to construct.
-    private ImportConfiguration() {
-      initFields();
-    }
-    private ImportConfiguration(boolean noInit) {}
-    
-    private static final ImportConfiguration defaultInstance;
-    public static ImportConfiguration getDefaultInstance() {
-      return defaultInstance;
-    }
-    
-    public ImportConfiguration getDefaultInstanceForType() {
-      return defaultInstance;
-    }
-    
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_descriptor;
     }
-    
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_fieldAccessorTable;
+      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.Builder.class);
     }
-    
-    // required bool row_based_partitioning = 1 [default = false];
+
+    private int bitField0_;
     public static final int ROW_BASED_PARTITIONING_FIELD_NUMBER = 1;
-    private boolean hasRowBasedPartitioning;
-    private boolean rowBasedPartitioning_ = false;
-    public boolean hasRowBasedPartitioning() { return hasRowBasedPartitioning; }
-    public boolean getRowBasedPartitioning() { return rowBasedPartitioning_; }
-    
-    // optional bool produce_combined_vcf = 2 [default = false];
+    private boolean rowBasedPartitioning_;
+    /**
+     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     */
+    public boolean hasRowBasedPartitioning() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     */
+    public boolean getRowBasedPartitioning() {
+      return rowBasedPartitioning_;
+    }
+
     public static final int PRODUCE_COMBINED_VCF_FIELD_NUMBER = 2;
-    private boolean hasProduceCombinedVcf;
-    private boolean produceCombinedVcf_ = false;
-    public boolean hasProduceCombinedVcf() { return hasProduceCombinedVcf; }
-    public boolean getProduceCombinedVcf() { return produceCombinedVcf_; }
-    
-    // optional bool produce_tiledb_array = 3 [default = true];
+    private boolean produceCombinedVcf_;
+    /**
+     * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+     */
+    public boolean hasProduceCombinedVcf() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+     */
+    public boolean getProduceCombinedVcf() {
+      return produceCombinedVcf_;
+    }
+
     public static final int PRODUCE_TILEDB_ARRAY_FIELD_NUMBER = 3;
-    private boolean hasProduceTiledbArray;
-    private boolean produceTiledbArray_ = true;
-    public boolean hasProduceTiledbArray() { return hasProduceTiledbArray; }
-    public boolean getProduceTiledbArray() { return produceTiledbArray_; }
-    
-    // repeated .Partition column_partitions = 4;
+    private boolean produceTiledbArray_;
+    /**
+     * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+     */
+    public boolean hasProduceTiledbArray() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+     */
+    public boolean getProduceTiledbArray() {
+      return produceTiledbArray_;
+    }
+
     public static final int COLUMN_PARTITIONS_FIELD_NUMBER = 4;
-    private java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> columnPartitions_ =
-      java.util.Collections.emptyList();
+    private java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> columnPartitions_;
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
     public java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> getColumnPartitionsList() {
       return columnPartitions_;
     }
-    public int getColumnPartitionsCount() { return columnPartitions_.size(); }
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    public java.util.List<? extends com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> 
+        getColumnPartitionsOrBuilderList() {
+      return columnPartitions_;
+    }
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    public int getColumnPartitionsCount() {
+      return columnPartitions_.size();
+    }
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
     public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getColumnPartitions(int index) {
       return columnPartitions_.get(index);
     }
-    
-    // optional string vid_mapping_file = 5;
-    public static final int VID_MAPPING_FILE_FIELD_NUMBER = 5;
-    private boolean hasVidMappingFile;
-    private java.lang.String vidMappingFile_ = "";
-    public boolean hasVidMappingFile() { return hasVidMappingFile; }
-    public java.lang.String getVidMappingFile() { return vidMappingFile_; }
-    
-    // optional string callset_mapping_file = 6;
-    public static final int CALLSET_MAPPING_FILE_FIELD_NUMBER = 6;
-    private boolean hasCallsetMappingFile;
-    private java.lang.String callsetMappingFile_ = "";
-    public boolean hasCallsetMappingFile() { return hasCallsetMappingFile; }
-    public java.lang.String getCallsetMappingFile() { return callsetMappingFile_; }
-    
-    // optional int64 size_per_column_partition = 7 [default = 3000];
-    public static final int SIZE_PER_COLUMN_PARTITION_FIELD_NUMBER = 7;
-    private boolean hasSizePerColumnPartition;
-    private long sizePerColumnPartition_ = 3000L;
-    public boolean hasSizePerColumnPartition() { return hasSizePerColumnPartition; }
-    public long getSizePerColumnPartition() { return sizePerColumnPartition_; }
-    
-    // optional bool treat_deletions_as_intervals = 8 [default = true];
-    public static final int TREAT_DELETIONS_AS_INTERVALS_FIELD_NUMBER = 8;
-    private boolean hasTreatDeletionsAsIntervals;
-    private boolean treatDeletionsAsIntervals_ = true;
-    public boolean hasTreatDeletionsAsIntervals() { return hasTreatDeletionsAsIntervals; }
-    public boolean getTreatDeletionsAsIntervals() { return treatDeletionsAsIntervals_; }
-    
-    // optional int32 num_parallel_vcf_files = 9 [default = 1];
-    public static final int NUM_PARALLEL_VCF_FILES_FIELD_NUMBER = 9;
-    private boolean hasNumParallelVcfFiles;
-    private int numParallelVcfFiles_ = 1;
-    public boolean hasNumParallelVcfFiles() { return hasNumParallelVcfFiles; }
-    public int getNumParallelVcfFiles() { return numParallelVcfFiles_; }
-    
-    // optional bool delete_and_create_tiledb_array = 10 [default = false];
-    public static final int DELETE_AND_CREATE_TILEDB_ARRAY_FIELD_NUMBER = 10;
-    private boolean hasDeleteAndCreateTiledbArray;
-    private boolean deleteAndCreateTiledbArray_ = false;
-    public boolean hasDeleteAndCreateTiledbArray() { return hasDeleteAndCreateTiledbArray; }
-    public boolean getDeleteAndCreateTiledbArray() { return deleteAndCreateTiledbArray_; }
-    
-    // optional bool do_ping_pong_buffering = 11 [default = true];
-    public static final int DO_PING_PONG_BUFFERING_FIELD_NUMBER = 11;
-    private boolean hasDoPingPongBuffering;
-    private boolean doPingPongBuffering_ = true;
-    public boolean hasDoPingPongBuffering() { return hasDoPingPongBuffering; }
-    public boolean getDoPingPongBuffering() { return doPingPongBuffering_; }
-    
-    // optional bool offload_vcf_output_processing = 12 [default = true];
-    public static final int OFFLOAD_VCF_OUTPUT_PROCESSING_FIELD_NUMBER = 12;
-    private boolean hasOffloadVcfOutputProcessing;
-    private boolean offloadVcfOutputProcessing_ = true;
-    public boolean hasOffloadVcfOutputProcessing() { return hasOffloadVcfOutputProcessing; }
-    public boolean getOffloadVcfOutputProcessing() { return offloadVcfOutputProcessing_; }
-    
-    // optional bool discard_vcf_index = 13 [default = true];
-    public static final int DISCARD_VCF_INDEX_FIELD_NUMBER = 13;
-    private boolean hasDiscardVcfIndex;
-    private boolean discardVcfIndex_ = true;
-    public boolean hasDiscardVcfIndex() { return hasDiscardVcfIndex; }
-    public boolean getDiscardVcfIndex() { return discardVcfIndex_; }
-    
-    // optional int64 segment_size = 14 [default = 10485760];
-    public static final int SEGMENT_SIZE_FIELD_NUMBER = 14;
-    private boolean hasSegmentSize;
-    private long segmentSize_ = 10485760L;
-    public boolean hasSegmentSize() { return hasSegmentSize; }
-    public long getSegmentSize() { return segmentSize_; }
-    
-    // optional .TileDBConfig tiledb_config = 15;
-    public static final int TILEDB_CONFIG_FIELD_NUMBER = 15;
-    private boolean hasTiledbConfig;
-    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
-    public boolean hasTiledbConfig() { return hasTiledbConfig; }
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() { return tiledbConfig_; }
-    
-    private void initFields() {
-      tiledbConfig_ = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
+    /**
+     * <code>repeated .Partition column_partitions = 4;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder getColumnPartitionsOrBuilder(
+        int index) {
+      return columnPartitions_.get(index);
     }
-    public final boolean isInitialized() {
-      if (!hasRowBasedPartitioning) return false;
-      for (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition element : getColumnPartitionsList()) {
-        if (!element.isInitialized()) return false;
+
+    public static final int VID_MAPPING_FILE_FIELD_NUMBER = 5;
+    private volatile java.lang.Object vidMappingFile_;
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    public boolean hasVidMappingFile() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    public java.lang.String getVidMappingFile() {
+      java.lang.Object ref = vidMappingFile_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          vidMappingFile_ = s;
+        }
+        return s;
       }
+    }
+    /**
+     * <code>optional string vid_mapping_file = 5;</code>
+     */
+    public com.google.protobuf.ByteString
+        getVidMappingFileBytes() {
+      java.lang.Object ref = vidMappingFile_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        vidMappingFile_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int CALLSET_MAPPING_FILE_FIELD_NUMBER = 6;
+    private volatile java.lang.Object callsetMappingFile_;
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    public boolean hasCallsetMappingFile() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    public java.lang.String getCallsetMappingFile() {
+      java.lang.Object ref = callsetMappingFile_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          callsetMappingFile_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string callset_mapping_file = 6;</code>
+     */
+    public com.google.protobuf.ByteString
+        getCallsetMappingFileBytes() {
+      java.lang.Object ref = callsetMappingFile_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        callsetMappingFile_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int SIZE_PER_COLUMN_PARTITION_FIELD_NUMBER = 7;
+    private long sizePerColumnPartition_;
+    /**
+     * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+     */
+    public boolean hasSizePerColumnPartition() {
+      return ((bitField0_ & 0x00000020) == 0x00000020);
+    }
+    /**
+     * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+     */
+    public long getSizePerColumnPartition() {
+      return sizePerColumnPartition_;
+    }
+
+    public static final int TREAT_DELETIONS_AS_INTERVALS_FIELD_NUMBER = 8;
+    private boolean treatDeletionsAsIntervals_;
+    /**
+     * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+     */
+    public boolean hasTreatDeletionsAsIntervals() {
+      return ((bitField0_ & 0x00000040) == 0x00000040);
+    }
+    /**
+     * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+     */
+    public boolean getTreatDeletionsAsIntervals() {
+      return treatDeletionsAsIntervals_;
+    }
+
+    public static final int NUM_PARALLEL_VCF_FILES_FIELD_NUMBER = 9;
+    private int numParallelVcfFiles_;
+    /**
+     * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+     */
+    public boolean hasNumParallelVcfFiles() {
+      return ((bitField0_ & 0x00000080) == 0x00000080);
+    }
+    /**
+     * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+     */
+    public int getNumParallelVcfFiles() {
+      return numParallelVcfFiles_;
+    }
+
+    public static final int DELETE_AND_CREATE_TILEDB_ARRAY_FIELD_NUMBER = 10;
+    private boolean deleteAndCreateTiledbArray_;
+    /**
+     * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+     */
+    public boolean hasDeleteAndCreateTiledbArray() {
+      return ((bitField0_ & 0x00000100) == 0x00000100);
+    }
+    /**
+     * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+     */
+    public boolean getDeleteAndCreateTiledbArray() {
+      return deleteAndCreateTiledbArray_;
+    }
+
+    public static final int DO_PING_PONG_BUFFERING_FIELD_NUMBER = 11;
+    private boolean doPingPongBuffering_;
+    /**
+     * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+     */
+    public boolean hasDoPingPongBuffering() {
+      return ((bitField0_ & 0x00000200) == 0x00000200);
+    }
+    /**
+     * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+     */
+    public boolean getDoPingPongBuffering() {
+      return doPingPongBuffering_;
+    }
+
+    public static final int OFFLOAD_VCF_OUTPUT_PROCESSING_FIELD_NUMBER = 12;
+    private boolean offloadVcfOutputProcessing_;
+    /**
+     * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+     */
+    public boolean hasOffloadVcfOutputProcessing() {
+      return ((bitField0_ & 0x00000400) == 0x00000400);
+    }
+    /**
+     * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+     */
+    public boolean getOffloadVcfOutputProcessing() {
+      return offloadVcfOutputProcessing_;
+    }
+
+    public static final int DISCARD_VCF_INDEX_FIELD_NUMBER = 13;
+    private boolean discardVcfIndex_;
+    /**
+     * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+     */
+    public boolean hasDiscardVcfIndex() {
+      return ((bitField0_ & 0x00000800) == 0x00000800);
+    }
+    /**
+     * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+     */
+    public boolean getDiscardVcfIndex() {
+      return discardVcfIndex_;
+    }
+
+    public static final int SEGMENT_SIZE_FIELD_NUMBER = 14;
+    private long segmentSize_;
+    /**
+     * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+     */
+    public boolean hasSegmentSize() {
+      return ((bitField0_ & 0x00001000) == 0x00001000);
+    }
+    /**
+     * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+     */
+    public long getSegmentSize() {
+      return segmentSize_;
+    }
+
+    public static final int TILEDB_CONFIG_FIELD_NUMBER = 15;
+    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    public boolean hasTiledbConfig() {
+      return ((bitField0_ & 0x00002000) == 0x00002000);
+    }
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
+      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    }
+    /**
+     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
+      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      if (!hasRowBasedPartitioning()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      for (int i = 0; i < getColumnPartitionsCount(); i++) {
+        if (!getColumnPartitions(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
+      memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (hasRowBasedPartitioning()) {
-        output.writeBool(1, getRowBasedPartitioning());
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBool(1, rowBasedPartitioning_);
       }
-      if (hasProduceCombinedVcf()) {
-        output.writeBool(2, getProduceCombinedVcf());
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBool(2, produceCombinedVcf_);
       }
-      if (hasProduceTiledbArray()) {
-        output.writeBool(3, getProduceTiledbArray());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBool(3, produceTiledbArray_);
       }
-      for (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition element : getColumnPartitionsList()) {
-        output.writeMessage(4, element);
+      for (int i = 0; i < columnPartitions_.size(); i++) {
+        output.writeMessage(4, columnPartitions_.get(i));
       }
-      if (hasVidMappingFile()) {
-        output.writeString(5, getVidMappingFile());
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 5, vidMappingFile_);
       }
-      if (hasCallsetMappingFile()) {
-        output.writeString(6, getCallsetMappingFile());
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 6, callsetMappingFile_);
       }
-      if (hasSizePerColumnPartition()) {
-        output.writeInt64(7, getSizePerColumnPartition());
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeInt64(7, sizePerColumnPartition_);
       }
-      if (hasTreatDeletionsAsIntervals()) {
-        output.writeBool(8, getTreatDeletionsAsIntervals());
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+        output.writeBool(8, treatDeletionsAsIntervals_);
       }
-      if (hasNumParallelVcfFiles()) {
-        output.writeInt32(9, getNumParallelVcfFiles());
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        output.writeInt32(9, numParallelVcfFiles_);
       }
-      if (hasDeleteAndCreateTiledbArray()) {
-        output.writeBool(10, getDeleteAndCreateTiledbArray());
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        output.writeBool(10, deleteAndCreateTiledbArray_);
       }
-      if (hasDoPingPongBuffering()) {
-        output.writeBool(11, getDoPingPongBuffering());
+      if (((bitField0_ & 0x00000200) == 0x00000200)) {
+        output.writeBool(11, doPingPongBuffering_);
       }
-      if (hasOffloadVcfOutputProcessing()) {
-        output.writeBool(12, getOffloadVcfOutputProcessing());
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
+        output.writeBool(12, offloadVcfOutputProcessing_);
       }
-      if (hasDiscardVcfIndex()) {
-        output.writeBool(13, getDiscardVcfIndex());
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+        output.writeBool(13, discardVcfIndex_);
       }
-      if (hasSegmentSize()) {
-        output.writeInt64(14, getSegmentSize());
+      if (((bitField0_ & 0x00001000) == 0x00001000)) {
+        output.writeInt64(14, segmentSize_);
       }
-      if (hasTiledbConfig()) {
+      if (((bitField0_ & 0x00002000) == 0x00002000)) {
         output.writeMessage(15, getTiledbConfig());
       }
-      getUnknownFields().writeTo(output);
+      unknownFields.writeTo(output);
     }
-    
-    private int memoizedSerializedSize = -1;
+
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
-    
+
       size = 0;
-      if (hasRowBasedPartitioning()) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(1, getRowBasedPartitioning());
+          .computeBoolSize(1, rowBasedPartitioning_);
       }
-      if (hasProduceCombinedVcf()) {
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(2, getProduceCombinedVcf());
+          .computeBoolSize(2, produceCombinedVcf_);
       }
-      if (hasProduceTiledbArray()) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(3, getProduceTiledbArray());
+          .computeBoolSize(3, produceTiledbArray_);
       }
-      for (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition element : getColumnPartitionsList()) {
+      for (int i = 0; i < columnPartitions_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, element);
+          .computeMessageSize(4, columnPartitions_.get(i));
       }
-      if (hasVidMappingFile()) {
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, vidMappingFile_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, callsetMappingFile_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(5, getVidMappingFile());
+          .computeInt64Size(7, sizePerColumnPartition_);
       }
-      if (hasCallsetMappingFile()) {
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(6, getCallsetMappingFile());
+          .computeBoolSize(8, treatDeletionsAsIntervals_);
       }
-      if (hasSizePerColumnPartition()) {
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(7, getSizePerColumnPartition());
+          .computeInt32Size(9, numParallelVcfFiles_);
       }
-      if (hasTreatDeletionsAsIntervals()) {
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(8, getTreatDeletionsAsIntervals());
+          .computeBoolSize(10, deleteAndCreateTiledbArray_);
       }
-      if (hasNumParallelVcfFiles()) {
+      if (((bitField0_ & 0x00000200) == 0x00000200)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(9, getNumParallelVcfFiles());
+          .computeBoolSize(11, doPingPongBuffering_);
       }
-      if (hasDeleteAndCreateTiledbArray()) {
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(10, getDeleteAndCreateTiledbArray());
+          .computeBoolSize(12, offloadVcfOutputProcessing_);
       }
-      if (hasDoPingPongBuffering()) {
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(11, getDoPingPongBuffering());
+          .computeBoolSize(13, discardVcfIndex_);
       }
-      if (hasOffloadVcfOutputProcessing()) {
+      if (((bitField0_ & 0x00001000) == 0x00001000)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(12, getOffloadVcfOutputProcessing());
+          .computeInt64Size(14, segmentSize_);
       }
-      if (hasDiscardVcfIndex()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(13, getDiscardVcfIndex());
-      }
-      if (hasSegmentSize()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(14, getSegmentSize());
-      }
-      if (hasTiledbConfig()) {
+      if (((bitField0_ & 0x00002000) == 0x00002000)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(15, getTiledbConfig());
       }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
       return size;
     }
-    
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) obj;
+
+      boolean result = true;
+      result = result && (hasRowBasedPartitioning() == other.hasRowBasedPartitioning());
+      if (hasRowBasedPartitioning()) {
+        result = result && (getRowBasedPartitioning()
+            == other.getRowBasedPartitioning());
+      }
+      result = result && (hasProduceCombinedVcf() == other.hasProduceCombinedVcf());
+      if (hasProduceCombinedVcf()) {
+        result = result && (getProduceCombinedVcf()
+            == other.getProduceCombinedVcf());
+      }
+      result = result && (hasProduceTiledbArray() == other.hasProduceTiledbArray());
+      if (hasProduceTiledbArray()) {
+        result = result && (getProduceTiledbArray()
+            == other.getProduceTiledbArray());
+      }
+      result = result && getColumnPartitionsList()
+          .equals(other.getColumnPartitionsList());
+      result = result && (hasVidMappingFile() == other.hasVidMappingFile());
+      if (hasVidMappingFile()) {
+        result = result && getVidMappingFile()
+            .equals(other.getVidMappingFile());
+      }
+      result = result && (hasCallsetMappingFile() == other.hasCallsetMappingFile());
+      if (hasCallsetMappingFile()) {
+        result = result && getCallsetMappingFile()
+            .equals(other.getCallsetMappingFile());
+      }
+      result = result && (hasSizePerColumnPartition() == other.hasSizePerColumnPartition());
+      if (hasSizePerColumnPartition()) {
+        result = result && (getSizePerColumnPartition()
+            == other.getSizePerColumnPartition());
+      }
+      result = result && (hasTreatDeletionsAsIntervals() == other.hasTreatDeletionsAsIntervals());
+      if (hasTreatDeletionsAsIntervals()) {
+        result = result && (getTreatDeletionsAsIntervals()
+            == other.getTreatDeletionsAsIntervals());
+      }
+      result = result && (hasNumParallelVcfFiles() == other.hasNumParallelVcfFiles());
+      if (hasNumParallelVcfFiles()) {
+        result = result && (getNumParallelVcfFiles()
+            == other.getNumParallelVcfFiles());
+      }
+      result = result && (hasDeleteAndCreateTiledbArray() == other.hasDeleteAndCreateTiledbArray());
+      if (hasDeleteAndCreateTiledbArray()) {
+        result = result && (getDeleteAndCreateTiledbArray()
+            == other.getDeleteAndCreateTiledbArray());
+      }
+      result = result && (hasDoPingPongBuffering() == other.hasDoPingPongBuffering());
+      if (hasDoPingPongBuffering()) {
+        result = result && (getDoPingPongBuffering()
+            == other.getDoPingPongBuffering());
+      }
+      result = result && (hasOffloadVcfOutputProcessing() == other.hasOffloadVcfOutputProcessing());
+      if (hasOffloadVcfOutputProcessing()) {
+        result = result && (getOffloadVcfOutputProcessing()
+            == other.getOffloadVcfOutputProcessing());
+      }
+      result = result && (hasDiscardVcfIndex() == other.hasDiscardVcfIndex());
+      if (hasDiscardVcfIndex()) {
+        result = result && (getDiscardVcfIndex()
+            == other.getDiscardVcfIndex());
+      }
+      result = result && (hasSegmentSize() == other.hasSegmentSize());
+      if (hasSegmentSize()) {
+        result = result && (getSegmentSize()
+            == other.getSegmentSize());
+      }
+      result = result && (hasTiledbConfig() == other.hasTiledbConfig());
+      if (hasTiledbConfig()) {
+        result = result && getTiledbConfig()
+            .equals(other.getTiledbConfig());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasRowBasedPartitioning()) {
+        hash = (37 * hash) + ROW_BASED_PARTITIONING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getRowBasedPartitioning());
+      }
+      if (hasProduceCombinedVcf()) {
+        hash = (37 * hash) + PRODUCE_COMBINED_VCF_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getProduceCombinedVcf());
+      }
+      if (hasProduceTiledbArray()) {
+        hash = (37 * hash) + PRODUCE_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getProduceTiledbArray());
+      }
+      if (getColumnPartitionsCount() > 0) {
+        hash = (37 * hash) + COLUMN_PARTITIONS_FIELD_NUMBER;
+        hash = (53 * hash) + getColumnPartitionsList().hashCode();
+      }
+      if (hasVidMappingFile()) {
+        hash = (37 * hash) + VID_MAPPING_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getVidMappingFile().hashCode();
+      }
+      if (hasCallsetMappingFile()) {
+        hash = (37 * hash) + CALLSET_MAPPING_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getCallsetMappingFile().hashCode();
+      }
+      if (hasSizePerColumnPartition()) {
+        hash = (37 * hash) + SIZE_PER_COLUMN_PARTITION_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getSizePerColumnPartition());
+      }
+      if (hasTreatDeletionsAsIntervals()) {
+        hash = (37 * hash) + TREAT_DELETIONS_AS_INTERVALS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getTreatDeletionsAsIntervals());
+      }
+      if (hasNumParallelVcfFiles()) {
+        hash = (37 * hash) + NUM_PARALLEL_VCF_FILES_FIELD_NUMBER;
+        hash = (53 * hash) + getNumParallelVcfFiles();
+      }
+      if (hasDeleteAndCreateTiledbArray()) {
+        hash = (37 * hash) + DELETE_AND_CREATE_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDeleteAndCreateTiledbArray());
+      }
+      if (hasDoPingPongBuffering()) {
+        hash = (37 * hash) + DO_PING_PONG_BUFFERING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDoPingPongBuffering());
+      }
+      if (hasOffloadVcfOutputProcessing()) {
+        hash = (37 * hash) + OFFLOAD_VCF_OUTPUT_PROCESSING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getOffloadVcfOutputProcessing());
+      }
+      if (hasDiscardVcfIndex()) {
+        hash = (37 * hash) + DISCARD_VCF_INDEX_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDiscardVcfIndex());
+      }
+      if (hasSegmentSize()) {
+        hash = (37 * hash) + SEGMENT_SIZE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getSegmentSize());
+      }
+      if (hasTiledbConfig()) {
+        hash = (37 * hash) + TILEDB_CONFIG_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbConfig().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    
-    public static Builder newBuilder() { return Builder.create(); }
+
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
-    
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code ImportConfiguration}
+     */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration result;
-      
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:ImportConfiguration)
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfigurationOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.Builder.class);
+      }
+
       // Construct using com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.newBuilder()
-      private Builder() {}
-      
-      private static Builder create() {
-        Builder builder = new Builder();
-        builder.result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration();
-        return builder;
+      private Builder() {
+        maybeForceBuilderInitialization();
       }
-      
-      protected com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration internalGetResult() {
-        return result;
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
       }
-      
-      public Builder clear() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "Cannot call clear() after build().");
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getColumnPartitionsFieldBuilder();
+          getTiledbConfigFieldBuilder();
         }
-        result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration();
+      }
+      public Builder clear() {
+        super.clear();
+        rowBasedPartitioning_ = false;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        produceCombinedVcf_ = false;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        produceTiledbArray_ = true;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        if (columnPartitionsBuilder_ == null) {
+          columnPartitions_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+        } else {
+          columnPartitionsBuilder_.clear();
+        }
+        vidMappingFile_ = "";
+        bitField0_ = (bitField0_ & ~0x00000010);
+        callsetMappingFile_ = "";
+        bitField0_ = (bitField0_ & ~0x00000020);
+        sizePerColumnPartition_ = 3000L;
+        bitField0_ = (bitField0_ & ~0x00000040);
+        treatDeletionsAsIntervals_ = true;
+        bitField0_ = (bitField0_ & ~0x00000080);
+        numParallelVcfFiles_ = 1;
+        bitField0_ = (bitField0_ & ~0x00000100);
+        deleteAndCreateTiledbArray_ = false;
+        bitField0_ = (bitField0_ & ~0x00000200);
+        doPingPongBuffering_ = true;
+        bitField0_ = (bitField0_ & ~0x00000400);
+        offloadVcfOutputProcessing_ = true;
+        bitField0_ = (bitField0_ & ~0x00000800);
+        discardVcfIndex_ = true;
+        bitField0_ = (bitField0_ & ~0x00001000);
+        segmentSize_ = 10485760L;
+        bitField0_ = (bitField0_ & ~0x00002000);
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = null;
+        } else {
+          tiledbConfigBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00004000);
         return this;
       }
-      
-      public Builder clone() {
-        return create().mergeFrom(result);
-      }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.getDescriptor();
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_descriptor;
       }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration getDefaultInstanceForType() {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.getDefaultInstance();
       }
-      
-      public boolean isInitialized() {
-        return result.isInitialized();
-      }
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration build() {
-        if (result != null && !isInitialized()) {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration result = buildPartial();
+        if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
-        return buildPartial();
+        return result;
       }
-      
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        if (!isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return buildPartial();
-      }
-      
+
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration buildPartial() {
-        if (result == null) {
-          throw new IllegalStateException(
-            "build() has already been called on this Builder.");
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
         }
-        if (result.columnPartitions_ != java.util.Collections.EMPTY_LIST) {
-          result.columnPartitions_ =
-            java.util.Collections.unmodifiableList(result.columnPartitions_);
+        result.rowBasedPartitioning_ = rowBasedPartitioning_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
         }
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration returnMe = result;
-        result = null;
-        return returnMe;
+        result.produceCombinedVcf_ = produceCombinedVcf_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.produceTiledbArray_ = produceTiledbArray_;
+        if (columnPartitionsBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
+            columnPartitions_ = java.util.Collections.unmodifiableList(columnPartitions_);
+            bitField0_ = (bitField0_ & ~0x00000008);
+          }
+          result.columnPartitions_ = columnPartitions_;
+        } else {
+          result.columnPartitions_ = columnPartitionsBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.vidMappingFile_ = vidMappingFile_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000010;
+        }
+        result.callsetMappingFile_ = callsetMappingFile_;
+        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+          to_bitField0_ |= 0x00000020;
+        }
+        result.sizePerColumnPartition_ = sizePerColumnPartition_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000040;
+        }
+        result.treatDeletionsAsIntervals_ = treatDeletionsAsIntervals_;
+        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+          to_bitField0_ |= 0x00000080;
+        }
+        result.numParallelVcfFiles_ = numParallelVcfFiles_;
+        if (((from_bitField0_ & 0x00000200) == 0x00000200)) {
+          to_bitField0_ |= 0x00000100;
+        }
+        result.deleteAndCreateTiledbArray_ = deleteAndCreateTiledbArray_;
+        if (((from_bitField0_ & 0x00000400) == 0x00000400)) {
+          to_bitField0_ |= 0x00000200;
+        }
+        result.doPingPongBuffering_ = doPingPongBuffering_;
+        if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
+          to_bitField0_ |= 0x00000400;
+        }
+        result.offloadVcfOutputProcessing_ = offloadVcfOutputProcessing_;
+        if (((from_bitField0_ & 0x00001000) == 0x00001000)) {
+          to_bitField0_ |= 0x00000800;
+        }
+        result.discardVcfIndex_ = discardVcfIndex_;
+        if (((from_bitField0_ & 0x00002000) == 0x00002000)) {
+          to_bitField0_ |= 0x00001000;
+        }
+        result.segmentSize_ = segmentSize_;
+        if (((from_bitField0_ & 0x00004000) == 0x00004000)) {
+          to_bitField0_ |= 0x00002000;
+        }
+        if (tiledbConfigBuilder_ == null) {
+          result.tiledbConfig_ = tiledbConfig_;
+        } else {
+          result.tiledbConfig_ = tiledbConfigBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
       }
-      
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration)other);
@@ -1230,7 +2976,7 @@ public final class GenomicsDBImportConfiguration {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration other) {
         if (other == com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.getDefaultInstance()) return this;
         if (other.hasRowBasedPartitioning()) {
@@ -1242,17 +2988,41 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasProduceTiledbArray()) {
           setProduceTiledbArray(other.getProduceTiledbArray());
         }
-        if (!other.columnPartitions_.isEmpty()) {
-          if (result.columnPartitions_.isEmpty()) {
-            result.columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
+        if (columnPartitionsBuilder_ == null) {
+          if (!other.columnPartitions_.isEmpty()) {
+            if (columnPartitions_.isEmpty()) {
+              columnPartitions_ = other.columnPartitions_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+            } else {
+              ensureColumnPartitionsIsMutable();
+              columnPartitions_.addAll(other.columnPartitions_);
+            }
+            onChanged();
           }
-          result.columnPartitions_.addAll(other.columnPartitions_);
+        } else {
+          if (!other.columnPartitions_.isEmpty()) {
+            if (columnPartitionsBuilder_.isEmpty()) {
+              columnPartitionsBuilder_.dispose();
+              columnPartitionsBuilder_ = null;
+              columnPartitions_ = other.columnPartitions_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+              columnPartitionsBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getColumnPartitionsFieldBuilder() : null;
+            } else {
+              columnPartitionsBuilder_.addAllMessages(other.columnPartitions_);
+            }
+          }
         }
         if (other.hasVidMappingFile()) {
-          setVidMappingFile(other.getVidMappingFile());
+          bitField0_ |= 0x00000010;
+          vidMappingFile_ = other.vidMappingFile_;
+          onChanged();
         }
         if (other.hasCallsetMappingFile()) {
-          setCallsetMappingFile(other.getCallsetMappingFile());
+          bitField0_ |= 0x00000020;
+          callsetMappingFile_ = other.callsetMappingFile_;
+          onChanged();
         }
         if (other.hasSizePerColumnPartition()) {
           setSizePerColumnPartition(other.getSizePerColumnPartition());
@@ -1281,464 +3051,973 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasTiledbConfig()) {
           mergeTiledbConfig(other.getTiledbConfig());
         }
-        this.mergeUnknownFields(other.getUnknownFields());
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
         return this;
       }
-      
+
+      public final boolean isInitialized() {
+        if (!hasRowBasedPartitioning()) {
+          return false;
+        }
+        for (int i = 0; i < getColumnPartitionsCount(); i++) {
+          if (!getColumnPartitions(i).isInitialized()) {
+            return false;
+          }
+        }
+        return true;
+      }
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              this.setUnknownFields(unknownFields.build());
-              return this;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                return this;
-              }
-              break;
-            }
-            case 8: {
-              setRowBasedPartitioning(input.readBool());
-              break;
-            }
-            case 16: {
-              setProduceCombinedVcf(input.readBool());
-              break;
-            }
-            case 24: {
-              setProduceTiledbArray(input.readBool());
-              break;
-            }
-            case 34: {
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder subBuilder = com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.newBuilder();
-              input.readMessage(subBuilder, extensionRegistry);
-              addColumnPartitions(subBuilder.buildPartial());
-              break;
-            }
-            case 42: {
-              setVidMappingFile(input.readString());
-              break;
-            }
-            case 50: {
-              setCallsetMappingFile(input.readString());
-              break;
-            }
-            case 56: {
-              setSizePerColumnPartition(input.readInt64());
-              break;
-            }
-            case 64: {
-              setTreatDeletionsAsIntervals(input.readBool());
-              break;
-            }
-            case 72: {
-              setNumParallelVcfFiles(input.readInt32());
-              break;
-            }
-            case 80: {
-              setDeleteAndCreateTiledbArray(input.readBool());
-              break;
-            }
-            case 88: {
-              setDoPingPongBuffering(input.readBool());
-              break;
-            }
-            case 96: {
-              setOffloadVcfOutputProcessing(input.readBool());
-              break;
-            }
-            case 104: {
-              setDiscardVcfIndex(input.readBool());
-              break;
-            }
-            case 112: {
-              setSegmentSize(input.readInt64());
-              break;
-            }
-            case 122: {
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-              if (hasTiledbConfig()) {
-                subBuilder.mergeFrom(getTiledbConfig());
-              }
-              input.readMessage(subBuilder, extensionRegistry);
-              setTiledbConfig(subBuilder.buildPartial());
-              break;
-            }
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
           }
         }
+        return this;
       }
-      
-      
-      // required bool row_based_partitioning = 1 [default = false];
+      private int bitField0_;
+
+      private boolean rowBasedPartitioning_ ;
+      /**
+       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       */
       public boolean hasRowBasedPartitioning() {
-        return result.hasRowBasedPartitioning();
+        return ((bitField0_ & 0x00000001) == 0x00000001);
       }
+      /**
+       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       */
       public boolean getRowBasedPartitioning() {
-        return result.getRowBasedPartitioning();
+        return rowBasedPartitioning_;
       }
+      /**
+       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       */
       public Builder setRowBasedPartitioning(boolean value) {
-        result.hasRowBasedPartitioning = true;
-        result.rowBasedPartitioning_ = value;
+        bitField0_ |= 0x00000001;
+        rowBasedPartitioning_ = value;
+        onChanged();
         return this;
       }
+      /**
+       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       */
       public Builder clearRowBasedPartitioning() {
-        result.hasRowBasedPartitioning = false;
-        result.rowBasedPartitioning_ = false;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        rowBasedPartitioning_ = false;
+        onChanged();
         return this;
       }
-      
-      // optional bool produce_combined_vcf = 2 [default = false];
+
+      private boolean produceCombinedVcf_ ;
+      /**
+       * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+       */
       public boolean hasProduceCombinedVcf() {
-        return result.hasProduceCombinedVcf();
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+      /**
+       * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+       */
       public boolean getProduceCombinedVcf() {
-        return result.getProduceCombinedVcf();
+        return produceCombinedVcf_;
       }
+      /**
+       * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+       */
       public Builder setProduceCombinedVcf(boolean value) {
-        result.hasProduceCombinedVcf = true;
-        result.produceCombinedVcf_ = value;
+        bitField0_ |= 0x00000002;
+        produceCombinedVcf_ = value;
+        onChanged();
         return this;
       }
+      /**
+       * <code>optional bool produce_combined_vcf = 2 [default = false];</code>
+       */
       public Builder clearProduceCombinedVcf() {
-        result.hasProduceCombinedVcf = false;
-        result.produceCombinedVcf_ = false;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        produceCombinedVcf_ = false;
+        onChanged();
         return this;
       }
-      
-      // optional bool produce_tiledb_array = 3 [default = true];
+
+      private boolean produceTiledbArray_ = true;
+      /**
+       * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+       */
       public boolean hasProduceTiledbArray() {
-        return result.hasProduceTiledbArray();
+        return ((bitField0_ & 0x00000004) == 0x00000004);
       }
+      /**
+       * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+       */
       public boolean getProduceTiledbArray() {
-        return result.getProduceTiledbArray();
+        return produceTiledbArray_;
       }
+      /**
+       * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+       */
       public Builder setProduceTiledbArray(boolean value) {
-        result.hasProduceTiledbArray = true;
-        result.produceTiledbArray_ = value;
+        bitField0_ |= 0x00000004;
+        produceTiledbArray_ = value;
+        onChanged();
         return this;
       }
+      /**
+       * <code>optional bool produce_tiledb_array = 3 [default = true];</code>
+       */
       public Builder clearProduceTiledbArray() {
-        result.hasProduceTiledbArray = false;
-        result.produceTiledbArray_ = true;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        produceTiledbArray_ = true;
+        onChanged();
         return this;
       }
-      
-      // repeated .Partition column_partitions = 4;
+
+      private java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> columnPartitions_ =
+        java.util.Collections.emptyList();
+      private void ensureColumnPartitionsIsMutable() {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
+          columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>(columnPartitions_);
+          bitField0_ |= 0x00000008;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> columnPartitionsBuilder_;
+
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
       public java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> getColumnPartitionsList() {
-        return java.util.Collections.unmodifiableList(result.columnPartitions_);
+        if (columnPartitionsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(columnPartitions_);
+        } else {
+          return columnPartitionsBuilder_.getMessageList();
+        }
       }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
       public int getColumnPartitionsCount() {
-        return result.getColumnPartitionsCount();
+        if (columnPartitionsBuilder_ == null) {
+          return columnPartitions_.size();
+        } else {
+          return columnPartitionsBuilder_.getCount();
+        }
       }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
       public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition getColumnPartitions(int index) {
-        return result.getColumnPartitions(index);
-      }
-      public Builder setColumnPartitions(int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition value) {
-        if (value == null) {
-          throw new NullPointerException();
+        if (columnPartitionsBuilder_ == null) {
+          return columnPartitions_.get(index);
+        } else {
+          return columnPartitionsBuilder_.getMessage(index);
         }
-        result.columnPartitions_.set(index, value);
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder setColumnPartitions(
+          int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition value) {
+        if (columnPartitionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.set(index, value);
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.setMessage(index, value);
+        }
         return this;
       }
-      public Builder setColumnPartitions(int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder builderForValue) {
-        result.columnPartitions_.set(index, builderForValue.build());
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder setColumnPartitions(
+          int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder builderForValue) {
+        if (columnPartitionsBuilder_ == null) {
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.setMessage(index, builderForValue.build());
+        }
         return this;
       }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
       public Builder addColumnPartitions(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition value) {
-        if (value == null) {
-          throw new NullPointerException();
+        if (columnPartitionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.add(value);
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.addMessage(value);
         }
-        if (result.columnPartitions_.isEmpty()) {
-          result.columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
-        }
-        result.columnPartitions_.add(value);
         return this;
       }
-      public Builder addColumnPartitions(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder builderForValue) {
-        if (result.columnPartitions_.isEmpty()) {
-          result.columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder addColumnPartitions(
+          int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition value) {
+        if (columnPartitionsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.add(index, value);
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.addMessage(index, value);
         }
-        result.columnPartitions_.add(builderForValue.build());
         return this;
       }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder addColumnPartitions(
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder builderForValue) {
+        if (columnPartitionsBuilder_ == null) {
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.add(builderForValue.build());
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder addColumnPartitions(
+          int index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder builderForValue) {
+        if (columnPartitionsBuilder_ == null) {
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
       public Builder addAllColumnPartitions(
           java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition> values) {
-        if (result.columnPartitions_.isEmpty()) {
-          result.columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
-        }
-        super.addAll(values, result.columnPartitions_);
-        return this;
-      }
-      public Builder clearColumnPartitions() {
-        result.columnPartitions_ = java.util.Collections.emptyList();
-        return this;
-      }
-      
-      // optional string vid_mapping_file = 5;
-      public boolean hasVidMappingFile() {
-        return result.hasVidMappingFile();
-      }
-      public java.lang.String getVidMappingFile() {
-        return result.getVidMappingFile();
-      }
-      public Builder setVidMappingFile(java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasVidMappingFile = true;
-        result.vidMappingFile_ = value;
-        return this;
-      }
-      public Builder clearVidMappingFile() {
-        result.hasVidMappingFile = false;
-        result.vidMappingFile_ = getDefaultInstance().getVidMappingFile();
-        return this;
-      }
-      
-      // optional string callset_mapping_file = 6;
-      public boolean hasCallsetMappingFile() {
-        return result.hasCallsetMappingFile();
-      }
-      public java.lang.String getCallsetMappingFile() {
-        return result.getCallsetMappingFile();
-      }
-      public Builder setCallsetMappingFile(java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasCallsetMappingFile = true;
-        result.callsetMappingFile_ = value;
-        return this;
-      }
-      public Builder clearCallsetMappingFile() {
-        result.hasCallsetMappingFile = false;
-        result.callsetMappingFile_ = getDefaultInstance().getCallsetMappingFile();
-        return this;
-      }
-      
-      // optional int64 size_per_column_partition = 7 [default = 3000];
-      public boolean hasSizePerColumnPartition() {
-        return result.hasSizePerColumnPartition();
-      }
-      public long getSizePerColumnPartition() {
-        return result.getSizePerColumnPartition();
-      }
-      public Builder setSizePerColumnPartition(long value) {
-        result.hasSizePerColumnPartition = true;
-        result.sizePerColumnPartition_ = value;
-        return this;
-      }
-      public Builder clearSizePerColumnPartition() {
-        result.hasSizePerColumnPartition = false;
-        result.sizePerColumnPartition_ = 3000L;
-        return this;
-      }
-      
-      // optional bool treat_deletions_as_intervals = 8 [default = true];
-      public boolean hasTreatDeletionsAsIntervals() {
-        return result.hasTreatDeletionsAsIntervals();
-      }
-      public boolean getTreatDeletionsAsIntervals() {
-        return result.getTreatDeletionsAsIntervals();
-      }
-      public Builder setTreatDeletionsAsIntervals(boolean value) {
-        result.hasTreatDeletionsAsIntervals = true;
-        result.treatDeletionsAsIntervals_ = value;
-        return this;
-      }
-      public Builder clearTreatDeletionsAsIntervals() {
-        result.hasTreatDeletionsAsIntervals = false;
-        result.treatDeletionsAsIntervals_ = true;
-        return this;
-      }
-      
-      // optional int32 num_parallel_vcf_files = 9 [default = 1];
-      public boolean hasNumParallelVcfFiles() {
-        return result.hasNumParallelVcfFiles();
-      }
-      public int getNumParallelVcfFiles() {
-        return result.getNumParallelVcfFiles();
-      }
-      public Builder setNumParallelVcfFiles(int value) {
-        result.hasNumParallelVcfFiles = true;
-        result.numParallelVcfFiles_ = value;
-        return this;
-      }
-      public Builder clearNumParallelVcfFiles() {
-        result.hasNumParallelVcfFiles = false;
-        result.numParallelVcfFiles_ = 1;
-        return this;
-      }
-      
-      // optional bool delete_and_create_tiledb_array = 10 [default = false];
-      public boolean hasDeleteAndCreateTiledbArray() {
-        return result.hasDeleteAndCreateTiledbArray();
-      }
-      public boolean getDeleteAndCreateTiledbArray() {
-        return result.getDeleteAndCreateTiledbArray();
-      }
-      public Builder setDeleteAndCreateTiledbArray(boolean value) {
-        result.hasDeleteAndCreateTiledbArray = true;
-        result.deleteAndCreateTiledbArray_ = value;
-        return this;
-      }
-      public Builder clearDeleteAndCreateTiledbArray() {
-        result.hasDeleteAndCreateTiledbArray = false;
-        result.deleteAndCreateTiledbArray_ = false;
-        return this;
-      }
-      
-      // optional bool do_ping_pong_buffering = 11 [default = true];
-      public boolean hasDoPingPongBuffering() {
-        return result.hasDoPingPongBuffering();
-      }
-      public boolean getDoPingPongBuffering() {
-        return result.getDoPingPongBuffering();
-      }
-      public Builder setDoPingPongBuffering(boolean value) {
-        result.hasDoPingPongBuffering = true;
-        result.doPingPongBuffering_ = value;
-        return this;
-      }
-      public Builder clearDoPingPongBuffering() {
-        result.hasDoPingPongBuffering = false;
-        result.doPingPongBuffering_ = true;
-        return this;
-      }
-      
-      // optional bool offload_vcf_output_processing = 12 [default = true];
-      public boolean hasOffloadVcfOutputProcessing() {
-        return result.hasOffloadVcfOutputProcessing();
-      }
-      public boolean getOffloadVcfOutputProcessing() {
-        return result.getOffloadVcfOutputProcessing();
-      }
-      public Builder setOffloadVcfOutputProcessing(boolean value) {
-        result.hasOffloadVcfOutputProcessing = true;
-        result.offloadVcfOutputProcessing_ = value;
-        return this;
-      }
-      public Builder clearOffloadVcfOutputProcessing() {
-        result.hasOffloadVcfOutputProcessing = false;
-        result.offloadVcfOutputProcessing_ = true;
-        return this;
-      }
-      
-      // optional bool discard_vcf_index = 13 [default = true];
-      public boolean hasDiscardVcfIndex() {
-        return result.hasDiscardVcfIndex();
-      }
-      public boolean getDiscardVcfIndex() {
-        return result.getDiscardVcfIndex();
-      }
-      public Builder setDiscardVcfIndex(boolean value) {
-        result.hasDiscardVcfIndex = true;
-        result.discardVcfIndex_ = value;
-        return this;
-      }
-      public Builder clearDiscardVcfIndex() {
-        result.hasDiscardVcfIndex = false;
-        result.discardVcfIndex_ = true;
-        return this;
-      }
-      
-      // optional int64 segment_size = 14 [default = 10485760];
-      public boolean hasSegmentSize() {
-        return result.hasSegmentSize();
-      }
-      public long getSegmentSize() {
-        return result.getSegmentSize();
-      }
-      public Builder setSegmentSize(long value) {
-        result.hasSegmentSize = true;
-        result.segmentSize_ = value;
-        return this;
-      }
-      public Builder clearSegmentSize() {
-        result.hasSegmentSize = false;
-        result.segmentSize_ = 10485760L;
-        return this;
-      }
-      
-      // optional .TileDBConfig tiledb_config = 15;
-      public boolean hasTiledbConfig() {
-        return result.hasTiledbConfig();
-      }
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-        return result.getTiledbConfig();
-      }
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        result.hasTiledbConfig = true;
-        result.tiledbConfig_ = value;
-        return this;
-      }
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
-        result.hasTiledbConfig = true;
-        result.tiledbConfig_ = builderForValue.build();
-        return this;
-      }
-      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (result.hasTiledbConfig() &&
-            result.tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
-          result.tiledbConfig_ =
-            com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(result.tiledbConfig_).mergeFrom(value).buildPartial();
+        if (columnPartitionsBuilder_ == null) {
+          ensureColumnPartitionsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, columnPartitions_);
+          onChanged();
         } else {
-          result.tiledbConfig_ = value;
+          columnPartitionsBuilder_.addAllMessages(values);
         }
-        result.hasTiledbConfig = true;
         return this;
       }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder clearColumnPartitions() {
+        if (columnPartitionsBuilder_ == null) {
+          columnPartitions_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public Builder removeColumnPartitions(int index) {
+        if (columnPartitionsBuilder_ == null) {
+          ensureColumnPartitionsIsMutable();
+          columnPartitions_.remove(index);
+          onChanged();
+        } else {
+          columnPartitionsBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder getColumnPartitionsBuilder(
+          int index) {
+        return getColumnPartitionsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder getColumnPartitionsOrBuilder(
+          int index) {
+        if (columnPartitionsBuilder_ == null) {
+          return columnPartitions_.get(index);  } else {
+          return columnPartitionsBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public java.util.List<? extends com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> 
+           getColumnPartitionsOrBuilderList() {
+        if (columnPartitionsBuilder_ != null) {
+          return columnPartitionsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(columnPartitions_);
+        }
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder addColumnPartitionsBuilder() {
+        return getColumnPartitionsFieldBuilder().addBuilder(
+            com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder addColumnPartitionsBuilder(
+          int index) {
+        return getColumnPartitionsFieldBuilder().addBuilder(
+            index, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .Partition column_partitions = 4;</code>
+       */
+      public java.util.List<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder> 
+           getColumnPartitionsBuilderList() {
+        return getColumnPartitionsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> 
+          getColumnPartitionsFieldBuilder() {
+        if (columnPartitionsBuilder_ == null) {
+          columnPartitionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder>(
+                  columnPartitions_,
+                  ((bitField0_ & 0x00000008) == 0x00000008),
+                  getParentForChildren(),
+                  isClean());
+          columnPartitions_ = null;
+        }
+        return columnPartitionsBuilder_;
+      }
+
+      private java.lang.Object vidMappingFile_ = "";
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public boolean hasVidMappingFile() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public java.lang.String getVidMappingFile() {
+        java.lang.Object ref = vidMappingFile_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            vidMappingFile_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public com.google.protobuf.ByteString
+          getVidMappingFileBytes() {
+        java.lang.Object ref = vidMappingFile_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          vidMappingFile_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public Builder setVidMappingFile(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000010;
+        vidMappingFile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public Builder clearVidMappingFile() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        vidMappingFile_ = getDefaultInstance().getVidMappingFile();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string vid_mapping_file = 5;</code>
+       */
+      public Builder setVidMappingFileBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000010;
+        vidMappingFile_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object callsetMappingFile_ = "";
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public boolean hasCallsetMappingFile() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public java.lang.String getCallsetMappingFile() {
+        java.lang.Object ref = callsetMappingFile_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            callsetMappingFile_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public com.google.protobuf.ByteString
+          getCallsetMappingFileBytes() {
+        java.lang.Object ref = callsetMappingFile_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          callsetMappingFile_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public Builder setCallsetMappingFile(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000020;
+        callsetMappingFile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public Builder clearCallsetMappingFile() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        callsetMappingFile_ = getDefaultInstance().getCallsetMappingFile();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string callset_mapping_file = 6;</code>
+       */
+      public Builder setCallsetMappingFileBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000020;
+        callsetMappingFile_ = value;
+        onChanged();
+        return this;
+      }
+
+      private long sizePerColumnPartition_ = 3000L;
+      /**
+       * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+       */
+      public boolean hasSizePerColumnPartition() {
+        return ((bitField0_ & 0x00000040) == 0x00000040);
+      }
+      /**
+       * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+       */
+      public long getSizePerColumnPartition() {
+        return sizePerColumnPartition_;
+      }
+      /**
+       * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+       */
+      public Builder setSizePerColumnPartition(long value) {
+        bitField0_ |= 0x00000040;
+        sizePerColumnPartition_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 size_per_column_partition = 7 [default = 3000];</code>
+       */
+      public Builder clearSizePerColumnPartition() {
+        bitField0_ = (bitField0_ & ~0x00000040);
+        sizePerColumnPartition_ = 3000L;
+        onChanged();
+        return this;
+      }
+
+      private boolean treatDeletionsAsIntervals_ = true;
+      /**
+       * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+       */
+      public boolean hasTreatDeletionsAsIntervals() {
+        return ((bitField0_ & 0x00000080) == 0x00000080);
+      }
+      /**
+       * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+       */
+      public boolean getTreatDeletionsAsIntervals() {
+        return treatDeletionsAsIntervals_;
+      }
+      /**
+       * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+       */
+      public Builder setTreatDeletionsAsIntervals(boolean value) {
+        bitField0_ |= 0x00000080;
+        treatDeletionsAsIntervals_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool treat_deletions_as_intervals = 8 [default = true];</code>
+       */
+      public Builder clearTreatDeletionsAsIntervals() {
+        bitField0_ = (bitField0_ & ~0x00000080);
+        treatDeletionsAsIntervals_ = true;
+        onChanged();
+        return this;
+      }
+
+      private int numParallelVcfFiles_ = 1;
+      /**
+       * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+       */
+      public boolean hasNumParallelVcfFiles() {
+        return ((bitField0_ & 0x00000100) == 0x00000100);
+      }
+      /**
+       * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+       */
+      public int getNumParallelVcfFiles() {
+        return numParallelVcfFiles_;
+      }
+      /**
+       * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+       */
+      public Builder setNumParallelVcfFiles(int value) {
+        bitField0_ |= 0x00000100;
+        numParallelVcfFiles_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 num_parallel_vcf_files = 9 [default = 1];</code>
+       */
+      public Builder clearNumParallelVcfFiles() {
+        bitField0_ = (bitField0_ & ~0x00000100);
+        numParallelVcfFiles_ = 1;
+        onChanged();
+        return this;
+      }
+
+      private boolean deleteAndCreateTiledbArray_ ;
+      /**
+       * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+       */
+      public boolean hasDeleteAndCreateTiledbArray() {
+        return ((bitField0_ & 0x00000200) == 0x00000200);
+      }
+      /**
+       * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+       */
+      public boolean getDeleteAndCreateTiledbArray() {
+        return deleteAndCreateTiledbArray_;
+      }
+      /**
+       * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+       */
+      public Builder setDeleteAndCreateTiledbArray(boolean value) {
+        bitField0_ |= 0x00000200;
+        deleteAndCreateTiledbArray_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool delete_and_create_tiledb_array = 10 [default = false];</code>
+       */
+      public Builder clearDeleteAndCreateTiledbArray() {
+        bitField0_ = (bitField0_ & ~0x00000200);
+        deleteAndCreateTiledbArray_ = false;
+        onChanged();
+        return this;
+      }
+
+      private boolean doPingPongBuffering_ = true;
+      /**
+       * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+       */
+      public boolean hasDoPingPongBuffering() {
+        return ((bitField0_ & 0x00000400) == 0x00000400);
+      }
+      /**
+       * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+       */
+      public boolean getDoPingPongBuffering() {
+        return doPingPongBuffering_;
+      }
+      /**
+       * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+       */
+      public Builder setDoPingPongBuffering(boolean value) {
+        bitField0_ |= 0x00000400;
+        doPingPongBuffering_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool do_ping_pong_buffering = 11 [default = true];</code>
+       */
+      public Builder clearDoPingPongBuffering() {
+        bitField0_ = (bitField0_ & ~0x00000400);
+        doPingPongBuffering_ = true;
+        onChanged();
+        return this;
+      }
+
+      private boolean offloadVcfOutputProcessing_ = true;
+      /**
+       * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+       */
+      public boolean hasOffloadVcfOutputProcessing() {
+        return ((bitField0_ & 0x00000800) == 0x00000800);
+      }
+      /**
+       * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+       */
+      public boolean getOffloadVcfOutputProcessing() {
+        return offloadVcfOutputProcessing_;
+      }
+      /**
+       * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+       */
+      public Builder setOffloadVcfOutputProcessing(boolean value) {
+        bitField0_ |= 0x00000800;
+        offloadVcfOutputProcessing_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool offload_vcf_output_processing = 12 [default = true];</code>
+       */
+      public Builder clearOffloadVcfOutputProcessing() {
+        bitField0_ = (bitField0_ & ~0x00000800);
+        offloadVcfOutputProcessing_ = true;
+        onChanged();
+        return this;
+      }
+
+      private boolean discardVcfIndex_ = true;
+      /**
+       * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+       */
+      public boolean hasDiscardVcfIndex() {
+        return ((bitField0_ & 0x00001000) == 0x00001000);
+      }
+      /**
+       * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+       */
+      public boolean getDiscardVcfIndex() {
+        return discardVcfIndex_;
+      }
+      /**
+       * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+       */
+      public Builder setDiscardVcfIndex(boolean value) {
+        bitField0_ |= 0x00001000;
+        discardVcfIndex_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool discard_vcf_index = 13 [default = true];</code>
+       */
+      public Builder clearDiscardVcfIndex() {
+        bitField0_ = (bitField0_ & ~0x00001000);
+        discardVcfIndex_ = true;
+        onChanged();
+        return this;
+      }
+
+      private long segmentSize_ = 10485760L;
+      /**
+       * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+       */
+      public boolean hasSegmentSize() {
+        return ((bitField0_ & 0x00002000) == 0x00002000);
+      }
+      /**
+       * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+       */
+      public long getSegmentSize() {
+        return segmentSize_;
+      }
+      /**
+       * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+       */
+      public Builder setSegmentSize(long value) {
+        bitField0_ |= 0x00002000;
+        segmentSize_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 segment_size = 14 [default = 10485760];</code>
+       */
+      public Builder clearSegmentSize() {
+        bitField0_ = (bitField0_ & ~0x00002000);
+        segmentSize_ = 10485760L;
+        onChanged();
+        return this;
+      }
+
+      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_ = null;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> tiledbConfigBuilder_;
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public boolean hasTiledbConfig() {
+        return ((bitField0_ & 0x00004000) == 0x00004000);
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
+        if (tiledbConfigBuilder_ == null) {
+          return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+        } else {
+          return tiledbConfigBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
+        if (tiledbConfigBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          tiledbConfig_ = value;
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00004000;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public Builder setTiledbConfig(
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = builderForValue.build();
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00004000;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
+        if (tiledbConfigBuilder_ == null) {
+          if (((bitField0_ & 0x00004000) == 0x00004000) &&
+              tiledbConfig_ != null &&
+              tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
+            tiledbConfig_ =
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(tiledbConfig_).mergeFrom(value).buildPartial();
+          } else {
+            tiledbConfig_ = value;
+          }
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00004000;
+        return this;
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
       public Builder clearTiledbConfig() {
-        result.hasTiledbConfig = false;
-        result.tiledbConfig_ = com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfig_ = null;
+          onChanged();
+        } else {
+          tiledbConfigBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00004000);
         return this;
       }
-      
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder getTiledbConfigBuilder() {
+        bitField0_ |= 0x00004000;
+        onChanged();
+        return getTiledbConfigFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
+        if (tiledbConfigBuilder_ != null) {
+          return tiledbConfigBuilder_.getMessageOrBuilder();
+        } else {
+          return tiledbConfig_ == null ?
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+        }
+      }
+      /**
+       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> 
+          getTiledbConfigFieldBuilder() {
+        if (tiledbConfigBuilder_ == null) {
+          tiledbConfigBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder>(
+                  getTiledbConfig(),
+                  getParentForChildren(),
+                  isClean());
+          tiledbConfig_ = null;
+        }
+        return tiledbConfigBuilder_;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
       // @@protoc_insertion_point(builder_scope:ImportConfiguration)
     }
-    
-    static {
-      defaultInstance = new ImportConfiguration(true);
-      com.intel.genomicsdb.GenomicsDBImportConfiguration.internalForceInit();
-      defaultInstance.initFields();
-    }
-    
+
     // @@protoc_insertion_point(class_scope:ImportConfiguration)
+    private static final com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<ImportConfiguration>
+        PARSER = new com.google.protobuf.AbstractParser<ImportConfiguration>() {
+      public ImportConfiguration parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new ImportConfiguration(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<ImportConfiguration> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<ImportConfiguration> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
   }
-  
-  private static com.google.protobuf.Descriptors.Descriptor
+
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_TileDBConfig_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_TileDBConfig_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Partition_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Partition_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ImportConfiguration_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ImportConfiguration_fieldAccessorTable;
-  
+
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -1767,44 +4046,36 @@ public final class GenomicsDBImportConfiguration {
       "DBImportConfiguration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-        public com.google.protobuf.ExtensionRegistry assignDescriptors(
-            com.google.protobuf.Descriptors.FileDescriptor root) {
-          descriptor = root;
-          internal_static_TileDBConfig_descriptor =
-            getDescriptor().getMessageTypes().get(0);
-          internal_static_TileDBConfig_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_TileDBConfig_descriptor,
-              new java.lang.String[] { "TiledbWorkspace", "TiledbArrayName", "CompressTiledbArray", "NumCellsPerTile", },
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.class,
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder.class);
-          internal_static_Partition_descriptor =
-            getDescriptor().getMessageTypes().get(1);
-          internal_static_Partition_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_Partition_descriptor,
-              new java.lang.String[] { "Begin", "TiledbConfig", "VcfFileName", },
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.class,
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder.class);
-          internal_static_ImportConfiguration_descriptor =
-            getDescriptor().getMessageTypes().get(2);
-          internal_static_ImportConfiguration_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_ImportConfiguration_descriptor,
-              new java.lang.String[] { "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "SizePerColumnPartition", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "TiledbConfig", },
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.class,
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration.Builder.class);
-          return null;
-        }
-      };
+        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
+          public com.google.protobuf.ExtensionRegistry assignDescriptors(
+              com.google.protobuf.Descriptors.FileDescriptor root) {
+            descriptor = root;
+            return null;
+          }
+        };
     com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
+    internal_static_TileDBConfig_descriptor =
+      getDescriptor().getMessageTypes().get(0);
+    internal_static_TileDBConfig_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_TileDBConfig_descriptor,
+        new java.lang.String[] { "TiledbWorkspace", "TiledbArrayName", "CompressTiledbArray", "NumCellsPerTile", });
+    internal_static_Partition_descriptor =
+      getDescriptor().getMessageTypes().get(1);
+    internal_static_Partition_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_Partition_descriptor,
+        new java.lang.String[] { "Begin", "TiledbConfig", "VcfFileName", });
+    internal_static_ImportConfiguration_descriptor =
+      getDescriptor().getMessageTypes().get(2);
+    internal_static_ImportConfiguration_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_ImportConfiguration_descriptor,
+        new java.lang.String[] { "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "SizePerColumnPartition", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "TiledbConfig", });
   }
-  
-  public static void internalForceInit() {}
-  
+
   // @@protoc_insertion_point(outer_class_scope)
 }
