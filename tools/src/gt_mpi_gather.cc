@@ -571,7 +571,9 @@ int main(int argc, char *argv[]) {
   VariantStorageManager sm(workspace, segment_size);
   /*Create query processor*/
   VariantQueryProcessor qp(&sm, array_name);
-  qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper);
+  auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
+      || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
+  qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
   switch(command_idx)
   {
     case COMMAND_RANGE_QUERY:
