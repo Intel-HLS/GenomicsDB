@@ -13,6 +13,9 @@ install:
     - sudo apt-get update -q
     - sudo apt-get install g++-4.9 -y
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
+    - wget https://protobuf.googlecode.com/files/protobuf-3.2.0.tar.gz
+    - tar -xvzf protobuf-3.2.0.tar.gz
+    - pushd protobuf-3.2.0 && ./configure --prefix=/usr && make && sudo make install && popd
     - sudo apt-get -y install openjdk-8-jdk icedtea-plugin
     - jdk_switcher use openjdk8
     - echo $JAVA_HOME
