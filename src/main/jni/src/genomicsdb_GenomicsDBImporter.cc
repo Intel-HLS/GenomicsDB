@@ -27,6 +27,8 @@
 #include "genomicsdb_GenomicsDBImporter.h"
 #include "jni_mpi_init.h"
 #include "json_config.h"
+#include "genomicsdb_vid_mapping.pb.h"
+#include "genomicsdb_callsets_mapping.pb.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 #define GET_GENOMICSDB_IMPORTER_FROM_HANDLE(X) (reinterpret_cast<GenomicsDBImporter*>(static_cast<std::uintptr_t>(X)))
@@ -61,6 +63,65 @@ JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniInitiali
   env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);
   //Cast pointer to 64-bit int and return to Java
   return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(importer));
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_intel_genomicsdb_GenomicsDBImporter_jniInitializeGenomicsDBImporter
+  (JNIEnv* env,
+   jobject obj,
+   jstring loader_configuration_file,
+   jint rank,
+   jbyteArray vidmap_as_bytearray,
+   jbyteArray callsetmap_as_bytearray)
+{
+  //Java string to char*
+  auto loader_configuration_file_cstr =
+      env->GetStringUTFChars(loader_configuration_file, NULL);
+  VERIFY_OR_THROW(loader_configuration_file_cstr);
+
+  VidMapping vidmap;
+  jbyte *vidmap_elements = env->GetByteArrayElements(vidmap_as_bytearray, 0);
+  int vidmap_length = env->GetArrayLength(vidmap_as_bytearray);
+  try {
+    vidmap.ParseFromArray(reinterpret_cast<jbyte*>(vidmap_elements), vidmap_length);
+  } catch (std::exception e) {
+    std::cerr << "Parsing error of vid maps. " <<
+        "Please check VCF merged headers\n";
+    throw e;
+  }
+
+  CallsetMap callsetmap;
+  jbyte *callsetmap_elements =
+      env->GetByteArrayElements(callsetmap_as_bytearray, 0);
+  int callsetmap_length = env->GetArrayLength(callsetmap_as_bytearray);
+  try {
+    callsetmap.ParseFromArray(
+        reinterpret_cast<jbyte*>(callsetmap_elements),
+        callsetmap_length);
+  } catch (std::exception e) {
+    std::cerr << "Parsing error of callset maps. " <<
+        "Please check VCF merged headers\n";
+    throw e;
+  }
+
+  //GenomicsDBImporter object
+  auto genomicsDBImporter = new GenomicsDBImporter(
+      loader_configuration_file_cstr,
+      g_jni_mpi_init.get_mpi_rank(rank),
+      vidmap,
+      callsetmap);
+
+  //Cleanup
+  env->ReleaseStringUTFChars(
+      loader_configuration_file,
+      loader_configuration_file_cstr);
+  env->ReleaseByteArrayElements(
+        vidmap_as_bytearray,
+        vidmap_elements,
+        JNI_ABORT);
+
+  //Cast pointer to 64-bit integer and return to Java
+  return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(genomicsDBImporter));
 }
 
 JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniAddBufferStream

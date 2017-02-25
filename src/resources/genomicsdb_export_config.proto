@@ -1,6 +1,6 @@
 
 /**
- * To build, use protocol buffer version >2.3.0 and the following command from base directory:
+ * To build, use protocol buffer version >3.2.0 and the following command from base directory:
  * $ protoc -Isrc/resources/ --java_out=src/main/java/ src/resources/genomicsdb_export_config.proto
  */
 

@@ -770,18 +770,23 @@ public final class GenomicsDBVidMapProto {
         getTypeBytes();
 
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
-    boolean hasVcfFieldClassType();
+    java.util.List<java.lang.String>
+        getVcfFieldClassTypeList();
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
-    java.lang.String getVcfFieldClassType();
+    int getVcfFieldClassTypeCount();
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
+     */
+    java.lang.String getVcfFieldClassType(int index);
+    /**
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
     com.google.protobuf.ByteString
-        getVcfFieldClassTypeBytes();
+        getVcfFieldClassTypeBytes(int index);
 
     /**
      * <code>optional string length = 4;</code>
@@ -811,7 +816,7 @@ public final class GenomicsDBVidMapProto {
     private InfoField() {
       name_ = "";
       type_ = "int";
-      vcfFieldClassType_ = "INFO";
+      vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       length_ = "";
     }
 
@@ -857,13 +862,16 @@ public final class GenomicsDBVidMapProto {
             }
             case 26: {
               com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000004;
-              vcfFieldClassType_ = bs;
+              if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+                vcfFieldClassType_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000004;
+              }
+              vcfFieldClassType_.add(bs);
               break;
             }
             case 34: {
               com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               length_ = bs;
               break;
             }
@@ -875,6 +883,9 @@ public final class GenomicsDBVidMapProto {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
+        if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
+          vcfFieldClassType_ = vcfFieldClassType_.getUnmodifiableView();
+        }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
@@ -977,45 +988,32 @@ public final class GenomicsDBVidMapProto {
     }
 
     public static final int VCF_FIELD_CLASS_TYPE_FIELD_NUMBER = 3;
-    private volatile java.lang.Object vcfFieldClassType_;
+    private com.google.protobuf.LazyStringList vcfFieldClassType_;
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
-    public boolean hasVcfFieldClassType() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+    public com.google.protobuf.ProtocolStringList
+        getVcfFieldClassTypeList() {
+      return vcfFieldClassType_;
     }
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
-    public java.lang.String getVcfFieldClassType() {
-      java.lang.Object ref = vcfFieldClassType_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          vcfFieldClassType_ = s;
-        }
-        return s;
-      }
+    public int getVcfFieldClassTypeCount() {
+      return vcfFieldClassType_.size();
     }
     /**
-     * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+     * <code>repeated string vcf_field_class_type = 3;</code>
+     */
+    public java.lang.String getVcfFieldClassType(int index) {
+      return vcfFieldClassType_.get(index);
+    }
+    /**
+     * <code>repeated string vcf_field_class_type = 3;</code>
      */
     public com.google.protobuf.ByteString
-        getVcfFieldClassTypeBytes() {
-      java.lang.Object ref = vcfFieldClassType_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        vcfFieldClassType_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+        getVcfFieldClassTypeBytes(int index) {
+      return vcfFieldClassType_.getByteString(index);
     }
 
     public static final int LENGTH_FIELD_NUMBER = 4;
@@ -1024,7 +1022,7 @@ public final class GenomicsDBVidMapProto {
      * <code>optional string length = 4;</code>
      */
     public boolean hasLength() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
      * <code>optional string length = 4;</code>
@@ -1086,10 +1084,10 @@ public final class GenomicsDBVidMapProto {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 2, type_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClassType_);
+      for (int i = 0; i < vcfFieldClassType_.size(); i++) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClassType_.getRaw(i));
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 4, length_);
       }
       unknownFields.writeTo(output);
@@ -1106,10 +1104,15 @@ public final class GenomicsDBVidMapProto {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, type_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, vcfFieldClassType_);
+      {
+        int dataSize = 0;
+        for (int i = 0; i < vcfFieldClassType_.size(); i++) {
+          dataSize += computeStringSizeNoTag(vcfFieldClassType_.getRaw(i));
+        }
+        size += dataSize;
+        size += 1 * getVcfFieldClassTypeList().size();
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, length_);
       }
       size += unknownFields.getSerializedSize();
@@ -1139,11 +1142,8 @@ public final class GenomicsDBVidMapProto {
         result = result && getType()
             .equals(other.getType());
       }
-      result = result && (hasVcfFieldClassType() == other.hasVcfFieldClassType());
-      if (hasVcfFieldClassType()) {
-        result = result && getVcfFieldClassType()
-            .equals(other.getVcfFieldClassType());
-      }
+      result = result && getVcfFieldClassTypeList()
+          .equals(other.getVcfFieldClassTypeList());
       result = result && (hasLength() == other.hasLength());
       if (hasLength()) {
         result = result && getLength()
@@ -1168,9 +1168,9 @@ public final class GenomicsDBVidMapProto {
         hash = (37 * hash) + TYPE_FIELD_NUMBER;
         hash = (53 * hash) + getType().hashCode();
       }
-      if (hasVcfFieldClassType()) {
+      if (getVcfFieldClassTypeCount() > 0) {
         hash = (37 * hash) + VCF_FIELD_CLASS_TYPE_FIELD_NUMBER;
-        hash = (53 * hash) + getVcfFieldClassType().hashCode();
+        hash = (53 * hash) + getVcfFieldClassTypeList().hashCode();
       }
       if (hasLength()) {
         hash = (37 * hash) + LENGTH_FIELD_NUMBER;
@@ -1298,7 +1298,7 @@ public final class GenomicsDBVidMapProto {
         bitField0_ = (bitField0_ & ~0x00000001);
         type_ = "int";
         bitField0_ = (bitField0_ & ~0x00000002);
-        vcfFieldClassType_ = "INFO";
+        vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
         length_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -1334,12 +1334,13 @@ public final class GenomicsDBVidMapProto {
           to_bitField0_ |= 0x00000002;
         }
         result.type_ = type_;
-        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-          to_bitField0_ |= 0x00000004;
+        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          vcfFieldClassType_ = vcfFieldClassType_.getUnmodifiableView();
+          bitField0_ = (bitField0_ & ~0x00000004);
         }
         result.vcfFieldClassType_ = vcfFieldClassType_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-          to_bitField0_ |= 0x00000008;
+          to_bitField0_ |= 0x00000004;
         }
         result.length_ = length_;
         result.bitField0_ = to_bitField0_;
@@ -1394,9 +1395,14 @@ public final class GenomicsDBVidMapProto {
           type_ = other.type_;
           onChanged();
         }
-        if (other.hasVcfFieldClassType()) {
-          bitField0_ |= 0x00000004;
-          vcfFieldClassType_ = other.vcfFieldClassType_;
+        if (!other.vcfFieldClassType_.isEmpty()) {
+          if (vcfFieldClassType_.isEmpty()) {
+            vcfFieldClassType_ = other.vcfFieldClassType_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+          } else {
+            ensureVcfFieldClassTypeIsMutable();
+            vcfFieldClassType_.addAll(other.vcfFieldClassType_);
+          }
           onChanged();
         }
         if (other.hasLength()) {
@@ -1590,78 +1596,95 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
 
-      private java.lang.Object vcfFieldClassType_ = "INFO";
-      /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
-       */
-      public boolean hasVcfFieldClassType() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+      private com.google.protobuf.LazyStringList vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureVcfFieldClassTypeIsMutable() {
+        if (!((bitField0_ & 0x00000004) == 0x00000004)) {
+          vcfFieldClassType_ = new com.google.protobuf.LazyStringArrayList(vcfFieldClassType_);
+          bitField0_ |= 0x00000004;
+         }
       }
       /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+       * <code>repeated string vcf_field_class_type = 3;</code>
        */
-      public java.lang.String getVcfFieldClassType() {
-        java.lang.Object ref = vcfFieldClassType_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            vcfFieldClassType_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ProtocolStringList
+          getVcfFieldClassTypeList() {
+        return vcfFieldClassType_.getUnmodifiableView();
       }
       /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+       * <code>repeated string vcf_field_class_type = 3;</code>
+       */
+      public int getVcfFieldClassTypeCount() {
+        return vcfFieldClassType_.size();
+      }
+      /**
+       * <code>repeated string vcf_field_class_type = 3;</code>
+       */
+      public java.lang.String getVcfFieldClassType(int index) {
+        return vcfFieldClassType_.get(index);
+      }
+      /**
+       * <code>repeated string vcf_field_class_type = 3;</code>
        */
       public com.google.protobuf.ByteString
-          getVcfFieldClassTypeBytes() {
-        java.lang.Object ref = vcfFieldClassType_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          vcfFieldClassType_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
+          getVcfFieldClassTypeBytes(int index) {
+        return vcfFieldClassType_.getByteString(index);
       }
       /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+       * <code>repeated string vcf_field_class_type = 3;</code>
        */
       public Builder setVcfFieldClassType(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureVcfFieldClassTypeIsMutable();
+        vcfFieldClassType_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string vcf_field_class_type = 3;</code>
+       */
+      public Builder addVcfFieldClassType(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
-        vcfFieldClassType_ = value;
+  ensureVcfFieldClassTypeIsMutable();
+        vcfFieldClassType_.add(value);
         onChanged();
         return this;
       }
       /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+       * <code>repeated string vcf_field_class_type = 3;</code>
+       */
+      public Builder addAllVcfFieldClassType(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureVcfFieldClassTypeIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, vcfFieldClassType_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string vcf_field_class_type = 3;</code>
        */
       public Builder clearVcfFieldClassType() {
+        vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        vcfFieldClassType_ = getDefaultInstance().getVcfFieldClassType();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string vcf_field_class_type = 3 [default = "INFO"];</code>
+       * <code>repeated string vcf_field_class_type = 3;</code>
        */
-      public Builder setVcfFieldClassTypeBytes(
+      public Builder addVcfFieldClassTypeBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
-        vcfFieldClassType_ = value;
+  ensureVcfFieldClassTypeIsMutable();
+        vcfFieldClassType_.add(value);
         onChanged();
         return this;
       }
@@ -3693,15 +3716,15 @@ public final class GenomicsDBVidMapProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\034genomicsdb_vid_mapping.proto\"-\n\006Length" +
-      "\022\024\n\004name\030\001 \002(\t:\006length\022\r\n\005value\030\002 \002(\t\"`\n" +
+      "\022\024\n\004name\030\001 \002(\t:\006length\022\r\n\005value\030\002 \002(\t\"Z\n" +
       "\tInfoField\022\014\n\004name\030\001 \002(\t\022\021\n\004type\030\002 \002(\t:\003" +
-      "int\022\"\n\024vcf_field_class_type\030\003 \001(\t:\004INFO\022" +
-      "\016\n\006length\030\004 \001(\t\"H\n\nChromosome\022\014\n\004name\030\001 " +
-      "\002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024tiledb_column_off" +
-      "set\030\003 \002(\003\"N\n\nVidMapping\022\036\n\ninfofields\030\001 " +
-      "\003(\0132\n.InfoField\022 \n\013chromosomes\030\002 \003(\0132\013.C" +
-      "hromosomeB-\n\024com.intel.genomicsdbB\025Genom" +
-      "icsDBVidMapProto"
+      "int\022\034\n\024vcf_field_class_type\030\003 \003(\t\022\016\n\006len" +
+      "gth\030\004 \001(\t\"H\n\nChromosome\022\014\n\004name\030\001 \002(\t\022\016\n" +
+      "\006length\030\002 \002(\003\022\034\n\024tiledb_column_offset\030\003 " +
+      "\002(\003\"N\n\nVidMapping\022\036\n\ninfofields\030\001 \003(\0132\n." +
+      "InfoField\022 \n\013chromosomes\030\002 \003(\0132\013.Chromos" +
+      "omeB-\n\024com.intel.genomicsdbB\025GenomicsDBV" +
+      "idMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

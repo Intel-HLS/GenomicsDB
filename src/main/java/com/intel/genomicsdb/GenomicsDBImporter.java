@@ -33,11 +33,10 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.*;
 
-import static htsjdk.variant.vcf.VCFHeaderLineCount.UNBOUNDED;
+import static com.googlecode.protobuf.format.JsonFormat.*;
 
 //JSON operations
 
@@ -95,6 +94,22 @@ public class GenomicsDBImporter
                                                             int rank,
                                                             long lbRowIdx,
                                                             long ubRowIdx);
+
+  /**
+   * Creates a GenomicsDBImporter object in C++
+   *
+   * @param loaderJSONFile
+   * @param rank
+   * @param vidMapAsByteArray
+   * @param callsetMapAsByteArray
+   * @return
+   */
+  private native long jniInitializeGenomicsDBImporter(
+    String loaderJSONFile,
+    int rank,
+    byte[] vidMapAsByteArray,
+    byte[] callsetMapAsByteArray);
+
   /**
    * Notify importer object that a new stream is to be added
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
@@ -179,10 +194,10 @@ public class GenomicsDBImporter
   private boolean mDone = false;
   //JSON object that specifies callset/sample name to row_idx mapping in the buffer
   private JSONObject mCallsetMappingJSON = null;
-  
-  private GenomicsDBImportConfiguration.ImportConfiguration mImportConfiguration = null;
+
   private GenomicsDBVidMapProto.VidMapping mVidMap = null;
   private ChromosomeInterval mChromosomeIntervals = null;
+  GenomicsDBCallsetsMapProto.CallsetMap mCallsetMap = null;
 
   /**
    * Default Constructor
@@ -239,10 +254,70 @@ public class GenomicsDBImporter
       headers.add(reader.getFileHeader());
     }
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
-    GenomicsDBVidMapProto.VidMapping vidmap = generateVidMapFromMergedHeader(mergedHeader);
+    mVidMap = generateVidMapFromMergedHeader(mergedHeader);
+    mCallsetMap = generateCallSetMap(variantReaders);
 
-    mImportConfiguration = importConfiguration;
+    String loaderJSONString = printToString(importConfiguration);
+    File tempLoaderJSONFile = new File("./tmp_loader.json");
+    try( PrintWriter out = new PrintWriter(tempLoaderJSONFile)  ){
+      out.println(loaderJSONString);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+
+    initialize(tempLoaderJSONFile.getPath(), 0, 0, 0);
     mChromosomeIntervals = chromosomeIntervals;
+
+    // somewhere to the following:
+//    int returncode = (int) jniInitializeGenomicsDBImporter(
+//      mLoaderJSONFile,
+//      0,
+//      mVidMap.toByteArray(),
+//      mCallsetMap.toByteArray());
+  }
+
+  /**
+   * Generate unique TileDB row index for each callset or sample.
+   * Remember to create a sorted list as distributed share-nothing
+   * processes might be spawned with the same callset
+   *
+   * Assume one sample per input GVCF file
+   *
+   * @param variantReaders  Variant Readers objects of the input GVCF files
+   * @return  Mappings of callset (sample) names to TileDB rows
+   */
+  private GenomicsDBCallsetsMapProto.CallsetMap generateCallSetMap(
+    List<VCFFileReader> variantReaders) {
+
+    List<String> sampleNames = new ArrayList<>(variantReaders.size());
+    for (VCFFileReader reader : variantReaders) {
+      sampleNames.add(reader.getFileHeader().getSampleNamesInOrder().get(0));
+    }
+
+    Collections.sort(sampleNames);
+
+    int tileDBRowIndex = 0;
+    List<GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsets = new ArrayList<>();
+    for (String sampleName : sampleNames) {
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder idMapBuilder =
+        GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
+
+      idMapBuilder
+        .setSampleName(sampleName)
+        .setTiledbRowIndex(tileDBRowIndex++)
+        .setSampleVcfIndex(0)
+        .setStreamName(sampleName + "_stream");
+
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
+        idMapBuilder.build();
+      callsets.add(sampleIDToTileDBIDMap);
+    }
+
+    GenomicsDBCallsetsMapProto.CallsetMap.Builder callsetMapBuilder =
+      GenomicsDBCallsetsMapProto.CallsetMap.newBuilder();
+    GenomicsDBCallsetsMapProto.CallsetMap callsetMap =
+      callsetMapBuilder.addAllCallsetMap(callsets).build();
+    return callsetMap;
   }
 
 
@@ -272,41 +347,60 @@ public class GenomicsDBImporter
   private GenomicsDBVidMapProto.VidMapping generateVidMapFromMergedHeader(
     Set<VCFHeaderLine> mergedHeader) {
     List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
+    int dpIndex = -1;
     for (VCFHeaderLine headerLine : mergedHeader) {
-      if (headerLine instanceof VCFFormatHeaderLine) {
-        GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
-          GenomicsDBVidMapProto.InfoField.newBuilder();
+      GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
+        GenomicsDBVidMapProto.InfoField.newBuilder();
 
+      if (headerLine instanceof VCFFormatHeaderLine) {
         VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
 
-        GenomicsDBVidMapProto.InfoField formatField =
+        infoBuilder
+          .setName(formatHeaderLine.getID())
+          .setType(formatHeaderLine.getType().toString())
+          .setLength(getLength(formatHeaderLine));
+        
+        if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
+          GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
+
           infoBuilder
-            .setName(formatHeaderLine.getID())
-            .setType(formatHeaderLine.getType().toString())
-            .setLength(getLength(formatHeaderLine))
-            .setVcfFieldClassType("FORMAT")
-            .build();
+            .addVcfFieldClassType(prevDPField.getVcfFieldClassType(0))
+            .addVcfFieldClassType("FORMAT");
+        } else {
+          infoBuilder
+            .addVcfFieldClassType("FORMAT");
+        }
 
+        GenomicsDBVidMapProto.InfoField formatField = infoBuilder.build();
         infoFields.add(formatField);
+        if (formatHeaderLine.getID().equals("DP")) {
+          dpIndex = infoFields.indexOf(formatField);
+        }
       } else if (headerLine instanceof VCFInfoHeaderLine) {
-        GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
-          GenomicsDBVidMapProto.InfoField.newBuilder();
-
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
-        GenomicsDBVidMapProto.InfoField infoField =
+        infoBuilder
+          .setName(infoHeaderLine.getID())
+          .setType(infoHeaderLine.getType().toString())
+          .setLength(getLength(infoHeaderLine));
+
+        if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
+          GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
+
           infoBuilder
-            .setName(infoHeaderLine.getID())
-            .setType(infoHeaderLine.getType().toString())
-            .setLength(getLength(infoHeaderLine))
-            .setVcfFieldClassType("INFO")
-            .build();
-
+            .addVcfFieldClassType(prevDPield.getVcfFieldClassType(0))
+            .addVcfFieldClassType("INFO");
+        } else {
+          infoBuilder
+            .addVcfFieldClassType("INFO");
+        }
+        
+        GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
         infoFields.add(infoField);
+        if (infoHeaderLine.getID().equals("DP")) {
+          dpIndex = infoFields.indexOf(infoField);
+        }
       } else if (headerLine instanceof VCFFilterHeaderLine) {
-        GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
-          GenomicsDBVidMapProto.InfoField.newBuilder();
-
         VCFFilterHeaderLine filterHeaderLine = (VCFFilterHeaderLine) headerLine;
 
         infoBuilder.setName(filterHeaderLine.getID());
@@ -316,7 +410,7 @@ public class GenomicsDBImporter
         } else {
           infoBuilder.setType("int");
         }
-        infoBuilder.setVcfFieldClassType("FILTER");
+        infoBuilder.addVcfFieldClassType("FILTER");
         GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
 
         infoFields.add(filterField);
@@ -328,6 +422,26 @@ public class GenomicsDBImporter
     return vidMapBuilder.addAllInfofields(infoFields).build();
   }
 
+  private GenomicsDBVidMapProto.InfoField remove(
+    List<GenomicsDBVidMapProto.InfoField> infoFields,
+    int dpIndex) {
+    GenomicsDBVidMapProto.InfoField dpFormatField = infoFields.get(dpIndex);
+    infoFields.remove(dpIndex);
+    return dpFormatField;
+  }
+
+  /**
+   * Maps the "Number" from INFO or FORMAT fields in VCF header
+   * to GenomicsDB lengths. If unbounded, the field becomes a
+   * variable length attribute (discussed in more detail in TileDB
+   * tutorial tiledb.org). If "A", "R" or "G", the field also
+   * becomes a variable length attribute, but the order and length
+   * depends on order/number of alleles or genotypes. Integers
+   * remain integers
+   *
+   * @param headerLine  Info or Format header line from VCF
+   * @return  VAR, A, R, G, or integer values from VCF
+   */
   private String getLength(VCFHeaderLine headerLine) {
 
     VCFHeaderLineCount type;

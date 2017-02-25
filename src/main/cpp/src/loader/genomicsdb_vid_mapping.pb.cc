@@ -53,8 +53,8 @@ const ::google::protobuf::uint32 TableStruct::offsets[] = {
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, length_),
   0,
   1,
+  ~0u,
   2,
-  3,
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, _has_bits_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -119,7 +119,6 @@ void TableStruct::Shutdown() {
   _InfoField_default_instance_.Shutdown();
   delete file_level_metadata[1].reflection;
   InfoField::_default_type_.Shutdown();
-  InfoField::_default_vcf_field_class_type_.Shutdown();
   _Chromosome_default_instance_.Shutdown();
   delete file_level_metadata[2].reflection;
   _VidMapping_default_instance_.Shutdown();
@@ -135,8 +134,6 @@ void TableStruct::InitDefaultsImpl() {
   _Length_default_instance_.DefaultConstruct();
   InfoField::_default_type_.DefaultConstruct();
   *InfoField::_default_type_.get_mutable() = ::std::string("int", 3);
-  InfoField::_default_vcf_field_class_type_.DefaultConstruct();
-  *InfoField::_default_vcf_field_class_type_.get_mutable() = ::std::string("INFO", 4);
   _InfoField_default_instance_.DefaultConstruct();
   _Chromosome_default_instance_.DefaultConstruct();
   _VidMapping_default_instance_.DefaultConstruct();
@@ -150,18 +147,18 @@ void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] = {
       "\n\034genomicsdb_vid_mapping.proto\"-\n\006Length"
-      "\022\024\n\004name\030\001 \002(\t:\006length\022\r\n\005value\030\002 \002(\t\"`\n"
+      "\022\024\n\004name\030\001 \002(\t:\006length\022\r\n\005value\030\002 \002(\t\"Z\n"
       "\tInfoField\022\014\n\004name\030\001 \002(\t\022\021\n\004type\030\002 \002(\t:\003"
-      "int\022\"\n\024vcf_field_class_type\030\003 \001(\t:\004INFO\022"
-      "\016\n\006length\030\004 \001(\t\"H\n\nChromosome\022\014\n\004name\030\001 "
-      "\002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024tiledb_column_off"
-      "set\030\003 \002(\003\"N\n\nVidMapping\022\036\n\ninfofields\030\001 "
-      "\003(\0132\n.InfoField\022 \n\013chromosomes\030\002 \003(\0132\013.C"
-      "hromosomeB-\n\024com.intel.genomicsdbB\025Genom"
-      "icsDBVidMapProto"
+      "int\022\034\n\024vcf_field_class_type\030\003 \003(\t\022\016\n\006len"
+      "gth\030\004 \001(\t\"H\n\nChromosome\022\014\n\004name\030\001 \002(\t\022\016\n"
+      "\006length\030\002 \002(\003\022\034\n\024tiledb_column_offset\030\003 "
+      "\002(\003\"N\n\nVidMapping\022\036\n\ninfofields\030\001 \003(\0132\n."
+      "InfoField\022 \n\013chromosomes\030\002 \003(\0132\013.Chromos"
+      "omeB-\n\024com.intel.genomicsdbB\025GenomicsDBV"
+      "idMapProto"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 376);
+      descriptor, 370);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_vid_mapping.proto", &protobuf_RegisterTypes);
   ::google::protobuf::internal::OnShutdown(&TableStruct::Shutdown);
@@ -646,7 +643,6 @@ void Length::set_allocated_value(::std::string* value) {
 // ===================================================================
 
 ::google::protobuf::internal::ExplicitlyConstructed< ::std::string> InfoField::_default_type_;
-::google::protobuf::internal::ExplicitlyConstructed< ::std::string> InfoField::_default_vcf_field_class_type_;
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int InfoField::kNameFieldNumber;
 const int InfoField::kTypeFieldNumber;
@@ -666,7 +662,8 @@ InfoField::InfoField(const InfoField& from)
   : ::google::protobuf::Message(),
       _internal_metadata_(NULL),
       _has_bits_(from._has_bits_),
-      _cached_size_(0) {
+      _cached_size_(0),
+      vcf_field_class_type_(from.vcf_field_class_type_) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.has_name()) {
@@ -675,10 +672,6 @@ InfoField::InfoField(const InfoField& from)
   type_.UnsafeSetDefault(&InfoField::_default_type_.get());
   if (from.has_type()) {
     type_.AssignWithDefault(&InfoField::_default_type_.get(), from.type_);
-  }
-  vcf_field_class_type_.UnsafeSetDefault(&InfoField::_default_vcf_field_class_type_.get());
-  if (from.has_vcf_field_class_type()) {
-    vcf_field_class_type_.AssignWithDefault(&InfoField::_default_vcf_field_class_type_.get(), from.vcf_field_class_type_);
   }
   length_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (from.has_length()) {
@@ -691,7 +684,6 @@ void InfoField::SharedCtor() {
   _cached_size_ = 0;
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_.UnsafeSetDefault(&InfoField::_default_type_.get());
-  vcf_field_class_type_.UnsafeSetDefault(&InfoField::_default_vcf_field_class_type_.get());
   length_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
@@ -703,7 +695,6 @@ InfoField::~InfoField() {
 void InfoField::SharedDtor() {
   name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_.DestroyNoArena(&InfoField::_default_type_.get());
-  vcf_field_class_type_.DestroyNoArena(&InfoField::_default_vcf_field_class_type_.get());
   length_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
@@ -732,7 +723,8 @@ InfoField* InfoField::New(::google::protobuf::Arena* arena) const {
 
 void InfoField::Clear() {
 // @@protoc_insertion_point(message_clear_start:InfoField)
-  if (_has_bits_[0 / 32] & 15u) {
+  vcf_field_class_type_.Clear();
+  if (_has_bits_[0 / 32] & 7u) {
     if (has_name()) {
       GOOGLE_DCHECK(!name_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
       (*name_.UnsafeRawStringPointer())->clear();
@@ -740,10 +732,6 @@ void InfoField::Clear() {
     if (has_type()) {
       GOOGLE_DCHECK(!type_.IsDefault(&InfoField::_default_type_.get()));
       (*type_.UnsafeRawStringPointer())->assign(*&InfoField::_default_type_.get());
-    }
-    if (has_vcf_field_class_type()) {
-      GOOGLE_DCHECK(!vcf_field_class_type_.IsDefault(&InfoField::_default_vcf_field_class_type_.get()));
-      (*vcf_field_class_type_.UnsafeRawStringPointer())->assign(*&InfoField::_default_vcf_field_class_type_.get());
     }
     if (has_length()) {
       GOOGLE_DCHECK(!length_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
@@ -796,14 +784,15 @@ bool InfoField::MergePartialFromCodedStream(
         break;
       }
 
-      // optional string vcf_field_class_type = 3 [default = "INFO"];
+      // repeated string vcf_field_class_type = 3;
       case 3: {
         if (static_cast<::google::protobuf::uint8>(tag) ==
             static_cast<::google::protobuf::uint8>(26u)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_vcf_field_class_type()));
+                input, this->add_vcf_field_class_type()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->vcf_field_class_type().data(), this->vcf_field_class_type().length(),
+            this->vcf_field_class_type(this->vcf_field_class_type_size() - 1).data(),
+            this->vcf_field_class_type(this->vcf_field_class_type_size() - 1).length(),
             ::google::protobuf::internal::WireFormat::PARSE,
             "InfoField.vcf_field_class_type");
         } else {
@@ -873,14 +862,14 @@ void InfoField::SerializeWithCachedSizes(
       2, this->type(), output);
   }
 
-  // optional string vcf_field_class_type = 3 [default = "INFO"];
-  if (has_vcf_field_class_type()) {
+  // repeated string vcf_field_class_type = 3;
+  for (int i = 0, n = this->vcf_field_class_type_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->vcf_field_class_type().data(), this->vcf_field_class_type().length(),
+      this->vcf_field_class_type(i).data(), this->vcf_field_class_type(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "InfoField.vcf_field_class_type");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->vcf_field_class_type(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      3, this->vcf_field_class_type(i), output);
   }
 
   // optional string length = 4;
@@ -926,15 +915,14 @@ void InfoField::SerializeWithCachedSizes(
         2, this->type(), target);
   }
 
-  // optional string vcf_field_class_type = 3 [default = "INFO"];
-  if (has_vcf_field_class_type()) {
+  // repeated string vcf_field_class_type = 3;
+  for (int i = 0, n = this->vcf_field_class_type_size(); i < n; i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->vcf_field_class_type().data(), this->vcf_field_class_type().length(),
+      this->vcf_field_class_type(i).data(), this->vcf_field_class_type(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "InfoField.vcf_field_class_type");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->vcf_field_class_type(), target);
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteStringToArray(3, this->vcf_field_class_type(i), target);
   }
 
   // optional string length = 4;
@@ -999,22 +987,21 @@ size_t InfoField::ByteSizeLong() const {
   } else {
     total_size += RequiredFieldsByteSizeFallback();
   }
-  if (_has_bits_[0 / 32] & 12u) {
-    // optional string vcf_field_class_type = 3 [default = "INFO"];
-    if (has_vcf_field_class_type()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->vcf_field_class_type());
-    }
-
-    // optional string length = 4;
-    if (has_length()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->length());
-    }
-
+  // repeated string vcf_field_class_type = 3;
+  total_size += 1 *
+      ::google::protobuf::internal::FromIntSize(this->vcf_field_class_type_size());
+  for (int i = 0, n = this->vcf_field_class_type_size(); i < n; i++) {
+    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+      this->vcf_field_class_type(i));
   }
+
+  // optional string length = 4;
+  if (has_length()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->length());
+  }
+
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = cached_size;
@@ -1041,7 +1028,8 @@ void InfoField::MergeFrom(const InfoField& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:InfoField)
   GOOGLE_DCHECK_NE(&from, this);
   _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from._has_bits_[0 / 32] & 15u) {
+  vcf_field_class_type_.MergeFrom(from.vcf_field_class_type_);
+  if (from._has_bits_[0 / 32] & 7u) {
     if (from.has_name()) {
       set_has_name();
       name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.name_);
@@ -1049,10 +1037,6 @@ void InfoField::MergeFrom(const InfoField& from) {
     if (from.has_type()) {
       set_has_type();
       type_.AssignWithDefault(&InfoField::_default_type_.get(), from.type_);
-    }
-    if (from.has_vcf_field_class_type()) {
-      set_has_vcf_field_class_type();
-      vcf_field_class_type_.AssignWithDefault(&InfoField::_default_vcf_field_class_type_.get(), from.vcf_field_class_type_);
     }
     if (from.has_length()) {
       set_has_length();
@@ -1085,9 +1069,9 @@ void InfoField::Swap(InfoField* other) {
   InternalSwap(other);
 }
 void InfoField::InternalSwap(InfoField* other) {
+  vcf_field_class_type_.UnsafeArenaSwap(&other->vcf_field_class_type_);
   name_.Swap(&other->name_);
   type_.Swap(&other->type_);
-  vcf_field_class_type_.Swap(&other->vcf_field_class_type_);
   length_.Swap(&other->length_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
@@ -1226,77 +1210,82 @@ void InfoField::set_allocated_type(::std::string* type) {
   // @@protoc_insertion_point(field_set_allocated:InfoField.type)
 }
 
-// optional string vcf_field_class_type = 3 [default = "INFO"];
-bool InfoField::has_vcf_field_class_type() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-void InfoField::set_has_vcf_field_class_type() {
-  _has_bits_[0] |= 0x00000004u;
-}
-void InfoField::clear_has_vcf_field_class_type() {
-  _has_bits_[0] &= ~0x00000004u;
+// repeated string vcf_field_class_type = 3;
+int InfoField::vcf_field_class_type_size() const {
+  return vcf_field_class_type_.size();
 }
 void InfoField::clear_vcf_field_class_type() {
-  vcf_field_class_type_.ClearToDefaultNoArena(&InfoField::_default_vcf_field_class_type_.get());
-  clear_has_vcf_field_class_type();
+  vcf_field_class_type_.Clear();
 }
-const ::std::string& InfoField::vcf_field_class_type() const {
+const ::std::string& InfoField::vcf_field_class_type(int index) const {
   // @@protoc_insertion_point(field_get:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.GetNoArena();
+  return vcf_field_class_type_.Get(index);
 }
-void InfoField::set_vcf_field_class_type(const ::std::string& value) {
-  set_has_vcf_field_class_type();
-  vcf_field_class_type_.SetNoArena(&InfoField::_default_vcf_field_class_type_.get(), value);
+::std::string* InfoField::mutable_vcf_field_class_type(int index) {
+  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class_type)
+  return vcf_field_class_type_.Mutable(index);
+}
+void InfoField::set_vcf_field_class_type(int index, const ::std::string& value) {
   // @@protoc_insertion_point(field_set:InfoField.vcf_field_class_type)
+  vcf_field_class_type_.Mutable(index)->assign(value);
 }
 #if LANG_CXX11
-void InfoField::set_vcf_field_class_type(::std::string&& value) {
-  set_has_vcf_field_class_type();
-  vcf_field_class_type_.SetNoArena(
-    &InfoField::_default_vcf_field_class_type_.get(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:InfoField.vcf_field_class_type)
+void InfoField::set_vcf_field_class_type(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:InfoField.vcf_field_class_type)
+  vcf_field_class_type_.Mutable(index)->assign(std::move(value));
 }
 #endif
-void InfoField::set_vcf_field_class_type(const char* value) {
-  set_has_vcf_field_class_type();
-  vcf_field_class_type_.SetNoArena(&InfoField::_default_vcf_field_class_type_.get(), ::std::string(value));
+void InfoField::set_vcf_field_class_type(int index, const char* value) {
+  vcf_field_class_type_.Mutable(index)->assign(value);
   // @@protoc_insertion_point(field_set_char:InfoField.vcf_field_class_type)
 }
-void InfoField::set_vcf_field_class_type(const char* value, size_t size) {
-  set_has_vcf_field_class_type();
-  vcf_field_class_type_.SetNoArena(&InfoField::_default_vcf_field_class_type_.get(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
+void InfoField::set_vcf_field_class_type(int index, const char* value, size_t size) {
+  vcf_field_class_type_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
   // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class_type)
 }
-::std::string* InfoField::mutable_vcf_field_class_type() {
-  set_has_vcf_field_class_type();
-  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.MutableNoArena(&InfoField::_default_vcf_field_class_type_.get());
+::std::string* InfoField::add_vcf_field_class_type() {
+  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class_type)
+  return vcf_field_class_type_.Add();
 }
-::std::string* InfoField::release_vcf_field_class_type() {
-  // @@protoc_insertion_point(field_release:InfoField.vcf_field_class_type)
-  clear_has_vcf_field_class_type();
-  return vcf_field_class_type_.ReleaseNoArena(&InfoField::_default_vcf_field_class_type_.get());
+void InfoField::add_vcf_field_class_type(const ::std::string& value) {
+  vcf_field_class_type_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class_type)
 }
-void InfoField::set_allocated_vcf_field_class_type(::std::string* vcf_field_class_type) {
-  if (vcf_field_class_type != NULL) {
-    set_has_vcf_field_class_type();
-  } else {
-    clear_has_vcf_field_class_type();
-  }
-  vcf_field_class_type_.SetAllocatedNoArena(&InfoField::_default_vcf_field_class_type_.get(), vcf_field_class_type);
-  // @@protoc_insertion_point(field_set_allocated:InfoField.vcf_field_class_type)
+#if LANG_CXX11
+void InfoField::add_vcf_field_class_type(::std::string&& value) {
+  vcf_field_class_type_.Add()->assign(std::move(value));
+  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class_type)
+}
+#endif
+void InfoField::add_vcf_field_class_type(const char* value) {
+  vcf_field_class_type_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:InfoField.vcf_field_class_type)
+}
+void InfoField::add_vcf_field_class_type(const char* value, size_t size) {
+  vcf_field_class_type_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:InfoField.vcf_field_class_type)
+}
+const ::google::protobuf::RepeatedPtrField< ::std::string>&
+InfoField::vcf_field_class_type() const {
+  // @@protoc_insertion_point(field_list:InfoField.vcf_field_class_type)
+  return vcf_field_class_type_;
+}
+::google::protobuf::RepeatedPtrField< ::std::string>*
+InfoField::mutable_vcf_field_class_type() {
+  // @@protoc_insertion_point(field_mutable_list:InfoField.vcf_field_class_type)
+  return &vcf_field_class_type_;
 }
 
 // optional string length = 4;
 bool InfoField::has_length() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 void InfoField::set_has_length() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000004u;
 }
 void InfoField::clear_has_length() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 void InfoField::clear_length() {
   length_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());

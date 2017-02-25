@@ -23,6 +23,8 @@
 #define GENOMICSDB_IMPORTER_H
 
 #include "tiledb_loader.h"
+#include "genomicsdb_vid_mapping.pb.h"
+#include "genomicsdb_callsets_mapping.pb.h"
 
 class GenomicsDBImporterException : public std::exception {
   public:
@@ -58,6 +60,12 @@ class GenomicsDBImporter
     GenomicsDBImporter(const GenomicsDBImporter& other) = delete;
     //Define move constructor
     GenomicsDBImporter(GenomicsDBImporter&& other);
+    // Constructor for GATK4 GenomicsDBImport
+    GenomicsDBImporter(
+      const std::string& loader_config_file,
+      const int rank,
+      const VidMapping& vidMap,
+      const CallsetMap& callsetMap);
     //Destructor
     ~GenomicsDBImporter();
     //Buffer streams

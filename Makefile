@@ -241,7 +241,8 @@ GENOMICSDB_LIBRARY_SOURCES:= \
 			    genomicsdb_importer.cc \
 			    genomicsdb_import_config.pb.cc \
 			    genomicsdb_export_config.pb.cc \
-			    genomicsdb_vid_mapping.pb.cc
+			    genomicsdb_vid_mapping.pb.cc \
+			    genomicsdb_callsets_mapping.pb.cc
 
 ifdef BUILD_JAVA
 

@@ -36,7 +36,7 @@ public class GenomicsDBImporterSpec {
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval("1",1, 249250621);
     GenomicsDBImporter importer =
-      new GenomicsDBImporter(variantReaders, chromosomeInterval, null);
+      new GenomicsDBImporter(variantReaders, chromosomeInterval, importConfiguration);
 
     importer.importBatch();
     assert importer.isDone();

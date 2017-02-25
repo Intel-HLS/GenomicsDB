@@ -33,7 +33,7 @@ public class GenomicsDBVidMappingProtoSpec {
         .setName("PGT")
         .setType("char")
         .setLength("VAR")
-        .setVcfFieldClassType("FORMAT")
+        .addVcfFieldClassType("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField3 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
@@ -42,7 +42,17 @@ public class GenomicsDBVidMappingProtoSpec {
         .setName("PASS")
         .setType("int")
         .setLength("P")
-        .setVcfFieldClassType("FORMAT")
+        .addVcfFieldClassType("FORMAT")
+        .build();
+    GenomicsDBVidMapProto.InfoField.Builder infoFormatField =
+      GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.InfoField dp =
+      infoFormatField
+        .setName("DP")
+        .setType("int")
+        .setLength("R")
+        .addVcfFieldClassType("FORMAT")
+        .addVcfFieldClassType("INFO")
         .build();
     infoFields.add(pass);
     infoFields.add(lowQual);
@@ -100,6 +110,7 @@ public class GenomicsDBVidMappingProtoSpec {
     assert vidmap.getInfofields(1) == lowQual;
     assert vidmap.getInfofields(2) == pgt;
     assert vidmap.getInfofields(3) == gt;
+    assert vidmap.getInfofields(4) == dp;
 
     // Assert chromosomes
     assert vidmap.getChromosomesCount() == 4;
