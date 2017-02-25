@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/dependencies/htsjdk-2.5.0.jar:$TRAVIS_BUILD_DIR/bin/genomicsdb-0.4.0.jar:$TRAVIS_BUILD_DIR/tests:$TRAVIS_BUILD_DIR/dependencies/json-simple-1.1.1.jar:.
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/dependencies/htsjdk-2.5.0.jar:$TRAVIS_BUILD_DIR/bin/genomicsdb-0.4.0-jar-with-dependencies.jar:$TRAVIS_BUILD_DIR/tests:$TRAVIS_BUILD_DIR/dependencies/json-simple-1.1.1.jar:.
 
 install:
     #Install dependencies
@@ -15,7 +15,7 @@ install:
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
     - wget https://github.com/google/protobuf/archive/v3.2.0.zip -O protobuf-3.2.0.zip
     - unzip protobuf-3.2.0.zip
-    - pushd protobuf-3.2.0 && ./autogen.sh && ./configure --prefix=/usr && make && sudo make install && popd
+    - pushd protobuf-3.2.0 && ./autogen.sh && ./configure --prefix=/usr && make -j4 && sudo make install -j4 && popd
     - sudo apt-get -y install openjdk-8-jdk icedtea-plugin
     - jdk_switcher use openjdk8
     - echo $JAVA_HOME
