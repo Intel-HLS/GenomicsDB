@@ -27,6 +27,8 @@
 #include "column_partition_batch.h"
 #include "tiledb_loader_file_base.h"
 #include "load_operators.h"
+#include "genomicsdb_vid_mapping.pb.h"
+#include "genomicsdb_callsets_mapping.pb.h"
 
 //Exceptions thrown
 class VCF2TileDBException : public std::exception{
@@ -261,12 +263,25 @@ class VCF2TileDBLoaderReadState
 class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 {
   public:
-    VCF2TileDBLoader(const std::string& config_filename,
-        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
-    VCF2TileDBLoader(const std::string& config_filename,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& buffer_stream_callset_mapping_json_string,
-        const int idx, const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoader(
+      const std::string& config_filename,
+      const int idx,
+      const int64_t lb_callset_row_idx=0,
+      const int64_t ub_callset_row_idx=INT64_MAX-1,
+      bool using_vidmap_protobuf=false,
+      const VidMapping* vidmap_pb = NULL,
+      const CallsetMap* callsetmap_pb = NULL);
+    VCF2TileDBLoader(
+      const std::string& config_filename,
+      const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+      const std::string& buffer_stream_callset_mapping_json_string,
+      const int idx,
+      const int64_t lb_callset_row_idx=0,
+      const int64_t ub_callset_row_idx=INT64_MAX-1,
+      bool using_vidmap_protobuf=false,
+      const VidMapping* vidmap_pb = NULL,
+      const CallsetMap* callsetmap_pb = NULL);
+
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor
@@ -377,6 +392,17 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_cell_from_buffer(const int64_t row_idx);
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
+
+    /**
+     * If using protocol buffer based vidmaps, then
+     * set this flag, otherwise it is false.
+     * get_using_vidmap_protobuf returns accordingly
+     */
+    void set_using_vidmap_protobuf(bool val) {
+      m_using_vidmap_pb = val;
+    }
+    bool get_using_vidmap_protobuf(void) { return m_using_vidmap_pb; }
+
   private:
     void common_constructor_initialization(const std::string& config_filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
@@ -386,6 +412,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
     VidMapper* m_vid_mapper;
+    const VidMapping* m_vid_mapper_pb;
+    const CallsetMap* m_callset_map_pb;
 #ifdef HTSDIR
     //May be null
     VCF2TileDBConverter* m_converter;
@@ -404,6 +432,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     //For checking whether cells are traversed in correct order
     int64_t m_previous_cell_row_idx;
     int64_t m_previous_cell_column;
+    bool m_using_vidmap_pb;
 };
 
 #endif

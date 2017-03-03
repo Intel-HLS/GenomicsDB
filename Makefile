@@ -181,7 +181,10 @@ ifdef VERBOSE
   CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
+# --- Additional load flags for protocol buffers and google test --- #
+GOOGLETEST_LIB=$(HOME)/workspace/googletest/googletest
 LDFLAGS+=-lprotobuf
+LDFLAGS+=-L$(GOOGLETEST_LIB) -lgtest -lgtest_main
 
 # --- Directories --- #
 
@@ -195,14 +198,15 @@ GENOMICSDB_LIBRARY_INCLUDE_DIRS:=\
   src/main/cpp/include/query_operations \
   src/main/cpp/include/utils \
   src/main/cpp/include/vcf \
+  src/test/cpp/include/loader\
   src/main/jni/include \
   example/include \
   tools/include
 
-CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
+CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%) -I$(GOOGLETEST_LIB)/include
 
 # 'vpath' to know which directories to search for sources
-vpath %.cc src/main/cpp/src/genomicsdb:src/main/cpp/src/loader:src/main/cpp/src/query_operations:src/main/cpp/src/utils:src/main/cpp/src/vcf:src/main/jni/src:example/src:tools/src
+vpath %.cc src/main/cpp/src/genomicsdb:src/main/cpp/src/loader:src/main/cpp/src/query_operations:src/main/cpp/src/utils:src/main/cpp/src/vcf:src/main/jni/src:example/src:tools/src:src/test/cpp/src/loader
 
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -211,38 +215,42 @@ vpath %.h %(subst $(SPACE),:,$(GENOMICSDB_LIBRARY_INCLUDE_DIRS)) :
 # --- Files --- #
 
 GENOMICSDB_LIBRARY_SOURCES:= \
-			    vcf_adapter.cc \
-			    json_config.cc \
-			    vid_mapper.cc \
-			    vid_mapper_pb.cc \
-			    libtiledb_variant.cc \
-			    variant_cell.cc \
-			    variant_query_config.cc \
-			    variant_field_handler.cc \
-			    variant_field_data.cc \
-			    variant.cc \
-			    histogram.cc \
-			    lut.cc \
-			    known_field_info.cc \
-			    vcf2binary.cc \
-			    command_line.cc \
-			    variant_array_schema.cc \
-			    tiledb_loader.cc \
-			    broad_combined_gvcf.cc \
-			    variant_operations.cc \
-			    load_operators.cc \
-			    variant_storage_manager.cc \
-			    query_variants.cc \
-			    tiledb_loader_file_base.cc \
-			    tiledb_loader_text_file.cc \
-			    genomicsdb_bcf_generator.cc \
-			    timer.cc \
-			    memory_measure.cc \
-			    genomicsdb_importer.cc \
-			    genomicsdb_import_config.pb.cc \
-			    genomicsdb_export_config.pb.cc \
-			    genomicsdb_vid_mapping.pb.cc \
-			    genomicsdb_callsets_mapping.pb.cc
+  vcf_adapter.cc \
+  json_config.cc \
+  vid_mapper.cc \
+  vid_mapper_pb.cc \
+  libtiledb_variant.cc \
+  variant_cell.cc \
+  variant_query_config.cc \
+  variant_field_handler.cc \
+  variant_field_data.cc \
+  variant.cc \
+  histogram.cc \
+  lut.cc \
+  known_field_info.cc \
+  vcf2binary.cc \
+  command_line.cc \
+  variant_array_schema.cc \
+  tiledb_loader.cc \
+  broad_combined_gvcf.cc \
+  variant_operations.cc \
+  load_operators.cc \
+  variant_storage_manager.cc \
+  query_variants.cc \
+  tiledb_loader_file_base.cc \
+  tiledb_loader_text_file.cc \
+  genomicsdb_bcf_generator.cc \
+  timer.cc \
+  memory_measure.cc \
+  genomicsdb_importer.cc \
+  genomicsdb_import_config.pb.cc \
+  genomicsdb_export_config.pb.cc \
+  genomicsdb_vid_mapping.pb.cc \
+  genomicsdb_callsets_mapping.pb.cc
+
+
+GENOMICSDB_LIBRARY_TEST_SOURCES:=\
+  genomicsdb_vid_mapping_pb_spec.cc
 
 ifdef BUILD_JAVA
 
@@ -291,18 +299,21 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    test_genomicsdb_bcf_generator.cc \
 			    test_genomicsdb_importer.cc
 
-ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
+ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES) $(GENOMICSDB_LIBRARY_TEST_SOURCES)
 
 GENOMICSDB_LIBRARY_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_SOURCES))
+GENOMICSDB_LIBRARY_TEST_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_TEST_SOURCES))
 GENOMICSDB_EXAMPLE_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_EXAMPLE_SOURCES))
 GENOMICSDB_EXAMPLE_BIN_FILES := $(patsubst %.cc, $(GENOMICSDB_BIN_DIR)/%, $(GENOMICSDB_EXAMPLE_SOURCES))
 
-ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_OBJ_FILES)
+ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_OBJ_FILES) $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES)
 ALL_GENOMICSDB_HEADER_DEPENDENCIES = $(ALL_GENOMICSDB_OBJ_FILES:%.o=%.d)
 
 GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
 GENOMICSDB_SHARED_LIBRARY_BASENAME:=libtiledbgenomicsdb.$(SHARED_LIBRARY_EXTENSION)
 GENOMICSDB_SHARED_LIBRARY:=$(GENOMICSDB_BIN_DIR)/$(GENOMICSDB_SHARED_LIBRARY_BASENAME)
+
+GENOMICSDB_TEST_EXECUTABLE:=$(GENOMICSDB_BIN_DIR)/genomicsdb_test_main
 
 #Put GENOMICSDB_STATIC_LIBRARY as first component of LDFLAGS
 ifeq ($(OS), Darwin)
@@ -316,7 +327,8 @@ endif
 ###################
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all \
-        TileDB_library TileDB_clean htslib_library htslib_clean
+        TileDB_library TileDB_clean htslib_library htslib_clean \
+        test TileDB_test
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI
@@ -331,12 +343,20 @@ all: $(ALL_BUILD_TARGETS)
 genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 
 clean:
-	rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
-	mvn clean -Dgenomicsdb.version=$(RELEASE_VERSION)
+	@rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
+	@mvn clean -Dgenomicsdb.version=$(RELEASE_VERSION)
+	@rm -rf $(GENOMICSDB_TEST_EXECUTABLE)
 
 clean-dependencies: TileDB_clean htslib_clean
 
 clean-all: clean clean-dependencies
+
+test: genomicsdb_library $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES) $(GENOMICSDB_TEST_EXECUTABLE)
+	@$(GENOMICSDB_TEST_EXECUTABLE)
+	#mvn test -Dgenomicsdb.version=$(RELEASE_VERSION)
+
+$(GENOMICSDB_TEST_EXECUTABLE): $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES)
+	$(CXX) $(LINKFLAGS) -o $(GENOMICSDB_TEST_EXECUTABLE) $(LDFLAGS)
 
 #TileDB library
 TileDB_library:
@@ -348,6 +368,9 @@ TileDB_clean:
 
 $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
 	$(MAKE) -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) GNU_PARALLEL=$(GNU_PARALLEL)
+
+TileDB_test:
+	$(MAKE) -C $(TILEDB_DIR) test
 
 #htslib library
 htslib_library:

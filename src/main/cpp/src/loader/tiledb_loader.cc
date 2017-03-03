@@ -24,6 +24,7 @@
 #include "timer.h"
 #include "vcf2binary.h"
 #include "tiledb_loader_text_file.h"
+#include "vid_mapper_pb.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2TileDBException(#X);
 
@@ -460,21 +461,47 @@ void VCF2TileDBConverter::print_all_partitions(const std::string& results_direct
 #endif //ifdef HTSLIB
 
 //Loader functions
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename,
-    const int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
-  : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
+VCF2TileDBLoader::VCF2TileDBLoader(
+  const std::string& config_filename,
+  const int idx,
+  const int64_t lb_callset_row_idx,
+  const int64_t ub_callset_row_idx,
+  bool using_vidmap_protobuf,
+  const VidMapping* vidmap_pb,
+  const CallsetMap* callsetmap_pb)
+  : VCF2TileDBLoaderConverterBase(
+      config_filename,
+      idx,
+      lb_callset_row_idx,
+      ub_callset_row_idx)
 {
   std::vector<BufferStreamInfo> empty_vec;
+  set_using_vidmap_protobuf(using_vidmap_protobuf);
+  m_vid_mapper_pb = vidmap_pb;
+  m_callset_map_pb = callsetmap_pb;
   common_constructor_initialization(config_filename, empty_vec, "",
       idx, lb_callset_row_idx, ub_callset_row_idx);
 }
 
-VCF2TileDBLoader::VCF2TileDBLoader(const std::string& config_filename,
-    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-    const std::string& buffer_stream_callset_mapping_json_string,
-    const int idx, const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
-  : VCF2TileDBLoaderConverterBase(config_filename, idx, lb_callset_row_idx, ub_callset_row_idx)
+VCF2TileDBLoader::VCF2TileDBLoader(
+  const std::string& config_filename,
+  const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+  const std::string& buffer_stream_callset_mapping_json_string,
+  const int idx,
+  const int64_t lb_callset_row_idx,
+  const int64_t ub_callset_row_idx,
+  bool using_vidmap_protobuf,
+  const VidMapping* vidmap_pb,
+  const CallsetMap* callsetmap_pb)
+  : VCF2TileDBLoaderConverterBase(
+      config_filename,
+      idx,
+      lb_callset_row_idx,
+      ub_callset_row_idx)
 {
+  set_using_vidmap_protobuf(using_vidmap_protobuf);
+  m_vid_mapper_pb = vidmap_pb;
+  m_callset_map_pb = callsetmap_pb;
   common_constructor_initialization(config_filename, buffer_stream_info_vec, buffer_stream_callset_mapping_json_string,
       idx, lb_callset_row_idx, ub_callset_row_idx);
 }
@@ -490,11 +517,21 @@ void VCF2TileDBLoader::common_constructor_initialization(const std::string& conf
   m_previous_cell_row_idx = -1;
   m_previous_cell_column = -1;
   clear();
-  m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, buffer_stream_info_vec,
-        m_callset_mapping_file,
-        buffer_stream_callset_mapping_json_string,
-        m_lb_callset_row_idx, m_ub_callset_row_idx,
-        true));
+  if (m_using_vidmap_pb) {
+    assert (m_vid_mapper_pb != NULL);
+    assert (m_callset_map_pb != NULL);
+    m_vid_mapper = static_cast<VidMapper*>(
+        new ProtoBufBasedVidMapper(*m_vid_mapper_pb, *m_callset_map_pb));
+  } else {
+    m_vid_mapper = static_cast<VidMapper*>(
+        new FileBasedVidMapper(
+          m_vid_mapping_filename,
+          buffer_stream_info_vec,
+          m_callset_mapping_file,
+          buffer_stream_callset_mapping_json_string,
+          m_lb_callset_row_idx, m_ub_callset_row_idx,
+          true));
+  }
   //partition files
   if(m_row_based_partitioning)
     m_vid_mapper->build_file_partitioning(m_idx, get_row_partition(idx));

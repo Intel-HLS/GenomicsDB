@@ -25,6 +25,7 @@
 #include "tiledb_loader.h"
 #include "genomicsdb_vid_mapping.pb.h"
 #include "genomicsdb_callsets_mapping.pb.h"
+#include <cassert>
 
 class GenomicsDBImporterException : public std::exception {
   public:
@@ -45,8 +46,11 @@ class GenomicsDBImporterException : public std::exception {
 class GenomicsDBImporter
 {
   public:
-    GenomicsDBImporter(const std::string& loader_config_file, const int rank,
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1)
+    GenomicsDBImporter(
+      const std::string& loader_config_file,
+      const int rank,
+      const int64_t lb_callset_row_idx=0,
+      const int64_t ub_callset_row_idx=INT64_MAX-1)
     {
       m_is_loader_setup = false;
       m_rank = rank;
@@ -60,27 +64,49 @@ class GenomicsDBImporter
     GenomicsDBImporter(const GenomicsDBImporter& other) = delete;
     //Define move constructor
     GenomicsDBImporter(GenomicsDBImporter&& other);
-    // Constructor for GATK4 GenomicsDBImport
-    GenomicsDBImporter(
-      const std::string& loader_config_file,
-      const int rank,
-      const VidMapping& vidMap,
-      const CallsetMap& callsetMap);
     //Destructor
     ~GenomicsDBImporter();
     //Buffer streams
-    void add_buffer_stream(const std::string& name, const VidFileTypeEnum buffer_stream_type,
-        const size_t capacity)
+    void add_buffer_stream(
+      const std::string& name,
+      const VidFileTypeEnum buffer_stream_type,
+      const size_t capacity)
     {
       add_buffer_stream(name, buffer_stream_type, capacity, 0, 0);
     }
-    void add_buffer_stream(const std::string& name, const VidFileTypeEnum buffer_stream_type,
-        const size_t capacity, const uint8_t* initialization_buffer, const size_t num_bytes_in_initialization_buffer);
+    void add_buffer_stream(
+      const std::string& name,
+      const VidFileTypeEnum buffer_stream_type,
+      const size_t capacity,
+      const uint8_t* initialization_buffer,
+      const size_t num_bytes_in_initialization_buffer);
     /*
-     * No more buffer streams can be added to this object after setup_loader is called
+     * No more buffer streams can be added to this object\
+     * after setup_loader is called
      */
-    void setup_loader(const std::string& buffer_stream_callset_mapping_json_string="");
-    inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
+    void setup_loader(
+      const std::string& buffer_stream_callset_mapping_json_string="",
+      const bool using_vidmap_pb = false);
+
+    /**
+     * Protocol buffer based vid map used by
+     * GATK4 GenomicsDBImport tool
+     */
+    void setup_vidmap(const VidMapping* vidMap) {
+      assert (vidMap != NULL);
+      m_vid_map = vidMap; }
+
+    /**
+     * Protocol buffer based Callset map used by
+     * GATK4 GenomicsDBImport tool
+     */
+    void setup_callsetmap(const CallsetMap* callsetMap) {
+      assert (callsetMap != NULL);
+      m_callset_map = callsetMap;
+    }
+
+    inline const std::vector<int64_t>&
+      get_buffer_stream_idx_to_global_file_idx_vec() const
     {
       assert(m_is_loader_setup);
       return m_loader_ptr->get_buffer_stream_idx_to_global_file_idx_vec();
@@ -88,16 +114,27 @@ class GenomicsDBImporter
     /*
      * Can be used by callers to pre-allocate vector<BufferStreamIdentifier>
      */
-    size_t get_max_num_buffer_stream_identifiers() const { return m_loader_ptr->get_max_num_buffer_stream_identifiers(); }
+    size_t get_max_num_buffer_stream_identifiers() const {
+      return m_loader_ptr->get_max_num_buffer_stream_identifiers();
+    }
     /*
      * Write to buffer stream
      */
-    void write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx, const uint8_t* data, const size_t num_bytes)
+    void write_data_to_buffer_stream(
+      const int64_t buffer_stream_idx,
+      const unsigned partition_idx,
+      const uint8_t* data,
+      const size_t num_bytes)
     {
       if(!m_is_loader_setup)
-        throw GenomicsDBImporterException("Cannot write data to buffer stream in the GenomicsDBImporter without calling setup_loader() first");
+        throw GenomicsDBImporterException(
+          "Cannot write data to buffer stream in the GenomicsDBImporter without calling setup_loader() first");
       assert(m_loader_ptr);
-      m_loader_ptr->write_data_to_buffer_stream(buffer_stream_idx, partition_idx, data, num_bytes);
+      m_loader_ptr->write_data_to_buffer_stream(
+        buffer_stream_idx,
+        partition_idx,
+        data,
+        num_bytes);
     }
     /*
      * Import next batch of data into TileDB/GenomicsDB
@@ -106,8 +143,8 @@ class GenomicsDBImporter
     /*
      * Obtains buffer stream identifiers that are exhausted and must be replenished by the caller
      */
-    const std::vector<BufferStreamIdentifier>& get_exhausted_buffer_stream_identifiers() const
-    {
+    const std::vector<BufferStreamIdentifier>&
+      get_exhausted_buffer_stream_identifiers() const {
       return m_loader_ptr->get_exhausted_buffer_stream_identifiers();
     }
     bool is_done() const { return m_read_state->is_done(); }
@@ -127,6 +164,8 @@ class GenomicsDBImporter
     std::unordered_set<std::string> m_buffer_stream_names;
     VCF2TileDBLoader* m_loader_ptr;
     VCF2TileDBLoaderReadState* m_read_state;
+    const VidMapping *m_vid_map;
+    const CallsetMap *m_callset_map;
 };
 
 #endif

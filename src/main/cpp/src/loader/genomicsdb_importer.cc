@@ -84,14 +84,17 @@ GenomicsDBImporter::~GenomicsDBImporter()
   m_read_state = 0;
 }
 
-void GenomicsDBImporter::setup_loader(const std::string& buffer_stream_callset_mapping_json_string)
+void GenomicsDBImporter::setup_loader(
+  const std::string& buffer_stream_callset_mapping_json_string,
+  const bool using_vidmap_pb)
 {
   if(m_is_loader_setup) //already setup
     return;
   m_loader_ptr = new VCF2TileDBLoader(m_loader_config_file,
       m_buffer_stream_info_vec,
       buffer_stream_callset_mapping_json_string,
-      m_rank, m_lb_callset_row_idx, m_ub_callset_row_idx);
+      m_rank, m_lb_callset_row_idx, m_ub_callset_row_idx,
+      using_vidmap_pb);
   m_read_state = m_loader_ptr->construct_read_state_object();
   m_is_loader_setup = true;
 }
@@ -102,3 +105,4 @@ void GenomicsDBImporter::import_batch()
     throw GenomicsDBImporterException(std::string("Cannot import data till setup_loader() has been called for a given GenomicsDBImporter object"));
   m_loader_ptr->read_all(*m_read_state);
 }
+

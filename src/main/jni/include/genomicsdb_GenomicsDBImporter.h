@@ -25,6 +25,22 @@ JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniInitiali
 
 /*
  * Class:     com_intel_genomicsdb_GenomicsDBImporter
+ * Method:    jniCopyVidMap
+ * Signature: (J[B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniCopyVidMap
+  (JNIEnv *, jobject, jlong, jbyteArray);
+
+/*
+ * Class:     com_intel_genomicsdb_GenomicsDBImporter
+ * Method:    jniCopyCallsetMap
+ * Signature: (J[B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniCopyCallsetMap
+  (JNIEnv *, jobject, jlong, jbyteArray);
+
+/*
+ * Class:     com_intel_genomicsdb_GenomicsDBImporter
  * Method:    jniAddBufferStream
  * Signature: (JLjava/lang/String;ZJ[BJ)V
  */
@@ -34,10 +50,10 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniAddBuffer
 /*
  * Class:     com_intel_genomicsdb_GenomicsDBImporter
  * Method:    jniSetupGenomicsDBLoader
- * Signature: (JLjava/lang/String;)J
+ * Signature: (JLjava/lang/String;Z)J
  */
 JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniSetupGenomicsDBLoader
-  (JNIEnv *, jobject, jlong, jstring);
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
 
 /*
  * Class:     com_intel_genomicsdb_GenomicsDBImporter
