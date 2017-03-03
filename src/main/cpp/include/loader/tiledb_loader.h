@@ -393,27 +393,21 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
 
-    /**
-     * If using protocol buffer based vidmaps, then
-     * set this flag, otherwise it is false.
-     * get_using_vidmap_protobuf returns accordingly
-     */
-    void set_using_vidmap_protobuf(bool val) {
-      m_using_vidmap_pb = val;
-    }
-    bool get_using_vidmap_protobuf(void) { return m_using_vidmap_pb; }
-
   private:
-    void common_constructor_initialization(const std::string& config_filename,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& buffer_stream_callset_mapping_json_string,
-        const int idx,const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx);
+    void common_constructor_initialization(
+      const std::string& config_filename,
+      const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+      const std::string& buffer_stream_callset_mapping_json_string,
+      const int idx,
+      const int64_t lb_callset_row_idx,
+      const int64_t ub_callset_row_idx,
+      bool using_vidmap_protobuf,
+      const VidMapping* vidmap_pb,
+      const CallsetMap* callsetmap_pb);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
     VidMapper* m_vid_mapper;
-    const VidMapping* m_vid_mapper_pb;
-    const CallsetMap* m_callset_map_pb;
 #ifdef HTSDIR
     //May be null
     VCF2TileDBConverter* m_converter;
