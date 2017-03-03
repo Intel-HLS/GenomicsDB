@@ -362,38 +362,8 @@ class VariantFieldPrimitiveVectorDataBase : public VariantFieldBase
 /*
  * Sub-class that holds vector data of basic types - int,float etc
  */
-template<class DataType, class PrintType=DataType, bool useColumnarField=false>
+template<class DataType, class PrintType=DataType>
 class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBase
-{
-  public:
-    VariantFieldPrimitiveVectorData(const bool is_variable_length_field);
-    virtual ~VariantFieldPrimitiveVectorData(); 
-    std::type_index get_element_type() const;
-    virtual VariantFieldBase* create_copy() const;
-    void copy_data_into_vector(const char* ptr, const size_t num_bytes);
-    virtual std::vector<DataType>& get();
-    virtual const std::vector<DataType>& get() const;
-    virtual void print(std::ostream& fptr) const;
-    virtual void print_csv(std::ostream& fptr) const;
-    virtual void print_Cotton_JSON(std::ostream& fptr) const;
-    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated);
-    virtual const void* get_raw_pointer() const;
-    virtual size_t length() const;
-    virtual void copy_from(const VariantFieldBase* base_src);
-    virtual void resize(unsigned new_size);
-    /* Return address of the offset-th element */
-    virtual void* get_address(unsigned offset);
-    size_t element_size() const;
-  private:
-    std::vector<DataType> m_data;
-};
-
-/*
- * Sub-class that holds vector data of basic types - int,float etc
- * Member specializations for useColumnarField=false
- */
-template<class DataType>
-class VariantFieldPrimitiveVectorData<DataType, false> : public VariantFieldPrimitiveVectorDataBase
 {
   public:
     VariantFieldPrimitiveVectorData(const bool is_variable_length_field)
@@ -402,7 +372,7 @@ class VariantFieldPrimitiveVectorData<DataType, false> : public VariantFieldPrim
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, false>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType>(*this); }
     size_t element_size() const { return sizeof(DataType); }
     void copy_data_into_vector(const char* buffer, const size_t num_elements)
     {
@@ -533,121 +503,6 @@ class VariantFieldPrimitiveVectorData<DataType, false> : public VariantFieldPrim
     {
       assert(offset < m_data.size());
       return reinterpret_cast<void*>(&(m_data[offset]));
-    }
-  private:
-    std::vector<DataType> m_data;
-};
-
-/*
- * Sub-class that holds vector data of basic types - int,float etc
- * Member specializations for useColumnarField=true
- */
-template<class DataType>
-class VariantFieldPrimitiveVectorData<DataType, true> : public VariantFieldPrimitiveVectorDataBase
-{
-  public:
-    VariantFieldPrimitiveVectorData(const bool is_variable_length_field)
-      : VariantFieldPrimitiveVectorDataBase(is_variable_length_field)
-    { 
-    }
-    virtual ~VariantFieldPrimitiveVectorData() = default;
-    std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, true>(*this); }
-    size_t element_size() const { return sizeof(DataType); }
-    void copy_data_into_vector(const char* ptr, const size_t num_bytes)
-    {
-      assert(m_columnar_field);
-      m_columnar_field->put(m_cell_idx, dynamic_cast<const uint8_t*>(ptr), num_bytes);
-      set_valid(m_columnar_field->is_valid(m_cell_idx));
-    }
-    virtual std::vector<DataType>& get()
-    {
-      assert(m_columnar_field);
-      m_data.resize(m_columnar_field->length(m_cell_idx));
-      memcpy(&(m_data[0]), m_columnar_field->get(m_cell_idx), m_columnar_field->size(m_cell_idx));
-      return m_data;
-    }
-    const std::vector<DataType>& get() const
-    {
-      throw UnknownAttributeTypeException("Do not know how to support const get()");
-      return m_data;
-    }
-    virtual void print(std::ostream& fptr) const
-    {
-      assert(m_columnar_field);
-      fptr << "[ ";
-      auto length = m_columnar_field->length(m_cell_idx);
-      auto ptr = reinterpret_cast<const DataType*>(m_columnar_field->get(m_cell_idx));
-      if(length)
-        fptr << ptr[0];
-      for(auto i=1u;i<length;++i)
-        fptr << "," << ptr[i];
-      fptr << " ]";
-    }
-    virtual void print_csv(std::ostream& fptr) const
-    {
-      assert(m_columnar_field);
-      auto length = m_columnar_field->length(m_cell_idx);
-      if(m_is_variable_length_field)
-        fptr << length << ",";
-      auto ptr = reinterpret_cast<const DataType*>(m_columnar_field->get(m_cell_idx));
-      if(length)
-        fptr << ptr[0];
-      for(auto i=1u;i<length;++i)
-        fptr << "," << ptr[i];
-    }
-    virtual void print_Cotton_JSON(std::ostream& fptr) const
-    {
-      assert(m_columnar_field);
-      auto length = m_columnar_field->length(m_cell_idx);
-      //Variable length field or #elements > 1, print JSON list
-      if(m_is_variable_length_field || length > 1u)
-        print(fptr);
-      else      //single element field
-      {
-        auto ptr = reinterpret_cast<const DataType*>(m_columnar_field->get(m_cell_idx));
-        if(length)
-          fptr << ptr[0];
-        else
-          fptr << "null";
-      }
-    }
-    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
-    {
-      assert(m_columnar_field);
-      auto length = m_columnar_field->length(m_cell_idx);
-      *(reinterpret_cast<DataType**>(ptr)) = (length > 0u) ?
-        reinterpret_cast<DataType*>(m_columnar_field->get(m_cell_idx)) : nullptr;
-      allocated = false;
-      return get_element_type();
-    }
-    virtual const void* get_raw_pointer() const
-    {
-      assert(m_columnar_field);
-      auto length = m_columnar_field->length(m_cell_idx);
-      return reinterpret_cast<const void*>(length ? m_columnar_field->get(m_cell_idx) : 0);
-    }
-    virtual size_t length() const
-    {
-      assert(m_columnar_field);
-      return m_columnar_field->length(m_cell_idx);
-    }
-    virtual void copy_from(const VariantFieldBase* base_src)
-    {
-      VariantFieldBase::copy_from(base_src);
-      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType, true>*>(base_src);
-      assert(src);
-    }
-    virtual void resize(unsigned new_size)
-    {
-      assert(m_columnar_field);
-      m_columnar_field->resize(m_cell_idx, new_size*sizeof(DataType));
-    }
-    /* Return address of the offset-th element */
-    virtual void* get_address(unsigned offset)
-    {
-      assert(m_columnar_field);
-      return reinterpret_cast<DataType*>(m_columnar_field->get(m_cell_idx)) + offset;
     }
   private:
     std::vector<DataType> m_data;
