@@ -140,6 +140,8 @@ VCF2TileDBConverter::VCF2TileDBConverter(
   : VCF2TileDBLoaderConverterBase(
       config_filename,
       idx,
+      0,
+      INT64_MAX-1,
       vid_mapper_file_required) {
 
   m_vid_mapper = 0;

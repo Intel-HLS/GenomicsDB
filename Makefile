@@ -182,9 +182,8 @@ ifdef VERBOSE
 endif
 
 # --- Additional load flags for protocol buffers and google test --- #
-GOOGLETEST_LIB=$(HOME)/workspace/googletest/googletest
 LDFLAGS+=-lprotobuf
-LDFLAGS+=-L$(GOOGLETEST_LIB) -lgtest -lgtest_main
+LDFLAGS+=-lgtest -lgtest_main
 
 # --- Directories --- #
 

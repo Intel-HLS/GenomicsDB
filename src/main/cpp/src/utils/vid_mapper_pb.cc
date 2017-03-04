@@ -168,9 +168,6 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   for (auto contig_idx = 0L; contig_idx < num_contigs; ++contig_idx) {
     contig_name = vid_map_protobuf->chromosomes(contig_idx).name();
 
-    std::cout << "(" << contig_idx <<
-        "," << contig_name << ",";
-
     if(m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end())
     {
       std::cerr << "Contig/chromosome name "
@@ -187,8 +184,6 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
 
     VERIFY_OR_THROW(tiledb_column_offset >= 0LL);
     auto length = vid_map_protobuf->chromosomes(contig_idx).length();
-
-    std::cout << tiledb_column_offset << "," << length << ")\n";
 
     VERIFY_OR_THROW(length >= 0LL);
 
@@ -225,7 +220,7 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   auto last_contig_idx = -1;
   auto last_contig_end_column = -1ll;
   auto overlapping_contigs_exist = false;
-  for (auto contig_idx = 0; contig_idx < m_contig_begin_2_idx.size();
+  for (auto contig_idx = 0UL; contig_idx < m_contig_begin_2_idx.size();
       ++contig_idx)
 //  for (const auto& offset_idx_pair : m_contig_begin_2_idx)
   {
@@ -307,7 +302,6 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
     {
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
-      std::cout << field_type << "\n";
       VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end()
           && "Field type not handled");
       m_field_idx_to_info[field_idx].m_type_index = (*iter).second;

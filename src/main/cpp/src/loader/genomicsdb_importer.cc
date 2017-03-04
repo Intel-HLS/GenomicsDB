@@ -61,16 +61,14 @@ void GenomicsDBImporter::add_buffer_stream(
   }
 }
 
-void GenomicsDBImporter::copy_simple_members(const GenomicsDBImporter& other)
-{
+void GenomicsDBImporter::copy_simple_members(const GenomicsDBImporter& other) {
   m_is_loader_setup = other.m_is_loader_setup;
   m_rank = other.m_rank;
   m_lb_callset_row_idx = other.m_lb_callset_row_idx;
   m_ub_callset_row_idx = other.m_ub_callset_row_idx;
 }
 
-GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other)
-{
+GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other) {
   copy_simple_members(other);
   //Move-in members
   m_loader_config_file = std::move(other.m_loader_config_file);
@@ -86,8 +84,7 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other)
   other.m_read_state = 0;
 }
 
-GenomicsDBImporter::~GenomicsDBImporter()
-{
+GenomicsDBImporter::~GenomicsDBImporter() {
   m_loader_config_file.clear();
   m_buffer_stream_info_vec.clear();
   if(m_loader_ptr)
@@ -100,10 +97,11 @@ GenomicsDBImporter::~GenomicsDBImporter()
 
 void GenomicsDBImporter::setup_loader(
   const std::string& buffer_stream_callset_mapping_json_string,
-  const bool using_vidmap_pb)
-{
+  const bool using_vidmap_pb) {
+
   if(m_is_loader_setup) //already setup
     return;
+  std::cout << "genomicsdb_importer: " << using_vidmap_pb << "\n";
   m_loader_ptr = new VCF2TileDBLoader(
                    m_loader_config_file,
                    m_buffer_stream_info_vec,
@@ -118,8 +116,7 @@ void GenomicsDBImporter::setup_loader(
   m_is_loader_setup = true;
 }
 
-void GenomicsDBImporter::import_batch()
-{
+void GenomicsDBImporter::import_batch() {
   if(!m_is_loader_setup)
     throw GenomicsDBImporterException(
       std::string("Cannot import data till setup_loader() \

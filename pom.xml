@@ -8,7 +8,7 @@
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
     <!-- Build version passed from parent Makefile -->
-    <version>${genomicsdb.version}</version>
+    <version>0.4.0</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>The Spark bindings for GenomicsDB where the getVariantContexts
@@ -122,6 +122,7 @@
                 <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.0</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -234,6 +235,7 @@
                     <nohelp>true</nohelp>
                     <sourceFileExcludes>
                         <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBVidMapProto.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java</sourceFileExclude>
                         <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
                         <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBExportConfiguration.java</sourceFileExclude>
                     </sourceFileExcludes>
