@@ -101,7 +101,6 @@ void GenomicsDBImporter::setup_loader(
 
   if(m_is_loader_setup) //already setup
     return;
-  std::cout << "genomicsdb_importer: " << using_vidmap_pb << "\n";
   m_loader_ptr = new VCF2TileDBLoader(
                    m_loader_config_file,
                    m_buffer_stream_info_vec,

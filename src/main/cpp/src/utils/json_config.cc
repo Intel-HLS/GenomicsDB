@@ -558,7 +558,6 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_segment_size = 10u*1024u*1024u; //10MiB default
   m_num_cells_per_tile = 1024u;
   m_vid_mapper_file_required = vid_mapper_file_required;
-  std::cout << "jsonloaderconfig: " << vid_mapper_file_required << "\n";
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
