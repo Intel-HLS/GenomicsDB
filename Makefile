@@ -183,7 +183,6 @@ endif
 
 # --- Additional load flags for protocol buffers and google test --- #
 LDFLAGS+=-lprotobuf
-LDFLAGS+=-lgtest -lgtest_main
 
 # --- Directories --- #
 
@@ -202,7 +201,7 @@ GENOMICSDB_LIBRARY_INCLUDE_DIRS:=\
   example/include \
   tools/include
 
-CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%) -I$(GOOGLETEST_LIB)/include
+CPPFLAGS+=$(GENOMICSDB_LIBRARY_INCLUDE_DIRS:%=-I%)
 
 # 'vpath' to know which directories to search for sources
 vpath %.cc src/main/cpp/src/genomicsdb:src/main/cpp/src/loader:src/main/cpp/src/query_operations:src/main/cpp/src/utils:src/main/cpp/src/vcf:src/main/jni/src:example/src:tools/src:src/test/cpp/src/loader
@@ -246,10 +245,6 @@ GENOMICSDB_LIBRARY_SOURCES:= \
   genomicsdb_export_config.pb.cc \
   genomicsdb_vid_mapping.pb.cc \
   genomicsdb_callsets_mapping.pb.cc
-
-
-GENOMICSDB_LIBRARY_TEST_SOURCES:=\
-  genomicsdb_vid_mapping_pb_spec.cc
 
 ifdef BUILD_JAVA
 
@@ -298,14 +293,13 @@ GENOMICSDB_EXAMPLE_SOURCES:= \
 			    test_genomicsdb_bcf_generator.cc \
 			    test_genomicsdb_importer.cc
 
-ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES) $(GENOMICSDB_LIBRARY_TEST_SOURCES)
+ALL_GENOMICSDB_SOURCES := $(GENOMICSDB_LIBRARY_SOURCES) $(GENOMICSDB_EXAMPLE_SOURCES)
 
 GENOMICSDB_LIBRARY_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_SOURCES))
-GENOMICSDB_LIBRARY_TEST_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_LIBRARY_TEST_SOURCES))
 GENOMICSDB_EXAMPLE_OBJ_FILES := $(patsubst %.cc, $(GENOMICSDB_OBJ_DIR)/%.o, $(GENOMICSDB_EXAMPLE_SOURCES))
 GENOMICSDB_EXAMPLE_BIN_FILES := $(patsubst %.cc, $(GENOMICSDB_BIN_DIR)/%, $(GENOMICSDB_EXAMPLE_SOURCES))
 
-ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_OBJ_FILES) $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES)
+ALL_GENOMICSDB_OBJ_FILES:=$(GENOMICSDB_LIBRARY_OBJ_FILES) $(GENOMICSDB_EXAMPLE_OBJ_FILES)
 ALL_GENOMICSDB_HEADER_DEPENDENCIES = $(ALL_GENOMICSDB_OBJ_FILES:%.o=%.d)
 
 GENOMICSDB_STATIC_LIBRARY:=$(GENOMICSDB_BIN_DIR)/libgenomicsdb.a
@@ -326,8 +320,7 @@ endif
 ###################
 
 .PHONY: all genomicsdb_library clean clean-dependencies clean-all \
-        TileDB_library TileDB_clean htslib_library htslib_clean \
-        test TileDB_test
+        TileDB_library TileDB_clean htslib_library htslib_clean
 
 ALL_BUILD_TARGETS:= genomicsdb_library
 ifndef DISABLE_MPI
@@ -344,18 +337,10 @@ genomicsdb_library: $(GENOMICSDB_STATIC_LIBRARY) $(GENOMICSDB_SHARED_LIBRARY)
 clean:
 	@rm -rf $(GENOMICSDB_BIN_DIR)/* $(GENOMICSDB_OBJ_DIR)/*
 	@mvn clean -Dgenomicsdb.version=$(RELEASE_VERSION)
-	@rm -rf $(GENOMICSDB_TEST_EXECUTABLE)
 
 clean-dependencies: TileDB_clean htslib_clean
 
 clean-all: clean clean-dependencies
-
-test: genomicsdb_library $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES) $(GENOMICSDB_TEST_EXECUTABLE)
-	#@$(GENOMICSDB_TEST_EXECUTABLE)
-	@mvn test -Dgenomicsdb.version=$(RELEASE_VERSION)
-
-$(GENOMICSDB_TEST_EXECUTABLE): $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES)
-	$(CXX) $(LINKFLAGS) -o $(GENOMICSDB_TEST_EXECUTABLE) $(LDFLAGS)
 
 #TileDB library
 TileDB_library:
@@ -367,9 +352,6 @@ TileDB_clean:
 
 $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a:
 	$(MAKE) -C $(TILEDB_DIR) MPIPATH=$(MPIPATH) BUILD=$(TILEDB_BUILD) GNU_PARALLEL=$(GNU_PARALLEL)
-
-TileDB_test:
-	$(MAKE) -C $(TILEDB_DIR) test
 
 #htslib library
 htslib_library:
