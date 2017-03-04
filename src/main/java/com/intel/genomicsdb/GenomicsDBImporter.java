@@ -308,7 +308,7 @@ public class GenomicsDBImporter
   /**
    * Creates a sorted list of callsets and generates unique TileDB
    * row indices for them. Sorted to maintain order between
-   * distributed share-nothing load processes
+   * distributed share-nothing load processes.
    *
    * Assume one sample per input GVCF file
    *
@@ -367,6 +367,8 @@ public class GenomicsDBImporter
 
   /**
    * Generate the ProtoBuf data structure for vid mapping
+   *  Also remember, contigs are 1-based which means
+   *  TileDB column offsets should start from 1
    *
    * @param mergedHeader  Header from all input GVCFs are merged to
    *                      create one vid map for all

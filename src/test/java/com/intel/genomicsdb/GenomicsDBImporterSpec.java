@@ -58,15 +58,15 @@ public class GenomicsDBImporterSpec {
     FeatureReader<VariantContext> reader_t8 =
       AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
     variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
-    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
-    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+//    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
+//    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
 
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
       generateTestLoaderConfiguration();
 
     ChromosomeInterval chromosomeInterval =
-      new ChromosomeInterval("1", 1, 249250621);
+      new ChromosomeInterval("1", 1, 249250619);
     List<VCFHeader> headers = new ArrayList<>();
     for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
       headers.add((VCFHeader) variant.getValue().getHeader());

@@ -168,6 +168,9 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   for (auto contig_idx = 0L; contig_idx < num_contigs; ++contig_idx) {
     contig_name = vid_map_protobuf->chromosomes(contig_idx).name();
 
+    std::cout << "(" << contig_idx <<
+        "," << contig_name << ",";
+
     if(m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end())
     {
       std::cerr << "Contig/chromosome name "
@@ -181,11 +184,14 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
 
     auto tiledb_column_offset =
         vid_map_protobuf->chromosomes(contig_idx).tiledb_column_offset();
+
     VERIFY_OR_THROW(tiledb_column_offset >= 0LL);
     auto length = vid_map_protobuf->chromosomes(contig_idx).length();
+
+    std::cout << tiledb_column_offset << "," << length << ")\n";
+
     VERIFY_OR_THROW(length >= 0LL);
-    VERIFY_OR_THROW(static_cast<size_t>(contig_idx) <
-                     static_cast<size_t>(num_contigs));
+
     m_contig_name_to_idx[contig_name] = contig_idx;
     m_contig_idx_to_info[contig_idx].set_info(
                                        contig_idx,
@@ -219,9 +225,11 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   auto last_contig_idx = -1;
   auto last_contig_end_column = -1ll;
   auto overlapping_contigs_exist = false;
-  for(const auto& offset_idx_pair : m_contig_begin_2_idx)
+  for (auto contig_idx = 0; contig_idx < m_contig_begin_2_idx.size();
+      ++contig_idx)
+//  for (const auto& offset_idx_pair : m_contig_begin_2_idx)
   {
-    auto contig_idx = offset_idx_pair.second;
+//    auto contig_idx = offset_idx_pair.second;
     const auto& contig_info = m_contig_idx_to_info[contig_idx];
     if(last_contig_idx >= 0)
     {
@@ -287,8 +295,19 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
     //Field type - int, char etc
     field_type = vid_map_protobuf->infofields(field_idx).type();
+    if (field_type.compare("Integer") == 0) {
+      field_type.assign("int");
+    } else if (field_type.compare("String") == 0) {
+      field_type.assign("char");
+    } else if (field_type.compare("Float") == 0) {
+      field_type.assign("float");
+    } else if (field_type.compare("Flag") == 0) {
+      field_type.assign("flag");
+    }
+
     {
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
+      std::cout << field_type << "\n";
       VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end()
           && "Field type not handled");
       m_field_idx_to_info[field_idx].m_type_index = (*iter).second;

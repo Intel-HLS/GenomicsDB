@@ -59,6 +59,8 @@ class GenomicsDBImporter
       m_ub_callset_row_idx = ub_callset_row_idx;
       m_loader_ptr = 0;
       m_read_state = 0;
+      m_vid_map = NULL;
+      m_callset_map = NULL;
     }
     //Delete copy constructor
     GenomicsDBImporter(const GenomicsDBImporter& other) = delete;
@@ -94,7 +96,7 @@ class GenomicsDBImporter
      */
     void setup_vidmap(const VidMapping* vidMap) {
       assert (vidMap != NULL);
-      m_vid_map = vidMap;
+      m_vid_map = new VidMapping(*vidMap);
     }
 
     /**
@@ -103,7 +105,7 @@ class GenomicsDBImporter
      */
     void setup_callsetmap(const CallsetMap* callsetMap) {
       assert (callsetMap != NULL);
-      m_callset_map = callsetMap;
+      m_callset_map = new CallsetMap(*callsetMap);
     }
 
     inline const std::vector<int64_t>&

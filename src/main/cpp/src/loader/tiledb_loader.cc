@@ -485,7 +485,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(
       config_filename,
       idx,
       lb_callset_row_idx,
-      ub_callset_row_idx)
+      ub_callset_row_idx,
+      !using_vidmap_protobuf)
 {
   std::vector<BufferStreamInfo> empty_vec;
   common_constructor_initialization(
