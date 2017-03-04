@@ -58,7 +58,7 @@ TEST(VidMappingSpec, test_basic_functions) {
   sample1->set_sample_name("HG00193_stream");
 
   ProtoBufBasedVidMapper *testVidMap =
-      new ProtoBufBasedVidMapper(vid_mapping, callsetmap);
+      new ProtoBufBasedVidMapper(&vid_mapping, &callsetmap);
 
   ASSERT_TRUE(testVidMap!=NULL);
 }

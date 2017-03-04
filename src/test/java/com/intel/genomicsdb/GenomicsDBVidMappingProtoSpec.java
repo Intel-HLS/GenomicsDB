@@ -21,6 +21,7 @@
  */
 package com.intel.genomicsdb;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -79,6 +80,7 @@ public class GenomicsDBVidMappingProtoSpec {
     infoFields.add(lowQual);
     infoFields.add(pgt);
     infoFields.add(gt);
+    infoFields.add(dp);
 
     // Create chromosomes
     List<GenomicsDBVidMapProto.Chromosome> chromosomes = new ArrayList<>(4);
@@ -123,22 +125,22 @@ public class GenomicsDBVidMappingProtoSpec {
         .addAllInfofields(infoFields)
         .build();
 
-    assert vidmap.isInitialized();
+    Assert.assertEquals(vidmap.isInitialized(), true);
 
     // Assert info fields
-    assert vidmap.getInfofieldsCount() == 4;
-    assert vidmap.getInfofields(0) == pass;
-    assert vidmap.getInfofields(1) == lowQual;
-    assert vidmap.getInfofields(2) == pgt;
-    assert vidmap.getInfofields(3) == gt;
-    assert vidmap.getInfofields(4) == dp;
+    Assert.assertEquals(vidmap.getInfofieldsCount(), 5);
+    Assert.assertSame(vidmap.getInfofields(0), pass);
+    Assert.assertSame(vidmap.getInfofields(1), lowQual);
+    Assert.assertSame(vidmap.getInfofields(2), pgt);
+    Assert.assertSame(vidmap.getInfofields(3), gt);
+    Assert.assertSame(vidmap.getInfofields(4), dp);
 
     // Assert chromosomes
-    assert vidmap.getChromosomesCount() == 4;
-    assert vidmap.getChromosomes(0) == one;
-    assert vidmap.getChromosomes(1) == two;
-    assert vidmap.getChromosomes(2) == three;
-    assert vidmap.getChromosomes(3) == gl000195;
+    Assert.assertEquals(vidmap.getChromosomesCount(), 4);
+    Assert.assertSame(vidmap.getChromosomes(0), one);
+    Assert.assertSame(vidmap.getChromosomes(1), two);
+    Assert.assertSame(vidmap.getChromosomes(2), three);
+    Assert.assertSame(vidmap.getChromosomes(3), gl000195);
   }
 }
 

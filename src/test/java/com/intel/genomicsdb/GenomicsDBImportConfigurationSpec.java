@@ -21,6 +21,7 @@
  */
 package com.intel.genomicsdb;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -36,27 +37,14 @@ public class GenomicsDBImportConfigurationSpec {
   public void testImportConfiguration() {
     List<GenomicsDBImportConfiguration.Partition> partitions = new ArrayList<>(2);
 
-    GenomicsDBImportConfiguration.TileDBConfig.Builder tB0 =
-      GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-    GenomicsDBImportConfiguration.TileDBConfig tileDBConfig_part0 =
-      tB0
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
-        .build();
-    GenomicsDBImportConfiguration.TileDBConfig.Builder tB1 =
-      GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-    GenomicsDBImportConfiguration.TileDBConfig tileDBConfig_part1 =
-      tB1
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
-        .build();
     GenomicsDBImportConfiguration.Partition.Builder partition0 =
       GenomicsDBImportConfiguration.Partition.newBuilder();
     GenomicsDBImportConfiguration.Partition p0 =
       partition0
         .setBegin(0)
         .setVcfFileName("junk0")
-        .setTiledbConfig(tileDBConfig_part0)
+        .setTiledbWorkspace(TILEDB_WORKSPACE)
+        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
         .build();
     GenomicsDBImportConfiguration.Partition.Builder partition1 =
       GenomicsDBImportConfiguration.Partition.newBuilder();
@@ -64,7 +52,8 @@ public class GenomicsDBImportConfigurationSpec {
       partition1
         .setBegin(1000000)
         .setVcfFileName("junk1")
-        .setTiledbConfig(tileDBConfig_part1)
+        .setTiledbWorkspace(TILEDB_WORKSPACE)
+        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
         .build();
 
     partitions.add(p0);
@@ -83,28 +72,29 @@ public class GenomicsDBImportConfigurationSpec {
         .addAllColumnPartitions(partitions)
         .build();
 
-    assert importConfiguration.isInitialized();
+    
+    Assert.assertEquals(importConfiguration.isInitialized(), true);
 
     // Assert has methods
-    assert !importConfiguration.hasCallsetMappingFile();
-    assert importConfiguration.hasDoPingPongBuffering();
-    assert importConfiguration.hasDeleteAndCreateTiledbArray();
-    assert !importConfiguration.hasDiscardVcfIndex();
-    assert importConfiguration.hasNumParallelVcfFiles();
-    assert !importConfiguration.hasOffloadVcfOutputProcessing();
-    assert !importConfiguration.hasProduceCombinedVcf();
-    assert importConfiguration.hasProduceTiledbArray();
-    assert importConfiguration.hasSizePerColumnPartition();
+    Assert.assertEquals(importConfiguration.hasCallsetMappingFile(), false);
+    Assert.assertEquals(importConfiguration.hasDoPingPongBuffering(), true);
+    Assert.assertEquals(importConfiguration.hasDeleteAndCreateTiledbArray(), true);
+    Assert.assertEquals(importConfiguration.hasDiscardVcfIndex(), false);
+    Assert.assertEquals(importConfiguration.hasNumParallelVcfFiles(), true);
+    Assert.assertEquals(importConfiguration.hasOffloadVcfOutputProcessing(), false);
+    Assert.assertEquals(importConfiguration.hasProduceCombinedVcf(), false);
+    Assert.assertEquals(importConfiguration.hasProduceTiledbArray(), true);
+    Assert.assertEquals(importConfiguration.hasSizePerColumnPartition(), true);
 
     // Assert gets
-    assert importConfiguration.getDoPingPongBuffering();
-    assert importConfiguration.getDoPingPongBuffering();
-    assert importConfiguration.getDeleteAndCreateTiledbArray();
-    assert importConfiguration.getNumParallelVcfFiles() == 1;
-    assert importConfiguration.getProduceTiledbArray();
-    assert importConfiguration.getSizePerColumnPartition() == 10000;
-    assert importConfiguration.getColumnPartitionsCount() == 2;
-    assert importConfiguration.getColumnPartitions(0) == p0;
-    assert importConfiguration.getColumnPartitions(1) == p1;
+    Assert.assertEquals(importConfiguration.getDoPingPongBuffering(), true);
+    Assert.assertEquals(importConfiguration.getDoPingPongBuffering(), true);
+    Assert.assertEquals(importConfiguration.getDeleteAndCreateTiledbArray(), true);
+    Assert.assertEquals(importConfiguration.getNumParallelVcfFiles(), 1);
+    Assert.assertEquals(importConfiguration.getProduceTiledbArray(), true);
+    Assert.assertEquals(importConfiguration.getSizePerColumnPartition(), 10000);
+    Assert.assertEquals(importConfiguration.getColumnPartitionsCount(), 2);
+    Assert.assertSame(importConfiguration.getColumnPartitions(0), p0);
+    Assert.assertSame(importConfiguration.getColumnPartitions(1), p1);
   }
 }

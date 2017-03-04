@@ -45,8 +45,8 @@ class ProtoBufBasedVidMapper : public VidMapper {
      *    stream names. Stream names cannot be empty
      */
     ProtoBufBasedVidMapper(
-      const VidMapping&,
-      const CallsetMap&);
+      const VidMapping*,
+      const CallsetMap*);
 
     /**
      * Destructor -- must be called once you allocate an object
@@ -59,15 +59,15 @@ class ProtoBufBasedVidMapper : public VidMapper {
      * while filling the underlying TileDB array
      */
     void initialize(
-      const VidMapping&,
-      const CallsetMap&);
+      const VidMapping*,
+      const CallsetMap*);
 
     /**
      * Parse the callset map protocol buffer structure and
      * populate data structures of the base jurassic VidMapper
      * class
      */
-    int parse_callset_protobuf(const CallsetMap&);
+    int parse_callset_protobuf(const CallsetMap*);
 
     /**
      * Parse the variant id map protocol buffer structure which
@@ -75,9 +75,9 @@ class ProtoBufBasedVidMapper : public VidMapper {
      * from each of the input GVCF files. Populate the data
      * structures of the base jurassic VidMapper class
      */
-    int parse_vidmap_protobuf(const VidMapping& callsetMapProto);
-    int parse_contigs_from_vidmap(const VidMapping& vidMapProto);
-    int parse_infofields_from_vidmap(const VidMapping& vidMapProto);
+    int parse_vidmap_protobuf(const VidMapping* callsetMapProto);
+    int parse_contigs_from_vidmap(const VidMapping* vidMapProto);
+    int parse_infofields_from_vidmap(const VidMapping* vidMapProto);
 
   protected:
     std::string m_msg;

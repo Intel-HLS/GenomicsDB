@@ -58,9 +58,13 @@ void LoaderConverterMessageExchange::initialize_from_loader(int64_t all_callsets
   initialize_from_converter(1, all_callsets);
 }
 
-VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx)
-  : JSONLoaderConfig()
+VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
+  const std::string& config_filename,
+  int idx,
+  const int64_t lb_callset_row_idx,
+  const int64_t ub_callset_row_idx,
+  bool vid_mapper_file_required)
+  : JSONLoaderConfig(vid_mapper_file_required)
 {
   clear();
   m_idx = idx;
@@ -126,10 +130,18 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
 }
 
 #ifdef HTSDIR
-VCF2TileDBConverter::VCF2TileDBConverter(const std::string& config_filename, int idx, VidMapper* vid_mapper, 
-    std::vector<std::vector<uint8_t>>* buffers, std::vector<LoaderConverterMessageExchange>* exchange_vector)
-  : VCF2TileDBLoaderConverterBase(config_filename, idx)
-{
+VCF2TileDBConverter::VCF2TileDBConverter(
+  const std::string& config_filename,
+  int idx,
+  VidMapper* vid_mapper,
+  std::vector<std::vector<uint8_t>>* buffers,
+  std::vector<LoaderConverterMessageExchange>* exchange_vector,
+  bool vid_mapper_file_required)
+  : VCF2TileDBLoaderConverterBase(
+      config_filename,
+      idx,
+      vid_mapper_file_required) {
+
   m_vid_mapper = 0;
   clear();
   //Converter processes run independent of loader when num_converter_processes > 0
@@ -502,7 +514,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(
       config_filename,
       idx,
       lb_callset_row_idx,
-      ub_callset_row_idx)
+      ub_callset_row_idx,
+      !using_vidmap_protobuf)
 {
   common_constructor_initialization(
     config_filename,
@@ -533,11 +546,13 @@ void VCF2TileDBLoader::common_constructor_initialization(
   m_previous_cell_row_idx = -1;
   m_previous_cell_column = -1;
   clear();
+  m_vid_mapper_file_required = true;
   if (using_vidmap_protobuf) {
     assert (vidmap_pb != NULL);
     assert (callsetmap_pb != NULL);
     m_vid_mapper = static_cast<VidMapper*>(
-        new ProtoBufBasedVidMapper(*vidmap_pb, *callsetmap_pb));
+        new ProtoBufBasedVidMapper(vidmap_pb, callsetmap_pb));
+    m_vid_mapper_file_required = false;
   } else {
     m_vid_mapper = static_cast<VidMapper*>(
         new FileBasedVidMapper(
@@ -564,7 +579,13 @@ void VCF2TileDBLoader::common_constructor_initialization(
   else
   { 
 #ifdef HTSDIR
-    m_converter = new VCF2TileDBConverter(config_filename, idx, m_vid_mapper, &m_ping_pong_buffers, &m_owned_exchanges);
+    m_converter = new VCF2TileDBConverter(
+                    config_filename,
+                    idx,
+                    m_vid_mapper,
+                    &m_ping_pong_buffers,
+                    &m_owned_exchanges,
+                    m_vid_mapper_file_required);
 #endif
     //Num order values
     auto num_order_values = get_num_order_values();

@@ -11,7 +11,7 @@
 syntax = "proto2";
 
 option java_package = "com.intel.genomicsdb";
-//option java_outer_classname = "GenomicsDBImportConfiguration";
+option java_outer_classname = "GenomicsDBImportConfiguration";
 
 
 message Partition {
@@ -22,7 +22,7 @@ message Partition {
 }
 
 message ImportConfiguration {
-  required bool row_based_partitioning = 1 [default = false];
+  required bool row_based_partitioning = 1;
   optional bool produce_combined_vcf = 2 [default = false];
   optional bool produce_tiledb_array = 3 [default = true];
   repeated Partition column_partitions = 4;

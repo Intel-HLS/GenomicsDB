@@ -261,26 +261,24 @@ public class GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
-    List<FeatureReader<VariantContext>> readerList = new ArrayList<>();
-    for (Map.Entry<String, FeatureReader<VariantContext>> key :
-      sampleToVCMap.entrySet()) {
-      readerList.add(sampleToVCMap.get(key));
-    }
-    mCallsetMap = generateSortedCallSetMap(readerList);
+    mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
     File importJSONFile = printLoaderJSONFile(importConfiguration);
 
-    initialize(importJSONFile.getPath(), 0, 0, 0);
+    initialize(importJSONFile.getAbsolutePath(), 0, 0, 0);
     mChromosomeInterval =chromosomeInterval;
 
+    mGenomicsDBImporterObjectHandle =
+      jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank, mLbRowIdx, mUbRowIdx);
+    
     jniCopyVidMap(mGenomicsDBImporterObjectHandle, mVidMap.toByteArray());
     jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, mCallsetMap.toByteArray());
 
     int streamIndex = 0;
     for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap :
       mCallsetMap.getCallsetMapList()) {
-      CloseableIterator iterator =
-        sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName())
-          .query(mChromosomeInterval.mChromosomeName,
+        FeatureReader<VariantContext> featureReader =
+          sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName());
+        CloseableIterator iterator = featureReader.query(mChromosomeInterval.mChromosomeName,
             (int) mChromosomeInterval.mBegin,
             (int) mChromosomeInterval.mEnd);
       String streamName = sampleIDToTileDBIDMap.getStreamName();
@@ -318,11 +316,11 @@ public class GenomicsDBImporter
    * @return  Mappings of callset (sample) names to TileDB rows
    */
   private GenomicsDBCallsetsMapProto.CallsetMap generateSortedCallSetMap(
-    List<FeatureReader<VariantContext>> variants) {
+    Map<String, FeatureReader<VariantContext>> variants) {
 
     List<String> sampleNames = new ArrayList<>(variants.size());
-    for (FeatureReader v : variants) {
-      VCFHeader h = (VCFHeader) v.getHeader();
+    for (Map.Entry<String, FeatureReader<VariantContext>> v : variants.entrySet()) {
+      VCFHeader h = (VCFHeader) v.getValue().getHeader();
       sampleNames.add(h.getSampleNamesInOrder().get(0));
     }
 
@@ -377,8 +375,13 @@ public class GenomicsDBImporter
    */
   private GenomicsDBVidMapProto.VidMapping generateVidMapFromMergedHeader(
     Set<VCFHeaderLine> mergedHeader) {
+
     List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
+    List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
+
     int dpIndex = -1;
+    long columnOffset = 0L;
+
     for (VCFHeaderLine headerLine : mergedHeader) {
       GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
         GenomicsDBVidMapProto.InfoField.newBuilder();
@@ -390,7 +393,7 @@ public class GenomicsDBImporter
           .setName(formatHeaderLine.getID())
           .setType(formatHeaderLine.getType().toString())
           .setLength(getLength(formatHeaderLine));
-        
+
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
 
@@ -425,7 +428,7 @@ public class GenomicsDBImporter
           infoBuilder
             .addVcfFieldClassType("INFO");
         }
-        
+
         GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
         infoFields.add(infoField);
         if (infoHeaderLine.getID().equals("DP")) {
@@ -445,13 +448,34 @@ public class GenomicsDBImporter
         GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
 
         infoFields.add(filterField);
+      } else if (headerLine instanceof VCFContigHeaderLine) {
+        VCFContigHeaderLine contigHeaderLine = (VCFContigHeaderLine) headerLine;
+
+        long length = contigHeaderLine.getSAMSequenceRecord().getSequenceLength();
+        GenomicsDBVidMapProto.Chromosome.Builder contigBuilder =
+          GenomicsDBVidMapProto.Chromosome.newBuilder();
+        contigBuilder
+          .setName(contigHeaderLine.getID())
+          .setLength(length)
+          .setTiledbColumnOffset(columnOffset);
+
+        columnOffset += length;
+
+        GenomicsDBVidMapProto.Chromosome chromosome = contigBuilder.build();
+
+        contigs.add(chromosome);
       }
     }
 
     GenomicsDBVidMapProto.VidMapping.Builder vidMapBuilder =
       GenomicsDBVidMapProto.VidMapping.newBuilder();
-    return vidMapBuilder.addAllInfofields(infoFields).build();
+
+    return vidMapBuilder
+      .addAllInfofields(infoFields)
+      .addAllChromosomes(contigs)
+      .build();
   }
+  
 
   private GenomicsDBVidMapProto.InfoField remove(
     List<GenomicsDBVidMapProto.InfoField> infoFields,
@@ -650,8 +674,10 @@ public class GenomicsDBImporter
     //First time a buffer is added
     if(!mContainsBufferStreams)
     {
-      mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile,
-        mRank, mLbRowIdx, mUbRowIdx);
+      if (mGenomicsDBImporterObjectHandle==0) {
+        mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile,
+          mRank, mLbRowIdx, mUbRowIdx);
+      }
       if(mGenomicsDBImporterObjectHandle == 0)
         throw new GenomicsDBException("Could not initialize GenomicsDBImporter object");
       mBufferStreamWrapperVector = new ArrayList<GenomicsDBImporterStreamWrapper>();

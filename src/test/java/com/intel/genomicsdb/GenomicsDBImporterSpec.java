@@ -29,6 +29,7 @@ import htsjdk.tribble.readers.PositionalBufferedStream;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -57,15 +58,15 @@ public class GenomicsDBImporterSpec {
     FeatureReader<VariantContext> reader_t8 =
       AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
     variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
-    variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t7);
-    variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t8);
+    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
+    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
 
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
       generateTestLoaderConfiguration();
 
     ChromosomeInterval chromosomeInterval =
-      new ChromosomeInterval("1", 0, 249250621);
+      new ChromosomeInterval("1", 1, 249250621);
     List<VCFHeader> headers = new ArrayList<>();
     for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
       headers.add((VCFHeader) variant.getValue().getHeader());
@@ -75,33 +76,20 @@ public class GenomicsDBImporterSpec {
       variantReaders, mergedHeader, chromosomeInterval, importConfiguration);
 
     importer.importBatch();
-    assert importer.isDone();
+    Assert.assertEquals(importer.isDone(), true);
   }
 
   private GenomicsDBImportConfiguration.ImportConfiguration generateTestLoaderConfiguration() {
     List<GenomicsDBImportConfiguration.Partition> partitions = new ArrayList<>(2);
 
-    GenomicsDBImportConfiguration.TileDBConfig.Builder tB0 =
-      GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-    GenomicsDBImportConfiguration.TileDBConfig tileDBConfig_part0 =
-      tB0
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
-        .build();
-    GenomicsDBImportConfiguration.TileDBConfig.Builder tB1 =
-      GenomicsDBImportConfiguration.TileDBConfig.newBuilder();
-    GenomicsDBImportConfiguration.TileDBConfig tileDBConfig_part1 =
-      tB1
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
-        .build();
     GenomicsDBImportConfiguration.Partition.Builder partition0 =
       GenomicsDBImportConfiguration.Partition.newBuilder();
     GenomicsDBImportConfiguration.Partition p0 =
       partition0
         .setBegin(0)
         .setVcfFileName("junk0")
-        .setTiledbConfig(tileDBConfig_part0)
+        .setTiledbWorkspace(TILEDB_WORKSPACE)
+        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
         .build();
     GenomicsDBImportConfiguration.Partition.Builder partition1 =
       GenomicsDBImportConfiguration.Partition.newBuilder();
@@ -109,7 +97,8 @@ public class GenomicsDBImporterSpec {
       partition1
         .setBegin(1000000)
         .setVcfFileName("junk1")
-        .setTiledbConfig(tileDBConfig_part1)
+        .setTiledbWorkspace(TILEDB_WORKSPACE)
+        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
         .build();
 
     partitions.add(p0);

@@ -92,8 +92,12 @@ class LoaderConverterMessageExchange
 class VCF2TileDBLoaderConverterBase : public JSONLoaderConfig
 {
   public:
-    VCF2TileDBLoaderConverterBase(const std::string& config_filename, int idx,
-        const int64_t lb_callset_row_idx=0, const int64_t ub_callset_row_idx=INT64_MAX-1);
+    VCF2TileDBLoaderConverterBase(
+      const std::string& config_filename,
+      int idx,
+      const int64_t lb_callset_row_idx=0,
+      const int64_t ub_callset_row_idx=INT64_MAX-1,
+      bool vidmap_file_required=true);
     inline int64_t get_column_partition_end() const
     {
       return JSONLoaderConfig::get_column_partition(m_idx).second;
@@ -132,9 +136,13 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
 {
   public:
     //If vid_mapper==0, build from scratch
-    VCF2TileDBConverter(const std::string& config_filename, int idx,
-        VidMapper* vid_mapper=0, std::vector<std::vector<uint8_t>>* buffers=0,
-        std::vector<LoaderConverterMessageExchange>* exchange_vector=0);
+    VCF2TileDBConverter(
+      const std::string& config_filename,
+      int idx,
+      VidMapper* vid_mapper=0,
+      std::vector<std::vector<uint8_t>>* buffers=0,
+      std::vector<LoaderConverterMessageExchange>* exchange_vector=0,
+      bool vid_mapper_file_required=true);
     //Delete copy constructor
     VCF2TileDBConverter(const VCF2TileDBConverter& other) = delete;
     //Delete move constructor
@@ -426,7 +434,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     //For checking whether cells are traversed in correct order
     int64_t m_previous_cell_row_idx;
     int64_t m_previous_cell_column;
-    bool m_using_vidmap_pb;
+    bool m_vid_mapper_file_required;
 };
 
 #endif

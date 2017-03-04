@@ -105,7 +105,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
 class JSONLoaderConfig : public JSONConfigBase
 {
   public:
-    JSONLoaderConfig();
+    JSONLoaderConfig(bool vid_mapper_file_required = true);
     void read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper=0, int rank=0);
     inline bool is_partitioned_by_row() const { return m_row_based_partitioning; }
     inline bool is_partitioned_by_column() const { return !m_row_based_partitioning; }
@@ -157,6 +157,8 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_segment_size;
     //TileDB array #cells/tile
     size_t m_num_cells_per_tile;
+    //flag to say whether vid_mapping_file is required or optional
+    bool m_vid_mapper_file_required;
 };
 
 #ifdef HTSDIR

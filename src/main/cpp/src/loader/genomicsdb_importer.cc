@@ -24,26 +24,40 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBImporterException(#X);
 
-void GenomicsDBImporter::add_buffer_stream(const std::string& name, const VidFileTypeEnum buffer_stream_type,
-        const size_t capacity, const uint8_t* initialization_buffer, const size_t num_bytes_in_initialization_buffer)
-{
+void GenomicsDBImporter::add_buffer_stream(
+  const std::string& name,
+  const VidFileTypeEnum buffer_stream_type,
+  const size_t capacity,
+  const uint8_t* initialization_buffer,
+  const size_t num_bytes_in_initialization_buffer) {
+
   if(m_is_loader_setup)
-    throw GenomicsDBImporterException(std::string("Cannot add buffer stream once setup_loader() has been called for a given GenomicsDBImporter object"));
+    throw GenomicsDBImporterException(
+      std::string("Cannot add buffer stream once setup_loader() \
+        has been called for a given GenomicsDBImporter object"));
   //Duplicate buffer name
   if(m_buffer_stream_names.find(name) != m_buffer_stream_names.end())
-    throw GenomicsDBImporterException(std::string("Duplicate buffer stream name ")+name);
+    throw GenomicsDBImporterException(
+      std::string("Duplicate buffer stream name ")+name);
   m_buffer_stream_names.insert(name);
   m_buffer_stream_info_vec.emplace_back();
-  auto& curr_buffer_stream_info = m_buffer_stream_info_vec[m_buffer_stream_info_vec.size()-1u];
+  auto& curr_buffer_stream_info =
+    m_buffer_stream_info_vec[m_buffer_stream_info_vec.size()-1u];
   curr_buffer_stream_info.m_name = name;
   curr_buffer_stream_info.m_type = buffer_stream_type;
-  curr_buffer_stream_info.m_buffer_stream_idx = m_buffer_stream_info_vec.size()-1u;
+  curr_buffer_stream_info.m_buffer_stream_idx =
+    m_buffer_stream_info_vec.size()-1u;
   curr_buffer_stream_info.m_buffer_capacity = capacity;
-  if(initialization_buffer && num_bytes_in_initialization_buffer)
+  if (initialization_buffer && num_bytes_in_initialization_buffer)
   {
-    curr_buffer_stream_info.m_initialization_buffer.resize(num_bytes_in_initialization_buffer);
-    memcpy(&(curr_buffer_stream_info.m_initialization_buffer[0]), initialization_buffer, num_bytes_in_initialization_buffer);
-    curr_buffer_stream_info.m_initialization_buffer_num_valid_bytes = num_bytes_in_initialization_buffer;
+    curr_buffer_stream_info.m_initialization_buffer.resize(
+      num_bytes_in_initialization_buffer);
+    memcpy(
+      &(curr_buffer_stream_info.m_initialization_buffer[0]),
+      initialization_buffer,
+      num_bytes_in_initialization_buffer);
+    curr_buffer_stream_info.m_initialization_buffer_num_valid_bytes =
+      num_bytes_in_initialization_buffer;
   }
 }
 
@@ -90,11 +104,16 @@ void GenomicsDBImporter::setup_loader(
 {
   if(m_is_loader_setup) //already setup
     return;
-  m_loader_ptr = new VCF2TileDBLoader(m_loader_config_file,
-      m_buffer_stream_info_vec,
-      buffer_stream_callset_mapping_json_string,
-      m_rank, m_lb_callset_row_idx, m_ub_callset_row_idx,
-      using_vidmap_pb);
+  m_loader_ptr = new VCF2TileDBLoader(
+                   m_loader_config_file,
+                   m_buffer_stream_info_vec,
+                   buffer_stream_callset_mapping_json_string,
+                   m_rank,
+                   m_lb_callset_row_idx,
+                   m_ub_callset_row_idx,
+                   using_vidmap_pb,
+                   m_vid_map,
+                   m_callset_map);
   m_read_state = m_loader_ptr->construct_read_state_object();
   m_is_loader_setup = true;
 }
@@ -102,7 +121,9 @@ void GenomicsDBImporter::setup_loader(
 void GenomicsDBImporter::import_batch()
 {
   if(!m_is_loader_setup)
-    throw GenomicsDBImporterException(std::string("Cannot import data till setup_loader() has been called for a given GenomicsDBImporter object"));
+    throw GenomicsDBImporterException(
+      std::string("Cannot import data till setup_loader() \
+          has been called for a given GenomicsDBImporter object"));
   m_loader_ptr->read_all(*m_read_state);
 }
 

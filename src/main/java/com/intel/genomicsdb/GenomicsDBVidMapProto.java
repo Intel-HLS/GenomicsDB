@@ -19,15 +19,15 @@ public final class GenomicsDBVidMapProto {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     boolean hasName();
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     java.lang.String getName();
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     com.google.protobuf.ByteString
         getNameBytes();
@@ -58,7 +58,7 @@ public final class GenomicsDBVidMapProto {
       super(builder);
     }
     private Length() {
-      name_ = "length";
+      name_ = "";
       value_ = "";
     }
 
@@ -130,13 +130,13 @@ public final class GenomicsDBVidMapProto {
     public static final int NAME_FIELD_NUMBER = 1;
     private volatile java.lang.Object name_;
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     public boolean hasName() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -153,7 +153,7 @@ public final class GenomicsDBVidMapProto {
       }
     }
     /**
-     * <code>required string name = 1 [default = "length"];</code>
+     * <code>required string name = 1;</code>
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -415,7 +415,7 @@ public final class GenomicsDBVidMapProto {
       }
       public Builder clear() {
         super.clear();
-        name_ = "length";
+        name_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
         value_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -537,15 +537,15 @@ public final class GenomicsDBVidMapProto {
       }
       private int bitField0_;
 
-      private java.lang.Object name_ = "length";
+      private java.lang.Object name_ = "";
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public boolean hasName() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -562,7 +562,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -578,7 +578,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public Builder setName(
           java.lang.String value) {
@@ -591,7 +591,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public Builder clearName() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -600,7 +600,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>required string name = 1 [default = "length"];</code>
+       * <code>required string name = 1;</code>
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -756,15 +756,15 @@ public final class GenomicsDBVidMapProto {
         getNameBytes();
 
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     boolean hasType();
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     java.lang.String getType();
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     com.google.protobuf.ByteString
         getTypeBytes();
@@ -815,7 +815,7 @@ public final class GenomicsDBVidMapProto {
     }
     private InfoField() {
       name_ = "";
-      type_ = "int";
+      type_ = "";
       vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       length_ = "";
     }
@@ -948,13 +948,13 @@ public final class GenomicsDBVidMapProto {
     public static final int TYPE_FIELD_NUMBER = 2;
     private volatile java.lang.Object type_;
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     public boolean hasType() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     public java.lang.String getType() {
       java.lang.Object ref = type_;
@@ -971,7 +971,7 @@ public final class GenomicsDBVidMapProto {
       }
     }
     /**
-     * <code>required string type = 2 [default = "int"];</code>
+     * <code>required string type = 2;</code>
      */
     public com.google.protobuf.ByteString
         getTypeBytes() {
@@ -1296,7 +1296,7 @@ public final class GenomicsDBVidMapProto {
         super.clear();
         name_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        type_ = "int";
+        type_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
         vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -1520,15 +1520,15 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
 
-      private java.lang.Object type_ = "int";
+      private java.lang.Object type_ = "";
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public boolean hasType() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public java.lang.String getType() {
         java.lang.Object ref = type_;
@@ -1545,7 +1545,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public com.google.protobuf.ByteString
           getTypeBytes() {
@@ -1561,7 +1561,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public Builder setType(
           java.lang.String value) {
@@ -1574,7 +1574,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public Builder clearType() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -1583,7 +1583,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>required string type = 2 [default = "int"];</code>
+       * <code>required string type = 2;</code>
        */
       public Builder setTypeBytes(
           com.google.protobuf.ByteString value) {
@@ -3715,16 +3715,15 @@ public final class GenomicsDBVidMapProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\034genomicsdb_vid_mapping.proto\"-\n\006Length" +
-      "\022\024\n\004name\030\001 \002(\t:\006length\022\r\n\005value\030\002 \002(\t\"Z\n" +
-      "\tInfoField\022\014\n\004name\030\001 \002(\t\022\021\n\004type\030\002 \002(\t:\003" +
-      "int\022\034\n\024vcf_field_class_type\030\003 \003(\t\022\016\n\006len" +
-      "gth\030\004 \001(\t\"H\n\nChromosome\022\014\n\004name\030\001 \002(\t\022\016\n" +
-      "\006length\030\002 \002(\003\022\034\n\024tiledb_column_offset\030\003 " +
-      "\002(\003\"N\n\nVidMapping\022\036\n\ninfofields\030\001 \003(\0132\n." +
-      "InfoField\022 \n\013chromosomes\030\002 \003(\0132\013.Chromos" +
-      "omeB-\n\024com.intel.genomicsdbB\025GenomicsDBV" +
-      "idMapProto"
+      "\n\034genomicsdb_vid_mapping.proto\"%\n\006Length" +
+      "\022\014\n\004name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\"U\n\tInfoFie" +
+      "ld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\034\n\024vcf_fi" +
+      "eld_class_type\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\n" +
+      "Chromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003" +
+      "\022\034\n\024tiledb_column_offset\030\003 \002(\003\"N\n\nVidMap" +
+      "ping\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013" +
+      "chromosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.in" +
+      "tel.genomicsdbB\025GenomicsDBVidMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

@@ -94,7 +94,8 @@ class GenomicsDBImporter
      */
     void setup_vidmap(const VidMapping* vidMap) {
       assert (vidMap != NULL);
-      m_vid_map = vidMap; }
+      m_vid_map = vidMap;
+    }
 
     /**
      * Protocol buffer based Callset map used by

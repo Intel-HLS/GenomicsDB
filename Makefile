@@ -352,8 +352,8 @@ clean-dependencies: TileDB_clean htslib_clean
 clean-all: clean clean-dependencies
 
 test: genomicsdb_library $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES) $(GENOMICSDB_TEST_EXECUTABLE)
-	@$(GENOMICSDB_TEST_EXECUTABLE)
-	#mvn test -Dgenomicsdb.version=$(RELEASE_VERSION)
+	#@$(GENOMICSDB_TEST_EXECUTABLE)
+	@mvn test -Dgenomicsdb.version=$(RELEASE_VERSION)
 
 $(GENOMICSDB_TEST_EXECUTABLE): $(GENOMICSDB_LIBRARY_TEST_OBJ_FILES)
 	$(CXX) $(LINKFLAGS) -o $(GENOMICSDB_TEST_EXECUTABLE) $(LDFLAGS)

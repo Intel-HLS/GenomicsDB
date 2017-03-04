@@ -14,891 +14,6 @@ public final class GenomicsDBImportConfiguration {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-  public interface TileDBConfigOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:TileDBConfig)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    boolean hasTiledbWorkspace();
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    java.lang.String getTiledbWorkspace();
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    com.google.protobuf.ByteString
-        getTiledbWorkspaceBytes();
-
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    boolean hasTiledbArrayName();
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    java.lang.String getTiledbArrayName();
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    com.google.protobuf.ByteString
-        getTiledbArrayNameBytes();
-
-    /**
-     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-     */
-    boolean hasCompressTiledbArray();
-    /**
-     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-     */
-    boolean getCompressTiledbArray();
-
-    /**
-     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-     */
-    boolean hasNumCellsPerTile();
-    /**
-     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-     */
-    long getNumCellsPerTile();
-  }
-  /**
-   * Protobuf type {@code TileDBConfig}
-   */
-  public  static final class TileDBConfig extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:TileDBConfig)
-      TileDBConfigOrBuilder {
-    // Use TileDBConfig.newBuilder() to construct.
-    private TileDBConfig(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private TileDBConfig() {
-      tiledbWorkspace_ = "";
-      tiledbArrayName_ = "";
-      compressTiledbArray_ = true;
-      numCellsPerTile_ = 1000L;
-    }
-
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private TileDBConfig(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-            case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000001;
-              tiledbWorkspace_ = bs;
-              break;
-            }
-            case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000002;
-              tiledbArrayName_ = bs;
-              break;
-            }
-            case 24: {
-              bitField0_ |= 0x00000004;
-              compressTiledbArray_ = input.readBool();
-              break;
-            }
-            case 32: {
-              bitField0_ |= 0x00000008;
-              numCellsPerTile_ = input.readInt64();
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
-    }
-
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder.class);
-    }
-
-    private int bitField0_;
-    public static final int TILEDB_WORKSPACE_FIELD_NUMBER = 1;
-    private volatile java.lang.Object tiledbWorkspace_;
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    public boolean hasTiledbWorkspace() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
-    }
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    public java.lang.String getTiledbWorkspace() {
-      java.lang.Object ref = tiledbWorkspace_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          tiledbWorkspace_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>optional string tiledb_workspace = 1;</code>
-     */
-    public com.google.protobuf.ByteString
-        getTiledbWorkspaceBytes() {
-      java.lang.Object ref = tiledbWorkspace_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        tiledbWorkspace_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 2;
-    private volatile java.lang.Object tiledbArrayName_;
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    public boolean hasTiledbArrayName() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
-    }
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    public java.lang.String getTiledbArrayName() {
-      java.lang.Object ref = tiledbArrayName_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          tiledbArrayName_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>optional string tiledb_array_name = 2;</code>
-     */
-    public com.google.protobuf.ByteString
-        getTiledbArrayNameBytes() {
-      java.lang.Object ref = tiledbArrayName_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        tiledbArrayName_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int COMPRESS_TILEDB_ARRAY_FIELD_NUMBER = 3;
-    private boolean compressTiledbArray_;
-    /**
-     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-     */
-    public boolean hasCompressTiledbArray() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
-    }
-    /**
-     * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-     */
-    public boolean getCompressTiledbArray() {
-      return compressTiledbArray_;
-    }
-
-    public static final int NUM_CELLS_PER_TILE_FIELD_NUMBER = 4;
-    private long numCellsPerTile_;
-    /**
-     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-     */
-    public boolean hasNumCellsPerTile() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
-    }
-    /**
-     * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-     */
-    public long getNumCellsPerTile() {
-      return numCellsPerTile_;
-    }
-
-    private byte memoizedIsInitialized = -1;
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, tiledbWorkspace_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, tiledbArrayName_);
-      }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBool(3, compressTiledbArray_);
-      }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeInt64(4, numCellsPerTile_);
-      }
-      unknownFields.writeTo(output);
-    }
-
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, tiledbWorkspace_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, tiledbArrayName_);
-      }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(3, compressTiledbArray_);
-      }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(4, numCellsPerTile_);
-      }
-      size += unknownFields.getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    private static final long serialVersionUID = 0L;
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig)) {
-        return super.equals(obj);
-      }
-      com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) obj;
-
-      boolean result = true;
-      result = result && (hasTiledbWorkspace() == other.hasTiledbWorkspace());
-      if (hasTiledbWorkspace()) {
-        result = result && getTiledbWorkspace()
-            .equals(other.getTiledbWorkspace());
-      }
-      result = result && (hasTiledbArrayName() == other.hasTiledbArrayName());
-      if (hasTiledbArrayName()) {
-        result = result && getTiledbArrayName()
-            .equals(other.getTiledbArrayName());
-      }
-      result = result && (hasCompressTiledbArray() == other.hasCompressTiledbArray());
-      if (hasCompressTiledbArray()) {
-        result = result && (getCompressTiledbArray()
-            == other.getCompressTiledbArray());
-      }
-      result = result && (hasNumCellsPerTile() == other.hasNumCellsPerTile());
-      if (hasNumCellsPerTile()) {
-        result = result && (getNumCellsPerTile()
-            == other.getNumCellsPerTile());
-      }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (hasTiledbWorkspace()) {
-        hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbWorkspace().hashCode();
-      }
-      if (hasTiledbArrayName()) {
-        hash = (37 * hash) + TILEDB_ARRAY_NAME_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbArrayName().hashCode();
-      }
-      if (hasCompressTiledbArray()) {
-        hash = (37 * hash) + COMPRESS_TILEDB_ARRAY_FIELD_NUMBER;
-        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-            getCompressTiledbArray());
-      }
-      if (hasNumCellsPerTile()) {
-        hash = (37 * hash) + NUM_CELLS_PER_TILE_FIELD_NUMBER;
-        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-            getNumCellsPerTile());
-      }
-      hash = (29 * hash) + unknownFields.hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code TileDBConfig}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:TileDBConfig)
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
-      }
-
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder.class);
-      }
-
-      // Construct using com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder()
-      private Builder() {
-        maybeForceBuilderInitialization();
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
-      }
-      public Builder clear() {
-        super.clear();
-        tiledbWorkspace_ = "";
-        bitField0_ = (bitField0_ & ~0x00000001);
-        tiledbArrayName_ = "";
-        bitField0_ = (bitField0_ & ~0x00000002);
-        compressTiledbArray_ = true;
-        bitField0_ = (bitField0_ & ~0x00000004);
-        numCellsPerTile_ = 1000L;
-        bitField0_ = (bitField0_ & ~0x00000008);
-        return this;
-      }
-
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_TileDBConfig_descriptor;
-      }
-
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstanceForType() {
-        return com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance();
-      }
-
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig build() {
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig buildPartial() {
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig(this);
-        int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-          to_bitField0_ |= 0x00000001;
-        }
-        result.tiledbWorkspace_ = tiledbWorkspace_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-          to_bitField0_ |= 0x00000002;
-        }
-        result.tiledbArrayName_ = tiledbArrayName_;
-        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-          to_bitField0_ |= 0x00000004;
-        }
-        result.compressTiledbArray_ = compressTiledbArray_;
-        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-          to_bitField0_ |= 0x00000008;
-        }
-        result.numCellsPerTile_ = numCellsPerTile_;
-        result.bitField0_ = to_bitField0_;
-        onBuilt();
-        return result;
-      }
-
-      public Builder clone() {
-        return (Builder) super.clone();
-      }
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
-      }
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
-      }
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
-      }
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
-      }
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
-      }
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) {
-          return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig other) {
-        if (other == com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) return this;
-        if (other.hasTiledbWorkspace()) {
-          bitField0_ |= 0x00000001;
-          tiledbWorkspace_ = other.tiledbWorkspace_;
-          onChanged();
-        }
-        if (other.hasTiledbArrayName()) {
-          bitField0_ |= 0x00000002;
-          tiledbArrayName_ = other.tiledbArrayName_;
-          onChanged();
-        }
-        if (other.hasCompressTiledbArray()) {
-          setCompressTiledbArray(other.getCompressTiledbArray());
-        }
-        if (other.hasNumCellsPerTile()) {
-          setNumCellsPerTile(other.getNumCellsPerTile());
-        }
-        this.mergeUnknownFields(other.unknownFields);
-        onChanged();
-        return this;
-      }
-
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig parsedMessage = null;
-        try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig) e.getUnfinishedMessage();
-          throw e.unwrapIOException();
-        } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
-        return this;
-      }
-      private int bitField0_;
-
-      private java.lang.Object tiledbWorkspace_ = "";
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public boolean hasTiledbWorkspace() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
-      }
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public java.lang.String getTiledbWorkspace() {
-        java.lang.Object ref = tiledbWorkspace_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            tiledbWorkspace_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public com.google.protobuf.ByteString
-          getTiledbWorkspaceBytes() {
-        java.lang.Object ref = tiledbWorkspace_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          tiledbWorkspace_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public Builder setTiledbWorkspace(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        tiledbWorkspace_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public Builder clearTiledbWorkspace() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional string tiledb_workspace = 1;</code>
-       */
-      public Builder setTiledbWorkspaceBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        tiledbWorkspace_ = value;
-        onChanged();
-        return this;
-      }
-
-      private java.lang.Object tiledbArrayName_ = "";
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public boolean hasTiledbArrayName() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
-      }
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public java.lang.String getTiledbArrayName() {
-        java.lang.Object ref = tiledbArrayName_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            tiledbArrayName_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public com.google.protobuf.ByteString
-          getTiledbArrayNameBytes() {
-        java.lang.Object ref = tiledbArrayName_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          tiledbArrayName_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public Builder setTiledbArrayName(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        tiledbArrayName_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public Builder clearTiledbArrayName() {
-        bitField0_ = (bitField0_ & ~0x00000002);
-        tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional string tiledb_array_name = 2;</code>
-       */
-      public Builder setTiledbArrayNameBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        tiledbArrayName_ = value;
-        onChanged();
-        return this;
-      }
-
-      private boolean compressTiledbArray_ = true;
-      /**
-       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-       */
-      public boolean hasCompressTiledbArray() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
-      }
-      /**
-       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-       */
-      public boolean getCompressTiledbArray() {
-        return compressTiledbArray_;
-      }
-      /**
-       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-       */
-      public Builder setCompressTiledbArray(boolean value) {
-        bitField0_ |= 0x00000004;
-        compressTiledbArray_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional bool compress_tiledb_array = 3 [default = true];</code>
-       */
-      public Builder clearCompressTiledbArray() {
-        bitField0_ = (bitField0_ & ~0x00000004);
-        compressTiledbArray_ = true;
-        onChanged();
-        return this;
-      }
-
-      private long numCellsPerTile_ = 1000L;
-      /**
-       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-       */
-      public boolean hasNumCellsPerTile() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
-      }
-      /**
-       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-       */
-      public long getNumCellsPerTile() {
-        return numCellsPerTile_;
-      }
-      /**
-       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-       */
-      public Builder setNumCellsPerTile(long value) {
-        bitField0_ |= 0x00000008;
-        numCellsPerTile_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>optional int64 num_cells_per_tile = 4 [default = 1000];</code>
-       */
-      public Builder clearNumCellsPerTile() {
-        bitField0_ = (bitField0_ & ~0x00000008);
-        numCellsPerTile_ = 1000L;
-        onChanged();
-        return this;
-      }
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:TileDBConfig)
-    }
-
-    // @@protoc_insertion_point(class_scope:TileDBConfig)
-    private static final com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig();
-    }
-
-    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    @java.lang.Deprecated public static final com.google.protobuf.Parser<TileDBConfig>
-        PARSER = new com.google.protobuf.AbstractParser<TileDBConfig>() {
-      public TileDBConfig parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-          return new TileDBConfig(input, extensionRegistry);
-      }
-    };
-
-    public static com.google.protobuf.Parser<TileDBConfig> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<TileDBConfig> getParserForType() {
-      return PARSER;
-    }
-
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
   public interface PartitionOrBuilder extends
       // @@protoc_insertion_point(interface_extends:Partition)
       com.google.protobuf.MessageOrBuilder {
@@ -913,28 +28,43 @@ public final class GenomicsDBImportConfiguration {
     long getBegin();
 
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    boolean hasTiledbConfig();
+    boolean hasTiledbWorkspace();
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig();
+    java.lang.String getTiledbWorkspace();
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder();
+    com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes();
 
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string tiledb_array_name = 3;</code>
+     */
+    boolean hasTiledbArrayName();
+    /**
+     * <code>optional string tiledb_array_name = 3;</code>
+     */
+    java.lang.String getTiledbArrayName();
+    /**
+     * <code>optional string tiledb_array_name = 3;</code>
+     */
+    com.google.protobuf.ByteString
+        getTiledbArrayNameBytes();
+
+    /**
+     * <code>optional string vcf_file_name = 4;</code>
      */
     boolean hasVcfFileName();
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string vcf_file_name = 4;</code>
      */
     java.lang.String getVcfFileName();
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string vcf_file_name = 4;</code>
      */
     com.google.protobuf.ByteString
         getVcfFileNameBytes();
@@ -952,6 +82,8 @@ public final class GenomicsDBImportConfiguration {
     }
     private Partition() {
       begin_ = 0L;
+      tiledbWorkspace_ = "";
+      tiledbArrayName_ = "";
       vcfFileName_ = "";
     }
 
@@ -989,21 +121,20 @@ public final class GenomicsDBImportConfiguration {
               break;
             }
             case 18: {
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                subBuilder = tiledbConfig_.toBuilder();
-              }
-              tiledbConfig_ = input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.PARSER, extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(tiledbConfig_);
-                tiledbConfig_ = subBuilder.buildPartial();
-              }
+              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
+              tiledbWorkspace_ = bs;
               break;
             }
             case 26: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000004;
+              tiledbArrayName_ = bs;
+              break;
+            }
+            case 34: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000008;
               vcfFileName_ = bs;
               break;
             }
@@ -1047,37 +178,100 @@ public final class GenomicsDBImportConfiguration {
       return begin_;
     }
 
-    public static final int TILEDB_CONFIG_FIELD_NUMBER = 2;
-    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
+    public static final int TILEDB_WORKSPACE_FIELD_NUMBER = 2;
+    private volatile java.lang.Object tiledbWorkspace_;
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    public boolean hasTiledbConfig() {
+    public boolean hasTiledbWorkspace() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    public java.lang.String getTiledbWorkspace() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbWorkspace_ = s;
+        }
+        return s;
+      }
     }
     /**
-     * <code>optional .TileDBConfig tiledb_config = 2;</code>
+     * <code>optional string tiledb_workspace = 2;</code>
      */
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
-      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    public com.google.protobuf.ByteString
+        getTiledbWorkspaceBytes() {
+      java.lang.Object ref = tiledbWorkspace_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbWorkspace_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
-    public static final int VCF_FILE_NAME_FIELD_NUMBER = 3;
-    private volatile java.lang.Object vcfFileName_;
+    public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 3;
+    private volatile java.lang.Object tiledbArrayName_;
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string tiledb_array_name = 3;</code>
      */
-    public boolean hasVcfFileName() {
+    public boolean hasTiledbArrayName() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string tiledb_array_name = 3;</code>
+     */
+    public java.lang.String getTiledbArrayName() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          tiledbArrayName_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string tiledb_array_name = 3;</code>
+     */
+    public com.google.protobuf.ByteString
+        getTiledbArrayNameBytes() {
+      java.lang.Object ref = tiledbArrayName_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        tiledbArrayName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int VCF_FILE_NAME_FIELD_NUMBER = 4;
+    private volatile java.lang.Object vcfFileName_;
+    /**
+     * <code>optional string vcf_file_name = 4;</code>
+     */
+    public boolean hasVcfFileName() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional string vcf_file_name = 4;</code>
      */
     public java.lang.String getVcfFileName() {
       java.lang.Object ref = vcfFileName_;
@@ -1094,7 +288,7 @@ public final class GenomicsDBImportConfiguration {
       }
     }
     /**
-     * <code>optional string vcf_file_name = 3;</code>
+     * <code>optional string vcf_file_name = 4;</code>
      */
     public com.google.protobuf.ByteString
         getVcfFileNameBytes() {
@@ -1130,10 +324,13 @@ public final class GenomicsDBImportConfiguration {
         output.writeInt64(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeMessage(2, getTiledbConfig());
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, tiledbWorkspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFileName_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, tiledbArrayName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, vcfFileName_);
       }
       unknownFields.writeTo(output);
     }
@@ -1148,11 +345,13 @@ public final class GenomicsDBImportConfiguration {
           .computeInt64Size(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(2, getTiledbConfig());
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, tiledbWorkspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, vcfFileName_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, tiledbArrayName_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, vcfFileName_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1176,10 +375,15 @@ public final class GenomicsDBImportConfiguration {
         result = result && (getBegin()
             == other.getBegin());
       }
-      result = result && (hasTiledbConfig() == other.hasTiledbConfig());
-      if (hasTiledbConfig()) {
-        result = result && getTiledbConfig()
-            .equals(other.getTiledbConfig());
+      result = result && (hasTiledbWorkspace() == other.hasTiledbWorkspace());
+      if (hasTiledbWorkspace()) {
+        result = result && getTiledbWorkspace()
+            .equals(other.getTiledbWorkspace());
+      }
+      result = result && (hasTiledbArrayName() == other.hasTiledbArrayName());
+      if (hasTiledbArrayName()) {
+        result = result && getTiledbArrayName()
+            .equals(other.getTiledbArrayName());
       }
       result = result && (hasVcfFileName() == other.hasVcfFileName());
       if (hasVcfFileName()) {
@@ -1202,9 +406,13 @@ public final class GenomicsDBImportConfiguration {
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
             getBegin());
       }
-      if (hasTiledbConfig()) {
-        hash = (37 * hash) + TILEDB_CONFIG_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbConfig().hashCode();
+      if (hasTiledbWorkspace()) {
+        hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbWorkspace().hashCode();
+      }
+      if (hasTiledbArrayName()) {
+        hash = (37 * hash) + TILEDB_ARRAY_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbArrayName().hashCode();
       }
       if (hasVcfFileName()) {
         hash = (37 * hash) + VCF_FILE_NAME_FIELD_NUMBER;
@@ -1324,21 +532,18 @@ public final class GenomicsDBImportConfiguration {
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessageV3
                 .alwaysUseFieldBuilders) {
-          getTiledbConfigFieldBuilder();
         }
       }
       public Builder clear() {
         super.clear();
         begin_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = null;
-        } else {
-          tiledbConfigBuilder_.clear();
-        }
+        tiledbWorkspace_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
-        vcfFileName_ = "";
+        tiledbArrayName_ = "";
         bitField0_ = (bitField0_ & ~0x00000004);
+        vcfFileName_ = "";
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -1370,13 +575,13 @@ public final class GenomicsDBImportConfiguration {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        if (tiledbConfigBuilder_ == null) {
-          result.tiledbConfig_ = tiledbConfig_;
-        } else {
-          result.tiledbConfig_ = tiledbConfigBuilder_.build();
-        }
+        result.tiledbWorkspace_ = tiledbWorkspace_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
+        }
+        result.tiledbArrayName_ = tiledbArrayName_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
         }
         result.vcfFileName_ = vcfFileName_;
         result.bitField0_ = to_bitField0_;
@@ -1424,11 +629,18 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasBegin()) {
           setBegin(other.getBegin());
         }
-        if (other.hasTiledbConfig()) {
-          mergeTiledbConfig(other.getTiledbConfig());
+        if (other.hasTiledbWorkspace()) {
+          bitField0_ |= 0x00000002;
+          tiledbWorkspace_ = other.tiledbWorkspace_;
+          onChanged();
+        }
+        if (other.hasTiledbArrayName()) {
+          bitField0_ |= 0x00000004;
+          tiledbArrayName_ = other.tiledbArrayName_;
+          onChanged();
         }
         if (other.hasVcfFileName()) {
-          bitField0_ |= 0x00000004;
+          bitField0_ |= 0x00000008;
           vcfFileName_ = other.vcfFileName_;
           onChanged();
         }
@@ -1495,133 +707,167 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
 
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_ = null;
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> tiledbConfigBuilder_;
+      private java.lang.Object tiledbWorkspace_ = "";
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_workspace = 2;</code>
        */
-      public boolean hasTiledbConfig() {
+      public boolean hasTiledbWorkspace() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_workspace = 2;</code>
        */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-        if (tiledbConfigBuilder_ == null) {
-          return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
-        } else {
-          return tiledbConfigBuilder_.getMessage();
-        }
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
-       */
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (tiledbConfigBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
+      public java.lang.String getTiledbWorkspace() {
+        java.lang.Object ref = tiledbWorkspace_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbWorkspace_ = s;
           }
-          tiledbConfig_ = value;
-          onChanged();
+          return s;
         } else {
-          tiledbConfigBuilder_.setMessage(value);
+          return (java.lang.String) ref;
         }
-        bitField0_ |= 0x00000002;
-        return this;
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_workspace = 2;</code>
        */
-      public Builder setTiledbConfig(
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = builderForValue.build();
-          onChanged();
+      public com.google.protobuf.ByteString
+          getTiledbWorkspaceBytes() {
+        java.lang.Object ref = tiledbWorkspace_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbWorkspace_ = b;
+          return b;
         } else {
-          tiledbConfigBuilder_.setMessage(builderForValue.build());
+          return (com.google.protobuf.ByteString) ref;
         }
-        bitField0_ |= 0x00000002;
-        return this;
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_workspace = 2;</code>
        */
-      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (tiledbConfigBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) == 0x00000002) &&
-              tiledbConfig_ != null &&
-              tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
-            tiledbConfig_ =
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(tiledbConfig_).mergeFrom(value).buildPartial();
-          } else {
-            tiledbConfig_ = value;
-          }
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.mergeFrom(value);
-        }
-        bitField0_ |= 0x00000002;
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
-       */
-      public Builder clearTiledbConfig() {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = null;
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.clear();
-        }
-        bitField0_ = (bitField0_ & ~0x00000002);
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
-       */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder getTiledbConfigBuilder() {
-        bitField0_ |= 0x00000002;
+      public Builder setTiledbWorkspace(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        tiledbWorkspace_ = value;
         onChanged();
-        return getTiledbConfigFieldBuilder().getBuilder();
+        return this;
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_workspace = 2;</code>
        */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
-        if (tiledbConfigBuilder_ != null) {
-          return tiledbConfigBuilder_.getMessageOrBuilder();
+      public Builder clearTiledbWorkspace() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_workspace = 2;</code>
+       */
+      public Builder setTiledbWorkspaceBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        tiledbWorkspace_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object tiledbArrayName_ = "";
+      /**
+       * <code>optional string tiledb_array_name = 3;</code>
+       */
+      public boolean hasTiledbArrayName() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional string tiledb_array_name = 3;</code>
+       */
+      public java.lang.String getTiledbArrayName() {
+        java.lang.Object ref = tiledbArrayName_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            tiledbArrayName_ = s;
+          }
+          return s;
         } else {
-          return tiledbConfig_ == null ?
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+          return (java.lang.String) ref;
         }
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 2;</code>
+       * <code>optional string tiledb_array_name = 3;</code>
        */
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> 
-          getTiledbConfigFieldBuilder() {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfigBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder>(
-                  getTiledbConfig(),
-                  getParentForChildren(),
-                  isClean());
-          tiledbConfig_ = null;
+      public com.google.protobuf.ByteString
+          getTiledbArrayNameBytes() {
+        java.lang.Object ref = tiledbArrayName_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          tiledbArrayName_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
         }
-        return tiledbConfigBuilder_;
+      }
+      /**
+       * <code>optional string tiledb_array_name = 3;</code>
+       */
+      public Builder setTiledbArrayName(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        tiledbArrayName_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_array_name = 3;</code>
+       */
+      public Builder clearTiledbArrayName() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string tiledb_array_name = 3;</code>
+       */
+      public Builder setTiledbArrayNameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        tiledbArrayName_ = value;
+        onChanged();
+        return this;
       }
 
       private java.lang.Object vcfFileName_ = "";
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public boolean hasVcfFileName() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public java.lang.String getVcfFileName() {
         java.lang.Object ref = vcfFileName_;
@@ -1638,7 +884,7 @@ public final class GenomicsDBImportConfiguration {
         }
       }
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public com.google.protobuf.ByteString
           getVcfFileNameBytes() {
@@ -1654,36 +900,36 @@ public final class GenomicsDBImportConfiguration {
         }
       }
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public Builder setVcfFileName(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         vcfFileName_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public Builder clearVcfFileName() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000008);
         vcfFileName_ = getDefaultInstance().getVcfFileName();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string vcf_file_name = 3;</code>
+       * <code>optional string vcf_file_name = 4;</code>
        */
       public Builder setVcfFileNameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  bitField0_ |= 0x00000008;
         vcfFileName_ = value;
         onChanged();
         return this;
@@ -1742,11 +988,11 @@ public final class GenomicsDBImportConfiguration {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     * <code>required bool row_based_partitioning = 1;</code>
      */
     boolean hasRowBasedPartitioning();
     /**
-     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     * <code>required bool row_based_partitioning = 1;</code>
      */
     boolean getRowBasedPartitioning();
 
@@ -1893,17 +1139,22 @@ public final class GenomicsDBImportConfiguration {
     long getSegmentSize();
 
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
      */
-    boolean hasTiledbConfig();
+    boolean hasCompressTiledbArray();
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
      */
-    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig();
+    boolean getCompressTiledbArray();
+
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
      */
-    com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder();
+    boolean hasNumCellsPerTile();
+    /**
+     * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
+     */
+    long getNumCellsPerTile();
   }
   /**
    * Protobuf type {@code ImportConfiguration}
@@ -1931,6 +1182,8 @@ public final class GenomicsDBImportConfiguration {
       offloadVcfOutputProcessing_ = true;
       discardVcfIndex_ = true;
       segmentSize_ = 10485760L;
+      compressTiledbArray_ = true;
+      numCellsPerTile_ = 1000L;
     }
 
     @java.lang.Override
@@ -2037,17 +1290,14 @@ public final class GenomicsDBImportConfiguration {
               segmentSize_ = input.readInt64();
               break;
             }
-            case 122: {
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder subBuilder = null;
-              if (((bitField0_ & 0x00002000) == 0x00002000)) {
-                subBuilder = tiledbConfig_.toBuilder();
-              }
-              tiledbConfig_ = input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.PARSER, extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(tiledbConfig_);
-                tiledbConfig_ = subBuilder.buildPartial();
-              }
+            case 120: {
               bitField0_ |= 0x00002000;
+              compressTiledbArray_ = input.readBool();
+              break;
+            }
+            case 128: {
+              bitField0_ |= 0x00004000;
+              numCellsPerTile_ = input.readInt64();
               break;
             }
           }
@@ -2081,13 +1331,13 @@ public final class GenomicsDBImportConfiguration {
     public static final int ROW_BASED_PARTITIONING_FIELD_NUMBER = 1;
     private boolean rowBasedPartitioning_;
     /**
-     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     * <code>required bool row_based_partitioning = 1;</code>
      */
     public boolean hasRowBasedPartitioning() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required bool row_based_partitioning = 1 [default = false];</code>
+     * <code>required bool row_based_partitioning = 1;</code>
      */
     public boolean getRowBasedPartitioning() {
       return rowBasedPartitioning_;
@@ -2362,25 +1612,34 @@ public final class GenomicsDBImportConfiguration {
       return segmentSize_;
     }
 
-    public static final int TILEDB_CONFIG_FIELD_NUMBER = 15;
-    private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_;
+    public static final int COMPRESS_TILEDB_ARRAY_FIELD_NUMBER = 15;
+    private boolean compressTiledbArray_;
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
      */
-    public boolean hasTiledbConfig() {
+    public boolean hasCompressTiledbArray() {
       return ((bitField0_ & 0x00002000) == 0x00002000);
     }
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
      */
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    public boolean getCompressTiledbArray() {
+      return compressTiledbArray_;
+    }
+
+    public static final int NUM_CELLS_PER_TILE_FIELD_NUMBER = 16;
+    private long numCellsPerTile_;
+    /**
+     * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
+     */
+    public boolean hasNumCellsPerTile() {
+      return ((bitField0_ & 0x00004000) == 0x00004000);
     }
     /**
-     * <code>optional .TileDBConfig tiledb_config = 15;</code>
+     * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
      */
-    public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
-      return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
+    public long getNumCellsPerTile() {
+      return numCellsPerTile_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -2448,7 +1707,10 @@ public final class GenomicsDBImportConfiguration {
         output.writeInt64(14, segmentSize_);
       }
       if (((bitField0_ & 0x00002000) == 0x00002000)) {
-        output.writeMessage(15, getTiledbConfig());
+        output.writeBool(15, compressTiledbArray_);
+      }
+      if (((bitField0_ & 0x00004000) == 0x00004000)) {
+        output.writeInt64(16, numCellsPerTile_);
       }
       unknownFields.writeTo(output);
     }
@@ -2514,7 +1776,11 @@ public final class GenomicsDBImportConfiguration {
       }
       if (((bitField0_ & 0x00002000) == 0x00002000)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(15, getTiledbConfig());
+          .computeBoolSize(15, compressTiledbArray_);
+      }
+      if (((bitField0_ & 0x00004000) == 0x00004000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(16, numCellsPerTile_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -2600,10 +1866,15 @@ public final class GenomicsDBImportConfiguration {
         result = result && (getSegmentSize()
             == other.getSegmentSize());
       }
-      result = result && (hasTiledbConfig() == other.hasTiledbConfig());
-      if (hasTiledbConfig()) {
-        result = result && getTiledbConfig()
-            .equals(other.getTiledbConfig());
+      result = result && (hasCompressTiledbArray() == other.hasCompressTiledbArray());
+      if (hasCompressTiledbArray()) {
+        result = result && (getCompressTiledbArray()
+            == other.getCompressTiledbArray());
+      }
+      result = result && (hasNumCellsPerTile() == other.hasNumCellsPerTile());
+      if (hasNumCellsPerTile()) {
+        result = result && (getNumCellsPerTile()
+            == other.getNumCellsPerTile());
       }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
@@ -2682,9 +1953,15 @@ public final class GenomicsDBImportConfiguration {
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
             getSegmentSize());
       }
-      if (hasTiledbConfig()) {
-        hash = (37 * hash) + TILEDB_CONFIG_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbConfig().hashCode();
+      if (hasCompressTiledbArray()) {
+        hash = (37 * hash) + COMPRESS_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getCompressTiledbArray());
+      }
+      if (hasNumCellsPerTile()) {
+        hash = (37 * hash) + NUM_CELLS_PER_TILE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getNumCellsPerTile());
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -2801,7 +2078,6 @@ public final class GenomicsDBImportConfiguration {
         if (com.google.protobuf.GeneratedMessageV3
                 .alwaysUseFieldBuilders) {
           getColumnPartitionsFieldBuilder();
-          getTiledbConfigFieldBuilder();
         }
       }
       public Builder clear() {
@@ -2838,12 +2114,10 @@ public final class GenomicsDBImportConfiguration {
         bitField0_ = (bitField0_ & ~0x00001000);
         segmentSize_ = 10485760L;
         bitField0_ = (bitField0_ & ~0x00002000);
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = null;
-        } else {
-          tiledbConfigBuilder_.clear();
-        }
+        compressTiledbArray_ = true;
         bitField0_ = (bitField0_ & ~0x00004000);
+        numCellsPerTile_ = 1000L;
+        bitField0_ = (bitField0_ & ~0x00008000);
         return this;
       }
 
@@ -2932,11 +2206,11 @@ public final class GenomicsDBImportConfiguration {
         if (((from_bitField0_ & 0x00004000) == 0x00004000)) {
           to_bitField0_ |= 0x00002000;
         }
-        if (tiledbConfigBuilder_ == null) {
-          result.tiledbConfig_ = tiledbConfig_;
-        } else {
-          result.tiledbConfig_ = tiledbConfigBuilder_.build();
+        result.compressTiledbArray_ = compressTiledbArray_;
+        if (((from_bitField0_ & 0x00008000) == 0x00008000)) {
+          to_bitField0_ |= 0x00004000;
         }
+        result.numCellsPerTile_ = numCellsPerTile_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3048,8 +2322,11 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasSegmentSize()) {
           setSegmentSize(other.getSegmentSize());
         }
-        if (other.hasTiledbConfig()) {
-          mergeTiledbConfig(other.getTiledbConfig());
+        if (other.hasCompressTiledbArray()) {
+          setCompressTiledbArray(other.getCompressTiledbArray());
+        }
+        if (other.hasNumCellsPerTile()) {
+          setNumCellsPerTile(other.getNumCellsPerTile());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -3089,19 +2366,19 @@ public final class GenomicsDBImportConfiguration {
 
       private boolean rowBasedPartitioning_ ;
       /**
-       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       * <code>required bool row_based_partitioning = 1;</code>
        */
       public boolean hasRowBasedPartitioning() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       * <code>required bool row_based_partitioning = 1;</code>
        */
       public boolean getRowBasedPartitioning() {
         return rowBasedPartitioning_;
       }
       /**
-       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       * <code>required bool row_based_partitioning = 1;</code>
        */
       public Builder setRowBasedPartitioning(boolean value) {
         bitField0_ |= 0x00000001;
@@ -3110,7 +2387,7 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
       /**
-       * <code>required bool row_based_partitioning = 1 [default = false];</code>
+       * <code>required bool row_based_partitioning = 1;</code>
        */
       public Builder clearRowBasedPartitioning() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -3831,122 +3108,68 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
 
-      private com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig tiledbConfig_ = null;
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> tiledbConfigBuilder_;
+      private boolean compressTiledbArray_ = true;
       /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
        */
-      public boolean hasTiledbConfig() {
+      public boolean hasCompressTiledbArray() {
         return ((bitField0_ & 0x00004000) == 0x00004000);
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
        */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig getTiledbConfig() {
-        if (tiledbConfigBuilder_ == null) {
-          return tiledbConfig_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
-        } else {
-          return tiledbConfigBuilder_.getMessage();
-        }
+      public boolean getCompressTiledbArray() {
+        return compressTiledbArray_;
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
        */
-      public Builder setTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (tiledbConfigBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          tiledbConfig_ = value;
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.setMessage(value);
-        }
+      public Builder setCompressTiledbArray(boolean value) {
         bitField0_ |= 0x00004000;
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
-       */
-      public Builder setTiledbConfig(
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder builderForValue) {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = builderForValue.build();
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.setMessage(builderForValue.build());
-        }
-        bitField0_ |= 0x00004000;
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
-       */
-      public Builder mergeTiledbConfig(com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig value) {
-        if (tiledbConfigBuilder_ == null) {
-          if (((bitField0_ & 0x00004000) == 0x00004000) &&
-              tiledbConfig_ != null &&
-              tiledbConfig_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance()) {
-            tiledbConfig_ =
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.newBuilder(tiledbConfig_).mergeFrom(value).buildPartial();
-          } else {
-            tiledbConfig_ = value;
-          }
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.mergeFrom(value);
-        }
-        bitField0_ |= 0x00004000;
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
-       */
-      public Builder clearTiledbConfig() {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfig_ = null;
-          onChanged();
-        } else {
-          tiledbConfigBuilder_.clear();
-        }
-        bitField0_ = (bitField0_ & ~0x00004000);
-        return this;
-      }
-      /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
-       */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder getTiledbConfigBuilder() {
-        bitField0_ |= 0x00004000;
+        compressTiledbArray_ = value;
         onChanged();
-        return getTiledbConfigFieldBuilder().getBuilder();
+        return this;
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       * <code>optional bool compress_tiledb_array = 15 [default = true];</code>
        */
-      public com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder getTiledbConfigOrBuilder() {
-        if (tiledbConfigBuilder_ != null) {
-          return tiledbConfigBuilder_.getMessageOrBuilder();
-        } else {
-          return tiledbConfig_ == null ?
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.getDefaultInstance() : tiledbConfig_;
-        }
+      public Builder clearCompressTiledbArray() {
+        bitField0_ = (bitField0_ & ~0x00004000);
+        compressTiledbArray_ = true;
+        onChanged();
+        return this;
+      }
+
+      private long numCellsPerTile_ = 1000L;
+      /**
+       * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
+       */
+      public boolean hasNumCellsPerTile() {
+        return ((bitField0_ & 0x00008000) == 0x00008000);
       }
       /**
-       * <code>optional .TileDBConfig tiledb_config = 15;</code>
+       * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
        */
-      private com.google.protobuf.SingleFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder> 
-          getTiledbConfigFieldBuilder() {
-        if (tiledbConfigBuilder_ == null) {
-          tiledbConfigBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfig.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.TileDBConfigOrBuilder>(
-                  getTiledbConfig(),
-                  getParentForChildren(),
-                  isClean());
-          tiledbConfig_ = null;
-        }
-        return tiledbConfigBuilder_;
+      public long getNumCellsPerTile() {
+        return numCellsPerTile_;
+      }
+      /**
+       * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
+       */
+      public Builder setNumCellsPerTile(long value) {
+        bitField0_ |= 0x00008000;
+        numCellsPerTile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
+       */
+      public Builder clearNumCellsPerTile() {
+        bitField0_ = (bitField0_ & ~0x00008000);
+        numCellsPerTile_ = 1000L;
+        onChanged();
+        return this;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -3998,11 +3221,6 @@ public final class GenomicsDBImportConfiguration {
   }
 
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_TileDBConfig_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_TileDBConfig_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Partition_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -4021,29 +3239,27 @@ public final class GenomicsDBImportConfiguration {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\036genomicsdb_import_config.proto\"\212\001\n\014Til" +
-      "eDBConfig\022\030\n\020tiledb_workspace\030\001 \001(\t\022\031\n\021t" +
-      "iledb_array_name\030\002 \001(\t\022#\n\025compress_tiled" +
-      "b_array\030\003 \001(\010:\004true\022 \n\022num_cells_per_til" +
-      "e\030\004 \001(\003:\0041000\"W\n\tPartition\022\r\n\005begin\030\001 \002(" +
-      "\003\022$\n\rtiledb_config\030\002 \001(\0132\r.TileDBConfig\022" +
-      "\025\n\rvcf_file_name\030\003 \001(\t\"\305\004\n\023ImportConfigu" +
-      "ration\022%\n\026row_based_partitioning\030\001 \002(\010:\005" +
-      "false\022#\n\024produce_combined_vcf\030\002 \001(\010:\005fal" +
-      "se\022\"\n\024produce_tiledb_array\030\003 \001(\010:\004true\022%",
-      "\n\021column_partitions\030\004 \003(\0132\n.Partition\022\030\n" +
-      "\020vid_mapping_file\030\005 \001(\t\022\034\n\024callset_mappi" +
-      "ng_file\030\006 \001(\t\022\'\n\031size_per_column_partiti" +
-      "on\030\007 \001(\003:\0043000\022*\n\034treat_deletions_as_int" +
-      "ervals\030\010 \001(\010:\004true\022!\n\026num_parallel_vcf_f" +
-      "iles\030\t \001(\005:\0011\022-\n\036delete_and_create_tiled" +
-      "b_array\030\n \001(\010:\005false\022$\n\026do_ping_pong_buf" +
-      "fering\030\013 \001(\010:\004true\022+\n\035offload_vcf_output" +
-      "_processing\030\014 \001(\010:\004true\022\037\n\021discard_vcf_i" +
-      "ndex\030\r \001(\010:\004true\022\036\n\014segment_size\030\016 \001(\003:\010",
-      "10485760\022$\n\rtiledb_config\030\017 \001(\0132\r.TileDB" +
-      "ConfigB5\n\024com.intel.genomicsdbB\035Genomics" +
-      "DBImportConfiguration"
+      "\n\036genomicsdb_import_config.proto\"f\n\tPart" +
+      "ition\022\r\n\005begin\030\001 \002(\003\022\030\n\020tiledb_workspace" +
+      "\030\002 \001(\t\022\031\n\021tiledb_array_name\030\003 \001(\t\022\025\n\rvcf" +
+      "_file_name\030\004 \001(\t\"\337\004\n\023ImportConfiguration" +
+      "\022\036\n\026row_based_partitioning\030\001 \002(\010\022#\n\024prod" +
+      "uce_combined_vcf\030\002 \001(\010:\005false\022\"\n\024produce" +
+      "_tiledb_array\030\003 \001(\010:\004true\022%\n\021column_part" +
+      "itions\030\004 \003(\0132\n.Partition\022\030\n\020vid_mapping_" +
+      "file\030\005 \001(\t\022\034\n\024callset_mapping_file\030\006 \001(\t" +
+      "\022\'\n\031size_per_column_partition\030\007 \001(\003:\004300",
+      "0\022*\n\034treat_deletions_as_intervals\030\010 \001(\010:" +
+      "\004true\022!\n\026num_parallel_vcf_files\030\t \001(\005:\0011" +
+      "\022-\n\036delete_and_create_tiledb_array\030\n \001(\010" +
+      ":\005false\022$\n\026do_ping_pong_buffering\030\013 \001(\010:" +
+      "\004true\022+\n\035offload_vcf_output_processing\030\014" +
+      " \001(\010:\004true\022\037\n\021discard_vcf_index\030\r \001(\010:\004t" +
+      "rue\022\036\n\014segment_size\030\016 \001(\003:\01010485760\022#\n\025c" +
+      "ompress_tiledb_array\030\017 \001(\010:\004true\022 \n\022num_" +
+      "cells_per_tile\030\020 \001(\003:\0041000B5\n\024com.intel." +
+      "genomicsdbB\035GenomicsDBImportConfiguratio",
+      "n"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4057,24 +3273,18 @@ public final class GenomicsDBImportConfiguration {
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
-    internal_static_TileDBConfig_descriptor =
-      getDescriptor().getMessageTypes().get(0);
-    internal_static_TileDBConfig_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_TileDBConfig_descriptor,
-        new java.lang.String[] { "TiledbWorkspace", "TiledbArrayName", "CompressTiledbArray", "NumCellsPerTile", });
     internal_static_Partition_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(0);
     internal_static_Partition_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Partition_descriptor,
-        new java.lang.String[] { "Begin", "TiledbConfig", "VcfFileName", });
+        new java.lang.String[] { "Begin", "TiledbWorkspace", "TiledbArrayName", "VcfFileName", });
     internal_static_ImportConfiguration_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(1);
     internal_static_ImportConfiguration_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ImportConfiguration_descriptor,
-        new java.lang.String[] { "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "SizePerColumnPartition", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "TiledbConfig", });
+        new java.lang.String[] { "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "SizePerColumnPartition", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

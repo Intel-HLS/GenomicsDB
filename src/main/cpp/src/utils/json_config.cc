@@ -526,7 +526,8 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
 }
 
 //Loader config functions
-JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
+JSONLoaderConfig::JSONLoaderConfig(
+  bool vid_mapper_file_required) : JSONConfigBase()
 {
   m_standalone_converter_process = false;
   m_treat_deletions_as_intervals = false;
@@ -556,6 +557,7 @@ JSONLoaderConfig::JSONLoaderConfig() : JSONConfigBase()
   m_callset_mapping_file = "";
   m_segment_size = 10u*1024u*1024u; //10MiB default
   m_num_cells_per_tile = 1024u;
+  m_vid_mapper_file_required = vid_mapper_file_required;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -641,7 +643,9 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if(m_json.HasMember("num_cells_per_tile") && m_json["num_cells_per_tile"].IsInt64())
     m_num_cells_per_tile = m_json["num_cells_per_tile"].GetInt64();
   //Must have path to vid_mapping_file
-  VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
+  if (m_vid_mapper_file_required) {
+    VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
+  }
   auto filename_pair = get_vid_mapping_filename_from_loader_JSON(id_mapper, rank);
   m_vid_mapping_filename = std::move(filename_pair.first);
   m_callset_mapping_file = std::move(filename_pair.second);
