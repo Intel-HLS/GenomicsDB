@@ -39,7 +39,6 @@ public class GenomicsDBImporterSpec {
 
   private static final String TILEDB_WORKSPACE = "./__workspace";
   private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
-  private static final String REFERENCE_GENOME = "./tests/inputs/chr1_10MB.fasta";
   private static final String TEST_CHROMOSOME_NAME = "1";
 
   @Test(testName = "genomicsdb importer with an interval and multiple GVCFs")
@@ -62,9 +61,6 @@ public class GenomicsDBImporterSpec {
     variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
 
-    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      generateTestLoaderConfiguration();
-
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
     List<VCFHeader> headers = new ArrayList<>();
@@ -73,40 +69,10 @@ public class GenomicsDBImporterSpec {
     }
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
     GenomicsDBImporter importer = new GenomicsDBImporter(
-      variantReaders, mergedHeader, chromosomeInterval, importConfiguration);
+      variantReaders, mergedHeader, chromosomeInterval, TILEDB_WORKSPACE, TILEDB_ARRAYNAME,
+      10000000L);
 
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
-  }
-
-  private GenomicsDBImportConfiguration.ImportConfiguration generateTestLoaderConfiguration() {
-    List<GenomicsDBImportConfiguration.Partition> partitions = new ArrayList<>(2);
-
-    GenomicsDBImportConfiguration.Partition.Builder partition0 =
-      GenomicsDBImportConfiguration.Partition.newBuilder();
-    GenomicsDBImportConfiguration.Partition p0 =
-      partition0
-        .setBegin(0)
-        .setVcfFileName("junk0")
-        .setWorkspace(new File(TILEDB_WORKSPACE).getAbsolutePath())
-        .setArray(TILEDB_ARRAYNAME)
-        .build();
-
-    partitions.add(p0);
-
-    GenomicsDBImportConfiguration.ImportConfiguration.Builder configBuilder =
-      GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
-    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      configBuilder
-        .setDeleteAndCreateTiledbArray(true)
-        .setDoPingPongBuffering(true)
-        .setProduceTiledbArray(true)
-        .setNumParallelVcfFiles(1)
-        .setSizePerColumnPartition(10000)
-        .setRowBasedPartitioning(false)
-        .addAllColumnPartitions(partitions)
-        .build();
-
-    return importConfiguration;
   }
 }

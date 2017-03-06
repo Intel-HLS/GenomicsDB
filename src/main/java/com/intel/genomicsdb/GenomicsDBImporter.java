@@ -61,7 +61,9 @@ public class GenomicsDBImporter
   }
 
   static long mDefaultBufferCapacity = 20480; //20KB
-  static String mTempLoaderJSONFileName = ".tmp_loader.json";
+  private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
+  private final String DEFAULT_ARRAYNAME = "genomicsdb_array";
+  private final int DEFAULT_SIZE_PER_COLUMN_PARTITION = 1000;
 
 
   /*
@@ -254,11 +256,17 @@ public class GenomicsDBImporter
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
                      ChromosomeInterval chromosomeInterval,
-                     ImportConfiguration importConfiguration) throws IOException {
+                     String workspace,
+                     String arrayname,
+                     Long segmentSize) throws IOException {
 
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
+
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+      createImportConfiguration(workspace, arrayname, segmentSize);
+
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
     mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
@@ -293,6 +301,36 @@ public class GenomicsDBImporter
         VariantContextWriterBuilder.OutputType.BCF_STREAM,
         sampleIndexToInfo);
     }
+  }
+
+  private ImportConfiguration createImportConfiguration(
+    String workspace,
+    String arrayname,
+    Long segmentSize) {
+
+    String name = (arrayname.isEmpty()) ? DEFAULT_ARRAYNAME : arrayname;
+
+    GenomicsDBImportConfiguration.Partition.Builder pB =
+      GenomicsDBImportConfiguration.Partition.newBuilder();
+    GenomicsDBImportConfiguration.Partition p0 =
+      pB
+        .setBegin(0)
+        .setWorkspace(workspace)
+        .setArray(name)
+        .build();
+
+    GenomicsDBImportConfiguration.ImportConfiguration.Builder importBuilder =
+      GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+      importBuilder
+        .setRowBasedPartitioning(false)
+        .setSizePerColumnPartition(DEFAULT_SIZE_PER_COLUMN_PARTITION)
+        .addColumnPartitions(p0)
+        .setCompressTiledbArray(true)
+        .setSegmentSize(segmentSize)
+        .build();
+
+    return importConfiguration;
   }
 
   /**
