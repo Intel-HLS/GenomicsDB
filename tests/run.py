@@ -325,7 +325,10 @@ def main():
                         json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                         fptr.close();
                     if(query_type == 'java_vcf'):
-                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_json_filename+' '+query_json_filename,
+                        loader_argument = loader_json_filename;
+                        if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
+                            loader_argument = '""'
+                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
                         loader_argument = ' -l '+loader_json_filename;
