@@ -38,6 +38,8 @@ void JSONConfigBase::clear()
   m_attributes.clear();
   m_sorted_column_partitions.clear();
   m_sorted_row_partitions.clear();
+  m_vid_mapping_filename.clear();
+  m_callset_mapping_file.clear();
 }
 
 void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper)
@@ -91,14 +93,20 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   //VERIFY_OR_THROW(m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions")
   //|| m_json.HasMember("scan_full"));
   if(m_json.HasMember("scan_full"))
+  {
     m_scan_whole_array = true;
+    m_column_ranges.resize(1u, std::vector<ColumnRange>({ColumnRange(0, INT64_MAX-1)}));
+    m_single_query_column_ranges_vector = true;
+    m_row_ranges.resize(1u, std::vector<RowRange>({RowRange(0, INT64_MAX-1)}));
+    m_single_query_row_ranges_vector = true;
+  }
   else
   {
     VERIFY_OR_THROW(!(m_json.HasMember("row_partitions") && m_json.HasMember("column_partitions"))
         && "Cannot have both \"row_partitions\" and \"column_partitions\" simultaneously in the JSON file");
     VERIFY_OR_THROW((m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions") ||
-      m_json.HasMember("query_row_ranges") || m_json.HasMember("row_partitions")) &&
-      "Must have one of \"query_column_ranges\" or \"column_partitions\" or \"query_row_ranges\" or \"row_partitions\"");
+          m_json.HasMember("query_row_ranges") || m_json.HasMember("row_partitions")) &&
+        "Must have one of \"query_column_ranges\" or \"column_partitions\" or \"query_row_ranges\" or \"row_partitions\"");
     VERIFY_OR_THROW((!m_json.HasMember("query_column_ranges") || !m_json.HasMember("column_partitions")) &&
         "Cannot use both \"query_column_ranges\" and \"column_partitions\" simultaneously");
     //Query columns
@@ -178,161 +186,162 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         }
       }
     }
-    else if (m_json.HasMember("column_partitions"))
-    {
-      m_column_partitions_specified = true;
-      //column_partitions_array itself is an array of the form [ { "begin" : <value> }, { "begin":<value>} ]
-      auto& column_partitions_array = m_json["column_partitions"];
-      VERIFY_OR_THROW(column_partitions_array.IsArray());
-      m_sorted_column_partitions.resize(column_partitions_array.Size());
-      m_column_ranges.resize(column_partitions_array.Size());
-      std::unordered_map<int64_t, unsigned> begin_to_idx;
-      auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
-      auto array_name_string = m_single_array_name ? m_array_names[0] : "";
-      for(rapidjson::SizeType partition_idx=0;partition_idx<column_partitions_array.Size();++partition_idx)
+    else
+      if (m_json.HasMember("column_partitions"))
       {
-        //{ "begin" : <Val> }
-        const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
-        VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-        VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-        m_column_ranges[partition_idx].resize(1);      //only 1 std::pair
-        m_column_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
-        m_column_ranges[partition_idx][0].second = INT64_MAX-1;
-        if(curr_partition_info_dict.HasMember("end"))
-          m_column_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
-        if(m_column_ranges[partition_idx][0].first > m_column_ranges[partition_idx][0].second)
-          std::swap<int64_t>(m_column_ranges[partition_idx][0].first, m_column_ranges[partition_idx][0].second);
-        if(curr_partition_info_dict.HasMember("workspace"))
+        m_column_partitions_specified = true;
+        //column_partitions_array itself is an array of the form [ { "begin" : <value> }, { "begin":<value>} ]
+        auto& column_partitions_array = m_json["column_partitions"];
+        VERIFY_OR_THROW(column_partitions_array.IsArray());
+        m_sorted_column_partitions.resize(column_partitions_array.Size());
+        m_column_ranges.resize(column_partitions_array.Size());
+        std::unordered_map<int64_t, unsigned> begin_to_idx;
+        auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
+        auto array_name_string = m_single_array_name ? m_array_names[0] : "";
+        for(rapidjson::SizeType partition_idx=0;partition_idx<column_partitions_array.Size();++partition_idx)
         {
-          if(column_partitions_array.Size() > m_workspaces.size())
-            m_workspaces.resize(column_partitions_array.Size(), workspace_string);
-          m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
-          m_single_workspace_path = false;
+          //{ "begin" : <Val> }
+          const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
+          VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+          m_column_ranges[partition_idx].resize(1);      //only 1 std::pair
+          m_column_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
+          m_column_ranges[partition_idx][0].second = INT64_MAX-1;
+          if(curr_partition_info_dict.HasMember("end"))
+            m_column_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
+          if(m_column_ranges[partition_idx][0].first > m_column_ranges[partition_idx][0].second)
+            std::swap<int64_t>(m_column_ranges[partition_idx][0].first, m_column_ranges[partition_idx][0].second);
+          if(curr_partition_info_dict.HasMember("workspace"))
+          {
+            if(column_partitions_array.Size() > m_workspaces.size())
+              m_workspaces.resize(column_partitions_array.Size(), workspace_string);
+            m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
+            m_single_workspace_path = false;
+          }
+          if(curr_partition_info_dict.HasMember("array"))
+          {
+            if(column_partitions_array.Size() >= m_array_names.size())
+              m_array_names.resize(column_partitions_array.Size(), array_name_string);
+            m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
+            m_single_array_name = false;
+          }
+          //Mapping from begin pos to index
+          begin_to_idx[m_column_ranges[partition_idx][0].first] = partition_idx;
+          m_sorted_column_partitions[partition_idx].first = m_column_ranges[partition_idx][0].first;
+          m_sorted_column_partitions[partition_idx].second = m_column_ranges[partition_idx][0].second;
         }
-        if(curr_partition_info_dict.HasMember("array"))
+        //Sort in ascending order
+        std::sort(m_sorted_column_partitions.begin(), m_sorted_column_partitions.end(), ColumnRangeCompare);
+        //Set end value if not valid
+        for(auto i=0ull;i+1u<m_sorted_column_partitions.size();++i)
         {
-          if(column_partitions_array.Size() >= m_array_names.size())
-            m_array_names.resize(column_partitions_array.Size(), array_name_string);
-          m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
-          m_single_array_name = false;
+          VERIFY_OR_THROW(m_sorted_column_partitions[i].first != m_sorted_column_partitions[i+1u].first
+              && "Cannot have two column partitions with the same begin value");
+          if(m_sorted_column_partitions[i].second >= m_sorted_column_partitions[i+1u].first)
+            m_sorted_column_partitions[i].second = m_sorted_column_partitions[i+1u].first-1;
+          auto idx = begin_to_idx[m_sorted_column_partitions[i].first];
+          m_column_ranges[idx][0].second = m_sorted_column_partitions[i].second;
         }
-        //Mapping from begin pos to index
-        begin_to_idx[m_column_ranges[partition_idx][0].first] = partition_idx;
-        m_sorted_column_partitions[partition_idx].first = m_column_ranges[partition_idx][0].first;
-        m_sorted_column_partitions[partition_idx].second = m_column_ranges[partition_idx][0].second;
       }
-      //Sort in ascending order
-      std::sort(m_sorted_column_partitions.begin(), m_sorted_column_partitions.end(), ColumnRangeCompare);
-      //Set end value if not valid
-      for(auto i=0ull;i+1u<m_sorted_column_partitions.size();++i)
+    VERIFY_OR_THROW((!m_json.HasMember("query_row_ranges") || !m_json.HasMember("row_partitions")) &&
+        "Cannot use both \"query_row_ranges\" and \"row_partitions\" simultaneously");
+    //Query rows
+    //Example:  [ [ [0,5], 45 ], [ 76, 87 ] ]
+    //This means that rank 0 will query rows: [0-5] and [45-45] and rank 1 will have
+    //2 intervals [76-76] and [87-87]
+    //But you could have a single innermost list - with this option all ranks will query the same list 
+    if(m_json.HasMember("query_row_ranges"))
+    {
+      const rapidjson::Value& q1 = m_json["query_row_ranges"];
+      VERIFY_OR_THROW(q1.IsArray());
+      if(q1.Size() == 1)
+        m_single_query_row_ranges_vector = true;
+      m_row_ranges.resize(q1.Size());
+      for(rapidjson::SizeType i=0;i<q1.Size();++i)
       {
-        VERIFY_OR_THROW(m_sorted_column_partitions[i].first != m_sorted_column_partitions[i+1u].first
-            && "Cannot have two column partitions with the same begin value");
-        if(m_sorted_column_partitions[i].second >= m_sorted_column_partitions[i+1u].first)
-          m_sorted_column_partitions[i].second = m_sorted_column_partitions[i+1u].first-1;
-        auto idx = begin_to_idx[m_sorted_column_partitions[i].first];
-        m_column_ranges[idx][0].second = m_sorted_column_partitions[i].second;
+        const rapidjson::Value& q2 = q1[i];
+        VERIFY_OR_THROW(q2.IsArray());
+        m_row_ranges[i].resize(q2.Size());
+        for(rapidjson::SizeType j=0;j<q2.Size();++j)
+        {
+          const rapidjson::Value& q3 = q2[j];
+          //q3 is list of 2 elements to represent query row interval
+          if(q3.IsArray())
+          {
+            VERIFY_OR_THROW(q3.Size() == 2);
+            VERIFY_OR_THROW(q3[0u].IsInt64());
+            VERIFY_OR_THROW(q3[1u].IsInt64());
+            m_row_ranges[i][j].first = q3[0u].GetInt64();
+            m_row_ranges[i][j].second = q3[1u].GetInt64();
+          }
+          else //single position
+          {
+            VERIFY_OR_THROW(q3.IsInt64());
+            m_row_ranges[i][j].first = q3.GetInt64();
+            m_row_ranges[i][j].second = q3.GetInt64();
+          }
+          if(m_row_ranges[i][j].first > m_row_ranges[i][j].second)
+            std::swap<int64_t>(m_row_ranges[i][j].first, m_row_ranges[i][j].second);
+        }
       }
     }
+    else
+      if(m_json.HasMember("row_partitions"))
+      {
+        m_row_partitions_specified = true;
+        //row_partitions value itself is an array [ { "begin" : <value> } ]
+        auto& row_partitions_array = m_json["row_partitions"];
+        VERIFY_OR_THROW(row_partitions_array.IsArray());
+        m_sorted_row_partitions.resize(row_partitions_array.Size());
+        m_row_ranges.resize(row_partitions_array.Size());
+        std::unordered_map<int64_t, unsigned> begin_to_idx;
+        auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
+        auto array_name_string = m_single_array_name ? m_array_names[0] : "";
+        for(rapidjson::SizeType partition_idx=0u;partition_idx<row_partitions_array.Size();++partition_idx)
+        {
+          const auto& curr_partition_info_dict = row_partitions_array[partition_idx];
+          VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+          m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
+          m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
+          m_row_ranges[partition_idx][0].second = INT64_MAX-1;
+          if(curr_partition_info_dict.HasMember("end"))
+            m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
+          if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
+            std::swap<int64_t>(m_row_ranges[partition_idx][0].first, m_row_ranges[partition_idx][0].second);
+          if(curr_partition_info_dict.HasMember("workspace"))
+          {
+            if(row_partitions_array.Size() > m_workspaces.size())
+              m_workspaces.resize(row_partitions_array.Size(), workspace_string);
+            m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
+            m_single_workspace_path = false;
+          }
+          if(curr_partition_info_dict.HasMember("array"))
+          {
+            if(row_partitions_array.Size() >= m_array_names.size())
+              m_array_names.resize(row_partitions_array.Size(), array_name_string);
+            m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
+            m_single_array_name = false;
+          }
+          //Mapping from begin pos to index
+          begin_to_idx[m_row_ranges[partition_idx][0].first] = partition_idx;
+          m_sorted_row_partitions[partition_idx].first = m_row_ranges[partition_idx][0].first;
+          m_sorted_row_partitions[partition_idx].second = m_row_ranges[partition_idx][0].second;
+        }
+        //Sort in ascending order
+        std::sort(m_sorted_row_partitions.begin(), m_sorted_row_partitions.end(), ColumnRangeCompare);
+        //Set end value if not valid
+        for(auto i=0ull;i+1u<m_sorted_row_partitions.size();++i)
+        {
+          VERIFY_OR_THROW(m_sorted_row_partitions[i].first != m_sorted_row_partitions[i+1u].first
+              && "Cannot have two row partitions with the same begin value");
+          if(m_sorted_row_partitions[i].second >= m_sorted_row_partitions[i+1u].first)
+            m_sorted_row_partitions[i].second = m_sorted_row_partitions[i+1u].first-1;
+          auto idx = begin_to_idx[m_sorted_row_partitions[i].first];
+          m_row_ranges[idx][0].second = m_sorted_row_partitions[i].second;
+        }
+      }
   }
-  VERIFY_OR_THROW((!m_json.HasMember("query_row_ranges") || !m_json.HasMember("row_partitions")) &&
-      "Cannot use both \"query_row_ranges\" and \"row_partitions\" simultaneously");
-  //Query rows
-  //Example:  [ [ [0,5], 45 ], [ 76, 87 ] ]
-  //This means that rank 0 will query rows: [0-5] and [45-45] and rank 1 will have
-  //2 intervals [76-76] and [87-87]
-  //But you could have a single innermost list - with this option all ranks will query the same list 
-  if(m_json.HasMember("query_row_ranges"))
-  {
-    const rapidjson::Value& q1 = m_json["query_row_ranges"];
-    VERIFY_OR_THROW(q1.IsArray());
-    if(q1.Size() == 1)
-      m_single_query_row_ranges_vector = true;
-    m_row_ranges.resize(q1.Size());
-    for(rapidjson::SizeType i=0;i<q1.Size();++i)
-    {
-      const rapidjson::Value& q2 = q1[i];
-      VERIFY_OR_THROW(q2.IsArray());
-      m_row_ranges[i].resize(q2.Size());
-      for(rapidjson::SizeType j=0;j<q2.Size();++j)
-      {
-        const rapidjson::Value& q3 = q2[j];
-        //q3 is list of 2 elements to represent query row interval
-        if(q3.IsArray())
-        {
-          VERIFY_OR_THROW(q3.Size() == 2);
-          VERIFY_OR_THROW(q3[0u].IsInt64());
-          VERIFY_OR_THROW(q3[1u].IsInt64());
-          m_row_ranges[i][j].first = q3[0u].GetInt64();
-          m_row_ranges[i][j].second = q3[1u].GetInt64();
-        }
-        else //single position
-        {
-          VERIFY_OR_THROW(q3.IsInt64());
-          m_row_ranges[i][j].first = q3.GetInt64();
-          m_row_ranges[i][j].second = q3.GetInt64();
-        }
-        if(m_row_ranges[i][j].first > m_row_ranges[i][j].second)
-          std::swap<int64_t>(m_row_ranges[i][j].first, m_row_ranges[i][j].second);
-      }
-    }
-  }
-  else
-    if(m_json.HasMember("row_partitions"))
-    {
-      m_row_partitions_specified = true;
-      //row_partitions value itself is an array [ { "begin" : <value> } ]
-      auto& row_partitions_array = m_json["row_partitions"];
-      VERIFY_OR_THROW(row_partitions_array.IsArray());
-      m_sorted_row_partitions.resize(row_partitions_array.Size());
-      m_row_ranges.resize(row_partitions_array.Size());
-      std::unordered_map<int64_t, unsigned> begin_to_idx;
-      auto workspace_string = m_single_workspace_path ? m_workspaces[0] : "";
-      auto array_name_string = m_single_array_name ? m_array_names[0] : "";
-      for(rapidjson::SizeType partition_idx=0u;partition_idx<row_partitions_array.Size();++partition_idx)
-      {
-        const auto& curr_partition_info_dict = row_partitions_array[partition_idx];
-        VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-        VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-        m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
-        m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
-        m_row_ranges[partition_idx][0].second = INT64_MAX-1;
-        if(curr_partition_info_dict.HasMember("end"))
-          m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
-        if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
-          std::swap<int64_t>(m_row_ranges[partition_idx][0].first, m_row_ranges[partition_idx][0].second);
-        if(curr_partition_info_dict.HasMember("workspace"))
-        {
-          if(row_partitions_array.Size() > m_workspaces.size())
-            m_workspaces.resize(row_partitions_array.Size(), workspace_string);
-          m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
-          m_single_workspace_path = false;
-        }
-        if(curr_partition_info_dict.HasMember("array"))
-        {
-          if(row_partitions_array.Size() >= m_array_names.size())
-            m_array_names.resize(row_partitions_array.Size(), array_name_string);
-          m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
-          m_single_array_name = false;
-        }
-        //Mapping from begin pos to index
-        begin_to_idx[m_row_ranges[partition_idx][0].first] = partition_idx;
-        m_sorted_row_partitions[partition_idx].first = m_row_ranges[partition_idx][0].first;
-        m_sorted_row_partitions[partition_idx].second = m_row_ranges[partition_idx][0].second;
-      }
-      //Sort in ascending order
-      std::sort(m_sorted_row_partitions.begin(), m_sorted_row_partitions.end(), ColumnRangeCompare);
-      //Set end value if not valid
-      for(auto i=0ull;i+1u<m_sorted_row_partitions.size();++i)
-      {
-        VERIFY_OR_THROW(m_sorted_row_partitions[i].first != m_sorted_row_partitions[i+1u].first
-            && "Cannot have two row partitions with the same begin value");
-        if(m_sorted_row_partitions[i].second >= m_sorted_row_partitions[i+1u].first)
-          m_sorted_row_partitions[i].second = m_sorted_row_partitions[i+1u].first-1;
-        auto idx = begin_to_idx[m_sorted_row_partitions[i].first];
-        m_row_ranges[idx][0].second = m_sorted_row_partitions[i].second;
-      }
-    }
   if(m_json.HasMember("query_attributes"))
   {
     const rapidjson::Value& q1 = m_json["query_attributes"];
@@ -389,10 +398,28 @@ ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned 
   return m_column_ranges[fixed_rank][idx];
 }
 
-std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename_from_loader_JSON(FileBasedVidMapper* id_mapper, const int rank)
+const std::vector<RowRange>& JSONConfigBase::get_query_row_ranges(const int rank) const
 {
-  std::string vid_mapping_file="";
-  std::string callset_mapping_file="";
+  auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
+  if(static_cast<size_t>(fixed_rank) >= m_row_ranges.size())
+    throw RunConfigException(std::string("No row partition/query row range available for process with rank ")
+        +std::to_string(rank));
+  return m_row_ranges[fixed_rank];
+}
+
+const std::vector<ColumnRange>& JSONConfigBase::get_query_column_ranges(const int rank) const
+{
+  auto fixed_rank = m_single_query_column_ranges_vector ? 0 : rank;
+  if(static_cast<size_t>(fixed_rank) >= m_column_ranges.size())
+    throw RunConfigException(std::string("No column partition/query column range available for process with rank ")
+        +std::to_string(rank));
+  return m_column_ranges[fixed_rank];
+}
+
+void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank)
+{
+  auto& vid_mapping_file = m_vid_mapping_filename;
+  auto& callset_mapping_file = m_callset_mapping_file;
   //Callset mapping file and vid file
   if(m_json.HasMember("vid_mapping_file"))
   {
@@ -427,9 +454,8 @@ std::pair<std::string, std::string> JSONConfigBase::get_vid_mapping_filename_fro
       vid_mapping_file = v.GetString();
     }
   }
-  if(id_mapper && vid_mapping_file.length())
+  if(id_mapper && !(vid_mapping_file.empty()))
     (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, m_lb_callset_row_idx, m_ub_callset_row_idx, false));
-  return std::make_pair(vid_mapping_file, callset_mapping_file);
 }
 
 void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, const int rank)
@@ -450,24 +476,41 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
     m_single_array_name = true;
     m_array_names.push_back(loader_config->get_array_name(rank));
   }
-  // Check if the partitioning is column-based, if so, pick the column corresponding to the rank
-  // and update the m_column_ranges when the query is of type m_single_query_column_ranges_vector
-  if (loader_config->is_partitioned_by_column() && m_single_query_column_ranges_vector)
+  //Vid mapping
+  if(!m_json.HasMember("vid_mapping_file"))
+    m_vid_mapping_filename = loader_config->get_vid_mapping_filename();
+  //Callset mapping
+  if(!m_json.HasMember("callset_mapping_file"))
+    m_callset_mapping_file = loader_config->get_callset_mapping_filename();
+}
+
+void JSONBasicQueryConfig::subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank)
+{
+  if(loader_config)
   {
-    ColumnRange my_rank_loader_column_range = loader_config->get_column_partition(rank);
-    std::vector<ColumnRange> my_rank_queried_columns;
-    for(auto queried_column : m_column_ranges[0])
+    // Check if the partitioning is column-based, if so, pick the column corresponding to the rank
+    // and update the m_column_ranges
+    if (loader_config->is_partitioned_by_column())
     {
-      if(queried_column.second >= my_rank_loader_column_range.first && queried_column.first <= my_rank_loader_column_range.second)
-        my_rank_queried_columns.emplace_back(queried_column);
+      ColumnRange my_rank_loader_column_range = loader_config->get_column_partition(rank);
+      std::vector<ColumnRange> my_rank_queried_columns;
+      for(auto queried_column_range : get_query_column_ranges(rank))
+      {
+        if(queried_column_range.second >= my_rank_loader_column_range.first
+            && queried_column_range.first <= my_rank_loader_column_range.second)
+          my_rank_queried_columns.emplace_back(queried_column_range);
+      }
+      auto idx = m_single_query_column_ranges_vector ? 0 : rank;
+      assert(static_cast<size_t>(idx) < m_column_ranges.size());
+      m_column_ranges[idx] = std::move(my_rank_queried_columns);
     }
-    m_column_ranges[0] = std::move(my_rank_queried_columns);
   }
 }
 
-void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
+void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
+    FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
-  //Need to parse here first because id_mapper initialization in get_vid_mapping_filename_from_loader_JSON() requires
+  //Need to parse here first because id_mapper initialization in read_and_initialize_vid_and_callset_mapping_if_available() requires
   //valid m_json object
   std::ifstream ifs(filename.c_str());
   VERIFY_OR_THROW(ifs.is_open());
@@ -475,14 +518,14 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   m_json.Parse(str.c_str());
   if(m_json.HasParseError())
     throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
-  if (id_mapper && !id_mapper->is_initialized())
-  {
-    get_vid_mapping_filename_from_loader_JSON(id_mapper, rank);
-    VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided");
-  }
-  JSONConfigBase::read_from_file(filename, id_mapper);
   // Update from loader_config_file
   update_from_loader(loader_config, rank);
+  if (id_mapper)
+  {
+    read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
+    VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided in loader or query JSON");
+  }
+  JSONConfigBase::read_from_file(filename, id_mapper);
   //Workspace
   VERIFY_OR_THROW(m_workspaces.size() && "No workspace specified");
   VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
@@ -497,22 +540,21 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
   VERIFY_OR_THROW(array_name != "" && "Empty array name");
   //Query columns
   VERIFY_OR_THROW((m_column_ranges.size() || m_scan_whole_array) && "Query column ranges not specified");
+  subset_query_column_ranges_based_on_partition(loader_config, rank);
   if(!m_scan_whole_array)
   {
     VERIFY_OR_THROW((m_single_query_column_ranges_vector || static_cast<size_t>(rank) < m_column_ranges.size())
         && "Rank >= query column ranges vector size");
-    auto& column_ranges_vector = m_single_query_column_ranges_vector ? m_column_ranges[0] : m_column_ranges[rank];
-    for(auto& range : column_ranges_vector)
+    for(const auto& range : get_query_column_ranges(rank))
       query_config.add_column_interval_to_query(range.first, range.second);
   }
   //Query rows
-  if(m_row_ranges.size())
+  if(!m_scan_whole_array && m_row_ranges.size())
   {
     VERIFY_OR_THROW((m_single_query_row_ranges_vector || static_cast<size_t>(rank) < m_row_ranges.size())
         && "Rank >= query row ranges vector size");
-    const auto& row_ranges_vector = m_single_query_row_ranges_vector ? m_row_ranges[0] : m_row_ranges[rank];
     std::vector<int64_t> row_idxs;
-    for(const auto& range : row_ranges_vector)
+    for(const auto& range : get_query_row_ranges(rank))
     {
       auto j = row_idxs.size();
       row_idxs.resize(row_idxs.size() + (range.second - range.first + 1ll));
@@ -646,9 +688,7 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if (m_vid_mapper_file_required) {
     VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   }
-  auto filename_pair = get_vid_mapping_filename_from_loader_JSON(id_mapper, rank);
-  m_vid_mapping_filename = std::move(filename_pair.first);
-  m_callset_mapping_file = std::move(filename_pair.second);
+  read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
 }
    
 #ifdef HTSDIR

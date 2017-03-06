@@ -486,18 +486,18 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
   }
-  if(loader_json_config_file.length() == 0u)
-  {
-    std::cerr << "Loader JSON configuration file (-l parameter) is mandatory\n";
-    return -1;
-  }
   //Use VariantQueryConfig to setup query info
   VariantQueryConfig query_config;
   //Vid mapping
   FileBasedVidMapper id_mapper;
   //Loader configuration
   JSONLoaderConfig loader_config;
-  loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+  JSONLoaderConfig* loader_config_ptr = 0;
+  if(!(loader_json_config_file.empty()))
+  {
+    loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+    loader_config_ptr = &loader_config;
+  }
 #ifdef HTSDIR
   VCFAdapter vcf_adapter_base;
   VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
@@ -521,7 +521,7 @@ int main(int argc, char *argv[]) {
 #endif
         break;
       default:
-        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, &loader_config);
+        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
         json_config_ptr = &range_query_config;
         break;
     }
@@ -533,7 +533,8 @@ int main(int argc, char *argv[]) {
   {
     if( optind + 2 > argc ) {
       std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-      std::cout << "Usage: " << argv[0] << " -l <loader_config> ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> ) [ -O <output_format> -p <page_size> ]" << std::endl;
+      std::cout << "Usage: " << argv[0] << " ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> )"
+        << " [ -l <loader_json_file] -O <output_format> -p <page_size> ]" << std::endl;
       return -1;
     }
     uint64_t start = std::stoull(std::string(argv[optind]));
@@ -578,7 +579,8 @@ int main(int argc, char *argv[]) {
   {
     case COMMAND_RANGE_QUERY:
       run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
-          loader_config.is_partitioned_by_column(), num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+          (loader_json_config_file.empty() || loader_config.is_partitioned_by_column()),
+          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
       break;
     case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)

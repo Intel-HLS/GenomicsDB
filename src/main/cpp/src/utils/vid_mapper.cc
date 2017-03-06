@@ -912,6 +912,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
     }
   }
   m_buffer_stream_idx_to_global_file_idx.resize(max_buffer_stream_idx_with_global_file_idx+1);
+  m_is_callset_mapping_initialized = true;
 }
 
 void FileBasedVidMapper::write_partition_callsets_json_file(const std::string& original_callsets_filename, const std::string& results_directory,

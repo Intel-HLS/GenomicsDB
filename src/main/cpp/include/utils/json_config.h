@@ -70,7 +70,9 @@ class JSONConfigBase
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
-    std::pair<std::string, std::string> get_vid_mapping_filename_from_loader_JSON(FileBasedVidMapper* id_mapper, const int rank);
+    void read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank);
+    const std::vector<ColumnRange>& get_query_column_ranges(const int rank) const;
+    const std::vector<RowRange>& get_query_row_ranges(const int rank) const;
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -90,6 +92,10 @@ class JSONConfigBase
     //Lower and upper bounds of callset row idx to import in this invocation
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
+    //Vid mapping file
+    std::string m_vid_mapping_filename;
+    //callset mapping file - if defined in upper level config file
+    std::string m_callset_mapping_file;
 };
 
 class JSONLoaderConfig;
@@ -100,6 +106,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
     JSONBasicQueryConfig() : JSONConfigBase()  { }
     void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
     void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
+    void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
 
 class JSONLoaderConfig : public JSONConfigBase
@@ -151,10 +158,6 @@ class JSONLoaderConfig : public JSONConfigBase
     int m_num_converter_processes;
     int64_t m_per_partition_size;
     int64_t m_max_size_per_callset;
-    //Vid mapping file
-    std::string m_vid_mapping_filename;
-    //callset mapping file - if defined in upper level config file
-    std::string m_callset_mapping_file;
     //max #rows - defining domain of the array
     int64_t m_max_num_rows_in_array;
     //segment size for TileDB array
