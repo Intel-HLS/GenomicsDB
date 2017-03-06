@@ -43,8 +43,8 @@ public class GenomicsDBImportConfigurationSpec {
       partition0
         .setBegin(0)
         .setVcfFileName("junk0")
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
+        .setWorkspace(TILEDB_WORKSPACE)
+        .setArray(ARRAY_FOR_PARTITION0)
         .build();
     GenomicsDBImportConfiguration.Partition.Builder partition1 =
       GenomicsDBImportConfiguration.Partition.newBuilder();
@@ -52,8 +52,8 @@ public class GenomicsDBImportConfigurationSpec {
       partition1
         .setBegin(1000000)
         .setVcfFileName("junk1")
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
+        .setWorkspace(TILEDB_WORKSPACE)
+        .setArray(ARRAY_FOR_PARTITION1)
         .build();
 
     partitions.add(p0);

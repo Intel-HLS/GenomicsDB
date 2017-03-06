@@ -16,8 +16,8 @@ option java_outer_classname = "GenomicsDBImportConfiguration";
 
 message Partition {
   required int64 begin = 1;
-  optional string tiledb_workspace = 2;
-  optional string tiledb_array_name = 3;
+  optional string workspace = 2;
+  optional string array = 3;
   optional string vcf_file_name = 4;
 }
 

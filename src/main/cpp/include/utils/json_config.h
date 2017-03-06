@@ -124,6 +124,10 @@ class JSONLoaderConfig : public JSONConfigBase
     inline const std::string& get_vid_mapping_filename() const { return m_vid_mapping_filename; }
     inline const std::string& get_callset_mapping_filename() const { return m_callset_mapping_file; }
     inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
+    inline void set_vid_mapper_file_required(bool val) {
+      m_vid_mapper_file_required = val;
+    }
+
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;

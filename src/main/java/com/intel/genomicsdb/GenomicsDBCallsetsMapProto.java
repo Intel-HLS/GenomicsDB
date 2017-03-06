@@ -42,13 +42,13 @@ public final class GenomicsDBCallsetsMapProto {
     long getTiledbRowIndex();
 
     /**
-     * <code>required int32 sample_vcf_index = 3;</code>
+     * <code>required int32 idx_in_file = 3;</code>
      */
-    boolean hasSampleVcfIndex();
+    boolean hasIdxInFile();
     /**
-     * <code>required int32 sample_vcf_index = 3;</code>
+     * <code>required int32 idx_in_file = 3;</code>
      */
-    int getSampleVcfIndex();
+    int getIdxInFile();
 
     /**
      * <code>optional string stream_name = 4;</code>
@@ -78,7 +78,7 @@ public final class GenomicsDBCallsetsMapProto {
     private SampleIDToTileDBIDMap() {
       sampleName_ = "";
       tiledbRowIndex_ = 0L;
-      sampleVcfIndex_ = 0;
+      idxInFile_ = 0;
       streamName_ = "";
     }
 
@@ -123,7 +123,7 @@ public final class GenomicsDBCallsetsMapProto {
             }
             case 24: {
               bitField0_ |= 0x00000004;
-              sampleVcfIndex_ = input.readInt32();
+              idxInFile_ = input.readInt32();
               break;
             }
             case 34: {
@@ -214,19 +214,19 @@ public final class GenomicsDBCallsetsMapProto {
       return tiledbRowIndex_;
     }
 
-    public static final int SAMPLE_VCF_INDEX_FIELD_NUMBER = 3;
-    private int sampleVcfIndex_;
+    public static final int IDX_IN_FILE_FIELD_NUMBER = 3;
+    private int idxInFile_;
     /**
-     * <code>required int32 sample_vcf_index = 3;</code>
+     * <code>required int32 idx_in_file = 3;</code>
      */
-    public boolean hasSampleVcfIndex() {
+    public boolean hasIdxInFile() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required int32 sample_vcf_index = 3;</code>
+     * <code>required int32 idx_in_file = 3;</code>
      */
-    public int getSampleVcfIndex() {
-      return sampleVcfIndex_;
+    public int getIdxInFile() {
+      return idxInFile_;
     }
 
     public static final int STREAM_NAME_FIELD_NUMBER = 4;
@@ -285,7 +285,7 @@ public final class GenomicsDBCallsetsMapProto {
         memoizedIsInitialized = 0;
         return false;
       }
-      if (!hasSampleVcfIndex()) {
+      if (!hasIdxInFile()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -302,7 +302,7 @@ public final class GenomicsDBCallsetsMapProto {
         output.writeInt64(2, tiledbRowIndex_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt32(3, sampleVcfIndex_);
+        output.writeInt32(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 4, streamName_);
@@ -324,7 +324,7 @@ public final class GenomicsDBCallsetsMapProto {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(3, sampleVcfIndex_);
+          .computeInt32Size(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, streamName_);
@@ -356,10 +356,10 @@ public final class GenomicsDBCallsetsMapProto {
         result = result && (getTiledbRowIndex()
             == other.getTiledbRowIndex());
       }
-      result = result && (hasSampleVcfIndex() == other.hasSampleVcfIndex());
-      if (hasSampleVcfIndex()) {
-        result = result && (getSampleVcfIndex()
-            == other.getSampleVcfIndex());
+      result = result && (hasIdxInFile() == other.hasIdxInFile());
+      if (hasIdxInFile()) {
+        result = result && (getIdxInFile()
+            == other.getIdxInFile());
       }
       result = result && (hasStreamName() == other.hasStreamName());
       if (hasStreamName()) {
@@ -376,7 +376,7 @@ public final class GenomicsDBCallsetsMapProto {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasSampleName()) {
         hash = (37 * hash) + SAMPLE_NAME_FIELD_NUMBER;
         hash = (53 * hash) + getSampleName().hashCode();
@@ -386,9 +386,9 @@ public final class GenomicsDBCallsetsMapProto {
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
             getTiledbRowIndex());
       }
-      if (hasSampleVcfIndex()) {
-        hash = (37 * hash) + SAMPLE_VCF_INDEX_FIELD_NUMBER;
-        hash = (53 * hash) + getSampleVcfIndex();
+      if (hasIdxInFile()) {
+        hash = (37 * hash) + IDX_IN_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getIdxInFile();
       }
       if (hasStreamName()) {
         hash = (37 * hash) + STREAM_NAME_FIELD_NUMBER;
@@ -516,7 +516,7 @@ public final class GenomicsDBCallsetsMapProto {
         bitField0_ = (bitField0_ & ~0x00000001);
         tiledbRowIndex_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        sampleVcfIndex_ = 0;
+        idxInFile_ = 0;
         bitField0_ = (bitField0_ & ~0x00000004);
         streamName_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -555,7 +555,7 @@ public final class GenomicsDBCallsetsMapProto {
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.sampleVcfIndex_ = sampleVcfIndex_;
+        result.idxInFile_ = idxInFile_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
@@ -610,8 +610,8 @@ public final class GenomicsDBCallsetsMapProto {
         if (other.hasTiledbRowIndex()) {
           setTiledbRowIndex(other.getTiledbRowIndex());
         }
-        if (other.hasSampleVcfIndex()) {
-          setSampleVcfIndex(other.getSampleVcfIndex());
+        if (other.hasIdxInFile()) {
+          setIdxInFile(other.getIdxInFile());
         }
         if (other.hasStreamName()) {
           bitField0_ |= 0x00000008;
@@ -630,7 +630,7 @@ public final class GenomicsDBCallsetsMapProto {
         if (!hasTiledbRowIndex()) {
           return false;
         }
-        if (!hasSampleVcfIndex()) {
+        if (!hasIdxInFile()) {
           return false;
         }
         return true;
@@ -763,34 +763,34 @@ public final class GenomicsDBCallsetsMapProto {
         return this;
       }
 
-      private int sampleVcfIndex_ ;
+      private int idxInFile_ ;
       /**
-       * <code>required int32 sample_vcf_index = 3;</code>
+       * <code>required int32 idx_in_file = 3;</code>
        */
-      public boolean hasSampleVcfIndex() {
+      public boolean hasIdxInFile() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required int32 sample_vcf_index = 3;</code>
+       * <code>required int32 idx_in_file = 3;</code>
        */
-      public int getSampleVcfIndex() {
-        return sampleVcfIndex_;
+      public int getIdxInFile() {
+        return idxInFile_;
       }
       /**
-       * <code>required int32 sample_vcf_index = 3;</code>
+       * <code>required int32 idx_in_file = 3;</code>
        */
-      public Builder setSampleVcfIndex(int value) {
+      public Builder setIdxInFile(int value) {
         bitField0_ |= 0x00000004;
-        sampleVcfIndex_ = value;
+        idxInFile_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 sample_vcf_index = 3;</code>
+       * <code>required int32 idx_in_file = 3;</code>
        */
-      public Builder clearSampleVcfIndex() {
+      public Builder clearIdxInFile() {
         bitField0_ = (bitField0_ & ~0x00000004);
-        sampleVcfIndex_ = 0;
+        idxInFile_ = 0;
         onChanged();
         return this;
       }
@@ -924,28 +924,38 @@ public final class GenomicsDBCallsetsMapProto {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-     */
-    java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> 
-        getCallsetMapList();
-    /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-     */
-    com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMap(int index);
-    /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
      */
     int getCallsetMapCount();
     /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
      */
-    java.util.List<? extends com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> 
-        getCallsetMapOrBuilderList();
+    boolean containsCallsetMap(
+        java.lang.String key);
     /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+     * Use {@link #getCallsetMapMap()} instead.
      */
-    com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder getCallsetMapOrBuilder(
-        int index);
+    @java.lang.Deprecated
+    java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+    getCallsetMap();
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+    java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+    getCallsetMapMap();
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+
+    com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrDefault(
+        java.lang.String key,
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap defaultValue);
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+
+    com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrThrow(
+        java.lang.String key);
   }
   /**
    * Protobuf type {@code CallsetMap}
@@ -959,7 +969,6 @@ public final class GenomicsDBCallsetsMapProto {
       super(builder);
     }
     private CallsetMap() {
-      callsetMap_ = java.util.Collections.emptyList();
     }
 
     @java.lang.Override
@@ -992,11 +1001,14 @@ public final class GenomicsDBCallsetsMapProto {
             }
             case 10: {
               if (!((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-                callsetMap_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>();
+                callsetMap_ = com.google.protobuf.MapField.newMapField(
+                    CallsetMapDefaultEntryHolder.defaultEntry);
                 mutable_bitField0_ |= 0x00000001;
               }
-              callsetMap_.add(
-                  input.readMessage(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.PARSER, extensionRegistry));
+              com.google.protobuf.MapEntry<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+              callsetMap = input.readMessage(
+                  CallsetMapDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              callsetMap_.getMutableMap().put(callsetMap.getKey(), callsetMap.getValue());
               break;
             }
           }
@@ -1007,9 +1019,6 @@ public final class GenomicsDBCallsetsMapProto {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
-          callsetMap_ = java.util.Collections.unmodifiableList(callsetMap_);
-        }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
@@ -1019,6 +1028,17 @@ public final class GenomicsDBCallsetsMapProto {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapField internalGetMapField(
+        int number) {
+      switch (number) {
+        case 1:
+          return internalGetCallsetMap();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_fieldAccessorTable
@@ -1027,38 +1047,79 @@ public final class GenomicsDBCallsetsMapProto {
     }
 
     public static final int CALLSET_MAP_FIELD_NUMBER = 1;
-    private java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsetMap_;
-    /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-     */
-    public java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMapList() {
+    private static final class CallsetMapDefaultEntryHolder {
+      static final com.google.protobuf.MapEntry<
+          java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> defaultEntry =
+              com.google.protobuf.MapEntry
+              .<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>newDefaultInstance(
+                  com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_CallsetMapEntry_descriptor, 
+                  com.google.protobuf.WireFormat.FieldType.STRING,
+                  "",
+                  com.google.protobuf.WireFormat.FieldType.MESSAGE,
+                  com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.getDefaultInstance());
+    }
+    private com.google.protobuf.MapField<
+        java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsetMap_;
+    private com.google.protobuf.MapField<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+    internalGetCallsetMap() {
+      if (callsetMap_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            CallsetMapDefaultEntryHolder.defaultEntry);
+      }
       return callsetMap_;
     }
-    /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-     */
-    public java.util.List<? extends com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> 
-        getCallsetMapOrBuilderList() {
-      return callsetMap_;
-    }
-    /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-     */
+
     public int getCallsetMapCount() {
-      return callsetMap_.size();
+      return internalGetCallsetMap().getMap().size();
     }
     /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
      */
-    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMap(int index) {
-      return callsetMap_.get(index);
+
+    public boolean containsCallsetMap(
+        java.lang.String key) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      return internalGetCallsetMap().getMap().containsKey(key);
     }
     /**
-     * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+     * Use {@link #getCallsetMapMap()} instead.
      */
-    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder getCallsetMapOrBuilder(
-        int index) {
-      return callsetMap_.get(index);
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMap() {
+      return getCallsetMapMap();
+    }
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+
+    public java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMapMap() {
+      return internalGetCallsetMap().getMap();
+    }
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+
+    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrDefault(
+        java.lang.String key,
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap defaultValue) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> map =
+          internalGetCallsetMap().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
+     */
+
+    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new java.lang.NullPointerException(); }
+      java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> map =
+          internalGetCallsetMap().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
     }
 
     private byte memoizedIsInitialized = -1;
@@ -1067,8 +1128,8 @@ public final class GenomicsDBCallsetsMapProto {
       if (isInitialized == 1) return true;
       if (isInitialized == 0) return false;
 
-      for (int i = 0; i < getCallsetMapCount(); i++) {
-        if (!getCallsetMap(i).isInitialized()) {
+      for (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap item : getCallsetMap().values()) {
+        if (!item.isInitialized()) {
           memoizedIsInitialized = 0;
           return false;
         }
@@ -1079,8 +1140,14 @@ public final class GenomicsDBCallsetsMapProto {
 
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      for (int i = 0; i < callsetMap_.size(); i++) {
-        output.writeMessage(1, callsetMap_.get(i));
+      for (java.util.Map.Entry<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> entry
+           : internalGetCallsetMap().getMap().entrySet()) {
+        com.google.protobuf.MapEntry<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+        callsetMap = CallsetMapDefaultEntryHolder.defaultEntry.newBuilderForType()
+            .setKey(entry.getKey())
+            .setValue(entry.getValue())
+            .build();
+        output.writeMessage(1, callsetMap);
       }
       unknownFields.writeTo(output);
     }
@@ -1090,9 +1157,15 @@ public final class GenomicsDBCallsetsMapProto {
       if (size != -1) return size;
 
       size = 0;
-      for (int i = 0; i < callsetMap_.size(); i++) {
+      for (java.util.Map.Entry<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> entry
+           : internalGetCallsetMap().getMap().entrySet()) {
+        com.google.protobuf.MapEntry<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+        callsetMap = CallsetMapDefaultEntryHolder.defaultEntry.newBuilderForType()
+            .setKey(entry.getKey())
+            .setValue(entry.getValue())
+            .build();
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, callsetMap_.get(i));
+            .computeMessageSize(1, callsetMap);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1111,8 +1184,8 @@ public final class GenomicsDBCallsetsMapProto {
       com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap other = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap) obj;
 
       boolean result = true;
-      result = result && getCallsetMapList()
-          .equals(other.getCallsetMapList());
+      result = result && internalGetCallsetMap().equals(
+          other.internalGetCallsetMap());
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -1123,10 +1196,10 @@ public final class GenomicsDBCallsetsMapProto {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (getCallsetMapCount() > 0) {
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (!internalGetCallsetMap().getMap().isEmpty()) {
         hash = (37 * hash) + CALLSET_MAP_FIELD_NUMBER;
-        hash = (53 * hash) + getCallsetMapList().hashCode();
+        hash = (53 * hash) + internalGetCallsetMap().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -1222,6 +1295,28 @@ public final class GenomicsDBCallsetsMapProto {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_descriptor;
       }
 
+      @SuppressWarnings({"rawtypes"})
+      protected com.google.protobuf.MapField internalGetMapField(
+          int number) {
+        switch (number) {
+          case 1:
+            return internalGetCallsetMap();
+          default:
+            throw new RuntimeException(
+                "Invalid map field number: " + number);
+        }
+      }
+      @SuppressWarnings({"rawtypes"})
+      protected com.google.protobuf.MapField internalGetMutableMapField(
+          int number) {
+        switch (number) {
+          case 1:
+            return internalGetMutableCallsetMap();
+          default:
+            throw new RuntimeException(
+                "Invalid map field number: " + number);
+        }
+      }
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_fieldAccessorTable
@@ -1242,17 +1337,11 @@ public final class GenomicsDBCallsetsMapProto {
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessageV3
                 .alwaysUseFieldBuilders) {
-          getCallsetMapFieldBuilder();
         }
       }
       public Builder clear() {
         super.clear();
-        if (callsetMapBuilder_ == null) {
-          callsetMap_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
-        } else {
-          callsetMapBuilder_.clear();
-        }
+        internalGetMutableCallsetMap().clear();
         return this;
       }
 
@@ -1276,15 +1365,8 @@ public final class GenomicsDBCallsetsMapProto {
       public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap buildPartial() {
         com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap result = new com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap(this);
         int from_bitField0_ = bitField0_;
-        if (callsetMapBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) == 0x00000001)) {
-            callsetMap_ = java.util.Collections.unmodifiableList(callsetMap_);
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
-          result.callsetMap_ = callsetMap_;
-        } else {
-          result.callsetMap_ = callsetMapBuilder_.build();
-        }
+        result.callsetMap_ = internalGetCallsetMap();
+        result.callsetMap_.makeImmutable();
         onBuilt();
         return result;
       }
@@ -1326,40 +1408,16 @@ public final class GenomicsDBCallsetsMapProto {
 
       public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap other) {
         if (other == com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.getDefaultInstance()) return this;
-        if (callsetMapBuilder_ == null) {
-          if (!other.callsetMap_.isEmpty()) {
-            if (callsetMap_.isEmpty()) {
-              callsetMap_ = other.callsetMap_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-            } else {
-              ensureCallsetMapIsMutable();
-              callsetMap_.addAll(other.callsetMap_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.callsetMap_.isEmpty()) {
-            if (callsetMapBuilder_.isEmpty()) {
-              callsetMapBuilder_.dispose();
-              callsetMapBuilder_ = null;
-              callsetMap_ = other.callsetMap_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-              callsetMapBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getCallsetMapFieldBuilder() : null;
-            } else {
-              callsetMapBuilder_.addAllMessages(other.callsetMap_);
-            }
-          }
-        }
+        internalGetMutableCallsetMap().mergeFrom(
+            other.internalGetCallsetMap());
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
       }
 
       public final boolean isInitialized() {
-        for (int i = 0; i < getCallsetMapCount(); i++) {
-          if (!getCallsetMap(i).isInitialized()) {
+        for (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap item : getCallsetMap().values()) {
+          if (!item.isInitialized()) {
             return false;
           }
         }
@@ -1385,244 +1443,123 @@ public final class GenomicsDBCallsetsMapProto {
       }
       private int bitField0_;
 
-      private java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsetMap_ =
-        java.util.Collections.emptyList();
-      private void ensureCallsetMapIsMutable() {
-        if (!((bitField0_ & 0x00000001) == 0x00000001)) {
-          callsetMap_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>(callsetMap_);
-          bitField0_ |= 0x00000001;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> callsetMapBuilder_;
-
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMapList() {
-        if (callsetMapBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(callsetMap_);
-        } else {
-          return callsetMapBuilder_.getMessageList();
+      private com.google.protobuf.MapField<
+          java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsetMap_;
+      private com.google.protobuf.MapField<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+      internalGetCallsetMap() {
+        if (callsetMap_ == null) {
+          return com.google.protobuf.MapField.emptyMapField(
+              CallsetMapDefaultEntryHolder.defaultEntry);
         }
+        return callsetMap_;
       }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
+      private com.google.protobuf.MapField<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+      internalGetMutableCallsetMap() {
+        onChanged();;
+        if (callsetMap_ == null) {
+          callsetMap_ = com.google.protobuf.MapField.newMapField(
+              CallsetMapDefaultEntryHolder.defaultEntry);
+        }
+        if (!callsetMap_.isMutable()) {
+          callsetMap_ = callsetMap_.copy();
+        }
+        return callsetMap_;
+      }
+
       public int getCallsetMapCount() {
-        if (callsetMapBuilder_ == null) {
-          return callsetMap_.size();
-        } else {
-          return callsetMapBuilder_.getCount();
-        }
+        return internalGetCallsetMap().getMap().size();
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMap(int index) {
-        if (callsetMapBuilder_ == null) {
-          return callsetMap_.get(index);
-        } else {
-          return callsetMapBuilder_.getMessage(index);
-        }
+
+      public boolean containsCallsetMap(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        return internalGetCallsetMap().getMap().containsKey(key);
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * Use {@link #getCallsetMapMap()} instead.
        */
-      public Builder setCallsetMap(
-          int index, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap value) {
-        if (callsetMapBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureCallsetMapIsMutable();
-          callsetMap_.set(index, value);
-          onChanged();
-        } else {
-          callsetMapBuilder_.setMessage(index, value);
-        }
-        return this;
+      @java.lang.Deprecated
+      public java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMap() {
+        return getCallsetMapMap();
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public Builder setCallsetMap(
-          int index, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder builderForValue) {
-        if (callsetMapBuilder_ == null) {
-          ensureCallsetMapIsMutable();
-          callsetMap_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          callsetMapBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
+
+      public java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> getCallsetMapMap() {
+        return internalGetCallsetMap().getMap();
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public Builder addCallsetMap(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap value) {
-        if (callsetMapBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureCallsetMapIsMutable();
-          callsetMap_.add(value);
-          onChanged();
-        } else {
-          callsetMapBuilder_.addMessage(value);
-        }
-        return this;
+
+      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrDefault(
+          java.lang.String key,
+          com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap defaultValue) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> map =
+            internalGetCallsetMap().getMap();
+        return map.containsKey(key) ? map.get(key) : defaultValue;
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public Builder addCallsetMap(
-          int index, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap value) {
-        if (callsetMapBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureCallsetMapIsMutable();
-          callsetMap_.add(index, value);
-          onChanged();
-        } else {
-          callsetMapBuilder_.addMessage(index, value);
+
+      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap getCallsetMapOrThrow(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> map =
+            internalGetCallsetMap().getMap();
+        if (!map.containsKey(key)) {
+          throw new java.lang.IllegalArgumentException();
         }
-        return this;
+        return map.get(key);
       }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public Builder addCallsetMap(
-          com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder builderForValue) {
-        if (callsetMapBuilder_ == null) {
-          ensureCallsetMapIsMutable();
-          callsetMap_.add(builderForValue.build());
-          onChanged();
-        } else {
-          callsetMapBuilder_.addMessage(builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public Builder addCallsetMap(
-          int index, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder builderForValue) {
-        if (callsetMapBuilder_ == null) {
-          ensureCallsetMapIsMutable();
-          callsetMap_.add(index, builderForValue.build());
-          onChanged();
-        } else {
-          callsetMapBuilder_.addMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public Builder addAllCallsetMap(
-          java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> values) {
-        if (callsetMapBuilder_ == null) {
-          ensureCallsetMapIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, callsetMap_);
-          onChanged();
-        } else {
-          callsetMapBuilder_.addAllMessages(values);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
+
       public Builder clearCallsetMap() {
-        if (callsetMapBuilder_ == null) {
-          callsetMap_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
-          onChanged();
-        } else {
-          callsetMapBuilder_.clear();
-        }
+        getMutableCallsetMap().clear();
         return this;
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public Builder removeCallsetMap(int index) {
-        if (callsetMapBuilder_ == null) {
-          ensureCallsetMapIsMutable();
-          callsetMap_.remove(index);
-          onChanged();
-        } else {
-          callsetMapBuilder_.remove(index);
-        }
+
+      public Builder removeCallsetMap(
+          java.lang.String key) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        getMutableCallsetMap().remove(key);
         return this;
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * Use alternate mutation accessors instead.
        */
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder getCallsetMapBuilder(
-          int index) {
-        return getCallsetMapFieldBuilder().getBuilder(index);
+      @java.lang.Deprecated
+      public java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>
+      getMutableCallsetMap() {
+        return internalGetMutableCallsetMap().getMutableMap();
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder getCallsetMapOrBuilder(
-          int index) {
-        if (callsetMapBuilder_ == null) {
-          return callsetMap_.get(index);  } else {
-          return callsetMapBuilder_.getMessageOrBuilder(index);
-        }
+      public Builder putCallsetMap(
+          java.lang.String key,
+          com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap value) {
+        if (key == null) { throw new java.lang.NullPointerException(); }
+        if (value == null) { throw new java.lang.NullPointerException(); }
+        getMutableCallsetMap().put(key, value);
+        return this;
       }
       /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
+       * <code>map&lt;string, .SampleIDToTileDBIDMap&gt; callset_map = 1;</code>
        */
-      public java.util.List<? extends com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> 
-           getCallsetMapOrBuilderList() {
-        if (callsetMapBuilder_ != null) {
-          return callsetMapBuilder_.getMessageOrBuilderList();
-        } else {
-          return java.util.Collections.unmodifiableList(callsetMap_);
-        }
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder addCallsetMapBuilder() {
-        return getCallsetMapFieldBuilder().addBuilder(
-            com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder addCallsetMapBuilder(
-          int index) {
-        return getCallsetMapFieldBuilder().addBuilder(
-            index, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .SampleIDToTileDBIDMap callset_map = 1;</code>
-       */
-      public java.util.List<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder> 
-           getCallsetMapBuilderList() {
-        return getCallsetMapFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> 
-          getCallsetMapFieldBuilder() {
-        if (callsetMapBuilder_ == null) {
-          callsetMapBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder>(
-                  callsetMap_,
-                  ((bitField0_ & 0x00000001) == 0x00000001),
-                  getParentForChildren(),
-                  isClean());
-          callsetMap_ = null;
-        }
-        return callsetMapBuilder_;
+
+      public Builder putAllCallsetMap(
+          java.util.Map<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> values) {
+        getMutableCallsetMap().putAll(values);
+        return this;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -1683,6 +1620,11 @@ public final class GenomicsDBCallsetsMapProto {
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_CallsetMap_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_CallsetMap_CallsetMapEntry_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_CallsetMap_CallsetMapEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -1692,13 +1634,15 @@ public final class GenomicsDBCallsetsMapProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n!genomicsdb_callsets_mapping.proto\"u\n\025S" +
+      "\n!genomicsdb_callsets_mapping.proto\"p\n\025S" +
       "ampleIDToTileDBIDMap\022\023\n\013sample_name\030\001 \002(" +
-      "\t\022\030\n\020tiledb_row_index\030\002 \002(\003\022\030\n\020sample_vc" +
-      "f_index\030\003 \002(\005\022\023\n\013stream_name\030\004 \001(\t\"9\n\nCa" +
-      "llsetMap\022+\n\013callset_map\030\001 \003(\0132\026.SampleID" +
-      "ToTileDBIDMapB2\n\024com.intel.genomicsdbB\032G" +
-      "enomicsDBCallsetsMapProto"
+      "\t\022\030\n\020tiledb_row_index\030\002 \002(\003\022\023\n\013idx_in_fi" +
+      "le\030\003 \002(\005\022\023\n\013stream_name\030\004 \001(\t\"\211\001\n\nCallse" +
+      "tMap\0220\n\013callset_map\030\001 \003(\0132\033.CallsetMap.C" +
+      "allsetMapEntry\032I\n\017CallsetMapEntry\022\013\n\003key" +
+      "\030\001 \001(\t\022%\n\005value\030\002 \001(\0132\026.SampleIDToTileDB" +
+      "IDMap:\0028\001B2\n\024com.intel.genomicsdbB\032Genom" +
+      "icsDBCallsetsMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -1717,13 +1661,19 @@ public final class GenomicsDBCallsetsMapProto {
     internal_static_SampleIDToTileDBIDMap_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_SampleIDToTileDBIDMap_descriptor,
-        new java.lang.String[] { "SampleName", "TiledbRowIndex", "SampleVcfIndex", "StreamName", });
+        new java.lang.String[] { "SampleName", "TiledbRowIndex", "IdxInFile", "StreamName", });
     internal_static_CallsetMap_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_CallsetMap_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_CallsetMap_descriptor,
         new java.lang.String[] { "CallsetMap", });
+    internal_static_CallsetMap_CallsetMapEntry_descriptor =
+      internal_static_CallsetMap_descriptor.getNestedTypes().get(0);
+    internal_static_CallsetMap_CallsetMapEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_CallsetMap_CallsetMapEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

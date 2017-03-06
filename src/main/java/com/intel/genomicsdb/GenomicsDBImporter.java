@@ -262,7 +262,7 @@ public class GenomicsDBImporter
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
     mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
-    File importJSONFile = printLoaderJSONFile(importConfiguration);
+    File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     initialize(importJSONFile.getAbsolutePath(), 0, 0, 0);
     mChromosomeInterval =chromosomeInterval;
@@ -273,9 +273,10 @@ public class GenomicsDBImporter
     jniCopyVidMap(mGenomicsDBImporterObjectHandle, mVidMap.toByteArray());
     jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, mCallsetMap.toByteArray());
 
-    int streamIndex = 0;
-    for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap :
-      mCallsetMap.getCallsetMapList()) {
+    for (Map.Entry<String, GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callset :
+      mCallsetMap.getCallsetMapMap().entrySet()) {
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
+        callset.getValue();
         FeatureReader<VariantContext> featureReader =
           sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName());
         CloseableIterator iterator = featureReader.query(mChromosomeInterval.mChromosomeName,
@@ -284,9 +285,9 @@ public class GenomicsDBImporter
       String streamName = sampleIDToTileDBIDMap.getStreamName();
       LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
         new LinkedHashMap<Integer, SampleInfo>();
-      streamIndex = addSortedVariantContextIterator(
+      addSortedVariantContextIterator(
         streamName,
-        new VCFHeader(mergedHeader),
+        (VCFHeader) featureReader.getHeader(),
         iterator,
         importConfiguration.getSizePerColumnPartition(),
         VariantContextWriterBuilder.OutputType.BCF_STREAM,
@@ -294,9 +295,21 @@ public class GenomicsDBImporter
     }
   }
 
-  private File printLoaderJSONFile(ImportConfiguration importConfiguration) {
+  /**
+   * Create a JSON file from the import configuration
+   *
+   * @param importConfiguration  The configuration object
+   * @return  New file (with the specified name) written to local storage
+   */
+  public static File printLoaderJSONFile(
+    ImportConfiguration importConfiguration,
+    String filename) {
     String loaderJSONString = printToString(importConfiguration);
-    File tempLoaderJSONFile = new File(mTempLoaderJSONFileName);
+
+    File tempLoaderJSONFile = (filename.isEmpty()) ?
+      new File(mTempLoaderJSONFileName) :
+      new File(filename);
+
     try( PrintWriter out = new PrintWriter(tempLoaderJSONFile)  ){
       out.println(loaderJSONString);
     } catch (FileNotFoundException e) {
@@ -326,8 +339,11 @@ public class GenomicsDBImporter
 
     Collections.sort(sampleNames);
 
+    GenomicsDBCallsetsMapProto.CallsetMap.Builder callsetMapBuilder =
+      GenomicsDBCallsetsMapProto.CallsetMap.newBuilder();
+
     int tileDBRowIndex = 0;
-    List<GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callsets = new ArrayList<>();
+    
     for (String sampleName : sampleNames) {
       GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder idMapBuilder =
         GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
@@ -335,18 +351,15 @@ public class GenomicsDBImporter
       idMapBuilder
         .setSampleName(sampleName)
         .setTiledbRowIndex(tileDBRowIndex++)
-        .setSampleVcfIndex(0)
+        .setIdxInFile(0)
         .setStreamName(sampleName + "_stream");
 
       GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
         idMapBuilder.build();
-      callsets.add(sampleIDToTileDBIDMap);
 
+      callsetMapBuilder.putCallsetMap(sampleName, sampleIDToTileDBIDMap);
     }
-
-    GenomicsDBCallsetsMapProto.CallsetMap.Builder callsetMapBuilder =
-      GenomicsDBCallsetsMapProto.CallsetMap.newBuilder();
-    return callsetMapBuilder.addAllCallsetMap(callsets).build();
+    return callsetMapBuilder.build();
   }
 
 

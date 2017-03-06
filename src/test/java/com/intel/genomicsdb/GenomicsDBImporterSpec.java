@@ -22,15 +22,14 @@
 
 package com.intel.genomicsdb;
 
-import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.tribble.FeatureCodec;
-import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.*;
 import htsjdk.tribble.readers.PositionalBufferedStream;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import scala.tools.nsc.typechecker.PatternMatching;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,10 +38,11 @@ import java.util.*;
 public class GenomicsDBImporterSpec {
 
   private static final String TILEDB_WORKSPACE = "./__workspace";
-  private static final String ARRAY_FOR_PARTITION0 = "array_test0";
-  private static final String ARRAY_FOR_PARTITION1 = "array_test1";
+  private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
+  private static final String REFERENCE_GENOME = "./tests/inputs/chr1_10MB.fasta";
+  private static final String TEST_CHROMOSOME_NAME = "1";
 
-  @Test(groups = {"genomicsdb importer with an interval and multiple GVCFs"})
+  @Test(testName = "genomicsdb importer with an interval and multiple GVCFs")
   public void testMultiGVCFInputs() throws IOException {
 
     File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
@@ -58,15 +58,15 @@ public class GenomicsDBImporterSpec {
     FeatureReader<VariantContext> reader_t8 =
       AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
     variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
-//    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
-//    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
+    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
 
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
       generateTestLoaderConfiguration();
 
     ChromosomeInterval chromosomeInterval =
-      new ChromosomeInterval("1", 1, 249250619);
+      new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
     List<VCFHeader> headers = new ArrayList<>();
     for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
       headers.add((VCFHeader) variant.getValue().getHeader());
@@ -88,21 +88,11 @@ public class GenomicsDBImporterSpec {
       partition0
         .setBegin(0)
         .setVcfFileName("junk0")
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION0)
-        .build();
-    GenomicsDBImportConfiguration.Partition.Builder partition1 =
-      GenomicsDBImportConfiguration.Partition.newBuilder();
-    GenomicsDBImportConfiguration.Partition p1 =
-      partition1
-        .setBegin(1000000)
-        .setVcfFileName("junk1")
-        .setTiledbWorkspace(TILEDB_WORKSPACE)
-        .setTiledbArrayName(ARRAY_FOR_PARTITION1)
+        .setWorkspace(new File(TILEDB_WORKSPACE).getAbsolutePath())
+        .setArray(TILEDB_ARRAYNAME)
         .build();
 
     partitions.add(p0);
-    partitions.add(p1);
 
     GenomicsDBImportConfiguration.ImportConfiguration.Builder configBuilder =
       GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();

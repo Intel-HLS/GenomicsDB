@@ -30,8 +30,8 @@
 
 ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
   const VidMapping* vid_map_protobuf,
-  const CallsetMap* callset_map_protobuf
-  )
+  const CallsetMap* callset_map_protobuf,
+  const std::vector<BufferStreamInfo>& buffer_stream_info_vec)
   : VidMapper() {
 
   // Verify that the version of the library that we linked against is
@@ -45,15 +45,18 @@ ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
   assert (callset_map_protobuf->IsInitialized() &&
       callset_map_protobuf->callset_map_size()!= 0);
 
-  initialize(vid_map_protobuf, callset_map_protobuf);
+  initialize(vid_map_protobuf, callset_map_protobuf, buffer_stream_info_vec);
 }
 
 void ProtoBufBasedVidMapper::initialize(
   const VidMapping* vid_map_protobuf,
-  const CallsetMap* callset_map_protobuf) {
+  const CallsetMap* callset_map_protobuf,
+  const std::vector<BufferStreamInfo>& buffer_stream_info_vec) {
 
   int ret = 0;
-  ret = parse_callset_protobuf(callset_map_protobuf);
+  ret = parse_callset_protobuf(
+          callset_map_protobuf,
+          buffer_stream_info_vec);
   assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
   ret = parse_vidmap_protobuf(vid_map_protobuf);
   assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
@@ -62,17 +65,21 @@ void ProtoBufBasedVidMapper::initialize(
 }
 
 int ProtoBufBasedVidMapper::parse_callset_protobuf(
-  const CallsetMap* callset_map_protobuf) {
+  const CallsetMap* callset_map_protobuf,
+  const std::vector<BufferStreamInfo>& buffer_stream_info_vec) {
 
   auto num_callsets = callset_map_protobuf->callset_map_size();
   m_row_idx_to_info.resize(num_callsets);
   m_max_callset_row_idx = -1;
 
-  for (int i = 0; i < callset_map_protobuf->callset_map_size(); ++i) {
-    SampleIDToTileDBIDMap sample_info = callset_map_protobuf->callset_map(i);
-    std::string callset_name = sample_info.sample_name();
+  google::protobuf::Map<std::string, SampleIDToTileDBIDMap>::const_iterator it =
+      callset_map_protobuf->callset_map().cbegin();
+
+  for (; it != callset_map_protobuf->callset_map().cend(); ++it) {
+    SampleIDToTileDBIDMap sample_info = it->second;
+    std::string callset_name = it->first;
     int64_t row_idx = sample_info.tiledb_row_index();
-    int64_t sample_vcf_index = sample_info.sample_vcf_index();
+    int64_t idx_in_file = sample_info.idx_in_file();
     std::string stream_name = sample_info.stream_name();
 
     if(m_callset_name_to_row_idx.find(callset_name) !=
@@ -107,7 +114,7 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
           + m_file_idx_to_info[curr_row_info.m_file_idx].m_name
           + ", "
           + stream_name);
-      if(curr_row_info.m_idx_in_file != sample_vcf_index)
+      if(curr_row_info.m_idx_in_file != idx_in_file)
         throw ProtoBufBasedVidMapperException(
           std::string("Conflicting values of \"sample_vcf_index\" ")
           + std::string("specified for Callset/sample ")
@@ -115,11 +122,11 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
           + ": "
           + std::to_string(curr_row_info.m_idx_in_file)
           + ", "
-          + std::to_string(sample_vcf_index));
+          + std::to_string(idx_in_file));
     } else {
       assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
       m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(
-          sample_vcf_index,
+          idx_in_file,
           row_idx);
     }
 
@@ -137,8 +144,34 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
       row_idx,
       callset_name,
       file_idx,
-      sample_vcf_index);
+      idx_in_file);
   }  // end of for all callsets
+
+  //For buffer streams
+  m_buffer_stream_idx_to_global_file_idx.resize(
+    buffer_stream_info_vec.size(), -1);
+
+  auto max_buffer_stream_idx_with_global_file_idx = -1ll;
+  for(auto i=0ull;i<buffer_stream_info_vec.size();++i)
+  {
+    const auto& info = buffer_stream_info_vec[i];
+    int64_t global_file_idx;
+    auto found = get_global_file_idx(info.m_name, global_file_idx);
+    if(found)
+    {
+      auto& curr_file_info = m_file_idx_to_info[global_file_idx];
+      curr_file_info.m_type = info.m_type;
+      curr_file_info.m_buffer_stream_idx = i;
+      curr_file_info.m_buffer_capacity = info.m_buffer_capacity;
+      curr_file_info.m_initialization_buffer = info.m_initialization_buffer;
+      curr_file_info.m_initialization_buffer_num_valid_bytes =
+        info.m_initialization_buffer_num_valid_bytes;
+      m_buffer_stream_idx_to_global_file_idx[i] = global_file_idx;
+      max_buffer_stream_idx_with_global_file_idx = i;
+    }
+  }
+  m_buffer_stream_idx_to_global_file_idx.resize(
+    max_buffer_stream_idx_with_global_file_idx+1);
 
   return GENOMICSDB_VID_MAPPER_SUCCESS;
 } // end of parse_callset_protobuf

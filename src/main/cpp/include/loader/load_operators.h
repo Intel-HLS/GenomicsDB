@@ -54,12 +54,18 @@ class LoadOperatorException : public std::exception {
 class LoaderOperatorBase
 {
   public:
-    LoaderOperatorBase(const std::string& loader_config_file, const size_t num_callsets, const int partition_idx)
+    LoaderOperatorBase(
+      const std::string& loader_config_file,
+      const size_t num_callsets,
+      const int partition_idx,
+      const bool vid_mapper_file_required = true)
       : m_column_partition(0, INT64_MAX-1), m_row_partition(0, INT64_MAX-1)
     {
       m_crossed_column_partition_begin = false;
       m_first_cell = true;
       m_partition_idx = partition_idx;
+      m_loader_json_config.set_vid_mapper_file_required(
+        vid_mapper_file_required);
 #ifdef DUPLICATE_CELL_AT_END
       m_cell_copies.resize(num_callsets, 0);
       m_last_end_position_for_row.resize(num_callsets, -1ll);
@@ -132,7 +138,11 @@ class LoaderOperatorBase
 class LoaderArrayWriter : public LoaderOperatorBase
 {
   public:
-    LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank);
+    LoaderArrayWriter(
+      const VidMapper* id_mapper,
+      const std::string& config_filename,
+      int rank,
+      const bool vid_mapper_file_required);
     virtual ~LoaderArrayWriter()
     {
       if(m_schema)

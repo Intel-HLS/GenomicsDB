@@ -8,7 +8,7 @@
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
     <!-- Build version passed from parent Makefile -->
-    <version>0.4.0</version>
+    <version>${genomicsdb.version}</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>The Spark bindings for GenomicsDB where the getVariantContexts
@@ -52,7 +52,7 @@
         <htsjdk.version>2.5.0</htsjdk.version>
         <json.simple.version>[1.1.1,)</json.simple.version>
         <log4j.version>1.2.17</log4j.version>
-        <protobuf.version>3.0.0</protobuf.version>
+        <protobuf.version>3.0.2</protobuf.version>
         <testng.version>6.10</testng.version>
     </properties>
 

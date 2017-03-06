@@ -16,797 +16,180 @@
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
-class TileDBConfigDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<TileDBConfig> {
-} _TileDBConfig_default_instance_;
-class PartitionDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<Partition> {
-} _Partition_default_instance_;
-class ImportConfigurationDefaultTypeInternal : public ::google::protobuf::internal::ExplicitlyConstructed<ImportConfiguration> {
-} _ImportConfiguration_default_instance_;
-
-namespace protobuf_genomicsdb_5fimport_5fconfig_2eproto {
-
 
 namespace {
 
-::google::protobuf::Metadata file_level_metadata[3];
+const ::google::protobuf::Descriptor* Partition_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  Partition_reflection_ = NULL;
+const ::google::protobuf::Descriptor* ImportConfiguration_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  ImportConfiguration_reflection_ = NULL;
 
 }  // namespace
 
-const ::google::protobuf::uint32 TableStruct::offsets[] = {
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, tiledb_workspace_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, tiledb_array_name_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, compress_tiledb_array_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TileDBConfig, num_cells_per_tile_),
-  0,
-  1,
-  2,
-  3,
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, begin_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, tiledb_config_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, vcf_file_name_),
-  2,
-  1,
-  0,
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, _has_bits_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, row_based_partitioning_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_combined_vcf_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_tiledb_array_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, column_partitions_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, vid_mapping_file_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, callset_mapping_file_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, size_per_column_partition_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, treat_deletions_as_intervals_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_parallel_vcf_files_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, delete_and_create_tiledb_array_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, do_ping_pong_buffering_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, offload_vcf_output_processing_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, discard_vcf_index_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, segment_size_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, tiledb_config_),
-  3,
-  4,
-  8,
-  ~0u,
-  0,
-  1,
-  7,
-  9,
-  12,
-  5,
-  10,
-  11,
-  6,
-  13,
-  2,
-};
 
-static const ::google::protobuf::internal::MigrationSchema schemas[] = {
-  { 0, 8, sizeof(TileDBConfig)},
-  { 12, 19, sizeof(Partition)},
-  { 22, 41, sizeof(ImportConfiguration)},
-};
-
-static ::google::protobuf::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::google::protobuf::Message*>(&_TileDBConfig_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&_Partition_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&_ImportConfiguration_default_instance_),
-};
+void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
+void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
+  protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  const ::google::protobuf::FileDescriptor* file =
+    ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
+      "genomicsdb_import_config.proto");
+  GOOGLE_CHECK(file != NULL);
+  Partition_descriptor_ = file->message_type(0);
+  static const int Partition_offsets_[4] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, begin_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, workspace_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, array_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, vcf_file_name_),
+  };
+  Partition_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      Partition_descriptor_,
+      Partition::default_instance_,
+      Partition_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _has_bits_[0]),
+      -1,
+      -1,
+      sizeof(Partition),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _internal_metadata_),
+      -1);
+  ImportConfiguration_descriptor_ = file->message_type(1);
+  static const int ImportConfiguration_offsets_[16] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, row_based_partitioning_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_combined_vcf_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_tiledb_array_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, column_partitions_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, vid_mapping_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, callset_mapping_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, size_per_column_partition_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, treat_deletions_as_intervals_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_parallel_vcf_files_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, delete_and_create_tiledb_array_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, do_ping_pong_buffering_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, offload_vcf_output_processing_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, discard_vcf_index_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, segment_size_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, compress_tiledb_array_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_cells_per_tile_),
+  };
+  ImportConfiguration_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      ImportConfiguration_descriptor_,
+      ImportConfiguration::default_instance_,
+      ImportConfiguration_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, _has_bits_[0]),
+      -1,
+      -1,
+      sizeof(ImportConfiguration),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, _internal_metadata_),
+      -1);
+}
 
 namespace {
 
-void protobuf_AssignDescriptors() {
-  AddDescriptors();
-  ::google::protobuf::MessageFactory* factory = NULL;
-  AssignDescriptors(
-      "genomicsdb_import_config.proto", schemas, file_default_instances, TableStruct::offsets, factory,
-      file_level_metadata, NULL, NULL);
-}
-
-void protobuf_AssignDescriptorsOnce() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &protobuf_AssignDescriptors);
+GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AssignDescriptors_once_);
+inline void protobuf_AssignDescriptorsOnce() {
+  ::google::protobuf::GoogleOnceInit(&protobuf_AssignDescriptors_once_,
+                 &protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto);
 }
 
 void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 3);
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      Partition_descriptor_, &Partition::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      ImportConfiguration_descriptor_, &ImportConfiguration::default_instance());
 }
 
 }  // namespace
 
-void TableStruct::Shutdown() {
-  _TileDBConfig_default_instance_.Shutdown();
-  delete file_level_metadata[0].reflection;
-  _Partition_default_instance_.Shutdown();
-  delete file_level_metadata[1].reflection;
-  _ImportConfiguration_default_instance_.Shutdown();
-  delete file_level_metadata[2].reflection;
+void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto() {
+  delete Partition::default_instance_;
+  delete Partition_reflection_;
+  delete ImportConfiguration::default_instance_;
+  delete ImportConfiguration_reflection_;
 }
 
-void TableStruct::InitDefaultsImpl() {
+void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
+void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
+  static bool already_here = false;
+  if (already_here) return;
+  already_here = true;
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ::google::protobuf::internal::InitProtobufDefaults();
-  _TileDBConfig_default_instance_.DefaultConstruct();
-  _Partition_default_instance_.DefaultConstruct();
-  _ImportConfiguration_default_instance_.DefaultConstruct();
-  _Partition_default_instance_.get_mutable()->tiledb_config_ = const_cast< ::TileDBConfig*>(
-      ::TileDBConfig::internal_default_instance());
-  _ImportConfiguration_default_instance_.get_mutable()->tiledb_config_ = const_cast< ::TileDBConfig*>(
-      ::TileDBConfig::internal_default_instance());
-}
-
-void InitDefaults() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &TableStruct::InitDefaultsImpl);
-}
-void AddDescriptorsImpl() {
-  InitDefaults();
-  static const char descriptor[] = {
-      "\n\036genomicsdb_import_config.proto\"\212\001\n\014Til"
-      "eDBConfig\022\030\n\020tiledb_workspace\030\001 \001(\t\022\031\n\021t"
-      "iledb_array_name\030\002 \001(\t\022#\n\025compress_tiled"
-      "b_array\030\003 \001(\010:\004true\022 \n\022num_cells_per_til"
-      "e\030\004 \001(\003:\0041000\"W\n\tPartition\022\r\n\005begin\030\001 \002("
-      "\003\022$\n\rtiledb_config\030\002 \001(\0132\r.TileDBConfig\022"
-      "\025\n\rvcf_file_name\030\003 \001(\t\"\305\004\n\023ImportConfigu"
-      "ration\022%\n\026row_based_partitioning\030\001 \002(\010:\005"
-      "false\022#\n\024produce_combined_vcf\030\002 \001(\010:\005fal"
-      "se\022\"\n\024produce_tiledb_array\030\003 \001(\010:\004true\022%"
-      "\n\021column_partitions\030\004 \003(\0132\n.Partition\022\030\n"
-      "\020vid_mapping_file\030\005 \001(\t\022\034\n\024callset_mappi"
-      "ng_file\030\006 \001(\t\022\'\n\031size_per_column_partiti"
-      "on\030\007 \001(\003:\0043000\022*\n\034treat_deletions_as_int"
-      "ervals\030\010 \001(\010:\004true\022!\n\026num_parallel_vcf_f"
-      "iles\030\t \001(\005:\0011\022-\n\036delete_and_create_tiled"
-      "b_array\030\n \001(\010:\005false\022$\n\026do_ping_pong_buf"
-      "fering\030\013 \001(\010:\004true\022+\n\035offload_vcf_output"
-      "_processing\030\014 \001(\010:\004true\022\037\n\021discard_vcf_i"
-      "ndex\030\r \001(\010:\004true\022\036\n\014segment_size\030\016 \001(\003:\010"
-      "10485760\022$\n\rtiledb_config\030\017 \001(\0132\r.TileDB"
-      "ConfigB5\n\024com.intel.genomicsdbB\035Genomics"
-      "DBImportConfiguration"
-  };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 901);
+    "\n\036genomicsdb_import_config.proto\"S\n\tPart"
+    "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022"
+    "\r\n\005array\030\003 \001(\t\022\025\n\rvcf_file_name\030\004 \001(\t\"\337\004"
+    "\n\023ImportConfiguration\022\036\n\026row_based_parti"
+    "tioning\030\001 \002(\010\022#\n\024produce_combined_vcf\030\002 "
+    "\001(\010:\005false\022\"\n\024produce_tiledb_array\030\003 \001(\010"
+    ":\004true\022%\n\021column_partitions\030\004 \003(\0132\n.Part"
+    "ition\022\030\n\020vid_mapping_file\030\005 \001(\t\022\034\n\024calls"
+    "et_mapping_file\030\006 \001(\t\022\'\n\031size_per_column"
+    "_partition\030\007 \001(\003:\0043000\022*\n\034treat_deletion"
+    "s_as_intervals\030\010 \001(\010:\004true\022!\n\026num_parall"
+    "el_vcf_files\030\t \001(\005:\0011\022-\n\036delete_and_crea"
+    "te_tiledb_array\030\n \001(\010:\005false\022$\n\026do_ping_"
+    "pong_buffering\030\013 \001(\010:\004true\022+\n\035offload_vc"
+    "f_output_processing\030\014 \001(\010:\004true\022\037\n\021disca"
+    "rd_vcf_index\030\r \001(\010:\004true\022\036\n\014segment_size"
+    "\030\016 \001(\003:\01010485760\022#\n\025compress_tiledb_arra"
+    "y\030\017 \001(\010:\004true\022 \n\022num_cells_per_tile\030\020 \001("
+    "\003:\0041000B5\n\024com.intel.genomicsdbB\035Genomic"
+    "sDBImportConfiguration", 782);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_import_config.proto", &protobuf_RegisterTypes);
-  ::google::protobuf::internal::OnShutdown(&TableStruct::Shutdown);
+  Partition::default_instance_ = new Partition();
+  ImportConfiguration::default_instance_ = new ImportConfiguration();
+  Partition::default_instance_->InitAsDefaultInstance();
+  ImportConfiguration::default_instance_->InitAsDefaultInstance();
+  ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto);
 }
 
-void AddDescriptors() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &AddDescriptorsImpl);
-}
 // Force AddDescriptors() to be called at static initialization time.
-struct StaticDescriptorInitializer {
-  StaticDescriptorInitializer() {
-    AddDescriptors();
+struct StaticDescriptorInitializer_genomicsdb_5fimport_5fconfig_2eproto {
+  StaticDescriptorInitializer_genomicsdb_5fimport_5fconfig_2eproto() {
+    protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
   }
-} static_descriptor_initializer;
-
-}  // namespace protobuf_genomicsdb_5fimport_5fconfig_2eproto
-
-
-// ===================================================================
-
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int TileDBConfig::kTiledbWorkspaceFieldNumber;
-const int TileDBConfig::kTiledbArrayNameFieldNumber;
-const int TileDBConfig::kCompressTiledbArrayFieldNumber;
-const int TileDBConfig::kNumCellsPerTileFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
-
-TileDBConfig::TileDBConfig()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  }
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:TileDBConfig)
-}
-TileDBConfig::TileDBConfig(const TileDBConfig& from)
-  : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _has_bits_(from._has_bits_),
-      _cached_size_(0) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.has_tiledb_workspace()) {
-    tiledb_workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_workspace_);
-  }
-  tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.has_tiledb_array_name()) {
-    tiledb_array_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_array_name_);
-  }
-  ::memcpy(&compress_tiledb_array_, &from.compress_tiledb_array_,
-    reinterpret_cast<char*>(&num_cells_per_tile_) -
-    reinterpret_cast<char*>(&compress_tiledb_array_) + sizeof(num_cells_per_tile_));
-  // @@protoc_insertion_point(copy_constructor:TileDBConfig)
-}
-
-void TileDBConfig::SharedCtor() {
-  _cached_size_ = 0;
-  tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  compress_tiledb_array_ = true;
-  num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
-}
-
-TileDBConfig::~TileDBConfig() {
-  // @@protoc_insertion_point(destructor:TileDBConfig)
-  SharedDtor();
-}
-
-void TileDBConfig::SharedDtor() {
-  tiledb_workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  tiledb_array_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-
-void TileDBConfig::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* TileDBConfig::descriptor() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[0].descriptor;
-}
-
-const TileDBConfig& TileDBConfig::default_instance() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  return *internal_default_instance();
-}
-
-TileDBConfig* TileDBConfig::New(::google::protobuf::Arena* arena) const {
-  TileDBConfig* n = new TileDBConfig;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void TileDBConfig::Clear() {
-// @@protoc_insertion_point(message_clear_start:TileDBConfig)
-  if (_has_bits_[0 / 32] & 15u) {
-    if (has_tiledb_workspace()) {
-      GOOGLE_DCHECK(!tiledb_workspace_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
-      (*tiledb_workspace_.UnsafeRawStringPointer())->clear();
-    }
-    if (has_tiledb_array_name()) {
-      GOOGLE_DCHECK(!tiledb_array_name_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
-      (*tiledb_array_name_.UnsafeRawStringPointer())->clear();
-    }
-    compress_tiledb_array_ = true;
-    num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
-  }
-  _has_bits_.Clear();
-  _internal_metadata_.Clear();
-}
-
-bool TileDBConfig::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:TileDBConfig)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string tiledb_workspace = 1;
-      case 1: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(10u)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_tiledb_workspace()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "TileDBConfig.tiledb_workspace");
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // optional string tiledb_array_name = 2;
-      case 2: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(18u)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_tiledb_array_name()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "TileDBConfig.tiledb_array_name");
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // optional bool compress_tiledb_array = 3 [default = true];
-      case 3: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(24u)) {
-          set_has_compress_tiledb_array();
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &compress_tiledb_array_)));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      // optional int64 num_cells_per_tile = 4 [default = 1000];
-      case 4: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(32u)) {
-          set_has_num_cells_per_tile();
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
-                 input, &num_cells_per_tile_)));
-        } else {
-          goto handle_unusual;
-        }
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:TileDBConfig)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:TileDBConfig)
-  return false;
-#undef DO_
-}
-
-void TileDBConfig::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:TileDBConfig)
-  // optional string tiledb_workspace = 1;
-  if (has_tiledb_workspace()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "TileDBConfig.tiledb_workspace");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->tiledb_workspace(), output);
-  }
-
-  // optional string tiledb_array_name = 2;
-  if (has_tiledb_array_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "TileDBConfig.tiledb_array_name");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->tiledb_array_name(), output);
-  }
-
-  // optional bool compress_tiledb_array = 3 [default = true];
-  if (has_compress_tiledb_array()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->compress_tiledb_array(), output);
-  }
-
-  // optional int64 num_cells_per_tile = 4 [default = 1000];
-  if (has_num_cells_per_tile()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt64(4, this->num_cells_per_tile(), output);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        unknown_fields(), output);
-  }
-  // @@protoc_insertion_point(serialize_end:TileDBConfig)
-}
-
-::google::protobuf::uint8* TileDBConfig::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic;  // Unused
-  // @@protoc_insertion_point(serialize_to_array_start:TileDBConfig)
-  // optional string tiledb_workspace = 1;
-  if (has_tiledb_workspace()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_workspace().data(), this->tiledb_workspace().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "TileDBConfig.tiledb_workspace");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->tiledb_workspace(), target);
-  }
-
-  // optional string tiledb_array_name = 2;
-  if (has_tiledb_array_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_array_name().data(), this->tiledb_array_name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "TileDBConfig.tiledb_array_name");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->tiledb_array_name(), target);
-  }
-
-  // optional bool compress_tiledb_array = 3 [default = true];
-  if (has_compress_tiledb_array()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->compress_tiledb_array(), target);
-  }
-
-  // optional int64 num_cells_per_tile = 4 [default = 1000];
-  if (has_num_cells_per_tile()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(4, this->num_cells_per_tile(), target);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        unknown_fields(), target);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:TileDBConfig)
-  return target;
-}
-
-size_t TileDBConfig::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:TileDBConfig)
-  size_t total_size = 0;
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  if (_has_bits_[0 / 32] & 15u) {
-    // optional string tiledb_workspace = 1;
-    if (has_tiledb_workspace()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->tiledb_workspace());
-    }
-
-    // optional string tiledb_array_name = 2;
-    if (has_tiledb_array_name()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->tiledb_array_name());
-    }
-
-    // optional bool compress_tiledb_array = 3 [default = true];
-    if (has_compress_tiledb_array()) {
-      total_size += 1 + 1;
-    }
-
-    // optional int64 num_cells_per_tile = 4 [default = 1000];
-    if (has_num_cells_per_tile()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int64Size(
-          this->num_cells_per_tile());
-    }
-
-  }
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void TileDBConfig::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:TileDBConfig)
-  GOOGLE_DCHECK_NE(&from, this);
-  const TileDBConfig* source =
-      ::google::protobuf::internal::DynamicCastToGenerated<const TileDBConfig>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:TileDBConfig)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:TileDBConfig)
-    MergeFrom(*source);
-  }
-}
-
-void TileDBConfig::MergeFrom(const TileDBConfig& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:TileDBConfig)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from._has_bits_[0 / 32] & 15u) {
-    if (from.has_tiledb_workspace()) {
-      set_has_tiledb_workspace();
-      tiledb_workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_workspace_);
-    }
-    if (from.has_tiledb_array_name()) {
-      set_has_tiledb_array_name();
-      tiledb_array_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_array_name_);
-    }
-    if (from.has_compress_tiledb_array()) {
-      set_compress_tiledb_array(from.compress_tiledb_array());
-    }
-    if (from.has_num_cells_per_tile()) {
-      set_num_cells_per_tile(from.num_cells_per_tile());
-    }
-  }
-}
-
-void TileDBConfig::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:TileDBConfig)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void TileDBConfig::CopyFrom(const TileDBConfig& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:TileDBConfig)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool TileDBConfig::IsInitialized() const {
-  return true;
-}
-
-void TileDBConfig::Swap(TileDBConfig* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void TileDBConfig::InternalSwap(TileDBConfig* other) {
-  tiledb_workspace_.Swap(&other->tiledb_workspace_);
-  tiledb_array_name_.Swap(&other->tiledb_array_name_);
-  std::swap(compress_tiledb_array_, other->compress_tiledb_array_);
-  std::swap(num_cells_per_tile_, other->num_cells_per_tile_);
-  std::swap(_has_bits_[0], other->_has_bits_[0]);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata TileDBConfig::GetMetadata() const {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[0];
-}
-
-#if PROTOBUF_INLINE_NOT_IN_HEADERS
-// TileDBConfig
-
-// optional string tiledb_workspace = 1;
-bool TileDBConfig::has_tiledb_workspace() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-void TileDBConfig::set_has_tiledb_workspace() {
-  _has_bits_[0] |= 0x00000001u;
-}
-void TileDBConfig::clear_has_tiledb_workspace() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-void TileDBConfig::clear_tiledb_workspace() {
-  tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_workspace();
-}
-const ::std::string& TileDBConfig::tiledb_workspace() const {
-  // @@protoc_insertion_point(field_get:TileDBConfig.tiledb_workspace)
-  return tiledb_workspace_.GetNoArena();
-}
-void TileDBConfig::set_tiledb_workspace(const ::std::string& value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:TileDBConfig.tiledb_workspace)
-}
-#if LANG_CXX11
-void TileDBConfig::set_tiledb_workspace(::std::string&& value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:TileDBConfig.tiledb_workspace)
-}
-#endif
-void TileDBConfig::set_tiledb_workspace(const char* value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:TileDBConfig.tiledb_workspace)
-}
-void TileDBConfig::set_tiledb_workspace(const char* value, size_t size) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:TileDBConfig.tiledb_workspace)
-}
-::std::string* TileDBConfig::mutable_tiledb_workspace() {
-  set_has_tiledb_workspace();
-  // @@protoc_insertion_point(field_mutable:TileDBConfig.tiledb_workspace)
-  return tiledb_workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-::std::string* TileDBConfig::release_tiledb_workspace() {
-  // @@protoc_insertion_point(field_release:TileDBConfig.tiledb_workspace)
-  clear_has_tiledb_workspace();
-  return tiledb_workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-void TileDBConfig::set_allocated_tiledb_workspace(::std::string* tiledb_workspace) {
-  if (tiledb_workspace != NULL) {
-    set_has_tiledb_workspace();
-  } else {
-    clear_has_tiledb_workspace();
-  }
-  tiledb_workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_workspace);
-  // @@protoc_insertion_point(field_set_allocated:TileDBConfig.tiledb_workspace)
-}
-
-// optional string tiledb_array_name = 2;
-bool TileDBConfig::has_tiledb_array_name() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-void TileDBConfig::set_has_tiledb_array_name() {
-  _has_bits_[0] |= 0x00000002u;
-}
-void TileDBConfig::clear_has_tiledb_array_name() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-void TileDBConfig::clear_tiledb_array_name() {
-  tiledb_array_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_array_name();
-}
-const ::std::string& TileDBConfig::tiledb_array_name() const {
-  // @@protoc_insertion_point(field_get:TileDBConfig.tiledb_array_name)
-  return tiledb_array_name_.GetNoArena();
-}
-void TileDBConfig::set_tiledb_array_name(const ::std::string& value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:TileDBConfig.tiledb_array_name)
-}
-#if LANG_CXX11
-void TileDBConfig::set_tiledb_array_name(::std::string&& value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:TileDBConfig.tiledb_array_name)
-}
-#endif
-void TileDBConfig::set_tiledb_array_name(const char* value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:TileDBConfig.tiledb_array_name)
-}
-void TileDBConfig::set_tiledb_array_name(const char* value, size_t size) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:TileDBConfig.tiledb_array_name)
-}
-::std::string* TileDBConfig::mutable_tiledb_array_name() {
-  set_has_tiledb_array_name();
-  // @@protoc_insertion_point(field_mutable:TileDBConfig.tiledb_array_name)
-  return tiledb_array_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-::std::string* TileDBConfig::release_tiledb_array_name() {
-  // @@protoc_insertion_point(field_release:TileDBConfig.tiledb_array_name)
-  clear_has_tiledb_array_name();
-  return tiledb_array_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-void TileDBConfig::set_allocated_tiledb_array_name(::std::string* tiledb_array_name) {
-  if (tiledb_array_name != NULL) {
-    set_has_tiledb_array_name();
-  } else {
-    clear_has_tiledb_array_name();
-  }
-  tiledb_array_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_array_name);
-  // @@protoc_insertion_point(field_set_allocated:TileDBConfig.tiledb_array_name)
-}
-
-// optional bool compress_tiledb_array = 3 [default = true];
-bool TileDBConfig::has_compress_tiledb_array() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-void TileDBConfig::set_has_compress_tiledb_array() {
-  _has_bits_[0] |= 0x00000004u;
-}
-void TileDBConfig::clear_has_compress_tiledb_array() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-void TileDBConfig::clear_compress_tiledb_array() {
-  compress_tiledb_array_ = true;
-  clear_has_compress_tiledb_array();
-}
-bool TileDBConfig::compress_tiledb_array() const {
-  // @@protoc_insertion_point(field_get:TileDBConfig.compress_tiledb_array)
-  return compress_tiledb_array_;
-}
-void TileDBConfig::set_compress_tiledb_array(bool value) {
-  set_has_compress_tiledb_array();
-  compress_tiledb_array_ = value;
-  // @@protoc_insertion_point(field_set:TileDBConfig.compress_tiledb_array)
-}
-
-// optional int64 num_cells_per_tile = 4 [default = 1000];
-bool TileDBConfig::has_num_cells_per_tile() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
-}
-void TileDBConfig::set_has_num_cells_per_tile() {
-  _has_bits_[0] |= 0x00000008u;
-}
-void TileDBConfig::clear_has_num_cells_per_tile() {
-  _has_bits_[0] &= ~0x00000008u;
-}
-void TileDBConfig::clear_num_cells_per_tile() {
-  num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
-  clear_has_num_cells_per_tile();
-}
-::google::protobuf::int64 TileDBConfig::num_cells_per_tile() const {
-  // @@protoc_insertion_point(field_get:TileDBConfig.num_cells_per_tile)
-  return num_cells_per_tile_;
-}
-void TileDBConfig::set_num_cells_per_tile(::google::protobuf::int64 value) {
-  set_has_num_cells_per_tile();
-  num_cells_per_tile_ = value;
-  // @@protoc_insertion_point(field_set:TileDBConfig.num_cells_per_tile)
-}
-
-#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+} static_descriptor_initializer_genomicsdb_5fimport_5fconfig_2eproto_;
 
 // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Partition::kBeginFieldNumber;
-const int Partition::kTiledbConfigFieldNumber;
+const int Partition::kWorkspaceFieldNumber;
+const int Partition::kArrayFieldNumber;
 const int Partition::kVcfFileNameFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Partition::Partition()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  }
   SharedCtor();
   // @@protoc_insertion_point(constructor:Partition)
 }
+
+void Partition::InitAsDefaultInstance() {
+}
+
 Partition::Partition(const Partition& from)
   : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _has_bits_(from._has_bits_),
-      _cached_size_(0) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  vcf_file_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.has_vcf_file_name()) {
-    vcf_file_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vcf_file_name_);
-  }
-  if (from.has_tiledb_config()) {
-    tiledb_config_ = new ::TileDBConfig(*from.tiledb_config_);
-  } else {
-    tiledb_config_ = NULL;
-  }
-  begin_ = from.begin_;
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:Partition)
 }
 
 void Partition::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
+  begin_ = GOOGLE_LONGLONG(0);
+  workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  array_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vcf_file_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(&tiledb_config_, 0, reinterpret_cast<char*>(&begin_) -
-    reinterpret_cast<char*>(&tiledb_config_) + sizeof(begin_));
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
 Partition::~Partition() {
@@ -815,9 +198,10 @@ Partition::~Partition() {
 }
 
 void Partition::SharedDtor() {
+  workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  array_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vcf_file_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != internal_default_instance()) {
-    delete tiledb_config_;
+  if (this != default_instance_) {
   }
 }
 
@@ -827,14 +211,16 @@ void Partition::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
 const ::google::protobuf::Descriptor* Partition::descriptor() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[1].descriptor;
+  protobuf_AssignDescriptorsOnce();
+  return Partition_descriptor_;
 }
 
 const Partition& Partition::default_instance() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  return *internal_default_instance();
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  return *default_instance_;
 }
+
+Partition* Partition::default_instance_ = NULL;
 
 Partition* Partition::New(::google::protobuf::Arena* arena) const {
   Partition* n = new Partition;
@@ -846,19 +232,22 @@ Partition* Partition::New(::google::protobuf::Arena* arena) const {
 
 void Partition::Clear() {
 // @@protoc_insertion_point(message_clear_start:Partition)
-  if (_has_bits_[0 / 32] & 3u) {
-    if (has_vcf_file_name()) {
-      GOOGLE_DCHECK(!vcf_file_name_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
-      (*vcf_file_name_.UnsafeRawStringPointer())->clear();
+  if (_has_bits_[0 / 32] & 15u) {
+    begin_ = GOOGLE_LONGLONG(0);
+    if (has_workspace()) {
+      workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
-    if (has_tiledb_config()) {
-      GOOGLE_DCHECK(tiledb_config_ != NULL);
-      tiledb_config_->::TileDBConfig::Clear();
+    if (has_array()) {
+      array_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    if (has_vcf_file_name()) {
+      vcf_file_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
   }
-  begin_ = GOOGLE_LONGLONG(0);
-  _has_bits_.Clear();
-  _internal_metadata_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
 }
 
 bool Partition::MergePartialFromCodedStream(
@@ -867,40 +256,62 @@ bool Partition::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:Partition)
   for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
       // required int64 begin = 1;
       case 1: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(8u)) {
-          set_has_begin();
+        if (tag == 8) {
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &begin_)));
+          set_has_begin();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(18)) goto parse_workspace;
         break;
       }
 
-      // optional .TileDBConfig tiledb_config = 2;
+      // optional string workspace = 2;
       case 2: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(18u)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_tiledb_config()));
+        if (tag == 18) {
+         parse_workspace:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_workspace()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->workspace().data(), this->workspace().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "Partition.workspace");
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(26)) goto parse_array;
         break;
       }
 
-      // optional string vcf_file_name = 3;
+      // optional string array = 3;
       case 3: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(26u)) {
+        if (tag == 26) {
+         parse_array:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_array()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->array().data(), this->array().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "Partition.array");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(34)) goto parse_vcf_file_name;
+        break;
+      }
+
+      // optional string vcf_file_name = 4;
+      case 4: {
+        if (tag == 34) {
+         parse_vcf_file_name:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_vcf_file_name()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
@@ -910,6 +321,7 @@ bool Partition::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectAtEnd()) goto success;
         break;
       }
 
@@ -943,20 +355,34 @@ void Partition::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(1, this->begin(), output);
   }
 
-  // optional .TileDBConfig tiledb_config = 2;
-  if (has_tiledb_config()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      2, *this->tiledb_config_, output);
+  // optional string workspace = 2;
+  if (has_workspace()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->workspace().data(), this->workspace().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "Partition.workspace");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      2, this->workspace(), output);
   }
 
-  // optional string vcf_file_name = 3;
+  // optional string array = 3;
+  if (has_array()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->array().data(), this->array().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "Partition.array");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      3, this->array(), output);
+  }
+
+  // optional string vcf_file_name = 4;
   if (has_vcf_file_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->vcf_file_name().data(), this->vcf_file_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "Partition.vcf_file_name");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->vcf_file_name(), output);
+      4, this->vcf_file_name(), output);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -968,21 +394,36 @@ void Partition::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Partition::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic;  // Unused
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:Partition)
   // required int64 begin = 1;
   if (has_begin()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(1, this->begin(), target);
   }
 
-  // optional .TileDBConfig tiledb_config = 2;
-  if (has_tiledb_config()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        2, *this->tiledb_config_, false, target);
+  // optional string workspace = 2;
+  if (has_workspace()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->workspace().data(), this->workspace().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "Partition.workspace");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->workspace(), target);
   }
 
-  // optional string vcf_file_name = 3;
+  // optional string array = 3;
+  if (has_array()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->array().data(), this->array().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "Partition.array");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        3, this->array(), target);
+  }
+
+  // optional string vcf_file_name = 4;
   if (has_vcf_file_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->vcf_file_name().data(), this->vcf_file_name().length(),
@@ -990,7 +431,7 @@ void Partition::SerializeWithCachedSizes(
       "Partition.vcf_file_name");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->vcf_file_name(), target);
+        4, this->vcf_file_name(), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1001,48 +442,56 @@ void Partition::SerializeWithCachedSizes(
   return target;
 }
 
-size_t Partition::ByteSizeLong() const {
+int Partition::ByteSize() const {
 // @@protoc_insertion_point(message_byte_size_start:Partition)
-  size_t total_size = 0;
+  int total_size = 0;
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
   // required int64 begin = 1;
   if (has_begin()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::Int64Size(
         this->begin());
   }
-  if (_has_bits_[0 / 32] & 3u) {
-    // optional string vcf_file_name = 3;
+  if (_has_bits_[1 / 32] & 14u) {
+    // optional string workspace = 2;
+    if (has_workspace()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->workspace());
+    }
+
+    // optional string array = 3;
+    if (has_array()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->array());
+    }
+
+    // optional string vcf_file_name = 4;
     if (has_vcf_file_name()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->vcf_file_name());
     }
 
-    // optional .TileDBConfig tiledb_config = 2;
-    if (has_tiledb_config()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          *this->tiledb_config_);
-    }
-
   }
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
+  _cached_size_ = total_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void Partition::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:Partition)
-  GOOGLE_DCHECK_NE(&from, this);
-  const Partition* source =
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const Partition* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const Partition>(
           &from);
   if (source == NULL) {
@@ -1056,19 +505,28 @@ void Partition::MergeFrom(const ::google::protobuf::Message& from) {
 
 void Partition::MergeFrom(const Partition& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:Partition)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  if (from._has_bits_[0 / 32] & 7u) {
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_begin()) {
+      set_begin(from.begin());
+    }
+    if (from.has_workspace()) {
+      set_has_workspace();
+      workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.workspace_);
+    }
+    if (from.has_array()) {
+      set_has_array();
+      array_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.array_);
+    }
     if (from.has_vcf_file_name()) {
       set_has_vcf_file_name();
       vcf_file_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vcf_file_name_);
     }
-    if (from.has_tiledb_config()) {
-      mutable_tiledb_config()->::TileDBConfig::MergeFrom(from.tiledb_config());
-    }
-    if (from.has_begin()) {
-      set_begin(from.begin());
-    }
+  }
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
   }
 }
 
@@ -1087,7 +545,8 @@ void Partition::CopyFrom(const Partition& from) {
 }
 
 bool Partition::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000004) != 0x00000004) return false;
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
   return true;
 }
 
@@ -1096,17 +555,21 @@ void Partition::Swap(Partition* other) {
   InternalSwap(other);
 }
 void Partition::InternalSwap(Partition* other) {
-  vcf_file_name_.Swap(&other->vcf_file_name_);
-  std::swap(tiledb_config_, other->tiledb_config_);
   std::swap(begin_, other->begin_);
+  workspace_.Swap(&other->workspace_);
+  array_.Swap(&other->array_);
+  vcf_file_name_.Swap(&other->vcf_file_name_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata Partition::GetMetadata() const {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[1];
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = Partition_descriptor_;
+  metadata.reflection = Partition_reflection_;
+  return metadata;
 }
 
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
@@ -1114,126 +577,181 @@ void Partition::InternalSwap(Partition* other) {
 
 // required int64 begin = 1;
 bool Partition::has_begin() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000001u) != 0;
 }
 void Partition::set_has_begin() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000001u;
 }
 void Partition::clear_has_begin() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000001u;
 }
 void Partition::clear_begin() {
   begin_ = GOOGLE_LONGLONG(0);
   clear_has_begin();
 }
-::google::protobuf::int64 Partition::begin() const {
+ ::google::protobuf::int64 Partition::begin() const {
   // @@protoc_insertion_point(field_get:Partition.begin)
   return begin_;
 }
-void Partition::set_begin(::google::protobuf::int64 value) {
+ void Partition::set_begin(::google::protobuf::int64 value) {
   set_has_begin();
   begin_ = value;
   // @@protoc_insertion_point(field_set:Partition.begin)
 }
 
-// optional .TileDBConfig tiledb_config = 2;
-bool Partition::has_tiledb_config() const {
+// optional string workspace = 2;
+bool Partition::has_workspace() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-void Partition::set_has_tiledb_config() {
+void Partition::set_has_workspace() {
   _has_bits_[0] |= 0x00000002u;
 }
-void Partition::clear_has_tiledb_config() {
+void Partition::clear_has_workspace() {
   _has_bits_[0] &= ~0x00000002u;
 }
-void Partition::clear_tiledb_config() {
-  if (tiledb_config_ != NULL) tiledb_config_->::TileDBConfig::Clear();
-  clear_has_tiledb_config();
+void Partition::clear_workspace() {
+  workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_workspace();
 }
-const ::TileDBConfig& Partition::tiledb_config() const {
-  // @@protoc_insertion_point(field_get:Partition.tiledb_config)
-  return tiledb_config_ != NULL ? *tiledb_config_
-                         : *::TileDBConfig::internal_default_instance();
+ const ::std::string& Partition::workspace() const {
+  // @@protoc_insertion_point(field_get:Partition.workspace)
+  return workspace_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-::TileDBConfig* Partition::mutable_tiledb_config() {
-  set_has_tiledb_config();
-  if (tiledb_config_ == NULL) {
-    tiledb_config_ = new ::TileDBConfig;
-  }
-  // @@protoc_insertion_point(field_mutable:Partition.tiledb_config)
-  return tiledb_config_;
+ void Partition::set_workspace(const ::std::string& value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:Partition.workspace)
 }
-::TileDBConfig* Partition::release_tiledb_config() {
-  // @@protoc_insertion_point(field_release:Partition.tiledb_config)
-  clear_has_tiledb_config();
-  ::TileDBConfig* temp = tiledb_config_;
-  tiledb_config_ = NULL;
-  return temp;
+ void Partition::set_workspace(const char* value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:Partition.workspace)
 }
-void Partition::set_allocated_tiledb_config(::TileDBConfig* tiledb_config) {
-  delete tiledb_config_;
-  tiledb_config_ = tiledb_config;
-  if (tiledb_config) {
-    set_has_tiledb_config();
+ void Partition::set_workspace(const char* value, size_t size) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:Partition.workspace)
+}
+ ::std::string* Partition::mutable_workspace() {
+  set_has_workspace();
+  // @@protoc_insertion_point(field_mutable:Partition.workspace)
+  return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Partition::release_workspace() {
+  // @@protoc_insertion_point(field_release:Partition.workspace)
+  clear_has_workspace();
+  return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Partition::set_allocated_workspace(::std::string* workspace) {
+  if (workspace != NULL) {
+    set_has_workspace();
   } else {
-    clear_has_tiledb_config();
+    clear_has_workspace();
   }
-  // @@protoc_insertion_point(field_set_allocated:Partition.tiledb_config)
+  workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), workspace);
+  // @@protoc_insertion_point(field_set_allocated:Partition.workspace)
 }
 
-// optional string vcf_file_name = 3;
+// optional string array = 3;
+bool Partition::has_array() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void Partition::set_has_array() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void Partition::clear_has_array() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void Partition::clear_array() {
+  array_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_array();
+}
+ const ::std::string& Partition::array() const {
+  // @@protoc_insertion_point(field_get:Partition.array)
+  return array_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Partition::set_array(const ::std::string& value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:Partition.array)
+}
+ void Partition::set_array(const char* value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:Partition.array)
+}
+ void Partition::set_array(const char* value, size_t size) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:Partition.array)
+}
+ ::std::string* Partition::mutable_array() {
+  set_has_array();
+  // @@protoc_insertion_point(field_mutable:Partition.array)
+  return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Partition::release_array() {
+  // @@protoc_insertion_point(field_release:Partition.array)
+  clear_has_array();
+  return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Partition::set_allocated_array(::std::string* array) {
+  if (array != NULL) {
+    set_has_array();
+  } else {
+    clear_has_array();
+  }
+  array_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), array);
+  // @@protoc_insertion_point(field_set_allocated:Partition.array)
+}
+
+// optional string vcf_file_name = 4;
 bool Partition::has_vcf_file_name() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 void Partition::set_has_vcf_file_name() {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000008u;
 }
 void Partition::clear_has_vcf_file_name() {
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 void Partition::clear_vcf_file_name() {
   vcf_file_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   clear_has_vcf_file_name();
 }
-const ::std::string& Partition::vcf_file_name() const {
+ const ::std::string& Partition::vcf_file_name() const {
   // @@protoc_insertion_point(field_get:Partition.vcf_file_name)
-  return vcf_file_name_.GetNoArena();
+  return vcf_file_name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void Partition::set_vcf_file_name(const ::std::string& value) {
+ void Partition::set_vcf_file_name(const ::std::string& value) {
   set_has_vcf_file_name();
   vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:Partition.vcf_file_name)
 }
-#if LANG_CXX11
-void Partition::set_vcf_file_name(::std::string&& value) {
-  set_has_vcf_file_name();
-  vcf_file_name_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:Partition.vcf_file_name)
-}
-#endif
-void Partition::set_vcf_file_name(const char* value) {
+ void Partition::set_vcf_file_name(const char* value) {
   set_has_vcf_file_name();
   vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:Partition.vcf_file_name)
 }
-void Partition::set_vcf_file_name(const char* value, size_t size) {
+ void Partition::set_vcf_file_name(const char* value, size_t size) {
   set_has_vcf_file_name();
   vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:Partition.vcf_file_name)
 }
-::std::string* Partition::mutable_vcf_file_name() {
+ ::std::string* Partition::mutable_vcf_file_name() {
   set_has_vcf_file_name();
   // @@protoc_insertion_point(field_mutable:Partition.vcf_file_name)
   return vcf_file_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-::std::string* Partition::release_vcf_file_name() {
+ ::std::string* Partition::release_vcf_file_name() {
   // @@protoc_insertion_point(field_release:Partition.vcf_file_name)
   clear_has_vcf_file_name();
   return vcf_file_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void Partition::set_allocated_vcf_file_name(::std::string* vcf_file_name) {
+ void Partition::set_allocated_vcf_file_name(::std::string* vcf_file_name) {
   if (vcf_file_name != NULL) {
     set_has_vcf_file_name();
   } else {
@@ -1262,57 +780,46 @@ const int ImportConfiguration::kDoPingPongBufferingFieldNumber;
 const int ImportConfiguration::kOffloadVcfOutputProcessingFieldNumber;
 const int ImportConfiguration::kDiscardVcfIndexFieldNumber;
 const int ImportConfiguration::kSegmentSizeFieldNumber;
-const int ImportConfiguration::kTiledbConfigFieldNumber;
+const int ImportConfiguration::kCompressTiledbArrayFieldNumber;
+const int ImportConfiguration::kNumCellsPerTileFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ImportConfiguration::ImportConfiguration()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  }
   SharedCtor();
   // @@protoc_insertion_point(constructor:ImportConfiguration)
 }
+
+void ImportConfiguration::InitAsDefaultInstance() {
+}
+
 ImportConfiguration::ImportConfiguration(const ImportConfiguration& from)
   : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _has_bits_(from._has_bits_),
-      _cached_size_(0),
-      column_partitions_(from.column_partitions_) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  vid_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.has_vid_mapping_file()) {
-    vid_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vid_mapping_file_);
-  }
-  callset_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.has_callset_mapping_file()) {
-    callset_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.callset_mapping_file_);
-  }
-  if (from.has_tiledb_config()) {
-    tiledb_config_ = new ::TileDBConfig(*from.tiledb_config_);
-  } else {
-    tiledb_config_ = NULL;
-  }
-  ::memcpy(&row_based_partitioning_, &from.row_based_partitioning_,
-    reinterpret_cast<char*>(&segment_size_) -
-    reinterpret_cast<char*>(&row_based_partitioning_) + sizeof(segment_size_));
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:ImportConfiguration)
 }
 
 void ImportConfiguration::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
+  row_based_partitioning_ = false;
+  produce_combined_vcf_ = false;
+  produce_tiledb_array_ = true;
   vid_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(&tiledb_config_, 0, reinterpret_cast<char*>(&delete_and_create_tiledb_array_) -
-    reinterpret_cast<char*>(&tiledb_config_) + sizeof(delete_and_create_tiledb_array_));
-  discard_vcf_index_ = true;
   size_per_column_partition_ = GOOGLE_LONGLONG(3000);
-  produce_tiledb_array_ = true;
   treat_deletions_as_intervals_ = true;
+  num_parallel_vcf_files_ = 1;
+  delete_and_create_tiledb_array_ = false;
   do_ping_pong_buffering_ = true;
   offload_vcf_output_processing_ = true;
-  num_parallel_vcf_files_ = 1;
+  discard_vcf_index_ = true;
   segment_size_ = GOOGLE_LONGLONG(10485760);
+  compress_tiledb_array_ = true;
+  num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
 ImportConfiguration::~ImportConfiguration() {
@@ -1323,8 +830,7 @@ ImportConfiguration::~ImportConfiguration() {
 void ImportConfiguration::SharedDtor() {
   vid_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != internal_default_instance()) {
-    delete tiledb_config_;
+  if (this != default_instance_) {
   }
 }
 
@@ -1334,14 +840,16 @@ void ImportConfiguration::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
 const ::google::protobuf::Descriptor* ImportConfiguration::descriptor() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[2].descriptor;
+  protobuf_AssignDescriptorsOnce();
+  return ImportConfiguration_descriptor_;
 }
 
 const ImportConfiguration& ImportConfiguration::default_instance() {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::InitDefaults();
-  return *internal_default_instance();
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  return *default_instance_;
 }
+
+ImportConfiguration* ImportConfiguration::default_instance_ = NULL;
 
 ImportConfiguration* ImportConfiguration::New(::google::protobuf::Arena* arena) const {
   ImportConfiguration* n = new ImportConfiguration;
@@ -1353,37 +861,53 @@ ImportConfiguration* ImportConfiguration::New(::google::protobuf::Arena* arena) 
 
 void ImportConfiguration::Clear() {
 // @@protoc_insertion_point(message_clear_start:ImportConfiguration)
-  column_partitions_.Clear();
-  if (_has_bits_[0 / 32] & 7u) {
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(ImportConfiguration, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<ImportConfiguration*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  if (_has_bits_[0 / 32] & 247u) {
+    ZR_(row_based_partitioning_, produce_combined_vcf_);
+    produce_tiledb_array_ = true;
     if (has_vid_mapping_file()) {
-      GOOGLE_DCHECK(!vid_mapping_file_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
-      (*vid_mapping_file_.UnsafeRawStringPointer())->clear();
+      vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
     if (has_callset_mapping_file()) {
-      GOOGLE_DCHECK(!callset_mapping_file_.IsDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited()));
-      (*callset_mapping_file_.UnsafeRawStringPointer())->clear();
+      callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
-    if (has_tiledb_config()) {
-      GOOGLE_DCHECK(tiledb_config_ != NULL);
-      tiledb_config_->::TileDBConfig::Clear();
-    }
-  }
-  if (_has_bits_[0 / 32] & 248u) {
-    ::memset(&row_based_partitioning_, 0, reinterpret_cast<char*>(&delete_and_create_tiledb_array_) -
-      reinterpret_cast<char*>(&row_based_partitioning_) + sizeof(delete_and_create_tiledb_array_));
-    discard_vcf_index_ = true;
     size_per_column_partition_ = GOOGLE_LONGLONG(3000);
-  }
-  if (_has_bits_[8 / 32] & 16128u) {
-    produce_tiledb_array_ = true;
     treat_deletions_as_intervals_ = true;
+  }
+  if (_has_bits_[8 / 32] & 65280u) {
+    num_parallel_vcf_files_ = 1;
+    delete_and_create_tiledb_array_ = false;
     do_ping_pong_buffering_ = true;
     offload_vcf_output_processing_ = true;
-    num_parallel_vcf_files_ = 1;
+    discard_vcf_index_ = true;
     segment_size_ = GOOGLE_LONGLONG(10485760);
+    compress_tiledb_array_ = true;
+    num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   }
-  _has_bits_.Clear();
-  _internal_metadata_.Clear();
+
+#undef ZR_HELPER_
+#undef ZR_
+
+  column_partitions_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
 }
 
 bool ImportConfiguration::MergePartialFromCodedStream(
@@ -1392,70 +916,75 @@ bool ImportConfiguration::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ImportConfiguration)
   for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(16383);
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required bool row_based_partitioning = 1 [default = false];
+      // required bool row_based_partitioning = 1;
       case 1: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(8u)) {
-          set_has_row_based_partitioning();
+        if (tag == 8) {
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &row_based_partitioning_)));
+          set_has_row_based_partitioning();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(16)) goto parse_produce_combined_vcf;
         break;
       }
 
       // optional bool produce_combined_vcf = 2 [default = false];
       case 2: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(16u)) {
-          set_has_produce_combined_vcf();
+        if (tag == 16) {
+         parse_produce_combined_vcf:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &produce_combined_vcf_)));
+          set_has_produce_combined_vcf();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(24)) goto parse_produce_tiledb_array;
         break;
       }
 
       // optional bool produce_tiledb_array = 3 [default = true];
       case 3: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(24u)) {
-          set_has_produce_tiledb_array();
+        if (tag == 24) {
+         parse_produce_tiledb_array:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &produce_tiledb_array_)));
+          set_has_produce_tiledb_array();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(34)) goto parse_column_partitions;
         break;
       }
 
       // repeated .Partition column_partitions = 4;
       case 4: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(34u)) {
+        if (tag == 34) {
+         parse_column_partitions:
           DO_(input->IncrementRecursionDepth());
+         parse_loop_column_partitions:
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
                 input, add_column_partitions()));
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(34)) goto parse_loop_column_partitions;
         input->UnsafeDecrementRecursionDepth();
+        if (input->ExpectTag(42)) goto parse_vid_mapping_file;
         break;
       }
 
       // optional string vid_mapping_file = 5;
       case 5: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(42u)) {
+        if (tag == 42) {
+         parse_vid_mapping_file:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_vid_mapping_file()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
@@ -1465,13 +994,14 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(50)) goto parse_callset_mapping_file;
         break;
       }
 
       // optional string callset_mapping_file = 6;
       case 6: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(50u)) {
+        if (tag == 50) {
+         parse_callset_mapping_file:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_callset_mapping_file()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
@@ -1481,130 +1011,157 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(56)) goto parse_size_per_column_partition;
         break;
       }
 
       // optional int64 size_per_column_partition = 7 [default = 3000];
       case 7: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(56u)) {
-          set_has_size_per_column_partition();
+        if (tag == 56) {
+         parse_size_per_column_partition:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &size_per_column_partition_)));
+          set_has_size_per_column_partition();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(64)) goto parse_treat_deletions_as_intervals;
         break;
       }
 
       // optional bool treat_deletions_as_intervals = 8 [default = true];
       case 8: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(64u)) {
-          set_has_treat_deletions_as_intervals();
+        if (tag == 64) {
+         parse_treat_deletions_as_intervals:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &treat_deletions_as_intervals_)));
+          set_has_treat_deletions_as_intervals();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(72)) goto parse_num_parallel_vcf_files;
         break;
       }
 
       // optional int32 num_parallel_vcf_files = 9 [default = 1];
       case 9: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(72u)) {
-          set_has_num_parallel_vcf_files();
+        if (tag == 72) {
+         parse_num_parallel_vcf_files:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
                  input, &num_parallel_vcf_files_)));
+          set_has_num_parallel_vcf_files();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(80)) goto parse_delete_and_create_tiledb_array;
         break;
       }
 
       // optional bool delete_and_create_tiledb_array = 10 [default = false];
       case 10: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(80u)) {
-          set_has_delete_and_create_tiledb_array();
+        if (tag == 80) {
+         parse_delete_and_create_tiledb_array:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &delete_and_create_tiledb_array_)));
+          set_has_delete_and_create_tiledb_array();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(88)) goto parse_do_ping_pong_buffering;
         break;
       }
 
       // optional bool do_ping_pong_buffering = 11 [default = true];
       case 11: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(88u)) {
-          set_has_do_ping_pong_buffering();
+        if (tag == 88) {
+         parse_do_ping_pong_buffering:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &do_ping_pong_buffering_)));
+          set_has_do_ping_pong_buffering();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(96)) goto parse_offload_vcf_output_processing;
         break;
       }
 
       // optional bool offload_vcf_output_processing = 12 [default = true];
       case 12: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(96u)) {
-          set_has_offload_vcf_output_processing();
+        if (tag == 96) {
+         parse_offload_vcf_output_processing:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &offload_vcf_output_processing_)));
+          set_has_offload_vcf_output_processing();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(104)) goto parse_discard_vcf_index;
         break;
       }
 
       // optional bool discard_vcf_index = 13 [default = true];
       case 13: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(104u)) {
-          set_has_discard_vcf_index();
+        if (tag == 104) {
+         parse_discard_vcf_index:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &discard_vcf_index_)));
+          set_has_discard_vcf_index();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(112)) goto parse_segment_size;
         break;
       }
 
       // optional int64 segment_size = 14 [default = 10485760];
       case 14: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(112u)) {
-          set_has_segment_size();
+        if (tag == 112) {
+         parse_segment_size:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &segment_size_)));
+          set_has_segment_size();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(120)) goto parse_compress_tiledb_array;
         break;
       }
 
-      // optional .TileDBConfig tiledb_config = 15;
+      // optional bool compress_tiledb_array = 15 [default = true];
       case 15: {
-        if (static_cast<::google::protobuf::uint8>(tag) ==
-            static_cast<::google::protobuf::uint8>(122u)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_tiledb_config()));
+        if (tag == 120) {
+         parse_compress_tiledb_array:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &compress_tiledb_array_)));
+          set_has_compress_tiledb_array();
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(128)) goto parse_num_cells_per_tile;
+        break;
+      }
+
+      // optional int64 num_cells_per_tile = 16 [default = 1000];
+      case 16: {
+        if (tag == 128) {
+         parse_num_cells_per_tile:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &num_cells_per_tile_)));
+          set_has_num_cells_per_tile();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
         break;
       }
 
@@ -1633,7 +1190,7 @@ failure:
 void ImportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:ImportConfiguration)
-  // required bool row_based_partitioning = 1 [default = false];
+  // required bool row_based_partitioning = 1;
   if (has_row_based_partitioning()) {
     ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->row_based_partitioning(), output);
   }
@@ -1714,10 +1271,14 @@ void ImportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(14, this->segment_size(), output);
   }
 
-  // optional .TileDBConfig tiledb_config = 15;
-  if (has_tiledb_config()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      15, *this->tiledb_config_, output);
+  // optional bool compress_tiledb_array = 15 [default = true];
+  if (has_compress_tiledb_array()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(15, this->compress_tiledb_array(), output);
+  }
+
+  // optional int64 num_cells_per_tile = 16 [default = 1000];
+  if (has_num_cells_per_tile()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(16, this->num_cells_per_tile(), output);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1729,9 +1290,9 @@ void ImportConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ImportConfiguration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic;  // Unused
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ImportConfiguration)
-  // required bool row_based_partitioning = 1 [default = false];
+  // required bool row_based_partitioning = 1;
   if (has_row_based_partitioning()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->row_based_partitioning(), target);
   }
@@ -1815,11 +1376,14 @@ void ImportConfiguration::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(14, this->segment_size(), target);
   }
 
-  // optional .TileDBConfig tiledb_config = 15;
-  if (has_tiledb_config()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        15, *this->tiledb_config_, false, target);
+  // optional bool compress_tiledb_array = 15 [default = true];
+  if (has_compress_tiledb_array()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(15, this->compress_tiledb_array(), target);
+  }
+
+  // optional int64 num_cells_per_tile = 16 [default = 1000];
+  if (has_num_cells_per_tile()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(16, this->num_cells_per_tile(), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1830,31 +1394,25 @@ void ImportConfiguration::SerializeWithCachedSizes(
   return target;
 }
 
-size_t ImportConfiguration::ByteSizeLong() const {
+int ImportConfiguration::ByteSize() const {
 // @@protoc_insertion_point(message_byte_size_start:ImportConfiguration)
-  size_t total_size = 0;
+  int total_size = 0;
 
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  // required bool row_based_partitioning = 1 [default = false];
+  // required bool row_based_partitioning = 1;
   if (has_row_based_partitioning()) {
     total_size += 1 + 1;
   }
-  // repeated .Partition column_partitions = 4;
-  {
-    unsigned int count = this->column_partitions_size();
-    total_size += 1UL * count;
-    for (unsigned int i = 0; i < count; i++) {
-      total_size +=
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->column_partitions(i));
+  if (_has_bits_[1 / 32] & 246u) {
+    // optional bool produce_combined_vcf = 2 [default = false];
+    if (has_produce_combined_vcf()) {
+      total_size += 1 + 1;
     }
-  }
 
-  if (_has_bits_[0 / 32] & 7u) {
+    // optional bool produce_tiledb_array = 3 [default = true];
+    if (has_produce_tiledb_array()) {
+      total_size += 1 + 1;
+    }
+
     // optional string vid_mapping_file = 5;
     if (has_vid_mapping_file()) {
       total_size += 1 +
@@ -1869,30 +1427,6 @@ size_t ImportConfiguration::ByteSizeLong() const {
           this->callset_mapping_file());
     }
 
-    // optional .TileDBConfig tiledb_config = 15;
-    if (has_tiledb_config()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          *this->tiledb_config_);
-    }
-
-  }
-  if (_has_bits_[0 / 32] & 240u) {
-    // optional bool produce_combined_vcf = 2 [default = false];
-    if (has_produce_combined_vcf()) {
-      total_size += 1 + 1;
-    }
-
-    // optional bool delete_and_create_tiledb_array = 10 [default = false];
-    if (has_delete_and_create_tiledb_array()) {
-      total_size += 1 + 1;
-    }
-
-    // optional bool discard_vcf_index = 13 [default = true];
-    if (has_discard_vcf_index()) {
-      total_size += 1 + 1;
-    }
-
     // optional int64 size_per_column_partition = 7 [default = 3000];
     if (has_size_per_column_partition()) {
       total_size += 1 +
@@ -1900,15 +1434,22 @@ size_t ImportConfiguration::ByteSizeLong() const {
           this->size_per_column_partition());
     }
 
-  }
-  if (_has_bits_[8 / 32] & 16128u) {
-    // optional bool produce_tiledb_array = 3 [default = true];
-    if (has_produce_tiledb_array()) {
+    // optional bool treat_deletions_as_intervals = 8 [default = true];
+    if (has_treat_deletions_as_intervals()) {
       total_size += 1 + 1;
     }
 
-    // optional bool treat_deletions_as_intervals = 8 [default = true];
-    if (has_treat_deletions_as_intervals()) {
+  }
+  if (_has_bits_[8 / 32] & 65280u) {
+    // optional int32 num_parallel_vcf_files = 9 [default = 1];
+    if (has_num_parallel_vcf_files()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->num_parallel_vcf_files());
+    }
+
+    // optional bool delete_and_create_tiledb_array = 10 [default = false];
+    if (has_delete_and_create_tiledb_array()) {
       total_size += 1 + 1;
     }
 
@@ -1922,11 +1463,9 @@ size_t ImportConfiguration::ByteSizeLong() const {
       total_size += 1 + 1;
     }
 
-    // optional int32 num_parallel_vcf_files = 9 [default = 1];
-    if (has_num_parallel_vcf_files()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->num_parallel_vcf_files());
+    // optional bool discard_vcf_index = 13 [default = true];
+    if (has_discard_vcf_index()) {
+      total_size += 1 + 1;
     }
 
     // optional int64 segment_size = 14 [default = 10485760];
@@ -1936,18 +1475,44 @@ size_t ImportConfiguration::ByteSizeLong() const {
           this->segment_size());
     }
 
+    // optional bool compress_tiledb_array = 15 [default = true];
+    if (has_compress_tiledb_array()) {
+      total_size += 1 + 1;
+    }
+
+    // optional int64 num_cells_per_tile = 16 [default = 1000];
+    if (has_num_cells_per_tile()) {
+      total_size += 2 +
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
+          this->num_cells_per_tile());
+    }
+
   }
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  // repeated .Partition column_partitions = 4;
+  total_size += 1 * this->column_partitions_size();
+  for (int i = 0; i < this->column_partitions_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->column_partitions(i));
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
+  _cached_size_ = total_size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
   return total_size;
 }
 
 void ImportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:ImportConfiguration)
-  GOOGLE_DCHECK_NE(&from, this);
-  const ImportConfiguration* source =
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const ImportConfiguration* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ImportConfiguration>(
           &from);
   if (source == NULL) {
@@ -1961,10 +1526,20 @@ void ImportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
 
 void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
 // @@protoc_insertion_point(class_specific_merge_from_start:ImportConfiguration)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   column_partitions_.MergeFrom(from.column_partitions_);
-  if (from._has_bits_[0 / 32] & 255u) {
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_row_based_partitioning()) {
+      set_row_based_partitioning(from.row_based_partitioning());
+    }
+    if (from.has_produce_combined_vcf()) {
+      set_produce_combined_vcf(from.produce_combined_vcf());
+    }
+    if (from.has_produce_tiledb_array()) {
+      set_produce_tiledb_array(from.produce_tiledb_array());
+    }
     if (from.has_vid_mapping_file()) {
       set_has_vid_mapping_file();
       vid_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vid_mapping_file_);
@@ -1973,31 +1548,19 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
       set_has_callset_mapping_file();
       callset_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.callset_mapping_file_);
     }
-    if (from.has_tiledb_config()) {
-      mutable_tiledb_config()->::TileDBConfig::MergeFrom(from.tiledb_config());
-    }
-    if (from.has_row_based_partitioning()) {
-      set_row_based_partitioning(from.row_based_partitioning());
-    }
-    if (from.has_produce_combined_vcf()) {
-      set_produce_combined_vcf(from.produce_combined_vcf());
-    }
-    if (from.has_delete_and_create_tiledb_array()) {
-      set_delete_and_create_tiledb_array(from.delete_and_create_tiledb_array());
-    }
-    if (from.has_discard_vcf_index()) {
-      set_discard_vcf_index(from.discard_vcf_index());
-    }
     if (from.has_size_per_column_partition()) {
       set_size_per_column_partition(from.size_per_column_partition());
     }
-  }
-  if (from._has_bits_[8 / 32] & 16128u) {
-    if (from.has_produce_tiledb_array()) {
-      set_produce_tiledb_array(from.produce_tiledb_array());
-    }
     if (from.has_treat_deletions_as_intervals()) {
       set_treat_deletions_as_intervals(from.treat_deletions_as_intervals());
+    }
+  }
+  if (from._has_bits_[8 / 32] & (0xffu << (8 % 32))) {
+    if (from.has_num_parallel_vcf_files()) {
+      set_num_parallel_vcf_files(from.num_parallel_vcf_files());
+    }
+    if (from.has_delete_and_create_tiledb_array()) {
+      set_delete_and_create_tiledb_array(from.delete_and_create_tiledb_array());
     }
     if (from.has_do_ping_pong_buffering()) {
       set_do_ping_pong_buffering(from.do_ping_pong_buffering());
@@ -2005,12 +1568,21 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
     if (from.has_offload_vcf_output_processing()) {
       set_offload_vcf_output_processing(from.offload_vcf_output_processing());
     }
-    if (from.has_num_parallel_vcf_files()) {
-      set_num_parallel_vcf_files(from.num_parallel_vcf_files());
+    if (from.has_discard_vcf_index()) {
+      set_discard_vcf_index(from.discard_vcf_index());
     }
     if (from.has_segment_size()) {
       set_segment_size(from.segment_size());
     }
+    if (from.has_compress_tiledb_array()) {
+      set_compress_tiledb_array(from.compress_tiledb_array());
+    }
+    if (from.has_num_cells_per_tile()) {
+      set_num_cells_per_tile(from.num_cells_per_tile());
+    }
+  }
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
   }
 }
 
@@ -2029,7 +1601,8 @@ void ImportConfiguration::CopyFrom(const ImportConfiguration& from) {
 }
 
 bool ImportConfiguration::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000008) != 0x00000008) return false;
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
   if (!::google::protobuf::internal::AllAreInitialized(this->column_partitions())) return false;
   return true;
 }
@@ -2039,53 +1612,57 @@ void ImportConfiguration::Swap(ImportConfiguration* other) {
   InternalSwap(other);
 }
 void ImportConfiguration::InternalSwap(ImportConfiguration* other) {
+  std::swap(row_based_partitioning_, other->row_based_partitioning_);
+  std::swap(produce_combined_vcf_, other->produce_combined_vcf_);
+  std::swap(produce_tiledb_array_, other->produce_tiledb_array_);
   column_partitions_.UnsafeArenaSwap(&other->column_partitions_);
   vid_mapping_file_.Swap(&other->vid_mapping_file_);
   callset_mapping_file_.Swap(&other->callset_mapping_file_);
-  std::swap(tiledb_config_, other->tiledb_config_);
-  std::swap(row_based_partitioning_, other->row_based_partitioning_);
-  std::swap(produce_combined_vcf_, other->produce_combined_vcf_);
-  std::swap(delete_and_create_tiledb_array_, other->delete_and_create_tiledb_array_);
-  std::swap(discard_vcf_index_, other->discard_vcf_index_);
   std::swap(size_per_column_partition_, other->size_per_column_partition_);
-  std::swap(produce_tiledb_array_, other->produce_tiledb_array_);
   std::swap(treat_deletions_as_intervals_, other->treat_deletions_as_intervals_);
+  std::swap(num_parallel_vcf_files_, other->num_parallel_vcf_files_);
+  std::swap(delete_and_create_tiledb_array_, other->delete_and_create_tiledb_array_);
   std::swap(do_ping_pong_buffering_, other->do_ping_pong_buffering_);
   std::swap(offload_vcf_output_processing_, other->offload_vcf_output_processing_);
-  std::swap(num_parallel_vcf_files_, other->num_parallel_vcf_files_);
+  std::swap(discard_vcf_index_, other->discard_vcf_index_);
   std::swap(segment_size_, other->segment_size_);
+  std::swap(compress_tiledb_array_, other->compress_tiledb_array_);
+  std::swap(num_cells_per_tile_, other->num_cells_per_tile_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::google::protobuf::Metadata ImportConfiguration::GetMetadata() const {
-  protobuf_genomicsdb_5fimport_5fconfig_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_genomicsdb_5fimport_5fconfig_2eproto::file_level_metadata[2];
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = ImportConfiguration_descriptor_;
+  metadata.reflection = ImportConfiguration_reflection_;
+  return metadata;
 }
 
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // ImportConfiguration
 
-// required bool row_based_partitioning = 1 [default = false];
+// required bool row_based_partitioning = 1;
 bool ImportConfiguration::has_row_based_partitioning() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000001u) != 0;
 }
 void ImportConfiguration::set_has_row_based_partitioning() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000001u;
 }
 void ImportConfiguration::clear_has_row_based_partitioning() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000001u;
 }
 void ImportConfiguration::clear_row_based_partitioning() {
   row_based_partitioning_ = false;
   clear_has_row_based_partitioning();
 }
-bool ImportConfiguration::row_based_partitioning() const {
+ bool ImportConfiguration::row_based_partitioning() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.row_based_partitioning)
   return row_based_partitioning_;
 }
-void ImportConfiguration::set_row_based_partitioning(bool value) {
+ void ImportConfiguration::set_row_based_partitioning(bool value) {
   set_has_row_based_partitioning();
   row_based_partitioning_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.row_based_partitioning)
@@ -2093,23 +1670,23 @@ void ImportConfiguration::set_row_based_partitioning(bool value) {
 
 // optional bool produce_combined_vcf = 2 [default = false];
 bool ImportConfiguration::has_produce_combined_vcf() const {
-  return (_has_bits_[0] & 0x00000010u) != 0;
+  return (_has_bits_[0] & 0x00000002u) != 0;
 }
 void ImportConfiguration::set_has_produce_combined_vcf() {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000002u;
 }
 void ImportConfiguration::clear_has_produce_combined_vcf() {
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 void ImportConfiguration::clear_produce_combined_vcf() {
   produce_combined_vcf_ = false;
   clear_has_produce_combined_vcf();
 }
-bool ImportConfiguration::produce_combined_vcf() const {
+ bool ImportConfiguration::produce_combined_vcf() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.produce_combined_vcf)
   return produce_combined_vcf_;
 }
-void ImportConfiguration::set_produce_combined_vcf(bool value) {
+ void ImportConfiguration::set_produce_combined_vcf(bool value) {
   set_has_produce_combined_vcf();
   produce_combined_vcf_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.produce_combined_vcf)
@@ -2117,23 +1694,23 @@ void ImportConfiguration::set_produce_combined_vcf(bool value) {
 
 // optional bool produce_tiledb_array = 3 [default = true];
 bool ImportConfiguration::has_produce_tiledb_array() const {
-  return (_has_bits_[0] & 0x00000100u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 void ImportConfiguration::set_has_produce_tiledb_array() {
-  _has_bits_[0] |= 0x00000100u;
+  _has_bits_[0] |= 0x00000004u;
 }
 void ImportConfiguration::clear_has_produce_tiledb_array() {
-  _has_bits_[0] &= ~0x00000100u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 void ImportConfiguration::clear_produce_tiledb_array() {
   produce_tiledb_array_ = true;
   clear_has_produce_tiledb_array();
 }
-bool ImportConfiguration::produce_tiledb_array() const {
+ bool ImportConfiguration::produce_tiledb_array() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.produce_tiledb_array)
   return produce_tiledb_array_;
 }
-void ImportConfiguration::set_produce_tiledb_array(bool value) {
+ void ImportConfiguration::set_produce_tiledb_array(bool value) {
   set_has_produce_tiledb_array();
   produce_tiledb_array_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.produce_tiledb_array)
@@ -2171,57 +1748,49 @@ ImportConfiguration::column_partitions() const {
 
 // optional string vid_mapping_file = 5;
 bool ImportConfiguration::has_vid_mapping_file() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
+  return (_has_bits_[0] & 0x00000010u) != 0;
 }
 void ImportConfiguration::set_has_vid_mapping_file() {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000010u;
 }
 void ImportConfiguration::clear_has_vid_mapping_file() {
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 void ImportConfiguration::clear_vid_mapping_file() {
   vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   clear_has_vid_mapping_file();
 }
-const ::std::string& ImportConfiguration::vid_mapping_file() const {
+ const ::std::string& ImportConfiguration::vid_mapping_file() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.vid_mapping_file)
-  return vid_mapping_file_.GetNoArena();
+  return vid_mapping_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void ImportConfiguration::set_vid_mapping_file(const ::std::string& value) {
+ void ImportConfiguration::set_vid_mapping_file(const ::std::string& value) {
   set_has_vid_mapping_file();
   vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:ImportConfiguration.vid_mapping_file)
 }
-#if LANG_CXX11
-void ImportConfiguration::set_vid_mapping_file(::std::string&& value) {
-  set_has_vid_mapping_file();
-  vid_mapping_file_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:ImportConfiguration.vid_mapping_file)
-}
-#endif
-void ImportConfiguration::set_vid_mapping_file(const char* value) {
+ void ImportConfiguration::set_vid_mapping_file(const char* value) {
   set_has_vid_mapping_file();
   vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:ImportConfiguration.vid_mapping_file)
 }
-void ImportConfiguration::set_vid_mapping_file(const char* value, size_t size) {
+ void ImportConfiguration::set_vid_mapping_file(const char* value, size_t size) {
   set_has_vid_mapping_file();
   vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:ImportConfiguration.vid_mapping_file)
 }
-::std::string* ImportConfiguration::mutable_vid_mapping_file() {
+ ::std::string* ImportConfiguration::mutable_vid_mapping_file() {
   set_has_vid_mapping_file();
   // @@protoc_insertion_point(field_mutable:ImportConfiguration.vid_mapping_file)
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-::std::string* ImportConfiguration::release_vid_mapping_file() {
+ ::std::string* ImportConfiguration::release_vid_mapping_file() {
   // @@protoc_insertion_point(field_release:ImportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void ImportConfiguration::set_allocated_vid_mapping_file(::std::string* vid_mapping_file) {
+ void ImportConfiguration::set_allocated_vid_mapping_file(::std::string* vid_mapping_file) {
   if (vid_mapping_file != NULL) {
     set_has_vid_mapping_file();
   } else {
@@ -2233,57 +1802,49 @@ void ImportConfiguration::set_allocated_vid_mapping_file(::std::string* vid_mapp
 
 // optional string callset_mapping_file = 6;
 bool ImportConfiguration::has_callset_mapping_file() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000020u) != 0;
 }
 void ImportConfiguration::set_has_callset_mapping_file() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000020u;
 }
 void ImportConfiguration::clear_has_callset_mapping_file() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 void ImportConfiguration::clear_callset_mapping_file() {
   callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   clear_has_callset_mapping_file();
 }
-const ::std::string& ImportConfiguration::callset_mapping_file() const {
+ const ::std::string& ImportConfiguration::callset_mapping_file() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.callset_mapping_file)
-  return callset_mapping_file_.GetNoArena();
+  return callset_mapping_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void ImportConfiguration::set_callset_mapping_file(const ::std::string& value) {
+ void ImportConfiguration::set_callset_mapping_file(const ::std::string& value) {
   set_has_callset_mapping_file();
   callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:ImportConfiguration.callset_mapping_file)
 }
-#if LANG_CXX11
-void ImportConfiguration::set_callset_mapping_file(::std::string&& value) {
-  set_has_callset_mapping_file();
-  callset_mapping_file_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:ImportConfiguration.callset_mapping_file)
-}
-#endif
-void ImportConfiguration::set_callset_mapping_file(const char* value) {
+ void ImportConfiguration::set_callset_mapping_file(const char* value) {
   set_has_callset_mapping_file();
   callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:ImportConfiguration.callset_mapping_file)
 }
-void ImportConfiguration::set_callset_mapping_file(const char* value, size_t size) {
+ void ImportConfiguration::set_callset_mapping_file(const char* value, size_t size) {
   set_has_callset_mapping_file();
   callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:ImportConfiguration.callset_mapping_file)
 }
-::std::string* ImportConfiguration::mutable_callset_mapping_file() {
+ ::std::string* ImportConfiguration::mutable_callset_mapping_file() {
   set_has_callset_mapping_file();
   // @@protoc_insertion_point(field_mutable:ImportConfiguration.callset_mapping_file)
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-::std::string* ImportConfiguration::release_callset_mapping_file() {
+ ::std::string* ImportConfiguration::release_callset_mapping_file() {
   // @@protoc_insertion_point(field_release:ImportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-void ImportConfiguration::set_allocated_callset_mapping_file(::std::string* callset_mapping_file) {
+ void ImportConfiguration::set_allocated_callset_mapping_file(::std::string* callset_mapping_file) {
   if (callset_mapping_file != NULL) {
     set_has_callset_mapping_file();
   } else {
@@ -2295,23 +1856,23 @@ void ImportConfiguration::set_allocated_callset_mapping_file(::std::string* call
 
 // optional int64 size_per_column_partition = 7 [default = 3000];
 bool ImportConfiguration::has_size_per_column_partition() const {
-  return (_has_bits_[0] & 0x00000080u) != 0;
+  return (_has_bits_[0] & 0x00000040u) != 0;
 }
 void ImportConfiguration::set_has_size_per_column_partition() {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000040u;
 }
 void ImportConfiguration::clear_has_size_per_column_partition() {
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 void ImportConfiguration::clear_size_per_column_partition() {
   size_per_column_partition_ = GOOGLE_LONGLONG(3000);
   clear_has_size_per_column_partition();
 }
-::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
+ ::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.size_per_column_partition)
   return size_per_column_partition_;
 }
-void ImportConfiguration::set_size_per_column_partition(::google::protobuf::int64 value) {
+ void ImportConfiguration::set_size_per_column_partition(::google::protobuf::int64 value) {
   set_has_size_per_column_partition();
   size_per_column_partition_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.size_per_column_partition)
@@ -2319,23 +1880,23 @@ void ImportConfiguration::set_size_per_column_partition(::google::protobuf::int6
 
 // optional bool treat_deletions_as_intervals = 8 [default = true];
 bool ImportConfiguration::has_treat_deletions_as_intervals() const {
-  return (_has_bits_[0] & 0x00000200u) != 0;
+  return (_has_bits_[0] & 0x00000080u) != 0;
 }
 void ImportConfiguration::set_has_treat_deletions_as_intervals() {
-  _has_bits_[0] |= 0x00000200u;
+  _has_bits_[0] |= 0x00000080u;
 }
 void ImportConfiguration::clear_has_treat_deletions_as_intervals() {
-  _has_bits_[0] &= ~0x00000200u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 void ImportConfiguration::clear_treat_deletions_as_intervals() {
   treat_deletions_as_intervals_ = true;
   clear_has_treat_deletions_as_intervals();
 }
-bool ImportConfiguration::treat_deletions_as_intervals() const {
+ bool ImportConfiguration::treat_deletions_as_intervals() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.treat_deletions_as_intervals)
   return treat_deletions_as_intervals_;
 }
-void ImportConfiguration::set_treat_deletions_as_intervals(bool value) {
+ void ImportConfiguration::set_treat_deletions_as_intervals(bool value) {
   set_has_treat_deletions_as_intervals();
   treat_deletions_as_intervals_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.treat_deletions_as_intervals)
@@ -2343,23 +1904,23 @@ void ImportConfiguration::set_treat_deletions_as_intervals(bool value) {
 
 // optional int32 num_parallel_vcf_files = 9 [default = 1];
 bool ImportConfiguration::has_num_parallel_vcf_files() const {
-  return (_has_bits_[0] & 0x00001000u) != 0;
+  return (_has_bits_[0] & 0x00000100u) != 0;
 }
 void ImportConfiguration::set_has_num_parallel_vcf_files() {
-  _has_bits_[0] |= 0x00001000u;
+  _has_bits_[0] |= 0x00000100u;
 }
 void ImportConfiguration::clear_has_num_parallel_vcf_files() {
-  _has_bits_[0] &= ~0x00001000u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 void ImportConfiguration::clear_num_parallel_vcf_files() {
   num_parallel_vcf_files_ = 1;
   clear_has_num_parallel_vcf_files();
 }
-::google::protobuf::int32 ImportConfiguration::num_parallel_vcf_files() const {
+ ::google::protobuf::int32 ImportConfiguration::num_parallel_vcf_files() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.num_parallel_vcf_files)
   return num_parallel_vcf_files_;
 }
-void ImportConfiguration::set_num_parallel_vcf_files(::google::protobuf::int32 value) {
+ void ImportConfiguration::set_num_parallel_vcf_files(::google::protobuf::int32 value) {
   set_has_num_parallel_vcf_files();
   num_parallel_vcf_files_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.num_parallel_vcf_files)
@@ -2367,23 +1928,23 @@ void ImportConfiguration::set_num_parallel_vcf_files(::google::protobuf::int32 v
 
 // optional bool delete_and_create_tiledb_array = 10 [default = false];
 bool ImportConfiguration::has_delete_and_create_tiledb_array() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
+  return (_has_bits_[0] & 0x00000200u) != 0;
 }
 void ImportConfiguration::set_has_delete_and_create_tiledb_array() {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000200u;
 }
 void ImportConfiguration::clear_has_delete_and_create_tiledb_array() {
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 void ImportConfiguration::clear_delete_and_create_tiledb_array() {
   delete_and_create_tiledb_array_ = false;
   clear_has_delete_and_create_tiledb_array();
 }
-bool ImportConfiguration::delete_and_create_tiledb_array() const {
+ bool ImportConfiguration::delete_and_create_tiledb_array() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.delete_and_create_tiledb_array)
   return delete_and_create_tiledb_array_;
 }
-void ImportConfiguration::set_delete_and_create_tiledb_array(bool value) {
+ void ImportConfiguration::set_delete_and_create_tiledb_array(bool value) {
   set_has_delete_and_create_tiledb_array();
   delete_and_create_tiledb_array_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.delete_and_create_tiledb_array)
@@ -2403,11 +1964,11 @@ void ImportConfiguration::clear_do_ping_pong_buffering() {
   do_ping_pong_buffering_ = true;
   clear_has_do_ping_pong_buffering();
 }
-bool ImportConfiguration::do_ping_pong_buffering() const {
+ bool ImportConfiguration::do_ping_pong_buffering() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.do_ping_pong_buffering)
   return do_ping_pong_buffering_;
 }
-void ImportConfiguration::set_do_ping_pong_buffering(bool value) {
+ void ImportConfiguration::set_do_ping_pong_buffering(bool value) {
   set_has_do_ping_pong_buffering();
   do_ping_pong_buffering_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.do_ping_pong_buffering)
@@ -2427,11 +1988,11 @@ void ImportConfiguration::clear_offload_vcf_output_processing() {
   offload_vcf_output_processing_ = true;
   clear_has_offload_vcf_output_processing();
 }
-bool ImportConfiguration::offload_vcf_output_processing() const {
+ bool ImportConfiguration::offload_vcf_output_processing() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.offload_vcf_output_processing)
   return offload_vcf_output_processing_;
 }
-void ImportConfiguration::set_offload_vcf_output_processing(bool value) {
+ void ImportConfiguration::set_offload_vcf_output_processing(bool value) {
   set_has_offload_vcf_output_processing();
   offload_vcf_output_processing_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.offload_vcf_output_processing)
@@ -2439,23 +2000,23 @@ void ImportConfiguration::set_offload_vcf_output_processing(bool value) {
 
 // optional bool discard_vcf_index = 13 [default = true];
 bool ImportConfiguration::has_discard_vcf_index() const {
-  return (_has_bits_[0] & 0x00000040u) != 0;
+  return (_has_bits_[0] & 0x00001000u) != 0;
 }
 void ImportConfiguration::set_has_discard_vcf_index() {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00001000u;
 }
 void ImportConfiguration::clear_has_discard_vcf_index() {
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00001000u;
 }
 void ImportConfiguration::clear_discard_vcf_index() {
   discard_vcf_index_ = true;
   clear_has_discard_vcf_index();
 }
-bool ImportConfiguration::discard_vcf_index() const {
+ bool ImportConfiguration::discard_vcf_index() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.discard_vcf_index)
   return discard_vcf_index_;
 }
-void ImportConfiguration::set_discard_vcf_index(bool value) {
+ void ImportConfiguration::set_discard_vcf_index(bool value) {
   set_has_discard_vcf_index();
   discard_vcf_index_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.discard_vcf_index)
@@ -2475,59 +2036,62 @@ void ImportConfiguration::clear_segment_size() {
   segment_size_ = GOOGLE_LONGLONG(10485760);
   clear_has_segment_size();
 }
-::google::protobuf::int64 ImportConfiguration::segment_size() const {
+ ::google::protobuf::int64 ImportConfiguration::segment_size() const {
   // @@protoc_insertion_point(field_get:ImportConfiguration.segment_size)
   return segment_size_;
 }
-void ImportConfiguration::set_segment_size(::google::protobuf::int64 value) {
+ void ImportConfiguration::set_segment_size(::google::protobuf::int64 value) {
   set_has_segment_size();
   segment_size_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.segment_size)
 }
 
-// optional .TileDBConfig tiledb_config = 15;
-bool ImportConfiguration::has_tiledb_config() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+// optional bool compress_tiledb_array = 15 [default = true];
+bool ImportConfiguration::has_compress_tiledb_array() const {
+  return (_has_bits_[0] & 0x00004000u) != 0;
 }
-void ImportConfiguration::set_has_tiledb_config() {
-  _has_bits_[0] |= 0x00000004u;
+void ImportConfiguration::set_has_compress_tiledb_array() {
+  _has_bits_[0] |= 0x00004000u;
 }
-void ImportConfiguration::clear_has_tiledb_config() {
-  _has_bits_[0] &= ~0x00000004u;
+void ImportConfiguration::clear_has_compress_tiledb_array() {
+  _has_bits_[0] &= ~0x00004000u;
 }
-void ImportConfiguration::clear_tiledb_config() {
-  if (tiledb_config_ != NULL) tiledb_config_->::TileDBConfig::Clear();
-  clear_has_tiledb_config();
+void ImportConfiguration::clear_compress_tiledb_array() {
+  compress_tiledb_array_ = true;
+  clear_has_compress_tiledb_array();
 }
-const ::TileDBConfig& ImportConfiguration::tiledb_config() const {
-  // @@protoc_insertion_point(field_get:ImportConfiguration.tiledb_config)
-  return tiledb_config_ != NULL ? *tiledb_config_
-                         : *::TileDBConfig::internal_default_instance();
+ bool ImportConfiguration::compress_tiledb_array() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.compress_tiledb_array)
+  return compress_tiledb_array_;
 }
-::TileDBConfig* ImportConfiguration::mutable_tiledb_config() {
-  set_has_tiledb_config();
-  if (tiledb_config_ == NULL) {
-    tiledb_config_ = new ::TileDBConfig;
-  }
-  // @@protoc_insertion_point(field_mutable:ImportConfiguration.tiledb_config)
-  return tiledb_config_;
+ void ImportConfiguration::set_compress_tiledb_array(bool value) {
+  set_has_compress_tiledb_array();
+  compress_tiledb_array_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.compress_tiledb_array)
 }
-::TileDBConfig* ImportConfiguration::release_tiledb_config() {
-  // @@protoc_insertion_point(field_release:ImportConfiguration.tiledb_config)
-  clear_has_tiledb_config();
-  ::TileDBConfig* temp = tiledb_config_;
-  tiledb_config_ = NULL;
-  return temp;
+
+// optional int64 num_cells_per_tile = 16 [default = 1000];
+bool ImportConfiguration::has_num_cells_per_tile() const {
+  return (_has_bits_[0] & 0x00008000u) != 0;
 }
-void ImportConfiguration::set_allocated_tiledb_config(::TileDBConfig* tiledb_config) {
-  delete tiledb_config_;
-  tiledb_config_ = tiledb_config;
-  if (tiledb_config) {
-    set_has_tiledb_config();
-  } else {
-    clear_has_tiledb_config();
-  }
-  // @@protoc_insertion_point(field_set_allocated:ImportConfiguration.tiledb_config)
+void ImportConfiguration::set_has_num_cells_per_tile() {
+  _has_bits_[0] |= 0x00008000u;
+}
+void ImportConfiguration::clear_has_num_cells_per_tile() {
+  _has_bits_[0] &= ~0x00008000u;
+}
+void ImportConfiguration::clear_num_cells_per_tile() {
+  num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
+  clear_has_num_cells_per_tile();
+}
+ ::google::protobuf::int64 ImportConfiguration::num_cells_per_tile() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.num_cells_per_tile)
+  return num_cells_per_tile_;
+}
+ void ImportConfiguration::set_num_cells_per_tile(::google::protobuf::int64 value) {
+  set_has_num_cells_per_tile();
+  num_cells_per_tile_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.num_cells_per_tile)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

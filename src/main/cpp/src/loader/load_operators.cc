@@ -111,9 +111,20 @@ void LoaderOperatorBase::finish(const int64_t column_interval_end)
 }
 
 //LoaderArrayWriter - writes to TileDB arrays
-LoaderArrayWriter::LoaderArrayWriter(const VidMapper* id_mapper, const std::string& config_filename, int rank)
-  : LoaderOperatorBase(config_filename, id_mapper->get_num_callsets(), rank), m_array_descriptor(-1), m_schema(0), m_storage_manager(0)
-{
+LoaderArrayWriter::LoaderArrayWriter(
+  const VidMapper* id_mapper,
+  const std::string& config_filename,
+  int rank,
+  const bool vid_mapper_file_required)
+    : LoaderOperatorBase(
+        config_filename,
+        id_mapper->get_num_callsets(),
+        rank,
+        vid_mapper_file_required),
+        m_array_descriptor(-1),
+        m_schema(0),
+        m_storage_manager(0) {
+
   auto workspace = m_loader_json_config.get_workspace(rank);
   auto array_name = m_loader_json_config.get_array_name(rank);
   //Schema

@@ -224,7 +224,7 @@ public final class GenomicsDBExportConfiguration {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasLow()) {
         hash = (37 * hash) + LOW_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
@@ -787,7 +787,7 @@ public final class GenomicsDBExportConfiguration {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (getRangeListCount() > 0) {
         hash = (37 * hash) + RANGE_LIST_FIELD_NUMBER;
         hash = (53 * hash) + getRangeListList().hashCode();
@@ -1850,7 +1850,7 @@ public final class GenomicsDBExportConfiguration {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasTiledbWorkspace()) {
         hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
         hash = (53 * hash) + getTiledbWorkspace().hashCode();

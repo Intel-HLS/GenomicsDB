@@ -554,7 +554,9 @@ void VCF2TileDBLoader::common_constructor_initialization(
     assert (vidmap_pb != NULL);
     assert (callsetmap_pb != NULL);
     m_vid_mapper = static_cast<VidMapper*>(
-        new ProtoBufBasedVidMapper(vidmap_pb, callsetmap_pb));
+        new ProtoBufBasedVidMapper(vidmap_pb,
+          callsetmap_pb,
+          buffer_stream_info_vec));
     m_vid_mapper_file_required = false;
   } else {
     m_vid_mapper = static_cast<VidMapper*>(
@@ -635,7 +637,11 @@ void VCF2TileDBLoader::common_constructor_initialization(
   if(m_produce_tiledb_array)
   {
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
-          new LoaderArrayWriter(m_vid_mapper, config_filename, m_idx)));
+          new LoaderArrayWriter(
+            m_vid_mapper,
+            config_filename,
+            m_idx,
+            m_vid_mapper_file_required)));
     m_operators_overflow.push_back(false);
   }
 #endif //ifdef PRODUCE_BINARY_CELLS

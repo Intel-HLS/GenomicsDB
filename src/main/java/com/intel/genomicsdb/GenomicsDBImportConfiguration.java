@@ -28,32 +28,32 @@ public final class GenomicsDBImportConfiguration {
     long getBegin();
 
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
-    boolean hasTiledbWorkspace();
+    boolean hasWorkspace();
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
-    java.lang.String getTiledbWorkspace();
+    java.lang.String getWorkspace();
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
     com.google.protobuf.ByteString
-        getTiledbWorkspaceBytes();
+        getWorkspaceBytes();
 
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
-    boolean hasTiledbArrayName();
+    boolean hasArray();
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
-    java.lang.String getTiledbArrayName();
+    java.lang.String getArray();
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
     com.google.protobuf.ByteString
-        getTiledbArrayNameBytes();
+        getArrayBytes();
 
     /**
      * <code>optional string vcf_file_name = 4;</code>
@@ -82,8 +82,8 @@ public final class GenomicsDBImportConfiguration {
     }
     private Partition() {
       begin_ = 0L;
-      tiledbWorkspace_ = "";
-      tiledbArrayName_ = "";
+      workspace_ = "";
+      array_ = "";
       vcfFileName_ = "";
     }
 
@@ -123,13 +123,13 @@ public final class GenomicsDBImportConfiguration {
             case 18: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              tiledbWorkspace_ = bs;
+              workspace_ = bs;
               break;
             }
             case 26: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000004;
-              tiledbArrayName_ = bs;
+              array_ = bs;
               break;
             }
             case 34: {
@@ -178,19 +178,19 @@ public final class GenomicsDBImportConfiguration {
       return begin_;
     }
 
-    public static final int TILEDB_WORKSPACE_FIELD_NUMBER = 2;
-    private volatile java.lang.Object tiledbWorkspace_;
+    public static final int WORKSPACE_FIELD_NUMBER = 2;
+    private volatile java.lang.Object workspace_;
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
-    public boolean hasTiledbWorkspace() {
+    public boolean hasWorkspace() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
-    public java.lang.String getTiledbWorkspace() {
-      java.lang.Object ref = tiledbWorkspace_;
+    public java.lang.String getWorkspace() {
+      java.lang.Object ref = workspace_;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
@@ -198,41 +198,41 @@ public final class GenomicsDBImportConfiguration {
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
-          tiledbWorkspace_ = s;
+          workspace_ = s;
         }
         return s;
       }
     }
     /**
-     * <code>optional string tiledb_workspace = 2;</code>
+     * <code>optional string workspace = 2;</code>
      */
     public com.google.protobuf.ByteString
-        getTiledbWorkspaceBytes() {
-      java.lang.Object ref = tiledbWorkspace_;
+        getWorkspaceBytes() {
+      java.lang.Object ref = workspace_;
       if (ref instanceof java.lang.String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        tiledbWorkspace_ = b;
+        workspace_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
 
-    public static final int TILEDB_ARRAY_NAME_FIELD_NUMBER = 3;
-    private volatile java.lang.Object tiledbArrayName_;
+    public static final int ARRAY_FIELD_NUMBER = 3;
+    private volatile java.lang.Object array_;
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
-    public boolean hasTiledbArrayName() {
+    public boolean hasArray() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
-    public java.lang.String getTiledbArrayName() {
-      java.lang.Object ref = tiledbArrayName_;
+    public java.lang.String getArray() {
+      java.lang.Object ref = array_;
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
@@ -240,22 +240,22 @@ public final class GenomicsDBImportConfiguration {
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
-          tiledbArrayName_ = s;
+          array_ = s;
         }
         return s;
       }
     }
     /**
-     * <code>optional string tiledb_array_name = 3;</code>
+     * <code>optional string array = 3;</code>
      */
     public com.google.protobuf.ByteString
-        getTiledbArrayNameBytes() {
-      java.lang.Object ref = tiledbArrayName_;
+        getArrayBytes() {
+      java.lang.Object ref = array_;
       if (ref instanceof java.lang.String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        tiledbArrayName_ = b;
+        array_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -324,10 +324,10 @@ public final class GenomicsDBImportConfiguration {
         output.writeInt64(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, tiledbWorkspace_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, workspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, tiledbArrayName_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, array_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 4, vcfFileName_);
@@ -345,10 +345,10 @@ public final class GenomicsDBImportConfiguration {
           .computeInt64Size(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, tiledbWorkspace_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, workspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, tiledbArrayName_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, array_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, vcfFileName_);
@@ -375,15 +375,15 @@ public final class GenomicsDBImportConfiguration {
         result = result && (getBegin()
             == other.getBegin());
       }
-      result = result && (hasTiledbWorkspace() == other.hasTiledbWorkspace());
-      if (hasTiledbWorkspace()) {
-        result = result && getTiledbWorkspace()
-            .equals(other.getTiledbWorkspace());
+      result = result && (hasWorkspace() == other.hasWorkspace());
+      if (hasWorkspace()) {
+        result = result && getWorkspace()
+            .equals(other.getWorkspace());
       }
-      result = result && (hasTiledbArrayName() == other.hasTiledbArrayName());
-      if (hasTiledbArrayName()) {
-        result = result && getTiledbArrayName()
-            .equals(other.getTiledbArrayName());
+      result = result && (hasArray() == other.hasArray());
+      if (hasArray()) {
+        result = result && getArray()
+            .equals(other.getArray());
       }
       result = result && (hasVcfFileName() == other.hasVcfFileName());
       if (hasVcfFileName()) {
@@ -400,19 +400,19 @@ public final class GenomicsDBImportConfiguration {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasBegin()) {
         hash = (37 * hash) + BEGIN_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
             getBegin());
       }
-      if (hasTiledbWorkspace()) {
-        hash = (37 * hash) + TILEDB_WORKSPACE_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbWorkspace().hashCode();
+      if (hasWorkspace()) {
+        hash = (37 * hash) + WORKSPACE_FIELD_NUMBER;
+        hash = (53 * hash) + getWorkspace().hashCode();
       }
-      if (hasTiledbArrayName()) {
-        hash = (37 * hash) + TILEDB_ARRAY_NAME_FIELD_NUMBER;
-        hash = (53 * hash) + getTiledbArrayName().hashCode();
+      if (hasArray()) {
+        hash = (37 * hash) + ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + getArray().hashCode();
       }
       if (hasVcfFileName()) {
         hash = (37 * hash) + VCF_FILE_NAME_FIELD_NUMBER;
@@ -538,9 +538,9 @@ public final class GenomicsDBImportConfiguration {
         super.clear();
         begin_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
-        tiledbWorkspace_ = "";
+        workspace_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
-        tiledbArrayName_ = "";
+        array_ = "";
         bitField0_ = (bitField0_ & ~0x00000004);
         vcfFileName_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -575,11 +575,11 @@ public final class GenomicsDBImportConfiguration {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.tiledbWorkspace_ = tiledbWorkspace_;
+        result.workspace_ = workspace_;
         if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.tiledbArrayName_ = tiledbArrayName_;
+        result.array_ = array_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
@@ -629,14 +629,14 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasBegin()) {
           setBegin(other.getBegin());
         }
-        if (other.hasTiledbWorkspace()) {
+        if (other.hasWorkspace()) {
           bitField0_ |= 0x00000002;
-          tiledbWorkspace_ = other.tiledbWorkspace_;
+          workspace_ = other.workspace_;
           onChanged();
         }
-        if (other.hasTiledbArrayName()) {
+        if (other.hasArray()) {
           bitField0_ |= 0x00000004;
-          tiledbArrayName_ = other.tiledbArrayName_;
+          array_ = other.array_;
           onChanged();
         }
         if (other.hasVcfFileName()) {
@@ -707,24 +707,24 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
 
-      private java.lang.Object tiledbWorkspace_ = "";
+      private java.lang.Object workspace_ = "";
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
-      public boolean hasTiledbWorkspace() {
+      public boolean hasWorkspace() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
-      public java.lang.String getTiledbWorkspace() {
-        java.lang.Object ref = tiledbWorkspace_;
+      public java.lang.String getWorkspace() {
+        java.lang.Object ref = workspace_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
-            tiledbWorkspace_ = s;
+            workspace_ = s;
           }
           return s;
         } else {
@@ -732,75 +732,75 @@ public final class GenomicsDBImportConfiguration {
         }
       }
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
       public com.google.protobuf.ByteString
-          getTiledbWorkspaceBytes() {
-        java.lang.Object ref = tiledbWorkspace_;
+          getWorkspaceBytes() {
+        java.lang.Object ref = workspace_;
         if (ref instanceof String) {
           com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-          tiledbWorkspace_ = b;
+          workspace_ = b;
           return b;
         } else {
           return (com.google.protobuf.ByteString) ref;
         }
       }
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
-      public Builder setTiledbWorkspace(
+      public Builder setWorkspace(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000002;
-        tiledbWorkspace_ = value;
+        workspace_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
-      public Builder clearTiledbWorkspace() {
+      public Builder clearWorkspace() {
         bitField0_ = (bitField0_ & ~0x00000002);
-        tiledbWorkspace_ = getDefaultInstance().getTiledbWorkspace();
+        workspace_ = getDefaultInstance().getWorkspace();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string tiledb_workspace = 2;</code>
+       * <code>optional string workspace = 2;</code>
        */
-      public Builder setTiledbWorkspaceBytes(
+      public Builder setWorkspaceBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000002;
-        tiledbWorkspace_ = value;
+        workspace_ = value;
         onChanged();
         return this;
       }
 
-      private java.lang.Object tiledbArrayName_ = "";
+      private java.lang.Object array_ = "";
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
-      public boolean hasTiledbArrayName() {
+      public boolean hasArray() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
-      public java.lang.String getTiledbArrayName() {
-        java.lang.Object ref = tiledbArrayName_;
+      public java.lang.String getArray() {
+        java.lang.Object ref = array_;
         if (!(ref instanceof java.lang.String)) {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
-            tiledbArrayName_ = s;
+            array_ = s;
           }
           return s;
         } else {
@@ -808,53 +808,53 @@ public final class GenomicsDBImportConfiguration {
         }
       }
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
       public com.google.protobuf.ByteString
-          getTiledbArrayNameBytes() {
-        java.lang.Object ref = tiledbArrayName_;
+          getArrayBytes() {
+        java.lang.Object ref = array_;
         if (ref instanceof String) {
           com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
-          tiledbArrayName_ = b;
+          array_ = b;
           return b;
         } else {
           return (com.google.protobuf.ByteString) ref;
         }
       }
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
-      public Builder setTiledbArrayName(
+      public Builder setArray(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000004;
-        tiledbArrayName_ = value;
+        array_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
-      public Builder clearTiledbArrayName() {
+      public Builder clearArray() {
         bitField0_ = (bitField0_ & ~0x00000004);
-        tiledbArrayName_ = getDefaultInstance().getTiledbArrayName();
+        array_ = getDefaultInstance().getArray();
         onChanged();
         return this;
       }
       /**
-       * <code>optional string tiledb_array_name = 3;</code>
+       * <code>optional string array = 3;</code>
        */
-      public Builder setTiledbArrayNameBytes(
+      public Builder setArrayBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
   bitField0_ |= 0x00000004;
-        tiledbArrayName_ = value;
+        array_ = value;
         onChanged();
         return this;
       }
@@ -1886,7 +1886,7 @@ public final class GenomicsDBImportConfiguration {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasRowBasedPartitioning()) {
         hash = (37 * hash) + ROW_BASED_PARTITIONING_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
@@ -3239,27 +3239,26 @@ public final class GenomicsDBImportConfiguration {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\036genomicsdb_import_config.proto\"f\n\tPart" +
-      "ition\022\r\n\005begin\030\001 \002(\003\022\030\n\020tiledb_workspace" +
-      "\030\002 \001(\t\022\031\n\021tiledb_array_name\030\003 \001(\t\022\025\n\rvcf" +
-      "_file_name\030\004 \001(\t\"\337\004\n\023ImportConfiguration" +
-      "\022\036\n\026row_based_partitioning\030\001 \002(\010\022#\n\024prod" +
-      "uce_combined_vcf\030\002 \001(\010:\005false\022\"\n\024produce" +
-      "_tiledb_array\030\003 \001(\010:\004true\022%\n\021column_part" +
-      "itions\030\004 \003(\0132\n.Partition\022\030\n\020vid_mapping_" +
-      "file\030\005 \001(\t\022\034\n\024callset_mapping_file\030\006 \001(\t" +
-      "\022\'\n\031size_per_column_partition\030\007 \001(\003:\004300",
-      "0\022*\n\034treat_deletions_as_intervals\030\010 \001(\010:" +
-      "\004true\022!\n\026num_parallel_vcf_files\030\t \001(\005:\0011" +
-      "\022-\n\036delete_and_create_tiledb_array\030\n \001(\010" +
-      ":\005false\022$\n\026do_ping_pong_buffering\030\013 \001(\010:" +
-      "\004true\022+\n\035offload_vcf_output_processing\030\014" +
-      " \001(\010:\004true\022\037\n\021discard_vcf_index\030\r \001(\010:\004t" +
-      "rue\022\036\n\014segment_size\030\016 \001(\003:\01010485760\022#\n\025c" +
-      "ompress_tiledb_array\030\017 \001(\010:\004true\022 \n\022num_" +
-      "cells_per_tile\030\020 \001(\003:\0041000B5\n\024com.intel." +
-      "genomicsdbB\035GenomicsDBImportConfiguratio",
-      "n"
+      "\n\036genomicsdb_import_config.proto\"S\n\tPart" +
+      "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022" +
+      "\r\n\005array\030\003 \001(\t\022\025\n\rvcf_file_name\030\004 \001(\t\"\337\004" +
+      "\n\023ImportConfiguration\022\036\n\026row_based_parti" +
+      "tioning\030\001 \002(\010\022#\n\024produce_combined_vcf\030\002 " +
+      "\001(\010:\005false\022\"\n\024produce_tiledb_array\030\003 \001(\010" +
+      ":\004true\022%\n\021column_partitions\030\004 \003(\0132\n.Part" +
+      "ition\022\030\n\020vid_mapping_file\030\005 \001(\t\022\034\n\024calls" +
+      "et_mapping_file\030\006 \001(\t\022\'\n\031size_per_column" +
+      "_partition\030\007 \001(\003:\0043000\022*\n\034treat_deletion",
+      "s_as_intervals\030\010 \001(\010:\004true\022!\n\026num_parall" +
+      "el_vcf_files\030\t \001(\005:\0011\022-\n\036delete_and_crea" +
+      "te_tiledb_array\030\n \001(\010:\005false\022$\n\026do_ping_" +
+      "pong_buffering\030\013 \001(\010:\004true\022+\n\035offload_vc" +
+      "f_output_processing\030\014 \001(\010:\004true\022\037\n\021disca" +
+      "rd_vcf_index\030\r \001(\010:\004true\022\036\n\014segment_size" +
+      "\030\016 \001(\003:\01010485760\022#\n\025compress_tiledb_arra" +
+      "y\030\017 \001(\010:\004true\022 \n\022num_cells_per_tile\030\020 \001(" +
+      "\003:\0041000B5\n\024com.intel.genomicsdbB\035Genomic" +
+      "sDBImportConfiguration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3278,7 +3277,7 @@ public final class GenomicsDBImportConfiguration {
     internal_static_Partition_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Partition_descriptor,
-        new java.lang.String[] { "Begin", "TiledbWorkspace", "TiledbArrayName", "VcfFileName", });
+        new java.lang.String[] { "Begin", "Workspace", "Array", "VcfFileName", });
     internal_static_ImportConfiguration_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_ImportConfiguration_fieldAccessorTable = new
