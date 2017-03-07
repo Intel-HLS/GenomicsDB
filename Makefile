@@ -181,8 +181,12 @@ ifdef VERBOSE
   CPPFLAGS+= -DVERBOSE=$(VERBOSE)
 endif
 
-# --- Additional load flags for protocol buffers and google test --- #
-LDFLAGS+=-lprotobuf
+# --- Additional load flags for protocol buffers --- #
+ifdef MAXIMIZE_STATIC_LINKING
+  LDFLAGS += -Wl,-Bstatic -L$(PROTOBUF_LIBRARY) -lprotobuf -Wl,-Bdynamic
+else
+  LDFLAGS+=-lprotobuf
+endif
 
 # --- Directories --- #
 
