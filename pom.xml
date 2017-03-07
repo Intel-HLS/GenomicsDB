@@ -11,8 +11,7 @@
     <version>${genomicsdb.version}</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>The Spark bindings for GenomicsDB where the getVariantContexts
-        method call retursn a collection (RDD) of VariantContexts from (HTS JDK)</description>
+    <description>Java API and Apache Spark bindings for GenomicsDB</description>
     <url>https://github.com/Intel-HLS/GenomicsDB/wiki</url>
 
     <licenses>
