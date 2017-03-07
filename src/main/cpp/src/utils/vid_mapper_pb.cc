@@ -29,8 +29,8 @@
 #define VERIFY_OR_THROW(X) if(!(X)) throw ProtoBufBasedVidMapperException(#X);
 
 ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
-  const VidMapping* vid_map_protobuf,
-  const CallsetMap* callset_map_protobuf,
+  const VidMappingPB* vid_map_protobuf,
+  const CallsetMappingPB* callset_map_protobuf,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec)
   : VidMapper() {
 
@@ -49,8 +49,8 @@ ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
 }
 
 void ProtoBufBasedVidMapper::initialize(
-  const VidMapping* vid_map_protobuf,
-  const CallsetMap* callset_map_protobuf,
+  const VidMappingPB* vid_map_protobuf,
+  const CallsetMappingPB* callset_map_protobuf,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec) {
 
   int ret = 0;
@@ -65,7 +65,7 @@ void ProtoBufBasedVidMapper::initialize(
 }
 
 int ProtoBufBasedVidMapper::parse_callset_protobuf(
-  const CallsetMap* callset_map_protobuf,
+  const CallsetMappingPB* callset_map_protobuf,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec) {
 
   auto num_callsets = callset_map_protobuf->callset_map_size();
@@ -177,7 +177,7 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
 } // end of parse_callset_protobuf
 
 int ProtoBufBasedVidMapper::parse_vidmap_protobuf(
-  const VidMapping* vid_map_protobuf) {
+  const VidMappingPB* vid_map_protobuf) {
 
   int ret = 0;
   ret = parse_contigs_from_vidmap(vid_map_protobuf);
@@ -189,7 +189,7 @@ int ProtoBufBasedVidMapper::parse_vidmap_protobuf(
 }
 
 int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
-  const VidMapping* vid_map_protobuf) {
+  const VidMappingPB* vid_map_protobuf) {
 
   auto num_contigs = vid_map_protobuf->chromosomes_size();
   m_contig_idx_to_info.resize(num_contigs);
@@ -293,7 +293,7 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
 } // end of parse_contigs_from_vidmap
 
 int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
-  const VidMapping* vid_map_protobuf) {
+  const VidMappingPB* vid_map_protobuf) {
 
   auto num_fields = vid_map_protobuf->infofields_size();
   m_field_idx_to_info.resize(num_fields);

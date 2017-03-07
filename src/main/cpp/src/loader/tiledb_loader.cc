@@ -481,8 +481,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(
   const int64_t lb_callset_row_idx,
   const int64_t ub_callset_row_idx,
   bool using_vidmap_protobuf,
-  const VidMapping* vidmap_pb,
-  const CallsetMap* callsetmap_pb)
+  const VidMappingPB* vidmap_pb,
+  const CallsetMappingPB* callsetmap_pb)
   : VCF2TileDBLoaderConverterBase(
       config_filename,
       idx,
@@ -511,8 +511,8 @@ VCF2TileDBLoader::VCF2TileDBLoader(
   const int64_t lb_callset_row_idx,
   const int64_t ub_callset_row_idx,
   bool using_vidmap_protobuf,
-  const VidMapping* vidmap_pb,
-  const CallsetMap* callsetmap_pb)
+  const VidMappingPB* vidmap_pb,
+  const CallsetMappingPB* callsetmap_pb)
   : VCF2TileDBLoaderConverterBase(
       config_filename,
       idx,
@@ -540,8 +540,8 @@ void VCF2TileDBLoader::common_constructor_initialization(
   const int64_t lb_callset_row_idx,
   const int64_t ub_callset_row_idx,
   bool using_vidmap_protobuf,
-  const VidMapping* vidmap_pb,
-  const CallsetMap* callsetmap_pb)
+  const VidMappingPB* vidmap_pb,
+  const CallsetMappingPB* callsetmap_pb)
 {
 #ifdef HTSDIR
   m_converter = 0;

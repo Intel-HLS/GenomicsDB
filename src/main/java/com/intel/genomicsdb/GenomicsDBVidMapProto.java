@@ -1831,8 +1831,8 @@ public final class GenomicsDBVidMapProto {
 
   }
 
-  public interface VidMappingOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:VidMapping)
+  public interface VidMappingPBOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:VidMappingPB)
       com.google.protobuf.MessageOrBuilder {
 
     /**
@@ -1884,17 +1884,17 @@ public final class GenomicsDBVidMapProto {
         int index);
   }
   /**
-   * Protobuf type {@code VidMapping}
+   * Protobuf type {@code VidMappingPB}
    */
-  public  static final class VidMapping extends
+  public  static final class VidMappingPB extends
       com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:VidMapping)
-      VidMappingOrBuilder {
-    // Use VidMapping.newBuilder() to construct.
-    private VidMapping(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      // @@protoc_insertion_point(message_implements:VidMappingPB)
+      VidMappingPBOrBuilder {
+    // Use VidMappingPB.newBuilder() to construct.
+    private VidMappingPB(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
-    private VidMapping() {
+    private VidMappingPB() {
       infofields_ = java.util.Collections.emptyList();
       chromosomes_ = java.util.Collections.emptyList();
     }
@@ -1904,7 +1904,7 @@ public final class GenomicsDBVidMapProto {
     getUnknownFields() {
       return this.unknownFields;
     }
-    private VidMapping(
+    private VidMappingPB(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1965,14 +1965,14 @@ public final class GenomicsDBVidMapProto {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMapping_descriptor;
+      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMapping_fieldAccessorTable
+      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.class, com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.Builder.class);
+              com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.class, com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.Builder.class);
     }
 
     public static final int INFOFIELDS_FIELD_NUMBER = 1;
@@ -2102,10 +2102,10 @@ public final class GenomicsDBVidMapProto {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping)) {
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB)) {
         return super.equals(obj);
       }
-      com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping other = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping) obj;
+      com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB other = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) obj;
 
       boolean result = true;
       result = result && getInfofieldsList()
@@ -2136,58 +2136,58 @@ public final class GenomicsDBVidMapProto {
       return hash;
     }
 
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(byte[] data)
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(java.io.InputStream input)
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseDelimitedFrom(java.io.InputStream input)
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseDelimitedFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -2199,7 +2199,7 @@ public final class GenomicsDBVidMapProto {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping prototype) {
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() {
@@ -2214,25 +2214,25 @@ public final class GenomicsDBVidMapProto {
       return builder;
     }
     /**
-     * Protobuf type {@code VidMapping}
+     * Protobuf type {@code VidMappingPB}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:VidMapping)
-        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingOrBuilder {
+        // @@protoc_insertion_point(builder_implements:VidMappingPB)
+        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPBOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMapping_descriptor;
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMapping_fieldAccessorTable
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.class, com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.Builder.class);
+                com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.class, com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.Builder.class);
       }
 
-      // Construct using com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.newBuilder()
+      // Construct using com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
@@ -2268,23 +2268,23 @@ public final class GenomicsDBVidMapProto {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMapping_descriptor;
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_descriptor;
       }
 
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping getDefaultInstanceForType() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.getDefaultInstance();
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB getDefaultInstanceForType() {
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.getDefaultInstance();
       }
 
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping build() {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping result = buildPartial();
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB build() {
+        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping buildPartial() {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping result = new com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping(this);
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB buildPartial() {
+        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB result = new com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB(this);
         int from_bitField0_ = bitField0_;
         if (infofieldsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -2335,16 +2335,16 @@ public final class GenomicsDBVidMapProto {
         return (Builder) super.addRepeatedField(field, value);
       }
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping) {
-          return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping)other);
+        if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) {
+          return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping other) {
-        if (other == com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB other) {
+        if (other == com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB.getDefaultInstance()) return this;
         if (infofieldsBuilder_ == null) {
           if (!other.infofields_.isEmpty()) {
             if (infofields_.isEmpty()) {
@@ -2420,11 +2420,11 @@ public final class GenomicsDBVidMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping parsedMessage = null;
+        com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping) e.getUnfinishedMessage();
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -2925,39 +2925,39 @@ public final class GenomicsDBVidMapProto {
       }
 
 
-      // @@protoc_insertion_point(builder_scope:VidMapping)
+      // @@protoc_insertion_point(builder_scope:VidMappingPB)
     }
 
-    // @@protoc_insertion_point(class_scope:VidMapping)
-    private static final com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:VidMappingPB)
+    private static final com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping();
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB();
     }
 
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping getDefaultInstance() {
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    @java.lang.Deprecated public static final com.google.protobuf.Parser<VidMapping>
-        PARSER = new com.google.protobuf.AbstractParser<VidMapping>() {
-      public VidMapping parsePartialFrom(
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<VidMappingPB>
+        PARSER = new com.google.protobuf.AbstractParser<VidMappingPB>() {
+      public VidMappingPB parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new VidMapping(input, extensionRegistry);
+          return new VidMappingPB(input, extensionRegistry);
       }
     };
 
-    public static com.google.protobuf.Parser<VidMapping> parser() {
+    public static com.google.protobuf.Parser<VidMappingPB> parser() {
       return PARSER;
     }
 
     @java.lang.Override
-    public com.google.protobuf.Parser<VidMapping> getParserForType() {
+    public com.google.protobuf.Parser<VidMappingPB> getParserForType() {
       return PARSER;
     }
 
-    public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMapping getDefaultInstanceForType() {
+    public com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -2974,10 +2974,10 @@ public final class GenomicsDBVidMapProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Chromosome_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_VidMapping_descriptor;
+    internal_static_VidMappingPB_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_VidMapping_fieldAccessorTable;
+      internal_static_VidMappingPB_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -2991,10 +2991,10 @@ public final class GenomicsDBVidMapProto {
       "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f" +
       "ield_class\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\nChro" +
       "mosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024" +
-      "tiledb_column_offset\030\003 \002(\003\"N\n\nVidMapping" +
-      "\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013chro" +
-      "mosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.intel." +
-      "genomicsdbB\025GenomicsDBVidMapProto"
+      "tiledb_column_offset\030\003 \002(\003\"P\n\014VidMapping" +
+      "PB\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013ch" +
+      "romosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.inte" +
+      "l.genomicsdbB\025GenomicsDBVidMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3020,11 +3020,11 @@ public final class GenomicsDBVidMapProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Chromosome_descriptor,
         new java.lang.String[] { "Name", "Length", "TiledbColumnOffset", });
-    internal_static_VidMapping_descriptor =
+    internal_static_VidMappingPB_descriptor =
       getDescriptor().getMessageTypes().get(2);
-    internal_static_VidMapping_fieldAccessorTable = new
+    internal_static_VidMappingPB_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_VidMapping_descriptor,
+        internal_static_VidMappingPB_descriptor,
         new java.lang.String[] { "Infofields", "Chromosomes", });
   }
 

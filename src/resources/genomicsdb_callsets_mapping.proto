@@ -19,6 +19,6 @@ message SampleIDToTileDBIDMap {
   optional string stream_name = 4;
 }
 
-message CallsetMap {
+message CallsetMappingPB {
   map<string, SampleIDToTileDBIDMap> callset_map = 1;
 }

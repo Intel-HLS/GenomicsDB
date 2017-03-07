@@ -36,7 +36,7 @@ void protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto();
 void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto();
 void protobuf_ShutdownFile_genomicsdb_5fcallsets_5fmapping_2eproto();
 
-class CallsetMap;
+class CallsetMappingPB;
 class SampleIDToTileDBIDMap;
 
 // ===================================================================
@@ -177,14 +177,14 @@ class SampleIDToTileDBIDMap : public ::google::protobuf::Message /* @@protoc_ins
 };
 // -------------------------------------------------------------------
 
-class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:CallsetMap) */ {
+class CallsetMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:CallsetMappingPB) */ {
  public:
-  CallsetMap();
-  virtual ~CallsetMap();
+  CallsetMappingPB();
+  virtual ~CallsetMappingPB();
 
-  CallsetMap(const CallsetMap& from);
+  CallsetMappingPB(const CallsetMappingPB& from);
 
-  inline CallsetMap& operator=(const CallsetMap& from) {
+  inline CallsetMappingPB& operator=(const CallsetMappingPB& from) {
     CopyFrom(from);
     return *this;
   }
@@ -198,19 +198,19 @@ class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_poin
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const CallsetMap& default_instance();
+  static const CallsetMappingPB& default_instance();
 
-  void Swap(CallsetMap* other);
+  void Swap(CallsetMappingPB* other);
 
   // implements Message ----------------------------------------------
 
-  inline CallsetMap* New() const { return New(NULL); }
+  inline CallsetMappingPB* New() const { return New(NULL); }
 
-  CallsetMap* New(::google::protobuf::Arena* arena) const;
+  CallsetMappingPB* New(::google::protobuf::Arena* arena) const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const CallsetMap& from);
-  void MergeFrom(const CallsetMap& from);
+  void CopyFrom(const CallsetMappingPB& from);
+  void MergeFrom(const CallsetMappingPB& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -229,7 +229,7 @@ class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_poin
   void SharedCtor();
   void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(CallsetMap* other);
+  void InternalSwap(CallsetMappingPB* other);
   private:
   inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
     return _internal_metadata_.arena();
@@ -255,7 +255,7 @@ class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_poin
   ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >*
       mutable_callset_map();
 
-  // @@protoc_insertion_point(class_scope:CallsetMap)
+  // @@protoc_insertion_point(class_scope:CallsetMappingPB)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -266,7 +266,7 @@ class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_poin
       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
       ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
       0 >
-      CallsetMap_CallsetMapEntry;
+      CallsetMappingPB_CallsetMapEntry;
   ::google::protobuf::internal::MapField<
       ::std::string, ::SampleIDToTileDBIDMap,
       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
@@ -277,7 +277,7 @@ class CallsetMap : public ::google::protobuf::Message /* @@protoc_insertion_poin
   friend void protobuf_ShutdownFile_genomicsdb_5fcallsets_5fmapping_2eproto();
 
   void InitAsDefaultInstance();
-  static CallsetMap* default_instance_;
+  static CallsetMappingPB* default_instance_;
 };
 // ===================================================================
 
@@ -445,23 +445,23 @@ inline void SampleIDToTileDBIDMap::set_allocated_stream_name(::std::string* stre
 
 // -------------------------------------------------------------------
 
-// CallsetMap
+// CallsetMappingPB
 
 // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-inline int CallsetMap::callset_map_size() const {
+inline int CallsetMappingPB::callset_map_size() const {
   return callset_map_.size();
 }
-inline void CallsetMap::clear_callset_map() {
+inline void CallsetMappingPB::clear_callset_map() {
   callset_map_.Clear();
 }
 inline const ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >&
-CallsetMap::callset_map() const {
-  // @@protoc_insertion_point(field_map:CallsetMap.callset_map)
+CallsetMappingPB::callset_map() const {
+  // @@protoc_insertion_point(field_map:CallsetMappingPB.callset_map)
   return callset_map_.GetMap();
 }
 inline ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >*
-CallsetMap::mutable_callset_map() {
-  // @@protoc_insertion_point(field_mutable_map:CallsetMap.callset_map)
+CallsetMappingPB::mutable_callset_map() {
+  // @@protoc_insertion_point(field_mutable_map:CallsetMappingPB.callset_map)
   return callset_map_.MutableMap();
 }
 

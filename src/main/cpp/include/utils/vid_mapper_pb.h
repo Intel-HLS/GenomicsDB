@@ -45,8 +45,8 @@ class ProtoBufBasedVidMapper : public VidMapper {
      *    stream names. Stream names cannot be empty
      */
     ProtoBufBasedVidMapper(
-      const VidMapping*,
-      const CallsetMap*,
+      const VidMappingPB*,
+      const CallsetMappingPB*,
       const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
 
     /**
@@ -60,8 +60,8 @@ class ProtoBufBasedVidMapper : public VidMapper {
      * while filling the underlying TileDB array
      */
     void initialize(
-      const VidMapping*,
-      const CallsetMap*,
+      const VidMappingPB*,
+      const CallsetMappingPB*,
       const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
 
     /**
@@ -69,7 +69,7 @@ class ProtoBufBasedVidMapper : public VidMapper {
      * populate data structures of the base jurassic VidMapper
      * class
      */
-    int parse_callset_protobuf(const CallsetMap*,
+    int parse_callset_protobuf(const CallsetMappingPB*,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
 
     /**
@@ -78,9 +78,9 @@ class ProtoBufBasedVidMapper : public VidMapper {
      * from each of the input GVCF files. Populate the data
      * structures of the base jurassic VidMapper class
      */
-    int parse_vidmap_protobuf(const VidMapping* callsetMapProto);
-    int parse_contigs_from_vidmap(const VidMapping* vidMapProto);
-    int parse_infofields_from_vidmap(const VidMapping* vidMapProto);
+    int parse_vidmap_protobuf(const VidMappingPB* callsetMapProto);
+    int parse_contigs_from_vidmap(const VidMappingPB* vidMapProto);
+    int parse_infofields_from_vidmap(const VidMappingPB* vidMapProto);
 
   protected:
     std::string m_msg;

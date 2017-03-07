@@ -919,8 +919,8 @@ public final class GenomicsDBCallsetsMapProto {
 
   }
 
-  public interface CallsetMapOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:CallsetMap)
+  public interface CallsetMappingPBOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:CallsetMappingPB)
       com.google.protobuf.MessageOrBuilder {
 
     /**
@@ -958,17 +958,17 @@ public final class GenomicsDBCallsetsMapProto {
         java.lang.String key);
   }
   /**
-   * Protobuf type {@code CallsetMap}
+   * Protobuf type {@code CallsetMappingPB}
    */
-  public  static final class CallsetMap extends
+  public  static final class CallsetMappingPB extends
       com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:CallsetMap)
-      CallsetMapOrBuilder {
-    // Use CallsetMap.newBuilder() to construct.
-    private CallsetMap(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      // @@protoc_insertion_point(message_implements:CallsetMappingPB)
+      CallsetMappingPBOrBuilder {
+    // Use CallsetMappingPB.newBuilder() to construct.
+    private CallsetMappingPB(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
-    private CallsetMap() {
+    private CallsetMappingPB() {
     }
 
     @java.lang.Override
@@ -976,7 +976,7 @@ public final class GenomicsDBCallsetsMapProto {
     getUnknownFields() {
       return this.unknownFields;
     }
-    private CallsetMap(
+    private CallsetMappingPB(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1025,7 +1025,7 @@ public final class GenomicsDBCallsetsMapProto {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_descriptor;
+      return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_descriptor;
     }
 
     @SuppressWarnings({"rawtypes"})
@@ -1041,9 +1041,9 @@ public final class GenomicsDBCallsetsMapProto {
     }
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_fieldAccessorTable
+      return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.class, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.Builder.class);
+              com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.class, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder.class);
     }
 
     public static final int CALLSET_MAP_FIELD_NUMBER = 1;
@@ -1052,7 +1052,7 @@ public final class GenomicsDBCallsetsMapProto {
           java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> defaultEntry =
               com.google.protobuf.MapEntry
               .<java.lang.String, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>newDefaultInstance(
-                  com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_CallsetMapEntry_descriptor, 
+                  com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_CallsetMapEntry_descriptor, 
                   com.google.protobuf.WireFormat.FieldType.STRING,
                   "",
                   com.google.protobuf.WireFormat.FieldType.MESSAGE,
@@ -1178,10 +1178,10 @@ public final class GenomicsDBCallsetsMapProto {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap)) {
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB)) {
         return super.equals(obj);
       }
-      com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap other = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap) obj;
+      com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB other = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) obj;
 
       boolean result = true;
       result = result && internalGetCallsetMap().equals(
@@ -1206,58 +1206,58 @@ public final class GenomicsDBCallsetsMapProto {
       return hash;
     }
 
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(byte[] data)
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(java.io.InputStream input)
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseDelimitedFrom(java.io.InputStream input)
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseDelimitedFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parseFrom(
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1269,7 +1269,7 @@ public final class GenomicsDBCallsetsMapProto {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap prototype) {
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() {
@@ -1284,15 +1284,15 @@ public final class GenomicsDBCallsetsMapProto {
       return builder;
     }
     /**
-     * Protobuf type {@code CallsetMap}
+     * Protobuf type {@code CallsetMappingPB}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:CallsetMap)
-        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMapOrBuilder {
+        // @@protoc_insertion_point(builder_implements:CallsetMappingPB)
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPBOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_descriptor;
+        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_descriptor;
       }
 
       @SuppressWarnings({"rawtypes"})
@@ -1319,12 +1319,12 @@ public final class GenomicsDBCallsetsMapProto {
       }
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_fieldAccessorTable
+        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.class, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.Builder.class);
+                com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.class, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder.class);
       }
 
-      // Construct using com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.newBuilder()
+      // Construct using com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
@@ -1347,23 +1347,23 @@ public final class GenomicsDBCallsetsMapProto {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMap_descriptor;
+        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_descriptor;
       }
 
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap getDefaultInstanceForType() {
-        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.getDefaultInstance();
+      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB getDefaultInstanceForType() {
+        return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.getDefaultInstance();
       }
 
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap build() {
-        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap result = buildPartial();
+      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB build() {
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap buildPartial() {
-        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap result = new com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap(this);
+      public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB buildPartial() {
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB result = new com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB(this);
         int from_bitField0_ = bitField0_;
         result.callsetMap_ = internalGetCallsetMap();
         result.callsetMap_.makeImmutable();
@@ -1398,16 +1398,16 @@ public final class GenomicsDBCallsetsMapProto {
         return (Builder) super.addRepeatedField(field, value);
       }
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap) {
-          return mergeFrom((com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap)other);
+        if (other instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) {
+          return mergeFrom((com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap other) {
-        if (other == com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB other) {
+        if (other == com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB.getDefaultInstance()) return this;
         internalGetMutableCallsetMap().mergeFrom(
             other.internalGetCallsetMap());
         this.mergeUnknownFields(other.unknownFields);
@@ -1428,11 +1428,11 @@ public final class GenomicsDBCallsetsMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap parsedMessage = null;
+        com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap) e.getUnfinishedMessage();
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -1572,39 +1572,39 @@ public final class GenomicsDBCallsetsMapProto {
       }
 
 
-      // @@protoc_insertion_point(builder_scope:CallsetMap)
+      // @@protoc_insertion_point(builder_scope:CallsetMappingPB)
     }
 
-    // @@protoc_insertion_point(class_scope:CallsetMap)
-    private static final com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:CallsetMappingPB)
+    private static final com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap();
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB();
     }
 
-    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap getDefaultInstance() {
+    public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    @java.lang.Deprecated public static final com.google.protobuf.Parser<CallsetMap>
-        PARSER = new com.google.protobuf.AbstractParser<CallsetMap>() {
-      public CallsetMap parsePartialFrom(
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<CallsetMappingPB>
+        PARSER = new com.google.protobuf.AbstractParser<CallsetMappingPB>() {
+      public CallsetMappingPB parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new CallsetMap(input, extensionRegistry);
+          return new CallsetMappingPB(input, extensionRegistry);
       }
     };
 
-    public static com.google.protobuf.Parser<CallsetMap> parser() {
+    public static com.google.protobuf.Parser<CallsetMappingPB> parser() {
       return PARSER;
     }
 
     @java.lang.Override
-    public com.google.protobuf.Parser<CallsetMap> getParserForType() {
+    public com.google.protobuf.Parser<CallsetMappingPB> getParserForType() {
       return PARSER;
     }
 
-    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMap getDefaultInstanceForType() {
+    public com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -1616,15 +1616,15 @@ public final class GenomicsDBCallsetsMapProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_SampleIDToTileDBIDMap_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_CallsetMap_descriptor;
+    internal_static_CallsetMappingPB_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_CallsetMap_fieldAccessorTable;
+      internal_static_CallsetMappingPB_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_CallsetMap_CallsetMapEntry_descriptor;
+    internal_static_CallsetMappingPB_CallsetMapEntry_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_CallsetMap_CallsetMapEntry_fieldAccessorTable;
+      internal_static_CallsetMappingPB_CallsetMapEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -1637,12 +1637,12 @@ public final class GenomicsDBCallsetsMapProto {
       "\n!genomicsdb_callsets_mapping.proto\"p\n\025S" +
       "ampleIDToTileDBIDMap\022\023\n\013sample_name\030\001 \002(" +
       "\t\022\030\n\020tiledb_row_index\030\002 \002(\003\022\023\n\013idx_in_fi" +
-      "le\030\003 \002(\005\022\023\n\013stream_name\030\004 \001(\t\"\211\001\n\nCallse" +
-      "tMap\0220\n\013callset_map\030\001 \003(\0132\033.CallsetMap.C" +
-      "allsetMapEntry\032I\n\017CallsetMapEntry\022\013\n\003key" +
-      "\030\001 \001(\t\022%\n\005value\030\002 \001(\0132\026.SampleIDToTileDB" +
-      "IDMap:\0028\001B2\n\024com.intel.genomicsdbB\032Genom" +
-      "icsDBCallsetsMapProto"
+      "le\030\003 \002(\005\022\023\n\013stream_name\030\004 \001(\t\"\225\001\n\020Callse" +
+      "tMappingPB\0226\n\013callset_map\030\001 \003(\0132!.Callse" +
+      "tMappingPB.CallsetMapEntry\032I\n\017CallsetMap" +
+      "Entry\022\013\n\003key\030\001 \001(\t\022%\n\005value\030\002 \001(\0132\026.Samp" +
+      "leIDToTileDBIDMap:\0028\001B2\n\024com.intel.genom" +
+      "icsdbB\032GenomicsDBCallsetsMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -1662,17 +1662,17 @@ public final class GenomicsDBCallsetsMapProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_SampleIDToTileDBIDMap_descriptor,
         new java.lang.String[] { "SampleName", "TiledbRowIndex", "IdxInFile", "StreamName", });
-    internal_static_CallsetMap_descriptor =
+    internal_static_CallsetMappingPB_descriptor =
       getDescriptor().getMessageTypes().get(1);
-    internal_static_CallsetMap_fieldAccessorTable = new
+    internal_static_CallsetMappingPB_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_CallsetMap_descriptor,
+        internal_static_CallsetMappingPB_descriptor,
         new java.lang.String[] { "CallsetMap", });
-    internal_static_CallsetMap_CallsetMapEntry_descriptor =
-      internal_static_CallsetMap_descriptor.getNestedTypes().get(0);
-    internal_static_CallsetMap_CallsetMapEntry_fieldAccessorTable = new
+    internal_static_CallsetMappingPB_CallsetMapEntry_descriptor =
+      internal_static_CallsetMappingPB_descriptor.getNestedTypes().get(0);
+    internal_static_CallsetMappingPB_CallsetMapEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_CallsetMap_CallsetMapEntry_descriptor,
+        internal_static_CallsetMappingPB_CallsetMapEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
   }
 

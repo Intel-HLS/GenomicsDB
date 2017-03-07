@@ -273,7 +273,7 @@ Java_com_intel_genomicsdb_GenomicsDBImporter_jniCopyVidMap
   // Get GenomicsDBImporter object reference
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);
 
-  VidMapping vidmap;
+  VidMappingPB vidmap;
   jbyte *vidmap_elements = env->GetByteArrayElements(vidmap_as_bytearray, 0);
   int vidmap_length = env->GetArrayLength(vidmap_as_bytearray);
   try {
@@ -308,7 +308,7 @@ Java_com_intel_genomicsdb_GenomicsDBImporter_jniCopyCallsetMap
   // Get GenomicsDBImporter object reference
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);
 
-  CallsetMap callsetmap;
+  CallsetMappingPB callsetmap;
   jbyte *callsetmap_elements =
       env->GetByteArrayElements(callsetmap_as_bytearray, 0);
   int callsetmap_length = env->GetArrayLength(callsetmap_as_bytearray);

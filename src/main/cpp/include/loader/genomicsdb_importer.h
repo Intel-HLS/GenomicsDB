@@ -94,18 +94,18 @@ class GenomicsDBImporter
      * Protocol buffer based vid map used by
      * GATK4 GenomicsDBImport tool
      */
-    void setup_vidmap(const VidMapping* vidMap) {
+    void setup_vidmap(const VidMappingPB* vidMap) {
       assert (vidMap != NULL);
-      m_vid_map = new VidMapping(*vidMap);
+      m_vid_map = new VidMappingPB(*vidMap);
     }
 
     /**
      * Protocol buffer based Callset map used by
      * GATK4 GenomicsDBImport tool
      */
-    void setup_callsetmap(const CallsetMap* callsetMap) {
+    void setup_callsetmap(const CallsetMappingPB* callsetMap) {
       assert (callsetMap != NULL);
-      m_callset_map = new CallsetMap(*callsetMap);
+      m_callset_map = new CallsetMappingPB(*callsetMap);
     }
 
     inline const std::vector<int64_t>&
@@ -167,8 +167,8 @@ class GenomicsDBImporter
     std::unordered_set<std::string> m_buffer_stream_names;
     VCF2TileDBLoader* m_loader_ptr;
     VCF2TileDBLoaderReadState* m_read_state;
-    const VidMapping *m_vid_map;
-    const CallsetMap *m_callset_map;
+    const VidMappingPB *m_vid_map;
+    const CallsetMappingPB *m_callset_map;
 };
 
 #endif

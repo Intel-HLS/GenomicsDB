@@ -117,9 +117,9 @@ public class GenomicsDBVidMappingProtoSpec {
     chromosomes.add(three);
     chromosomes.add(gl000195);
 
-    GenomicsDBVidMapProto.VidMapping.Builder vidmapBuilder =
-      GenomicsDBVidMapProto.VidMapping.newBuilder();
-    GenomicsDBVidMapProto.VidMapping vidmap =
+    GenomicsDBVidMapProto.VidMappingPB.Builder vidmapBuilder =
+      GenomicsDBVidMapProto.VidMappingPB.newBuilder();
+    GenomicsDBVidMapProto.VidMappingPB vidmap =
       vidmapBuilder
         .addAllChromosomes(chromosomes)
         .addAllInfofields(infoFields)

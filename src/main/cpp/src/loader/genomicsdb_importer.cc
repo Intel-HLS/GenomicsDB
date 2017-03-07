@@ -82,6 +82,18 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other) {
     delete m_read_state;
   m_read_state = other.m_read_state;
   other.m_read_state = 0;
+
+  if (m_vid_map) {
+    delete m_vid_map;
+  }
+  m_vid_map = other.m_vid_map;
+  other.m_vid_map = 0;
+
+  if (m_callset_map) {
+      delete m_callset_map;
+    }
+    m_callset_map = other.m_callset_map;
+    other.m_callset_map = 0;
 }
 
 GenomicsDBImporter::~GenomicsDBImporter() {
@@ -93,6 +105,16 @@ GenomicsDBImporter::~GenomicsDBImporter() {
   if(m_read_state)
     delete m_read_state;
   m_read_state = 0;
+
+  if (m_vid_map) {
+    delete m_vid_map;
+  }
+  m_vid_map = 0;
+
+  if (m_callset_map) {
+    delete m_callset_map;
+  }
+  m_callset_map = 0;
 }
 
 void GenomicsDBImporter::setup_loader(

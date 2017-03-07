@@ -277,8 +277,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       const int64_t lb_callset_row_idx=0,
       const int64_t ub_callset_row_idx=INT64_MAX-1,
       bool using_vidmap_protobuf=false,
-      const VidMapping* vidmap_pb = NULL,
-      const CallsetMap* callsetmap_pb = NULL);
+      const VidMappingPB* vidmap_pb = NULL,
+      const CallsetMappingPB* callsetmap_pb = NULL);
     VCF2TileDBLoader(
       const std::string& config_filename,
       const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
@@ -287,8 +287,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       const int64_t lb_callset_row_idx=0,
       const int64_t ub_callset_row_idx=INT64_MAX-1,
       bool using_vidmap_protobuf=false,
-      const VidMapping* vidmap_pb = NULL,
-      const CallsetMap* callsetmap_pb = NULL);
+      const VidMappingPB* vidmap_pb = NULL,
+      const CallsetMappingPB* callsetmap_pb = NULL);
 
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
@@ -410,8 +410,8 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       const int64_t lb_callset_row_idx,
       const int64_t ub_callset_row_idx,
       bool using_vidmap_protobuf,
-      const VidMapping* vidmap_pb,
-      const CallsetMap* callsetmap_pb);
+      const VidMappingPB* vidmap_pb,
+      const CallsetMappingPB* callsetmap_pb);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
@@ -434,7 +434,6 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     //For checking whether cells are traversed in correct order
     int64_t m_previous_cell_row_idx;
     int64_t m_previous_cell_column;
-    bool m_vid_mapper_file_required;
 };
 
 #endif

@@ -203,9 +203,9 @@ public class GenomicsDBImporter
   private JSONObject mCallsetMappingJSON = null;
 
   private boolean mUsingVidMappingProtoBuf = false;
-  private GenomicsDBVidMapProto.VidMapping mVidMap = null;
+  private GenomicsDBVidMapProto.VidMappingPB mVidMap = null;
   private ChromosomeInterval mChromosomeInterval;
-  private GenomicsDBCallsetsMapProto.CallsetMap mCallsetMap = null;
+  private GenomicsDBCallsetsMapProto.CallsetMappingPB mCallsetMap = null;
 
   /**
    * Default Constructor
@@ -373,7 +373,7 @@ public class GenomicsDBImporter
    * @param  variants  Variant Readers objects of the input GVCF files
    * @return  Mappings of callset (sample) names to TileDB rows
    */
-  private GenomicsDBCallsetsMapProto.CallsetMap generateSortedCallSetMap(
+  private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
     Map<String, FeatureReader<VariantContext>> variants) {
 
     List<String> sampleNames = new ArrayList<>(variants.size());
@@ -384,8 +384,8 @@ public class GenomicsDBImporter
 
     Collections.sort(sampleNames);
 
-    GenomicsDBCallsetsMapProto.CallsetMap.Builder callsetMapBuilder =
-      GenomicsDBCallsetsMapProto.CallsetMap.newBuilder();
+    GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
+      GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
 
     int tileDBRowIndex = 0;
     
@@ -433,7 +433,7 @@ public class GenomicsDBImporter
    * @return  a vid map containing all field names, lengths and types
    *          from the merged GVCF header
    */
-  private GenomicsDBVidMapProto.VidMapping generateVidMapFromMergedHeader(
+  private GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(
     Set<VCFHeaderLine> mergedHeader) {
 
     List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
@@ -527,8 +527,8 @@ public class GenomicsDBImporter
       }
     }
 
-    GenomicsDBVidMapProto.VidMapping.Builder vidMapBuilder =
-      GenomicsDBVidMapProto.VidMapping.newBuilder();
+    GenomicsDBVidMapProto.VidMappingPB.Builder vidMapBuilder =
+      GenomicsDBVidMapProto.VidMappingPB.newBuilder();
 
     return vidMapBuilder
       .addAllInfofields(infoFields)

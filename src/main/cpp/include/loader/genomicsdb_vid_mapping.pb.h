@@ -36,7 +36,7 @@ void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
 
 class Chromosome;
 class InfoField;
-class VidMapping;
+class VidMappingPB;
 
 // ===================================================================
 
@@ -309,14 +309,14 @@ class Chromosome : public ::google::protobuf::Message /* @@protoc_insertion_poin
 };
 // -------------------------------------------------------------------
 
-class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:VidMapping) */ {
+class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:VidMappingPB) */ {
  public:
-  VidMapping();
-  virtual ~VidMapping();
+  VidMappingPB();
+  virtual ~VidMappingPB();
 
-  VidMapping(const VidMapping& from);
+  VidMappingPB(const VidMappingPB& from);
 
-  inline VidMapping& operator=(const VidMapping& from) {
+  inline VidMappingPB& operator=(const VidMappingPB& from) {
     CopyFrom(from);
     return *this;
   }
@@ -330,19 +330,19 @@ class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_poin
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const VidMapping& default_instance();
+  static const VidMappingPB& default_instance();
 
-  void Swap(VidMapping* other);
+  void Swap(VidMappingPB* other);
 
   // implements Message ----------------------------------------------
 
-  inline VidMapping* New() const { return New(NULL); }
+  inline VidMappingPB* New() const { return New(NULL); }
 
-  VidMapping* New(::google::protobuf::Arena* arena) const;
+  VidMappingPB* New(::google::protobuf::Arena* arena) const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const VidMapping& from);
-  void MergeFrom(const VidMapping& from);
+  void CopyFrom(const VidMappingPB& from);
+  void MergeFrom(const VidMappingPB& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -361,7 +361,7 @@ class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_poin
   void SharedCtor();
   void SharedDtor();
   void SetCachedSize(int size) const;
-  void InternalSwap(VidMapping* other);
+  void InternalSwap(VidMappingPB* other);
   private:
   inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
     return _internal_metadata_.arena();
@@ -401,7 +401,7 @@ class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_poin
   const ::google::protobuf::RepeatedPtrField< ::Chromosome >&
       chromosomes() const;
 
-  // @@protoc_insertion_point(class_scope:VidMapping)
+  // @@protoc_insertion_point(class_scope:VidMappingPB)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -414,7 +414,7 @@ class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_poin
   friend void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
 
   void InitAsDefaultInstance();
-  static VidMapping* default_instance_;
+  static VidMappingPB* default_instance_;
 };
 // ===================================================================
 
@@ -749,65 +749,65 @@ inline void Chromosome::set_tiledb_column_offset(::google::protobuf::int64 value
 
 // -------------------------------------------------------------------
 
-// VidMapping
+// VidMappingPB
 
 // repeated .InfoField infofields = 1;
-inline int VidMapping::infofields_size() const {
+inline int VidMappingPB::infofields_size() const {
   return infofields_.size();
 }
-inline void VidMapping::clear_infofields() {
+inline void VidMappingPB::clear_infofields() {
   infofields_.Clear();
 }
-inline const ::InfoField& VidMapping::infofields(int index) const {
-  // @@protoc_insertion_point(field_get:VidMapping.infofields)
+inline const ::InfoField& VidMappingPB::infofields(int index) const {
+  // @@protoc_insertion_point(field_get:VidMappingPB.infofields)
   return infofields_.Get(index);
 }
-inline ::InfoField* VidMapping::mutable_infofields(int index) {
-  // @@protoc_insertion_point(field_mutable:VidMapping.infofields)
+inline ::InfoField* VidMappingPB::mutable_infofields(int index) {
+  // @@protoc_insertion_point(field_mutable:VidMappingPB.infofields)
   return infofields_.Mutable(index);
 }
-inline ::InfoField* VidMapping::add_infofields() {
-  // @@protoc_insertion_point(field_add:VidMapping.infofields)
+inline ::InfoField* VidMappingPB::add_infofields() {
+  // @@protoc_insertion_point(field_add:VidMappingPB.infofields)
   return infofields_.Add();
 }
 inline ::google::protobuf::RepeatedPtrField< ::InfoField >*
-VidMapping::mutable_infofields() {
-  // @@protoc_insertion_point(field_mutable_list:VidMapping.infofields)
+VidMappingPB::mutable_infofields() {
+  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.infofields)
   return &infofields_;
 }
 inline const ::google::protobuf::RepeatedPtrField< ::InfoField >&
-VidMapping::infofields() const {
-  // @@protoc_insertion_point(field_list:VidMapping.infofields)
+VidMappingPB::infofields() const {
+  // @@protoc_insertion_point(field_list:VidMappingPB.infofields)
   return infofields_;
 }
 
 // repeated .Chromosome chromosomes = 2;
-inline int VidMapping::chromosomes_size() const {
+inline int VidMappingPB::chromosomes_size() const {
   return chromosomes_.size();
 }
-inline void VidMapping::clear_chromosomes() {
+inline void VidMappingPB::clear_chromosomes() {
   chromosomes_.Clear();
 }
-inline const ::Chromosome& VidMapping::chromosomes(int index) const {
-  // @@protoc_insertion_point(field_get:VidMapping.chromosomes)
+inline const ::Chromosome& VidMappingPB::chromosomes(int index) const {
+  // @@protoc_insertion_point(field_get:VidMappingPB.chromosomes)
   return chromosomes_.Get(index);
 }
-inline ::Chromosome* VidMapping::mutable_chromosomes(int index) {
-  // @@protoc_insertion_point(field_mutable:VidMapping.chromosomes)
+inline ::Chromosome* VidMappingPB::mutable_chromosomes(int index) {
+  // @@protoc_insertion_point(field_mutable:VidMappingPB.chromosomes)
   return chromosomes_.Mutable(index);
 }
-inline ::Chromosome* VidMapping::add_chromosomes() {
-  // @@protoc_insertion_point(field_add:VidMapping.chromosomes)
+inline ::Chromosome* VidMappingPB::add_chromosomes() {
+  // @@protoc_insertion_point(field_add:VidMappingPB.chromosomes)
   return chromosomes_.Add();
 }
 inline ::google::protobuf::RepeatedPtrField< ::Chromosome >*
-VidMapping::mutable_chromosomes() {
-  // @@protoc_insertion_point(field_mutable_list:VidMapping.chromosomes)
+VidMappingPB::mutable_chromosomes() {
+  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.chromosomes)
   return &chromosomes_;
 }
 inline const ::google::protobuf::RepeatedPtrField< ::Chromosome >&
-VidMapping::chromosomes() const {
-  // @@protoc_insertion_point(field_list:VidMapping.chromosomes)
+VidMappingPB::chromosomes() const {
+  // @@protoc_insertion_point(field_list:VidMappingPB.chromosomes)
   return chromosomes_;
 }
 

@@ -25,7 +25,7 @@ message Chromosome {
   required int64 tiledb_column_offset = 3;
 }
 
-message VidMapping {
+message VidMappingPB {
   repeated InfoField infofields = 1;
   repeated Chromosome chromosomes  = 2;
 }
