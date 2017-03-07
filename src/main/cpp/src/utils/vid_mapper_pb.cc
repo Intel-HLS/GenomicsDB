@@ -348,7 +348,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
     // VCF class type can be an array of values: INFO, FORMAT and FILTER
     auto class_type_size =
-        vid_map_protobuf->infofields(field_idx).vcf_field_class_type_size();
+        vid_map_protobuf->infofields(field_idx).vcf_field_class_size();
 
     if (class_type_size > 0L) {
       for (int i = 0; i < class_type_size; ++i) {

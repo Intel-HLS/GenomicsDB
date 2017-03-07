@@ -19,9 +19,6 @@
 
 namespace {
 
-const ::google::protobuf::Descriptor* Length_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  Length_reflection_ = NULL;
 const ::google::protobuf::Descriptor* InfoField_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   InfoField_reflection_ = NULL;
@@ -42,27 +39,11 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
     ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
       "genomicsdb_vid_mapping.proto");
   GOOGLE_CHECK(file != NULL);
-  Length_descriptor_ = file->message_type(0);
-  static const int Length_offsets_[2] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Length, name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Length, value_),
-  };
-  Length_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      Length_descriptor_,
-      Length::default_instance_,
-      Length_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Length, _has_bits_[0]),
-      -1,
-      -1,
-      sizeof(Length),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Length, _internal_metadata_),
-      -1);
-  InfoField_descriptor_ = file->message_type(1);
+  InfoField_descriptor_ = file->message_type(0);
   static const int InfoField_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, type_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, vcf_field_class_type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, vcf_field_class_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, length_),
   };
   InfoField_reflection_ =
@@ -76,7 +57,7 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
       sizeof(InfoField),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, _internal_metadata_),
       -1);
-  Chromosome_descriptor_ = file->message_type(2);
+  Chromosome_descriptor_ = file->message_type(1);
   static const int Chromosome_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, length_),
@@ -93,7 +74,7 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
       sizeof(Chromosome),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, _internal_metadata_),
       -1);
-  VidMapping_descriptor_ = file->message_type(3);
+  VidMapping_descriptor_ = file->message_type(2);
   static const int VidMapping_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VidMapping, infofields_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VidMapping, chromosomes_),
@@ -123,8 +104,6 @@ void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Length_descriptor_, &Length::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       InfoField_descriptor_, &InfoField::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Chromosome_descriptor_, &Chromosome::default_instance());
@@ -135,8 +114,6 @@ void protobuf_RegisterTypes(const ::std::string&) {
 }  // namespace
 
 void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto() {
-  delete Length::default_instance_;
-  delete Length_reflection_;
   delete InfoField::default_instance_;
   delete InfoField_reflection_;
   delete Chromosome::default_instance_;
@@ -153,22 +130,19 @@ void protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\034genomicsdb_vid_mapping.proto\"%\n\006Length"
-    "\022\014\n\004name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\"U\n\tInfoFie"
-    "ld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\034\n\024vcf_fi"
-    "eld_class_type\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\n"
-    "Chromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003"
-    "\022\034\n\024tiledb_column_offset\030\003 \002(\003\"N\n\nVidMap"
-    "ping\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013"
-    "chromosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.in"
-    "tel.genomicsdbB\025GenomicsDBVidMapProto", 357);
+    "\n\034genomicsdb_vid_mapping.proto\"P\n\tInfoFi"
+    "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f"
+    "ield_class\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\nChro"
+    "mosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024"
+    "tiledb_column_offset\030\003 \002(\003\"N\n\nVidMapping"
+    "\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013chro"
+    "mosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.intel."
+    "genomicsdbB\025GenomicsDBVidMapProto", 313);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_vid_mapping.proto", &protobuf_RegisterTypes);
-  Length::default_instance_ = new Length();
   InfoField::default_instance_ = new InfoField();
   Chromosome::default_instance_ = new Chromosome();
   VidMapping::default_instance_ = new VidMapping();
-  Length::default_instance_->InitAsDefaultInstance();
   InfoField::default_instance_->InitAsDefaultInstance();
   Chromosome::default_instance_->InitAsDefaultInstance();
   VidMapping::default_instance_->InitAsDefaultInstance();
@@ -185,462 +159,9 @@ struct StaticDescriptorInitializer_genomicsdb_5fvid_5fmapping_2eproto {
 // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int Length::kNameFieldNumber;
-const int Length::kValueFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
-
-Length::Length()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:Length)
-}
-
-void Length::InitAsDefaultInstance() {
-}
-
-Length::Length(const Length& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:Length)
-}
-
-void Length::SharedCtor() {
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  value_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-}
-
-Length::~Length() {
-  // @@protoc_insertion_point(destructor:Length)
-  SharedDtor();
-}
-
-void Length::SharedDtor() {
-  name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  value_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
-}
-
-void Length::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* Length::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return Length_descriptor_;
-}
-
-const Length& Length::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
-  return *default_instance_;
-}
-
-Length* Length::default_instance_ = NULL;
-
-Length* Length::New(::google::protobuf::Arena* arena) const {
-  Length* n = new Length;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void Length::Clear() {
-// @@protoc_insertion_point(message_clear_start:Length)
-  if (_has_bits_[0 / 32] & 3u) {
-    if (has_name()) {
-      name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-    }
-    if (has_value()) {
-      value_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-    }
-  }
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  if (_internal_metadata_.have_unknown_fields()) {
-    mutable_unknown_fields()->Clear();
-  }
-}
-
-bool Length::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:Length)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required string name = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_name()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->name().data(), this->name().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "Length.name");
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_value;
-        break;
-      }
-
-      // required string value = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_value:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_value()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->value().data(), this->value().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "Length.value");
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:Length)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:Length)
-  return false;
-#undef DO_
-}
-
-void Length::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:Length)
-  // required string name = 1;
-  if (has_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->name().data(), this->name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "Length.name");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->name(), output);
-  }
-
-  // required string value = 2;
-  if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "Length.value");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->value(), output);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        unknown_fields(), output);
-  }
-  // @@protoc_insertion_point(serialize_end:Length)
-}
-
-::google::protobuf::uint8* Length::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
-  // @@protoc_insertion_point(serialize_to_array_start:Length)
-  // required string name = 1;
-  if (has_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->name().data(), this->name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "Length.name");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->name(), target);
-  }
-
-  // required string value = 2;
-  if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "Length.value");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->value(), target);
-  }
-
-  if (_internal_metadata_.have_unknown_fields()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        unknown_fields(), target);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:Length)
-  return target;
-}
-
-int Length::RequiredFieldsByteSizeFallback() const {
-// @@protoc_insertion_point(required_fields_byte_size_fallback_start:Length)
-  int total_size = 0;
-
-  if (has_name()) {
-    // required string name = 1;
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->name());
-  }
-
-  if (has_value()) {
-    // required string value = 2;
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->value());
-  }
-
-  return total_size;
-}
-int Length::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:Length)
-  int total_size = 0;
-
-  if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
-    // required string name = 1;
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->name());
-
-    // required string value = 2;
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->value());
-
-  } else {
-    total_size += RequiredFieldsByteSizeFallback();
-  }
-  if (_internal_metadata_.have_unknown_fields()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void Length::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:Length)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  const Length* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const Length>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:Length)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:Length)
-    MergeFrom(*source);
-  }
-}
-
-void Length::MergeFrom(const Length& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:Length)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_name()) {
-      set_has_name();
-      name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.name_);
-    }
-    if (from.has_value()) {
-      set_has_value();
-      value_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.value_);
-    }
-  }
-  if (from._internal_metadata_.have_unknown_fields()) {
-    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
-  }
-}
-
-void Length::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:Length)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void Length::CopyFrom(const Length& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:Length)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool Length::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
-
-  return true;
-}
-
-void Length::Swap(Length* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void Length::InternalSwap(Length* other) {
-  name_.Swap(&other->name_);
-  value_.Swap(&other->value_);
-  std::swap(_has_bits_[0], other->_has_bits_[0]);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata Length::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = Length_descriptor_;
-  metadata.reflection = Length_reflection_;
-  return metadata;
-}
-
-#if PROTOBUF_INLINE_NOT_IN_HEADERS
-// Length
-
-// required string name = 1;
-bool Length::has_name() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-void Length::set_has_name() {
-  _has_bits_[0] |= 0x00000001u;
-}
-void Length::clear_has_name() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-void Length::clear_name() {
-  name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_name();
-}
- const ::std::string& Length::name() const {
-  // @@protoc_insertion_point(field_get:Length.name)
-  return name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Length::set_name(const ::std::string& value) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:Length.name)
-}
- void Length::set_name(const char* value) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:Length.name)
-}
- void Length::set_name(const char* value, size_t size) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:Length.name)
-}
- ::std::string* Length::mutable_name() {
-  set_has_name();
-  // @@protoc_insertion_point(field_mutable:Length.name)
-  return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Length::release_name() {
-  // @@protoc_insertion_point(field_release:Length.name)
-  clear_has_name();
-  return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Length::set_allocated_name(::std::string* name) {
-  if (name != NULL) {
-    set_has_name();
-  } else {
-    clear_has_name();
-  }
-  name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), name);
-  // @@protoc_insertion_point(field_set_allocated:Length.name)
-}
-
-// required string value = 2;
-bool Length::has_value() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-void Length::set_has_value() {
-  _has_bits_[0] |= 0x00000002u;
-}
-void Length::clear_has_value() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-void Length::clear_value() {
-  value_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_value();
-}
- const ::std::string& Length::value() const {
-  // @@protoc_insertion_point(field_get:Length.value)
-  return value_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Length::set_value(const ::std::string& value) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:Length.value)
-}
- void Length::set_value(const char* value) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:Length.value)
-}
- void Length::set_value(const char* value, size_t size) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:Length.value)
-}
- ::std::string* Length::mutable_value() {
-  set_has_value();
-  // @@protoc_insertion_point(field_mutable:Length.value)
-  return value_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Length::release_value() {
-  // @@protoc_insertion_point(field_release:Length.value)
-  clear_has_value();
-  return value_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Length::set_allocated_value(::std::string* value) {
-  if (value != NULL) {
-    set_has_value();
-  } else {
-    clear_has_value();
-  }
-  value_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set_allocated:Length.value)
-}
-
-#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
-
-// ===================================================================
-
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int InfoField::kNameFieldNumber;
 const int InfoField::kTypeFieldNumber;
-const int InfoField::kVcfFieldClassTypeFieldNumber;
+const int InfoField::kVcfFieldClassFieldNumber;
 const int InfoField::kLengthFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
@@ -721,7 +242,7 @@ void InfoField::Clear() {
       length_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
   }
-  vcf_field_class_type_.Clear();
+  vcf_field_class_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->Clear();
@@ -767,25 +288,25 @@ bool InfoField::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(26)) goto parse_vcf_field_class_type;
+        if (input->ExpectTag(26)) goto parse_vcf_field_class;
         break;
       }
 
-      // repeated string vcf_field_class_type = 3;
+      // repeated string vcf_field_class = 3;
       case 3: {
         if (tag == 26) {
-         parse_vcf_field_class_type:
+         parse_vcf_field_class:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->add_vcf_field_class_type()));
+                input, this->add_vcf_field_class()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->vcf_field_class_type(this->vcf_field_class_type_size() - 1).data(),
-            this->vcf_field_class_type(this->vcf_field_class_type_size() - 1).length(),
+            this->vcf_field_class(this->vcf_field_class_size() - 1).data(),
+            this->vcf_field_class(this->vcf_field_class_size() - 1).length(),
             ::google::protobuf::internal::WireFormat::PARSE,
-            "InfoField.vcf_field_class_type");
+            "InfoField.vcf_field_class");
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(26)) goto parse_vcf_field_class_type;
+        if (input->ExpectTag(26)) goto parse_vcf_field_class;
         if (input->ExpectTag(34)) goto parse_length;
         break;
       }
@@ -852,14 +373,14 @@ void InfoField::SerializeWithCachedSizes(
       2, this->type(), output);
   }
 
-  // repeated string vcf_field_class_type = 3;
-  for (int i = 0; i < this->vcf_field_class_type_size(); i++) {
+  // repeated string vcf_field_class = 3;
+  for (int i = 0; i < this->vcf_field_class_size(); i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->vcf_field_class_type(i).data(), this->vcf_field_class_type(i).length(),
+      this->vcf_field_class(i).data(), this->vcf_field_class(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "InfoField.vcf_field_class_type");
+      "InfoField.vcf_field_class");
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      3, this->vcf_field_class_type(i), output);
+      3, this->vcf_field_class(i), output);
   }
 
   // optional string length = 4;
@@ -905,14 +426,14 @@ void InfoField::SerializeWithCachedSizes(
         2, this->type(), target);
   }
 
-  // repeated string vcf_field_class_type = 3;
-  for (int i = 0; i < this->vcf_field_class_type_size(); i++) {
+  // repeated string vcf_field_class = 3;
+  for (int i = 0; i < this->vcf_field_class_size(); i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->vcf_field_class_type(i).data(), this->vcf_field_class_type(i).length(),
+      this->vcf_field_class(i).data(), this->vcf_field_class(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "InfoField.vcf_field_class_type");
+      "InfoField.vcf_field_class");
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(3, this->vcf_field_class_type(i), target);
+      WriteStringToArray(3, this->vcf_field_class(i), target);
   }
 
   // optional string length = 4;
@@ -979,11 +500,11 @@ int InfoField::ByteSize() const {
         this->length());
   }
 
-  // repeated string vcf_field_class_type = 3;
-  total_size += 1 * this->vcf_field_class_type_size();
-  for (int i = 0; i < this->vcf_field_class_type_size(); i++) {
+  // repeated string vcf_field_class = 3;
+  total_size += 1 * this->vcf_field_class_size();
+  for (int i = 0; i < this->vcf_field_class_size(); i++) {
     total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-      this->vcf_field_class_type(i));
+      this->vcf_field_class(i));
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1019,7 +540,7 @@ void InfoField::MergeFrom(const InfoField& from) {
   if (GOOGLE_PREDICT_FALSE(&from == this)) {
     ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
   }
-  vcf_field_class_type_.MergeFrom(from.vcf_field_class_type_);
+  vcf_field_class_.MergeFrom(from.vcf_field_class_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_name()) {
       set_has_name();
@@ -1066,7 +587,7 @@ void InfoField::Swap(InfoField* other) {
 void InfoField::InternalSwap(InfoField* other) {
   name_.Swap(&other->name_);
   type_.Swap(&other->type_);
-  vcf_field_class_type_.UnsafeArenaSwap(&other->vcf_field_class_type_);
+  vcf_field_class_.UnsafeArenaSwap(&other->vcf_field_class_);
   length_.Swap(&other->length_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
@@ -1192,59 +713,59 @@ void InfoField::clear_type() {
   // @@protoc_insertion_point(field_set_allocated:InfoField.type)
 }
 
-// repeated string vcf_field_class_type = 3;
-int InfoField::vcf_field_class_type_size() const {
-  return vcf_field_class_type_.size();
+// repeated string vcf_field_class = 3;
+int InfoField::vcf_field_class_size() const {
+  return vcf_field_class_.size();
 }
-void InfoField::clear_vcf_field_class_type() {
-  vcf_field_class_type_.Clear();
+void InfoField::clear_vcf_field_class() {
+  vcf_field_class_.Clear();
 }
- const ::std::string& InfoField::vcf_field_class_type(int index) const {
-  // @@protoc_insertion_point(field_get:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Get(index);
+ const ::std::string& InfoField::vcf_field_class(int index) const {
+  // @@protoc_insertion_point(field_get:InfoField.vcf_field_class)
+  return vcf_field_class_.Get(index);
 }
- ::std::string* InfoField::mutable_vcf_field_class_type(int index) {
-  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Mutable(index);
+ ::std::string* InfoField::mutable_vcf_field_class(int index) {
+  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class)
+  return vcf_field_class_.Mutable(index);
 }
- void InfoField::set_vcf_field_class_type(int index, const ::std::string& value) {
-  // @@protoc_insertion_point(field_set:InfoField.vcf_field_class_type)
-  vcf_field_class_type_.Mutable(index)->assign(value);
+ void InfoField::set_vcf_field_class(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:InfoField.vcf_field_class)
+  vcf_field_class_.Mutable(index)->assign(value);
 }
- void InfoField::set_vcf_field_class_type(int index, const char* value) {
-  vcf_field_class_type_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:InfoField.vcf_field_class_type)
+ void InfoField::set_vcf_field_class(int index, const char* value) {
+  vcf_field_class_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:InfoField.vcf_field_class)
 }
- void InfoField::set_vcf_field_class_type(int index, const char* value, size_t size) {
-  vcf_field_class_type_.Mutable(index)->assign(
+ void InfoField::set_vcf_field_class(int index, const char* value, size_t size) {
+  vcf_field_class_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class_type)
+  // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class)
 }
- ::std::string* InfoField::add_vcf_field_class_type() {
-  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Add();
+ ::std::string* InfoField::add_vcf_field_class() {
+  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class)
+  return vcf_field_class_.Add();
 }
- void InfoField::add_vcf_field_class_type(const ::std::string& value) {
-  vcf_field_class_type_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class_type)
+ void InfoField::add_vcf_field_class(const ::std::string& value) {
+  vcf_field_class_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class)
 }
- void InfoField::add_vcf_field_class_type(const char* value) {
-  vcf_field_class_type_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:InfoField.vcf_field_class_type)
+ void InfoField::add_vcf_field_class(const char* value) {
+  vcf_field_class_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:InfoField.vcf_field_class)
 }
- void InfoField::add_vcf_field_class_type(const char* value, size_t size) {
-  vcf_field_class_type_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:InfoField.vcf_field_class_type)
+ void InfoField::add_vcf_field_class(const char* value, size_t size) {
+  vcf_field_class_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:InfoField.vcf_field_class)
 }
  const ::google::protobuf::RepeatedPtrField< ::std::string>&
-InfoField::vcf_field_class_type() const {
-  // @@protoc_insertion_point(field_list:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_;
+InfoField::vcf_field_class() const {
+  // @@protoc_insertion_point(field_list:InfoField.vcf_field_class)
+  return vcf_field_class_;
 }
  ::google::protobuf::RepeatedPtrField< ::std::string>*
-InfoField::mutable_vcf_field_class_type() {
-  // @@protoc_insertion_point(field_mutable_list:InfoField.vcf_field_class_type)
-  return &vcf_field_class_type_;
+InfoField::mutable_vcf_field_class() {
+  // @@protoc_insertion_point(field_mutable_list:InfoField.vcf_field_class)
+  return &vcf_field_class_;
 }
 
 // optional string length = 4;

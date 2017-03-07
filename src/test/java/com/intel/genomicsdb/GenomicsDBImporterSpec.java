@@ -69,7 +69,12 @@ public class GenomicsDBImporterSpec {
     }
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
     GenomicsDBImporter importer = new GenomicsDBImporter(
-      variantReaders, mergedHeader, chromosomeInterval, TILEDB_WORKSPACE, TILEDB_ARRAYNAME,
+      variantReaders,
+      mergedHeader,
+      chromosomeInterval,
+      TILEDB_WORKSPACE,
+      TILEDB_ARRAYNAME,
+      0L,
       10000000L);
 
     importer.importBatch();

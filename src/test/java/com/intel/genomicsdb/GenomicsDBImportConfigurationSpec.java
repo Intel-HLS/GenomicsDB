@@ -42,7 +42,7 @@ public class GenomicsDBImportConfigurationSpec {
     GenomicsDBImportConfiguration.Partition p0 =
       partition0
         .setBegin(0)
-        .setVcfFileName("junk0")
+        .setVcfOutputFilename("junk0")
         .setWorkspace(TILEDB_WORKSPACE)
         .setArray(ARRAY_FOR_PARTITION0)
         .build();
@@ -51,7 +51,7 @@ public class GenomicsDBImportConfigurationSpec {
     GenomicsDBImportConfiguration.Partition p1 =
       partition1
         .setBegin(1000000)
-        .setVcfFileName("junk1")
+        .setVcfOutputFilename("junk1")
         .setWorkspace(TILEDB_WORKSPACE)
         .setArray(ARRAY_FOR_PARTITION1)
         .build();

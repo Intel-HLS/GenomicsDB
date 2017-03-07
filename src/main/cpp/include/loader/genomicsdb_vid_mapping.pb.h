@@ -36,126 +36,9 @@ void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
 
 class Chromosome;
 class InfoField;
-class Length;
 class VidMapping;
 
 // ===================================================================
-
-class Length : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:Length) */ {
- public:
-  Length();
-  virtual ~Length();
-
-  Length(const Length& from);
-
-  inline Length& operator=(const Length& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
-    return _internal_metadata_.unknown_fields();
-  }
-
-  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
-    return _internal_metadata_.mutable_unknown_fields();
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const Length& default_instance();
-
-  void Swap(Length* other);
-
-  // implements Message ----------------------------------------------
-
-  inline Length* New() const { return New(NULL); }
-
-  Length* New(::google::protobuf::Arena* arena) const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const Length& from);
-  void MergeFrom(const Length& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  void InternalSwap(Length* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // required string name = 1;
-  bool has_name() const;
-  void clear_name();
-  static const int kNameFieldNumber = 1;
-  const ::std::string& name() const;
-  void set_name(const ::std::string& value);
-  void set_name(const char* value);
-  void set_name(const char* value, size_t size);
-  ::std::string* mutable_name();
-  ::std::string* release_name();
-  void set_allocated_name(::std::string* name);
-
-  // required string value = 2;
-  bool has_value() const;
-  void clear_value();
-  static const int kValueFieldNumber = 2;
-  const ::std::string& value() const;
-  void set_value(const ::std::string& value);
-  void set_value(const char* value);
-  void set_value(const char* value, size_t size);
-  ::std::string* mutable_value();
-  ::std::string* release_value();
-  void set_allocated_value(::std::string* value);
-
-  // @@protoc_insertion_point(class_scope:Length)
- private:
-  inline void set_has_name();
-  inline void clear_has_name();
-  inline void set_has_value();
-  inline void clear_has_value();
-
-  // helper for ByteSize()
-  int RequiredFieldsByteSizeFallback() const;
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  ::google::protobuf::uint32 _has_bits_[1];
-  mutable int _cached_size_;
-  ::google::protobuf::internal::ArenaStringPtr name_;
-  ::google::protobuf::internal::ArenaStringPtr value_;
-  friend void  protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
-  friend void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
-  friend void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
-
-  void InitAsDefaultInstance();
-  static Length* default_instance_;
-};
-// -------------------------------------------------------------------
 
 class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:InfoField) */ {
  public:
@@ -249,21 +132,21 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
   ::std::string* release_type();
   void set_allocated_type(::std::string* type);
 
-  // repeated string vcf_field_class_type = 3;
-  int vcf_field_class_type_size() const;
-  void clear_vcf_field_class_type();
-  static const int kVcfFieldClassTypeFieldNumber = 3;
-  const ::std::string& vcf_field_class_type(int index) const;
-  ::std::string* mutable_vcf_field_class_type(int index);
-  void set_vcf_field_class_type(int index, const ::std::string& value);
-  void set_vcf_field_class_type(int index, const char* value);
-  void set_vcf_field_class_type(int index, const char* value, size_t size);
-  ::std::string* add_vcf_field_class_type();
-  void add_vcf_field_class_type(const ::std::string& value);
-  void add_vcf_field_class_type(const char* value);
-  void add_vcf_field_class_type(const char* value, size_t size);
-  const ::google::protobuf::RepeatedPtrField< ::std::string>& vcf_field_class_type() const;
-  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_vcf_field_class_type();
+  // repeated string vcf_field_class = 3;
+  int vcf_field_class_size() const;
+  void clear_vcf_field_class();
+  static const int kVcfFieldClassFieldNumber = 3;
+  const ::std::string& vcf_field_class(int index) const;
+  ::std::string* mutable_vcf_field_class(int index);
+  void set_vcf_field_class(int index, const ::std::string& value);
+  void set_vcf_field_class(int index, const char* value);
+  void set_vcf_field_class(int index, const char* value, size_t size);
+  ::std::string* add_vcf_field_class();
+  void add_vcf_field_class(const ::std::string& value);
+  void add_vcf_field_class(const char* value);
+  void add_vcf_field_class(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& vcf_field_class() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_vcf_field_class();
 
   // optional string length = 4;
   bool has_length() const;
@@ -294,7 +177,7 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
   mutable int _cached_size_;
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr type_;
-  ::google::protobuf::RepeatedPtrField< ::std::string> vcf_field_class_type_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> vcf_field_class_;
   ::google::protobuf::internal::ArenaStringPtr length_;
   friend void  protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
@@ -539,118 +422,6 @@ class VidMapping : public ::google::protobuf::Message /* @@protoc_insertion_poin
 // ===================================================================
 
 #if !PROTOBUF_INLINE_NOT_IN_HEADERS
-// Length
-
-// required string name = 1;
-inline bool Length::has_name() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-inline void Length::set_has_name() {
-  _has_bits_[0] |= 0x00000001u;
-}
-inline void Length::clear_has_name() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void Length::clear_name() {
-  name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_name();
-}
-inline const ::std::string& Length::name() const {
-  // @@protoc_insertion_point(field_get:Length.name)
-  return name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void Length::set_name(const ::std::string& value) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:Length.name)
-}
-inline void Length::set_name(const char* value) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:Length.name)
-}
-inline void Length::set_name(const char* value, size_t size) {
-  set_has_name();
-  name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:Length.name)
-}
-inline ::std::string* Length::mutable_name() {
-  set_has_name();
-  // @@protoc_insertion_point(field_mutable:Length.name)
-  return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* Length::release_name() {
-  // @@protoc_insertion_point(field_release:Length.name)
-  clear_has_name();
-  return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void Length::set_allocated_name(::std::string* name) {
-  if (name != NULL) {
-    set_has_name();
-  } else {
-    clear_has_name();
-  }
-  name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), name);
-  // @@protoc_insertion_point(field_set_allocated:Length.name)
-}
-
-// required string value = 2;
-inline bool Length::has_value() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void Length::set_has_value() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void Length::clear_has_value() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void Length::clear_value() {
-  value_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_value();
-}
-inline const ::std::string& Length::value() const {
-  // @@protoc_insertion_point(field_get:Length.value)
-  return value_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void Length::set_value(const ::std::string& value) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:Length.value)
-}
-inline void Length::set_value(const char* value) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:Length.value)
-}
-inline void Length::set_value(const char* value, size_t size) {
-  set_has_value();
-  value_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:Length.value)
-}
-inline ::std::string* Length::mutable_value() {
-  set_has_value();
-  // @@protoc_insertion_point(field_mutable:Length.value)
-  return value_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* Length::release_value() {
-  // @@protoc_insertion_point(field_release:Length.value)
-  clear_has_value();
-  return value_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void Length::set_allocated_value(::std::string* value) {
-  if (value != NULL) {
-    set_has_value();
-  } else {
-    clear_has_value();
-  }
-  value_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set_allocated:Length.value)
-}
-
-// -------------------------------------------------------------------
-
 // InfoField
 
 // required string name = 1;
@@ -761,59 +532,59 @@ inline void InfoField::set_allocated_type(::std::string* type) {
   // @@protoc_insertion_point(field_set_allocated:InfoField.type)
 }
 
-// repeated string vcf_field_class_type = 3;
-inline int InfoField::vcf_field_class_type_size() const {
-  return vcf_field_class_type_.size();
+// repeated string vcf_field_class = 3;
+inline int InfoField::vcf_field_class_size() const {
+  return vcf_field_class_.size();
 }
-inline void InfoField::clear_vcf_field_class_type() {
-  vcf_field_class_type_.Clear();
+inline void InfoField::clear_vcf_field_class() {
+  vcf_field_class_.Clear();
 }
-inline const ::std::string& InfoField::vcf_field_class_type(int index) const {
-  // @@protoc_insertion_point(field_get:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Get(index);
+inline const ::std::string& InfoField::vcf_field_class(int index) const {
+  // @@protoc_insertion_point(field_get:InfoField.vcf_field_class)
+  return vcf_field_class_.Get(index);
 }
-inline ::std::string* InfoField::mutable_vcf_field_class_type(int index) {
-  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Mutable(index);
+inline ::std::string* InfoField::mutable_vcf_field_class(int index) {
+  // @@protoc_insertion_point(field_mutable:InfoField.vcf_field_class)
+  return vcf_field_class_.Mutable(index);
 }
-inline void InfoField::set_vcf_field_class_type(int index, const ::std::string& value) {
-  // @@protoc_insertion_point(field_set:InfoField.vcf_field_class_type)
-  vcf_field_class_type_.Mutable(index)->assign(value);
+inline void InfoField::set_vcf_field_class(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:InfoField.vcf_field_class)
+  vcf_field_class_.Mutable(index)->assign(value);
 }
-inline void InfoField::set_vcf_field_class_type(int index, const char* value) {
-  vcf_field_class_type_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:InfoField.vcf_field_class_type)
+inline void InfoField::set_vcf_field_class(int index, const char* value) {
+  vcf_field_class_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:InfoField.vcf_field_class)
 }
-inline void InfoField::set_vcf_field_class_type(int index, const char* value, size_t size) {
-  vcf_field_class_type_.Mutable(index)->assign(
+inline void InfoField::set_vcf_field_class(int index, const char* value, size_t size) {
+  vcf_field_class_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class_type)
+  // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class)
 }
-inline ::std::string* InfoField::add_vcf_field_class_type() {
-  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_.Add();
+inline ::std::string* InfoField::add_vcf_field_class() {
+  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class)
+  return vcf_field_class_.Add();
 }
-inline void InfoField::add_vcf_field_class_type(const ::std::string& value) {
-  vcf_field_class_type_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class_type)
+inline void InfoField::add_vcf_field_class(const ::std::string& value) {
+  vcf_field_class_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:InfoField.vcf_field_class)
 }
-inline void InfoField::add_vcf_field_class_type(const char* value) {
-  vcf_field_class_type_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:InfoField.vcf_field_class_type)
+inline void InfoField::add_vcf_field_class(const char* value) {
+  vcf_field_class_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:InfoField.vcf_field_class)
 }
-inline void InfoField::add_vcf_field_class_type(const char* value, size_t size) {
-  vcf_field_class_type_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:InfoField.vcf_field_class_type)
+inline void InfoField::add_vcf_field_class(const char* value, size_t size) {
+  vcf_field_class_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:InfoField.vcf_field_class)
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-InfoField::vcf_field_class_type() const {
-  // @@protoc_insertion_point(field_list:InfoField.vcf_field_class_type)
-  return vcf_field_class_type_;
+InfoField::vcf_field_class() const {
+  // @@protoc_insertion_point(field_list:InfoField.vcf_field_class)
+  return vcf_field_class_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-InfoField::mutable_vcf_field_class_type() {
-  // @@protoc_insertion_point(field_mutable_list:InfoField.vcf_field_class_type)
-  return &vcf_field_class_type_;
+InfoField::mutable_vcf_field_class() {
+  // @@protoc_insertion_point(field_mutable_list:InfoField.vcf_field_class)
+  return &vcf_field_class_;
 }
 
 // optional string length = 4;
@@ -1041,8 +812,6 @@ VidMapping::chromosomes() const {
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
-// -------------------------------------------------------------------
-
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

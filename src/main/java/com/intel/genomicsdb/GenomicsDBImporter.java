@@ -63,7 +63,7 @@ public class GenomicsDBImporter
   static long mDefaultBufferCapacity = 20480; //20KB
   private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
   private final String DEFAULT_ARRAYNAME = "genomicsdb_array";
-  private final int DEFAULT_SIZE_PER_COLUMN_PARTITION = 1000;
+  private final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
 
 
   /*
@@ -258,14 +258,20 @@ public class GenomicsDBImporter
                      ChromosomeInterval chromosomeInterval,
                      String workspace,
                      String arrayname,
+                     Long sizePerColumnPartition,
                      Long segmentSize) throws IOException {
 
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
 
+    if (sizePerColumnPartition == 0L) {
+      sizePerColumnPartition = DEFAULT_SIZE_PER_COLUMN_PARTITION;
+    }
+    sizePerColumnPartition *= sampleToVCMap.size();
+
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      createImportConfiguration(workspace, arrayname, segmentSize);
+      createImportConfiguration(workspace, arrayname, sizePerColumnPartition, segmentSize);
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
@@ -306,6 +312,7 @@ public class GenomicsDBImporter
   private ImportConfiguration createImportConfiguration(
     String workspace,
     String arrayname,
+    Long sizePerColumnPartition,
     Long segmentSize) {
 
     String name = (arrayname.isEmpty()) ? DEFAULT_ARRAYNAME : arrayname;
@@ -324,7 +331,7 @@ public class GenomicsDBImporter
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
       importBuilder
         .setRowBasedPartitioning(false)
-        .setSizePerColumnPartition(DEFAULT_SIZE_PER_COLUMN_PARTITION)
+        .setSizePerColumnPartition(sizePerColumnPartition)
         .addColumnPartitions(p0)
         .setCompressTiledbArray(true)
         .setSegmentSize(segmentSize)
@@ -451,11 +458,11 @@ public class GenomicsDBImporter
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
 
           infoBuilder
-            .addVcfFieldClassType(prevDPField.getVcfFieldClassType(0))
-            .addVcfFieldClassType("FORMAT");
+            .addVcfFieldClass(prevDPField.getVcfFieldClass(0))
+            .addVcfFieldClass("FORMAT");
         } else {
           infoBuilder
-            .addVcfFieldClassType("FORMAT");
+            .addVcfFieldClass("FORMAT");
         }
 
         GenomicsDBVidMapProto.InfoField formatField = infoBuilder.build();
@@ -475,11 +482,11 @@ public class GenomicsDBImporter
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
 
           infoBuilder
-            .addVcfFieldClassType(prevDPield.getVcfFieldClassType(0))
-            .addVcfFieldClassType("INFO");
+            .addVcfFieldClass(prevDPield.getVcfFieldClass(0))
+            .addVcfFieldClass("INFO");
         } else {
           infoBuilder
-            .addVcfFieldClassType("INFO");
+            .addVcfFieldClass("INFO");
         }
 
         GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
@@ -497,7 +504,7 @@ public class GenomicsDBImporter
         } else {
           infoBuilder.setType("int");
         }
-        infoBuilder.addVcfFieldClassType("FILTER");
+        infoBuilder.addVcfFieldClass("FILTER");
         GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
 
         infoFields.add(filterField);

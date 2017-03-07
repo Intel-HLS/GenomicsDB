@@ -14,729 +14,6 @@ public final class GenomicsDBVidMapProto {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-  public interface LengthOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:Length)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>required string name = 1;</code>
-     */
-    boolean hasName();
-    /**
-     * <code>required string name = 1;</code>
-     */
-    java.lang.String getName();
-    /**
-     * <code>required string name = 1;</code>
-     */
-    com.google.protobuf.ByteString
-        getNameBytes();
-
-    /**
-     * <code>required string value = 2;</code>
-     */
-    boolean hasValue();
-    /**
-     * <code>required string value = 2;</code>
-     */
-    java.lang.String getValue();
-    /**
-     * <code>required string value = 2;</code>
-     */
-    com.google.protobuf.ByteString
-        getValueBytes();
-  }
-  /**
-   * Protobuf type {@code Length}
-   */
-  public  static final class Length extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:Length)
-      LengthOrBuilder {
-    // Use Length.newBuilder() to construct.
-    private Length(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private Length() {
-      name_ = "";
-      value_ = "";
-    }
-
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Length(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-            case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000001;
-              name_ = bs;
-              break;
-            }
-            case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000002;
-              value_ = bs;
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Length_descriptor;
-    }
-
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Length_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.intel.genomicsdb.GenomicsDBVidMapProto.Length.class, com.intel.genomicsdb.GenomicsDBVidMapProto.Length.Builder.class);
-    }
-
-    private int bitField0_;
-    public static final int NAME_FIELD_NUMBER = 1;
-    private volatile java.lang.Object name_;
-    /**
-     * <code>required string name = 1;</code>
-     */
-    public boolean hasName() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
-    }
-    /**
-     * <code>required string name = 1;</code>
-     */
-    public java.lang.String getName() {
-      java.lang.Object ref = name_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          name_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string name = 1;</code>
-     */
-    public com.google.protobuf.ByteString
-        getNameBytes() {
-      java.lang.Object ref = name_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        name_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    public static final int VALUE_FIELD_NUMBER = 2;
-    private volatile java.lang.Object value_;
-    /**
-     * <code>required string value = 2;</code>
-     */
-    public boolean hasValue() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
-    }
-    /**
-     * <code>required string value = 2;</code>
-     */
-    public java.lang.String getValue() {
-      java.lang.Object ref = value_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          value_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string value = 2;</code>
-     */
-    public com.google.protobuf.ByteString
-        getValueBytes() {
-      java.lang.Object ref = value_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        value_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
-    private byte memoizedIsInitialized = -1;
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      if (!hasName()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasValue()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, name_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, value_);
-      }
-      unknownFields.writeTo(output);
-    }
-
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, name_);
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, value_);
-      }
-      size += unknownFields.getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    private static final long serialVersionUID = 0L;
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.Length)) {
-        return super.equals(obj);
-      }
-      com.intel.genomicsdb.GenomicsDBVidMapProto.Length other = (com.intel.genomicsdb.GenomicsDBVidMapProto.Length) obj;
-
-      boolean result = true;
-      result = result && (hasName() == other.hasName());
-      if (hasName()) {
-        result = result && getName()
-            .equals(other.getName());
-      }
-      result = result && (hasValue() == other.hasValue());
-      if (hasValue()) {
-        result = result && getValue()
-            .equals(other.getValue());
-      }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
-      if (hasName()) {
-        hash = (37 * hash) + NAME_FIELD_NUMBER;
-        hash = (53 * hash) + getName().hashCode();
-      }
-      if (hasValue()) {
-        hash = (37 * hash) + VALUE_FIELD_NUMBER;
-        hash = (53 * hash) + getValue().hashCode();
-      }
-      hash = (29 * hash) + unknownFields.hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBVidMapProto.Length prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code Length}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:Length)
-        com.intel.genomicsdb.GenomicsDBVidMapProto.LengthOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Length_descriptor;
-      }
-
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Length_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.intel.genomicsdb.GenomicsDBVidMapProto.Length.class, com.intel.genomicsdb.GenomicsDBVidMapProto.Length.Builder.class);
-      }
-
-      // Construct using com.intel.genomicsdb.GenomicsDBVidMapProto.Length.newBuilder()
-      private Builder() {
-        maybeForceBuilderInitialization();
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
-      }
-      public Builder clear() {
-        super.clear();
-        name_ = "";
-        bitField0_ = (bitField0_ & ~0x00000001);
-        value_ = "";
-        bitField0_ = (bitField0_ & ~0x00000002);
-        return this;
-      }
-
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Length_descriptor;
-      }
-
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.Length getDefaultInstanceForType() {
-        return com.intel.genomicsdb.GenomicsDBVidMapProto.Length.getDefaultInstance();
-      }
-
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.Length build() {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.Length result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      public com.intel.genomicsdb.GenomicsDBVidMapProto.Length buildPartial() {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.Length result = new com.intel.genomicsdb.GenomicsDBVidMapProto.Length(this);
-        int from_bitField0_ = bitField0_;
-        int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
-          to_bitField0_ |= 0x00000001;
-        }
-        result.name_ = name_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-          to_bitField0_ |= 0x00000002;
-        }
-        result.value_ = value_;
-        result.bitField0_ = to_bitField0_;
-        onBuilt();
-        return result;
-      }
-
-      public Builder clone() {
-        return (Builder) super.clone();
-      }
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
-      }
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
-      }
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
-      }
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
-      }
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
-      }
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.Length) {
-          return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.Length)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBVidMapProto.Length other) {
-        if (other == com.intel.genomicsdb.GenomicsDBVidMapProto.Length.getDefaultInstance()) return this;
-        if (other.hasName()) {
-          bitField0_ |= 0x00000001;
-          name_ = other.name_;
-          onChanged();
-        }
-        if (other.hasValue()) {
-          bitField0_ |= 0x00000002;
-          value_ = other.value_;
-          onChanged();
-        }
-        this.mergeUnknownFields(other.unknownFields);
-        onChanged();
-        return this;
-      }
-
-      public final boolean isInitialized() {
-        if (!hasName()) {
-          return false;
-        }
-        if (!hasValue()) {
-          return false;
-        }
-        return true;
-      }
-
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        com.intel.genomicsdb.GenomicsDBVidMapProto.Length parsedMessage = null;
-        try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.Length) e.getUnfinishedMessage();
-          throw e.unwrapIOException();
-        } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
-        return this;
-      }
-      private int bitField0_;
-
-      private java.lang.Object name_ = "";
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public boolean hasName() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
-      }
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public java.lang.String getName() {
-        java.lang.Object ref = name_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            name_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public com.google.protobuf.ByteString
-          getNameBytes() {
-        java.lang.Object ref = name_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          name_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public Builder setName(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        name_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public Builder clearName() {
-        bitField0_ = (bitField0_ & ~0x00000001);
-        name_ = getDefaultInstance().getName();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string name = 1;</code>
-       */
-      public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        name_ = value;
-        onChanged();
-        return this;
-      }
-
-      private java.lang.Object value_ = "";
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public boolean hasValue() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
-      }
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public java.lang.String getValue() {
-        java.lang.Object ref = value_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            value_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public com.google.protobuf.ByteString
-          getValueBytes() {
-        java.lang.Object ref = value_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          value_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public Builder setValue(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        value_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public Builder clearValue() {
-        bitField0_ = (bitField0_ & ~0x00000002);
-        value_ = getDefaultInstance().getValue();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string value = 2;</code>
-       */
-      public Builder setValueBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        value_ = value;
-        onChanged();
-        return this;
-      }
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:Length)
-    }
-
-    // @@protoc_insertion_point(class_scope:Length)
-    private static final com.intel.genomicsdb.GenomicsDBVidMapProto.Length DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBVidMapProto.Length();
-    }
-
-    public static com.intel.genomicsdb.GenomicsDBVidMapProto.Length getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    @java.lang.Deprecated public static final com.google.protobuf.Parser<Length>
-        PARSER = new com.google.protobuf.AbstractParser<Length>() {
-      public Length parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-          return new Length(input, extensionRegistry);
-      }
-    };
-
-    public static com.google.protobuf.Parser<Length> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<Length> getParserForType() {
-      return PARSER;
-    }
-
-    public com.intel.genomicsdb.GenomicsDBVidMapProto.Length getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
   public interface InfoFieldOrBuilder extends
       // @@protoc_insertion_point(interface_extends:InfoField)
       com.google.protobuf.MessageOrBuilder {
@@ -770,23 +47,23 @@ public final class GenomicsDBVidMapProto {
         getTypeBytes();
 
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
     java.util.List<java.lang.String>
-        getVcfFieldClassTypeList();
+        getVcfFieldClassList();
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
-    int getVcfFieldClassTypeCount();
+    int getVcfFieldClassCount();
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
-    java.lang.String getVcfFieldClassType(int index);
+    java.lang.String getVcfFieldClass(int index);
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
     com.google.protobuf.ByteString
-        getVcfFieldClassTypeBytes(int index);
+        getVcfFieldClassBytes(int index);
 
     /**
      * <code>optional string length = 4;</code>
@@ -816,7 +93,7 @@ public final class GenomicsDBVidMapProto {
     private InfoField() {
       name_ = "";
       type_ = "";
-      vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       length_ = "";
     }
 
@@ -863,10 +140,10 @@ public final class GenomicsDBVidMapProto {
             case 26: {
               com.google.protobuf.ByteString bs = input.readBytes();
               if (!((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
-                vcfFieldClassType_ = new com.google.protobuf.LazyStringArrayList();
+                vcfFieldClass_ = new com.google.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000004;
               }
-              vcfFieldClassType_.add(bs);
+              vcfFieldClass_.add(bs);
               break;
             }
             case 34: {
@@ -884,7 +161,7 @@ public final class GenomicsDBVidMapProto {
             e).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
-          vcfFieldClassType_ = vcfFieldClassType_.getUnmodifiableView();
+          vcfFieldClass_ = vcfFieldClass_.getUnmodifiableView();
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -987,33 +264,33 @@ public final class GenomicsDBVidMapProto {
       }
     }
 
-    public static final int VCF_FIELD_CLASS_TYPE_FIELD_NUMBER = 3;
-    private com.google.protobuf.LazyStringList vcfFieldClassType_;
+    public static final int VCF_FIELD_CLASS_FIELD_NUMBER = 3;
+    private com.google.protobuf.LazyStringList vcfFieldClass_;
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
     public com.google.protobuf.ProtocolStringList
-        getVcfFieldClassTypeList() {
-      return vcfFieldClassType_;
+        getVcfFieldClassList() {
+      return vcfFieldClass_;
     }
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
-    public int getVcfFieldClassTypeCount() {
-      return vcfFieldClassType_.size();
+    public int getVcfFieldClassCount() {
+      return vcfFieldClass_.size();
     }
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
-    public java.lang.String getVcfFieldClassType(int index) {
-      return vcfFieldClassType_.get(index);
+    public java.lang.String getVcfFieldClass(int index) {
+      return vcfFieldClass_.get(index);
     }
     /**
-     * <code>repeated string vcf_field_class_type = 3;</code>
+     * <code>repeated string vcf_field_class = 3;</code>
      */
     public com.google.protobuf.ByteString
-        getVcfFieldClassTypeBytes(int index) {
-      return vcfFieldClassType_.getByteString(index);
+        getVcfFieldClassBytes(int index) {
+      return vcfFieldClass_.getByteString(index);
     }
 
     public static final int LENGTH_FIELD_NUMBER = 4;
@@ -1084,8 +361,8 @@ public final class GenomicsDBVidMapProto {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 2, type_);
       }
-      for (int i = 0; i < vcfFieldClassType_.size(); i++) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClassType_.getRaw(i));
+      for (int i = 0; i < vcfFieldClass_.size(); i++) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClass_.getRaw(i));
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 4, length_);
@@ -1106,11 +383,11 @@ public final class GenomicsDBVidMapProto {
       }
       {
         int dataSize = 0;
-        for (int i = 0; i < vcfFieldClassType_.size(); i++) {
-          dataSize += computeStringSizeNoTag(vcfFieldClassType_.getRaw(i));
+        for (int i = 0; i < vcfFieldClass_.size(); i++) {
+          dataSize += computeStringSizeNoTag(vcfFieldClass_.getRaw(i));
         }
         size += dataSize;
-        size += 1 * getVcfFieldClassTypeList().size();
+        size += 1 * getVcfFieldClassList().size();
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, length_);
@@ -1142,8 +419,8 @@ public final class GenomicsDBVidMapProto {
         result = result && getType()
             .equals(other.getType());
       }
-      result = result && getVcfFieldClassTypeList()
-          .equals(other.getVcfFieldClassTypeList());
+      result = result && getVcfFieldClassList()
+          .equals(other.getVcfFieldClassList());
       result = result && (hasLength() == other.hasLength());
       if (hasLength()) {
         result = result && getLength()
@@ -1168,9 +445,9 @@ public final class GenomicsDBVidMapProto {
         hash = (37 * hash) + TYPE_FIELD_NUMBER;
         hash = (53 * hash) + getType().hashCode();
       }
-      if (getVcfFieldClassTypeCount() > 0) {
-        hash = (37 * hash) + VCF_FIELD_CLASS_TYPE_FIELD_NUMBER;
-        hash = (53 * hash) + getVcfFieldClassTypeList().hashCode();
+      if (getVcfFieldClassCount() > 0) {
+        hash = (37 * hash) + VCF_FIELD_CLASS_FIELD_NUMBER;
+        hash = (53 * hash) + getVcfFieldClassList().hashCode();
       }
       if (hasLength()) {
         hash = (37 * hash) + LENGTH_FIELD_NUMBER;
@@ -1298,7 +575,7 @@ public final class GenomicsDBVidMapProto {
         bitField0_ = (bitField0_ & ~0x00000001);
         type_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
-        vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
         length_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -1335,10 +612,10 @@ public final class GenomicsDBVidMapProto {
         }
         result.type_ = type_;
         if (((bitField0_ & 0x00000004) == 0x00000004)) {
-          vcfFieldClassType_ = vcfFieldClassType_.getUnmodifiableView();
+          vcfFieldClass_ = vcfFieldClass_.getUnmodifiableView();
           bitField0_ = (bitField0_ & ~0x00000004);
         }
-        result.vcfFieldClassType_ = vcfFieldClassType_;
+        result.vcfFieldClass_ = vcfFieldClass_;
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000004;
         }
@@ -1395,13 +672,13 @@ public final class GenomicsDBVidMapProto {
           type_ = other.type_;
           onChanged();
         }
-        if (!other.vcfFieldClassType_.isEmpty()) {
-          if (vcfFieldClassType_.isEmpty()) {
-            vcfFieldClassType_ = other.vcfFieldClassType_;
+        if (!other.vcfFieldClass_.isEmpty()) {
+          if (vcfFieldClass_.isEmpty()) {
+            vcfFieldClass_ = other.vcfFieldClass_;
             bitField0_ = (bitField0_ & ~0x00000004);
           } else {
-            ensureVcfFieldClassTypeIsMutable();
-            vcfFieldClassType_.addAll(other.vcfFieldClassType_);
+            ensureVcfFieldClassIsMutable();
+            vcfFieldClass_.addAll(other.vcfFieldClass_);
           }
           onChanged();
         }
@@ -1596,95 +873,95 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
 
-      private com.google.protobuf.LazyStringList vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      private void ensureVcfFieldClassTypeIsMutable() {
+      private com.google.protobuf.LazyStringList vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureVcfFieldClassIsMutable() {
         if (!((bitField0_ & 0x00000004) == 0x00000004)) {
-          vcfFieldClassType_ = new com.google.protobuf.LazyStringArrayList(vcfFieldClassType_);
+          vcfFieldClass_ = new com.google.protobuf.LazyStringArrayList(vcfFieldClass_);
           bitField0_ |= 0x00000004;
          }
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
       public com.google.protobuf.ProtocolStringList
-          getVcfFieldClassTypeList() {
-        return vcfFieldClassType_.getUnmodifiableView();
+          getVcfFieldClassList() {
+        return vcfFieldClass_.getUnmodifiableView();
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public int getVcfFieldClassTypeCount() {
-        return vcfFieldClassType_.size();
+      public int getVcfFieldClassCount() {
+        return vcfFieldClass_.size();
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public java.lang.String getVcfFieldClassType(int index) {
-        return vcfFieldClassType_.get(index);
+      public java.lang.String getVcfFieldClass(int index) {
+        return vcfFieldClass_.get(index);
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
       public com.google.protobuf.ByteString
-          getVcfFieldClassTypeBytes(int index) {
-        return vcfFieldClassType_.getByteString(index);
+          getVcfFieldClassBytes(int index) {
+        return vcfFieldClass_.getByteString(index);
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public Builder setVcfFieldClassType(
+      public Builder setVcfFieldClass(
           int index, java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureVcfFieldClassTypeIsMutable();
-        vcfFieldClassType_.set(index, value);
+  ensureVcfFieldClassIsMutable();
+        vcfFieldClass_.set(index, value);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public Builder addVcfFieldClassType(
+      public Builder addVcfFieldClass(
           java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureVcfFieldClassTypeIsMutable();
-        vcfFieldClassType_.add(value);
+  ensureVcfFieldClassIsMutable();
+        vcfFieldClass_.add(value);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public Builder addAllVcfFieldClassType(
+      public Builder addAllVcfFieldClass(
           java.lang.Iterable<java.lang.String> values) {
-        ensureVcfFieldClassTypeIsMutable();
+        ensureVcfFieldClassIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, vcfFieldClassType_);
+            values, vcfFieldClass_);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public Builder clearVcfFieldClassType() {
-        vcfFieldClassType_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      public Builder clearVcfFieldClass() {
+        vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string vcf_field_class_type = 3;</code>
+       * <code>repeated string vcf_field_class = 3;</code>
        */
-      public Builder addVcfFieldClassTypeBytes(
+      public Builder addVcfFieldClassBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureVcfFieldClassTypeIsMutable();
-        vcfFieldClassType_.add(value);
+  ensureVcfFieldClassIsMutable();
+        vcfFieldClass_.add(value);
         onChanged();
         return this;
       }
@@ -3687,11 +2964,6 @@ public final class GenomicsDBVidMapProto {
   }
 
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_Length_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_Length_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_InfoField_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -3715,15 +2987,14 @@ public final class GenomicsDBVidMapProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\034genomicsdb_vid_mapping.proto\"%\n\006Length" +
-      "\022\014\n\004name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\"U\n\tInfoFie" +
-      "ld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\034\n\024vcf_fi" +
-      "eld_class_type\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\n" +
-      "Chromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003" +
-      "\022\034\n\024tiledb_column_offset\030\003 \002(\003\"N\n\nVidMap" +
-      "ping\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013" +
-      "chromosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.in" +
-      "tel.genomicsdbB\025GenomicsDBVidMapProto"
+      "\n\034genomicsdb_vid_mapping.proto\"P\n\tInfoFi" +
+      "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f" +
+      "ield_class\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\nChro" +
+      "mosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024" +
+      "tiledb_column_offset\030\003 \002(\003\"N\n\nVidMapping" +
+      "\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013chro" +
+      "mosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.intel." +
+      "genomicsdbB\025GenomicsDBVidMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3737,26 +3008,20 @@ public final class GenomicsDBVidMapProto {
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
-    internal_static_Length_descriptor =
-      getDescriptor().getMessageTypes().get(0);
-    internal_static_Length_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_Length_descriptor,
-        new java.lang.String[] { "Name", "Value", });
     internal_static_InfoField_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(0);
     internal_static_InfoField_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_InfoField_descriptor,
-        new java.lang.String[] { "Name", "Type", "VcfFieldClassType", "Length", });
+        new java.lang.String[] { "Name", "Type", "VcfFieldClass", "Length", });
     internal_static_Chromosome_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(1);
     internal_static_Chromosome_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Chromosome_descriptor,
         new java.lang.String[] { "Name", "Length", "TiledbColumnOffset", });
     internal_static_VidMapping_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_VidMapping_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_VidMapping_descriptor,

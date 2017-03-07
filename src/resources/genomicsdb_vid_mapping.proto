@@ -11,15 +11,11 @@ syntax = "proto2";
 option java_package = "com.intel.genomicsdb";
 option java_outer_classname = "GenomicsDBVidMapProto";
 
-message Length {
-  required string name = 1;
-  required string value = 2;
-}
 
 message InfoField {
   required string name = 1;
   required string type = 2;
-  repeated string vcf_field_class_type = 3;
+  repeated string vcf_field_class = 3;
   optional string length = 4;
 }
 

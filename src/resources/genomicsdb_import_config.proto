@@ -18,17 +18,18 @@ message Partition {
   required int64 begin = 1;
   optional string workspace = 2;
   optional string array = 3;
-  optional string vcf_file_name = 4;
+  optional string vcf_output_filename = 4;
+  optional int64 end = 5 [default = 0x7FFFFFFFFFFFFFFF ];
 }
 
 message ImportConfiguration {
-  required bool row_based_partitioning = 1;
+  required int64 size_per_column_partition = 7 [default = 10240];
+  optional bool row_based_partitioning = 1 [default = false];
   optional bool produce_combined_vcf = 2 [default = false];
   optional bool produce_tiledb_array = 3 [default = true];
   repeated Partition column_partitions = 4;
   optional string vid_mapping_file = 5;
   optional string callset_mapping_file = 6;
-  optional int64 size_per_column_partition = 7 [default = 3000];
   optional bool treat_deletions_as_intervals = 8 [default = true];
   optional int32 num_parallel_vcf_files = 9 [default = 1];
   optional bool delete_and_create_tiledb_array = 10 [default = false];

@@ -138,17 +138,24 @@ class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point
   ::std::string* release_array();
   void set_allocated_array(::std::string* array);
 
-  // optional string vcf_file_name = 4;
-  bool has_vcf_file_name() const;
-  void clear_vcf_file_name();
-  static const int kVcfFileNameFieldNumber = 4;
-  const ::std::string& vcf_file_name() const;
-  void set_vcf_file_name(const ::std::string& value);
-  void set_vcf_file_name(const char* value);
-  void set_vcf_file_name(const char* value, size_t size);
-  ::std::string* mutable_vcf_file_name();
-  ::std::string* release_vcf_file_name();
-  void set_allocated_vcf_file_name(::std::string* vcf_file_name);
+  // optional string vcf_output_filename = 4;
+  bool has_vcf_output_filename() const;
+  void clear_vcf_output_filename();
+  static const int kVcfOutputFilenameFieldNumber = 4;
+  const ::std::string& vcf_output_filename() const;
+  void set_vcf_output_filename(const ::std::string& value);
+  void set_vcf_output_filename(const char* value);
+  void set_vcf_output_filename(const char* value, size_t size);
+  ::std::string* mutable_vcf_output_filename();
+  ::std::string* release_vcf_output_filename();
+  void set_allocated_vcf_output_filename(::std::string* vcf_output_filename);
+
+  // optional int64 end = 5 [default = 9223372036854775807];
+  bool has_end() const;
+  void clear_end();
+  static const int kEndFieldNumber = 5;
+  ::google::protobuf::int64 end() const;
+  void set_end(::google::protobuf::int64 value);
 
   // @@protoc_insertion_point(class_scope:Partition)
  private:
@@ -158,8 +165,10 @@ class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point
   inline void clear_has_workspace();
   inline void set_has_array();
   inline void clear_has_array();
-  inline void set_has_vcf_file_name();
-  inline void clear_has_vcf_file_name();
+  inline void set_has_vcf_output_filename();
+  inline void clear_has_vcf_output_filename();
+  inline void set_has_end();
+  inline void clear_has_end();
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
@@ -167,7 +176,8 @@ class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point
   ::google::protobuf::int64 begin_;
   ::google::protobuf::internal::ArenaStringPtr workspace_;
   ::google::protobuf::internal::ArenaStringPtr array_;
-  ::google::protobuf::internal::ArenaStringPtr vcf_file_name_;
+  ::google::protobuf::internal::ArenaStringPtr vcf_output_filename_;
+  ::google::protobuf::int64 end_;
   friend void  protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto();
   friend void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto();
@@ -245,7 +255,14 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
 
   // accessors -------------------------------------------------------
 
-  // required bool row_based_partitioning = 1;
+  // required int64 size_per_column_partition = 7 [default = 10240];
+  bool has_size_per_column_partition() const;
+  void clear_size_per_column_partition();
+  static const int kSizePerColumnPartitionFieldNumber = 7;
+  ::google::protobuf::int64 size_per_column_partition() const;
+  void set_size_per_column_partition(::google::protobuf::int64 value);
+
+  // optional bool row_based_partitioning = 1 [default = false];
   bool has_row_based_partitioning() const;
   void clear_row_based_partitioning();
   static const int kRowBasedPartitioningFieldNumber = 1;
@@ -301,13 +318,6 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
   ::std::string* mutable_callset_mapping_file();
   ::std::string* release_callset_mapping_file();
   void set_allocated_callset_mapping_file(::std::string* callset_mapping_file);
-
-  // optional int64 size_per_column_partition = 7 [default = 3000];
-  bool has_size_per_column_partition() const;
-  void clear_size_per_column_partition();
-  static const int kSizePerColumnPartitionFieldNumber = 7;
-  ::google::protobuf::int64 size_per_column_partition() const;
-  void set_size_per_column_partition(::google::protobuf::int64 value);
 
   // optional bool treat_deletions_as_intervals = 8 [default = true];
   bool has_treat_deletions_as_intervals() const;
@@ -374,6 +384,8 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
 
   // @@protoc_insertion_point(class_scope:ImportConfiguration)
  private:
+  inline void set_has_size_per_column_partition();
+  inline void clear_has_size_per_column_partition();
   inline void set_has_row_based_partitioning();
   inline void clear_has_row_based_partitioning();
   inline void set_has_produce_combined_vcf();
@@ -384,8 +396,6 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
   inline void clear_has_vid_mapping_file();
   inline void set_has_callset_mapping_file();
   inline void clear_has_callset_mapping_file();
-  inline void set_has_size_per_column_partition();
-  inline void clear_has_size_per_column_partition();
   inline void set_has_treat_deletions_as_intervals();
   inline void clear_has_treat_deletions_as_intervals();
   inline void set_has_num_parallel_vcf_files();
@@ -408,6 +418,7 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
+  ::google::protobuf::int64 size_per_column_partition_;
   ::google::protobuf::RepeatedPtrField< ::Partition > column_partitions_;
   bool row_based_partitioning_;
   bool produce_combined_vcf_;
@@ -416,7 +427,6 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::int32 num_parallel_vcf_files_;
   ::google::protobuf::internal::ArenaStringPtr vid_mapping_file_;
   ::google::protobuf::internal::ArenaStringPtr callset_mapping_file_;
-  ::google::protobuf::int64 size_per_column_partition_;
   bool delete_and_create_tiledb_array_;
   bool do_ping_pong_buffering_;
   bool offload_vcf_output_processing_;
@@ -571,73 +581,121 @@ inline void Partition::set_allocated_array(::std::string* array) {
   // @@protoc_insertion_point(field_set_allocated:Partition.array)
 }
 
-// optional string vcf_file_name = 4;
-inline bool Partition::has_vcf_file_name() const {
+// optional string vcf_output_filename = 4;
+inline bool Partition::has_vcf_output_filename() const {
   return (_has_bits_[0] & 0x00000008u) != 0;
 }
-inline void Partition::set_has_vcf_file_name() {
+inline void Partition::set_has_vcf_output_filename() {
   _has_bits_[0] |= 0x00000008u;
 }
-inline void Partition::clear_has_vcf_file_name() {
+inline void Partition::clear_has_vcf_output_filename() {
   _has_bits_[0] &= ~0x00000008u;
 }
-inline void Partition::clear_vcf_file_name() {
-  vcf_file_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_vcf_file_name();
+inline void Partition::clear_vcf_output_filename() {
+  vcf_output_filename_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_vcf_output_filename();
 }
-inline const ::std::string& Partition::vcf_file_name() const {
-  // @@protoc_insertion_point(field_get:Partition.vcf_file_name)
-  return vcf_file_name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline const ::std::string& Partition::vcf_output_filename() const {
+  // @@protoc_insertion_point(field_get:Partition.vcf_output_filename)
+  return vcf_output_filename_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Partition::set_vcf_file_name(const ::std::string& value) {
-  set_has_vcf_file_name();
-  vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:Partition.vcf_file_name)
+inline void Partition::set_vcf_output_filename(const ::std::string& value) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:Partition.vcf_output_filename)
 }
-inline void Partition::set_vcf_file_name(const char* value) {
-  set_has_vcf_file_name();
-  vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:Partition.vcf_file_name)
+inline void Partition::set_vcf_output_filename(const char* value) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:Partition.vcf_output_filename)
 }
-inline void Partition::set_vcf_file_name(const char* value, size_t size) {
-  set_has_vcf_file_name();
-  vcf_file_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+inline void Partition::set_vcf_output_filename(const char* value, size_t size) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:Partition.vcf_file_name)
+  // @@protoc_insertion_point(field_set_pointer:Partition.vcf_output_filename)
 }
-inline ::std::string* Partition::mutable_vcf_file_name() {
-  set_has_vcf_file_name();
-  // @@protoc_insertion_point(field_mutable:Partition.vcf_file_name)
-  return vcf_file_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* Partition::mutable_vcf_output_filename() {
+  set_has_vcf_output_filename();
+  // @@protoc_insertion_point(field_mutable:Partition.vcf_output_filename)
+  return vcf_output_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* Partition::release_vcf_file_name() {
-  // @@protoc_insertion_point(field_release:Partition.vcf_file_name)
-  clear_has_vcf_file_name();
-  return vcf_file_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* Partition::release_vcf_output_filename() {
+  // @@protoc_insertion_point(field_release:Partition.vcf_output_filename)
+  clear_has_vcf_output_filename();
+  return vcf_output_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void Partition::set_allocated_vcf_file_name(::std::string* vcf_file_name) {
-  if (vcf_file_name != NULL) {
-    set_has_vcf_file_name();
+inline void Partition::set_allocated_vcf_output_filename(::std::string* vcf_output_filename) {
+  if (vcf_output_filename != NULL) {
+    set_has_vcf_output_filename();
   } else {
-    clear_has_vcf_file_name();
+    clear_has_vcf_output_filename();
   }
-  vcf_file_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vcf_file_name);
-  // @@protoc_insertion_point(field_set_allocated:Partition.vcf_file_name)
+  vcf_output_filename_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vcf_output_filename);
+  // @@protoc_insertion_point(field_set_allocated:Partition.vcf_output_filename)
+}
+
+// optional int64 end = 5 [default = 9223372036854775807];
+inline bool Partition::has_end() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void Partition::set_has_end() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void Partition::clear_has_end() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void Partition::clear_end() {
+  end_ = GOOGLE_LONGLONG(9223372036854775807);
+  clear_has_end();
+}
+inline ::google::protobuf::int64 Partition::end() const {
+  // @@protoc_insertion_point(field_get:Partition.end)
+  return end_;
+}
+inline void Partition::set_end(::google::protobuf::int64 value) {
+  set_has_end();
+  end_ = value;
+  // @@protoc_insertion_point(field_set:Partition.end)
 }
 
 // -------------------------------------------------------------------
 
 // ImportConfiguration
 
-// required bool row_based_partitioning = 1;
-inline bool ImportConfiguration::has_row_based_partitioning() const {
+// required int64 size_per_column_partition = 7 [default = 10240];
+inline bool ImportConfiguration::has_size_per_column_partition() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void ImportConfiguration::set_has_row_based_partitioning() {
+inline void ImportConfiguration::set_has_size_per_column_partition() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void ImportConfiguration::clear_has_row_based_partitioning() {
+inline void ImportConfiguration::clear_has_size_per_column_partition() {
   _has_bits_[0] &= ~0x00000001u;
+}
+inline void ImportConfiguration::clear_size_per_column_partition() {
+  size_per_column_partition_ = GOOGLE_LONGLONG(10240);
+  clear_has_size_per_column_partition();
+}
+inline ::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.size_per_column_partition)
+  return size_per_column_partition_;
+}
+inline void ImportConfiguration::set_size_per_column_partition(::google::protobuf::int64 value) {
+  set_has_size_per_column_partition();
+  size_per_column_partition_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.size_per_column_partition)
+}
+
+// optional bool row_based_partitioning = 1 [default = false];
+inline bool ImportConfiguration::has_row_based_partitioning() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void ImportConfiguration::set_has_row_based_partitioning() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void ImportConfiguration::clear_has_row_based_partitioning() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void ImportConfiguration::clear_row_based_partitioning() {
   row_based_partitioning_ = false;
@@ -655,13 +713,13 @@ inline void ImportConfiguration::set_row_based_partitioning(bool value) {
 
 // optional bool produce_combined_vcf = 2 [default = false];
 inline bool ImportConfiguration::has_produce_combined_vcf() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 inline void ImportConfiguration::set_has_produce_combined_vcf() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
 }
 inline void ImportConfiguration::clear_has_produce_combined_vcf() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void ImportConfiguration::clear_produce_combined_vcf() {
   produce_combined_vcf_ = false;
@@ -679,13 +737,13 @@ inline void ImportConfiguration::set_produce_combined_vcf(bool value) {
 
 // optional bool produce_tiledb_array = 3 [default = true];
 inline bool ImportConfiguration::has_produce_tiledb_array() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void ImportConfiguration::set_has_produce_tiledb_array() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void ImportConfiguration::clear_has_produce_tiledb_array() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void ImportConfiguration::clear_produce_tiledb_array() {
   produce_tiledb_array_ = true;
@@ -733,13 +791,13 @@ ImportConfiguration::column_partitions() const {
 
 // optional string vid_mapping_file = 5;
 inline bool ImportConfiguration::has_vid_mapping_file() const {
-  return (_has_bits_[0] & 0x00000010u) != 0;
+  return (_has_bits_[0] & 0x00000020u) != 0;
 }
 inline void ImportConfiguration::set_has_vid_mapping_file() {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
 }
 inline void ImportConfiguration::clear_has_vid_mapping_file() {
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline void ImportConfiguration::clear_vid_mapping_file() {
   vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -787,13 +845,13 @@ inline void ImportConfiguration::set_allocated_vid_mapping_file(::std::string* v
 
 // optional string callset_mapping_file = 6;
 inline bool ImportConfiguration::has_callset_mapping_file() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
+  return (_has_bits_[0] & 0x00000040u) != 0;
 }
 inline void ImportConfiguration::set_has_callset_mapping_file() {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
 }
 inline void ImportConfiguration::clear_has_callset_mapping_file() {
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline void ImportConfiguration::clear_callset_mapping_file() {
   callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -837,30 +895,6 @@ inline void ImportConfiguration::set_allocated_callset_mapping_file(::std::strin
   }
   callset_mapping_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), callset_mapping_file);
   // @@protoc_insertion_point(field_set_allocated:ImportConfiguration.callset_mapping_file)
-}
-
-// optional int64 size_per_column_partition = 7 [default = 3000];
-inline bool ImportConfiguration::has_size_per_column_partition() const {
-  return (_has_bits_[0] & 0x00000040u) != 0;
-}
-inline void ImportConfiguration::set_has_size_per_column_partition() {
-  _has_bits_[0] |= 0x00000040u;
-}
-inline void ImportConfiguration::clear_has_size_per_column_partition() {
-  _has_bits_[0] &= ~0x00000040u;
-}
-inline void ImportConfiguration::clear_size_per_column_partition() {
-  size_per_column_partition_ = GOOGLE_LONGLONG(3000);
-  clear_has_size_per_column_partition();
-}
-inline ::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
-  // @@protoc_insertion_point(field_get:ImportConfiguration.size_per_column_partition)
-  return size_per_column_partition_;
-}
-inline void ImportConfiguration::set_size_per_column_partition(::google::protobuf::int64 value) {
-  set_has_size_per_column_partition();
-  size_per_column_partition_ = value;
-  // @@protoc_insertion_point(field_set:ImportConfiguration.size_per_column_partition)
 }
 
 // optional bool treat_deletions_as_intervals = 8 [default = true];

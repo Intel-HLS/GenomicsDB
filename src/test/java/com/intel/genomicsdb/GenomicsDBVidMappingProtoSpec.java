@@ -55,7 +55,7 @@ public class GenomicsDBVidMappingProtoSpec {
         .setName("PGT")
         .setType("char")
         .setLength("VAR")
-        .addVcfFieldClassType("FORMAT")
+        .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField3 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
@@ -64,7 +64,7 @@ public class GenomicsDBVidMappingProtoSpec {
         .setName("PASS")
         .setType("int")
         .setLength("P")
-        .addVcfFieldClassType("FORMAT")
+        .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoFormatField =
       GenomicsDBVidMapProto.InfoField.newBuilder();
@@ -73,8 +73,8 @@ public class GenomicsDBVidMappingProtoSpec {
         .setName("DP")
         .setType("int")
         .setLength("R")
-        .addVcfFieldClassType("FORMAT")
-        .addVcfFieldClassType("INFO")
+        .addVcfFieldClass("FORMAT")
+        .addVcfFieldClass("INFO")
         .build();
     infoFields.add(pass);
     infoFields.add(lowQual);
