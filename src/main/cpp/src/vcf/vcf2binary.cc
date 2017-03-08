@@ -135,9 +135,9 @@ void VCFReader::initialize(const char* filename,
   assert(m_indexed_reader == 0);
   m_indexed_reader = bcf_sr_init();
   bcf_sr_set_regions(m_indexed_reader, regions.c_str(), 0);
+  VCFReaderBase::initialize(filename, vcf_field_names, id_mapper, open_file);
   if(open_file)
     add_reader();
-  VCFReaderBase::initialize(filename, vcf_field_names, id_mapper, open_file);
 }
 
 void VCFReader::add_reader()

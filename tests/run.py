@@ -351,7 +351,8 @@ def main():
                             cleanup_and_exit(tmpdir, -1);
     coverage_file='coverage.info'
     subprocess.call('lcov --directory ../ --capture --output-file '+coverage_file, shell=True);
-    subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' -o "+coverage_file, shell=True);
+    #Remove protocol buffer generated files from the coverage information
+    subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o "+coverage_file, shell=True);
     cleanup_and_exit(tmpdir, 0); 
 
 if __name__ == '__main__':
