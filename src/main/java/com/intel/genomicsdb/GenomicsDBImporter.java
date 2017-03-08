@@ -22,36 +22,28 @@
 
 package com.intel.genomicsdb;
 
+import com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration;
+import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.writer.Options;
-import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.VCFHeader;
-import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.samtools.SAMSequenceDictionary;
-
-//JSON operations
-import org.json.simple.parser.JSONParser;
-import org.json.simple.JSONObject;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.vcf.*;
 import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.io.*;
+import java.util.*;
+
+import static com.googlecode.protobuf.format.JsonFormat.*;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
  * All vid information is assumed to be set correctly by the user (JSON files)
  */
-
 public class GenomicsDBImporter
 {
   static
@@ -67,389 +59,17 @@ public class GenomicsDBImporter
       throw new GenomicsDBException("Could not load genomicsdb native library");
     }
   }
-  private static long mDefaultBufferCapacity = 20480; //20KB
 
-  /**
-   * Buffer stream implementation - it's silent in the sense that when the buffer is full,
-   * it doesn't raise an exception but just marks a a flag as full. It's up to the caller
-   * to check the flag and retry later
-   * Why? Most likely, it's faster to check a flag rather than throw and catch an exception
-   */
-  private class SilentByteBufferStream extends OutputStream
-  {
-    private byte mBuffer[] = null;
-    private long mNumValidBytes = 0;
-    private long mMarker = 0;
-    private boolean mOverflow = false;
+  static long mDefaultBufferCapacity = 20480; //20KB
+  private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
+  private final String DEFAULT_ARRAYNAME = "genomicsdb_array";
+  private final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
 
-    /**
-     * Constructor - uses default value of buffer capacity (20KiB)
-     */
-    public SilentByteBufferStream()
-    {
-      mBuffer = new byte[(int)mDefaultBufferCapacity];
-    }
 
-    /**
-     * Constructor - uses specified buffer capacity
-     * @param capacity size of buffer in bytes
-     */
-    public SilentByteBufferStream(final long capacity)
-    {
-      mBuffer = new byte[(int)capacity];
-    }
-
-    @Override
-    public void close() throws IOException  //does nothing
-    {
-    }
-
-    @Override
-    public void flush() throws IOException  //does nothing
-    {
-    }
-
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException
-    {
-      if(mOverflow)
-        return;
-      if(len+mNumValidBytes > mBuffer.length)
-        mOverflow = true;
-      else
-      {
-        System.arraycopy(b, off, mBuffer, (int)mNumValidBytes, len);
-        mNumValidBytes += len;
-      }
-    }
-
-    @Override
-    public void write(byte[] b) throws IOException
-    {
-      write(b, 0, b.length);
-    }
-
-    @Override
-    public void write(int b) throws IOException
-    {
-      if(mOverflow)
-        return;
-      if(mNumValidBytes+1>mBuffer.length)
-        mOverflow = true;
-      else
-      {
-        mBuffer[(int)mNumValidBytes] = (byte)b;
-        ++mNumValidBytes;
-      }
-    }
-
-    /**
-     * Returns buffer capacity in bytes
-     * @return buffer capacity in bytes
-     */
-    public int size()
-    {
-      return mBuffer.length;
-    }
-
-    /**
-     * Resizes buffer to new size - data is retained
-     * @param newSize new capacity of the buffer
-     */
-    public void resize(final long newSize)
-    {
-      byte tmp[] = new byte[(int)newSize];
-      System.arraycopy(mBuffer, 0, tmp, 0, mBuffer.length);
-      mBuffer = tmp; //hopefully Java GC does its job
-    }
-
-    /**
-     * Returns if the buffer has overflowed
-     * @return true if the buffer has overflowed
-     */
-    public boolean overflow()
-    {
-      return mOverflow;
-    }
-
-    /**
-     * Set overflow value
-     * @param value overflow value
-     */
-    public void setOverflow(final boolean value)
-    {
-      mOverflow = value;
-    }
-
-    /**
-     * Get number of valid bytes
-     * @return number of valid bytes
-     */
-    public long getNumValidBytes()
-    {
-      return mNumValidBytes;
-    }
-
-    /**
-     * Set number of valid bytes
-     * @param value number of valid bytes
-     */
-    public void setNumValidBytes(final long value)
-    {
-      mNumValidBytes = value;
-    }
-
-    /**
-     * Caller code can use this function to mark a certain point in the buffer
-     * This is generally used to mark the position in the buffer after the last
-     * complete VariantContext object written
-     * @param value set marker value
-     */
-    public void setMarker(final long value)
-    {
-      mMarker = value;
-    }
-
-    /**
-     * Get marker value
-     * @return marker value
-     */
-    public long getMarker()
-    {
-      return mMarker;
-    }
-
-    /**
-     * Get byte buffer for this stream
-     * @return byte buffer for this stream
-     */
-    public byte[] getBuffer()
-    {
-      return mBuffer;
-    }
-  }
-
-  /**
-   * Utility class wrapping a stream and a VariantContextWriter for a given stream
-   * Each GenomicsDB import stream consists of a buffer stream and a writer object
-   * If the caller provides an iterator, then mCurrentVC points to the VariantContext object
-   * to be written, if any.
-   */
-  private class GenomicsDBImporterStreamWrapper
-  {
-    public VariantContextWriter mVCWriter = null;
-    public SilentByteBufferStream mStream = null;
-    private Iterator<VariantContext> mIterator = null;
-    private VariantContext mCurrentVC = null;
-
-    /**
-     * Constructor
-     * @param vcfHeader VCF header for the stream
-     * @param bufferCapacity Capacity of the stream buffer in bytes
-     * @param streamType BCF_STREAM or VCF_STREAM
-     * @param vcIterator iterator over VariantContext objects, can be null if the caller is managing
-     * the buffer explicitly
-     */
-    public GenomicsDBImporterStreamWrapper(final VCFHeader vcfHeader, final long bufferCapacity,
-                                           final VariantContextWriterBuilder.OutputType streamType,
-                                           Iterator<VariantContext> vcIterator)
-      throws GenomicsDBException
-    {
-      mIterator = vcIterator;
-      if(vcIterator != null && vcIterator.hasNext())
-        mCurrentVC = vcIterator.next();
-      boolean headerWritten = false;
-      long currentCapacity = bufferCapacity;
-      //Must ensure that the header gets written into the buffer stream
-      //Why this big outer loop? VCFWriter/BCFWriter seems to store some state which makes
-      //calling writeHeader() multiple times impossible
-      //Hence, create new objects in every iteration of the loop
-      //Since this function is called only once per stream, not really
-      //a performance concern
-      while(!headerWritten)
-      {
-        mStream = new SilentByteBufferStream(currentCapacity);
-        switch(streamType)
-        {
-          case BCF_STREAM:
-            mVCWriter = new VariantContextWriterBuilder()
-              .setOutputBCFStream(mStream)
-              .unsetOption(Options.INDEX_ON_THE_FLY).build();
-            break;
-          case VCF_STREAM:
-            mVCWriter = new VariantContextWriterBuilder()
-              .setOutputVCFStream(mStream)
-              .unsetOption(Options.INDEX_ON_THE_FLY).build();
-            break;
-          default:
-            throw new GenomicsDBException("Unknown stream type "+streamType.toString());
-        }
-        //Why clone the header?
-        //The writer modifies the VCFHeader object passed to writeHeader() - however,
-        //we might need to call writeHeader multiple times if the underlying buffer
-        //in mStream is too small. Hence, always pass a clone of the original,
-        //unmodified header in each call of writeHeader
-        mVCWriter.writeHeader(new VCFHeader(vcfHeader));
-        if(mStream.overflow())
-          currentCapacity = 2*currentCapacity+1;
-        else
-          headerWritten = true;
-      }
-    }
-
-    /**
-     * Returns true if a non-null Iterator over VariantContext objects was provided for this stream
-     * @return true if a non-null Iterator over VariantContext objects was provided for this stream
-     */
-    public boolean hasIterator()
-    {
-      return (mIterator != null);
-    }
-
-    /**
-     * Returns the next VariantContext object iff the Iterator over VariantContext objects
-     * is non-null and has a next() object,
-     * else returns null. Stores the result in mCurrentVC
-     * @return the next VariantContext object or null
-     */
-    public VariantContext next()
-    {
-      if(mIterator != null && mIterator.hasNext())
-        mCurrentVC = mIterator.next();
-      else
-        mCurrentVC = null;
-      return mCurrentVC;
-    }
-
-    /**
-     * Returns mCurrentVC - could be null if mIterator is null or !mIterator.hasNext()
-     * @return VariantContext object to be written
-     */
-    public VariantContext getCurrentVC()
-    {
-      return mCurrentVC;
-    }
-  }
-
-  /**
-   * Utility class that stores row index and globally unique name for a given sample
-   */
-  public static class SampleInfo
-  {
-    public String mName = null;
-    public long mRowIdx = -1;
-
-    public SampleInfo(final String name, final long rowIdx)
-    {
-      mName = name;
-      mRowIdx = rowIdx;
-    }
-  }
-
-  /**
-   * Utility class to represent a chromosome interval
-   * Contains 3 members - chr name, start, end (1-based)
-   */
-  public static class ChromosomeInterval
-  {
-    public String mChromosomeName = null;
-    public long mBegin = -1;
-    public long mEnd = -1;
-
-    public ChromosomeInterval(final String name, final long begin, final long end)
-    {
-      mChromosomeName = name;
-      mBegin = begin;
-      mEnd = end;
-    }
-  }
-
-  /**
-   * Given an AbstractFeatureReader over VariantContext objects
-   * and a list of ChromosomeInterval objects, this class 
-   * is an Iterator over VariantContext for all the chromosome intervals in the
-   * list
-   * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   */
-  public static class MultiChromosomeIterator<SOURCE> implements Iterator<VariantContext>
-  {
-    private ArrayList<ChromosomeInterval> mChromosomeIntervals = null;
-    private AbstractFeatureReader<VariantContext, SOURCE> mReader = null;
-    private int mIdxInIntervalList = 0;
-    private CloseableTribbleIterator<VariantContext> mIterator = null;
-    private VCFHeader mHeader = null;
-
-    /**
-     * Constructor
-     * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
-     * @param chromosomeIntervals chromosome intervals over which to iterate
-     * @throws IOException when the reader's query method throws an IOException
-     */
-    public MultiChromosomeIterator(AbstractFeatureReader<VariantContext, SOURCE> reader,
-        final List<ChromosomeInterval> chromosomeIntervals) throws IOException
-    {
-      mReader = reader;
-      mHeader = (VCFHeader)(reader.getHeader());
-      mChromosomeIntervals = new ArrayList<ChromosomeInterval>();
-      //Only add intervals whose chromosomes are present in the VCF header
-      final SAMSequenceDictionary contigDictionary = mHeader.getSequenceDictionary();
-      for(ChromosomeInterval currInterval : chromosomeIntervals)
-        if(contigDictionary.getSequenceIndex(currInterval.mChromosomeName) != -1)
-          mChromosomeIntervals.add(currInterval);
-      if(mChromosomeIntervals.size() > 0)
-      {
-        ChromosomeInterval currInterval = mChromosomeIntervals.get(0);
-        mIterator = mReader.query(currInterval.mChromosomeName,
-            (int)currInterval.mBegin,
-            (int)currInterval.mEnd);
-      }
-    }
-
-    @Override
-    public boolean hasNext()
-    {
-      if(mIterator == null)
-        return false;
-      return mIterator.hasNext();
-    }
-
-    @Override
-    public VariantContext next() throws NoSuchElementException
-    {
-      try
-      {
-        if(mIterator == null)
-          throw new NoSuchElementException("next() called for iterator with no more elements");
-        VariantContext returnValue = mIterator.next();
-        //within the same chromosome
-        if(mIterator.hasNext())
-          return returnValue;
-        //move to next chromosome and iterate
-        //It's possible that the reader has no record for the next contig, but could have records
-        //for subsequent contigs
-        for(mIdxInIntervalList=mIdxInIntervalList+1;mIdxInIntervalList<mChromosomeIntervals.size();
-            ++mIdxInIntervalList)
-        {
-          ChromosomeInterval currInterval = mChromosomeIntervals.get(mIdxInIntervalList);
-          mIterator = mReader.query(currInterval.mChromosomeName,
-              (int)currInterval.mBegin,
-              (int)currInterval.mEnd);
-          if(mIterator.hasNext())
-            return returnValue;
-        }
-        mIterator = null;
-        return returnValue;
-      }
-      catch(IOException e)
-      {
-        throw new NoSuchElementException("Caught IOException: "+e.getMessage());
-      }
-    }
-  }
-
-  /**
+  /*
    * JNI functions
    */
+  
   /**
    * Creates GenomicsDBImporter object when importing VCF files (no streams)
    * @param loaderJSONFile Path to loader JSON file
@@ -459,7 +79,10 @@ public class GenomicsDBImporter
    * @param ubRowIdx Largest row idx which should be imported by this object
    * @return status - 0 if everything was ok, -1 otherwise
    */
-  private native int jniGenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
+  private native int jniGenomicsDBImporter(String loaderJSONFile,
+                                           int rank,
+                                           long lbRowIdx,
+                                           long ubRowIdx);
   /**
    * Creates GenomicsDBImporter object when importing VCF files (no streams)
    * @param loaderJSONFile Path to loader JSON file
@@ -470,8 +93,31 @@ public class GenomicsDBImporter
    * @return "pointer"/address to GenomicsDBImporter object in memory,
    *         if 0, then something went wrong
    */
-  private native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile, int rank,
-                                                            long lbRowIdx, long ubRowIdx);
+  private native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile,
+                                                            int rank,
+                                                            long lbRowIdx,
+                                                            long ubRowIdx);
+
+  /**
+   * Copy the vid map protocol buffer to C++ through JNI
+   * 
+   * @param genomicsDBImporterHandle Reference to a C++ GenomicsDBImporter object
+   * @param vidMapAsByteArray INFO, FORMAT, FILTER header lines and contig positions
+   * @return Reference to a C++ GenomicsDBImporter object as long
+   */
+  private native long jniCopyVidMap(long genomicsDBImporterHandle,
+                                    byte[] vidMapAsByteArray);
+
+  /**
+   * Copy the callset map protocol buffer to C++ through JNI
+   *
+   * @param genomicsDBImporterHandle Reference to a C++ GenomicsDBImporter object
+   * @param callsetMapAsByteArray Callset name and row index map
+   * @return Reference to a C++ GenomicsDBImporter object as long
+   */
+  private native long jniCopyCallsetMap(long genomicsDBImporterHandle,
+                                    byte[] callsetMapAsByteArray);
+
   /**
    * Notify importer object that a new stream is to be added
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
@@ -482,8 +128,10 @@ public class GenomicsDBImporter
    * @param numValidBytesInBuffer num valid bytes in the buffer (length of the header)
    */
   private native void jniAddBufferStream(long genomicsDBImporterHandle,
-                                         String streamName, boolean isBCF,
-                                         long bufferCapacity, byte[] buffer,
+                                         String streamName,
+                                         boolean isBCF,
+                                         long bufferCapacity,
+                                         byte[] buffer,
                                          long numValidBytesInBuffer);
   /**
    * Setup loader after all the buffer streams are added
@@ -495,7 +143,8 @@ public class GenomicsDBImporter
    *         (this depends on the number of partitions and the number of buffer streams)
    */
   private native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle,
-                                               final String callsetMappingJSON);
+                                               final String callsetMappingJSON,
+                                               boolean usingVidMappingProtoBuf);
   /**
    * @param handle "pointer" returned by jniInitializeGenomicsDBImporterObject
    * @param streamIdx stream index
@@ -503,8 +152,11 @@ public class GenomicsDBImporter
    * @param buffer buffer containing data
    * @param numValidBytesInBuffer num valid bytes in the buffer
    */
-  private native void jniWriteDataToBufferStream(long handle, int streamIdx, int partitionIdx,
-                                                 byte[] buffer, long numValidBytesInBuffer);
+  private native void jniWriteDataToBufferStream(long handle,
+                                                 int streamIdx,
+                                                 int partitionIdx,
+                                                 byte[] buffer,
+                                                 long numValidBytesInBuffer);
   /**
    * Import the next batch of data into TileDB/GenomicsDB
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
@@ -529,7 +181,9 @@ public class GenomicsDBImporter
    * @param rank rank/partition index
    * @return chromosome intervals for the queried column partition in JSON format
    */
-  private static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
+  private static native String jniGetChromosomeIntervalsForColumnPartition(
+    final String loaderJSONFile,
+    final int rank);
 
   private String mLoaderJSONFile = null;
   private int mRank = 0;
@@ -541,8 +195,6 @@ public class GenomicsDBImporter
   private long mGenomicsDBImporterObjectHandle = 0;
   private ArrayList<GenomicsDBImporterStreamWrapper> mBufferStreamWrapperVector = null;
   private boolean mIsLoaderSetupDone = false;
-  //To find out which buffer streams are exhausted
-  private long mMaxBufferStreamIdentifiers = 0;
   private long[] mExhaustedBufferStreamIdentifiers = null;
   private long mNumExhaustedBufferStreams = 0;
   //Done flag - useful only for buffered streams
@@ -550,8 +202,13 @@ public class GenomicsDBImporter
   //JSON object that specifies callset/sample name to row_idx mapping in the buffer
   private JSONObject mCallsetMappingJSON = null;
 
+  private boolean mUsingVidMappingProtoBuf = false;
+  private GenomicsDBVidMapProto.VidMappingPB mVidMap = null;
+  private ChromosomeInterval mChromosomeInterval;
+  private GenomicsDBCallsetsMapProto.CallsetMappingPB mCallsetMap = null;
+
   /**
-   * Constructor
+   * Default Constructor
    */
   public GenomicsDBImporter()
   {
@@ -589,6 +246,169 @@ public class GenomicsDBImporter
   }
 
   /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                     Set<VCFHeaderLine> mergedHeader,
+                     ChromosomeInterval chromosomeInterval,
+                     String workspace,
+                     String arrayname,
+                     Long sizePerColumnPartition,
+                     Long segmentSize) throws IOException {
+
+    // Mark this flag so that protocol buffer based vid
+    // and callset map are propagated to C++ GenomicsDBImporter
+    mUsingVidMappingProtoBuf = true;
+
+    if (sizePerColumnPartition == 0L) {
+      sizePerColumnPartition = DEFAULT_SIZE_PER_COLUMN_PARTITION;
+    }
+    sizePerColumnPartition *= sampleToVCMap.size();
+
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+      createImportConfiguration(workspace, arrayname, sizePerColumnPartition, segmentSize);
+
+    mVidMap = generateVidMapFromMergedHeader(mergedHeader);
+
+    mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
+    File importJSONFile = printLoaderJSONFile(importConfiguration, "");
+
+    initialize(importJSONFile.getAbsolutePath(), 0, 0, 0);
+    mChromosomeInterval =chromosomeInterval;
+
+    mGenomicsDBImporterObjectHandle =
+      jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank, mLbRowIdx, mUbRowIdx);
+    
+    jniCopyVidMap(mGenomicsDBImporterObjectHandle, mVidMap.toByteArray());
+    jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, mCallsetMap.toByteArray());
+
+    for (Map.Entry<String, GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callset :
+      mCallsetMap.getCallsetMapMap().entrySet()) {
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
+        callset.getValue();
+        FeatureReader<VariantContext> featureReader =
+          sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName());
+        CloseableIterator iterator = featureReader.query(mChromosomeInterval.mChromosomeName,
+            (int) mChromosomeInterval.mBegin,
+            (int) mChromosomeInterval.mEnd);
+      String streamName = sampleIDToTileDBIDMap.getStreamName();
+      LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
+        new LinkedHashMap<Integer, SampleInfo>();
+      addSortedVariantContextIterator(
+        streamName,
+        (VCFHeader) featureReader.getHeader(),
+        iterator,
+        importConfiguration.getSizePerColumnPartition(),
+        VariantContextWriterBuilder.OutputType.BCF_STREAM,
+        sampleIndexToInfo);
+    }
+  }
+
+  private ImportConfiguration createImportConfiguration(
+    String workspace,
+    String arrayname,
+    Long sizePerColumnPartition,
+    Long segmentSize) {
+
+    String name = (arrayname.isEmpty()) ? DEFAULT_ARRAYNAME : arrayname;
+
+    GenomicsDBImportConfiguration.Partition.Builder pB =
+      GenomicsDBImportConfiguration.Partition.newBuilder();
+    GenomicsDBImportConfiguration.Partition p0 =
+      pB
+        .setBegin(0)
+        .setWorkspace(workspace)
+        .setArray(name)
+        .build();
+
+    GenomicsDBImportConfiguration.ImportConfiguration.Builder importBuilder =
+      GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+      importBuilder
+        .setRowBasedPartitioning(false)
+        .setSizePerColumnPartition(sizePerColumnPartition)
+        .addColumnPartitions(p0)
+        .setCompressTiledbArray(true)
+        .setSegmentSize(segmentSize)
+        .build();
+
+    return importConfiguration;
+  }
+
+  /**
+   * Create a JSON file from the import configuration
+   *
+   * @param importConfiguration  The configuration object
+   * @return  New file (with the specified name) written to local storage
+   */
+  public static File printLoaderJSONFile(
+    ImportConfiguration importConfiguration,
+    String filename) {
+    String loaderJSONString = printToString(importConfiguration);
+
+    File tempLoaderJSONFile = (filename.isEmpty()) ?
+      new File(mTempLoaderJSONFileName) :
+      new File(filename);
+
+    try( PrintWriter out = new PrintWriter(tempLoaderJSONFile)  ){
+      out.println(loaderJSONString);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+    return tempLoaderJSONFile;
+  }
+
+  /**
+   * Creates a sorted list of callsets and generates unique TileDB
+   * row indices for them. Sorted to maintain order between
+   * distributed share-nothing load processes.
+   *
+   * Assume one sample per input GVCF file
+   *
+   * @param  variants  Variant Readers objects of the input GVCF files
+   * @return  Mappings of callset (sample) names to TileDB rows
+   */
+  private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+    Map<String, FeatureReader<VariantContext>> variants) {
+
+    List<String> sampleNames = new ArrayList<>(variants.size());
+    for (Map.Entry<String, FeatureReader<VariantContext>> v : variants.entrySet()) {
+      VCFHeader h = (VCFHeader) v.getValue().getHeader();
+      sampleNames.add(h.getSampleNamesInOrder().get(0));
+    }
+
+    Collections.sort(sampleNames);
+
+    GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
+      GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
+
+    int tileDBRowIndex = 0;
+    
+    for (String sampleName : sampleNames) {
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder idMapBuilder =
+        GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
+
+      idMapBuilder
+        .setSampleName(sampleName)
+        .setTiledbRowIndex(tileDBRowIndex++)
+        .setIdxInFile(0)
+        .setStreamName(sampleName + "_stream");
+
+      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
+        idMapBuilder.build();
+
+      callsetMapBuilder.putCallsetMap(sampleName, sampleIDToTileDBIDMap);
+    }
+    return callsetMapBuilder.build();
+  }
+
+
+  /**
    * Initialize variables
    * @param loaderJSONFile GenomicsDB loader JSON configuration file
    * @param rank Rank of this process (TileDB/GenomicsDB partition idx)
@@ -604,6 +424,175 @@ public class GenomicsDBImporter
   }
 
   /**
+   * Generate the ProtoBuf data structure for vid mapping
+   *  Also remember, contigs are 1-based which means
+   *  TileDB column offsets should start from 1
+   *
+   * @param mergedHeader  Header from all input GVCFs are merged to
+   *                      create one vid map for all
+   * @return  a vid map containing all field names, lengths and types
+   *          from the merged GVCF header
+   */
+  private GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(
+    Set<VCFHeaderLine> mergedHeader) {
+
+    List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
+    List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
+
+    int dpIndex = -1;
+    long columnOffset = 0L;
+
+    for (VCFHeaderLine headerLine : mergedHeader) {
+      GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
+        GenomicsDBVidMapProto.InfoField.newBuilder();
+
+      if (headerLine instanceof VCFFormatHeaderLine) {
+        VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
+
+        infoBuilder
+          .setName(formatHeaderLine.getID())
+          .setType(formatHeaderLine.getType().toString())
+          .setLength(getLength(formatHeaderLine));
+
+        if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
+          GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
+
+          infoBuilder
+            .addVcfFieldClass(prevDPField.getVcfFieldClass(0))
+            .addVcfFieldClass("FORMAT");
+        } else {
+          infoBuilder
+            .addVcfFieldClass("FORMAT");
+        }
+
+        GenomicsDBVidMapProto.InfoField formatField = infoBuilder.build();
+        infoFields.add(formatField);
+        if (formatHeaderLine.getID().equals("DP")) {
+          dpIndex = infoFields.indexOf(formatField);
+        }
+      } else if (headerLine instanceof VCFInfoHeaderLine) {
+        VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
+
+        infoBuilder
+          .setName(infoHeaderLine.getID())
+          .setType(infoHeaderLine.getType().toString())
+          .setLength(getLength(infoHeaderLine));
+
+        if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
+          GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
+
+          infoBuilder
+            .addVcfFieldClass(prevDPield.getVcfFieldClass(0))
+            .addVcfFieldClass("INFO");
+        } else {
+          infoBuilder
+            .addVcfFieldClass("INFO");
+        }
+
+        GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
+        infoFields.add(infoField);
+        if (infoHeaderLine.getID().equals("DP")) {
+          dpIndex = infoFields.indexOf(infoField);
+        }
+      } else if (headerLine instanceof VCFFilterHeaderLine) {
+        VCFFilterHeaderLine filterHeaderLine = (VCFFilterHeaderLine) headerLine;
+
+        infoBuilder.setName(filterHeaderLine.getID());
+
+        if (!filterHeaderLine.getValue().isEmpty()) {
+          infoBuilder.setType(filterHeaderLine.getValue());
+        } else {
+          infoBuilder.setType("int");
+        }
+        infoBuilder.addVcfFieldClass("FILTER");
+        GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
+
+        infoFields.add(filterField);
+      } else if (headerLine instanceof VCFContigHeaderLine) {
+        VCFContigHeaderLine contigHeaderLine = (VCFContigHeaderLine) headerLine;
+
+        long length = contigHeaderLine.getSAMSequenceRecord().getSequenceLength();
+        GenomicsDBVidMapProto.Chromosome.Builder contigBuilder =
+          GenomicsDBVidMapProto.Chromosome.newBuilder();
+        contigBuilder
+          .setName(contigHeaderLine.getID())
+          .setLength(length)
+          .setTiledbColumnOffset(columnOffset);
+
+        columnOffset += length;
+
+        GenomicsDBVidMapProto.Chromosome chromosome = contigBuilder.build();
+
+        contigs.add(chromosome);
+      }
+    }
+
+    GenomicsDBVidMapProto.VidMappingPB.Builder vidMapBuilder =
+      GenomicsDBVidMapProto.VidMappingPB.newBuilder();
+
+    return vidMapBuilder
+      .addAllInfofields(infoFields)
+      .addAllChromosomes(contigs)
+      .build();
+  }
+  
+
+  private GenomicsDBVidMapProto.InfoField remove(
+    List<GenomicsDBVidMapProto.InfoField> infoFields,
+    int dpIndex) {
+    GenomicsDBVidMapProto.InfoField dpFormatField = infoFields.get(dpIndex);
+    infoFields.remove(dpIndex);
+    return dpFormatField;
+  }
+
+  /**
+   * Maps the "Number" from INFO or FORMAT fields in VCF header
+   * to GenomicsDB lengths. If unbounded, the field becomes a
+   * variable length attribute (discussed in more detail in TileDB
+   * tutorial tiledb.org). If "A", "R" or "G", the field also
+   * becomes a variable length attribute, but the order and length
+   * depends on order/number of alleles or genotypes. Integers
+   * remain integers
+   *
+   * @param headerLine  Info or Format header line from VCF
+   * @return  VAR, A, R, G, or integer values from VCF
+   */
+  private String getLength(VCFHeaderLine headerLine) {
+
+    VCFHeaderLineCount type;
+
+    if (headerLine instanceof VCFFormatHeaderLine) {
+      type = ((VCFFormatHeaderLine) headerLine).getCountType();
+    } else {
+      type = ((VCFInfoHeaderLine) headerLine).getCountType();
+    }
+
+    String length = "";
+    switch (type) {
+      case UNBOUNDED:
+        length = "VAR";
+        break;
+      case A:
+        length = "A";
+        break;
+      case R:
+        length = "R";
+        break;
+      case G:
+        length = "G";
+        break;
+      case INTEGER:
+        if (headerLine instanceof VCFFormatHeaderLine) {
+          length = String.valueOf(((VCFFormatHeaderLine)headerLine).getCount());
+        } else {
+          length = String.valueOf(((VCFInfoHeaderLine)headerLine).getCount());
+        }
+        break;
+    }
+    return length;
+  }
+
+  /**
    * Static function that reads sample names from the vcfHeader and adds entries to the map.
    * The function assumes that the samples will be assigned row indexes beginning at rowIdx
    * and that the sample names specified in the header
@@ -614,7 +603,8 @@ public class GenomicsDBImporter
    * @return rowIdx+#samples in the header
    */
   public static long initializeSampleInfoMapFromHeader(Map<Integer, SampleInfo> sampleIndexToInfo,
-                                                       final VCFHeader vcfHeader, final long rowIdx)
+                                                       final VCFHeader vcfHeader,
+                                                       final long rowIdx)
   {
     final List<String> headerSampleNames = vcfHeader.getGenotypeSamples();
     final int numSamplesInHeader = headerSampleNames.size();
@@ -641,7 +631,8 @@ public class GenomicsDBImporter
    * can be set to null, which implies that the mapping is stored in a callsets JSON file
    * @return returns buffer stream index
    */
-  public int addBufferStream(final String streamName, final VCFHeader vcfHeader,
+  public int addBufferStream(final String streamName,
+                             final VCFHeader vcfHeader,
                              final long bufferCapacity,
                              final VariantContextWriterBuilder.OutputType streamType,
                              final Map<Integer, SampleInfo> sampleIndexToInfo)
@@ -668,12 +659,13 @@ public class GenomicsDBImporter
    *                          stored in a callsets JSON file
    * @return returns the stream index
    */
-  public int addSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
-                                             Iterator<VariantContext> vcIterator,
-                                             final long bufferCapacity,
-                                             final VariantContextWriterBuilder.OutputType streamType,
-                                             final Map<Integer, SampleInfo> sampleIndexToInfo)
-    throws GenomicsDBException
+  public int addSortedVariantContextIterator(
+    final String streamName,
+    final VCFHeader vcfHeader,
+    Iterator<VariantContext> vcIterator,
+    final long bufferCapacity,
+    final VariantContextWriterBuilder.OutputType streamType,
+    final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException
   {
     return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType,
       vcIterator, sampleIndexToInfo);
@@ -700,12 +692,13 @@ public class GenomicsDBImporter
    * @throws IOException thrown if incorrect iterator or missing JSON configuration
    *                          files
    */
-  public int setSortedVariantContextIterator(final String streamName, final VCFHeader vcfHeader,
-                                             Iterator<VariantContext> vcIterator,
-                                             final long bufferCapacity,
-                                             final VariantContextWriterBuilder.OutputType streamType,
-                                             final Map<Integer, SampleInfo> sampleIndexToInfo)
-    throws GenomicsDBException, IOException
+  public int setSortedVariantContextIterator(
+    final String streamName,
+    final VCFHeader vcfHeader,
+    Iterator<VariantContext> vcIterator,
+    final long bufferCapacity,
+    final VariantContextWriterBuilder.OutputType streamType,
+    final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException, IOException
   {
     int streamIdx = addSortedVariantContextIterator(streamName, vcfHeader, vcIterator,
       bufferCapacity, streamType, sampleIndexToInfo);
@@ -726,7 +719,9 @@ public class GenomicsDBImporter
    *                          which implies that the mapping is stored in a callsets JSON file
    * @return returns the stream index
    */
-  private int addBufferStream(final String streamName, final VCFHeader vcfHeader,
+  @SuppressWarnings("unchecked")
+  private int addBufferStream(final String streamName,
+                              final VCFHeader vcfHeader,
                               final long bufferCapacity,
                               final VariantContextWriterBuilder.OutputType streamType,
                               Iterator<VariantContext> vcIterator,
@@ -739,8 +734,10 @@ public class GenomicsDBImporter
     //First time a buffer is added
     if(!mContainsBufferStreams)
     {
-      mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile,
-        mRank, mLbRowIdx, mUbRowIdx);
+      if (mGenomicsDBImporterObjectHandle==0) {
+        mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile,
+          mRank, mLbRowIdx, mUbRowIdx);
+      }
       if(mGenomicsDBImporterObjectHandle == 0)
         throw new GenomicsDBException("Could not initialize GenomicsDBImporter object");
       mBufferStreamWrapperVector = new ArrayList<GenomicsDBImporterStreamWrapper>();
@@ -774,6 +771,7 @@ public class GenomicsDBImporter
    * No more buffer streams can be added once setupGenomicsDBImporter() is called
    * @throws IOException throws IOException if modified callsets JSON cannot be written
    */
+  @SuppressWarnings("unchecked")
   public void setupGenomicsDBImporter() throws IOException
   {
     if(mIsLoaderSetupDone)
@@ -784,12 +782,12 @@ public class GenomicsDBImporter
     StringWriter stringWriter = new StringWriter();
     topCallsetJSON.writeJSONString(stringWriter);
     //Call native setupGenomicsDBImporter()
-    mMaxBufferStreamIdentifiers = jniSetupGenomicsDBLoader(mGenomicsDBImporterObjectHandle,
-      stringWriter.toString());
+    long mMaxBufferStreamIdentifiers = jniSetupGenomicsDBLoader(mGenomicsDBImporterObjectHandle,
+      stringWriter.toString(), mUsingVidMappingProtoBuf);
     //Why 2* - each identifier is a pair<buffer_stream_idx, partition_idx>
     //Why +1 - the last element will contain the number of exhausted stream identifiers
     //when importBatch() is called
-    mExhaustedBufferStreamIdentifiers = new long[2*((int)mMaxBufferStreamIdentifiers)+1];
+    mExhaustedBufferStreamIdentifiers = new long[2*((int) mMaxBufferStreamIdentifiers)+1];
     //Set all streams to empty
     //Add all streams to mExhaustedBufferStreamIdentifiers - this way when importBatch is
     //called the first time all streams' data are written
@@ -802,7 +800,7 @@ public class GenomicsDBImporter
     }
     //Set number of exhausted buffer streams - all streams are exhausted the first time
     mNumExhaustedBufferStreams = mBufferStreamWrapperVector.size();
-    mExhaustedBufferStreamIdentifiers[(int)(2*mMaxBufferStreamIdentifiers)] =
+    mExhaustedBufferStreamIdentifiers[(int)(2* mMaxBufferStreamIdentifiers)] =
       mNumExhaustedBufferStreams;
     mIsLoaderSetupDone = true;
   }
@@ -952,11 +950,11 @@ public class GenomicsDBImporter
    * @return list of ChromosomeInterval objects for the specified partition 
    * @throws ParseException when there is a bug in the JNI interface and a faulty JSON is returned
    */
-  public static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
-      final String loaderJSONFile, final int partitionIdx) throws ParseException
+  private static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
+    final String loaderJSONFile, final int partitionIdx) throws ParseException
   {
-    final String chromosomeIntervalsJSONString = jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile,
-        partitionIdx);
+    final String chromosomeIntervalsJSONString =
+      jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx);
     /* JSON format
       {
         "contigs": [
@@ -985,12 +983,15 @@ public class GenomicsDBImporter
     }
     return chromosomeIntervals;
   }
+  
   /**
    * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
    * that will iterate over the VariantContext objects provided by the reader belonging
    * to the column partition specified by the loader JSON file and rank/partition index
+   * 
    * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param reader AbstractFeatureReader over VariantContext objects -
+   *               SOURCE can vary - BCF v/s VCF for example
    * @param loaderJSONFile path to loader JSON file
    * @param partitionIdx rank/partition index
    * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
@@ -1000,18 +1001,22 @@ public class GenomicsDBImporter
    */
   public static <SOURCE> MultiChromosomeIterator<SOURCE> columnPartitionIterator(
       AbstractFeatureReader<VariantContext, SOURCE> reader,
-      final String loaderJSONFile, final int partitionIdx) throws ParseException, IOException
+      final String loaderJSONFile,
+      final int partitionIdx) throws ParseException, IOException
   {
     return new MultiChromosomeIterator<SOURCE>(reader,
-            GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx));
+            GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(
+              loaderJSONFile, partitionIdx));
   }
   
   /**
    * Utility function that returns a MultiChromosomeIterator given an AbstractFeatureReader
    * that will iterate over the VariantContext objects provided by the reader belonging
    * to the column partition specified by this object's loader JSON file and rank/partition index
+   *
    * @param <SOURCE> LineIterator for VCFs, PositionalBufferedStream for BCFs
-   * @param reader AbstractFeatureReader over VariantContext objects - SOURCE can vary - BCF v/s VCF for example
+   * @param reader AbstractFeatureReader over VariantContext objects -
+   *               SOURCE can vary - BCF v/s VCF for example
    * @return MultiChromosomeIterator that iterates over VariantContext objects in the reader
    *         belonging to the specified column partition
    * @throws IOException when the reader's query method throws an IOException

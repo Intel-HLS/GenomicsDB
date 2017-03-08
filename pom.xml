@@ -8,11 +8,10 @@
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
     <!-- Build version passed from parent Makefile -->
-    <version>${genomicsdb.version}</version>
+    <version>0.4.0</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>The Spark bindings for GenomicsDB where the getVariantContexts
-        method call retursn a collection (RDD) of VariantContexts from (HTS JDK)</description>
+    <description>Java API and Apache Spark bindings for GenomicsDB</description>
     <url>https://github.com/Intel-HLS/GenomicsDB/wiki</url>
 
     <licenses>
@@ -52,6 +51,8 @@
         <htsjdk.version>2.5.0</htsjdk.version>
         <json.simple.version>[1.1.1,)</json.simple.version>
         <log4j.version>1.2.17</log4j.version>
+        <protobuf.version>3.0.2</protobuf.version>
+        <testng.version>6.10</testng.version>
     </properties>
 
     <dependencies>
@@ -77,6 +78,22 @@
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.protobuf-java-format</groupId>
+            <artifactId>protobuf-java-format</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -104,6 +121,7 @@
                 <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.0</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -190,8 +208,8 @@
                         <include>**/*.scala</include>
                     </includes>
                     <forkMode>once</forkMode>
-                    <argLine>-Djava.library.path=${project.basedir}/lib:${java.library.path}</argLine>
-                    <skipTests>true</skipTests>
+                    <argLine>-Djava.library.path=${project.basedir}/bin:${java.library.path}</argLine>
+                    <!--<skipTests>true</skipTests>-->
                 </configuration>
             </plugin>
             <!-- disable surefire -->
@@ -204,7 +222,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
-                    <argLine>-Djava.library.path=${basedir}/lib</argLine>
+                    <argLine>-Djava.library.path=${basedir}/bin</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -214,6 +232,12 @@
                 <configuration>
                     <show>private</show>
                     <nohelp>true</nohelp>
+                    <sourceFileExcludes>
+                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBVidMapProto.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBExportConfiguration.java</sourceFileExclude>
+                    </sourceFileExcludes>
                 </configuration>
                 <executions>
                     <execution>

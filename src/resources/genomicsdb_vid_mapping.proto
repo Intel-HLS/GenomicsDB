@@ -1,0 +1,32 @@
+/**
+* Note: Variable names are kept aligned with
+* GenomicsDB JSON configuration.
+*
+* To build, use protocol buffer version >3.2.0 and the following command from base directory:
+* $ protoc -Isrc/resources/ --java_out=src/main/java/ src/resources/genomicsdb_vid_mapping.proto
+*/
+
+syntax = "proto2";
+
+option java_package = "com.intel.genomicsdb";
+option java_outer_classname = "GenomicsDBVidMapProto";
+
+
+message InfoField {
+  required string name = 1;
+  required string type = 2;
+  repeated string vcf_field_class = 3;
+  optional string length = 4;
+}
+
+message Chromosome {
+  required string name = 1;
+  required int64 length = 2;
+  required int64 tiledb_column_offset = 3;
+}
+
+message VidMappingPB {
+  repeated InfoField infofields = 1;
+  repeated Chromosome chromosomes  = 2;
+}
+

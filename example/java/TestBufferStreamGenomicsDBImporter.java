@@ -20,6 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import com.intel.genomicsdb.SampleInfo;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.readers.LineIterator;
@@ -126,8 +127,8 @@ public final class TestBufferStreamGenomicsDBImporter
     long ubRowIdx = (args.length >= argsLoaderFileIdx+6) ?
       Long.parseLong(args[argsLoaderFileIdx+5]) : Long.MAX_VALUE-1;
     //Boolean to use MultipleChromosomeIterator
-    boolean useMultiChromosomeIterator = (args.length >= argsLoaderFileIdx+7) ?
-        Boolean.parseBoolean(args[argsLoaderFileIdx+6]) : false;
+    boolean useMultiChromosomeIterator = (args.length >= argsLoaderFileIdx + 7) &&
+      Boolean.parseBoolean(args[argsLoaderFileIdx + 6]);
     //<loader.json> first arg
     String loaderJSONFile = args[argsLoaderFileIdx];
     GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
@@ -142,7 +143,8 @@ public final class TestBufferStreamGenomicsDBImporter
     for(Object currObj : streamNameToFileName.entrySet())
     {
       Map.Entry<String, String> entry = (Map.Entry<String, String>)currObj;
-      VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue(), loaderJSONFile, rank, useMultiChromosomeIterator);
+      VCFFileStreamInfo currInfo = new VCFFileStreamInfo(entry.getValue(), loaderJSONFile, rank,
+        useMultiChromosomeIterator);
 
       /** The following 2 lines are not mandatory - use initializeSampleInfoMapFromHeader()
        * iff you know for sure that sample names in the VCF header are globally unique
@@ -152,8 +154,8 @@ public final class TestBufferStreamGenomicsDBImporter
        *   (b) specify the mapping in the callset_mapping_file (JSON) and pass null to
        *       addSortedVariantContextIterator()
        */
-      LinkedHashMap<Integer, GenomicsDBImporter.SampleInfo> sampleIndexToInfo =
-        new LinkedHashMap<Integer, GenomicsDBImporter.SampleInfo>();
+      LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
+        new LinkedHashMap<Integer, SampleInfo>();
       rowIdx = GenomicsDBImporter.initializeSampleInfoMapFromHeader(sampleIndexToInfo,
         currInfo.mVCFHeader, rowIdx);
       int streamIdx = -1;

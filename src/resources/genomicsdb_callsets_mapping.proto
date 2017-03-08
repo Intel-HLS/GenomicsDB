@@ -1,0 +1,24 @@
+/**
+* Note: Variable names are kept aligned with
+* GenomicsDB JSON configuration.
+*
+* To build, use protocol buffer version >3.2.0 and the following command from base directory:
+* $ protoc -Isrc/resources/ --java_out=src/main/java/ \
+*     src/resources/genomicsdb_callsets_mapping.proto
+*/
+
+syntax = "proto2";
+
+option java_package = "com.intel.genomicsdb";
+option java_outer_classname = "GenomicsDBCallsetsMapProto";
+
+message SampleIDToTileDBIDMap {
+  required string sample_name = 1;
+  required int64 tiledb_row_index = 2;
+  required int32 idx_in_file = 3;
+  optional string stream_name = 4;
+}
+
+message CallsetMappingPB {
+  map<string, SampleIDToTileDBIDMap> callset_map = 1;
+}

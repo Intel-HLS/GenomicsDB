@@ -1,0 +1,27 @@
+
+/**
+ * To build, use protocol buffer version >3.2.0 and the following command from base directory:
+ * $ protoc -Isrc/resources/ --java_out=src/main/java/ src/resources/genomicsdb_export_config.proto
+ */
+
+syntax = "proto2";
+
+option java_package = "com.intel.genomicsdb";
+option java_outer_classname = "GenomicsDBExportConfiguration";
+
+message ColumnRange {
+    required int64 low = 1;
+    required int64 high = 2;
+}
+
+message ColumnRangeList {
+    repeated ColumnRange range_list = 1;
+}
+
+message ExportConfiguration {
+    required string tiledb_workspace = 1;
+    required string tiledb_array_name = 2;
+    required string reference_genome = 3;
+    repeated ColumnRangeList query_column_ranges = 4;
+    repeated string attributes = 5;
+}
