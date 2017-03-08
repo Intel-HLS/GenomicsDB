@@ -84,7 +84,7 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
 
 void VCF2TileDBLoaderConverterBase::clear()
 {
-  m_vid_mapping_filename.clear();
+  m_vid_mapping_file.clear();
   m_callset_mapping_file.clear();
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
@@ -151,7 +151,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(
   {
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
-    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_filename, m_callset_mapping_file,
+    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_file, m_callset_mapping_file,
           m_lb_callset_row_idx, m_ub_callset_row_idx, true));
     m_vid_mapper->verify_file_partitioning();
     //2 entries sufficient
@@ -561,7 +561,7 @@ void VCF2TileDBLoader::common_constructor_initialization(
   } else {
     m_vid_mapper = static_cast<VidMapper*>(
         new FileBasedVidMapper(
-          m_vid_mapping_filename,
+          m_vid_mapping_file,
           buffer_stream_info_vec,
           m_callset_mapping_file,
           buffer_stream_callset_mapping_json_string,

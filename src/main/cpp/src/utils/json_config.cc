@@ -38,7 +38,7 @@ void JSONConfigBase::clear()
   m_attributes.clear();
   m_sorted_column_partitions.clear();
   m_sorted_row_partitions.clear();
-  m_vid_mapping_filename.clear();
+  m_vid_mapping_file.clear();
   m_callset_mapping_file.clear();
 }
 
@@ -418,7 +418,7 @@ const std::vector<ColumnRange>& JSONConfigBase::get_query_column_ranges(const in
 
 void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank)
 {
-  auto& vid_mapping_file = m_vid_mapping_filename;
+  auto& vid_mapping_file = m_vid_mapping_file;
   auto& callset_mapping_file = m_callset_mapping_file;
   //Callset mapping file and vid file
   if(m_json.HasMember("vid_mapping_file"))
@@ -478,7 +478,7 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
   }
   //Vid mapping
   if(!m_json.HasMember("vid_mapping_file"))
-    m_vid_mapping_filename = loader_config->get_vid_mapping_filename();
+    m_vid_mapping_file = loader_config->get_vid_mapping_filename();
   //Callset mapping
   if(!m_json.HasMember("callset_mapping_file"))
     m_callset_mapping_file = loader_config->get_callset_mapping_filename();
@@ -595,7 +595,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_offload_vcf_output_processing = false;
   //Ignore cells that do not belong to this partition
   m_ignore_cells_not_in_partition = false;
-  m_vid_mapping_filename = "";
+  m_vid_mapping_file = "";
   m_callset_mapping_file = "";
   m_segment_size = 10u*1024u*1024u; //10MiB default
   m_num_cells_per_tile = 1024u;
