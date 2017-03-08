@@ -41,11 +41,15 @@ query_json_template_string="""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
 
-def create_query_json(ws_dir, test_name, query_params_dict):
+def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array"] = test_name
-    test_dict["query_column_ranges"] = [ [ query_params_dict["query_column_ranges"] ] ]
+    test_dict["query_column_ranges"] = [ [ query_param_dict["query_column_ranges"] ] ]
+    if("vid_mapping_file" in query_param_dict):
+        test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
+    if("callset_mapping_file" in query_param_dict):
+        test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
     return test_dict;
 
 
@@ -120,6 +124,17 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_0",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],#vid and callset jsons passed through query json
+                        "query_without_loader": True,
+                        "vid_mapping_file": "inputs/vid.json",
+                        "callset_mapping_file": "inputs/callsets/t0_1_2.json",
+                        "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
@@ -310,12 +325,19 @@ def main():
                         json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                         fptr.close();
                     if(query_type == 'java_vcf'):
-                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_json_filename+' '+query_json_filename,
+                        loader_argument = loader_json_filename;
+                        if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
+                            loader_argument = '""'
+                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
-                        pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d -l '+loader_json_filename+' -j '
-                                +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
-                                stdout=subprocess.PIPE);
+                        loader_argument = ' -l '+loader_json_filename;
+                        if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
+                            loader_argument = ''
+                        pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
+                            + ' -j '
+                            +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
+                            stdout=subprocess.PIPE);
                     stdout_string = pid.communicate()[0]
                     if(pid.returncode != 0):
                         sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
@@ -329,7 +351,8 @@ def main():
                             cleanup_and_exit(tmpdir, -1);
     coverage_file='coverage.info'
     subprocess.call('lcov --directory ../ --capture --output-file '+coverage_file, shell=True);
-    subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' -o "+coverage_file, shell=True);
+    #Remove protocol buffer generated files from the coverage information
+    subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o "+coverage_file, shell=True);
     cleanup_and_exit(tmpdir, 0); 
 
 if __name__ == '__main__':

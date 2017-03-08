@@ -53,6 +53,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   clear();
   if(!id_mapper.is_initialized())
     throw BroadCombinedGVCFException("Id mapper is not initialized");
+  if(!id_mapper.is_callset_mapping_initialized())
+    throw BroadCombinedGVCFException("Callset mapping in id mapper is not initialized");
   m_query_config = &query_config;
   //Initialize VCF structs
   m_vcf_adapter = &vcf_adapter;

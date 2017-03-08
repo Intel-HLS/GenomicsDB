@@ -205,10 +205,12 @@ class VidMapper
     {
       clear();
       m_is_initialized = false;
+      m_is_callset_mapping_initialized = false;
       m_max_callset_row_idx = -1;
     }
     void clear();
     inline bool is_initialized() const { return m_is_initialized; }
+    inline bool is_callset_mapping_initialized() const { return m_is_callset_mapping_initialized; }
     /*
      * Given a position in a flattened 'address' space [TileDB column idx], get the contig_name and location
      * in the contig [0-based]
@@ -538,6 +540,8 @@ class VidMapper
   protected:
     //Is initialized
     bool m_is_initialized;
+    //are callsets initialized
+    bool m_is_callset_mapping_initialized;
     //callset mappings
     std::unordered_map<std::string, int64_t> m_callset_name_to_row_idx;
     std::vector<CallSetInfo> m_row_idx_to_info;

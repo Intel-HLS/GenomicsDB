@@ -119,6 +119,20 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     /**
+     * Constructor
+     * @param queryJSONFile GenomicsDB query JSON configuration file. Since the constructor
+     * has no loader JSON as argument, you must specify the vid and callset mapping in the query JSON
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @throws IOException when data cannot be read from the stream
+     */
+    public GenomicsDBFeatureReader(final String queryJSONFile,
+            final FeatureCodec<T, SOURCE> codec) throws IOException
+
+    {
+        initialize("", queryJSONFile, codec);
+    }
+
+    /**
      * Initialization function that's used by all constructors
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param queryJSONFile GenomicsDB query JSON configuration file

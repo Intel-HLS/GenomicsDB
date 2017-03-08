@@ -38,8 +38,12 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
   //Buffer sizing
   m_buffers.resize(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER, RWBuffer(buffer_capacity+32768u)); //pad buffer to minimize reallocations
   //Parse loader JSON file
-  JSONLoaderConfig loader_config;
-  loader_config.read_from_file(loader_config_file, &m_vid_mapper, my_rank);
+  //If the loader JSON is not specified, vid_mapping_file and callset_mapping_file must be specified in the query JSON
+  if(!(loader_config_file.empty()))
+  {
+    JSONLoaderConfig loader_config;
+    loader_config.read_from_file(loader_config_file, &m_vid_mapper, my_rank);
+  }
   //Parse query JSON file
   JSONVCFAdapterQueryConfig bcf_scan_config;
   bcf_scan_config.read_from_file(query_config_file, m_query_config, m_vcf_adapter, &m_vid_mapper, output_format, my_rank, buffer_capacity);
