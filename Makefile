@@ -110,7 +110,13 @@ CPPFLAGS += -DDUPLICATE_CELL_AT_END
 ifndef TILEDB_DIR
   TILEDB_DIR=dependencies/TileDB
 endif
+
 CPPFLAGS+=-I$(TILEDB_DIR)/core/include/c_api
+
+ifdef PROTOBUF_LIBRARY
+  CPPFLAGS += -I$(PROTOBUF_LIBRARY)/include
+endif
+
 ifeq ($(OS), Darwin)
   LDFLAGS:= $(TILEDB_DIR)/core/lib/$(TILEDB_BUILD)/libtiledb.a $(LDFLAGS)
 else
@@ -183,10 +189,12 @@ endif
 
 # --- Additional load flags for protocol buffers --- #
 ifdef MAXIMIZE_STATIC_LINKING
-  LDFLAGS += -Wl,-Bstatic -L$(PROTOBUF_LIBRARY) -lprotobuf -Wl,-Bdynamic
-else
-  LDFLAGS+=-lprotobuf
+  LDFLAGS += -Wl,-Bstatic
 endif
+ifdef PROTOBUF_LIBRARY
+  LDFLAGS += -L$(PROTOBUF_LIBRARY)/lib
+endif
+LDFLAGS+= -lprotobuf -Wl,-Bdynamic
 
 # --- Directories --- #
 
