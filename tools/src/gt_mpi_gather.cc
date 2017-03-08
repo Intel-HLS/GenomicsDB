@@ -37,6 +37,8 @@
 #include "gperftools/profiler.h"
 #endif
 
+#include <google/protobuf/stubs/common.h>
+
 enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
@@ -601,6 +603,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   MPI_Finalize();
+  google::protobuf::ShutdownProtobufLibrary();
   sm.close_array(qp.get_array_descriptor());
   return 0;
 }
