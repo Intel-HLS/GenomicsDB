@@ -334,6 +334,8 @@ public class GenomicsDBImporter
         .setSizePerColumnPartition(sizePerColumnPartition)
         .addColumnPartitions(p0)
         .setCompressTiledbArray(true)
+        .setProduceTiledbArray(true)
+        .setNumCellsPerTile(1000)
         .setSegmentSize(segmentSize)
         .build();
 
