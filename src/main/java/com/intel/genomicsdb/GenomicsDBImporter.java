@@ -64,6 +64,7 @@ public class GenomicsDBImporter
   private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
   private final String DEFAULT_ARRAYNAME = "genomicsdb_array";
   private final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
+  private final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 
 
   /*
@@ -333,6 +334,8 @@ public class GenomicsDBImporter
         .setRowBasedPartitioning(false)
         .setSizePerColumnPartition(sizePerColumnPartition)
         .addColumnPartitions(p0)
+        .setProduceTiledbArray(true)
+        .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
         .setCompressTiledbArray(true)
         .setSegmentSize(segmentSize)
         .build();
