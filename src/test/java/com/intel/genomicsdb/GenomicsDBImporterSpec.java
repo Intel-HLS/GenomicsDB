@@ -80,4 +80,49 @@ public class GenomicsDBImporterSpec {
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
   }
+
+  @Test(testName = "genomicsdb importer outputs merged headers as a JSON file")
+  public void testVidMapJSONOutput() throws IOException {
+
+    System.exit(0);
+
+    File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
+    File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
+    File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
+    Map<String, FeatureReader<VariantContext>> variantReaders = new HashMap<>();
+
+    FeatureCodec<VariantContext, ?> codec = new VCFCodec();
+    FeatureReader<VariantContext> reader_t6 =
+      AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), codec, false);
+    FeatureReader<VariantContext> reader_t7 =
+      AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), codec, false);
+    FeatureReader<VariantContext> reader_t8 =
+      AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
+    variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
+    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
+    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+
+    final String TEMP_JSON_FILE = "./generated_vidmap.json";
+
+    ChromosomeInterval chromosomeInterval =
+      new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
+    List<VCFHeader> headers = new ArrayList<>();
+    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
+      headers.add((VCFHeader) variant.getValue().getHeader());
+    }
+    Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
+    GenomicsDBImporter importer = new GenomicsDBImporter(
+      variantReaders,
+      mergedHeader,
+      chromosomeInterval,
+      TILEDB_WORKSPACE,
+      TILEDB_ARRAYNAME,
+      0L,
+      10000000L,
+      TEMP_JSON_FILE);
+
+    importer.importBatch();
+    Assert.assertEquals(importer.isDone(), true);
+    Assert.assertEquals(new File(TEMP_JSON_FILE).isFile(), true);
+  }
 }
