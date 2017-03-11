@@ -55,7 +55,7 @@ public final class ExampleGenomicsDBImporter {
       map, mergedHeader,
       new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
       workspace, "", 1000L, 1048576L);
-    importer.importBatch();
-    assert (importer.importBatch());
+    boolean isdone = importer.importBatch();
+    assert (isdone);
   }
 }
