@@ -24,7 +24,7 @@ public final class ExampleGenomicsDBImporter {
   {
     if (args.length < 3) {
       System.out.println("Usage: ExampleGenomicsDBImporter" + " chromosome:interval " +
-        " variantfile genomicsdbworkspace");
+        "genomicsdbworkspace variantfile");
       System.exit(-1);
     }
 
@@ -32,20 +32,23 @@ public final class ExampleGenomicsDBImporter {
     String[] temp0 = chromosomeInterval.split(":");
     String chromosomeName = temp0[0];
     String[] interval = temp0[1].split("-");
-    String file = args[1];
-    String workspace = args[2];
-
-    System.out.println(interval[0] + "," + interval[1]);
-
-    AbstractFeatureReader<VariantContext, LineIterator> reader =
-      AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
-
-    String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
-    List<VCFHeader> headers = new ArrayList<>();
-    headers.add((VCFHeader) reader.getHeader());
+    String workspace = args[1];
+    List<String> files = new ArrayList<>();
+    for (int i = 2; i < args.length; ++i) {
+      files.add(args[i]);
+    }
 
     Map<String, FeatureReader<VariantContext>> map = new HashMap<>();
-    map.put(sampleName, reader);
+    List<VCFHeader> headers = new ArrayList<>();
+
+    for (String file : files) {
+      AbstractFeatureReader<VariantContext, LineIterator> reader =
+        AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
+      String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
+      headers.add((VCFHeader) reader.getHeader());
+      map.put(sampleName, reader);
+    }
+
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
