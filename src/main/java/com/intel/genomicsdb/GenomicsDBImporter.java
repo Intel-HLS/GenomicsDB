@@ -482,11 +482,14 @@ public class GenomicsDBImporter
 
       if (headerLine instanceof VCFFormatHeaderLine) {
         VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
-
+        boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
+        String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
+        String genomicsDBLength = isGT ? "P" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
+            ? "VAR" : getLength(formatHeaderLine);
         infoBuilder
           .setName(formatHeaderLine.getID())
-          .setType(formatHeaderLine.getType().toString())
-          .setLength(getLength(formatHeaderLine));
+          .setType(genomicsDBType)
+          .setLength(genomicsDBLength);
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
@@ -507,10 +510,14 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
+        if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
+          continue;
+        }
+
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
-          .setLength(getLength(infoHeaderLine));
+          .setLength(infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);

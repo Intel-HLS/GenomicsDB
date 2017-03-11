@@ -45,16 +45,14 @@ std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to
   std::unordered_map<std::string, std::type_index>({
       {"int", std::type_index(typeid(int))},
       {"float", std::type_index(typeid(float))},
-      {"char", std::type_index(typeid(char))},
-      {"flag", std::type_index(typeid(bool))}
+      {"char", std::type_index(typeid(char))}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type =
   std::unordered_map<std::string, int>({
       {"int", BCF_HT_INT},
       {"float", BCF_HT_REAL},
-      {"char", BCF_HT_STR},
-      {"flag", BCF_HT_FLAG}
+      {"char", BCF_HT_STR}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
