@@ -149,7 +149,7 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
     assert(field_info_ptr);
     auto field_ht_type = bcf_hdr_id2type(hdr, field_type_idx, field_idx);
     //Don't bother doing any checks for the GT field
-    if(field_name != "GT" && field_ht_type != BCF_HT_STR)
+    if(field_name != "GT" && field_ht_type != BCF_HT_STR && field_type_idx != BCF_HL_FLT)
     {
       //Allowed configurations - both the JSON and the header specify that:
       //The field is fixed length and agree on the length OR
