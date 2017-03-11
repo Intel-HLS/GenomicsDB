@@ -303,6 +303,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
   for (auto field_idx = 0; field_idx < num_fields; ++field_idx) {
     field_name = vid_map_protobuf->infofields(field_idx).name();
+    std::cout << field_name;
     if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end()) {
       std::cerr << "Duplicate field name "
                 << field_name
@@ -333,6 +334,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
       field_type.assign("flag");
     }
 
+    std::cout << field_type;
+
     {
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
       VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end()
@@ -350,14 +353,18 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     auto class_type_size =
         vid_map_protobuf->infofields(field_idx).vcf_field_class_size();
 
+    std::cout << class_type_size << "\n";
+
     if (class_type_size > 0L) {
       for (int i = 0; i < class_type_size; ++i) {
-        std::string class_name = vid_map_protobuf->infofields(field_idx).name();
+        std::string class_name =
+          vid_map_protobuf->infofields(field_idx).vcf_field_class(i);
         if(class_name == "INFO")
           m_field_idx_to_info[field_idx].m_is_vcf_INFO_field = true;
-        else if(class_name == "FORMAT")
+        else if(class_name == "FORMAT") {
           m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
-        else
+          std::cout << " FORMAT ";
+        } else
           if(class_name == "FILTER")
             m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
       }
@@ -388,6 +395,9 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
                   known_field_enum,
                   0u,
                   0u);  //don't care about ploidy
+      } else {
+        m_field_idx_to_info[field_idx].m_num_elements = 1;
+        m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_FIXED;
       }
     }
 
