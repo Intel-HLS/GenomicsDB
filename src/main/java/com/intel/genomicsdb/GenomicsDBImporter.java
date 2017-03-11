@@ -335,7 +335,7 @@ public class GenomicsDBImporter
     File vidMapJSONFile = new File(outputVidMapJSONFilePath);
 
     try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONFile);
+      out.println(vidMapJSONString);
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     }
