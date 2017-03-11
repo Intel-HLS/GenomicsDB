@@ -310,6 +310,37 @@ public class GenomicsDBImporter
     }
   }
 
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            String workspace,
+                            String arrayname,
+                            Long sizePerColumnPartition,
+                            Long segmentSize,
+                            String outputVidMapJSONFilePath) throws IOException {
+
+    this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
+      sizePerColumnPartition, segmentSize);
+
+    String vidMapJSONString = printToString(mVidMap);
+
+    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONFile);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
   private ImportConfiguration createImportConfiguration(
     String workspace,
     String arrayname,
