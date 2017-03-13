@@ -287,6 +287,24 @@ def main():
                         } }
                     ]
             },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8",
+                'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                'chromosome_interval': '1:1-100000000',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_0",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_0",
+                        "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
+                        "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [8029500, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
+                        "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
+                        "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
+                        } }
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']

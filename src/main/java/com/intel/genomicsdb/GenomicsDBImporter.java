@@ -399,6 +399,7 @@ public class GenomicsDBImporter
         .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
         .setCompressTiledbArray(true)
         .setSegmentSize(segmentSize)
+        .setTreatDeletionsAsIntervals(true)
         .build();
 
     return importConfiguration;
