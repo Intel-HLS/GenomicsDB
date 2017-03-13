@@ -27,6 +27,7 @@ import hashlib
 import os
 import sys
 import shutil
+from collections import OrderedDict
 
 query_json_template_string="""
 {   
@@ -270,6 +271,22 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/info_ops.json',
                 'vid_mapping_file': 'inputs/vid_info_ops1.json'
             },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'chromosome_interval': '1:1-100000000',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
+                        "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
+                        } }
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -292,6 +309,15 @@ def main():
         elif(test_name == 'java_buffer_stream_t0_1_2'):
             pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter '+loader_json_filename
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
+                    shell=True, stdout=subprocess.PIPE);
+        elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
+            arg_list = test_params_dict['chromosome_interval'] + ' ' + ws_dir + ' '+test_name + ' true ';
+            with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
+                callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
+                for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
+                    arg_list += ' '+callset_info['filename'];
+                cs_fptr.close();
+            pid = subprocess.Popen('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,

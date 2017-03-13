@@ -253,6 +253,10 @@ public class GenomicsDBImporter
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -261,6 +265,32 @@ public class GenomicsDBImporter
                      String arrayname,
                      Long sizePerColumnPartition,
                      Long segmentSize) throws IOException {
+      this(sampleToVCMap, mergedHeader, chromosomeInterval,
+              workspace, arrayname, sizePerColumnPartition, segmentSize,
+              false);
+  }
+
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
+   * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                     Set<VCFHeaderLine> mergedHeader,
+                     ChromosomeInterval chromosomeInterval,
+                     String workspace,
+                     String arrayname,
+                     Long sizePerColumnPartition,
+                     Long segmentSize,
+                     boolean useSamplesInOrderProvided) throws IOException {
 
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
@@ -276,7 +306,7 @@ public class GenomicsDBImporter
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
-    mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
+    mCallsetMap = generateSortedCallSetMap(sampleToVCMap, useSamplesInOrderProvided);
     File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     initialize(importJSONFile.getAbsolutePath(), 0, 0, 0);
@@ -408,7 +438,8 @@ public class GenomicsDBImporter
    * @return  Mappings of callset (sample) names to TileDB rows
    */
   private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-    Map<String, FeatureReader<VariantContext>> variants) {
+    Map<String, FeatureReader<VariantContext>> variants,
+    boolean useSamplesInOrderProvided) {
 
     List<String> sampleNames = new ArrayList<>(variants.size());
     for (Map.Entry<String, FeatureReader<VariantContext>> v : variants.entrySet()) {
@@ -416,7 +447,8 @@ public class GenomicsDBImporter
       sampleNames.add(h.getSampleNamesInOrder().get(0));
     }
 
-    Collections.sort(sampleNames);
+    if(!useSamplesInOrderProvided)
+        Collections.sort(sampleNames);
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
       GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
