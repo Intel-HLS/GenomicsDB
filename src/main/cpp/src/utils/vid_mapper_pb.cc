@@ -301,8 +301,9 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
   std::string field_type;
   auto duplicate_fields_exist = false;
 
-  for (auto field_idx = 0; field_idx < num_fields; ++field_idx) {
-    field_name = vid_map_protobuf->infofields(field_idx).name();
+  for (auto pb_field_idx = 0, field_idx = 0; pb_field_idx < num_fields;
+      ++pb_field_idx, field_idx++) {
+    field_name = vid_map_protobuf->infofields(pb_field_idx).name();
     if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end()) {
       std::cerr << "Duplicate field name "
                 << field_name
@@ -320,9 +321,10 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     // Map
     m_field_name_to_idx[field_name] = field_idx;
     m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
+    auto& ref = m_field_idx_to_info[field_idx];
 
     //Field type - int, char etc
-    field_type = vid_map_protobuf->infofields(field_idx).type();
+    field_type = vid_map_protobuf->infofields(pb_field_idx).type();
     if (field_type.compare("Integer") == 0) {
       field_type.assign("int");
     } else if (field_type.compare("String") == 0) {
@@ -337,43 +339,43 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
       VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end()
           && "Field type not handled");
-      m_field_idx_to_info[field_idx].m_type_index = (*iter).second;
+      ref.m_type_index = (*iter).second;
     }
     {
       auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_type);
       VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end()
           && "Field type not handled");
-      m_field_idx_to_info[field_idx].m_bcf_ht_type = (*iter).second;
+      ref.m_bcf_ht_type = (*iter).second;
     }
 
     // VCF class type can be an array of values: INFO, FORMAT and FILTER
     auto class_type_size =
-        vid_map_protobuf->infofields(field_idx).vcf_field_class_size();
+        vid_map_protobuf->infofields(pb_field_idx).vcf_field_class_size();
 
     if (class_type_size > 0L) {
       for (int i = 0; i < class_type_size; ++i) {
-        std::string class_name = vid_map_protobuf->infofields(field_idx).name();
+        std::string class_name =
+          vid_map_protobuf->infofields(pb_field_idx).vcf_field_class(i);
         if(class_name == "INFO")
-          m_field_idx_to_info[field_idx].m_is_vcf_INFO_field = true;
-        else if(class_name == "FORMAT")
-          m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
-        else
+          ref.m_is_vcf_INFO_field = true;
+        else if(class_name == "FORMAT") {
+          ref.m_is_vcf_FORMAT_field = true;
+        } else
           if(class_name == "FILTER")
-            m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
+            ref.m_is_vcf_FILTER_field = true;
       }
     }
-
-    if (vid_map_protobuf->infofields(field_idx).has_length()) {
-      std::string length = vid_map_protobuf->infofields(field_idx).length();
+    if (vid_map_protobuf->infofields(pb_field_idx).has_length()) {
+      std::string length = vid_map_protobuf->infofields(pb_field_idx).length();
       if (isdigit(length.c_str()[0])) {
-        m_field_idx_to_info[field_idx].m_num_elements =
+        ref.m_num_elements =
             strtol(length.c_str(), NULL, 10);
       } else {
         auto iter = VidMapper::m_length_descriptor_string_to_int.find(length);
         if (iter == VidMapper::m_length_descriptor_string_to_int.end()) {
-          m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+          ref.m_length_descriptor = BCF_VL_VAR;
         } else {
-          m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
+          ref.m_length_descriptor = (*iter).second;
         }
       }
     } else {
@@ -381,23 +383,27 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
         auto length_descriptor =
             KnownFieldInfo::get_length_descriptor_for_known_field_enum(
                 known_field_enum);
-        m_field_idx_to_info[field_idx].m_length_descriptor = length_descriptor;
+        ref.m_length_descriptor = length_descriptor;
         if(length_descriptor == BCF_VL_FIXED)
-          m_field_idx_to_info[field_idx].m_num_elements =
+          ref.m_num_elements =
               KnownFieldInfo::get_num_elements_for_known_field_enum(
                   known_field_enum,
                   0u,
                   0u);  //don't care about ploidy
+      } else {
+        ref.m_num_elements = 1;
+        ref.m_length_descriptor = BCF_VL_FIXED;
       }
     }
 
     // Both INFO and FORMAT, throw another entry <field>_FORMAT
-    if (m_field_idx_to_info[field_idx].m_is_vcf_INFO_field &&
-        m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field) {
+    if (ref.m_is_vcf_INFO_field &&
+        ref.m_is_vcf_FORMAT_field) {
       auto new_field_idx = field_idx+1u;
       m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
+      auto& ref = m_field_idx_to_info[field_idx];
       //Copy field information
-      m_field_idx_to_info[new_field_idx] = m_field_idx_to_info[field_idx];
+      m_field_idx_to_info[new_field_idx] = ref;
       auto& new_field_info =  m_field_idx_to_info[new_field_idx];
       //Update name and index - keep the same VCF name
       new_field_info.m_name = field_name+"_FORMAT";
@@ -408,7 +414,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
       //Update map
       m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
       //Set FORMAT to false for original field
-      m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = false;
+      ref.m_is_vcf_FORMAT_field = false;
+      field_idx++;
     }
   } // for (auto field_idx = 0; field_idx < num_fields; ++field_idx)
 

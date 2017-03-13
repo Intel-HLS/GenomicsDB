@@ -310,6 +310,37 @@ public class GenomicsDBImporter
     }
   }
 
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            String workspace,
+                            String arrayname,
+                            Long sizePerColumnPartition,
+                            Long segmentSize,
+                            String outputVidMapJSONFilePath) throws IOException {
+
+    this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
+      sizePerColumnPartition, segmentSize);
+
+    String vidMapJSONString = printToString(mVidMap);
+
+    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONString);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
   private ImportConfiguration createImportConfiguration(
     String workspace,
     String arrayname,
@@ -451,11 +482,14 @@ public class GenomicsDBImporter
 
       if (headerLine instanceof VCFFormatHeaderLine) {
         VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
-
+        boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
+        String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
+        String genomicsDBLength = isGT ? "P" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
+            ? "VAR" : getLength(formatHeaderLine);
         infoBuilder
           .setName(formatHeaderLine.getID())
-          .setType(formatHeaderLine.getType().toString())
-          .setLength(getLength(formatHeaderLine));
+          .setType(genomicsDBType)
+          .setLength(genomicsDBLength);
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
@@ -476,10 +510,14 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
+        if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
+          continue;
+        }
+
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
-          .setLength(getLength(infoHeaderLine));
+          .setLength(infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
