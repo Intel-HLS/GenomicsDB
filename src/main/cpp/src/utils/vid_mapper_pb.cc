@@ -28,6 +28,8 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw ProtoBufBasedVidMapperException(#X);
 
+GenomicsDBProtoBufInitAndCleanup g_genomicsdb_protobuf_init_and_cleanup;
+
 ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
   const VidMappingPB* vid_map_protobuf,
   const CallsetMappingPB* callset_map_protobuf,

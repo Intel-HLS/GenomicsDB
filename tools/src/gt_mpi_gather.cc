@@ -28,6 +28,7 @@
 #include "json_config.h"
 #include "timer.h"
 #include "broad_combined_gvcf.h"
+#include "vid_mapper_pb.h"
 
 #ifdef USE_BIGMPI
 #include "bigmpi.h"
@@ -36,8 +37,6 @@
 #ifdef USE_GPERFTOOLS
 #include "gperftools/profiler.h"
 #endif
-
-#include <google/protobuf/stubs/common.h>
 
 enum ArgsEnum
 {
@@ -601,9 +600,8 @@ int main(int argc, char *argv[]) {
 #ifdef USE_GPERFTOOLS
   ProfilerStop();
 #endif
-
-  MPI_Finalize();
-  google::protobuf::ShutdownProtobufLibrary();
   sm.close_array(qp.get_array_descriptor());
+  GenomicsDBProtoBufInitAndCleanup::shutdown_protobuf_library();
+  MPI_Finalize();
   return 0;
 }

@@ -29,8 +29,6 @@
 #include "gperftools/profiler.h"
 #endif
 
-#include <google/protobuf/stubs/common.h>
-
 enum VCF2TileDBArgsEnum
 {
   VCF2TILEDB_ARG_SPLIT_FILES_IDX=1000,
@@ -155,6 +153,5 @@ int main(int argc, char** argv)
 #endif
   //finalize
   MPI_Finalize();
-  google::protobuf::ShutdownProtobufLibrary();
   return 0;
 }
