@@ -511,6 +511,8 @@ public class GenomicsDBImporter
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
         if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
+          System.err.println("WARNING: Flag type fields are not handled by GenomicsDB currently - skipping field "
+                  +infoHeaderLine.getID());
           continue;
         }
 
