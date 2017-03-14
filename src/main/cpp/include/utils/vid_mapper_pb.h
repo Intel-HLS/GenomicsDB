@@ -25,11 +25,31 @@
 #include "vid_mapper.h"
 #include "genomicsdb_vid_mapping.pb.h"
 #include "genomicsdb_callsets_mapping.pb.h"
+#include <google/protobuf/stubs/common.h>
 
 enum {
   GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
   GENOMICSDB_VID_MAPPER_FAILURE = 0x1
 };
+
+/*
+ * Constructor is called for the global variable when the library is loaded
+ * Destructor is called when the library is unloaded;
+ */
+class GenomicsDBProtoBufInitAndCleanup
+{
+  public:
+    GenomicsDBProtoBufInitAndCleanup() { }
+    ~GenomicsDBProtoBufInitAndCleanup()
+    {
+      GenomicsDBProtoBufInitAndCleanup::shutdown_protobuf_library();
+    }
+    static void shutdown_protobuf_library()
+    {
+      google::protobuf::ShutdownProtobufLibrary();
+    }
+};
+extern GenomicsDBProtoBufInitAndCleanup g_genomicsdb_protobuf_init_and_cleanup;
 
 class ProtoBufBasedVidMapper : public VidMapper {
   public:

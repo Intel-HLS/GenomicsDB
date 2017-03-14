@@ -253,6 +253,10 @@ public class GenomicsDBImporter
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -261,6 +265,32 @@ public class GenomicsDBImporter
                      String arrayname,
                      Long sizePerColumnPartition,
                      Long segmentSize) throws IOException {
+      this(sampleToVCMap, mergedHeader, chromosomeInterval,
+              workspace, arrayname, sizePerColumnPartition, segmentSize,
+              false);
+  }
+
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
+   * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                     Set<VCFHeaderLine> mergedHeader,
+                     ChromosomeInterval chromosomeInterval,
+                     String workspace,
+                     String arrayname,
+                     Long sizePerColumnPartition,
+                     Long segmentSize,
+                     boolean useSamplesInOrderProvided) throws IOException {
 
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
@@ -276,7 +306,7 @@ public class GenomicsDBImporter
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
-    mCallsetMap = generateSortedCallSetMap(sampleToVCMap);
+    mCallsetMap = generateSortedCallSetMap(sampleToVCMap, useSamplesInOrderProvided);
     File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     initialize(importJSONFile.getAbsolutePath(), 0, 0, 0);
@@ -310,6 +340,37 @@ public class GenomicsDBImporter
     }
   }
 
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            String workspace,
+                            String arrayname,
+                            Long sizePerColumnPartition,
+                            Long segmentSize,
+                            String outputVidMapJSONFilePath) throws IOException {
+
+    this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
+      sizePerColumnPartition, segmentSize);
+
+    String vidMapJSONString = printToString(mVidMap);
+
+    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONString);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
   private ImportConfiguration createImportConfiguration(
     String workspace,
     String arrayname,
@@ -338,6 +399,7 @@ public class GenomicsDBImporter
         .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
         .setCompressTiledbArray(true)
         .setSegmentSize(segmentSize)
+        .setTreatDeletionsAsIntervals(true)
         .build();
 
     return importConfiguration;
@@ -377,7 +439,8 @@ public class GenomicsDBImporter
    * @return  Mappings of callset (sample) names to TileDB rows
    */
   private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-    Map<String, FeatureReader<VariantContext>> variants) {
+    Map<String, FeatureReader<VariantContext>> variants,
+    boolean useSamplesInOrderProvided) {
 
     List<String> sampleNames = new ArrayList<>(variants.size());
     for (Map.Entry<String, FeatureReader<VariantContext>> v : variants.entrySet()) {
@@ -385,7 +448,8 @@ public class GenomicsDBImporter
       sampleNames.add(h.getSampleNamesInOrder().get(0));
     }
 
-    Collections.sort(sampleNames);
+    if(!useSamplesInOrderProvided)
+        Collections.sort(sampleNames);
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
       GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
@@ -451,11 +515,14 @@ public class GenomicsDBImporter
 
       if (headerLine instanceof VCFFormatHeaderLine) {
         VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
-
+        boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
+        String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
+        String genomicsDBLength = isGT ? "P" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
+            ? "VAR" : getLength(formatHeaderLine);
         infoBuilder
           .setName(formatHeaderLine.getID())
-          .setType(formatHeaderLine.getType().toString())
-          .setLength(getLength(formatHeaderLine));
+          .setType(genomicsDBType)
+          .setLength(genomicsDBLength);
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
@@ -476,10 +543,16 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
+        if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
+          System.err.println("WARNING: Flag type fields are not handled by GenomicsDB currently - skipping field "
+                  +infoHeaderLine.getID());
+          continue;
+        }
+
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
-          .setLength(getLength(infoHeaderLine));
+          .setLength(infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
