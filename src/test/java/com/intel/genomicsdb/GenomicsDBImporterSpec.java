@@ -27,6 +27,7 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
 import org.apache.commons.io.FileUtils;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.Test;
 
@@ -123,6 +124,8 @@ public class GenomicsDBImporterSpec {
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
     Assert.assertEquals(new File(TEMP_JSON_FILE).isFile(), true);
+
+    FileUtils.deleteQuietly(new File(TEMP_JSON_FILE));
   }
 
   @AfterTest

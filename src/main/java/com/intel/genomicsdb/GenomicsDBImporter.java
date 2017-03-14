@@ -30,6 +30,7 @@ import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.*;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -983,6 +984,8 @@ public class GenomicsDBImporter
         mIsLoaderSetupDone = false;
       }
     }
+
+    FileUtils.deleteQuietly(new File(mTempLoaderJSONFileName));
     return mDone;
   }
 
