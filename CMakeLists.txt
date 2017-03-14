@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 #Build parameters
+set(GENOMICSDB_RELEASE_VERSION "0.4.0" CACHE STRING "GenomicsDB release version")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
 set(BUILD_DISTRIBUTABLE_LIBRARY False CACHE BOOL "Build the TileDB/GenomicsDB library with minimal runtime dependencies")
@@ -10,13 +11,15 @@ set(BUILD_JAVA False CACHE BOOL "Build Java/JNI interface for combined VCF recor
 set(HTSLIB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/htslib" CACHE PATH "Path to htslib source directory")
 set(HTSLIB_INSTALL_DIR "" CACHE PATH "Path to htslib install directory")
 set(OPENSSL_PREFIX_DIR "" CACHE PATH "OpenSSL installation prefix")
+set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
+set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
 set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
-set(HTSJDK_JAR_PATH "" CACHE PATH "Path to pre-built htsjdk JAR")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
+set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
 
 #Platform check modules
 include(CheckIncludeFileCXX)
@@ -86,10 +89,16 @@ include_directories(${TILEDB_INCLUDE_DIR})
 #librt
 find_library(LIBRT_LIBRARY rt)
 
+#Protobuf library
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIRS})
+
 #JNI
 if(BUILD_JAVA)
+    find_package(Java 1.8 REQUIRED)
     find_package(JNI REQUIRED)
     include_directories(${JNI_INCLUDE_DIRS})
+    include_directories(src/main/jni/include)
 endif()
 
 #libcsv
@@ -140,15 +149,44 @@ if(HTSLIB_SOURCE_DIR)
 endif()
 
 include_directories (
-    include/genomicsdb
-    include/loader
-    include/query_operations
-    include/utils
-    include/vcf
+    src/main/cpp/include/genomicsdb
+    src/main/cpp/include/loader
+    src/main/cpp/include/query_operations
+    src/main/cpp/include/utils
+    src/main/cpp/include/vcf
 )
-if(BUILD_JAVA)
-    include_directories(src/java/JNI/include)
-endif()
+
+function(build_GenomicsDB_executable target)
+    add_executable(${target} src/${target}.cc)
+    if(TILEDB_SOURCE_DIR)
+        add_dependencies(${target} TileDB)
+    endif()
+    if(HTSLIB_SOURCE_DIR)
+        add_dependencies(${target} htslib)
+    endif()
+    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY})
+    if(LIBCSV_FOUND)
+        target_link_libraries(${target} ${LIBCSV_LIBRARY})
+    endif()
+    target_link_libraries(${target} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${PROTOBUF_LIBRARIES})
+    if(LIBRT_LIBRARY)
+        target_link_libraries(${target} ${LIBRT_LIBRARY})
+    endif()
+    install(TARGETS ${target} RUNTIME DESTINATION bin)
+endfunction()
 
 add_subdirectory(src)
+add_subdirectory(tools)
 add_subdirectory(example)
+
+if(BUILD_JAVA)
+    #Maven build - depends on dynamic library
+    add_custom_command(
+        OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
+        COMMAND mvn package -DskipTests -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb> -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
+        DEPENDS tiledbgenomicsdb
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    add_custom_target(mvn_package ALL
+        DEPENDS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar)
+    install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
+endif()
