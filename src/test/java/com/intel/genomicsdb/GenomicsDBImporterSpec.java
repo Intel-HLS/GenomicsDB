@@ -23,13 +23,13 @@
 package com.intel.genomicsdb;
 
 import htsjdk.tribble.*;
-import htsjdk.tribble.readers.PositionalBufferedStream;
-import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
+import org.apache.commons.io.FileUtils;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.Test;
-import scala.tools.nsc.typechecker.PatternMatching;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.util.*;
 
 public class GenomicsDBImporterSpec {
 
-  private static final String TILEDB_WORKSPACE = "./__workspace";
+  private static final String WORKSPACE = "./__workspace";
   private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
   private static final String TEST_CHROMOSOME_NAME = "1";
 
@@ -72,7 +72,7 @@ public class GenomicsDBImporterSpec {
       variantReaders,
       mergedHeader,
       chromosomeInterval,
-      TILEDB_WORKSPACE,
+      WORKSPACE,
       TILEDB_ARRAYNAME,
       0L,
       10000000L);
@@ -115,7 +115,7 @@ public class GenomicsDBImporterSpec {
       variantReaders,
       mergedHeader,
       chromosomeInterval,
-      TILEDB_WORKSPACE,
+      WORKSPACE,
       TILEDB_ARRAYNAME,
       0L,
       10000000L,
@@ -124,5 +124,12 @@ public class GenomicsDBImporterSpec {
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
     Assert.assertEquals(new File(TEMP_JSON_FILE).isFile(), true);
+
+    FileUtils.deleteQuietly(new File(TEMP_JSON_FILE));
+  }
+
+  @AfterTest
+  public void deleteWorkspace() throws IOException {
+    FileUtils.deleteDirectory(new File(WORKSPACE));
   }
 }
