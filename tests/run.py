@@ -111,8 +111,10 @@ def cleanup_and_exit(tmpdir, exit_code):
 def main():
     #lcov gcda directory prefix
     gcda_prefix_dir = '../';
-    if(len(sys.argv) >= 2):
-        gcda_prefix_dir = sys.argv[1];
+    if(len(sys.argv) < 3):
+        sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
+    gcda_prefix_dir = sys.argv[1];
+    exe_path = sys.argv[2]+os.path.sep+'bin';
     #Switch to tests directory
     parent_dir=os.path.dirname(os.path.realpath(__file__))
     os.chdir(parent_dir)
