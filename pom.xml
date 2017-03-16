@@ -8,7 +8,7 @@
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
     <!-- Build version passed from parent Makefile -->
-    <version>0.4.0</version>
+    <version>${genomicsdb.version}</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java API and Apache Spark bindings for GenomicsDB</description>
