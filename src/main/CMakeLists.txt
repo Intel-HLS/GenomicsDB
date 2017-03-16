@@ -1,5 +1,4 @@
 set(GenomicsDB_library_sources 
-    cpp/src/query_operations/genomicsdb_export_config.pb.cc
     cpp/src/query_operations/variant_operations.cc
     cpp/src/query_operations/broad_combined_gvcf.cc
     cpp/src/genomicsdb/variant_cell.cc
@@ -13,10 +12,7 @@ set(GenomicsDB_library_sources
     cpp/src/loader/tiledb_loader_text_file.cc
     cpp/src/loader/load_operators.cc
     cpp/src/loader/genomicsdb_importer.cc
-    cpp/src/loader/genomicsdb_vid_mapping.pb.cc
     cpp/src/loader/tiledb_loader_file_base.cc
-    cpp/src/loader/genomicsdb_callsets_mapping.pb.cc
-    cpp/src/loader/genomicsdb_import_config.pb.cc
     cpp/src/loader/tiledb_loader.cc
     cpp/src/utils/command_line.cc
     cpp/src/utils/libtiledb_variant.cc
@@ -33,6 +29,27 @@ set(GenomicsDB_library_sources
     cpp/src/vcf/vcf2binary.cc
     )
 
+set(PROTOBUF_DISTRIBUTED_CXX_SRCS
+    cpp/src/loader/genomicsdb_vid_mapping.pb.cc
+    cpp/src/query_operations/genomicsdb_export_config.pb.cc
+    cpp/src/loader/genomicsdb_callsets_mapping.pb.cc
+    cpp/src/loader/genomicsdb_import_config.pb.cc
+    )
+
+if(PROTOBUF_REGENERATE)
+    #Must be set here - see https://cmake.org/cmake/help/v3.3/command/set_source_files_properties.html
+    set_source_files_properties(${PROTOBUF_GENERATED_CXX_SRCS} ${PROTOBUF_GENERATED_CXX_HDRS} PROPERTIES GENERATED True)
+    set(GenomicsDB_library_sources
+        ${GenomicsDB_library_sources}
+        ${PROTOBUF_GENERATED_CXX_SRCS}
+        )
+else()
+    set(GenomicsDB_library_sources
+        ${GenomicsDB_library_sources}
+        ${PROTOBUF_DISTRIBUTED_CXX_SRCS}
+        )
+endif()
+
 if(BUILD_JAVA)
     set(GenomicsDB_library_sources ${GenomicsDB_library_sources}
         jni/src/genomicsdb_GenomicsDBImporter.cc
@@ -43,6 +60,9 @@ endif()
 
 #Compile sources with PIC
 add_library(GenomicsDB_library_object_files OBJECT ${GenomicsDB_library_sources})
+if(PROTOBUF_REGENERATE)
+    add_dependencies(GenomicsDB_library_object_files PROTOBUF_GENERATED_CXX_TARGET)
+endif()
 set_property(TARGET GenomicsDB_library_object_files PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 #Create the shared and static libraries

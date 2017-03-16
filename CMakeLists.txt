@@ -13,6 +13,7 @@ set(HTSLIB_INSTALL_DIR "" CACHE PATH "Path to htslib install directory")
 set(OPENSSL_PREFIX_DIR "" CACHE PATH "OpenSSL installation prefix")
 set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
+set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
 set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
@@ -90,7 +91,7 @@ include_directories(${TILEDB_INCLUDE_DIR})
 find_library(LIBRT_LIBRARY rt)
 
 #Protobuf library
-find_package(Protobuf REQUIRED)
+find_package(ProtobufWrapper REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
 #JNI
@@ -146,6 +147,13 @@ endif()
 if(HTSLIB_SOURCE_DIR)
     add_custom_target(clean-htslib ${CMAKE_MAKE_PROGRAM} clean -C ${HTSLIB_SOURCE_DIR})
     add_dependencies(clean-all clean-htslib)
+endif()
+
+if(PROTOBUF_REGENERATE)
+    add_subdirectory(src/resources)
+    include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
+else()
+    include_directories(src/main/cpp/include/protobuf)
 endif()
 
 include_directories (
