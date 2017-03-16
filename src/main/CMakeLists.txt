@@ -30,10 +30,10 @@ set(GenomicsDB_library_sources
     )
 
 set(PROTOBUF_DISTRIBUTED_CXX_SRCS
-    cpp/src/loader/genomicsdb_vid_mapping.pb.cc
-    cpp/src/query_operations/genomicsdb_export_config.pb.cc
-    cpp/src/loader/genomicsdb_callsets_mapping.pb.cc
-    cpp/src/loader/genomicsdb_import_config.pb.cc
+    protobuf-generated/cpp/src/genomicsdb_import_config.pb.cc
+    protobuf-generated/cpp/src/genomicsdb_export_config.pb.cc
+    protobuf-generated/cpp/src/genomicsdb_callsets_mapping.pb.cc
+    protobuf-generated/cpp/src/genomicsdb_vid_mapping.pb.cc
     )
 
 if(PROTOBUF_REGENERATE)

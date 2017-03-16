@@ -153,7 +153,7 @@ if(PROTOBUF_REGENERATE)
     add_subdirectory(src/resources)
     include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
 else()
-    include_directories(src/main/cpp/include/protobuf)
+    include_directories(src/main/protobuf-generated/cpp/include)
 endif()
 
 include_directories (
@@ -188,10 +188,15 @@ add_subdirectory(tools)
 add_subdirectory(example)
 
 if(BUILD_JAVA)
+    if(PROTOBUF_REGENERATE)
+      set(MAVEN_PROTOBUF_REGENERATE_ARGS "-Dprotoc.filepath=${PROTOBUF_PROTOC_EXECUTABLE}" "-Dprotobuf.regenerate=true")
+    else()
+      set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
+    endif()
     #Maven build - depends on dynamic library
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
-        COMMAND mvn package -DskipTests -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb> -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
+        COMMAND mvn package -DskipTests -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb> -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR} ${MAVEN_PROTOBUF_REGENERATE_ARGS}
         DEPENDS tiledbgenomicsdb
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_custom_target(mvn_package ALL
