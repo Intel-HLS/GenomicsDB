@@ -207,4 +207,4 @@ endif()
 enable_testing()
 add_test(NAME all_java_tests
          COMMAND mvn  test -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
-				 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
