@@ -203,3 +203,8 @@ if(BUILD_JAVA)
         DEPENDS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar)
     install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
 endif()
+
+enable_testing()
+add_test(NAME all_java_tests
+         COMMAND mvn  test -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
+				 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
