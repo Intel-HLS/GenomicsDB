@@ -8,7 +8,7 @@
     <groupId>com.intel</groupId>
     <artifactId>genomicsdb</artifactId>
     <!-- Build version passed from parent Makefile -->
-    <version>0.4.0</version>
+    <version>${genomicsdb.version}</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java API and Apache Spark bindings for GenomicsDB</description>
@@ -53,6 +53,10 @@
         <log4j.version>1.2.17</log4j.version>
         <protobuf.version>3.0.2</protobuf.version>
         <testng.version>6.10</testng.version>
+        <genomicsdb_lib_directory>bin</genomicsdb_lib_directory>
+        <genomicsdb_build_directory>${project.basedir}/target</genomicsdb_build_directory>
+        <protobuf.input.directory>${project.basedir}/src/resources</protobuf.input.directory>
+        <protobuf.output.directory>${genomicsdb_build_directory}/protobuf</protobuf.output.directory>
     </properties>
 
     <dependencies>
@@ -97,9 +101,10 @@
     </dependencies>
 
     <build>
+        <directory>${genomicsdb_build_directory}</directory>
         <resources>
             <resource>
-                <directory>bin</directory>
+                <directory>${genomicsdb_lib_directory}</directory>
                 <includes>
                     <include>**/libtiledbgenomicsdb.so</include>
                     <include>**/libtiledbgenomicsdb.dylib</include>
@@ -142,25 +147,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <!-- Add src/main/scala to source path of Eclipse -->
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/main/scala</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>3.2.0</version>
@@ -186,7 +172,6 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-
                 </configuration>
                 <executions>
                     <execution>
@@ -233,10 +218,10 @@
                     <show>private</show>
                     <nohelp>true</nohelp>
                     <sourceFileExcludes>
-                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBVidMapProto.java</sourceFileExclude>
-                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java</sourceFileExclude>
-                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
-                        <sourceFileExclude>${basedir}/src/main/java/com/intel/genomicsdb/GenomicsDBExportConfiguration.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/protobuf-generated/java/com/intel/genomicsdb/GenomicsDBVidMapProto.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/protobuf-generated/java/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/protobuf-generated/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java</sourceFileExclude>
+                        <sourceFileExclude>${basedir}/src/main/protobuf-generated/java/com/intel/genomicsdb/GenomicsDBExportConfiguration.java</sourceFileExclude>
                     </sourceFileExcludes>
                 </configuration>
                 <executions>
@@ -275,4 +260,104 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+      <profile>
+        <id>default_profile</id>
+        <activation>
+          <property>
+            <name>!protobuf.regenerate</name>
+          </property>
+        </activation>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>build-helper-maven-plugin</artifactId>
+              <executions>
+                <!-- Add src/main/scala to source path of Eclipse -->
+                <execution>
+                  <id>add-source</id>
+                  <phase>generate-sources</phase>
+                  <goals>
+                    <goal>add-source</goal>
+                  </goals>
+                  <configuration>
+                    <sources>
+                      <source>src/main/protobuf-generated/java</source>
+                      <source>src/main/scala</source>
+                    </sources>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+      <profile>
+        <id>protobuf_regenerate_profile</id>
+        <activation>
+          <property>
+            <name>protobuf.regenerate</name>
+            <value>true</value>
+          </property>
+        </activation>
+        <build>
+          <plugins>
+            <!--Protobuf generation - adapted from http://vlkan.com/blog/post/2015/11/27/maven-protobuf/-->
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-antrun-plugin</artifactId>
+              <version>1.8</version>
+              <executions>
+                <execution>
+                  <id>exec-protoc</id>
+                  <phase>generate-sources</phase>
+                  <configuration>
+                    <target>
+                      <mkdir dir="${protobuf.output.directory}" />
+                      <path id="protobuf.input.filepaths.path">
+                        <fileset dir="${protobuf.input.directory}">
+                          <include name="**/*.proto"/>
+                        </fileset>
+                      </path>
+                      <pathconvert pathsep=" " property="protobuf.input.filepaths" refid="protobuf.input.filepaths.path"/>
+                      <exec executable="${protoc.filepath}" failonerror="true">
+                        <arg value="-I"/>
+                        <arg value="${protobuf.input.directory}"/>
+                        <arg value="--java_out"/>
+                        <arg value="${protobuf.output.directory}"/>
+                        <arg line="${protobuf.input.filepaths}"/>
+                      </exec>
+                    </target>
+                  </configuration>
+                  <goals>
+                    <goal>run</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>build-helper-maven-plugin</artifactId>
+              <executions>
+                <!--Add src/main/scala to source path of Eclipse -->
+                <execution>
+                  <id>add-source</id>
+                  <phase>generate-sources</phase>
+                  <goals>
+                    <goal>add-source</goal>
+                  </goals>
+                  <configuration>
+                    <sources>
+                      <source>${protobuf.output.directory}</source>
+                      <source>src/main/scala</source>
+                    </sources>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+    </profiles>
 </project>

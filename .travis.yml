@@ -3,11 +3,11 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 CLASSPATH=$TRAVIS_BUILD_DIR/bin/genomicsdb-0.4.0-jar-with-dependencies.jar:$TRAVIS_BUILD_DIR/tests:.
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-0.4.0-jar-with-dependencies.jar:$GENOMICSDB_INSTALL_DIR/tests:.
 
 install:
     #Install dependencies
-    - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync
+    - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
     - sudo add-apt-repository -y ppa:openjdk-r/ppa
     - sudo apt-get update -q
@@ -29,18 +29,24 @@ install:
     - cd $TRAVIS_BUILD_DIR
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
+    - mkdir -p $GENOMICSDB_BUILD_DIR
 
 before_script:
-    - lcov --directory . --zerocounters
+    - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
 
 script:
-    - make BUILD=debug-coverage OPENMP=1 BUILD_JAVA=1 LIBCSV_DIR=dependencies/libcsv JNI_FLAGS="-I$JAVA_HOME/include/ -I$JAVA_HOME/include/linux/" -j 4
+    - cd $GENOMICSDB_BUILD_DIR
+    - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv
+    - make -j 4 && make install
+    - cd $GENOMICSDB_INSTALL_DIR
+    - ln -s $TRAVIS_BUILD_DIR/tests
     - javac -version && which javac
-    - javac -d tests example/java/TestGenomicsDB.java
-    - javac -d tests example/java/TestBufferStreamGenomicsDBImporter.java
-    - javac -d tests example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
-    - java -version && which java && python tests/run.py
+    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestGenomicsDB.java
+    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestBufferStreamGenomicsDBImporter.java
+    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
+    - java -version && which java
+    - python tests/run.py $GENOMICSDB_BUILD_DIR $GENOMICSDB_INSTALL_DIR
 
 after_success:
-    - lcov --list tests/coverage.info # debug before upload
+    - cd $GENOMICSDB_INSTALL_DIR && lcov --list tests/coverage.info # debug before upload
     #- coveralls-lcov --repo-token ${COVERALLS_TOKEN} tests/coverage.info # uploads to coveralls

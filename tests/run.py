@@ -109,12 +109,17 @@ def cleanup_and_exit(tmpdir, exit_code):
     sys.exit(exit_code);
 
 def main():
+    #lcov gcda directory prefix
+    gcda_prefix_dir = '../';
+    if(len(sys.argv) < 3):
+        sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
+    gcda_prefix_dir = sys.argv[1];
+    exe_path = sys.argv[2]+os.path.sep+'bin';
     #Switch to tests directory
     parent_dir=os.path.dirname(os.path.realpath(__file__))
     os.chdir(parent_dir)
     #Zero line coverage
-    subprocess.call('lcov --directory ../ --zerocounters', shell=True);
-    exe_path = '../bin/'
+    subprocess.call('lcov --directory '+gcda_prefix_dir+' --zerocounters', shell=True);
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
     #Buffer size
@@ -394,7 +399,7 @@ def main():
                             print_diff(golden_stdout, stdout_string);
                             cleanup_and_exit(tmpdir, -1);
     coverage_file='coverage.info'
-    subprocess.call('lcov --directory ../ --capture --output-file '+coverage_file, shell=True);
+    subprocess.call('lcov --directory '+gcda_prefix_dir+' --capture --output-file '+coverage_file, shell=True);
     #Remove protocol buffer generated files from the coverage information
     subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o "+coverage_file, shell=True);
     cleanup_and_exit(tmpdir, 0); 
