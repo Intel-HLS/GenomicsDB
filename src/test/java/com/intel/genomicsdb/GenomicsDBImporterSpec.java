@@ -83,9 +83,7 @@ public class GenomicsDBImporterSpec {
 
   @Test(testName = "genomicsdb importer outputs merged headers as a JSON file")
   public void testVidMapJSONOutput() throws IOException {
-
-    System.exit(0);
-
+    
     File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
     File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
     File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
@@ -102,7 +100,8 @@ public class GenomicsDBImporterSpec {
     variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
     variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
-    final String TEMP_JSON_FILE = "./generated_vidmap.json";
+    final String TEMP_VID_JSON_FILE = "./generated_vidmap.json";
+    final String TEMP_CALLSET_JSON_FILE = "./generated_callsetmap.json";
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
@@ -119,13 +118,16 @@ public class GenomicsDBImporterSpec {
       TILEDB_ARRAYNAME,
       0L,
       10000000L,
-      TEMP_JSON_FILE);
+      TEMP_VID_JSON_FILE,
+      TEMP_CALLSET_JSON_FILE);
 
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
-    Assert.assertEquals(new File(TEMP_JSON_FILE).isFile(), true);
+    Assert.assertEquals(new File(TEMP_VID_JSON_FILE).isFile(), true);
+    Assert.assertEquals(new File(TEMP_CALLSET_JSON_FILE).isFile(), true);
 
-    FileUtils.deleteQuietly(new File(TEMP_JSON_FILE));
+//    FileUtils.deleteQuietly(new File(TEMP_VID_JSON_FILE));
+//    FileUtils.deleteQuietly(new File(TEMP_CALLSET_JSON_FILE));
   }
 
   @AfterTest

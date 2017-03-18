@@ -271,6 +271,7 @@ public class GenomicsDBImporter
               false);
   }
 
+
   /**
    * Constructor to create required data structures from a list
    * of GVCF files and a chromosome interval. This constructor
@@ -368,13 +369,21 @@ public class GenomicsDBImporter
     }
   }
 
+
   /**
    * Constructor to create required data structures from a list
    * of GVCF files and a chromosome interval. This constructor
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace
+   * @param arrayname
+   * @param sizePerColumnPartition
+   * @param segmentSize
+   * @param outputVidMapJSONFilePath
+   * @throws IOException
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                             Set<VCFHeaderLine> mergedHeader,
@@ -383,19 +392,34 @@ public class GenomicsDBImporter
                             String arrayname,
                             Long sizePerColumnPartition,
                             Long segmentSize,
-                            String outputVidMapJSONFilePath) throws IOException {
+                            String outputVidMapJSONFilePath,
+                            String outputCallsetMapJSONFilePath) throws IOException {
 
     this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
       sizePerColumnPartition, segmentSize);
 
-    String vidMapJSONString = printToString(mVidMap);
+    if (!outputVidMapJSONFilePath.isEmpty()) {
+      String vidMapJSONString = printToString(mVidMap);
+      File vidMapJSONFile = new File(outputVidMapJSONFilePath);
 
-    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+      try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+        out.println(vidMapJSONString);
+        out.close();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
 
-    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONString);
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
+    if (!outputCallsetMapJSONFilePath.isEmpty()) {
+      String callsetMapJSONString = printToString(mCallsetMap);
+      File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
+
+      try( PrintWriter out = new PrintWriter(callsetMapJSONFile)  ){
+        out.println(callsetMapJSONString);
+        out.close();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
     }
   }
 
