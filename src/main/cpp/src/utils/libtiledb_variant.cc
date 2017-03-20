@@ -39,11 +39,12 @@ VariantStorageManager *Factory::getStorageManager(std::string &workspace) {
   return sm;
 }
 
-VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string &workspace, const std::string& array_name) {
+VariantQueryProcessor *Factory::getVariantQueryProcessor(std::string &workspace, const std::string& array_name,
+    const VidMapper& vid_mapper) {
   if( reset_qp || workspace.compare(this->workspace) != 0 ) {
       // Create query processor
       // The first input is the path to its workspace (the path must exist).
-      qp = new VariantQueryProcessor(getStorageManager(workspace), array_name);
+      qp = new VariantQueryProcessor(getStorageManager(workspace), array_name, vid_mapper);
       this->workspace = workspace;
       reset_qp = false;
   }
@@ -72,7 +73,7 @@ extern "C" void db_query_column(std::string workspace, std::string array_name,
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
-    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name, vid_mapper);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
     {
@@ -90,7 +91,7 @@ extern "C" void db_query_column_range(std::string workspace, std::string array_n
     // Init Storage Manager object in the Factory class as 
     // both ArrayDescriptor and Query Processor use it 
     Factory f;
-    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name);
+    VariantQueryProcessor *qp = f.getVariantQueryProcessor(workspace, array_name, vid_mapper);
     //Do book-keeping, if not already done
     if(!query_config.is_bookkeeping_done())
         qp->do_query_bookkeeping(qp->get_array_schema(), query_config, vid_mapper, true);

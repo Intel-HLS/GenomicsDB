@@ -308,7 +308,7 @@ typedef VariantFieldData<std::string> VariantFieldString;
 /*
  * Sub-class that holds vector data of basic types - int,float etc
  */
-template<class DataType>
+template<class DataType, class PrintType=DataType>
 class VariantFieldPrimitiveVectorData : public VariantFieldBase
 {
   public:
@@ -370,11 +370,11 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       {
         if(first_elem)
         {
-          fptr << val;
+          fptr << static_cast<PrintType>(val);
           first_elem = false;
         }
         else
-          fptr << "," << val;
+          fptr << "," << static_cast<PrintType>(val);
       }
       fptr << " ]";
     }
@@ -388,11 +388,11 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       {
         if(first_elem)
         {
-          fptr << val;
+          fptr << static_cast<PrintType>(val);
           first_elem = false;
         }
         else
-          fptr << "," << val;
+          fptr << "," << static_cast<PrintType>(val);
       }
     }
     virtual void print_Cotton_JSON(std::ostream& fptr) const
@@ -433,11 +433,11 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0); }
     virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual size_t length() const { return m_data.size(); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, PrintType>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
     {
       VariantFieldBase::copy_from(base_src);
-      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType>*>(base_src);
+      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType, PrintType>*>(base_src);
       assert(src);
       m_length_descriptor = src->m_length_descriptor;
       m_data.resize(src->m_data.size());

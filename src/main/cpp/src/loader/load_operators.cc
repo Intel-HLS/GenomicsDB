@@ -315,7 +315,7 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_vid_mapper = id_mapper;
   //initialize query processor
   m_vid_mapper->build_tiledb_array_schema(m_schema, "", false, RowRange(0, id_mapper->get_num_callsets()-1), false);
-  m_query_processor = new VariantQueryProcessor(*m_schema);
+  m_query_processor = new VariantQueryProcessor(*m_schema, *id_mapper);
   //Initialize query config
   std::vector<std::string> query_attributes(m_schema->attribute_num());
   for(auto i=0ull;i<m_schema->attribute_num();++i)

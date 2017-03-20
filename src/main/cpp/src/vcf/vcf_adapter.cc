@@ -153,13 +153,21 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
     {
       //Allowed configurations - both the JSON and the header specify that:
       //The field is fixed length and agree on the length OR
-      //The field is variable length
+      //The field is variable length OR
+      //field type is BCF_HT_FLAG and VCF header says length is 0 (VCF spec), vid JSON says that length is 1
       if(!((field_info_ptr->m_length_descriptor == BCF_VL_FIXED
               && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
               && field_info_ptr->m_num_elements == static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
             ||
             (field_info_ptr->m_length_descriptor != BCF_VL_FIXED
              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) != BCF_VL_FIXED
+            )
+            ||
+            (field_ht_type == BCF_HT_FLAG
+             && field_info_ptr->m_length_descriptor == BCF_VL_FIXED
+             && field_info_ptr->m_num_elements == 1
+             && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
+             && static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)) == 0
             )
           )
         )

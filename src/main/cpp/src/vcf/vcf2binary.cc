@@ -574,8 +574,10 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   VERIFY_OR_THROW(field_idx >= 0 && bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx));
   //FIXME: special length descriptors
   auto length_descriptor = is_GT_field ? BCF_VL_P : bcf_hdr_id2length(hdr, field_type_idx, field_idx);
-  auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
   auto bcf_ht_type = is_GT_field ? BCF_HT_INT : bcf_hdr_id2type(hdr, field_type_idx, field_idx);
+  auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
+  //Flag field lengths are set to 0 in the header :(
+  field_length = (bcf_ht_type == BCF_HT_FLAG && field_length == 0) ? 1 : field_length;
   //The weirdness of VCF - string fields are marked as fixed length fields of size 1 (*facepalm*)
   auto is_vcf_str_type = ((bcf_ht_type == BCF_HT_CHAR && length_descriptor != BCF_VL_FIXED) 
       || bcf_ht_type == BCF_HT_STR) && !is_GT_field;
@@ -587,7 +589,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   if(static_cast<uint64_t>(max_num_values)*sizeof(FieldType) >  vcf_partition.m_vcf_get_buffer_size)
     vcf_partition.m_vcf_get_buffer_size = static_cast<uint64_t>(max_num_values)*sizeof(FieldType);
   auto buffer_full = false;
-  if(num_values < 0) //Curr line does not have this field
+  if(num_values <= 0) //Curr line does not have this field, or flag is not set
   {
     //variable length field, print #elements = 0
     if(length_descriptor != BCF_VL_FIXED)
@@ -640,7 +642,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     auto print_sep = true;
     for(auto k=0;k<num_values;++k)
     {
-      auto val = ptr[k];
+      auto val = (bcf_ht_type == BCF_HT_FLAG) ? static_cast<char>(1) : ptr[k];
       //For variable length fields, terminate loop if vector_end seen
       if(is_bcf_vector_end_value<FieldType>(val) && length_descriptor != BCF_VL_FIXED)
       {
