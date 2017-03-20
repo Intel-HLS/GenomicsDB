@@ -32,6 +32,7 @@ import htsjdk.tribble.CloseableTribbleIterator;
 import java.lang.Long;
 import com.intel.genomicsdb.GenomicsDBFeatureReader;
 import com.intel.genomicsdb.GenomicsDBImporter;
+import gnu.getopt.Getopt;
 
 public final class TestGenomicsDB
 {

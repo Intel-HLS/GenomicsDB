@@ -44,15 +44,37 @@ std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_in
 std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to_type_index =
   std::unordered_map<std::string, std::type_index>({
       {"int", std::type_index(typeid(int))},
+      {"Int", std::type_index(typeid(int))},
+      {"integer", std::type_index(typeid(int))},
+      {"Integer", std::type_index(typeid(int))},
       {"float", std::type_index(typeid(float))},
-      {"char", std::type_index(typeid(char))}
+      {"Float", std::type_index(typeid(float))}, 
+      {"bool", std::type_index(typeid(char))},
+      {"Bool", std::type_index(typeid(char))},
+      {"boolean", std::type_index(typeid(char))},
+      {"Boolean", std::type_index(typeid(char))},
+      {"flag", std::type_index(typeid(char))},
+      {"Flag", std::type_index(typeid(char))},
+      {"char", std::type_index(typeid(char))},
+      {"Char", std::type_index(typeid(char))}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type =
   std::unordered_map<std::string, int>({
       {"int", BCF_HT_INT},
+      {"Int", BCF_HT_INT},
+      {"integer", BCF_HT_INT},
+      {"Integer", BCF_HT_INT},
       {"float", BCF_HT_REAL},
-      {"char", BCF_HT_STR}
+      {"Float", BCF_HT_REAL},
+      {"bool", BCF_HT_FLAG},
+      {"Bool", BCF_HT_FLAG},
+      {"boolean", BCF_HT_FLAG},
+      {"Boolean", BCF_HT_FLAG},
+      {"flag", BCF_HT_FLAG},
+      {"Flag", BCF_HT_FLAG},
+      {"char", BCF_HT_STR},
+      {"Char", BCF_HT_STR}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =

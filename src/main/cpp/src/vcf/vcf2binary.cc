@@ -577,7 +577,8 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
   auto bcf_ht_type = is_GT_field ? BCF_HT_INT : bcf_hdr_id2type(hdr, field_type_idx, field_idx);
   //The weirdness of VCF - string fields are marked as fixed length fields of size 1 (*facepalm*)
-  auto is_vcf_str_type = (bcf_ht_type == BCF_HT_CHAR || bcf_ht_type == BCF_HT_STR) && !is_GT_field;
+  auto is_vcf_str_type = ((bcf_ht_type == BCF_HT_CHAR && length_descriptor != BCF_VL_FIXED) 
+      || bcf_ht_type == BCF_HT_STR) && !is_GT_field;
   length_descriptor =  is_vcf_str_type ? BCF_VL_VAR : length_descriptor;
   int max_num_values = vcf_partition.m_vcf_get_buffer_size/sizeof(FieldType);
   auto num_values = (field_type_idx == BCF_HL_INFO) ?
@@ -802,6 +803,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
           break;
         case BCF_HT_STR:
         case BCF_HT_CHAR:
+        case BCF_HT_FLAG:
           buffer_full = buffer_full || convert_field_to_tiledb<char>(buffer, vcf_partition, buffer_offset, buffer_offset_limit, local_callset_idx,
               field_name, field_type_idx);
           if(buffer_full) return true;
