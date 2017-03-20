@@ -927,8 +927,13 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
   auto top_column = -1ll;
   auto hit_invalid_cell = false;
   auto num_operators_overflow_in_this_round = 0u;
-  //while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column))
-  while(!m_column_major_pq.empty() && !hit_invalid_cell && num_operators_overflow_in_this_round == 0u)
+  //The more complex condition check is needed to handle the case where a single VCF has multiple samples/callsets
+  //since all samples within a single VCF must be processed together
+  //The clause (m_column_major_pq.top())->m_column == top_column) ensures that all samples from the same VCF are processed
+  //completely the moment one of them causes hit_invalid_cell to be hit. This way either all samples within a VCF are
+  //requested in the next round or none are
+  while(!m_column_major_pq.empty() && (!hit_invalid_cell || (m_column_major_pq.top())->m_column == top_column)
+      && num_operators_overflow_in_this_round == 0u)
   {
     auto* top_ptr = m_column_major_pq.top();
     auto row_idx = top_ptr->m_row_idx;
