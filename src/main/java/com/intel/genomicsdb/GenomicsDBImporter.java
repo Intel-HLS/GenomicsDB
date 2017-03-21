@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb;
 
-import com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -63,9 +62,9 @@ public class GenomicsDBImporter
 
   static long mDefaultBufferCapacity = 20480; //20KB
   private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
-  private final String DEFAULT_ARRAYNAME = "genomicsdb_array";
-  private final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
-  private final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
+  private static final String DEFAULT_ARRAYNAME = "genomicsdb_array";
+  private static final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
+  private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 
 
   /*
@@ -140,6 +139,7 @@ public class GenomicsDBImporter
    * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
    * @param callsetMappingJSON JSON formatted string containing globally consistent callset
    *                           name to row index mapping
+   * @param usingVidMappingProtoBuf  use protocol buffer based header
    * @return maximum number of buffer stream identifiers that can be returned in
    *         mExhaustedBufferStreamIdentifiers later
    *         (this depends on the number of partitions and the number of buffer streams)
@@ -253,11 +253,13 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader  Headers from all input GVCF files merged into one
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace TileDB workspace
    * @param arrayname TileDB array name
    * @param sizePerColumnPartition sizePerColumnPartition in bytes
    * @param segmentSize segmentSize in bytes
+   * @throws  IOException  FeatureReader.query can throw an IOException if invalid file is used
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -278,12 +280,15 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader  Headers from all input GVCF files merged into one
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace TileDB workspace
    * @param arrayname TileDB array name
    * @param sizePerColumnPartition sizePerColumnPartition in bytes
    * @param segmentSize segmentSize in bytes
-   * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
+   * @param useSamplesInOrderProvided if true, don't sort samples, instead
+   *                                  use in the the order provided
+   * @throws  IOException  FeatureReader.query can throw an IOException if invalid file is used
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -353,7 +358,8 @@ public class GenomicsDBImporter
         callset.getValue();
         FeatureReader<VariantContext> featureReader =
           sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName());
-        CloseableIterator iterator = featureReader.query(mChromosomeInterval.mChromosomeName,
+        CloseableIterator<VariantContext> iterator =
+          featureReader.query(mChromosomeInterval.mChromosomeName,
             (int) mChromosomeInterval.mBegin,
             (int) mChromosomeInterval.mEnd);
       String streamName = sampleIDToTileDBIDMap.getStreamName();
@@ -376,14 +382,17 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
-   * @param mergedHeader
+   * @param mergedHeader  Headers from all input GVCF files merged into one
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
-   * @param workspace
-   * @param arrayname
-   * @param sizePerColumnPartition
-   * @param segmentSize
-   * @param outputVidMapJSONFilePath
-   * @throws IOException
+   * @param workspace  TileDB workspace
+   * @param arrayname  TileDB array name
+   * @param sizePerColumnPartition  Buffer size allocated for each column partition
+   * @param segmentSize  Total buffer size allocated for all partitions to write to TileDB
+   * @param outputVidMapJSONFilePath  Optional parameter to store vid map JSON file to the
+   *                                  given path
+   * @param outputCallsetMapJSONFilePath  Optional parameter to store callset
+   *                                      map JSON file to the given path
+   * @throws IOException  File IO exception
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                             Set<VCFHeaderLine> mergedHeader,
@@ -423,7 +432,7 @@ public class GenomicsDBImporter
     }
   }
 
-  private ImportConfiguration createImportConfiguration(
+  private GenomicsDBImportConfiguration.ImportConfiguration createImportConfiguration(
     String workspace,
     String arrayname,
     Long sizePerColumnPartition,
@@ -443,30 +452,29 @@ public class GenomicsDBImporter
 
     GenomicsDBImportConfiguration.ImportConfiguration.Builder importBuilder =
       GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
-    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      importBuilder
-        .setRowBasedPartitioning(false)
-        .setSizePerColumnPartition(sizePerColumnPartition)
-        .addColumnPartitions(p0)
-        .setProduceTiledbArray(true)
-        .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
-        .setCompressTiledbArray(true)
-        .setSegmentSize(segmentSize)
-        .setTreatDeletionsAsIntervals(true)
-        .setFailIfUpdating(failIfUpdating)
-        .build();
 
-    return importConfiguration;
+    return importBuilder
+      .setRowBasedPartitioning(false)
+      .setSizePerColumnPartition(sizePerColumnPartition)
+      .addColumnPartitions(p0)
+      .setProduceTiledbArray(true)
+      .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
+      .setCompressTiledbArray(true)
+      .setSegmentSize(segmentSize)
+      .setTreatDeletionsAsIntervals(true)
+      .setFailIfUpdating(failIfUpdating)
+      .build();
   }
 
   /**
    * Create a JSON file from the import configuration
    *
    * @param importConfiguration  The configuration object
+   * @param filename  File to dump the loader JSON to
    * @return  New file (with the specified name) written to local storage
    */
-  public static File printLoaderJSONFile(
-    ImportConfiguration importConfiguration,
+  private static File printLoaderJSONFile(
+    GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
     String filename) {
     String loaderJSONString = printToString(importConfiguration);
 
@@ -490,6 +498,8 @@ public class GenomicsDBImporter
    * Assume one sample per input GVCF file
    *
    * @param  variants  Variant Readers objects of the input GVCF files
+   * @param useSamplesInOrderProvided  If True, do not sort the samples,
+   *                                   use the order they appear in
    * @return  Mappings of callset (sample) names to TileDB rows
    */
   private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(

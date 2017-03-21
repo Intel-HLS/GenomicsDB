@@ -228,7 +228,7 @@
             <exclude>GenomicsDBImportConfiguration.java</exclude>
             <exclude>GenomicsDBExportConfiguration.java</exclude>
           </sourceFileExcludes>
-          <sourcepath>${basedir}/src/main/java/com/intel/genomicsdb</sourcepath>
+          <sourcepath>${basedir}/src/main/protobuf-generated/com/intel/genomicsdb</sourcepath>
         </configuration>
         <executions>
           <execution>
