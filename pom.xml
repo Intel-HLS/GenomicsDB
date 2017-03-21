@@ -223,11 +223,12 @@
           <show>private</show>
           <nohelp>true</nohelp>
           <sourceFileExcludes>
-            <sourceFileExclude>GenomicsDBVidMapProto.java</sourceFileExclude>
-            <sourceFileExclude>GenomicsDBCallsetsMapProto.java</sourceFileExclude>
-            <sourceFileExclude>GenomicsDBImportConfiguration.java</sourceFileExclude>
-            <sourceFileExclude>GenomicsDBExportConfiguration.java</sourceFileExclude>
+            <exclude>GenomicsDBVidMapProto.java</exclude>
+            <exclude>GenomicsDBCallsetsMapProto.java</exclude>
+            <exclude>GenomicsDBImportConfiguration.java</exclude>
+            <exclude>GenomicsDBExportConfiguration.java</exclude>
           </sourceFileExcludes>
+          <sourcepath>${basedir}/src/main/java/com/intel/genomicsdb</sourcepath>
         </configuration>
         <executions>
           <execution>
