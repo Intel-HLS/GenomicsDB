@@ -41,6 +41,7 @@ query_json_template_string="""
 }"""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
+query_attributes_with_DS = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS"];
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -51,6 +52,8 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
         test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
+    if("query_attributes" in query_param_dict):
+        test_dict["query_attributes"] = query_param_dict["query_attributes"];
     return test_dict;
 
 
@@ -318,7 +321,30 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_combined",
                         } },
                     ]
-            }
+            },
+            { "name" : "test_flag_field", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'vid_mapping_file': 'inputs/vid_DS.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_DS, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        } },
+                    ]
+            },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'vid_mapping_file': 'inputs/vid_DS.json',
+                'chromosome_interval': '1:1-100000000',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_DS, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        } },
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -349,6 +375,7 @@ def main():
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
+            print('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list);
             pid = subprocess.Popen('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:

@@ -327,15 +327,6 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
     //Field type - int, char etc
     field_type = vid_map_protobuf->infofields(pb_field_idx).type();
-    if (field_type.compare("Integer") == 0) {
-      field_type.assign("int");
-    } else if (field_type.compare("String") == 0) {
-      field_type.assign("char");
-    } else if (field_type.compare("Float") == 0) {
-      field_type.assign("float");
-    } else if (field_type.compare("Flag") == 0) {
-      field_type.assign("flag");
-    }
 
     {
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);

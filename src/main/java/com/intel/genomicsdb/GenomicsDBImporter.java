@@ -544,12 +544,6 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
-        if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
-          System.err.println("WARNING: Flag type fields are not handled by GenomicsDB currently - skipping field "
-                  +infoHeaderLine.getID());
-          continue;
-        }
-
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
@@ -645,6 +639,8 @@ public class GenomicsDBImporter
     }
 
     String length = "";
+    int count = 0;
+    boolean isFlagType = false;
     switch (type) {
       case UNBOUNDED:
         length = "VAR";
@@ -659,12 +655,23 @@ public class GenomicsDBImporter
         length = "G";
         break;
       case INTEGER:
-        if (headerLine instanceof VCFFormatHeaderLine) {
-          length = String.valueOf(((VCFFormatHeaderLine)headerLine).getCount());
-        } else {
-          length = String.valueOf(((VCFInfoHeaderLine)headerLine).getCount());
+        {
+          if (headerLine instanceof VCFFormatHeaderLine) {
+            VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine)headerLine;
+            count = formatHeaderLine.getCount();
+            isFlagType = formatHeaderLine.getType().equals(VCFHeaderLineType.Flag);
+          } else {
+            VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine)headerLine;
+            count = infoHeaderLine.getCount();
+            isFlagType = infoHeaderLine.getType().equals(VCFHeaderLineType.Flag);
+          }
+          //Weird Flag fields - Number=0 in the VCF header :(
+          if(count == 0 && isFlagType)
+            length = "1";
+          else
+            length = String.valueOf(count);
+          break;
         }
-        break;
     }
     return length;
   }

@@ -55,6 +55,8 @@ std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to
       {"Boolean", std::type_index(typeid(char))},
       {"flag", std::type_index(typeid(char))},
       {"Flag", std::type_index(typeid(char))},
+      {"string", std::type_index(typeid(char))},
+      {"String", std::type_index(typeid(char))},
       {"char", std::type_index(typeid(char))},
       {"Char", std::type_index(typeid(char))}
       });
@@ -73,6 +75,8 @@ std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type
       {"Boolean", BCF_HT_FLAG},
       {"flag", BCF_HT_FLAG},
       {"Flag", BCF_HT_FLAG},
+      {"string", BCF_HT_STR},
+      {"String", BCF_HT_STR},
       {"char", BCF_HT_STR},
       {"Char", BCF_HT_STR}
       });

@@ -6,7 +6,13 @@ package com.intel.genomicsdb;
 public final class GenomicsDBVidMapProto {
   private GenomicsDBVidMapProto() {}
   public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistryLite registry) {
+  }
+
+  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   public interface InfoFieldOrBuilder extends
       // @@protoc_insertion_point(interface_extends:InfoField)
@@ -43,7 +49,7 @@ public final class GenomicsDBVidMapProto {
     /**
      * <code>repeated string vcf_field_class = 3;</code>
      */
-    com.google.protobuf.ProtocolStringList
+    java.util.List<java.lang.String>
         getVcfFieldClassList();
     /**
      * <code>repeated string vcf_field_class = 3;</code>
@@ -60,15 +66,15 @@ public final class GenomicsDBVidMapProto {
         getVcfFieldClassBytes(int index);
 
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     boolean hasLength();
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     java.lang.String getLength();
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     com.google.protobuf.ByteString
         getLengthBytes();
@@ -77,18 +83,18 @@ public final class GenomicsDBVidMapProto {
    * Protobuf type {@code InfoField}
    */
   public  static final class InfoField extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:InfoField)
       InfoFieldOrBuilder {
     // Use InfoField.newBuilder() to construct.
-    private InfoField(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private InfoField(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private InfoField() {
       name_ = "";
       type_ = "";
       vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      length_ = "";
+      length_ = "1";
     }
 
     @java.lang.Override
@@ -98,7 +104,8 @@ public final class GenomicsDBVidMapProto {
     }
     private InfoField(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -148,11 +155,10 @@ public final class GenomicsDBVidMapProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
           vcfFieldClass_ = vcfFieldClass_.getUnmodifiableView();
@@ -166,7 +172,7 @@ public final class GenomicsDBVidMapProto {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_InfoField_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_InfoField_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -290,13 +296,13 @@ public final class GenomicsDBVidMapProto {
     public static final int LENGTH_FIELD_NUMBER = 4;
     private volatile java.lang.Object length_;
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     public boolean hasLength() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     public java.lang.String getLength() {
       java.lang.Object ref = length_;
@@ -313,7 +319,7 @@ public final class GenomicsDBVidMapProto {
       }
     }
     /**
-     * <code>optional string length = 4;</code>
+     * <code>optional string length = 4 [default = "1"];</code>
      */
     public com.google.protobuf.ByteString
         getLengthBytes() {
@@ -350,16 +356,16 @@ public final class GenomicsDBVidMapProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, name_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, name_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 2, type_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, type_);
       }
       for (int i = 0; i < vcfFieldClass_.size(); i++) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 3, vcfFieldClass_.getRaw(i));
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClass_.getRaw(i));
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 4, length_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, length_);
       }
       unknownFields.writeTo(output);
     }
@@ -370,10 +376,10 @@ public final class GenomicsDBVidMapProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, name_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, name_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, type_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, type_);
       }
       {
         int dataSize = 0;
@@ -384,7 +390,7 @@ public final class GenomicsDBVidMapProto {
         size += 1 * getVcfFieldClassList().size();
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(4, length_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, length_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -392,6 +398,66 @@ public final class GenomicsDBVidMapProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField other = (com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField) obj;
+
+      boolean result = true;
+      result = result && (hasName() == other.hasName());
+      if (hasName()) {
+        result = result && getName()
+            .equals(other.getName());
+      }
+      result = result && (hasType() == other.hasType());
+      if (hasType()) {
+        result = result && getType()
+            .equals(other.getType());
+      }
+      result = result && getVcfFieldClassList()
+          .equals(other.getVcfFieldClassList());
+      result = result && (hasLength() == other.hasLength());
+      if (hasLength()) {
+        result = result && getLength()
+            .equals(other.getLength());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasName()) {
+        hash = (37 * hash) + NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getName().hashCode();
+      }
+      if (hasType()) {
+        hash = (37 * hash) + TYPE_FIELD_NUMBER;
+        hash = (53 * hash) + getType().hashCode();
+      }
+      if (getVcfFieldClassCount() > 0) {
+        hash = (37 * hash) + VCF_FIELD_CLASS_FIELD_NUMBER;
+        hash = (53 * hash) + getVcfFieldClassList().hashCode();
+      }
+      if (hasLength()) {
+        hash = (37 * hash) + LENGTH_FIELD_NUMBER;
+        hash = (53 * hash) + getLength().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -415,34 +481,40 @@ public final class GenomicsDBVidMapProto {
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -459,7 +531,7 @@ public final class GenomicsDBVidMapProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -467,7 +539,7 @@ public final class GenomicsDBVidMapProto {
      * Protobuf type {@code InfoField}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:InfoField)
         com.intel.genomicsdb.GenomicsDBVidMapProto.InfoFieldOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -475,7 +547,7 @@ public final class GenomicsDBVidMapProto {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_InfoField_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_InfoField_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -488,12 +560,13 @@ public final class GenomicsDBVidMapProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -504,7 +577,7 @@ public final class GenomicsDBVidMapProto {
         bitField0_ = (bitField0_ & ~0x00000002);
         vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        length_ = "";
+        length_ = "1";
         bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
@@ -552,6 +625,32 @@ public final class GenomicsDBVidMapProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField)other);
@@ -612,7 +711,7 @@ public final class GenomicsDBVidMapProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -867,15 +966,15 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
 
-      private java.lang.Object length_ = "";
+      private java.lang.Object length_ = "1";
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public boolean hasLength() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public java.lang.String getLength() {
         java.lang.Object ref = length_;
@@ -892,7 +991,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public com.google.protobuf.ByteString
           getLengthBytes() {
@@ -908,7 +1007,7 @@ public final class GenomicsDBVidMapProto {
         }
       }
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public Builder setLength(
           java.lang.String value) {
@@ -921,7 +1020,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public Builder clearLength() {
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -930,7 +1029,7 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
       /**
-       * <code>optional string length = 4;</code>
+       * <code>optional string length = 4 [default = "1"];</code>
        */
       public Builder setLengthBytes(
           com.google.protobuf.ByteString value) {
@@ -942,6 +1041,16 @@ public final class GenomicsDBVidMapProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:InfoField)
     }
@@ -962,16 +1071,7 @@ public final class GenomicsDBVidMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new InfoField(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -1030,11 +1130,11 @@ public final class GenomicsDBVidMapProto {
    * Protobuf type {@code Chromosome}
    */
   public  static final class Chromosome extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:Chromosome)
       ChromosomeOrBuilder {
     // Use Chromosome.newBuilder() to construct.
-    private Chromosome(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private Chromosome(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private Chromosome() {
@@ -1050,7 +1150,8 @@ public final class GenomicsDBVidMapProto {
     }
     private Chromosome(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -1089,11 +1190,10 @@ public final class GenomicsDBVidMapProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -1104,7 +1204,7 @@ public final class GenomicsDBVidMapProto {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Chromosome_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Chromosome_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -1209,7 +1309,7 @@ public final class GenomicsDBVidMapProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, name_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, name_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeInt64(2, length_);
@@ -1226,7 +1326,7 @@ public final class GenomicsDBVidMapProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, name_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, name_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -1242,6 +1342,62 @@ public final class GenomicsDBVidMapProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome other = (com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome) obj;
+
+      boolean result = true;
+      result = result && (hasName() == other.hasName());
+      if (hasName()) {
+        result = result && getName()
+            .equals(other.getName());
+      }
+      result = result && (hasLength() == other.hasLength());
+      if (hasLength()) {
+        result = result && (getLength()
+            == other.getLength());
+      }
+      result = result && (hasTiledbColumnOffset() == other.hasTiledbColumnOffset());
+      if (hasTiledbColumnOffset()) {
+        result = result && (getTiledbColumnOffset()
+            == other.getTiledbColumnOffset());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasName()) {
+        hash = (37 * hash) + NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getName().hashCode();
+      }
+      if (hasLength()) {
+        hash = (37 * hash) + LENGTH_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getLength());
+      }
+      if (hasTiledbColumnOffset()) {
+        hash = (37 * hash) + TILEDB_COLUMN_OFFSET_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getTiledbColumnOffset());
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1265,34 +1421,40 @@ public final class GenomicsDBVidMapProto {
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -1309,7 +1471,7 @@ public final class GenomicsDBVidMapProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1317,7 +1479,7 @@ public final class GenomicsDBVidMapProto {
      * Protobuf type {@code Chromosome}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:Chromosome)
         com.intel.genomicsdb.GenomicsDBVidMapProto.ChromosomeOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -1325,7 +1487,7 @@ public final class GenomicsDBVidMapProto {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Chromosome_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_Chromosome_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1338,12 +1500,13 @@ public final class GenomicsDBVidMapProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -1395,6 +1558,32 @@ public final class GenomicsDBVidMapProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome)other);
@@ -1444,7 +1633,7 @@ public final class GenomicsDBVidMapProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -1593,6 +1782,16 @@ public final class GenomicsDBVidMapProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:Chromosome)
     }
@@ -1613,16 +1812,7 @@ public final class GenomicsDBVidMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new Chromosome(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -1697,11 +1887,11 @@ public final class GenomicsDBVidMapProto {
    * Protobuf type {@code VidMappingPB}
    */
   public  static final class VidMappingPB extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:VidMappingPB)
       VidMappingPBOrBuilder {
     // Use VidMappingPB.newBuilder() to construct.
-    private VidMappingPB(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private VidMappingPB(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private VidMappingPB() {
@@ -1716,7 +1906,8 @@ public final class GenomicsDBVidMapProto {
     }
     private VidMappingPB(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -1741,7 +1932,8 @@ public final class GenomicsDBVidMapProto {
                 infofields_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField>();
                 mutable_bitField0_ |= 0x00000001;
               }
-              infofields_.add(input.readMessage(com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField.parser(), extensionRegistry));
+              infofields_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField.PARSER, extensionRegistry));
               break;
             }
             case 18: {
@@ -1749,17 +1941,17 @@ public final class GenomicsDBVidMapProto {
                 chromosomes_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome>();
                 mutable_bitField0_ |= 0x00000002;
               }
-              chromosomes_.add(input.readMessage(com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome.parser(), extensionRegistry));
+              chromosomes_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome.PARSER, extensionRegistry));
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
           infofields_ = java.util.Collections.unmodifiableList(infofields_);
@@ -1776,7 +1968,7 @@ public final class GenomicsDBVidMapProto {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -1905,6 +2097,45 @@ public final class GenomicsDBVidMapProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB other = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) obj;
+
+      boolean result = true;
+      result = result && getInfofieldsList()
+          .equals(other.getInfofieldsList());
+      result = result && getChromosomesList()
+          .equals(other.getChromosomesList());
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (getInfofieldsCount() > 0) {
+        hash = (37 * hash) + INFOFIELDS_FIELD_NUMBER;
+        hash = (53 * hash) + getInfofieldsList().hashCode();
+      }
+      if (getChromosomesCount() > 0) {
+        hash = (37 * hash) + CHROMOSOMES_FIELD_NUMBER;
+        hash = (53 * hash) + getChromosomesList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1928,34 +2159,40 @@ public final class GenomicsDBVidMapProto {
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -1972,7 +2209,7 @@ public final class GenomicsDBVidMapProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1980,7 +2217,7 @@ public final class GenomicsDBVidMapProto {
      * Protobuf type {@code VidMappingPB}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:VidMappingPB)
         com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPBOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -1988,7 +2225,7 @@ public final class GenomicsDBVidMapProto {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_VidMappingPB_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -2001,12 +2238,13 @@ public final class GenomicsDBVidMapProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
           getInfofieldsFieldBuilder();
           getChromosomesFieldBuilder();
         }
@@ -2070,6 +2308,32 @@ public final class GenomicsDBVidMapProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB)other);
@@ -2100,7 +2364,7 @@ public final class GenomicsDBVidMapProto {
               infofields_ = other.infofields_;
               bitField0_ = (bitField0_ & ~0x00000001);
               infofieldsBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getInfofieldsFieldBuilder() : null;
             } else {
               infofieldsBuilder_.addAllMessages(other.infofields_);
@@ -2126,7 +2390,7 @@ public final class GenomicsDBVidMapProto {
               chromosomes_ = other.chromosomes_;
               bitField0_ = (bitField0_ & ~0x00000002);
               chromosomesBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getChromosomesFieldBuilder() : null;
             } else {
               chromosomesBuilder_.addAllMessages(other.chromosomes_);
@@ -2161,7 +2425,7 @@ public final class GenomicsDBVidMapProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.VidMappingPB) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -2180,7 +2444,7 @@ public final class GenomicsDBVidMapProto {
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoFieldOrBuilder> infofieldsBuilder_;
 
       /**
@@ -2396,11 +2660,11 @@ public final class GenomicsDBVidMapProto {
            getInfofieldsBuilderList() {
         return getInfofieldsFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoFieldOrBuilder> 
           getInfofieldsFieldBuilder() {
         if (infofieldsBuilder_ == null) {
-          infofieldsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          infofieldsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoField.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.InfoFieldOrBuilder>(
                   infofields_,
                   ((bitField0_ & 0x00000001) == 0x00000001),
@@ -2420,7 +2684,7 @@ public final class GenomicsDBVidMapProto {
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome, com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.ChromosomeOrBuilder> chromosomesBuilder_;
 
       /**
@@ -2636,11 +2900,11 @@ public final class GenomicsDBVidMapProto {
            getChromosomesBuilderList() {
         return getChromosomesFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome, com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.ChromosomeOrBuilder> 
           getChromosomesFieldBuilder() {
         if (chromosomesBuilder_ == null) {
-          chromosomesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          chromosomesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome, com.intel.genomicsdb.GenomicsDBVidMapProto.Chromosome.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.ChromosomeOrBuilder>(
                   chromosomes_,
                   ((bitField0_ & 0x00000002) == 0x00000002),
@@ -2650,6 +2914,16 @@ public final class GenomicsDBVidMapProto {
         }
         return chromosomesBuilder_;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:VidMappingPB)
     }
@@ -2670,16 +2944,7 @@ public final class GenomicsDBVidMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new VidMappingPB(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -2698,38 +2963,38 @@ public final class GenomicsDBVidMapProto {
 
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_InfoField_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_InfoField_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Chromosome_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Chromosome_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_VidMappingPB_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_VidMappingPB_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\034genomicsdb_vid_mapping.proto\"P\n\tInfoFi" +
+      "\n\034genomicsdb_vid_mapping.proto\"S\n\tInfoFi" +
       "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f" +
-      "ield_class\030\003 \003(\t\022\016\n\006length\030\004 \001(\t\"H\n\nChro" +
-      "mosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024" +
-      "tiledb_column_offset\030\003 \002(\003\"P\n\014VidMapping" +
-      "PB\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n\013ch" +
-      "romosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.inte" +
-      "l.genomicsdbB\025GenomicsDBVidMapProto"
+      "ield_class\030\003 \003(\t\022\021\n\006length\030\004 \001(\t:\0011\"H\n\nC" +
+      "hromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022" +
+      "\034\n\024tiledb_column_offset\030\003 \002(\003\"P\n\014VidMapp" +
+      "ingPB\022\036\n\ninfofields\030\001 \003(\0132\n.InfoField\022 \n" +
+      "\013chromosomes\030\002 \003(\0132\013.ChromosomeB-\n\024com.i" +
+      "ntel.genomicsdbB\025GenomicsDBVidMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -2746,19 +3011,19 @@ public final class GenomicsDBVidMapProto {
     internal_static_InfoField_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_InfoField_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_InfoField_descriptor,
         new java.lang.String[] { "Name", "Type", "VcfFieldClass", "Length", });
     internal_static_Chromosome_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_Chromosome_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Chromosome_descriptor,
         new java.lang.String[] { "Name", "Length", "TiledbColumnOffset", });
     internal_static_VidMappingPB_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_VidMappingPB_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_VidMappingPB_descriptor,
         new java.lang.String[] { "Infofields", "Chromosomes", });
   }
