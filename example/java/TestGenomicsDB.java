@@ -21,8 +21,11 @@
  */
 
 import java.io.IOException;
+import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
+import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.tribble.readers.PositionalBufferedStream;
+import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -30,68 +33,256 @@ import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import java.lang.Long;
+import java.lang.Integer;
 import com.intel.genomicsdb.GenomicsDBFeatureReader;
 import com.intel.genomicsdb.GenomicsDBImporter;
 import gnu.getopt.Getopt;
+import gnu.getopt.LongOpt;
 
 public final class TestGenomicsDB
 {
-  public static void main(final String[] args) throws IOException
+  public static <SourceType, CodecType extends FeatureCodec<VariantContext, SourceType>> void runQuery(
+      CodecType codec,
+      String[] args, int optind, int numPositionalArgs,
+      final String loaderJSONFile,
+      final String workspace, final String array, final String referenceGenome, final String templateVCFHeader,
+      final String chromosome, final int chrBegin, final int chrEnd,
+      final boolean countOnly) throws IOException
   {
-    if(args.length < 2)
+    GenomicsDBFeatureReader<VariantContext, SourceType> reader = null;
+    if(numPositionalArgs == 1)
     {
-      System.err.println("Usage:\n\tFor querying: -query <loader.json> [<query.json> |"
-        +"<workspace> <array> <reference_genome> <template_VCF_header>"
-        +" [<chr> <start> <end>] ]\n"
-        +"\tFor loading: -load <loader.json> [rank lbRowIdx ubRowIdx]");
-      System.exit(-1);
-    }
-    //Do query
-    if(args[0].equals("-query"))
-    {
-      GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader = null;
-      if(args.length == 3)
-        //query with <loader.json> <query.json> - required positions may be
-        //specified in <query.json>
-        //If no positions are specified in <query.json>, the whole array will be scanned
-        reader = new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>
-          (args[1], args[2], new BCF2Codec());
-      else
-      if(args.length >= 6)
-        //query with <loader.json> <workspace> <array> <reference_genome>
-        //<template_VCF_header>
-        reader = new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>
-          (args[1], args[2], args[3], args[4], args[5], new BCF2Codec());
-      final VariantContextWriter writer =
-        new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(
-          Options.INDEX_ON_THE_FLY).build();
-      writer.writeHeader((VCFHeader)(reader.getHeader()));
-      if(args.length == 6 || args.length == 3) //chr not specified on command line
-      {
-        CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
-        while(gdbIterator.hasNext())
-          writer.add(gdbIterator.next());
-        gdbIterator.close();
-      }
-      else
-      if(args.length >= 9)
-        //chr,start,end specified on the command line - scan only the required positions
-        for(final VariantContext record : reader.query(args[6],
-          Integer.parseInt(args[7]), Integer.parseInt(args[8])))
-          writer.add(record);
+      //query with [-l <loader.json>] <query.json> - required positions may be
+      //specified in <query.json>
+      //Vid and callset mapping file may be specified in the query JSON
+      //If no positions are specified in <query.json>, the whole array will be scanned
+      String queryJSONFile = args[optind];
+      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
+        (loaderJSONFile, queryJSONFile, codec);
     }
     else
-    if(args[0].equals("-load")) //load data
     {
+      //Must specify workspace, array, reference_genome, loader JSON
+      //query with <workspace> <array> <reference_genome>
+      //<template_VCF_header>
+      assert(!loaderJSONFile.isEmpty());
+      assert(!workspace.isEmpty());
+      assert(!array.isEmpty());
+      assert(!referenceGenome.isEmpty());
+      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
+        (loaderJSONFile, workspace, array, referenceGenome, templateVCFHeader, codec);
+    }
+    final VariantContextWriter writer =
+      new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(
+          Options.INDEX_ON_THE_FLY).build();
+    if(!countOnly)
+      writer.writeHeader((VCFHeader)(reader.getHeader()));
+    if(chromosome.isEmpty()) //chr not specified on command line
+    {
+      CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
+      if(countOnly)
+      {
+        long counter = 0;
+        while(gdbIterator.hasNext())
+        {
+          ++counter;
+          gdbIterator.next();
+        }
+        System.err.println("#VC objects "+counter);
+      }
+      else
+      {
+        while(gdbIterator.hasNext())
+          writer.add(gdbIterator.next());
+      }
+      gdbIterator.close();
+    }
+    else
+    {
+      //chr,start,end specified on the command line - scan only the required positions
+      CloseableTribbleIterator<VariantContext> gdbIterator = reader.query(chromosome,
+          chrBegin, chrEnd);
+      if(countOnly)
+      {
+        long counter = 0;
+        while(gdbIterator.hasNext())
+        {
+          ++counter;
+          gdbIterator.next();
+        }
+        System.err.println("#VC objects "+counter);
+      }
+      else
+      {
+        while(gdbIterator.hasNext())
+          writer.add(gdbIterator.next());
+      }
+      gdbIterator.close();
+    }
+  }
+
+  public enum ArgsIdxEnum
+  {
+    ARGS_IDX_DO_QUERY(1000),
+    ARGS_IDX_DO_LOAD(1001),
+    ARGS_IDX_REFERENCE_GENOME(1002),
+    ARGS_IDX_TEMPLATE_VCF_HEADER(1003),
+    ARGS_IDX_LB_ROW_IDX(1004),
+    ARGS_IDX_UB_ROW_IDX(1005),
+    ARGS_IDX_CHROMOSOME(1006),
+    ARGS_IDX_BEGIN(1007),
+    ARGS_IDX_END(1008),
+    ARGS_IDX_COUNT_ONLY(1009),
+    ARGS_IDX_PASS_AS_VCF(1010);
+
+    private final int mArgsIdx;
+    ArgsIdxEnum(final int idx)
+    {
+      mArgsIdx = idx;
+    }
+
+    int idx()
+    {
+      return mArgsIdx;
+    }
+  }
+
+  public static void main(final String[] args) throws IOException
+  {
+    LongOpt[] longopts = new LongOpt[15];
+    longopts[0] = new LongOpt("query", LongOpt.NO_ARGUMENT, null, 1000);
+    longopts[1] = new LongOpt("load", LongOpt.NO_ARGUMENT, null, 1001);
+    //Specify rank (or partition idx) of this process
+    longopts[2] = new LongOpt("rank", LongOpt.REQUIRED_ARGUMENT, null, 'r');
+    longopts[5] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
+    longopts[6] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
+    longopts[3] = new LongOpt("reference_genome", LongOpt.REQUIRED_ARGUMENT, null, 1002);
+    longopts[4] = new LongOpt("template_vcf_header", LongOpt.REQUIRED_ARGUMENT, null, 1003);
+    //Specify smallest row idx from which to start loading - useful for
+    //incremental loading into existing array
+    longopts[7] = new LongOpt("lb_row_idx", LongOpt.REQUIRED_ARGUMENT, null, 1004);
+    //Specify largest row idx up to which loading should be performed - for completeness
+    longopts[8] = new LongOpt("ub_row_idx", LongOpt.REQUIRED_ARGUMENT, null, 1005);
+    longopts[9] = new LongOpt("chromosome", LongOpt.REQUIRED_ARGUMENT, null, 1006);
+    longopts[10] = new LongOpt("begin", LongOpt.REQUIRED_ARGUMENT, null, 1007);
+    longopts[11] = new LongOpt("end", LongOpt.REQUIRED_ARGUMENT, null, 1008);
+    longopts[12] = new LongOpt("loader_json_file", LongOpt.REQUIRED_ARGUMENT, null, 'l');
+    longopts[13] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, 1009);
+    longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, 1010);
+    if(args.length < 2)
+    {
+      System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
+          +"--workspace=<workspace> --array=<array> --reference_genome=<reference_genome> [--template_vcf_header=<template_VCF_header>]"
+          +" [--chromosome=<chr> --begin=<start> --end=<end>] ]\n"
+          +"\tFor loading: --load <loader.json> [--rank=rank --lb_row_idx=lbRowIdx --ub_row_idx=ubRowIdx]");
+      System.exit(-1);
+    }
+    boolean doQuery = false;
+    boolean doLoad = false;
+    String loaderJSONFile = "";
+    String queryJSONFile = "";
+    int rank = 0;
+    String workspace = "";
+    String array = "";
+    String referenceGenome = "";
+    String templateVCFHeader = "";
+    long lbRowIdx = 0;
+    long ubRowIdx = Long.MAX_VALUE-1;
+    String chromosome = "";
+    int chrBegin = 1;
+    int chrEnd = Integer.MAX_VALUE-1;
+    boolean countOnly = false;
+    boolean passAsVCF = false;
+    //Arg parsing
+    Getopt g = new Getopt("TestGenomicsDB", args, "w:A:r:l:", longopts);
+    int c = -1;
+    String optarg;
+    while ((c = g.getopt()) != -1)
+    {
+      //Enums don't work :(
+      switch(c)
+      {
+        case 1000:
+          doQuery = true;
+          break;
+        case 1001:
+          doLoad = true;
+          break;
+        case 'r':
+          rank = Integer.parseInt(g.getOptarg());
+          break;
+        case 'w':
+          workspace = g.getOptarg();
+          break;
+        case 'A':
+          array = g.getOptarg();
+          break;
+        case 1002:
+          referenceGenome = g.getOptarg();
+          break;
+        case 1003:
+          templateVCFHeader = g.getOptarg();
+          break;
+        case 1004:
+          lbRowIdx = Long.parseLong(g.getOptarg());
+          break;
+        case 1005:
+          ubRowIdx = Long.parseLong(g.getOptarg());
+          break;
+        case 1006:
+          chromosome = g.getOptarg();
+          break;
+        case 1007:
+          chrBegin = Integer.parseInt(g.getOptarg());
+          break;
+        case 1008:
+          chrEnd = Integer.parseInt(g.getOptarg());
+          break;
+        case 'l':
+          loaderJSONFile = g.getOptarg();
+          break;
+        case 1009:
+          countOnly = true;
+          break;
+        case 1010:
+          passAsVCF = true;
+          break;
+        default:
+          System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+          break;
+      }
+    }
+    //Do either query or load but not both
+    assert (!doQuery || !doLoad);
+    if(!doLoad && !doQuery)
+      doQuery = true;
+    int numPositionalArgs = args.length - g.getOptind();
+    //Do query
+    if(doQuery)
+    {
+      if(passAsVCF)
+        TestGenomicsDB.<LineIterator, VCFCodec>runQuery(
+            new VCFCodec(),
+            args, g.getOptind(), numPositionalArgs,
+            loaderJSONFile,
+            workspace, array, referenceGenome, templateVCFHeader,
+            chromosome, chrBegin, chrEnd,
+            countOnly);
+      else
+        TestGenomicsDB.<PositionalBufferedStream, BCF2Codec>runQuery(
+            new BCF2Codec(),
+            args, g.getOptind(), numPositionalArgs,
+            loaderJSONFile,
+            workspace, array, referenceGenome, templateVCFHeader,
+            chromosome, chrBegin, chrEnd,
+            countOnly);
+    }
+    else
+    {
+      if(numPositionalArgs == 1 && loaderJSONFile.isEmpty())
+        loaderJSONFile = args[g.getOptind()];
       //<loader.json>
-      GenomicsDBImporter loader = new GenomicsDBImporter(args[1]);
-      //Specify rank (or partition idx) of this process
-      int rank = (args.length >= 3) ? Integer.parseInt(args[2]) : 0;
-      //Specify smallest row idx from which to start loading - useful for
-      //incremental loading into existing array
-      long lbRowIdx = (args.length >= 4) ? Long.parseLong(args[3]) : 0;
-      //Specify largest row idx up to which loading should be performed - for completeness
-      long ubRowIdx = (args.length >= 5) ? Long.parseLong(args[4]) : Long.MAX_VALUE-1;
+      GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile);
       loader.write(rank, lbRowIdx, ubRowIdx);
     }
   }

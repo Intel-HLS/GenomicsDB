@@ -357,15 +357,15 @@ def main():
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
         if(test_name  == 'java_t0_1_2'):
-            pid = subprocess.Popen('java TestGenomicsDB -load '+loader_json_filename, shell=True,
+            pid = subprocess.Popen('java -ea TestGenomicsDB --load '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_multi_contig_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
+            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
                     +test_params_dict['stream_name_to_filename_mapping']
                     +' 1024 0 0 100 true ',
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter '+loader_json_filename
+            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter '+loader_json_filename
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
@@ -375,8 +375,7 @@ def main():
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
-            print('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list);
-            pid = subprocess.Popen('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
+            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
@@ -403,7 +402,7 @@ def main():
                         ('java_vcf', ''),
                         ]
                 for query_type,cmd_line_param in query_types_list:
-                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type == 'java_vcf'):
+                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
                         test_query_dict['query_attributes'] = vcf_query_attributes_order;
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                     with open(query_json_filename, 'wb') as fptr:
@@ -413,7 +412,7 @@ def main():
                         loader_argument = loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = '""'
-                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_argument+' '+query_json_filename,
+                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
                         loader_argument = ' -l '+loader_json_filename;

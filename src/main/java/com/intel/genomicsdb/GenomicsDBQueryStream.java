@@ -85,7 +85,21 @@ public class GenomicsDBQueryStream extends InputStream
     {
         this(loaderJSONFile, queryJSONFile, "", 0, 0);
     }
-    
+
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final boolean readAsBCF)
+    {
+        this(loaderJSONFile, queryJSONFile, "", 0, 0,
+                0, 10485760,10485760,
+                readAsBCF);
+    }
+
     /**
      * Constructor
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
@@ -100,6 +114,23 @@ public class GenomicsDBQueryStream extends InputStream
         this(loaderJSONFile, queryJSONFile, chr, start, end, 0);
     }
 
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param chr contig name
+     * @param start start position (1-based)
+     * @param end end position, inclusive (1-based)
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final String chr, final int start, final int end,
+            final boolean readAsBCF)
+    {
+        this(loaderJSONFile, queryJSONFile, chr, start, end, 0, 10485760,
+          10485760, readAsBCF);
+    }
+ 
     /**
      * Constructor
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
