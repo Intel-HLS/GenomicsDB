@@ -62,7 +62,7 @@ loader_json_template_string="""
     ],
     "callset_mapping_file" : "",
     "vid_mapping_file" : "inputs/vid.json",
-    "size_per_column_partition": 3000,
+    "size_per_column_partition": 700 ,
     "treat_deletions_as_intervals" : true,
     "vcf_header_filename": "inputs/template_vcf_header.vcf",
     "reference_genome" : "inputs/chr1_10MB.fasta.gz",
@@ -310,6 +310,15 @@ def main():
                         } }
                     ]
             },
+            { "name" : "t0_1_2_combined", 'golden_output' : 'golden_outputs/t0_1_2_combined',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_combined.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "vcf"        : "golden_outputs/t0_1_2_combined",
+                        "batched_vcf": "golden_outputs/t0_1_2_combined",
+                        } },
+                    ]
+            }
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
