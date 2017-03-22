@@ -45,7 +45,7 @@ ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
       vid_map_protobuf->infofields_size()!=0);
 
   assert (callset_map_protobuf->IsInitialized() &&
-      callset_map_protobuf->callset_map_size()!= 0);
+      callset_map_protobuf->callsets_size()!= 0);
 
   initialize(vid_map_protobuf, callset_map_protobuf, buffer_stream_info_vec);
 }
@@ -70,16 +70,16 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
   const CallsetMappingPB* callset_map_protobuf,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec) {
 
-  auto num_callsets = callset_map_protobuf->callset_map_size();
+  auto num_callsets = callset_map_protobuf->callsets_size();
   m_row_idx_to_info.resize(num_callsets);
   m_max_callset_row_idx = -1;
 
-  google::protobuf::Map<std::string, SampleIDToTileDBIDMap>::const_iterator it =
-      callset_map_protobuf->callset_map().cbegin();
+  google::protobuf::RepeatedPtrField<SampleIDToTileDBIDMap>::const_iterator it =
+      callset_map_protobuf->callsets().cbegin();
 
-  for (; it != callset_map_protobuf->callset_map().cend(); ++it) {
-    SampleIDToTileDBIDMap sample_info = it->second;
-    std::string callset_name = it->first;
+  for (; it != callset_map_protobuf->callsets().cend(); ++it) {
+    SampleIDToTileDBIDMap sample_info = *it;
+    std::string callset_name = it->sample_name();
     int64_t row_idx = sample_info.tiledb_row_index();
     int64_t idx_in_file = sample_info.idx_in_file();
     std::string stream_name = sample_info.stream_name();

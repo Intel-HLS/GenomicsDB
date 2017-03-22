@@ -26,8 +26,6 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
-#include <google/protobuf/map.h>
-#include <google/protobuf/map_field_inl.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 
@@ -243,17 +241,19 @@ class CallsetMappingPB : public ::google::protobuf::Message /* @@protoc_insertio
 
   // nested types ----------------------------------------------------
 
-
   // accessors -------------------------------------------------------
 
-  // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-  int callset_map_size() const;
-  void clear_callset_map();
-  static const int kCallsetMapFieldNumber = 1;
-  const ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >&
-      callset_map() const;
-  ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >*
-      mutable_callset_map();
+  // repeated .SampleIDToTileDBIDMap callsets = 1;
+  int callsets_size() const;
+  void clear_callsets();
+  static const int kCallsetsFieldNumber = 1;
+  const ::SampleIDToTileDBIDMap& callsets(int index) const;
+  ::SampleIDToTileDBIDMap* mutable_callsets(int index);
+  ::SampleIDToTileDBIDMap* add_callsets();
+  ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >*
+      mutable_callsets();
+  const ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >&
+      callsets() const;
 
   // @@protoc_insertion_point(class_scope:CallsetMappingPB)
  private:
@@ -261,17 +261,7 @@ class CallsetMappingPB : public ::google::protobuf::Message /* @@protoc_insertio
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
-  typedef ::google::protobuf::internal::MapEntryLite<
-      ::std::string, ::SampleIDToTileDBIDMap,
-      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-      0 >
-      CallsetMappingPB_CallsetMapEntry;
-  ::google::protobuf::internal::MapField<
-      ::std::string, ::SampleIDToTileDBIDMap,
-      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-      0 > callset_map_;
+  ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap > callsets_;
   friend void  protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto();
   friend void protobuf_ShutdownFile_genomicsdb_5fcallsets_5fmapping_2eproto();
@@ -447,22 +437,34 @@ inline void SampleIDToTileDBIDMap::set_allocated_stream_name(::std::string* stre
 
 // CallsetMappingPB
 
-// map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-inline int CallsetMappingPB::callset_map_size() const {
-  return callset_map_.size();
+// repeated .SampleIDToTileDBIDMap callsets = 1;
+inline int CallsetMappingPB::callsets_size() const {
+  return callsets_.size();
 }
-inline void CallsetMappingPB::clear_callset_map() {
-  callset_map_.Clear();
+inline void CallsetMappingPB::clear_callsets() {
+  callsets_.Clear();
 }
-inline const ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >&
-CallsetMappingPB::callset_map() const {
-  // @@protoc_insertion_point(field_map:CallsetMappingPB.callset_map)
-  return callset_map_.GetMap();
+inline const ::SampleIDToTileDBIDMap& CallsetMappingPB::callsets(int index) const {
+  // @@protoc_insertion_point(field_get:CallsetMappingPB.callsets)
+  return callsets_.Get(index);
 }
-inline ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >*
-CallsetMappingPB::mutable_callset_map() {
-  // @@protoc_insertion_point(field_mutable_map:CallsetMappingPB.callset_map)
-  return callset_map_.MutableMap();
+inline ::SampleIDToTileDBIDMap* CallsetMappingPB::mutable_callsets(int index) {
+  // @@protoc_insertion_point(field_mutable:CallsetMappingPB.callsets)
+  return callsets_.Mutable(index);
+}
+inline ::SampleIDToTileDBIDMap* CallsetMappingPB::add_callsets() {
+  // @@protoc_insertion_point(field_add:CallsetMappingPB.callsets)
+  return callsets_.Add();
+}
+inline ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >*
+CallsetMappingPB::mutable_callsets() {
+  // @@protoc_insertion_point(field_mutable_list:CallsetMappingPB.callsets)
+  return &callsets_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >&
+CallsetMappingPB::callsets() const {
+  // @@protoc_insertion_point(field_list:CallsetMappingPB.callsets)
+  return callsets_;
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS

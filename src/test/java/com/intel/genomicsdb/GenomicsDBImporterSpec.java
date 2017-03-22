@@ -22,33 +22,44 @@
 
 package com.intel.genomicsdb;
 
-import htsjdk.tribble.*;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.vcf.*;
+import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFUtils;
 import org.apache.commons.io.FileUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
-public class GenomicsDBImporterSpec {
+public final class GenomicsDBImporterSpec {
 
   private static final String WORKSPACE = "./__workspace";
   private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
   private static final String TEST_CHROMOSOME_NAME = "1";
 
-  @Test(testName = "genomicsdb importer with an interval and multiple GVCFs")
-  public void testMultiGVCFInputs() throws IOException {
-
+  @DataProvider(name="vcfFiles")
+  public Object[][] vcfFiles() {
     File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
     File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
     File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
-    Map<String, FeatureReader<VariantContext>> variantReaders = new HashMap<>();
 
+    Map<String, FeatureReader<VariantContext>> variantReaders = new HashMap<>();
     FeatureCodec<VariantContext, ?> codec = new VCFCodec();
     FeatureReader<VariantContext> reader_t6 =
       AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), codec, false);
@@ -60,14 +71,19 @@ public class GenomicsDBImporterSpec {
     variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
     variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
 
+    return new Object[][] {{ variantReaders }};
+  }
+
+  @Test(testName = "genomicsdb importer with an interval and multiple GVCFs",
+        dataProvider = "vcfFiles")
+  public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> variantReaders)
+    throws IOException {
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
-    List<VCFHeader> headers = new ArrayList<>();
-    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
-      headers.add((VCFHeader) variant.getValue().getHeader());
-    }
-    Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
+
+    Set<VCFHeaderLine> mergedHeader = createMergedHeader(variantReaders);
+
     GenomicsDBImporter importer = new GenomicsDBImporter(
       variantReaders,
       mergedHeader,
@@ -81,35 +97,30 @@ public class GenomicsDBImporterSpec {
     Assert.assertEquals(importer.isDone(), true);
   }
 
-  @Test(testName = "genomicsdb importer outputs merged headers as a JSON file")
-  public void testVidMapJSONOutput() throws IOException {
-    
-    File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
-    File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
-    File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
-    Map<String, FeatureReader<VariantContext>> variantReaders = new HashMap<>();
+  private Set<VCFHeaderLine> createMergedHeader(
+    Map<String, FeatureReader<VariantContext>> variantReaders) {
 
-    FeatureCodec<VariantContext, ?> codec = new VCFCodec();
-    FeatureReader<VariantContext> reader_t6 =
-      AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), codec, false);
-    FeatureReader<VariantContext> reader_t7 =
-      AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), codec, false);
-    FeatureReader<VariantContext> reader_t8 =
-      AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
-    variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
-    variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
-    variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+    List<VCFHeader> headers = new ArrayList<>();
+    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
+      headers.add((VCFHeader) variant.getValue().getHeader());
+    }
+
+    return VCFUtils.smartMergeHeaders(headers, true);
+  }
+
+  @Test(testName = "genomicsdb importer outputs merged headers as a JSON file",
+        dataProvider = "vcfFiles")
+  public void testVidMapJSONOutput(Map<String, FeatureReader<VariantContext>> variantReaders)
+    throws IOException {
 
     final String TEMP_VID_JSON_FILE = "./generated_vidmap.json";
     final String TEMP_CALLSET_JSON_FILE = "./generated_callsetmap.json";
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
-    List<VCFHeader> headers = new ArrayList<>();
-    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
-      headers.add((VCFHeader) variant.getValue().getHeader());
-    }
-    Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
+
+    Set<VCFHeaderLine> mergedHeader = createMergedHeader(variantReaders);
+
     GenomicsDBImporter importer = new GenomicsDBImporter(
       variantReaders,
       mergedHeader,
@@ -121,13 +132,46 @@ public class GenomicsDBImporterSpec {
       TEMP_VID_JSON_FILE,
       TEMP_CALLSET_JSON_FILE);
 
+    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A = 
+      GenomicsDBImporter.generateSortedCallSetMap(variantReaders, false);
+
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
     Assert.assertEquals(new File(TEMP_VID_JSON_FILE).isFile(), true);
     Assert.assertEquals(new File(TEMP_CALLSET_JSON_FILE).isFile(), true);
 
-//    FileUtils.deleteQuietly(new File(TEMP_VID_JSON_FILE));
-//    FileUtils.deleteQuietly(new File(TEMP_CALLSET_JSON_FILE));
+    JSONParser parser = new JSONParser();
+
+    try {
+      FileReader fileReader = new FileReader(TEMP_CALLSET_JSON_FILE);
+      JSONObject jsonObject =
+        (JSONObject) parser.parse(fileReader);
+
+      JSONArray callsetArray = (JSONArray) jsonObject.get("callsets");
+
+      int index = 0;
+      for (Object cObject : callsetArray) {
+        GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
+          (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap) cObject;
+        String sampleName = sampleIDToTileDBIDMap.getSampleName();
+        Long tiledbRowIndex_B = sampleIDToTileDBIDMap.getTiledbRowIndex();
+        String stream_name_B = sampleIDToTileDBIDMap.getStreamName();
+
+        Long tileDBRowIndex_A =
+          callsetMappingPB_A.getCallsets(index).getTiledbRowIndex();
+        String stream_name_A =
+          callsetMappingPB_A.getCallsets(index).getStreamName();
+
+        Assert.assertEquals(tileDBRowIndex_A, tiledbRowIndex_B);
+        Assert.assertEquals(stream_name_A, stream_name_B);
+        index++;
+      }
+    } catch (ParseException p) {
+      p.printStackTrace();
+    }
+
+    FileUtils.deleteQuietly(new File(TEMP_VID_JSON_FILE));
+    FileUtils.deleteQuietly(new File(TEMP_CALLSET_JSON_FILE));
   }
 
   @AfterTest

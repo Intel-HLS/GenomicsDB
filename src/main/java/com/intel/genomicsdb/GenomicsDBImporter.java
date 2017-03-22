@@ -352,17 +352,15 @@ public class GenomicsDBImporter
     jniCopyVidMap(mGenomicsDBImporterObjectHandle, mVidMap.toByteArray());
     jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, mCallsetMap.toByteArray());
 
-    for (Map.Entry<String, GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap> callset :
-      mCallsetMap.getCallsetMapMap().entrySet()) {
-      GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
-        callset.getValue();
+    for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleInfo :
+      mCallsetMap.getCallsetsList()) {
         FeatureReader<VariantContext> featureReader =
-          sampleToVCMap.get(sampleIDToTileDBIDMap.getSampleName());
+          sampleToVCMap.get(sampleInfo.getSampleName());
         CloseableIterator<VariantContext> iterator =
           featureReader.query(mChromosomeInterval.mChromosomeName,
             (int) mChromosomeInterval.mBegin,
             (int) mChromosomeInterval.mEnd);
-      String streamName = sampleIDToTileDBIDMap.getStreamName();
+      String streamName = sampleInfo.getStreamName();
       LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
         new LinkedHashMap<Integer, SampleInfo>();
       addSortedVariantContextIterator(
@@ -502,7 +500,7 @@ public class GenomicsDBImporter
    *                                   use the order they appear in
    * @return  Mappings of callset (sample) names to TileDB rows
    */
-  private GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+  static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
     Map<String, FeatureReader<VariantContext>> variants,
     boolean useSamplesInOrderProvided) {
 
@@ -533,7 +531,7 @@ public class GenomicsDBImporter
       GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
         idMapBuilder.build();
 
-      callsetMapBuilder.putCallsetMap(sampleName, sampleIDToTileDBIDMap);
+      callsetMapBuilder.addCallsets(sampleIDToTileDBIDMap);
     }
     return callsetMapBuilder.build();
   }

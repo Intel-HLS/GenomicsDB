@@ -42,5 +42,5 @@ message SampleIDToTileDBIDMap {
 }
 
 message CallsetMappingPB {
-  map<string, SampleIDToTileDBIDMap> callset_map = 1;
+  repeated SampleIDToTileDBIDMap callsets = 1;
 }
