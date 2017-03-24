@@ -345,6 +345,10 @@ def main():
                         } },
                     ]
             },
+            { "name" : "t0_1_2_as_array", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
+                "vid_mapping_file": "inputs/vid_as_array.json",
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
