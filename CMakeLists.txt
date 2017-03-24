@@ -2,8 +2,17 @@ project(GenomicsDB)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+#git tag
+execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.4.0" CACHE STRING "GenomicsDB release version")
+set(GENOMICSDB_RELEASE_VERSION "0.4.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
 set(BUILD_DISTRIBUTABLE_LIBRARY False CACHE BOOL "Build the TileDB/GenomicsDB library with minimal runtime dependencies")
@@ -74,6 +83,7 @@ endif()
 add_definitions(-D_FILE_OFFSET_BITS=64)  #large file support
 add_definitions(-DHTSDIR=1) #htslib is a mandatory requirement
 add_definitions(-DDUPLICATE_CELL_AT_END=1) #mandatory
+add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
 
 #RapidJSON
 find_package(RapidJSON REQUIRED)
