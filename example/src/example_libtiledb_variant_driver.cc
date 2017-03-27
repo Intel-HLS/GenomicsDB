@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
     /*Create storage manager*/
     VariantStorageManager sm(workspace);
     /*Create query processor*/
-    VariantQueryProcessor qp(&sm, array_name);
+    VariantQueryProcessor qp(&sm, array_name, vid_mapper);
 
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;

@@ -1243,6 +1243,15 @@ public final class GenomicsDBImportConfiguration {
      * <code>optional int64 num_cells_per_tile = 16 [default = 1000];</code>
      */
     long getNumCellsPerTile();
+
+    /**
+     * <code>optional bool fail_if_updating = 17 [default = false];</code>
+     */
+    boolean hasFailIfUpdating();
+    /**
+     * <code>optional bool fail_if_updating = 17 [default = false];</code>
+     */
+    boolean getFailIfUpdating();
   }
   /**
    * Protobuf type {@code ImportConfiguration}
@@ -1272,6 +1281,7 @@ public final class GenomicsDBImportConfiguration {
       segmentSize_ = 10485760L;
       compressTiledbArray_ = true;
       numCellsPerTile_ = 1000L;
+      failIfUpdating_ = false;
     }
 
     @java.lang.Override
@@ -1386,6 +1396,11 @@ public final class GenomicsDBImportConfiguration {
             case 128: {
               bitField0_ |= 0x00004000;
               numCellsPerTile_ = input.readInt64();
+              break;
+            }
+            case 136: {
+              bitField0_ |= 0x00008000;
+              failIfUpdating_ = input.readBool();
               break;
             }
           }
@@ -1730,6 +1745,21 @@ public final class GenomicsDBImportConfiguration {
       return numCellsPerTile_;
     }
 
+    public static final int FAIL_IF_UPDATING_FIELD_NUMBER = 17;
+    private boolean failIfUpdating_;
+    /**
+     * <code>optional bool fail_if_updating = 17 [default = false];</code>
+     */
+    public boolean hasFailIfUpdating() {
+      return ((bitField0_ & 0x00008000) == 0x00008000);
+    }
+    /**
+     * <code>optional bool fail_if_updating = 17 [default = false];</code>
+     */
+    public boolean getFailIfUpdating() {
+      return failIfUpdating_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -1800,6 +1830,9 @@ public final class GenomicsDBImportConfiguration {
       if (((bitField0_ & 0x00004000) == 0x00004000)) {
         output.writeInt64(16, numCellsPerTile_);
       }
+      if (((bitField0_ & 0x00008000) == 0x00008000)) {
+        output.writeBool(17, failIfUpdating_);
+      }
       unknownFields.writeTo(output);
     }
 
@@ -1869,6 +1902,10 @@ public final class GenomicsDBImportConfiguration {
       if (((bitField0_ & 0x00004000) == 0x00004000)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(16, numCellsPerTile_);
+      }
+      if (((bitField0_ & 0x00008000) == 0x00008000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(17, failIfUpdating_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1964,6 +2001,11 @@ public final class GenomicsDBImportConfiguration {
         result = result && (getNumCellsPerTile()
             == other.getNumCellsPerTile());
       }
+      result = result && (hasFailIfUpdating() == other.hasFailIfUpdating());
+      if (hasFailIfUpdating()) {
+        result = result && (getFailIfUpdating()
+            == other.getFailIfUpdating());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -2050,6 +2092,11 @@ public final class GenomicsDBImportConfiguration {
         hash = (37 * hash) + NUM_CELLS_PER_TILE_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
             getNumCellsPerTile());
+      }
+      if (hasFailIfUpdating()) {
+        hash = (37 * hash) + FAIL_IF_UPDATING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getFailIfUpdating());
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -2206,6 +2253,8 @@ public final class GenomicsDBImportConfiguration {
         bitField0_ = (bitField0_ & ~0x00004000);
         numCellsPerTile_ = 1000L;
         bitField0_ = (bitField0_ & ~0x00008000);
+        failIfUpdating_ = false;
+        bitField0_ = (bitField0_ & ~0x00010000);
         return this;
       }
 
@@ -2299,6 +2348,10 @@ public final class GenomicsDBImportConfiguration {
           to_bitField0_ |= 0x00004000;
         }
         result.numCellsPerTile_ = numCellsPerTile_;
+        if (((from_bitField0_ & 0x00010000) == 0x00010000)) {
+          to_bitField0_ |= 0x00008000;
+        }
+        result.failIfUpdating_ = failIfUpdating_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2415,6 +2468,9 @@ public final class GenomicsDBImportConfiguration {
         }
         if (other.hasNumCellsPerTile()) {
           setNumCellsPerTile(other.getNumCellsPerTile());
+        }
+        if (other.hasFailIfUpdating()) {
+          setFailIfUpdating(other.getFailIfUpdating());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -3259,6 +3315,38 @@ public final class GenomicsDBImportConfiguration {
         onChanged();
         return this;
       }
+
+      private boolean failIfUpdating_ ;
+      /**
+       * <code>optional bool fail_if_updating = 17 [default = false];</code>
+       */
+      public boolean hasFailIfUpdating() {
+        return ((bitField0_ & 0x00010000) == 0x00010000);
+      }
+      /**
+       * <code>optional bool fail_if_updating = 17 [default = false];</code>
+       */
+      public boolean getFailIfUpdating() {
+        return failIfUpdating_;
+      }
+      /**
+       * <code>optional bool fail_if_updating = 17 [default = false];</code>
+       */
+      public Builder setFailIfUpdating(boolean value) {
+        bitField0_ |= 0x00010000;
+        failIfUpdating_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool fail_if_updating = 17 [default = false];</code>
+       */
+      public Builder clearFailIfUpdating() {
+        bitField0_ = (bitField0_ & ~0x00010000);
+        failIfUpdating_ = false;
+        onChanged();
+        return this;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
@@ -3330,7 +3418,7 @@ public final class GenomicsDBImportConfiguration {
       "\n\036genomicsdb_import_config.proto\"{\n\tPart" +
       "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022" +
       "\r\n\005array\030\003 \001(\t\022\033\n\023vcf_output_filename\030\004 " +
-      "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\347\004" +
+      "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\210\005" +
       "\n\023ImportConfiguration\022(\n\031size_per_column" +
       "_partition\030\007 \002(\003:\00510240\022%\n\026row_based_par" +
       "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin" +
@@ -3346,8 +3434,9 @@ public final class GenomicsDBImportConfiguration {
       "\037\n\021discard_vcf_index\030\r \001(\010:\004true\022\036\n\014segm" +
       "ent_size\030\016 \001(\003:\01010485760\022#\n\025compress_til" +
       "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t" +
-      "ile\030\020 \001(\003:\0041000B5\n\024com.intel.genomicsdbB",
-      "\035GenomicsDBImportConfiguration"
+      "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001(",
+      "\010:\005falseB5\n\024com.intel.genomicsdbB\035Genomi" +
+      "csDBImportConfiguration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3372,7 +3461,7 @@ public final class GenomicsDBImportConfiguration {
     internal_static_ImportConfiguration_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ImportConfiguration_descriptor,
-        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", });
+        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

@@ -29,25 +29,15 @@ set(GenomicsDB_library_sources
     cpp/src/vcf/vcf2binary.cc
     )
 
-set(PROTOBUF_DISTRIBUTED_CXX_SRCS
-    protobuf-generated/cpp/src/genomicsdb_import_config.pb.cc
-    protobuf-generated/cpp/src/genomicsdb_export_config.pb.cc
-    protobuf-generated/cpp/src/genomicsdb_callsets_mapping.pb.cc
-    protobuf-generated/cpp/src/genomicsdb_vid_mapping.pb.cc
+include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
+set(GenomicsDB_library_sources
+    ${GenomicsDB_library_sources}
+    ${PROTOBUF_GENERATED_CXX_SRCS}
     )
 
 if(PROTOBUF_REGENERATE)
     #Must be set here - see https://cmake.org/cmake/help/v3.3/command/set_source_files_properties.html
     set_source_files_properties(${PROTOBUF_GENERATED_CXX_SRCS} ${PROTOBUF_GENERATED_CXX_HDRS} PROPERTIES GENERATED True)
-    set(GenomicsDB_library_sources
-        ${GenomicsDB_library_sources}
-        ${PROTOBUF_GENERATED_CXX_SRCS}
-        )
-else()
-    set(GenomicsDB_library_sources
-        ${GenomicsDB_library_sources}
-        ${PROTOBUF_DISTRIBUTED_CXX_SRCS}
-        )
 endif()
 
 if(BUILD_JAVA)

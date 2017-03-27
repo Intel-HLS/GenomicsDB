@@ -191,17 +191,22 @@ class VariantQueryProcessor {
      * its data. The storage manager is the module the query processor interefaces 
      * with.
      */
-    VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name);
+    VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name,
+        const VidMapper& vid_mapper);
     /*
      * This constructor is useful when there is no VariantStorageManager. This happens when loading and querying are 
      * combined and the data does not exist on disk as TileDB arrays
      */
-    VariantQueryProcessor(const VariantArraySchema& array_schema);
+    VariantQueryProcessor(const VariantArraySchema& array_schema,
+        const VidMapper& vid_mapper);
     ~VariantQueryProcessor()
     {
       if(m_array_schema)
         delete m_array_schema;
       m_array_schema = 0;
+      if(m_vid_mapper)
+        delete m_vid_mapper;
+      m_vid_mapper = 0;
     }
     void clear();
     /**
@@ -289,7 +294,7 @@ class VariantQueryProcessor {
     /*Initialize versioning information based on schema*/
     void initialize_version(const VariantArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
-    void register_field_creators(const VariantArraySchema& array_schema);
+    void register_field_creators(const VariantArraySchema& array_schema, const VidMapper& vid_mapper);
     /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
     void initialize();
     /**
@@ -360,6 +365,10 @@ class VariantQueryProcessor {
      */
     int m_ad;
     VariantArraySchema* m_array_schema;
+    /*
+     * Vid mapper
+     */
+    VidMapper* m_vid_mapper;
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
     //Flag to check whether static members are initialized

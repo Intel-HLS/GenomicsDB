@@ -44,15 +44,41 @@ std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_in
 std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to_type_index =
   std::unordered_map<std::string, std::type_index>({
       {"int", std::type_index(typeid(int))},
+      {"Int", std::type_index(typeid(int))},
+      {"integer", std::type_index(typeid(int))},
+      {"Integer", std::type_index(typeid(int))},
       {"float", std::type_index(typeid(float))},
-      {"char", std::type_index(typeid(char))}
+      {"Float", std::type_index(typeid(float))}, 
+      {"bool", std::type_index(typeid(char))},
+      {"Bool", std::type_index(typeid(char))},
+      {"boolean", std::type_index(typeid(char))},
+      {"Boolean", std::type_index(typeid(char))},
+      {"flag", std::type_index(typeid(char))},
+      {"Flag", std::type_index(typeid(char))},
+      {"string", std::type_index(typeid(char))},
+      {"String", std::type_index(typeid(char))},
+      {"char", std::type_index(typeid(char))},
+      {"Char", std::type_index(typeid(char))}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_typename_string_to_bcf_ht_type =
   std::unordered_map<std::string, int>({
       {"int", BCF_HT_INT},
+      {"Int", BCF_HT_INT},
+      {"integer", BCF_HT_INT},
+      {"Integer", BCF_HT_INT},
       {"float", BCF_HT_REAL},
-      {"char", BCF_HT_STR}
+      {"Float", BCF_HT_REAL},
+      {"bool", BCF_HT_FLAG},
+      {"Bool", BCF_HT_FLAG},
+      {"boolean", BCF_HT_FLAG},
+      {"Boolean", BCF_HT_FLAG},
+      {"flag", BCF_HT_FLAG},
+      {"Flag", BCF_HT_FLAG},
+      {"string", BCF_HT_STR},
+      {"String", BCF_HT_STR},
+      {"char", BCF_HT_STR},
+      {"Char", BCF_HT_STR}
       });
 
 std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_enum =
@@ -564,124 +590,151 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
   //Field info parsing
   VERIFY_OR_THROW(json_doc.HasMember("fields"));
   {
-    const rapidjson::Value& fields_dict = json_doc["fields"];
-    //fields is a dictionary: name: dict
-    VERIFY_OR_THROW(fields_dict.IsObject());
-    auto num_fields = fields_dict.MemberCount();
+    const rapidjson::Value& fields_container = json_doc["fields"];
+    //fields is a dictionary: name: dict or array[dict]
+    VERIFY_OR_THROW(fields_container.IsObject() || fields_container.IsArray());
+    auto is_array = fields_container.IsArray();
+    auto num_fields = is_array ? fields_container.Size() : fields_container.MemberCount();
     m_field_idx_to_info.resize(num_fields);
     std::string field_name;
-    auto field_idx = 0;
     auto duplicate_fields_exist = false;
-    for(auto b=fields_dict.MemberBegin(), e=fields_dict.MemberEnd();b!=e;++b,++field_idx)
+    //index within m_field_idx_to_info
+    auto field_idx = 0;
+    //index within the JSON array
+    rapidjson::SizeType json_field_idx = 0u;
+    auto dict_iter = is_array ? rapidjson::Value::ConstMemberIterator()
+      : fields_container.MemberBegin();
+    auto dict_end_position = is_array ? dict_iter : fields_container.MemberEnd();
+    auto next_field_exists = is_array ? (json_field_idx < fields_container.Size()) : (dict_iter != dict_end_position);
+    while(next_field_exists)
     {
-      const auto& curr_obj = *b;
-      field_name = curr_obj.name.GetString();
+      const auto& field_info_dict = is_array ? fields_container[json_field_idx] : (*dict_iter).value;
+      VERIFY_OR_THROW(field_info_dict.IsObject());
+      if(is_array)
+      {
+        if(!field_info_dict.HasMember("name") && !field_info_dict.HasMember("field_name"))
+          throw VidMapperException(std::string("Field information dictionary with index ")+std::to_string(json_field_idx)
+                +" does not have a \"field_name\" or \"name\" key");
+        if(field_info_dict.HasMember("name") && field_info_dict.HasMember("field_name"))
+          throw VidMapperException(std::string("Field information dictionary with index ")+std::to_string(json_field_idx)
+                +" has both \"field_name\" or \"name\" keys - only one should be specified");
+        field_name = field_info_dict.HasMember("name") ? field_info_dict["name"].GetString()
+          : field_info_dict["field_name"].GetString();
+      }
+      else
+        field_name = (*dict_iter).name.GetString();
       if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end())
       {
         std::cerr << (std::string("Duplicate field name ")+field_name+" found in vid file "+filename) << "\n";
         duplicate_fields_exist = true;
-        continue;
+        //advance loop
       }
-      //Known fields
-      auto known_field_enum = 0u;
-      auto is_known_field = KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum);
-      //Map
-      m_field_name_to_idx[field_name] = field_idx;
-      m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
-      const auto& field_info_dict = curr_obj.value;
-      VERIFY_OR_THROW(field_info_dict.IsObject());
-      //Field type - int, char etc
-      VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
+      else
       {
-        auto iter = VidMapper::m_typename_string_to_type_index.find(field_info_dict["type"].GetString());
-        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end() && "Unhandled field type");
-        m_field_idx_to_info[field_idx].m_type_index = (*iter).second;
-      }
-      {
-        auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_info_dict["type"].GetString());
-        VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end() && "Unhandled field type");
-        m_field_idx_to_info[field_idx].m_bcf_ht_type = (*iter).second;
-      }
-      if(field_info_dict.HasMember("vcf_field_class"))
-      {
-        //Array which specifies whether field if INFO, FORMAT, FILTER etc
-        const auto& vcf_field_class_array = field_info_dict["vcf_field_class"];
-        VERIFY_OR_THROW(vcf_field_class_array.IsArray());
-        for(rapidjson::SizeType i=0;i<vcf_field_class_array.Size();++i)
+        //Known fields
+        auto known_field_enum = 0u;
+        auto is_known_field = KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum);
+        //Map
+        m_field_name_to_idx[field_name] = field_idx;
+        m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
+        //Field type - int, char etc
+        VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
         {
-          auto class_name = std::move(std::string(vcf_field_class_array[i].GetString()));
-          if(class_name == "INFO")
-            m_field_idx_to_info[field_idx].m_is_vcf_INFO_field = true;
-          else
-            if(class_name == "FORMAT")
-              m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
-            else
-              if(class_name == "FILTER")
-                m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
+          auto iter = VidMapper::m_typename_string_to_type_index.find(field_info_dict["type"].GetString());
+          VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end() && "Unhandled field type");
+          m_field_idx_to_info[field_idx].m_type_index = (*iter).second;
         }
-      }
-      if(field_info_dict.HasMember("length"))
-      {
-        if(field_info_dict["length"].IsInt64())
-          m_field_idx_to_info[field_idx].m_num_elements = field_info_dict["length"].GetInt64();
+        {
+          auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_info_dict["type"].GetString());
+          VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end() && "Unhandled field type");
+          m_field_idx_to_info[field_idx].m_bcf_ht_type = (*iter).second;
+        }
+        if(field_info_dict.HasMember("vcf_field_class"))
+        {
+          //Array which specifies whether field if INFO, FORMAT, FILTER etc
+          const auto& vcf_field_class_array = field_info_dict["vcf_field_class"];
+          VERIFY_OR_THROW(vcf_field_class_array.IsArray());
+          for(rapidjson::SizeType i=0;i<vcf_field_class_array.Size();++i)
+          {
+            auto class_name = std::move(std::string(vcf_field_class_array[i].GetString()));
+            if(class_name == "INFO")
+              m_field_idx_to_info[field_idx].m_is_vcf_INFO_field = true;
+            else
+              if(class_name == "FORMAT")
+                m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = true;
+              else
+                if(class_name == "FILTER")
+                  m_field_idx_to_info[field_idx].m_is_vcf_FILTER_field = true;
+          }
+        }
+        if(field_info_dict.HasMember("length"))
+        {
+          if(field_info_dict["length"].IsInt64())
+            m_field_idx_to_info[field_idx].m_num_elements = field_info_dict["length"].GetInt64();
+          else
+          {
+            VERIFY_OR_THROW(field_info_dict["length"].IsString());
+            auto iter = VidMapper::m_length_descriptor_string_to_int.find(field_info_dict["length"].GetString());
+            if(iter == VidMapper::m_length_descriptor_string_to_int.end())
+              m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+            else
+              m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
+          }
+        }
         else
         {
-          VERIFY_OR_THROW(field_info_dict["length"].IsString());
-          auto iter = VidMapper::m_length_descriptor_string_to_int.find(field_info_dict["length"].GetString());
-          if(iter == VidMapper::m_length_descriptor_string_to_int.end())
-            m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
-          else
-            m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
+          if(is_known_field)
+          {
+            auto length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
+            m_field_idx_to_info[field_idx].m_length_descriptor = length_descriptor;
+            if(length_descriptor == BCF_VL_FIXED)
+              m_field_idx_to_info[field_idx].m_num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u);  //don't care about ploidy
+          }
         }
-      }
-      else
-      {
-        if(is_known_field)
+        if(field_info_dict.HasMember("VCF_field_combine_operation"))
         {
-           auto length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-           m_field_idx_to_info[field_idx].m_length_descriptor = length_descriptor;
-           if(length_descriptor == BCF_VL_FIXED)
-             m_field_idx_to_info[field_idx].m_num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u);  //don't care about ploidy
+          VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
+          auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["VCF_field_combine_operation"].GetString());
+          if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
+            throw VidMapperException(std::string("Unknown VCF field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
+                +" specified for field "+field_name);
+          m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
+          //Concatenate can only be used for VAR length fields
+          if(m_field_idx_to_info[field_idx].m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
+              && m_field_idx_to_info[field_idx].m_length_descriptor != BCF_VL_VAR)
+            throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
+                +" field "+field_name+" does not have 'VAR' as its length descriptor");
+        }
+        else
+        {
+          if(is_known_field)
+            m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
+        }
+        //Both INFO and FORMAT, throw another entry <field>_FORMAT
+        if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
+        {
+          auto new_field_idx = field_idx+1u;
+          m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
+          //Copy field information
+          m_field_idx_to_info[new_field_idx] = m_field_idx_to_info[field_idx];
+          auto& new_field_info =  m_field_idx_to_info[new_field_idx];
+          //Update name and index - keep the same VCF name
+          new_field_info.m_name = field_name+"_FORMAT";
+          new_field_info.m_is_vcf_INFO_field = false;
+          new_field_info.m_field_idx = new_field_idx;
+          new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+          //Update map
+          m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
+          //Set FORMAT to false for original field
+          m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = false;
+          ++field_idx;
         }
       }
-      if(field_info_dict.HasMember("VCF_field_combine_operation"))
-      {
-        VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
-        auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["VCF_field_combine_operation"].GetString());
-        if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
-          throw VidMapperException(std::string("Unknown VCF field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
-                +" specified for field "+field_name);
-        m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
-        //Concatenate can only be used for VAR length fields
-        if(m_field_idx_to_info[field_idx].m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
-            && m_field_idx_to_info[field_idx].m_length_descriptor != BCF_VL_VAR)
-         throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
-             +" field "+field_name+" does not have 'VAR' as its length descriptor");
-      }
-      else
-      {
-        if(is_known_field)
-          m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
-      }
-      //Both INFO and FORMAT, throw another entry <field>_FORMAT
-      if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
-      {
-        auto new_field_idx = field_idx+1u;
-        m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
-        //Copy field information
-        m_field_idx_to_info[new_field_idx] = m_field_idx_to_info[field_idx];
-        auto& new_field_info =  m_field_idx_to_info[new_field_idx];
-        //Update name and index - keep the same VCF name
-        new_field_info.m_name = field_name+"_FORMAT";
-        new_field_info.m_is_vcf_INFO_field = false;
-        new_field_info.m_field_idx = new_field_idx;
-        new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
-        //Update map
-        m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
-        //Set FORMAT to false for original field
-        m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = false;
-        ++field_idx;
-      }
+      ++field_idx;
+      ++json_field_idx;
+      if(!is_array)
+        ++dict_iter;
+      next_field_exists = is_array ? (json_field_idx < fields_container.Size()) : (dict_iter != dict_end_position);
     }
     //Force add END as a field
     auto iter = m_field_name_to_idx.find("END");
@@ -728,20 +781,46 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
   //Callset info parsing
   VERIFY_OR_THROW(json_doc.HasMember("callsets"));
   {
-    const rapidjson::Value& callsets_dict = json_doc["callsets"];
-    //callsets is a dictionary of name:info key-value pairs
-    VERIFY_OR_THROW(callsets_dict.IsObject());
-    auto num_callsets = (m_ub_callset_row_idx == INT64_MAX) ? callsets_dict.MemberCount() :
-      std::min<int64_t>(callsets_dict.MemberCount(), m_ub_callset_row_idx+1);
+    const rapidjson::Value& callsets_container = json_doc["callsets"];
+    //callsets is a dictionary of name:info key-value pairs or array of info dictionaries
+    VERIFY_OR_THROW(callsets_container.IsObject() || callsets_container.IsArray());
+    auto is_array = callsets_container.IsArray();
+    auto num_callsets_in_container = is_array ? callsets_container.Size() : callsets_container.MemberCount();
+    auto num_callsets = (m_ub_callset_row_idx == INT64_MAX) ? num_callsets_in_container :
+      std::min<int64_t>(num_callsets_in_container, m_ub_callset_row_idx+1);
     m_row_idx_to_info.resize(num_callsets);
     m_max_callset_row_idx = -1;
     std::string callset_name;
-    for(auto b=callsets_dict.MemberBegin(), e=callsets_dict.MemberEnd();b!=e;++b)
+    auto dict_iter = is_array ? rapidjson::Value::ConstMemberIterator()
+      : callsets_container.MemberBegin();
+    auto dict_end_position = is_array ? dict_iter : callsets_container.MemberEnd();
+    rapidjson::SizeType json_callset_idx = 0ull;
+    auto next_callset_exists = is_array ? (json_callset_idx < callsets_container.Size()) : (dict_iter != dict_end_position);
+    while(next_callset_exists)
     {
-      const auto& curr_obj = *b;
-      callset_name = curr_obj.name.GetString();
-      const auto& callset_info_dict = curr_obj.value;
+      const auto& callset_info_dict = is_array ? callsets_container[json_callset_idx]
+        : (*dict_iter).value;
       VERIFY_OR_THROW(callset_info_dict.IsObject());    //must be dict
+      if(is_array)
+      {
+        auto num_found = 0u;
+        for(const auto name_field : { "name", "callset_name", "sample_name" })
+        {
+          if(callset_info_dict.HasMember(name_field))
+          {
+            callset_name = callset_info_dict[name_field].GetString();
+            ++num_found;
+          }
+        }
+        if(num_found == 0u)
+          throw VidMapperException(std::string("Callset info dict with index ")+std::to_string(json_callset_idx)
+              +" does not have any one of the keys \"name\", \"callset_name\" or \"sample_name\"");
+        if(num_found > 1u)
+          throw VidMapperException(std::string("Callset info dict with index ")+std::to_string(json_callset_idx)
+              +" has two or more of the keys \"name\", \"callset_name\" or \"sample_name\" - at most one is allowed");
+      }
+      else
+        callset_name = (*dict_iter).name.GetString();
       VERIFY_OR_THROW(callset_info_dict.HasMember("row_idx"));
       int64_t row_idx = callset_info_dict["row_idx"].GetInt64();
       //already exists in map
@@ -750,49 +829,54 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
         if(m_callset_name_to_row_idx[callset_name] != row_idx)
           throw FileBasedVidMapperException(std::string("Duplicate with conflicting row index for sample/callset name ")+callset_name
               +" found in callsets mapping "+std::to_string(m_callset_name_to_row_idx[callset_name])+", "+std::to_string(row_idx));
-      if(row_idx > m_ub_callset_row_idx)
-        continue;
-      m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
-      //Resize vector
-      if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
-        m_row_idx_to_info.resize(row_idx+1);
-      auto file_idx = -1ll;
-      //idx in file
-      auto idx_in_file = 0ll;
-      if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
+      if(row_idx <= m_ub_callset_row_idx)
       {
-        VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
-            && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
-        std::string filename = callset_info_dict.HasMember("filename")
-          ? std::move(callset_info_dict["filename"].GetString())
-          : std::move(callset_info_dict["stream_name"].GetString());
-        file_idx = get_or_append_global_file_idx(filename);
-        if(callset_info_dict.HasMember("idx_in_file"))
-          idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
-        //Check for conflicting file/stream info if initialized previously
-        const auto& curr_row_info = m_row_idx_to_info[row_idx];
-        if(curr_row_info.m_is_initialized)
+        m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
+        //Resize vector
+        if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
+          m_row_idx_to_info.resize(row_idx+1);
+        auto file_idx = -1ll;
+        //idx in file
+        auto idx_in_file = 0ll;
+        if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
         {
-          if(curr_row_info.m_file_idx >= 0 && file_idx >= 0
-              && curr_row_info.m_file_idx != file_idx)
-            throw FileBasedVidMapperException(std::string("Conflicting file/stream names specified for sample/callset ")+callset_name
-                +" "+m_file_idx_to_info[curr_row_info.m_file_idx].m_name+", "+filename);
-          if(curr_row_info.m_idx_in_file != idx_in_file)
-            throw FileBasedVidMapperException(std::string("Conflicting values of \"idx_in_file\" specified for sample/callset ")+callset_name
-                +" "+std::to_string(curr_row_info.m_idx_in_file)+", "+std::to_string(idx_in_file));
+          VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
+              && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
+          std::string filename = callset_info_dict.HasMember("filename")
+            ? std::move(callset_info_dict["filename"].GetString())
+            : std::move(callset_info_dict["stream_name"].GetString());
+          file_idx = get_or_append_global_file_idx(filename);
+          if(callset_info_dict.HasMember("idx_in_file"))
+            idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
+          //Check for conflicting file/stream info if initialized previously
+          const auto& curr_row_info = m_row_idx_to_info[row_idx];
+          if(curr_row_info.m_is_initialized)
+          {
+            if(curr_row_info.m_file_idx >= 0 && file_idx >= 0
+                && curr_row_info.m_file_idx != file_idx)
+              throw FileBasedVidMapperException(std::string("Conflicting file/stream names specified for sample/callset ")+callset_name
+                  +" "+m_file_idx_to_info[curr_row_info.m_file_idx].m_name+", "+filename);
+            if(curr_row_info.m_idx_in_file != idx_in_file)
+              throw FileBasedVidMapperException(std::string("Conflicting values of \"idx_in_file\" specified for sample/callset ")+callset_name
+                  +" "+std::to_string(curr_row_info.m_idx_in_file)+", "+std::to_string(idx_in_file));
+          }
+          else
+          {
+            assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
+            m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
+          }
         }
-        else
-        {
-          assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-          m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
-        }
+        m_callset_name_to_row_idx[callset_name] = row_idx;
+        VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+        if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
+          throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
+              +m_row_idx_to_info[row_idx].m_name);
+        m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
       }
-      m_callset_name_to_row_idx[callset_name] = row_idx;
-      VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-      if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
-        throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
-            +m_row_idx_to_info[row_idx].m_name);
-      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
+      ++json_callset_idx;
+      if(!is_array)
+        ++dict_iter;
+      next_callset_exists = is_array ? (json_callset_idx < callsets_container.Size()) : (dict_iter != dict_end_position);
     }
     auto missing_row_idxs_exist = false;
     for(auto row_idx=0ll;static_cast<size_t>(row_idx)<m_row_idx_to_info.size() && row_idx<=m_ub_callset_row_idx;++row_idx)

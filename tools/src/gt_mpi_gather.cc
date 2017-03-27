@@ -44,7 +44,8 @@ enum ArgsEnum
   ARGS_IDX_PRODUCE_BROAD_GVCF,
   ARGS_IDX_PRODUCE_HISTOGRAM,
   ARGS_IDX_PRINT_CALLS,
-  ARGS_IDX_PRINT_CSV
+  ARGS_IDX_PRINT_CSV,
+  ARGS_IDX_VERSION
 };
 
 enum CommandsEnum
@@ -426,6 +427,7 @@ int main(int argc, char *argv[]) {
     {"print-calls",0,0,ARGS_IDX_PRINT_CALLS},
     {"print-csv",0,0,ARGS_IDX_PRINT_CSV},
     {"array",1,0,'A'},
+    {"version",0,0,ARGS_IDX_VERSION},
     {0,0,0,0},
   };
   int c;
@@ -436,6 +438,7 @@ int main(int argc, char *argv[]) {
   std::string json_config_file = "";
   std::string loader_json_config_file = "";
   bool skip_query_on_root = false;
+  auto print_version_only = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
   while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
@@ -482,125 +485,132 @@ int main(int argc, char *argv[]) {
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
         break;
+      case ARGS_IDX_VERSION:
+        std::cout << GENOMICSDB_VERSION <<"\n";
+        print_version_only = true;
+        break;
       default:
         std::cerr << "Unknown command line argument\n";
         exit(-1);
     }
   }
-  //Use VariantQueryConfig to setup query info
-  VariantQueryConfig query_config;
-  //Vid mapping
-  FileBasedVidMapper id_mapper;
-  //Loader configuration
-  JSONLoaderConfig loader_config;
-  JSONLoaderConfig* loader_config_ptr = 0;
-  if(!(loader_json_config_file.empty()))
+  if(!print_version_only)
   {
-    loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
-    loader_config_ptr = &loader_config;
-  }
-#ifdef HTSDIR
-  VCFAdapter vcf_adapter_base;
-  VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
-  auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
-  JSONVCFAdapterQueryConfig scan_config;
-#endif
-  //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
-  if(json_config_file != "")
-  {
-    JSONBasicQueryConfig* json_config_ptr = 0;
-    JSONBasicQueryConfig range_query_config;
-    switch(command_idx)
+    //Use VariantQueryConfig to setup query info
+    VariantQueryConfig query_config;
+    //Vid mapping
+    FileBasedVidMapper id_mapper;
+    //Loader configuration
+    JSONLoaderConfig loader_config;
+    JSONLoaderConfig* loader_config_ptr = 0;
+    if(!(loader_json_config_file.empty()))
     {
-      case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR)
-        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
-        json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
-#else
-        std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
-        exit(-1);
-#endif
-        break;
-      default:
-        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
-        json_config_ptr = &range_query_config;
-        break;
+      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+      loader_config_ptr = &loader_config;
     }
-    ASSERT(json_config_ptr);
-    workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
-    array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
-  }
-  else
-  {
-    if( optind + 2 > argc ) {
-      std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-      std::cout << "Usage: " << argv[0] << " ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> )"
-        << " [ -l <loader_json_file] -O <output_format> -p <page_size> ]" << std::endl;
+#ifdef HTSDIR
+    VCFAdapter vcf_adapter_base;
+    VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
+    auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
+    JSONVCFAdapterQueryConfig scan_config;
+#endif
+    //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
+    if(json_config_file != "")
+    {
+      JSONBasicQueryConfig* json_config_ptr = 0;
+      JSONBasicQueryConfig range_query_config;
+      switch(command_idx)
+      {
+        case COMMAND_PRODUCE_BROAD_GVCF:
+#if defined(HTSDIR)
+          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
+          json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
+#else
+          std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
+          exit(-1);
+#endif
+          break;
+        default:
+          range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
+          json_config_ptr = &range_query_config;
+          break;
+      }
+      ASSERT(json_config_ptr);
+      workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
+      array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
+    }
+    else
+    {
+      if( optind + 2 > argc ) {
+        std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
+        std::cout << "Usage: " << argv[0] << " ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> )"
+          << " [ -l <loader_json_file] -O <output_format> -p <page_size> ]" << std::endl;
+        return -1;
+      }
+      uint64_t start = std::stoull(std::string(argv[optind]));
+      uint64_t end = std::stoull(std::string(argv[optind+1])); 
+      query_config.add_column_interval_to_query(start, end);
+      switch(command_idx)
+      {
+        case COMMAND_PRODUCE_BROAD_GVCF:
+          std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
+          exit(-1);
+          break;
+        case COMMAND_PRODUCE_HISTOGRAM:
+          break;  //no attributes
+        case COMMAND_PRINT_CALLS:
+        case COMMAND_PRINT_CSV:
+          query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
+          break;
+        default:
+          query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
+          break;
+      }
+    }
+    if(workspace == "" || array_name == "")
+    {
+      std::cerr << "Missing workspace(-w) or array name (-A)\n";
       return -1;
     }
-    uint64_t start = std::stoull(std::string(argv[optind]));
-    uint64_t end = std::stoull(std::string(argv[optind+1])); 
-    query_config.add_column_interval_to_query(start, end);
-    switch(command_idx)
-    {
-      case COMMAND_PRODUCE_BROAD_GVCF:
-        std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
-        exit(-1);
-        break;
-      case COMMAND_PRODUCE_HISTOGRAM:
-        break;  //no attributes
-      case COMMAND_PRINT_CALLS:
-      case COMMAND_PRINT_CSV:
-        query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
-        break;
-      default:
-        query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
-        break;
-    }
-  }
-  if(workspace == "" || array_name == "")
-  {
-    std::cerr << "Missing workspace(-w) or array name (-A)\n";
-    return -1;
-  }
 #ifdef USE_GPERFTOOLS
-  ProfilerStart("gprofile.log");
+    ProfilerStart("gprofile.log");
 #endif
 #if VERBOSE>0
-  std::cerr << "Segment size: "<<segment_size<<" bytes\n";
+    std::cerr << "Segment size: "<<segment_size<<" bytes\n";
 #endif
-  /*Create storage manager*/
-  VariantStorageManager sm(workspace, segment_size);
-  /*Create query processor*/
-  VariantQueryProcessor qp(&sm, array_name);
-  auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
-      || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
-  qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
-  switch(command_idx)
-  {
-    case COMMAND_RANGE_QUERY:
-      run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
-          (loader_json_config_file.empty() || loader_config.is_partitioned_by_column()),
-          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
-      break;
-    case COMMAND_PRODUCE_BROAD_GVCF:
+    /*Create storage manager*/
+    VariantStorageManager sm(workspace, segment_size);
+    /*Create query processor*/
+    VariantQueryProcessor qp(&sm, array_name, id_mapper);
+    auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
+        || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
+    qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
+    switch(command_idx)
+    {
+      case COMMAND_RANGE_QUERY:
+        run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
+            (loader_json_config_file.empty() || loader_config.is_partitioned_by_column()),
+            num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+        break;
+      case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-      scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
-          num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+        scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
+            num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
-      break;
-    case COMMAND_PRODUCE_HISTOGRAM:
-      produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
-      break;
-    case COMMAND_PRINT_CALLS:
-    case COMMAND_PRINT_CSV:
-      print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
-      break;
-  }
+        break;
+      case COMMAND_PRODUCE_HISTOGRAM:
+        produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
+        break;
+      case COMMAND_PRINT_CALLS:
+      case COMMAND_PRINT_CSV:
+        print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
+        break;
+    }
 #ifdef USE_GPERFTOOLS
-  ProfilerStop();
+    ProfilerStop();
 #endif
-  sm.close_array(qp.get_array_descriptor());
+    sm.close_array(qp.get_array_descriptor());
+  }
   GenomicsDBProtoBufInitAndCleanup::shutdown_protobuf_library();
   MPI_Finalize();
   return 0;

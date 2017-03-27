@@ -27,8 +27,10 @@ import htsjdk.tribble.FeatureReader;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.FeatureCodecHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
+import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
+import htsjdk.variant.bcf2.BCF2Codec;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -56,7 +58,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param tiledbWorkspace TileDB workspace path
      * @param arrayName TileDB array name
      * @param referenceGenome Path to reference genome (fasta file)
-     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
      * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
@@ -77,8 +80,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @param referenceGenome Path to reference genome (fasta file)
      * @param templateVCFHeaderFilename Template VCF header to be used for
      *                                  the combined gVCF records
-     * @param codec FeatureCodec, currently only
-     *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
      * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile,
@@ -109,7 +112,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * Constructor
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param queryJSONFile GenomicsDB query JSON configuration file
-     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
      * @throws IOException when data cannot be read from the stream 
      */
     public GenomicsDBFeatureReader(final String loaderJSONFile, final String queryJSONFile,
@@ -122,7 +126,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * Constructor
      * @param queryJSONFile GenomicsDB query JSON configuration file. Since the constructor
      * has no loader JSON as argument, you must specify the vid and callset mapping in the query JSON
-     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
      * @throws IOException when data cannot be read from the stream
      */
     public GenomicsDBFeatureReader(final String queryJSONFile,
@@ -136,7 +141,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * Initialization function that's used by all constructors
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param queryJSONFile GenomicsDB query JSON configuration file
-     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
      * @throws IOException when data cannot be read from the stream 
      */
     public void initialize(final String loaderJSONFile, final String queryJSONFile,
@@ -147,7 +153,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         mLoaderJSONFile = loaderJSONFile;
         mQueryJSONFile = queryJSONFile;
         //Read header
-        GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile);
+        GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile,
+                mCodec instanceof BCF2Codec);
         SOURCE source = codec.makeSourceFromStream(gdbStream);
         mFCHeader = codec.readHeader(source);
         //Store sequence names
@@ -222,8 +229,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * Constructor
          * @param loaderJSONFile GenomicsDB loader JSON configuration file
          * @param queryJSONFile GenomicsDB query JSON configuration file
-         * @param codec FeatureCodec, currently only
-         *              {@link htsjdk.variant.bcf2.BCF2Codec} is tested
+         * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+         *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
          * @throws IOException when data cannot be read from the stream 
          */
         public GenomicsDBFeatureIterator(final String loaderJSONFile, final String queryJSONFile,
@@ -237,7 +244,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
          * @param loaderJSONFile GenomicsDB loader JSON configuration file
          * @param queryJSONFile GenomicsDB query JSON configuration file
          * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-         *              is tested
+         *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
          * @param chr contig name
          * @param start start position (1-based)
          * @param end end position, inclusive (1-based)
@@ -248,9 +255,14 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                 final String chr, final int start, final int end) throws IOException
         {
             mCodec = codec;
-            mStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile, chr, start, end);
-            mStream.skip(mFCHeader.getHeaderEnd());
+            boolean readAsBCF = mCodec instanceof BCF2Codec;
+            mStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile, chr, start, end,
+                    readAsBCF);
+            if(readAsBCF) //BCF2 codec provides size of header
+                mStream.skip(mFCHeader.getHeaderEnd());
             mSource = codec.makeSourceFromStream(mStream);
+            if(!readAsBCF) //VCF Codec must parse out header again since getHeaderEnd() returns 0
+                mCodec.readHeader(mSource); //no need to store header anywhere
             mTimer = new GenomicsDBTimer();
         }
 

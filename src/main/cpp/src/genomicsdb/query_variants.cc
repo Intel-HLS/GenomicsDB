@@ -118,6 +118,10 @@ void VariantQueryProcessor::initialize_static_members()
 {
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int8_t))] =
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int8_t, int>>());
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint8_t))] =
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int))] = 
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(unsigned))] = 
@@ -191,7 +195,7 @@ void VariantQueryProcessor::initialize_version(const VariantArraySchema& schema)
   initialize_v2(schema);
 }
 
-void VariantQueryProcessor::register_field_creators(const VariantArraySchema& schema)
+void VariantQueryProcessor::register_field_creators(const VariantArraySchema& schema, const VidMapper& vid_mapper)
 {
   m_field_factory.resize(schema.attribute_num());
   for(auto i=0ull;i<schema.attribute_num();++i)
@@ -206,10 +210,22 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
       m_field_factory.Register(i, KnownFieldInfo::get_field_creator(enumIdx));
     else
       m_field_factory.Register(i, (*iter).second);
+    //TileDB does not have a way to distinguish between char, string and int8_t fields
+    //Hence, a series of possibly messy checks here
+    const auto& field_name = schema.attribute_name(i);
+    const auto* vid_field_info = vid_mapper.get_field_info(field_name);
+    if(vid_field_info)
+      if(vid_field_info->m_bcf_ht_type == BCF_HT_FLAG)
+      {
+        auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(int8_t)));
+        assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());
+        m_field_factory.Register(i, (*iter).second);
+      }
   }
 }
 
-VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name)
+VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name,
+    const VidMapper& vid_mapper)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
@@ -222,10 +238,11 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
   m_array_schema = new VariantArraySchema();
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
+  m_vid_mapper = new VidMapper(vid_mapper);
   initialize();
 }
 
-VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_schema)
+VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_schema, const VidMapper& vid_mapper)
 {
   //initialize static members
   if(!VariantQueryProcessor::m_are_static_members_initialized)
@@ -233,6 +250,7 @@ VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_sch
   clear();
   m_storage_manager = 0;
   m_array_schema = new VariantArraySchema(array_schema);
+  m_vid_mapper = new VidMapper(vid_mapper);
   initialize();
 }
 
@@ -242,7 +260,7 @@ void VariantQueryProcessor::initialize()
   //Initialize versioning information
   initialize_version(*m_array_schema); 
   //Register creators in factory
-  register_field_creators(*m_array_schema);
+  register_field_creators(*m_array_schema, *m_vid_mapper);
 }
 
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const

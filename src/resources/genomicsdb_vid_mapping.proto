@@ -38,7 +38,7 @@ message InfoField {
   required string name = 1;
   required string type = 2;
   repeated string vcf_field_class = 3;
-  optional string length = 4;
+  optional string length = 4 [default = "1"];
 }
 
 message Chromosome {

@@ -292,7 +292,34 @@ public class GenomicsDBImporter
                      Long sizePerColumnPartition,
                      Long segmentSize,
                      boolean useSamplesInOrderProvided) throws IOException {
+      this(sampleToVCMap, mergedHeader, chromosomeInterval,
+              workspace, arrayname, sizePerColumnPartition, segmentSize,
+              useSamplesInOrderProvided, false);
+  }
 
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
+   * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
+   * @param failIfUpdating if true, fail if updating an existing array
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                     Set<VCFHeaderLine> mergedHeader,
+                     ChromosomeInterval chromosomeInterval,
+                     String workspace,
+                     String arrayname,
+                     Long sizePerColumnPartition,
+                     Long segmentSize,
+                     boolean useSamplesInOrderProvided,
+                     boolean failIfUpdating) throws IOException {
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
@@ -303,7 +330,7 @@ public class GenomicsDBImporter
     sizePerColumnPartition *= sampleToVCMap.size();
 
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      createImportConfiguration(workspace, arrayname, sizePerColumnPartition, segmentSize);
+      createImportConfiguration(workspace, arrayname, sizePerColumnPartition, segmentSize, failIfUpdating);
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
@@ -376,7 +403,8 @@ public class GenomicsDBImporter
     String workspace,
     String arrayname,
     Long sizePerColumnPartition,
-    Long segmentSize) {
+    Long segmentSize,
+    boolean failIfUpdating) {
 
     String name = (arrayname.isEmpty()) ? DEFAULT_ARRAYNAME : arrayname;
 
@@ -401,6 +429,7 @@ public class GenomicsDBImporter
         .setCompressTiledbArray(true)
         .setSegmentSize(segmentSize)
         .setTreatDeletionsAsIntervals(true)
+        .setFailIfUpdating(failIfUpdating)
         .build();
 
     return importConfiguration;
@@ -544,12 +573,6 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
-        if (infoHeaderLine.getType().equals(VCFHeaderLineType.Flag)) {
-          System.err.println("WARNING: Flag type fields are not handled by GenomicsDB currently - skipping field "
-                  +infoHeaderLine.getID());
-          continue;
-        }
-
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
@@ -645,6 +668,8 @@ public class GenomicsDBImporter
     }
 
     String length = "";
+    int count = 0;
+    boolean isFlagType = false;
     switch (type) {
       case UNBOUNDED:
         length = "VAR";
@@ -659,12 +684,23 @@ public class GenomicsDBImporter
         length = "G";
         break;
       case INTEGER:
-        if (headerLine instanceof VCFFormatHeaderLine) {
-          length = String.valueOf(((VCFFormatHeaderLine)headerLine).getCount());
-        } else {
-          length = String.valueOf(((VCFInfoHeaderLine)headerLine).getCount());
+        {
+          if (headerLine instanceof VCFFormatHeaderLine) {
+            VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine)headerLine;
+            count = formatHeaderLine.getCount();
+            isFlagType = formatHeaderLine.getType().equals(VCFHeaderLineType.Flag);
+          } else {
+            VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine)headerLine;
+            count = infoHeaderLine.getCount();
+            isFlagType = infoHeaderLine.getType().equals(VCFHeaderLineType.Flag);
+          }
+          //Weird Flag fields - Number=0 in the VCF header :(
+          if(count == 0 && isFlagType)
+            length = "1";
+          else
+            length = String.valueOf(count);
+          break;
         }
-        break;
     }
     return length;
   }

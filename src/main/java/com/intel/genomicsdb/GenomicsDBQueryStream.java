@@ -47,13 +47,18 @@ public class GenomicsDBQueryStream extends InputStream
             throw new GenomicsDBException("Could not load genomicsdb native library");
         }
     }
+    private static boolean mDefaultReadAsBCF = true;
+    private static boolean mDefaultUseMissingOnlyNotVectorEnd = true;
+    private static boolean mDefaultKeepIDXFieldsInHeader = false;
+
     /*
      * Returns a "pointer" to a structure that stores the TileDB/GenomicsDB read state
      * This might look scary, but follows the same idea used in Java's compression library
      */
     private native long jniGenomicsDBInit(String loaderJSONFile, String queryJSONFile,
             String chr, int start, int end,
-            int rank, long bufferCapacity, long segmentSize);
+            int rank, long bufferCapacity, long segmentSize,
+            boolean readAsBCF, boolean useMissingValuesOnlyNotVectorEnd, boolean keepIDXFieldsInHeader);
     
     private native long jniGenomicsDBClose(long handle);
 
@@ -80,7 +85,21 @@ public class GenomicsDBQueryStream extends InputStream
     {
         this(loaderJSONFile, queryJSONFile, "", 0, 0);
     }
-    
+
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final boolean readAsBCF)
+    {
+        this(loaderJSONFile, queryJSONFile, "", 0, 0,
+                0, 10485760,10485760,
+                readAsBCF);
+    }
+
     /**
      * Constructor
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
@@ -95,6 +114,23 @@ public class GenomicsDBQueryStream extends InputStream
         this(loaderJSONFile, queryJSONFile, chr, start, end, 0);
     }
 
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param chr contig name
+     * @param start start position (1-based)
+     * @param end end position, inclusive (1-based)
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final String chr, final int start, final int end,
+            final boolean readAsBCF)
+    {
+        this(loaderJSONFile, queryJSONFile, chr, start, end, 0, 10485760,
+          10485760, readAsBCF);
+    }
+ 
     /**
      * Constructor
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
@@ -128,10 +164,57 @@ public class GenomicsDBQueryStream extends InputStream
             final String chr, final int start, final int end,
             final int rank, final long bufferCapacity, final long segmentSize)
     {
+        this(loaderJSONFile, queryJSONFile, chr, start, end, rank, bufferCapacity,
+          segmentSize, mDefaultReadAsBCF);
+    }
+
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param chr contig name
+     * @param start start position (1-based)
+     * @param end end position, inclusive (1-based)
+     * @param rank rank of this object if launched from within an MPI context (not used)
+     * @param bufferCapacity size of buffer in bytes to be used by the native layer
+     *                       to store combined BCF2 records
+     * @param segmentSize buffer to be used for querying TileDB
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final String chr, final int start, final int end,
+            final int rank, final long bufferCapacity, final long segmentSize,
+            final boolean readAsBCF)
+    {
+        this(loaderJSONFile, queryJSONFile, chr, start, end, rank, bufferCapacity,
+          segmentSize, readAsBCF, mDefaultUseMissingOnlyNotVectorEnd, mDefaultKeepIDXFieldsInHeader);
+    }
+
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param chr contig name
+     * @param start start position (1-based)
+     * @param end end position, inclusive (1-based)
+     * @param rank rank of this object if launched from within an MPI context (not used)
+     * @param bufferCapacity size of buffer in bytes to be used by the native layer
+     *                       to store combined BCF2 records
+     * @param segmentSize buffer to be used for querying TileDB
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     * @param useMissingValuesOnlyNotVectorEnd don't add BCF2.2 vector end values
+     * @param keepIDXFieldsInHeader keep BCF IDX fields in header
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final String chr, final int start, final int end,
+            final int rank, final long bufferCapacity, final long segmentSize,
+            final boolean readAsBCF, final boolean useMissingValuesOnlyNotVectorEnd, final boolean keepIDXFieldsInHeader)
+    {
         mLoaderJSONFile = loaderJSONFile;
         mQueryJSONFile = queryJSONFile;
         mGenomicsDBReadStateHandle = jniGenomicsDBInit(loaderJSONFile, queryJSONFile, chr,
-          start, end, rank, bufferCapacity, segmentSize);
+          start, end, rank, bufferCapacity, segmentSize,
+          readAsBCF, useMissingValuesOnlyNotVectorEnd, keepIDXFieldsInHeader);
     }
 
     @Override

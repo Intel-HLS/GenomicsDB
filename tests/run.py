@@ -41,6 +41,7 @@ query_json_template_string="""
 }"""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
+query_attributes_with_DS = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS"];
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -51,6 +52,8 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
         test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
+    if("query_attributes" in query_param_dict):
+        test_dict["query_attributes"] = query_param_dict["query_attributes"];
     return test_dict;
 
 
@@ -318,7 +321,34 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_combined",
                         } },
                     ]
-            }
+            },
+            { "name" : "test_flag_field", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'vid_mapping_file': 'inputs/vid_DS.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_DS, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        } },
+                    ]
+            },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'vid_mapping_file': 'inputs/vid_DS.json',
+                'chromosome_interval': '1:1-100000000',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_DS, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        } },
+                    ]
+            },
+            { "name" : "t0_1_2_as_array", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
+                "vid_mapping_file": "inputs/vid_as_array.json",
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -331,25 +361,25 @@ def main():
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
         if(test_name  == 'java_t0_1_2'):
-            pid = subprocess.Popen('java TestGenomicsDB -load '+loader_json_filename, shell=True,
+            pid = subprocess.Popen('java -ea TestGenomicsDB --load '+loader_json_filename, shell=True,
                     stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_multi_contig_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
+            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
                     +test_params_dict['stream_name_to_filename_mapping']
                     +' 1024 0 0 100 true ',
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name == 'java_buffer_stream_t0_1_2'):
-            pid = subprocess.Popen('java TestBufferStreamGenomicsDBImporter '+loader_json_filename
+            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter '+loader_json_filename
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-            arg_list = test_params_dict['chromosome_interval'] + ' ' + ws_dir + ' '+test_name + ' true ';
+            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir + ' -A '+test_name + ' --use_samples_in_order ';
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
-            pid = subprocess.Popen('java TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
+            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
@@ -376,7 +406,7 @@ def main():
                         ('java_vcf', ''),
                         ]
                 for query_type,cmd_line_param in query_types_list:
-                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type == 'java_vcf'):
+                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
                         test_query_dict['query_attributes'] = vcf_query_attributes_order;
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                     with open(query_json_filename, 'wb') as fptr:
@@ -386,7 +416,7 @@ def main():
                         loader_argument = loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = '""'
-                        pid = subprocess.Popen('java TestGenomicsDB -query '+loader_argument+' '+query_json_filename,
+                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
                         loader_argument = ' -l '+loader_json_filename;

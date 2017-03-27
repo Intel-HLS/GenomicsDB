@@ -148,6 +148,12 @@ template<>
 inline char get_tiledb_null_value<char>() { return TILEDB_EMPTY_CHAR; }
 
 template<>
+inline int8_t get_tiledb_null_value<int8_t>() { return TILEDB_EMPTY_CHAR; }
+
+template<>
+inline uint8_t get_tiledb_null_value<uint8_t>() { return TILEDB_EMPTY_CHAR; }
+
+template<>
 inline int get_tiledb_null_value<int>() { return TILEDB_EMPTY_INT32; }
 
 template<>
