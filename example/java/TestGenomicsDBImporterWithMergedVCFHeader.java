@@ -35,30 +35,105 @@ import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.util.*;
+import gnu.getopt.Getopt;
+import gnu.getopt.LongOpt;
+
 
 /**
  * Created by kdatta1 on 3/10/17.
  */
 public final class TestGenomicsDBImporterWithMergedVCFHeader {
 
+  public enum ArgsIdxEnum
+  {
+    ARGS_IDX_USE_SAMPLES_IN_ORDER(1000),
+    ARGS_IDX_FAIL_IF_UPDATING(1001),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1002);
+
+    private final int mArgsIdx;
+    ArgsIdxEnum(final int idx)
+    {
+      mArgsIdx = idx;
+    }
+
+    int idx()
+    {
+      return mArgsIdx;
+    }
+  }
   public static void main(final String[] args)
     throws IOException, GenomicsDBException, ParseException
   {
-    if (args.length < 5) {
-      System.out.println("Usage: ExampleGenomicsDBImporter" + " chromosome:interval " +
-        "genomicsdbworkspace arrayname useSamplesInOrder variantfile(s)");
+    final int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx();
+    LongOpt[] longopts = new LongOpt[5];
+    longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
+    longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
+    longopts[2] = new LongOpt("interval", LongOpt.REQUIRED_ARGUMENT, null, 'L');
+    longopts[3] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
+    longopts[4] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
+    //Arg parsing
+    Getopt g = new Getopt("TestGenomicsDBImporterWithMergedVCFHeader", args, "w:A:L:", longopts);
+    int c = -1;
+    String optarg;
+    //Array of enums
+    final ArgsIdxEnum[] enumArray = ArgsIdxEnum.values();
+    boolean useSamplesInOrder = false;
+    boolean failIfUpdating = false;
+    String workspace = "";
+    String arrayName = "";
+    String chromosomeInterval = "";
+    while ((c = g.getopt()) != -1)
+    {
+      switch(c)
+      {
+        case 'w':
+          workspace = g.getOptarg();
+          break;
+        case 'A':
+          arrayName = g.getOptarg();
+          break;
+        case 'L':
+          chromosomeInterval = g.getOptarg();
+          break;
+        default:
+          {
+            if(c >= firstEnumIdx && c < ArgsIdxEnum.ARGS_IDX_AFTER_LAST_ARG_IDX.idx())
+            {
+              int offset = c - firstEnumIdx;
+              assert offset < enumArray.length;
+              switch(enumArray[offset])
+              {
+                case ARGS_IDX_USE_SAMPLES_IN_ORDER:
+                  useSamplesInOrder = true;
+                  break;
+                case ARGS_IDX_FAIL_IF_UPDATING:
+                  failIfUpdating = true;
+                  break;
+                default:
+                  System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+                  break;
+              }
+            }
+            else
+              System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+          }
+      }
+    }
+    int numPositionalArgs = args.length - g.getOptind();
+    if (numPositionalArgs <= 0
+        || arrayName.isEmpty() || workspace.isEmpty()
+        || chromosomeInterval.isEmpty()
+        ) {
+      System.out.println("Usage: ExampleGenomicsDBImporter" + " -L chromosome:interval " +
+          "-w genomicsdbworkspace -A arrayname variantfile(s) [--use_samples_in_order --fail_if_updating]");
       System.exit(-1);
     }
 
-    String chromosomeInterval = args[0];
     String[] temp0 = chromosomeInterval.split(":");
     String chromosomeName = temp0[0];
     String[] interval = temp0[1].split("-");
-    String workspace = args[1];
-    String arrayName = args[2];
-    boolean useSamplesInOrder = Boolean.parseBoolean(args[3]);
     List<String> files = new ArrayList<>();
-    for (int i = 4; i < args.length; ++i) {
+    for (int i = g.getOptind(); i < args.length; ++i) {
       files.add(args[i]);
     }
 
@@ -76,9 +151,10 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
-      map, mergedHeader,
-      new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
-      workspace, arrayName, 1000L, 1048576L, useSamplesInOrder);
+        map, mergedHeader,
+        new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
+        workspace, arrayName, 1000L, 1048576L,
+        useSamplesInOrder, failIfUpdating);
     boolean isdone = importer.importBatch();
     assert (isdone);
   }

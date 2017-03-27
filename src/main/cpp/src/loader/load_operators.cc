@@ -146,6 +146,10 @@ LoaderArrayWriter::LoaderArrayWriter(
     //Open array in write mode
     m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   }
+  else
+    if(m_loader_json_config.fail_if_updating())
+      throw LoadOperatorException(std::string("Array ")+workspace + "/" + array_name
+          + " exists and flag \"fail_if_updating\" is set to true in the loader JSON configuration");
   VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
   m_storage_manager->update_row_bounds_in_array(m_array_descriptor, m_row_partition.first,
       std::min(m_row_partition.second, id_mapper->get_max_callset_row_idx()));

@@ -134,7 +134,7 @@ class JSONLoaderConfig : public JSONConfigBase
     inline void set_vid_mapper_file_required(bool val) {
       m_vid_mapper_file_required = val;
     }
-
+    inline bool fail_if_updating() const { return m_fail_if_updating; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -166,6 +166,8 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_num_cells_per_tile;
     //flag to say whether vid_mapping_file is required or optional
     bool m_vid_mapper_file_required;
+    //flag that causes the loader to fail if this is an update (rather than a fresh load)
+    bool m_fail_if_updating;
 };
 
 #ifdef HTSDIR

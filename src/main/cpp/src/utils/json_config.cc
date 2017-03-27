@@ -600,6 +600,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_segment_size = 10u*1024u*1024u; //10MiB default
   m_num_cells_per_tile = 1024u;
   m_vid_mapper_file_required = vid_mapper_file_required;
+  m_fail_if_updating = false;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -688,6 +689,10 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if (m_vid_mapper_file_required) {
     VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
   }
+  //flag that causes the loader to fail if this is an update (rather than a fresh load)
+  m_fail_if_updating = false;
+  if(m_json.HasMember("fail_if_updating") && m_json["fail_if_updating"].IsBool())
+    m_fail_if_updating = m_json["fail_if_updating"].GetBool();
   read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
 }
    

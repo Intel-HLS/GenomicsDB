@@ -61,4 +61,5 @@ message ImportConfiguration {
   optional int64 segment_size = 14 [default = 10485760];
   optional bool compress_tiledb_array = 15 [default = true];
   optional int64 num_cells_per_tile = 16 [default = 1000];
+  optional bool fail_if_updating = 17 [default = false];
 }

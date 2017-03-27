@@ -56,7 +56,7 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _internal_metadata_),
       -1);
   ImportConfiguration_descriptor_ = file->message_type(1);
-  static const int ImportConfiguration_offsets_[16] = {
+  static const int ImportConfiguration_offsets_[17] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, size_per_column_partition_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, row_based_partitioning_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_combined_vcf_),
@@ -73,6 +73,7 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, segment_size_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, compress_tiledb_array_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_cells_per_tile_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, fail_if_updating_),
   };
   ImportConfiguration_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -124,7 +125,7 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "\n\036genomicsdb_import_config.proto\"{\n\tPart"
     "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022"
     "\r\n\005array\030\003 \001(\t\022\033\n\023vcf_output_filename\030\004 "
-    "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\347\004"
+    "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\210\005"
     "\n\023ImportConfiguration\022(\n\031size_per_column"
     "_partition\030\007 \002(\003:\00510240\022%\n\026row_based_par"
     "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin"
@@ -140,8 +141,9 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "\037\n\021discard_vcf_index\030\r \001(\010:\004true\022\036\n\014segm"
     "ent_size\030\016 \001(\003:\01010485760\022#\n\025compress_til"
     "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t"
-    "ile\030\020 \001(\003:\0041000B5\n\024com.intel.genomicsdbB"
-    "\035GenomicsDBImportConfiguration", 830);
+    "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001("
+    "\010:\005falseB5\n\024com.intel.genomicsdbB\035Genomi"
+    "csDBImportConfiguration", 863);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_import_config.proto", &protobuf_RegisterTypes);
   Partition::default_instance_ = new Partition();
@@ -419,7 +421,6 @@ void Partition::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Partition::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:Partition)
   // required int64 begin = 1;
   if (has_begin()) {
@@ -847,6 +848,7 @@ const int ImportConfiguration::kDiscardVcfIndexFieldNumber;
 const int ImportConfiguration::kSegmentSizeFieldNumber;
 const int ImportConfiguration::kCompressTiledbArrayFieldNumber;
 const int ImportConfiguration::kNumCellsPerTileFieldNumber;
+const int ImportConfiguration::kFailIfUpdatingFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ImportConfiguration::ImportConfiguration()
@@ -884,6 +886,7 @@ void ImportConfiguration::SharedCtor() {
   segment_size_ = GOOGLE_LONGLONG(10485760);
   compress_tiledb_array_ = true;
   num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
+  fail_if_updating_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -964,6 +967,7 @@ void ImportConfiguration::Clear() {
     compress_tiledb_array_ = true;
     num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   }
+  fail_if_updating_ = false;
 
 #undef ZR_HELPER_
 #undef ZR_
@@ -1226,6 +1230,21 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(136)) goto parse_fail_if_updating;
+        break;
+      }
+
+      // optional bool fail_if_updating = 17 [default = false];
+      case 17: {
+        if (tag == 136) {
+         parse_fail_if_updating:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &fail_if_updating_)));
+          set_has_fail_if_updating();
+        } else {
+          goto handle_unusual;
+        }
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -1346,6 +1365,11 @@ void ImportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(16, this->num_cells_per_tile(), output);
   }
 
+  // optional bool fail_if_updating = 17 [default = false];
+  if (has_fail_if_updating()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(17, this->fail_if_updating(), output);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1355,7 +1379,6 @@ void ImportConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ImportConfiguration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ImportConfiguration)
   // optional bool row_based_partitioning = 1 [default = false];
   if (has_row_based_partitioning()) {
@@ -1449,6 +1472,11 @@ void ImportConfiguration::SerializeWithCachedSizes(
   // optional int64 num_cells_per_tile = 16 [default = 1000];
   if (has_num_cells_per_tile()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(16, this->num_cells_per_tile(), target);
+  }
+
+  // optional bool fail_if_updating = 17 [default = false];
+  if (has_fail_if_updating()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(17, this->fail_if_updating(), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1553,6 +1581,11 @@ int ImportConfiguration::ByteSize() const {
     }
 
   }
+  // optional bool fail_if_updating = 17 [default = false];
+  if (has_fail_if_updating()) {
+    total_size += 2 + 1;
+  }
+
   // repeated .Partition column_partitions = 4;
   total_size += 1 * this->column_partitions_size();
   for (int i = 0; i < this->column_partitions_size(); i++) {
@@ -1646,6 +1679,11 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
       set_num_cells_per_tile(from.num_cells_per_tile());
     }
   }
+  if (from._has_bits_[16 / 32] & (0xffu << (16 % 32))) {
+    if (from.has_fail_if_updating()) {
+      set_fail_if_updating(from.fail_if_updating());
+    }
+  }
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
   }
@@ -1693,6 +1731,7 @@ void ImportConfiguration::InternalSwap(ImportConfiguration* other) {
   std::swap(segment_size_, other->segment_size_);
   std::swap(compress_tiledb_array_, other->compress_tiledb_array_);
   std::swap(num_cells_per_tile_, other->num_cells_per_tile_);
+  std::swap(fail_if_updating_, other->fail_if_updating_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -2157,6 +2196,30 @@ void ImportConfiguration::clear_num_cells_per_tile() {
   set_has_num_cells_per_tile();
   num_cells_per_tile_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.num_cells_per_tile)
+}
+
+// optional bool fail_if_updating = 17 [default = false];
+bool ImportConfiguration::has_fail_if_updating() const {
+  return (_has_bits_[0] & 0x00010000u) != 0;
+}
+void ImportConfiguration::set_has_fail_if_updating() {
+  _has_bits_[0] |= 0x00010000u;
+}
+void ImportConfiguration::clear_has_fail_if_updating() {
+  _has_bits_[0] &= ~0x00010000u;
+}
+void ImportConfiguration::clear_fail_if_updating() {
+  fail_if_updating_ = false;
+  clear_has_fail_if_updating();
+}
+ bool ImportConfiguration::fail_if_updating() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.fail_if_updating)
+  return fail_if_updating_;
+}
+ void ImportConfiguration::set_fail_if_updating(bool value) {
+  set_has_fail_if_updating();
+  fail_if_updating_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.fail_if_updating)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

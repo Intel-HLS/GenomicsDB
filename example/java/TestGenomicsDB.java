@@ -133,7 +133,8 @@ public final class TestGenomicsDB
     ARGS_IDX_BEGIN(1007),
     ARGS_IDX_END(1008),
     ARGS_IDX_COUNT_ONLY(1009),
-    ARGS_IDX_PASS_AS_VCF(1010);
+    ARGS_IDX_PASS_AS_VCF(1010),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1011);
 
     private final int mArgsIdx;
     ArgsIdxEnum(final int idx)
@@ -149,26 +150,27 @@ public final class TestGenomicsDB
 
   public static void main(final String[] args) throws IOException
   {
+    int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx();
     LongOpt[] longopts = new LongOpt[15];
-    longopts[0] = new LongOpt("query", LongOpt.NO_ARGUMENT, null, 1000);
-    longopts[1] = new LongOpt("load", LongOpt.NO_ARGUMENT, null, 1001);
+    longopts[0] = new LongOpt("query", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx());
+    longopts[1] = new LongOpt("load", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_LOAD.idx());
     //Specify rank (or partition idx) of this process
     longopts[2] = new LongOpt("rank", LongOpt.REQUIRED_ARGUMENT, null, 'r');
     longopts[5] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
     longopts[6] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
-    longopts[3] = new LongOpt("reference_genome", LongOpt.REQUIRED_ARGUMENT, null, 1002);
-    longopts[4] = new LongOpt("template_vcf_header", LongOpt.REQUIRED_ARGUMENT, null, 1003);
+    longopts[3] = new LongOpt("reference_genome", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_REFERENCE_GENOME.idx());
+    longopts[4] = new LongOpt("template_vcf_header", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_TEMPLATE_VCF_HEADER.idx());
     //Specify smallest row idx from which to start loading - useful for
     //incremental loading into existing array
-    longopts[7] = new LongOpt("lb_row_idx", LongOpt.REQUIRED_ARGUMENT, null, 1004);
+    longopts[7] = new LongOpt("lb_row_idx", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_LB_ROW_IDX.idx());
     //Specify largest row idx up to which loading should be performed - for completeness
-    longopts[8] = new LongOpt("ub_row_idx", LongOpt.REQUIRED_ARGUMENT, null, 1005);
-    longopts[9] = new LongOpt("chromosome", LongOpt.REQUIRED_ARGUMENT, null, 1006);
-    longopts[10] = new LongOpt("begin", LongOpt.REQUIRED_ARGUMENT, null, 1007);
-    longopts[11] = new LongOpt("end", LongOpt.REQUIRED_ARGUMENT, null, 1008);
+    longopts[8] = new LongOpt("ub_row_idx", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_UB_ROW_IDX.idx());
+    longopts[9] = new LongOpt("chromosome", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CHROMOSOME.idx());
+    longopts[10] = new LongOpt("begin", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_BEGIN.idx());
+    longopts[11] = new LongOpt("end", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_END.idx());
     longopts[12] = new LongOpt("loader_json_file", LongOpt.REQUIRED_ARGUMENT, null, 'l');
-    longopts[13] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, 1009);
-    longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, 1010);
+    longopts[13] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_COUNT_ONLY.idx());
+    longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_VCF.idx());
     if(args.length < 2)
     {
       System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
@@ -197,17 +199,12 @@ public final class TestGenomicsDB
     Getopt g = new Getopt("TestGenomicsDB", args, "w:A:r:l:", longopts);
     int c = -1;
     String optarg;
+    //Array of enums
+    final ArgsIdxEnum[] enumArray = ArgsIdxEnum.values();
     while ((c = g.getopt()) != -1)
     {
-      //Enums don't work :(
       switch(c)
       {
-        case 1000:
-          doQuery = true;
-          break;
-        case 1001:
-          doLoad = true;
-          break;
         case 'r':
           rank = Integer.parseInt(g.getOptarg());
           break;
@@ -217,39 +214,59 @@ public final class TestGenomicsDB
         case 'A':
           array = g.getOptarg();
           break;
-        case 1002:
-          referenceGenome = g.getOptarg();
-          break;
-        case 1003:
-          templateVCFHeader = g.getOptarg();
-          break;
-        case 1004:
-          lbRowIdx = Long.parseLong(g.getOptarg());
-          break;
-        case 1005:
-          ubRowIdx = Long.parseLong(g.getOptarg());
-          break;
-        case 1006:
-          chromosome = g.getOptarg();
-          break;
-        case 1007:
-          chrBegin = Integer.parseInt(g.getOptarg());
-          break;
-        case 1008:
-          chrEnd = Integer.parseInt(g.getOptarg());
-          break;
         case 'l':
           loaderJSONFile = g.getOptarg();
           break;
-        case 1009:
-          countOnly = true;
-          break;
-        case 1010:
-          passAsVCF = true;
-          break;
         default:
-          System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
-          break;
+          {
+            if(c >= firstEnumIdx && c < ArgsIdxEnum.ARGS_IDX_AFTER_LAST_ARG_IDX.idx())
+            {
+              int offset = c - firstEnumIdx;
+              assert offset < enumArray.length;
+              switch(enumArray[offset])
+              {
+                case ARGS_IDX_DO_QUERY:
+                  doQuery = true;
+                  break;
+                case ARGS_IDX_DO_LOAD:
+                  doLoad = true;
+                  break;
+                case ARGS_IDX_REFERENCE_GENOME:
+                  referenceGenome = g.getOptarg();
+                  break;
+                case ARGS_IDX_TEMPLATE_VCF_HEADER:
+                  templateVCFHeader = g.getOptarg();
+                  break;
+                case ARGS_IDX_LB_ROW_IDX:
+                  lbRowIdx = Long.parseLong(g.getOptarg());
+                  break;
+                case ARGS_IDX_UB_ROW_IDX:
+                  ubRowIdx = Long.parseLong(g.getOptarg());
+                  break;
+                case ARGS_IDX_CHROMOSOME:
+                  chromosome = g.getOptarg();
+                  break;
+                case ARGS_IDX_BEGIN:
+                  chrBegin = Integer.parseInt(g.getOptarg());
+                  break;
+                case ARGS_IDX_END:
+                  chrEnd = Integer.parseInt(g.getOptarg());
+                  break;
+                case ARGS_IDX_COUNT_ONLY:
+                  countOnly = true;
+                  break;
+                case ARGS_IDX_PASS_AS_VCF:
+                  passAsVCF = true;
+                  break;
+                default:
+                  System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+                  break;
+              }
+            }
+            else
+              System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+            break;
+          }
       }
     }
     //Do either query or load but not both
