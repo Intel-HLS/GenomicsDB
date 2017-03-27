@@ -427,6 +427,8 @@ public class GenomicsDBImporter
         .setProduceTiledbArray(true)
         .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
         .setCompressTiledbArray(true)
+        .setProduceTiledbArray(true)
+        .setNumCellsPerTile(1000)
         .setSegmentSize(segmentSize)
         .setTreatDeletionsAsIntervals(true)
         .setFailIfUpdating(failIfUpdating)
