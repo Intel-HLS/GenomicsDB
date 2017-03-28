@@ -952,7 +952,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
             m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
             if(callset_info_dict.HasMember("coverage_file") && callset_info_dict["coverage_file"].IsString())
             {
-              coverage_file_idx = get_or_append_global_file_idx(callset_info_dict["coverage_file"].GetString());
+              coverage_file_idx = get_or_append_global_file_idx(callset_info_dict["coverage_file"].GetString(), true);
               m_file_idx_to_info[coverage_file_idx].m_is_coverage_file = true;
             }
           }

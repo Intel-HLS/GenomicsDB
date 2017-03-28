@@ -360,7 +360,7 @@ def main():
                         "variants"      : "golden_outputs/t0_1_2_coverage_variants_at_0",
                         } },
                     ]
-            }
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -429,7 +429,14 @@ def main():
                         loader_argument = loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = '""'
-                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
+                        misc_args = '';
+                        #htsjdk doesn't like printing VCF lines where there are no FORMAT fields (even GT missing)
+                        #Including coverage files generally cause such lines to be printed by htslib
+                        #hence, don't print in Java when including coverage files
+                        if(test_name.find('coverage') != -1):
+                            misc_args += '--count_only';
+                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '
+                                +query_json_filename+' '+misc_args,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
                         loader_argument = ' -l '+loader_json_filename;
@@ -445,24 +452,6 @@ def main():
                         cleanup_and_exit(tmpdir, -1);
                     md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
-                        if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type == 'java_vcf'):
-                            test_query_dict['query_attributes'] = vcf_query_attributes_order;
-                        query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
-                        with open(query_json_filename, 'wb') as fptr:
-                            json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
-                            fptr.close();
-                        if(query_type == 'java_vcf'):
-                            pid = subprocess.Popen('java TestGenomicsDB -query '+loader_json_filename+' '+query_json_filename,
-                                    shell=True, stdout=subprocess.PIPE);
-                        else:
-                            pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d -l '+loader_json_filename+' -j '
-                                    +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
-                                    stdout=subprocess.PIPE);
-                        stdout_string = pid.communicate()[0]
-                        if(pid.returncode != 0):
-                            sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
-                            cleanup_and_exit(tmpdir, -1);
-                        md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                         golden_stdout, golden_md5sum = get_file_content_and_md5sum(query_param_dict['golden_output'][query_type]);
                         if(golden_md5sum != md5sum_hash_str):
                             sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
