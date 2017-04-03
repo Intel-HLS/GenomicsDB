@@ -53,8 +53,9 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
 }
 
 GenomicsDBColumnarField::GenomicsDBColumnarField(GenomicsDBColumnarField&& other)
+  : m_element_type(typeid(void))
 {
-  copy_simple_members();
+  copy_simple_members(other);
   m_free_buffer_list_head_ptr = other.m_free_buffer_list_head_ptr;
   other.m_free_buffer_list_head_ptr = 0;
   m_live_buffer_list_head_ptr = other.m_live_buffer_list_head_ptr;

@@ -372,7 +372,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBa
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
     std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType>(*this); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, PrintType>(*this); }
     size_t element_size() const { return sizeof(DataType); }
     void copy_data_into_vector(const char* buffer, const size_t num_elements)
     {
@@ -488,7 +488,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBa
     void copy_from(const VariantFieldBase* base_src)
     {
       VariantFieldBase::copy_from(base_src);
-      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType>*>(base_src);
+      auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType, PrintType>*>(base_src);
       assert(src);
       m_data.resize(src->m_data.size());
       if(m_data.size())
