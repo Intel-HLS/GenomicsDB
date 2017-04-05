@@ -471,7 +471,7 @@ public class GenomicsDBImporter
    * @param filename  File to dump the loader JSON to
    * @return  New file (with the specified name) written to local storage
    */
-  private static File printLoaderJSONFile(
+  static File printLoaderJSONFile(
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
     String filename) {
     String loaderJSONString = printToString(importConfiguration);

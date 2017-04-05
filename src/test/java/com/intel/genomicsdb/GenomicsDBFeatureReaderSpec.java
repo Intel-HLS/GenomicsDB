@@ -22,12 +22,26 @@
 
 package com.intel.genomicsdb;
 
+import htsjdk.tribble.FeatureReader;
 import htsjdk.tribble.readers.PositionalBufferedStream;
+import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFUtils;
+import org.junit.Assert;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.googlecode.protobuf.format.JsonFormat.printToString;
 
 public final class GenomicsDBFeatureReaderSpec {
 
@@ -35,9 +49,56 @@ public final class GenomicsDBFeatureReaderSpec {
   private static String TEST_TILEDB_ARRAY_NAME = "featureReaderTest";
   private static String TEMP_VIDMAP_JSON_FILE = "./generated_vid_map.json";
   private static String TEMP_CALLSETMAP_JSON_FILE = "./generated_callset_map.json";
+  private static String TEST_LOADER_JSON_FILE = "./generated_loader.json";
+  private static String TEST_QUERY_JSON_FILE = "./generated_query.json";
+  private static String TEST_REFERENCE_GENOME = "./tests/inputs/Homo_sapiens_assembly19.fasta";
+
+  private static final String TEST_CHROMOSOME_NAME = "1";
+
+  static File printQueryJSONFile(
+    GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration,
+    String filename) {
+    String queryJSONString = printToString(exportConfiguration);
+
+    File tempQueryJSONFile = new File(filename);
+
+    try( PrintWriter out = new PrintWriter(tempQueryJSONFile)  ){
+      out.println(queryJSONString);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+    return tempQueryJSONFile;
+  }
 
   @Test(testName = "Feature Reader with Merged Header")
-  public void testFeatureReaderWithMergedHeader() {
+  public void testFeatureReaderWithMergedHeader(
+    Map<String, FeatureReader<VariantContext>> variantReaders) throws IOException {
+
+    final String TEMP_VID_JSON_FILE = "./generated_vidmap.json";
+    final String TEMP_CALLSET_JSON_FILE = "./generated_callsetmap.json";
+
+    ChromosomeInterval chromosomeInterval =
+      new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
+
+    List<VCFHeader> headers = new ArrayList<>();
+    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
+      headers.add((VCFHeader) variant.getValue().getHeader());
+    }
+
+    Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
+
+    GenomicsDBImporter importer = new GenomicsDBImporter(
+      variantReaders,
+      mergedHeader,
+      chromosomeInterval,
+      TEST_TILEDB_WORKSPACE,
+      TEST_TILEDB_ARRAY_NAME,
+      1000L,
+      10000000L,
+      TEMP_VID_JSON_FILE,
+      TEMP_CALLSET_JSON_FILE);
+
+    importer.importBatch();
 
     GenomicsDBImportConfiguration.ImportConfiguration.Builder builder =
       GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
@@ -65,7 +126,23 @@ public final class GenomicsDBFeatureReaderSpec {
         .addAllColumnPartitions(partitionList)
         .build();
 
-//    GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader =
-//      GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>();
+    File importJSONFile = GenomicsDBImporter.printLoaderJSONFile(
+      importConfiguration, TEST_LOADER_JSON_FILE);
+
+    GenomicsDBExportConfiguration.ExportConfiguration.Builder eBuilder =
+      GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
+
+    GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration =
+      eBuilder
+        .setTiledbWorkspace(TEST_TILEDB_WORKSPACE)
+        .setTiledbArrayName(TEST_TILEDB_ARRAY_NAME)
+        .setReferenceGenome(TEST_REFERENCE_GENOME)
+        .build();
+
+    File queryJSONFile = printQueryJSONFile(exportConfiguration, TEST_QUERY_JSON_FILE);
+    BCF2Codec codec = new BCF2Codec();
+    GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader =
+      new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>(
+        importJSONFile.getAbsolutePath(), queryJSONFile.getAbsolutePath(), codec);
   }
 }
