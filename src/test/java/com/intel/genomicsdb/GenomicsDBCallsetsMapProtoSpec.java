@@ -41,7 +41,7 @@ public final class GenomicsDBCallsetsMapProtoSpec {
       sampleBuilder0
         .setSampleName("ABC")
         .setIdxInFile(0)
-        .setTiledbRowIndex(0)
+        .setRowIdx(0)
         .build();
 
     GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder sampleBuilder1 =
@@ -51,7 +51,7 @@ public final class GenomicsDBCallsetsMapProtoSpec {
       sampleBuilder1
         .setSampleName("MNP")
         .setIdxInFile(0)
-        .setTiledbRowIndex(1)
+        .setRowIdx(1)
         .build();
 
     GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder sampleBuilder2 =
@@ -61,7 +61,7 @@ public final class GenomicsDBCallsetsMapProtoSpec {
       sampleBuilder2
         .setSampleName("XYZ")
         .setIdxInFile(0)
-        .setTiledbRowIndex(2)
+        .setRowIdx(2)
         .build();
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =

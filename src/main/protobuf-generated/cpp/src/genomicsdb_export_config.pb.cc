@@ -7,7 +7,6 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
-#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -32,7 +31,6 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 }  // namespace
 
 
-void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
   protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
   const ::google::protobuf::FileDescriptor* file =
@@ -71,12 +69,14 @@ void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _internal_metadata_),
       -1);
   ExportConfiguration_descriptor_ = file->message_type(2);
-  static const int ExportConfiguration_offsets_[5] = {
+  static const int ExportConfiguration_offsets_[7] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_workspace_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_array_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, reference_genome_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_column_ranges_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, attributes_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, vid_mapping_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, callset_mapping_file_),
   };
   ExportConfiguration_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -99,7 +99,6 @@ inline void protobuf_AssignDescriptorsOnce() {
                  &protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto);
 }
 
-void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -121,7 +120,6 @@ void protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto() {
   delete ExportConfiguration_reflection_;
 }
 
-void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
   static bool already_here = false;
   if (already_here) return;
@@ -132,12 +130,14 @@ void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
     "\n\036genomicsdb_export_config.proto\"(\n\013Colu"
     "mnRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high\030\002 \002(\003\"3\n\017Co"
     "lumnRangeList\022 \n\nrange_list\030\001 \003(\0132\014.Colu"
-    "mnRange\"\247\001\n\023ExportConfiguration\022\030\n\020tiled"
+    "mnRange\"\337\001\n\023ExportConfiguration\022\030\n\020tiled"
     "b_workspace\030\001 \002(\t\022\031\n\021tiledb_array_name\030\002"
     " \002(\t\022\030\n\020reference_genome\030\003 \002(\t\022-\n\023query_"
     "column_ranges\030\004 \003(\0132\020.ColumnRangeList\022\022\n"
-    "\nattributes\030\005 \003(\tB5\n\024com.intel.genomicsd"
-    "bB\035GenomicsDBExportConfiguration", 352);
+    "\nattributes\030\005 \003(\t\022\030\n\020vid_mapping_file\030\006 "
+    "\001(\t\022\034\n\024callset_mapping_file\030\007 \001(\tB5\n\024com"
+    ".intel.genomicsdbB\035GenomicsDBExportConfi"
+    "guration", 408);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_export_config.proto", &protobuf_RegisterTypes);
   ColumnRange::default_instance_ = new ColumnRange();
@@ -156,12 +156,22 @@ struct StaticDescriptorInitializer_genomicsdb_5fexport_5fconfig_2eproto {
   }
 } static_descriptor_initializer_genomicsdb_5fexport_5fconfig_2eproto_;
 
+namespace {
+
+static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD;
+static void MergeFromFail(int line) {
+  GOOGLE_CHECK(false) << __FILE__ << ":" << line;
+}
+
+}  // namespace
+
+
 // ===================================================================
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#ifndef _MSC_VER
 const int ColumnRange::kLowFieldNumber;
 const int ColumnRange::kHighFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#endif  // !_MSC_VER
 
 ColumnRange::ColumnRange()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -223,17 +233,8 @@ ColumnRange* ColumnRange::New(::google::protobuf::Arena* arena) const {
 }
 
 void ColumnRange::Clear() {
-// @@protoc_insertion_point(message_clear_start:ColumnRange)
-#if defined(__clang__)
-#define ZR_HELPER_(f) \
-  _Pragma("clang diagnostic push") \
-  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
-  __builtin_offsetof(ColumnRange, f) \
-  _Pragma("clang diagnostic pop")
-#else
 #define ZR_HELPER_(f) reinterpret_cast<char*>(\
   &reinterpret_cast<ColumnRange*>(16)->f)
-#endif
 
 #define ZR_(first, last) do {\
   ::memset(&first, 0,\
@@ -253,7 +254,7 @@ void ColumnRange::Clear() {
 
 bool ColumnRange::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ColumnRange)
   for (;;) {
@@ -332,9 +333,8 @@ void ColumnRange::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ColumnRange)
 }
 
-::google::protobuf::uint8* ColumnRange::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::google::protobuf::uint8* ColumnRange::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
@@ -355,7 +355,6 @@ void ColumnRange::SerializeWithCachedSizes(
 }
 
 int ColumnRange::RequiredFieldsByteSizeFallback() const {
-// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ColumnRange)
   int total_size = 0;
 
   if (has_low()) {
@@ -375,7 +374,6 @@ int ColumnRange::RequiredFieldsByteSizeFallback() const {
   return total_size;
 }
 int ColumnRange::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:ColumnRange)
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
@@ -404,27 +402,19 @@ int ColumnRange::ByteSize() const {
 }
 
 void ColumnRange::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:ColumnRange)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   const ColumnRange* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRange>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRange)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRange)
     MergeFrom(*source);
   }
 }
 
 void ColumnRange::MergeFrom(const ColumnRange& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRange)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_low()) {
       set_low(from.low());
@@ -439,14 +429,12 @@ void ColumnRange::MergeFrom(const ColumnRange& from) {
 }
 
 void ColumnRange::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRange::CopyFrom(const ColumnRange& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -533,9 +521,9 @@ void ColumnRange::clear_high() {
 
 // ===================================================================
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#ifndef _MSC_VER
 const int ColumnRangeList::kRangeListFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#endif  // !_MSC_VER
 
 ColumnRangeList::ColumnRangeList()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -595,7 +583,6 @@ ColumnRangeList* ColumnRangeList::New(::google::protobuf::Arena* arena) const {
 }
 
 void ColumnRangeList::Clear() {
-// @@protoc_insertion_point(message_clear_start:ColumnRangeList)
   range_list_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
@@ -605,7 +592,7 @@ void ColumnRangeList::Clear() {
 
 bool ColumnRangeList::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ColumnRangeList)
   for (;;) {
@@ -667,15 +654,14 @@ void ColumnRangeList::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ColumnRangeList)
 }
 
-::google::protobuf::uint8* ColumnRangeList::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::google::protobuf::uint8* ColumnRangeList::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
   for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        1, this->range_list(i), false, target);
+      WriteMessageNoVirtualToArray(
+        1, this->range_list(i), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -687,7 +673,6 @@ void ColumnRangeList::SerializeWithCachedSizes(
 }
 
 int ColumnRangeList::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:ColumnRangeList)
   int total_size = 0;
 
   // repeated .ColumnRange range_list = 1;
@@ -710,27 +695,19 @@ int ColumnRangeList::ByteSize() const {
 }
 
 void ColumnRangeList::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:ColumnRangeList)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   const ColumnRangeList* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRangeList>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRangeList)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRangeList)
     MergeFrom(*source);
   }
 }
 
 void ColumnRangeList::MergeFrom(const ColumnRangeList& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRangeList)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   range_list_.MergeFrom(from.range_list_);
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -738,14 +715,12 @@ void ColumnRangeList::MergeFrom(const ColumnRangeList& from) {
 }
 
 void ColumnRangeList::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRangeList::CopyFrom(const ColumnRangeList& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -813,13 +788,15 @@ ColumnRangeList::range_list() const {
 
 // ===================================================================
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#ifndef _MSC_VER
 const int ExportConfiguration::kTiledbWorkspaceFieldNumber;
 const int ExportConfiguration::kTiledbArrayNameFieldNumber;
 const int ExportConfiguration::kReferenceGenomeFieldNumber;
 const int ExportConfiguration::kQueryColumnRangesFieldNumber;
 const int ExportConfiguration::kAttributesFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+const int ExportConfiguration::kVidMappingFileFieldNumber;
+const int ExportConfiguration::kCallsetMappingFileFieldNumber;
+#endif  // !_MSC_VER
 
 ExportConfiguration::ExportConfiguration()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -844,6 +821,8 @@ void ExportConfiguration::SharedCtor() {
   tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vid_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  callset_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -856,6 +835,8 @@ void ExportConfiguration::SharedDtor() {
   tiledb_workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   tiledb_array_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vid_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  callset_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != default_instance_) {
   }
 }
@@ -886,8 +867,7 @@ ExportConfiguration* ExportConfiguration::New(::google::protobuf::Arena* arena) 
 }
 
 void ExportConfiguration::Clear() {
-// @@protoc_insertion_point(message_clear_start:ExportConfiguration)
-  if (_has_bits_[0 / 32] & 7u) {
+  if (_has_bits_[0 / 32] & 103u) {
     if (has_tiledb_workspace()) {
       tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
@@ -896,6 +876,12 @@ void ExportConfiguration::Clear() {
     }
     if (has_reference_genome()) {
       reference_genome_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    if (has_vid_mapping_file()) {
+      vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    if (has_callset_mapping_file()) {
+      callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
   }
   query_column_ranges_.Clear();
@@ -908,7 +894,7 @@ void ExportConfiguration::Clear() {
 
 bool ExportConfiguration::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ExportConfiguration)
   for (;;) {
@@ -998,6 +984,40 @@ bool ExportConfiguration::MergePartialFromCodedStream(
           goto handle_unusual;
         }
         if (input->ExpectTag(42)) goto parse_attributes;
+        if (input->ExpectTag(50)) goto parse_vid_mapping_file;
+        break;
+      }
+
+      // optional string vid_mapping_file = 6;
+      case 6: {
+        if (tag == 50) {
+         parse_vid_mapping_file:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_vid_mapping_file()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->vid_mapping_file().data(), this->vid_mapping_file().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.vid_mapping_file");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(58)) goto parse_callset_mapping_file;
+        break;
+      }
+
+      // optional string callset_mapping_file = 7;
+      case 7: {
+        if (tag == 58) {
+         parse_callset_mapping_file:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callset_mapping_file()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->callset_mapping_file().data(), this->callset_mapping_file().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.callset_mapping_file");
+        } else {
+          goto handle_unusual;
+        }
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -1073,6 +1093,26 @@ void ExportConfiguration::SerializeWithCachedSizes(
       5, this->attributes(i), output);
   }
 
+  // optional string vid_mapping_file = 6;
+  if (has_vid_mapping_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vid_mapping_file().data(), this->vid_mapping_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vid_mapping_file");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      6, this->vid_mapping_file(), output);
+  }
+
+  // optional string callset_mapping_file = 7;
+  if (has_callset_mapping_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->callset_mapping_file().data(), this->callset_mapping_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.callset_mapping_file");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      7, this->callset_mapping_file(), output);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1080,9 +1120,8 @@ void ExportConfiguration::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ExportConfiguration)
 }
 
-::google::protobuf::uint8* ExportConfiguration::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::google::protobuf::uint8* ExportConfiguration::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
   // required string tiledb_workspace = 1;
   if (has_tiledb_workspace()) {
@@ -1120,8 +1159,8 @@ void ExportConfiguration::SerializeWithCachedSizes(
   // repeated .ColumnRangeList query_column_ranges = 4;
   for (unsigned int i = 0, n = this->query_column_ranges_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessageNoVirtualToArray(
-        4, this->query_column_ranges(i), false, target);
+      WriteMessageNoVirtualToArray(
+        4, this->query_column_ranges(i), target);
   }
 
   // repeated string attributes = 5;
@@ -1134,6 +1173,28 @@ void ExportConfiguration::SerializeWithCachedSizes(
       WriteStringToArray(5, this->attributes(i), target);
   }
 
+  // optional string vid_mapping_file = 6;
+  if (has_vid_mapping_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vid_mapping_file().data(), this->vid_mapping_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vid_mapping_file");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        6, this->vid_mapping_file(), target);
+  }
+
+  // optional string callset_mapping_file = 7;
+  if (has_callset_mapping_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->callset_mapping_file().data(), this->callset_mapping_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.callset_mapping_file");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        7, this->callset_mapping_file(), target);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -1143,7 +1204,6 @@ void ExportConfiguration::SerializeWithCachedSizes(
 }
 
 int ExportConfiguration::RequiredFieldsByteSizeFallback() const {
-// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ExportConfiguration)
   int total_size = 0;
 
   if (has_tiledb_workspace()) {
@@ -1170,7 +1230,6 @@ int ExportConfiguration::RequiredFieldsByteSizeFallback() const {
   return total_size;
 }
 int ExportConfiguration::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:ExportConfiguration)
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
@@ -1191,6 +1250,22 @@ int ExportConfiguration::ByteSize() const {
 
   } else {
     total_size += RequiredFieldsByteSizeFallback();
+  }
+  if (_has_bits_[5 / 32] & 96u) {
+    // optional string vid_mapping_file = 6;
+    if (has_vid_mapping_file()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->vid_mapping_file());
+    }
+
+    // optional string callset_mapping_file = 7;
+    if (has_callset_mapping_file()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callset_mapping_file());
+    }
+
   }
   // repeated .ColumnRangeList query_column_ranges = 4;
   total_size += 1 * this->query_column_ranges_size();
@@ -1219,27 +1294,19 @@ int ExportConfiguration::ByteSize() const {
 }
 
 void ExportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:ExportConfiguration)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   const ExportConfiguration* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ExportConfiguration>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ExportConfiguration)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:ExportConfiguration)
     MergeFrom(*source);
   }
 }
 
 void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:ExportConfiguration)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   query_column_ranges_.MergeFrom(from.query_column_ranges_);
   attributes_.MergeFrom(from.attributes_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
@@ -1255,6 +1322,14 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
       set_has_reference_genome();
       reference_genome_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.reference_genome_);
     }
+    if (from.has_vid_mapping_file()) {
+      set_has_vid_mapping_file();
+      vid_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vid_mapping_file_);
+    }
+    if (from.has_callset_mapping_file()) {
+      set_has_callset_mapping_file();
+      callset_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.callset_mapping_file_);
+    }
   }
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -1262,14 +1337,12 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
 }
 
 void ExportConfiguration::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ExportConfiguration::CopyFrom(const ExportConfiguration& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1292,6 +1365,8 @@ void ExportConfiguration::InternalSwap(ExportConfiguration* other) {
   reference_genome_.Swap(&other->reference_genome_);
   query_column_ranges_.UnsafeArenaSwap(&other->query_column_ranges_);
   attributes_.UnsafeArenaSwap(&other->attributes_);
+  vid_mapping_file_.Swap(&other->vid_mapping_file_);
+  callset_mapping_file_.Swap(&other->callset_mapping_file_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -1348,7 +1423,6 @@ void ExportConfiguration::clear_tiledb_workspace() {
   return tiledb_workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_tiledb_workspace() {
-  // @@protoc_insertion_point(field_release:ExportConfiguration.tiledb_workspace)
   clear_has_tiledb_workspace();
   return tiledb_workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1402,7 +1476,6 @@ void ExportConfiguration::clear_tiledb_array_name() {
   return tiledb_array_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_tiledb_array_name() {
-  // @@protoc_insertion_point(field_release:ExportConfiguration.tiledb_array_name)
   clear_has_tiledb_array_name();
   return tiledb_array_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1456,7 +1529,6 @@ void ExportConfiguration::clear_reference_genome() {
   return reference_genome_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_reference_genome() {
-  // @@protoc_insertion_point(field_release:ExportConfiguration.reference_genome)
   clear_has_reference_genome();
   return reference_genome_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1529,7 +1601,6 @@ void ExportConfiguration::clear_attributes() {
   // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.attributes)
 }
  ::std::string* ExportConfiguration::add_attributes() {
-  // @@protoc_insertion_point(field_add_mutable:ExportConfiguration.attributes)
   return attributes_.Add();
 }
  void ExportConfiguration::add_attributes(const ::std::string& value) {
@@ -1553,6 +1624,112 @@ ExportConfiguration::attributes() const {
 ExportConfiguration::mutable_attributes() {
   // @@protoc_insertion_point(field_mutable_list:ExportConfiguration.attributes)
   return &attributes_;
+}
+
+// optional string vid_mapping_file = 6;
+bool ExportConfiguration::has_vid_mapping_file() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+void ExportConfiguration::set_has_vid_mapping_file() {
+  _has_bits_[0] |= 0x00000020u;
+}
+void ExportConfiguration::clear_has_vid_mapping_file() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+void ExportConfiguration::clear_vid_mapping_file() {
+  vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_vid_mapping_file();
+}
+ const ::std::string& ExportConfiguration::vid_mapping_file() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.vid_mapping_file)
+  return vid_mapping_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_vid_mapping_file(const ::std::string& value) {
+  set_has_vid_mapping_file();
+  vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.vid_mapping_file)
+}
+ void ExportConfiguration::set_vid_mapping_file(const char* value) {
+  set_has_vid_mapping_file();
+  vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.vid_mapping_file)
+}
+ void ExportConfiguration::set_vid_mapping_file(const char* value, size_t size) {
+  set_has_vid_mapping_file();
+  vid_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.vid_mapping_file)
+}
+ ::std::string* ExportConfiguration::mutable_vid_mapping_file() {
+  set_has_vid_mapping_file();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.vid_mapping_file)
+  return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* ExportConfiguration::release_vid_mapping_file() {
+  clear_has_vid_mapping_file();
+  return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_allocated_vid_mapping_file(::std::string* vid_mapping_file) {
+  if (vid_mapping_file != NULL) {
+    set_has_vid_mapping_file();
+  } else {
+    clear_has_vid_mapping_file();
+  }
+  vid_mapping_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vid_mapping_file);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.vid_mapping_file)
+}
+
+// optional string callset_mapping_file = 7;
+bool ExportConfiguration::has_callset_mapping_file() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+void ExportConfiguration::set_has_callset_mapping_file() {
+  _has_bits_[0] |= 0x00000040u;
+}
+void ExportConfiguration::clear_has_callset_mapping_file() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+void ExportConfiguration::clear_callset_mapping_file() {
+  callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_callset_mapping_file();
+}
+ const ::std::string& ExportConfiguration::callset_mapping_file() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.callset_mapping_file)
+  return callset_mapping_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_callset_mapping_file(const ::std::string& value) {
+  set_has_callset_mapping_file();
+  callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.callset_mapping_file)
+}
+ void ExportConfiguration::set_callset_mapping_file(const char* value) {
+  set_has_callset_mapping_file();
+  callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.callset_mapping_file)
+}
+ void ExportConfiguration::set_callset_mapping_file(const char* value, size_t size) {
+  set_has_callset_mapping_file();
+  callset_mapping_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.callset_mapping_file)
+}
+ ::std::string* ExportConfiguration::mutable_callset_mapping_file() {
+  set_has_callset_mapping_file();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.callset_mapping_file)
+  return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* ExportConfiguration::release_callset_mapping_file() {
+  clear_has_callset_mapping_file();
+  return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_allocated_callset_mapping_file(::std::string* callset_mapping_file) {
+  if (callset_mapping_file != NULL) {
+    set_has_callset_mapping_file();
+  } else {
+    clear_has_callset_mapping_file();
+  }
+  callset_mapping_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), callset_mapping_file);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.callset_mapping_file)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

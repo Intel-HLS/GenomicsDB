@@ -154,11 +154,11 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
           (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap) cObject;
         String sampleName = sampleIDToTileDBIDMap.getSampleName();
-        Long tiledbRowIndex_B = sampleIDToTileDBIDMap.getTiledbRowIndex();
+        Long tiledbRowIndex_B = sampleIDToTileDBIDMap.getRowIdx();
         String stream_name_B = sampleIDToTileDBIDMap.getStreamName();
 
         Long tileDBRowIndex_A =
-          callsetMappingPB_A.getCallsets(index).getTiledbRowIndex();
+          callsetMappingPB_A.getCallsets(index).getRowIdx();
         String stream_name_A =
           callsetMappingPB_A.getCallsets(index).getStreamName();
 

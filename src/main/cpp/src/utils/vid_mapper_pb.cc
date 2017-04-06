@@ -41,8 +41,8 @@ ProtoBufBasedVidMapper::ProtoBufBasedVidMapper(
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   assert (vid_map_protobuf->IsInitialized() &&
-      vid_map_protobuf->chromosomes_size()!=0 &&
-      vid_map_protobuf->infofields_size()!=0);
+      vid_map_protobuf->contigs_size()!=0 &&
+      vid_map_protobuf->fields_size()!=0);
 
   assert (callset_map_protobuf->IsInitialized() &&
       callset_map_protobuf->callsets_size()!= 0);
@@ -80,7 +80,7 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
   for (; it != callset_map_protobuf->callsets().cend(); ++it) {
     SampleIDToTileDBIDMap sample_info = *it;
     std::string callset_name = it->sample_name();
-    int64_t row_idx = sample_info.tiledb_row_index();
+    int64_t row_idx = sample_info.row_idx();
     int64_t idx_in_file = sample_info.idx_in_file();
     std::string stream_name = sample_info.stream_name();
 
@@ -193,7 +193,7 @@ int ProtoBufBasedVidMapper::parse_vidmap_protobuf(
 int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   const VidMappingPB* vid_map_protobuf) {
 
-  auto num_contigs = vid_map_protobuf->chromosomes_size();
+  auto num_contigs = vid_map_protobuf->contigs_size();
   m_contig_idx_to_info.resize(num_contigs);
   m_contig_begin_2_idx.resize(num_contigs);
   m_contig_end_2_idx.resize(num_contigs);
@@ -201,7 +201,7 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
   std::string contig_name;
 
   for (auto contig_idx = 0L; contig_idx < num_contigs; ++contig_idx) {
-    contig_name = vid_map_protobuf->chromosomes(contig_idx).name();
+    contig_name = vid_map_protobuf->contigs(contig_idx).name();
 
     if(m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end())
     {
@@ -215,10 +215,10 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
     }
 
     auto tiledb_column_offset =
-        vid_map_protobuf->chromosomes(contig_idx).tiledb_column_offset();
+        vid_map_protobuf->contigs(contig_idx).tiledb_column_offset();
 
     VERIFY_OR_THROW(tiledb_column_offset >= 0LL);
-    auto length = vid_map_protobuf->chromosomes(contig_idx).length();
+    auto length = vid_map_protobuf->contigs(contig_idx).length();
 
     VERIFY_OR_THROW(length >= 0LL);
 
@@ -297,7 +297,7 @@ int ProtoBufBasedVidMapper::parse_contigs_from_vidmap(
 int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
   const VidMappingPB* vid_map_protobuf) {
 
-  auto num_fields = vid_map_protobuf->infofields_size();
+  auto num_fields = vid_map_protobuf->fields_size();
   m_field_idx_to_info.resize(num_fields);
   std::string field_name;
   std::string field_type;
@@ -305,7 +305,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
   for (auto pb_field_idx = 0, field_idx = 0; pb_field_idx < num_fields;
       ++pb_field_idx, field_idx++) {
-    field_name = vid_map_protobuf->infofields(pb_field_idx).name();
+    field_name = vid_map_protobuf->fields(pb_field_idx).name();
     if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end()) {
       std::cerr << "Duplicate field name "
                 << field_name
@@ -326,7 +326,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     auto& ref = m_field_idx_to_info[field_idx];
 
     //Field type - int, char etc
-    field_type = vid_map_protobuf->infofields(pb_field_idx).type();
+    field_type = vid_map_protobuf->fields(pb_field_idx).type();
 
     {
       auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
@@ -343,12 +343,12 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
 
     // VCF class type can be an array of values: INFO, FORMAT and FILTER
     auto class_type_size =
-        vid_map_protobuf->infofields(pb_field_idx).vcf_field_class_size();
+        vid_map_protobuf->fields(pb_field_idx).vcf_field_class_size();
 
     if (class_type_size > 0L) {
       for (int i = 0; i < class_type_size; ++i) {
         std::string class_name =
-          vid_map_protobuf->infofields(pb_field_idx).vcf_field_class(i);
+          vid_map_protobuf->fields(pb_field_idx).vcf_field_class(i);
         if(class_name == "INFO")
           ref.m_is_vcf_INFO_field = true;
         else if(class_name == "FORMAT") {
@@ -358,8 +358,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
             ref.m_is_vcf_FILTER_field = true;
       }
     }
-    if (vid_map_protobuf->infofields(pb_field_idx).has_length()) {
-      std::string length = vid_map_protobuf->infofields(pb_field_idx).length();
+    if (vid_map_protobuf->fields(pb_field_idx).has_length()) {
+      std::string length = vid_map_protobuf->fields(pb_field_idx).length();
       if (isdigit(length.c_str()[0])) {
         ref.m_num_elements =
             strtol(length.c_str(), NULL, 10);

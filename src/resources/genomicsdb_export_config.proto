@@ -45,4 +45,6 @@ message ExportConfiguration {
   required string reference_genome = 3;
   repeated ColumnRangeList query_column_ranges = 4;
   repeated string attributes = 5;
+  optional string vid_mapping_file = 6;
+  optional string callset_mapping_file = 7;
 }

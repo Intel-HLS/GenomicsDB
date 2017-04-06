@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb;
 
+import com.googlecode.protobuf.format.JsonFormat;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -474,7 +475,7 @@ public class GenomicsDBImporter
   static File printLoaderJSONFile(
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
     String filename) {
-    String loaderJSONString = printToString(importConfiguration);
+    String loaderJSONString = JsonFormat.printToString(importConfiguration);
 
     File tempLoaderJSONFile = (filename.isEmpty()) ?
       new File(mTempLoaderJSONFileName) :
@@ -524,7 +525,7 @@ public class GenomicsDBImporter
 
       idMapBuilder
         .setSampleName(sampleName)
-        .setTiledbRowIndex(tileDBRowIndex++)
+        .setRowIdx(tileDBRowIndex++)
         .setIdxInFile(0)
         .setStreamName(sampleName + "_stream");
 
@@ -663,8 +664,8 @@ public class GenomicsDBImporter
       GenomicsDBVidMapProto.VidMappingPB.newBuilder();
 
     return vidMapBuilder
-      .addAllInfofields(infoFields)
-      .addAllChromosomes(contigs)
+      .addAllFields(infoFields)
+      .addAllContigs(contigs)
       .build();
   }
   
