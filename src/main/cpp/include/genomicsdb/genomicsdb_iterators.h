@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "variant_cell.h"
+#include "genomicsdb_columnar_field.h"
 #include "c_api.h"
 #include "timer.h"
 
@@ -49,31 +50,36 @@ class SingleCellTileDBIterator
   public:
     SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size);
-    ~VariantArrayCellIterator()
+    ~SingleCellTileDBIterator()
     {
-      if(m_tiledb_array_iterator)
-        tiledb_array_iterator_finalize(m_tiledb_array_iterator);
-      m_tiledb_array_iterator = 0;
+      if(m_tiledb_array)
+        tiledb_array_finalize(m_tiledb_array);
+      m_tiledb_array = 0;
 #ifdef DO_PROFILING
       m_tiledb_timer.print("TileDB iterator", std::cerr);
       m_tiledb_to_buffer_cell_timer.print("TileDB to buffer cell", std::cerr);
 #endif
     }
     //Delete copy and move constructors
-    VariantArrayCellIterator(const VariantArrayCellIterator& other) = delete;
-    VariantArrayCellIterator(VariantArrayCellIterator&& other) = delete;
+    SingleCellTileDBIterator(const SingleCellTileDBIterator& other) = delete;
+    SingleCellTileDBIterator(SingleCellTileDBIterator&& other) = delete;
     //Iterator functionality
-    const BufferVariantCell& operator*();
-    inline const VariantArrayCellIterator& operator++();
-    inline bool end() const {
-      return tiledb_array_iterator_end(m_tiledb_array_iterator);
-    }
+    const BufferVariantCell& operator*() const;
+    inline const SingleCellTileDBIterator& operator++();
+    inline bool end() const;
+  protected:
+    /*
+     * Does one read for the attributes in m_query_attribute_idx_vec
+     */
+    void read_from_TileDB();
   private:
-    TileDB_CTX* m_tiledb_ctx;
     const VariantArraySchema* m_variant_array_schema;
     BufferVariantCell m_cell;
     //Buffers for fields
     std::vector<GenomicsDBColumnarField> m_fields;
+    //Contains query idx for only the fields that must be fetched from TileDB in the next round
+    //The first time all fields are queried - in subsequent iterations only those fields whose
+    //buffers are consumed completely are queried
     std::vector<int> m_query_attribute_idx_vec;
     //Since variable length fields have buffers for offsets, need a mapping structure
     std::vector<size_t> m_query_attribute_idx_to_tiledb_buffer_idx;

@@ -37,6 +37,7 @@ GenomicsDBColumnarField::GenomicsDBColumnarField(const std::type_index element_t
   m_free_buffer_list_head_ptr = 0;
   m_live_buffer_list_head_ptr = 0;
   m_live_buffer_list_tail_ptr = 0;
+  m_curr_index_in_live_buffer_list_tail = 0u;
   //Create 1 buffer
   add_new_buffer();
 }
@@ -50,6 +51,7 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_element_type = other.m_element_type;
   m_check_tiledb_valid_element = other.m_check_tiledb_valid_element;
   m_buffer_size = other.m_buffer_size;
+  m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_head;
 }
 
 GenomicsDBColumnarField::GenomicsDBColumnarField(GenomicsDBColumnarField&& other)
@@ -93,12 +95,17 @@ void GenomicsDBColumnarField::assign_function_pointers()
   {
     case VariantFieldTypeEnum::VARIANT_FIELD_INT:
     case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
+      m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<int>;
+      break;
     case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
     case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
-      m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<int>;
+      m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<int64_t>;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<float>;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
+      m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<double>;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
     case VariantFieldTypeEnum::VARIANT_FIELD_STRING:

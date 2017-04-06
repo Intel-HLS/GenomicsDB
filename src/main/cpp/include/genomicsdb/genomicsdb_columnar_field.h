@@ -82,10 +82,21 @@ class GenomicsDBBuffer
     inline size_t* get_offsets_pointer() { return &(m_offsets[0]); }
     inline size_t get_offsets_size_in_bytes() const { return ((m_offsets.size()-1u)*sizeof(size_t)); } //last offsets element holds the "size"
     inline size_t get_offsets_length() const { return (m_offsets.size()-1u); } //last offsets element holds the "size"
+    /*
+     * Set offset in buffer of the idx-th element
+     * Useful only for variable length fields and used by the iterators
+     * This allows us to use m_offsets for computing the size of every cell data without
+     * having to write "if(last_cell) else" expressions
+     */
     inline void set_offset(const size_t idx, const size_t value)
     {
       assert(idx < m_offsets.size());
       m_offsets[idx] = value;
+    }
+    inline size_t get_offset(const size_t idx) const
+    {
+      assert(idx < m_offsets.size());
+      return m_offsets[idx ];
     }
     inline std::vector<bool>& get_valid_vector() { return m_valid; }
     //Buffer pointers
@@ -161,6 +172,33 @@ class GenomicsDBColumnarField
     //Field lengths
     bool is_variable_length_field() const { return (m_length_descriptor != BCF_VL_FIXED); }
     inline size_t get_fixed_length_field_size_in_bytes() const { return m_fixed_length_field_size; }
+    //Functions to update index in live list tail buffer
+    inline void set_curr_index_in_live_list_tail(const size_t val) { m_curr_index_in_live_buffer_list_tail = val; }
+    inline void advance_curr_index_in_live_list_tail(const size_t val=1u) { m_curr_index_in_live_buffer_list_tail += val; }
+    inline size_t get_curr_index_in_live_list_tail() const { return m_curr_index_in_live_buffer_list_tail; }
+    //Get pointer to data for current idx in tail
+    inline const uint8_t* get_pointer_to_curr_index_data_in_live_list_tail() const
+    {
+      auto buffer_ptr = get_live_buffer_list_tail_ptr();
+      assert(buffer_ptr);
+      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
+      if(m_length_descriptor == BCF_VL_FIXED)
+        return buffer_ptr->get_buffer_pointer() + (m_fixed_length_field_size*m_curr_index_in_live_buffer_list_tail);
+      else
+        return buffer_ptr->get_buffer_pointer() + buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail);
+    }
+    //Get num bytes for current idx in tail
+    inline size_t get_size_of_curr_index_data_in_live_list_tail() const
+    {
+      auto buffer_ptr = get_live_buffer_list_tail_ptr();
+      assert(buffer_ptr);
+      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
+      if(m_length_descriptor == BCF_VL_FIXED)
+        return m_fixed_length_field_size;
+      else
+        return buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail+1u)
+          - buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail);
+    }
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();
@@ -196,6 +234,8 @@ class GenomicsDBColumnarField
     //Tail of list containing buffers with live data - list is in column-major order
     //tail needed because new data gets appended to end
     GenomicsDBBuffer* m_live_buffer_list_tail_ptr;
+    //Index of the element in the live buffer list head that must be read next
+    size_t m_curr_index_in_live_buffer_list_tail;
 };
 
 #endif

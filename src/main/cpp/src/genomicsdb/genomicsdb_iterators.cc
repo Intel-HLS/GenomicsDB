@@ -26,7 +26,7 @@
 
 SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size)
-: m_variant_array_schema(&variant_array_schema), m_cell(variant_array_schema, attribute_ids),
+: m_variant_array_schema(&variant_array_schema), m_cell(variant_array_schema, attribute_ids)
 #ifdef DO_PROFILING
   , m_tiledb_timer()
   , m_tiledb_to_buffer_cell_timer()
@@ -46,8 +46,6 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const
     m_fields.emplace_back(variant_array_schema.type(schema_idx),
         is_variable_length_field ? BCF_VL_VAR : BCF_VL_FIXED,
         variant_array_schema.val_num(schema_idx), buffer_size);
-    //Get a free buffer and move it to the live list
-    m_fields[i].move_buffer_to_live_list(m_fields[i].get_free_buffer());
     //Buffer pointers and size
     m_buffer_pointers.push_back(0);
     m_buffer_sizes.push_back(0);
@@ -64,7 +62,6 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const
   m_query_attribute_idx_to_tiledb_buffer_idx[coords_idx] = m_buffer_pointers.size();
   //GenomicsDBColumnarField
   m_fields.emplace_back(variant_array_schema.dim_type(), BCF_VL_FIXED, variant_array_schema.dim_length(), buffer_size);
-  m_fields[coords_idx].move_buffer_to_live_list(m_fields[coords_idx].get_free_buffer());
   //Buffer pointers and size for COORDS
   m_buffer_pointers.push_back(0);
   m_buffer_sizes.push_back(0);
@@ -74,7 +71,7 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const
       &m_tiledb_array,
       array_path.c_str(),
       TILEDB_ARRAY_READ,
-      reinterpret_cast<const void*>(range), // range,
+      reinterpret_cast<const void*>(range),
       &(attribute_names[0]),           
       attribute_names.size());
   VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB array object");
@@ -93,7 +90,10 @@ void SingleCellTileDBIterator::read_from_TileDB()
     auto query_idx = m_query_attribute_idx_vec[i];
     assert(static_cast<size_t>(query_idx) < m_fields.size());
     auto& genomicsdb_columnar_field = m_fields[query_idx];
-    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_head_ptr();
+    //Get a free buffer and move it to the live list - buffer gets added to tail of live list
+    genomicsdb_columnar_field.move_buffer_to_live_list(genomicsdb_columnar_field.get_free_buffer());
+    //Always read new data into tail
+    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
     assert(genomicsdb_buffer_ptr);
     assert(static_cast<size_t>(query_idx) < m_query_attribute_idx_to_tiledb_buffer_idx.size());
     auto buffer_idx = m_query_attribute_idx_to_tiledb_buffer_idx[query_idx];
@@ -116,7 +116,9 @@ void SingleCellTileDBIterator::read_from_TileDB()
   {
     auto query_idx = m_query_attribute_idx_vec[i];
     auto& genomicsdb_columnar_field = m_fields[query_idx];
-    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_head_ptr();
+    //Reset index
+    genomicsdb_columnar_field.set_curr_index_in_live_list_tail(0u);
+    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
     auto buffer_idx = m_query_attribute_idx_to_tiledb_buffer_idx[query_idx];
     //For variable length field, first the offsets buffer
     auto filled_buffer_size = m_buffer_sizes[buffer_idx];
@@ -131,4 +133,46 @@ void SingleCellTileDBIterator::read_from_TileDB()
       genomicsdb_buffer_ptr->set_num_live_entries(filled_buffer_size/
             (genomicsdb_columnar_field.get_fixed_length_field_size_in_bytes()));
   }
+}
+    
+const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
+{
+  auto next_iteration_query_idx = 0u;
+  m_query_attribute_idx_vec.resize(m_fields.size()); //no heap operations here
+  for(auto i=0u;i<m_fields.size();++i)
+  {
+    auto& genomicsdb_columnar_field = m_fields[i];
+    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+    //still has live data
+    //TODO: either all fields have live data or none do - is that right?
+    if(genomicsdb_buffer_ptr)
+    {
+      genomicsdb_columnar_field.advance_curr_index_in_live_list_tail();
+      genomicsdb_buffer_ptr.decrement_num_live_entries();
+      if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, add to queries in next round
+      {
+        genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
+        m_query_attribute_idx_vec[next_iteration_query_idx++] = i;
+      }
+    }
+  }
+  m_query_attribute_idx_vec.resize(next_iteration_query_idx); //no heap operations occur here
+  if(next_iteration_query_idx > 0u) //some fields have exhausted buffers, need to fetch from TileDB
+    read_from_TileDB();
+  return *this;
+}
+
+
+const BufferVariantCell& SingleCellTileDBIterator::operator*() const
+{
+  assert(m_fields.size() > 0u); //co-ordinates at least
+  //Ignore co-ordinates for now
+  for(auto i=0u;i<m_fields.size()-1u;++i)
+  {
+    auto& genomicsdb_columnar_field = m_fields[i];
+    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+    m_cell.set_field_ptr_for_query_idx(i, genomicsdb_columnar_field.get_pointer_to_curr_index_data_in_live_list_tail());
+    m_cell.set_field_size_in_bytes(i, genomicsdb_columnar_field.get_size_of_curr_index_data_in_live_list_tail());
+  }
+  return m_cell;
 }
