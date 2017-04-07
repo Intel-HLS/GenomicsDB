@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-0.4.0-jar-with-dependencies.jar:$GENOMICSDB_INSTALL_DIR/tests:.
+    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-0.5.0-jar-with-dependencies.jar:$GENOMICSDB_INSTALL_DIR/tests:.
 
 install:
     #Install dependencies
@@ -20,7 +20,7 @@ install:
     - which javac && javac -version
     - which java && java -version
     #Copy protobuf binaries
-    - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.4.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
+    - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.5.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
     - tar xzf protobuf-3.0.2-trusty.tar.gz && sudo rsync -a protobuf-3.0.2-trusty/ /usr/
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
