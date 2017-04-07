@@ -40,8 +40,8 @@ message ColumnRangeList {
 }
 
 message ExportConfiguration {
-  required string tiledb_workspace = 1;
-  required string tiledb_array_name = 2;
+  required string workspace = 1;
+  required string array = 2;
   required string reference_genome = 3;
   repeated ColumnRangeList query_column_ranges = 4;
   repeated string attributes = 5;
