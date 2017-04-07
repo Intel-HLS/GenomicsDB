@@ -20,7 +20,7 @@ install:
     - which javac && javac -version
     - which java && java -version
     #Copy protobuf binaries
-    - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.5.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
+    - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.4.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
     - tar xzf protobuf-3.0.2-trusty.tar.gz && sudo rsync -a protobuf-3.0.2-trusty/ /usr/
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
