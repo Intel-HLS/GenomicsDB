@@ -7,7 +7,6 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
-#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -25,12 +24,10 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* CallsetMappingPB_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   CallsetMappingPB_reflection_ = NULL;
-const ::google::protobuf::Descriptor* CallsetMappingPB_CallsetMapEntry_descriptor_ = NULL;
 
 }  // namespace
 
 
-void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
   protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto();
   const ::google::protobuf::FileDescriptor* file =
@@ -40,7 +37,7 @@ void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
   SampleIDToTileDBIDMap_descriptor_ = file->message_type(0);
   static const int SampleIDToTileDBIDMap_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SampleIDToTileDBIDMap, sample_name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SampleIDToTileDBIDMap, tiledb_row_index_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SampleIDToTileDBIDMap, row_idx_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SampleIDToTileDBIDMap, idx_in_file_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SampleIDToTileDBIDMap, stream_name_),
   };
@@ -57,7 +54,7 @@ void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
       -1);
   CallsetMappingPB_descriptor_ = file->message_type(1);
   static const int CallsetMappingPB_offsets_[1] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CallsetMappingPB, callset_map_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CallsetMappingPB, callsets_),
   };
   CallsetMappingPB_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -70,7 +67,6 @@ void protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
       sizeof(CallsetMappingPB),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CallsetMappingPB, _internal_metadata_),
       -1);
-  CallsetMappingPB_CallsetMapEntry_descriptor_ = CallsetMappingPB_descriptor_->nested_type(0);
 }
 
 namespace {
@@ -81,22 +77,12 @@ inline void protobuf_AssignDescriptorsOnce() {
                  &protobuf_AssignDesc_genomicsdb_5fcallsets_5fmapping_2eproto);
 }
 
-void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       SampleIDToTileDBIDMap_descriptor_, &SampleIDToTileDBIDMap::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       CallsetMappingPB_descriptor_, &CallsetMappingPB::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        CallsetMappingPB_CallsetMapEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::std::string,
-            ::SampleIDToTileDBIDMap,
-            ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                CallsetMappingPB_CallsetMapEntry_descriptor_));
 }
 
 }  // namespace
@@ -108,7 +94,6 @@ void protobuf_ShutdownFile_genomicsdb_5fcallsets_5fmapping_2eproto() {
   delete CallsetMappingPB_reflection_;
 }
 
-void protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
   static bool already_here = false;
   if (already_here) return;
@@ -116,15 +101,13 @@ void protobuf_AddDesc_genomicsdb_5fcallsets_5fmapping_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n!genomicsdb_callsets_mapping.proto\"p\n\025S"
+    "\n!genomicsdb_callsets_mapping.proto\"g\n\025S"
     "ampleIDToTileDBIDMap\022\023\n\013sample_name\030\001 \002("
-    "\t\022\030\n\020tiledb_row_index\030\002 \002(\003\022\023\n\013idx_in_fi"
-    "le\030\003 \002(\005\022\023\n\013stream_name\030\004 \001(\t\"\225\001\n\020Callse"
-    "tMappingPB\0226\n\013callset_map\030\001 \003(\0132!.Callse"
-    "tMappingPB.CallsetMapEntry\032I\n\017CallsetMap"
-    "Entry\022\013\n\003key\030\001 \001(\t\022%\n\005value\030\002 \001(\0132\026.Samp"
-    "leIDToTileDBIDMap:\0028\001B2\n\024com.intel.genom"
-    "icsdbB\032GenomicsDBCallsetsMapProto", 353);
+    "\t\022\017\n\007row_idx\030\002 \002(\003\022\023\n\013idx_in_file\030\003 \002(\005\022"
+    "\023\n\013stream_name\030\004 \001(\t\"<\n\020CallsetMappingPB"
+    "\022(\n\010callsets\030\001 \003(\0132\026.SampleIDToTileDBIDM"
+    "apB2\n\024com.intel.genomicsdbB\032GenomicsDBCa"
+    "llsetsMapProto", 254);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_callsets_mapping.proto", &protobuf_RegisterTypes);
   SampleIDToTileDBIDMap::default_instance_ = new SampleIDToTileDBIDMap();
@@ -141,14 +124,24 @@ struct StaticDescriptorInitializer_genomicsdb_5fcallsets_5fmapping_2eproto {
   }
 } static_descriptor_initializer_genomicsdb_5fcallsets_5fmapping_2eproto_;
 
+namespace {
+
+static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD;
+static void MergeFromFail(int line) {
+  GOOGLE_CHECK(false) << __FILE__ << ":" << line;
+}
+
+}  // namespace
+
+
 // ===================================================================
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#ifndef _MSC_VER
 const int SampleIDToTileDBIDMap::kSampleNameFieldNumber;
-const int SampleIDToTileDBIDMap::kTiledbRowIndexFieldNumber;
+const int SampleIDToTileDBIDMap::kRowIdxFieldNumber;
 const int SampleIDToTileDBIDMap::kIdxInFileFieldNumber;
 const int SampleIDToTileDBIDMap::kStreamNameFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#endif  // !_MSC_VER
 
 SampleIDToTileDBIDMap::SampleIDToTileDBIDMap()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -171,7 +164,7 @@ void SampleIDToTileDBIDMap::SharedCtor() {
   ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
   sample_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  tiledb_row_index_ = GOOGLE_LONGLONG(0);
+  row_idx_ = GOOGLE_LONGLONG(0);
   idx_in_file_ = 0;
   stream_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -215,12 +208,11 @@ SampleIDToTileDBIDMap* SampleIDToTileDBIDMap::New(::google::protobuf::Arena* are
 }
 
 void SampleIDToTileDBIDMap::Clear() {
-// @@protoc_insertion_point(message_clear_start:SampleIDToTileDBIDMap)
   if (_has_bits_[0 / 32] & 15u) {
     if (has_sample_name()) {
       sample_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
-    tiledb_row_index_ = GOOGLE_LONGLONG(0);
+    row_idx_ = GOOGLE_LONGLONG(0);
     idx_in_file_ = 0;
     if (has_stream_name()) {
       stream_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -234,7 +226,7 @@ void SampleIDToTileDBIDMap::Clear() {
 
 bool SampleIDToTileDBIDMap::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:SampleIDToTileDBIDMap)
   for (;;) {
@@ -254,18 +246,18 @@ bool SampleIDToTileDBIDMap::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(16)) goto parse_tiledb_row_index;
+        if (input->ExpectTag(16)) goto parse_row_idx;
         break;
       }
 
-      // required int64 tiledb_row_index = 2;
+      // required int64 row_idx = 2;
       case 2: {
         if (tag == 16) {
-         parse_tiledb_row_index:
+         parse_row_idx:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
-                 input, &tiledb_row_index_)));
-          set_has_tiledb_row_index();
+                 input, &row_idx_)));
+          set_has_row_idx();
         } else {
           goto handle_unusual;
         }
@@ -340,9 +332,9 @@ void SampleIDToTileDBIDMap::SerializeWithCachedSizes(
       1, this->sample_name(), output);
   }
 
-  // required int64 tiledb_row_index = 2;
-  if (has_tiledb_row_index()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->tiledb_row_index(), output);
+  // required int64 row_idx = 2;
+  if (has_row_idx()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->row_idx(), output);
   }
 
   // required int32 idx_in_file = 3;
@@ -367,9 +359,8 @@ void SampleIDToTileDBIDMap::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:SampleIDToTileDBIDMap)
 }
 
-::google::protobuf::uint8* SampleIDToTileDBIDMap::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::google::protobuf::uint8* SampleIDToTileDBIDMap::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:SampleIDToTileDBIDMap)
   // required string sample_name = 1;
   if (has_sample_name()) {
@@ -382,9 +373,9 @@ void SampleIDToTileDBIDMap::SerializeWithCachedSizes(
         1, this->sample_name(), target);
   }
 
-  // required int64 tiledb_row_index = 2;
-  if (has_tiledb_row_index()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->tiledb_row_index(), target);
+  // required int64 row_idx = 2;
+  if (has_row_idx()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->row_idx(), target);
   }
 
   // required int32 idx_in_file = 3;
@@ -412,7 +403,6 @@ void SampleIDToTileDBIDMap::SerializeWithCachedSizes(
 }
 
 int SampleIDToTileDBIDMap::RequiredFieldsByteSizeFallback() const {
-// @@protoc_insertion_point(required_fields_byte_size_fallback_start:SampleIDToTileDBIDMap)
   int total_size = 0;
 
   if (has_sample_name()) {
@@ -422,11 +412,11 @@ int SampleIDToTileDBIDMap::RequiredFieldsByteSizeFallback() const {
         this->sample_name());
   }
 
-  if (has_tiledb_row_index()) {
-    // required int64 tiledb_row_index = 2;
+  if (has_row_idx()) {
+    // required int64 row_idx = 2;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::Int64Size(
-        this->tiledb_row_index());
+        this->row_idx());
   }
 
   if (has_idx_in_file()) {
@@ -439,7 +429,6 @@ int SampleIDToTileDBIDMap::RequiredFieldsByteSizeFallback() const {
   return total_size;
 }
 int SampleIDToTileDBIDMap::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:SampleIDToTileDBIDMap)
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
@@ -448,10 +437,10 @@ int SampleIDToTileDBIDMap::ByteSize() const {
       ::google::protobuf::internal::WireFormatLite::StringSize(
         this->sample_name());
 
-    // required int64 tiledb_row_index = 2;
+    // required int64 row_idx = 2;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::Int64Size(
-        this->tiledb_row_index());
+        this->row_idx());
 
     // required int32 idx_in_file = 3;
     total_size += 1 +
@@ -480,34 +469,26 @@ int SampleIDToTileDBIDMap::ByteSize() const {
 }
 
 void SampleIDToTileDBIDMap::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:SampleIDToTileDBIDMap)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   const SampleIDToTileDBIDMap* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const SampleIDToTileDBIDMap>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:SampleIDToTileDBIDMap)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:SampleIDToTileDBIDMap)
     MergeFrom(*source);
   }
 }
 
 void SampleIDToTileDBIDMap::MergeFrom(const SampleIDToTileDBIDMap& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:SampleIDToTileDBIDMap)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_sample_name()) {
       set_has_sample_name();
       sample_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.sample_name_);
     }
-    if (from.has_tiledb_row_index()) {
-      set_tiledb_row_index(from.tiledb_row_index());
+    if (from.has_row_idx()) {
+      set_row_idx(from.row_idx());
     }
     if (from.has_idx_in_file()) {
       set_idx_in_file(from.idx_in_file());
@@ -523,14 +504,12 @@ void SampleIDToTileDBIDMap::MergeFrom(const SampleIDToTileDBIDMap& from) {
 }
 
 void SampleIDToTileDBIDMap::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:SampleIDToTileDBIDMap)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void SampleIDToTileDBIDMap::CopyFrom(const SampleIDToTileDBIDMap& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:SampleIDToTileDBIDMap)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -548,7 +527,7 @@ void SampleIDToTileDBIDMap::Swap(SampleIDToTileDBIDMap* other) {
 }
 void SampleIDToTileDBIDMap::InternalSwap(SampleIDToTileDBIDMap* other) {
   sample_name_.Swap(&other->sample_name_);
-  std::swap(tiledb_row_index_, other->tiledb_row_index_);
+  std::swap(row_idx_, other->row_idx_);
   std::swap(idx_in_file_, other->idx_in_file_);
   stream_name_.Swap(&other->stream_name_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
@@ -607,7 +586,6 @@ void SampleIDToTileDBIDMap::clear_sample_name() {
   return sample_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* SampleIDToTileDBIDMap::release_sample_name() {
-  // @@protoc_insertion_point(field_release:SampleIDToTileDBIDMap.sample_name)
   clear_has_sample_name();
   return sample_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -621,28 +599,28 @@ void SampleIDToTileDBIDMap::clear_sample_name() {
   // @@protoc_insertion_point(field_set_allocated:SampleIDToTileDBIDMap.sample_name)
 }
 
-// required int64 tiledb_row_index = 2;
-bool SampleIDToTileDBIDMap::has_tiledb_row_index() const {
+// required int64 row_idx = 2;
+bool SampleIDToTileDBIDMap::has_row_idx() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-void SampleIDToTileDBIDMap::set_has_tiledb_row_index() {
+void SampleIDToTileDBIDMap::set_has_row_idx() {
   _has_bits_[0] |= 0x00000002u;
 }
-void SampleIDToTileDBIDMap::clear_has_tiledb_row_index() {
+void SampleIDToTileDBIDMap::clear_has_row_idx() {
   _has_bits_[0] &= ~0x00000002u;
 }
-void SampleIDToTileDBIDMap::clear_tiledb_row_index() {
-  tiledb_row_index_ = GOOGLE_LONGLONG(0);
-  clear_has_tiledb_row_index();
+void SampleIDToTileDBIDMap::clear_row_idx() {
+  row_idx_ = GOOGLE_LONGLONG(0);
+  clear_has_row_idx();
 }
- ::google::protobuf::int64 SampleIDToTileDBIDMap::tiledb_row_index() const {
-  // @@protoc_insertion_point(field_get:SampleIDToTileDBIDMap.tiledb_row_index)
-  return tiledb_row_index_;
+ ::google::protobuf::int64 SampleIDToTileDBIDMap::row_idx() const {
+  // @@protoc_insertion_point(field_get:SampleIDToTileDBIDMap.row_idx)
+  return row_idx_;
 }
- void SampleIDToTileDBIDMap::set_tiledb_row_index(::google::protobuf::int64 value) {
-  set_has_tiledb_row_index();
-  tiledb_row_index_ = value;
-  // @@protoc_insertion_point(field_set:SampleIDToTileDBIDMap.tiledb_row_index)
+ void SampleIDToTileDBIDMap::set_row_idx(::google::protobuf::int64 value) {
+  set_has_row_idx();
+  row_idx_ = value;
+  // @@protoc_insertion_point(field_set:SampleIDToTileDBIDMap.row_idx)
 }
 
 // required int32 idx_in_file = 3;
@@ -709,7 +687,6 @@ void SampleIDToTileDBIDMap::clear_stream_name() {
   return stream_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* SampleIDToTileDBIDMap::release_stream_name() {
-  // @@protoc_insertion_point(field_release:SampleIDToTileDBIDMap.stream_name)
   clear_has_stream_name();
   return stream_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -727,9 +704,9 @@ void SampleIDToTileDBIDMap::clear_stream_name() {
 
 // ===================================================================
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int CallsetMappingPB::kCallsetMapFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#ifndef _MSC_VER
+const int CallsetMappingPB::kCallsetsFieldNumber;
+#endif  // !_MSC_VER
 
 CallsetMappingPB::CallsetMappingPB()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -749,12 +726,7 @@ CallsetMappingPB::CallsetMappingPB(const CallsetMappingPB& from)
 }
 
 void CallsetMappingPB::SharedCtor() {
-  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
-  callset_map_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  callset_map_.SetEntryDescriptor(
-      &::CallsetMappingPB_CallsetMapEntry_descriptor_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -794,8 +766,7 @@ CallsetMappingPB* CallsetMappingPB::New(::google::protobuf::Arena* arena) const 
 }
 
 void CallsetMappingPB::Clear() {
-// @@protoc_insertion_point(message_clear_start:CallsetMappingPB)
-  callset_map_.Clear();
+  callsets_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->Clear();
@@ -804,7 +775,7 @@ void CallsetMappingPB::Clear() {
 
 bool CallsetMappingPB::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:CallsetMappingPB)
   for (;;) {
@@ -812,27 +783,17 @@ bool CallsetMappingPB::MergePartialFromCodedStream(
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
+      // repeated .SampleIDToTileDBIDMap callsets = 1;
       case 1: {
         if (tag == 10) {
           DO_(input->IncrementRecursionDepth());
-         parse_loop_callset_map:
-          CallsetMappingPB_CallsetMapEntry::Parser< ::google::protobuf::internal::MapField<
-              ::std::string, ::SampleIDToTileDBIDMap,
-              ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-              ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-              0 >,
-            ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap > > parser(&callset_map_);
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, &parser));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            parser.key().data(), parser.key().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "CallsetMappingPB.CallsetMapEntry.key");
+         parse_loop_callsets:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_callsets()));
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(10)) goto parse_loop_callset_map;
+        if (input->ExpectTag(10)) goto parse_loop_callsets;
         input->UnsafeDecrementRecursionDepth();
         if (input->ExpectAtEnd()) goto success;
         break;
@@ -863,53 +824,10 @@ failure:
 void CallsetMappingPB::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:CallsetMappingPB)
-  // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-  if (!this->callset_map().empty()) {
-    typedef ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_pointer
-        ConstPtr;
-    typedef ConstPtr SortItem;
-    typedef ::google::protobuf::internal::CompareByDerefFirst<SortItem> Less;
-    struct Utf8Check {
-      static void Check(ConstPtr p) {
-        ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-          p->first.data(), p->first.length(),
-          ::google::protobuf::internal::WireFormat::SERIALIZE,
-          "CallsetMappingPB.CallsetMapEntry.key");
-      }
-    };
-
-    if (output->IsSerializationDeterminstic() &&
-        this->callset_map().size() > 1) {
-      ::google::protobuf::scoped_array<SortItem> items(
-          new SortItem[this->callset_map().size()]);
-      typedef ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::size_type size_type;
-      size_type n = 0;
-      for (::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_iterator
-          it = this->callset_map().begin();
-          it != this->callset_map().end(); ++it, ++n) {
-        items[n] = SortItem(&*it);
-      }
-      ::std::sort(&items[0], &items[n], Less());
-      ::google::protobuf::scoped_ptr<CallsetMappingPB_CallsetMapEntry> entry;
-      for (size_type i = 0; i < n; i++) {
-        entry.reset(callset_map_.NewEntryWrapper(
-            items[i]->first, items[i]->second));
-        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-            1, *entry, output);
-        Utf8Check::Check(items[i]);
-      }
-    } else {
-      ::google::protobuf::scoped_ptr<CallsetMappingPB_CallsetMapEntry> entry;
-      for (::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_iterator
-          it = this->callset_map().begin();
-          it != this->callset_map().end(); ++it) {
-        entry.reset(callset_map_.NewEntryWrapper(
-            it->first, it->second));
-        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-            1, *entry, output);
-        Utf8Check::Check(&*it);
-      }
-    }
+  // repeated .SampleIDToTileDBIDMap callsets = 1;
+  for (unsigned int i = 0, n = this->callsets_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->callsets(i), output);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -919,61 +837,14 @@ void CallsetMappingPB::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:CallsetMappingPB)
 }
 
-::google::protobuf::uint8* CallsetMappingPB::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+::google::protobuf::uint8* CallsetMappingPB::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:CallsetMappingPB)
-  // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-  if (!this->callset_map().empty()) {
-    typedef ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_pointer
-        ConstPtr;
-    typedef ConstPtr SortItem;
-    typedef ::google::protobuf::internal::CompareByDerefFirst<SortItem> Less;
-    struct Utf8Check {
-      static void Check(ConstPtr p) {
-        ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-          p->first.data(), p->first.length(),
-          ::google::protobuf::internal::WireFormat::SERIALIZE,
-          "CallsetMappingPB.CallsetMapEntry.key");
-      }
-    };
-
-    if (deterministic &&
-        this->callset_map().size() > 1) {
-      ::google::protobuf::scoped_array<SortItem> items(
-          new SortItem[this->callset_map().size()]);
-      typedef ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::size_type size_type;
-      size_type n = 0;
-      for (::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_iterator
-          it = this->callset_map().begin();
-          it != this->callset_map().end(); ++it, ++n) {
-        items[n] = SortItem(&*it);
-      }
-      ::std::sort(&items[0], &items[n], Less());
-      ::google::protobuf::scoped_ptr<CallsetMappingPB_CallsetMapEntry> entry;
-      for (size_type i = 0; i < n; i++) {
-        entry.reset(callset_map_.NewEntryWrapper(
-            items[i]->first, items[i]->second));
-        target = ::google::protobuf::internal::WireFormatLite::
-                   InternalWriteMessageNoVirtualToArray(
-                       1, *entry, deterministic, target);
-;
-        Utf8Check::Check(items[i]);
-      }
-    } else {
-      ::google::protobuf::scoped_ptr<CallsetMappingPB_CallsetMapEntry> entry;
-      for (::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_iterator
-          it = this->callset_map().begin();
-          it != this->callset_map().end(); ++it) {
-        entry.reset(callset_map_.NewEntryWrapper(
-            it->first, it->second));
-        target = ::google::protobuf::internal::WireFormatLite::
-                   InternalWriteMessageNoVirtualToArray(
-                       1, *entry, deterministic, target);
-;
-        Utf8Check::Check(&*it);
-      }
-    }
+  // repeated .SampleIDToTileDBIDMap callsets = 1;
+  for (unsigned int i = 0, n = this->callsets_size(); i < n; i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        1, this->callsets(i), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -985,20 +856,14 @@ void CallsetMappingPB::SerializeWithCachedSizes(
 }
 
 int CallsetMappingPB::ByteSize() const {
-// @@protoc_insertion_point(message_byte_size_start:CallsetMappingPB)
   int total_size = 0;
 
-  // map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-  total_size += 1 * this->callset_map_size();
-  {
-    ::google::protobuf::scoped_ptr<CallsetMappingPB_CallsetMapEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >::const_iterator
-        it = this->callset_map().begin();
-        it != this->callset_map().end(); ++it) {
-      entry.reset(callset_map_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
+  // repeated .SampleIDToTileDBIDMap callsets = 1;
+  total_size += 1 * this->callsets_size();
+  for (int i = 0; i < this->callsets_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->callsets(i));
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1013,42 +878,32 @@ int CallsetMappingPB::ByteSize() const {
 }
 
 void CallsetMappingPB::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:CallsetMappingPB)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
   const CallsetMappingPB* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const CallsetMappingPB>(
           &from);
   if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:CallsetMappingPB)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:CallsetMappingPB)
     MergeFrom(*source);
   }
 }
 
 void CallsetMappingPB::MergeFrom(const CallsetMappingPB& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:CallsetMappingPB)
-  if (GOOGLE_PREDICT_FALSE(&from == this)) {
-    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
-  }
-  callset_map_.MergeFrom(from.callset_map_);
+  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+  callsets_.MergeFrom(from.callsets_);
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
   }
 }
 
 void CallsetMappingPB::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:CallsetMappingPB)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void CallsetMappingPB::CopyFrom(const CallsetMappingPB& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:CallsetMappingPB)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1056,7 +911,7 @@ void CallsetMappingPB::CopyFrom(const CallsetMappingPB& from) {
 
 bool CallsetMappingPB::IsInitialized() const {
 
-  if (!::google::protobuf::internal::AllAreInitialized(this->callset_map())) return false;
+  if (!::google::protobuf::internal::AllAreInitialized(this->callsets())) return false;
   return true;
 }
 
@@ -1065,7 +920,7 @@ void CallsetMappingPB::Swap(CallsetMappingPB* other) {
   InternalSwap(other);
 }
 void CallsetMappingPB::InternalSwap(CallsetMappingPB* other) {
-  callset_map_.Swap(&other->callset_map_);
+  callsets_.UnsafeArenaSwap(&other->callsets_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -1082,22 +937,34 @@ void CallsetMappingPB::InternalSwap(CallsetMappingPB* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // CallsetMappingPB
 
-// map<string, .SampleIDToTileDBIDMap> callset_map = 1;
-int CallsetMappingPB::callset_map_size() const {
-  return callset_map_.size();
+// repeated .SampleIDToTileDBIDMap callsets = 1;
+int CallsetMappingPB::callsets_size() const {
+  return callsets_.size();
 }
-void CallsetMappingPB::clear_callset_map() {
-  callset_map_.Clear();
+void CallsetMappingPB::clear_callsets() {
+  callsets_.Clear();
 }
- const ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >&
-CallsetMappingPB::callset_map() const {
-  // @@protoc_insertion_point(field_map:CallsetMappingPB.callset_map)
-  return callset_map_.GetMap();
+const ::SampleIDToTileDBIDMap& CallsetMappingPB::callsets(int index) const {
+  // @@protoc_insertion_point(field_get:CallsetMappingPB.callsets)
+  return callsets_.Get(index);
 }
- ::google::protobuf::Map< ::std::string, ::SampleIDToTileDBIDMap >*
-CallsetMappingPB::mutable_callset_map() {
-  // @@protoc_insertion_point(field_mutable_map:CallsetMappingPB.callset_map)
-  return callset_map_.MutableMap();
+::SampleIDToTileDBIDMap* CallsetMappingPB::mutable_callsets(int index) {
+  // @@protoc_insertion_point(field_mutable:CallsetMappingPB.callsets)
+  return callsets_.Mutable(index);
+}
+::SampleIDToTileDBIDMap* CallsetMappingPB::add_callsets() {
+  // @@protoc_insertion_point(field_add:CallsetMappingPB.callsets)
+  return callsets_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >*
+CallsetMappingPB::mutable_callsets() {
+  // @@protoc_insertion_point(field_mutable_list:CallsetMappingPB.callsets)
+  return &callsets_;
+}
+const ::google::protobuf::RepeatedPtrField< ::SampleIDToTileDBIDMap >&
+CallsetMappingPB::callsets() const {
+  // @@protoc_insertion_point(field_list:CallsetMappingPB.callsets)
+  return callsets_;
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

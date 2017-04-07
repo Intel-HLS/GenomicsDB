@@ -520,42 +520,72 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
   //Contig info parsing
   VERIFY_OR_THROW(json_doc.HasMember("contigs"));
   {
-    const rapidjson::Value& contigs_dict = json_doc["contigs"];
-    //contigs is a dictionary of name:info key-value pairs
-    VERIFY_OR_THROW(contigs_dict.IsObject());
-    auto num_contigs = contigs_dict.MemberCount();
+    const rapidjson::Value& contigs_container = json_doc["contigs"];
+    //contigs is a dictionary of name:info key-value pairs or array of dict { "name": <>, ... }
+    VERIFY_OR_THROW(contigs_container.IsObject() || contigs_container.IsArray());
+    auto is_array = contigs_container.IsArray();
+    auto num_contigs = is_array ? contigs_container.Size() : contigs_container.MemberCount();
     m_contig_idx_to_info.resize(num_contigs);
     m_contig_begin_2_idx.resize(num_contigs);
     m_contig_end_2_idx.resize(num_contigs);
     std::string contig_name;
     std::string filename;
-    auto contig_idx=0;
     auto duplicate_contigs_exist = false;
-    for(auto b=contigs_dict.MemberBegin(), e=contigs_dict.MemberEnd();b!=e;++b,++contig_idx)
+    //index within the JSON array
+    rapidjson::SizeType json_contig_idx = 0u;
+    auto dict_iter = is_array ? rapidjson::Value::ConstMemberIterator()
+      : contigs_container.MemberBegin();
+    auto dict_end_position = is_array ? dict_iter : contigs_container.MemberEnd();
+    auto next_contig_exists = is_array ? (json_contig_idx < num_contigs) : (dict_iter != dict_end_position);
+    while(next_contig_exists)
     {
-      const auto& curr_obj = *b;
-      contig_name = curr_obj.name.GetString();
+      const auto& contig_info_dict = is_array ? contigs_container[json_contig_idx] : (*dict_iter).value;
+      VERIFY_OR_THROW(contig_info_dict.IsObject());
+      if(is_array)
+      {
+        auto num_found = 0u;
+        for(const auto name_field : { "name", "contig_name", "chromosome_name" })
+        {
+          if(contig_info_dict.HasMember(name_field))
+          {
+            contig_name = contig_info_dict[name_field].GetString();
+            ++num_found;
+          }
+        }
+        if(num_found == 0u)
+          throw VidMapperException(std::string("Contig info dict with index ")+std::to_string(json_contig_idx)
+              +" does not have any one of the keys \"name\", \"contig_name\" or \"chromosome_name\"");
+        if(num_found > 1u)
+          throw VidMapperException(std::string("Contig info dict with index ")+std::to_string(json_contig_idx)
+              +" has two or more of the keys \"name\", \"contig_name\" or \"chromosome_name\" - at most one is allowed");
+      }
+      else
+        contig_name = (*dict_iter).name.GetString();
       if(m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end())
       {
         std::cerr << (std::string("Duplicate contig/chromosome name ")+contig_name+" found in vid file "+filename) << "\n";
         duplicate_contigs_exist = true;
-        continue;
       }
-      const auto& contig_info_dict = curr_obj.value;
-      VERIFY_OR_THROW(contig_info_dict.IsObject());    //must be dict
-      VERIFY_OR_THROW(contig_info_dict.HasMember("tiledb_column_offset") && contig_info_dict["tiledb_column_offset"].IsInt64());
-      auto tiledb_column_offset = contig_info_dict["tiledb_column_offset"].GetInt64();
-      VERIFY_OR_THROW(tiledb_column_offset >= 0ll);
-      VERIFY_OR_THROW(contig_info_dict.HasMember("length") && contig_info_dict["length"].IsInt64());
-      auto length = contig_info_dict["length"].GetInt64();
-      VERIFY_OR_THROW(length >= 0ll);
-      VERIFY_OR_THROW(static_cast<size_t>(contig_idx) < static_cast<size_t>(num_contigs));
-      m_contig_name_to_idx[contig_name] = contig_idx;
-      m_contig_idx_to_info[contig_idx].set_info(contig_idx, contig_name, length, tiledb_column_offset);
-      m_contig_begin_2_idx[contig_idx].first = tiledb_column_offset; 
-      m_contig_begin_2_idx[contig_idx].second = contig_idx; 
-      m_contig_end_2_idx[contig_idx].first = tiledb_column_offset + length - 1; //inclusive
-      m_contig_end_2_idx[contig_idx].second = contig_idx; 
+      else
+      {
+        VERIFY_OR_THROW(contig_info_dict.HasMember("tiledb_column_offset") && contig_info_dict["tiledb_column_offset"].IsInt64());
+        auto tiledb_column_offset = contig_info_dict["tiledb_column_offset"].GetInt64();
+        VERIFY_OR_THROW(tiledb_column_offset >= 0ll);
+        VERIFY_OR_THROW(contig_info_dict.HasMember("length") && contig_info_dict["length"].IsInt64());
+        auto length = contig_info_dict["length"].GetInt64();
+        VERIFY_OR_THROW(length >= 0ll);
+        VERIFY_OR_THROW(static_cast<size_t>(json_contig_idx) < static_cast<size_t>(num_contigs));
+        m_contig_name_to_idx[contig_name] = json_contig_idx;
+        m_contig_idx_to_info[json_contig_idx].set_info(json_contig_idx, contig_name, length, tiledb_column_offset);
+        m_contig_begin_2_idx[json_contig_idx].first = tiledb_column_offset;
+        m_contig_begin_2_idx[json_contig_idx].second = json_contig_idx;
+        m_contig_end_2_idx[json_contig_idx].first = tiledb_column_offset + length - 1; //inclusive
+        m_contig_end_2_idx[json_contig_idx].second = json_contig_idx;
+      }
+      ++json_contig_idx;
+      if(!is_array)
+        ++dict_iter;
+      next_contig_exists = is_array ? (json_contig_idx < num_contigs) : (dict_iter != dict_end_position);
     }
     if(duplicate_contigs_exist)
       throw FileBasedVidMapperException(std::string("Duplicate contigs exist in vid file ")+filename);

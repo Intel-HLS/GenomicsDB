@@ -7,6 +7,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef com_intel_genomicsdb_GenomicsDBImporter_DEFAULT_SIZE_PER_COLUMN_PARTITION
+#define com_intel_genomicsdb_GenomicsDBImporter_DEFAULT_SIZE_PER_COLUMN_PARTITION 10240LL
+#undef com_intel_genomicsdb_GenomicsDBImporter_DEFAULT_TILEDB_CELLS_PER_TILE
+#define com_intel_genomicsdb_GenomicsDBImporter_DEFAULT_TILEDB_CELLS_PER_TILE 1000L
 /*
  * Class:     com_intel_genomicsdb_GenomicsDBImporter
  * Method:    jniGenomicsDBImporter
@@ -78,6 +82,14 @@ JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniImpor
  */
 JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniGetChromosomeIntervalsForColumnPartition
   (JNIEnv *, jclass, jstring, jint);
+
+/*
+ * Class:     com_intel_genomicsdb_GenomicsDBImporter
+ * Method:    jniCreateTileDBWorkspace
+ * Signature: (Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniCreateTileDBWorkspace
+  (JNIEnv *, jclass, jstring);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@ execute_process(
     )
 
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.4.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_RELEASE_VERSION "0.5.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
 set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
@@ -20,6 +20,7 @@ set(BUILD_JAVA False CACHE BOOL "Build Java/JNI interface for combined VCF recor
 set(HTSLIB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/htslib" CACHE PATH "Path to htslib source directory")
 set(HTSLIB_INSTALL_DIR "" CACHE PATH "Path to htslib install directory")
 set(OPENSSL_PREFIX_DIR "" CACHE PATH "OpenSSL installation prefix")
+set(PROTOBUF_VERSION "3.0.2" CACHE PATH "Version of Google Protocol Buffer library")
 set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
 set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
@@ -230,7 +231,7 @@ if(BUILD_JAVA)
     #Maven build - depends on dynamic library
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
-        COMMAND mvn package -DskipTests -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb> -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR} ${MAVEN_PROTOBUF_REGENERATE_ARGS}
+        COMMAND mvn package -DskipTests -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb> -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR} ${MAVEN_PROTOBUF_REGENERATE_ARGS} -Dprotobuf.version=${PROTOBUF_VERSION}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_custom_target(mvn_package ALL
@@ -240,5 +241,5 @@ endif()
 
 enable_testing()
 add_test(NAME all_java_tests
-         COMMAND mvn  test -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
+         COMMAND mvn  test -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION} -Dprotobuf.version=${PROTOBUF_VERSION}
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
