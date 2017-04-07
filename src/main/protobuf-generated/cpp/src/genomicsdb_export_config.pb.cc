@@ -70,8 +70,8 @@ void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
       -1);
   ExportConfiguration_descriptor_ = file->message_type(2);
   static const int ExportConfiguration_offsets_[7] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_workspace_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, tiledb_array_name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, workspace_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, array_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, reference_genome_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_column_ranges_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, attributes_),
@@ -130,14 +130,13 @@ void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
     "\n\036genomicsdb_export_config.proto\"(\n\013Colu"
     "mnRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high\030\002 \002(\003\"3\n\017Co"
     "lumnRangeList\022 \n\nrange_list\030\001 \003(\0132\014.Colu"
-    "mnRange\"\337\001\n\023ExportConfiguration\022\030\n\020tiled"
-    "b_workspace\030\001 \002(\t\022\031\n\021tiledb_array_name\030\002"
-    " \002(\t\022\030\n\020reference_genome\030\003 \002(\t\022-\n\023query_"
-    "column_ranges\030\004 \003(\0132\020.ColumnRangeList\022\022\n"
-    "\nattributes\030\005 \003(\t\022\030\n\020vid_mapping_file\030\006 "
-    "\001(\t\022\034\n\024callset_mapping_file\030\007 \001(\tB5\n\024com"
-    ".intel.genomicsdbB\035GenomicsDBExportConfi"
-    "guration", 408);
+    "mnRange\"\314\001\n\023ExportConfiguration\022\021\n\tworks"
+    "pace\030\001 \002(\t\022\r\n\005array\030\002 \002(\t\022\030\n\020reference_g"
+    "enome\030\003 \002(\t\022-\n\023query_column_ranges\030\004 \003(\013"
+    "2\020.ColumnRangeList\022\022\n\nattributes\030\005 \003(\t\022\030"
+    "\n\020vid_mapping_file\030\006 \001(\t\022\034\n\024callset_mapp"
+    "ing_file\030\007 \001(\tB5\n\024com.intel.genomicsdbB\035"
+    "GenomicsDBExportConfiguration", 389);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_export_config.proto", &protobuf_RegisterTypes);
   ColumnRange::default_instance_ = new ColumnRange();
@@ -789,8 +788,8 @@ ColumnRangeList::range_list() const {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int ExportConfiguration::kTiledbWorkspaceFieldNumber;
-const int ExportConfiguration::kTiledbArrayNameFieldNumber;
+const int ExportConfiguration::kWorkspaceFieldNumber;
+const int ExportConfiguration::kArrayFieldNumber;
 const int ExportConfiguration::kReferenceGenomeFieldNumber;
 const int ExportConfiguration::kQueryColumnRangesFieldNumber;
 const int ExportConfiguration::kAttributesFieldNumber;
@@ -818,8 +817,8 @@ ExportConfiguration::ExportConfiguration(const ExportConfiguration& from)
 void ExportConfiguration::SharedCtor() {
   ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
-  tiledb_workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  tiledb_array_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  array_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vid_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -832,8 +831,8 @@ ExportConfiguration::~ExportConfiguration() {
 }
 
 void ExportConfiguration::SharedDtor() {
-  tiledb_workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  tiledb_array_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  array_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vid_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -868,11 +867,11 @@ ExportConfiguration* ExportConfiguration::New(::google::protobuf::Arena* arena) 
 
 void ExportConfiguration::Clear() {
   if (_has_bits_[0 / 32] & 103u) {
-    if (has_tiledb_workspace()) {
-      tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    if (has_workspace()) {
+      workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
-    if (has_tiledb_array_name()) {
-      tiledb_array_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    if (has_array()) {
+      array_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
     if (has_reference_genome()) {
       reference_genome_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -902,32 +901,32 @@ bool ExportConfiguration::MergePartialFromCodedStream(
     tag = p.first;
     if (!p.second) goto handle_unusual;
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required string tiledb_workspace = 1;
+      // required string workspace = 1;
       case 1: {
         if (tag == 10) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_tiledb_workspace()));
+                input, this->mutable_workspace()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->tiledb_workspace().data(), this->tiledb_workspace().length(),
+            this->workspace().data(), this->workspace().length(),
             ::google::protobuf::internal::WireFormat::PARSE,
-            "ExportConfiguration.tiledb_workspace");
+            "ExportConfiguration.workspace");
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(18)) goto parse_tiledb_array_name;
+        if (input->ExpectTag(18)) goto parse_array;
         break;
       }
 
-      // required string tiledb_array_name = 2;
+      // required string array = 2;
       case 2: {
         if (tag == 18) {
-         parse_tiledb_array_name:
+         parse_array:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_tiledb_array_name()));
+                input, this->mutable_array()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->tiledb_array_name().data(), this->tiledb_array_name().length(),
+            this->array().data(), this->array().length(),
             ::google::protobuf::internal::WireFormat::PARSE,
-            "ExportConfiguration.tiledb_array_name");
+            "ExportConfiguration.array");
         } else {
           goto handle_unusual;
         }
@@ -1047,24 +1046,24 @@ failure:
 void ExportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // @@protoc_insertion_point(serialize_start:ExportConfiguration)
-  // required string tiledb_workspace = 1;
-  if (has_tiledb_workspace()) {
+  // required string workspace = 1;
+  if (has_workspace()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_workspace().data(), this->tiledb_workspace().length(),
+      this->workspace().data(), this->workspace().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "ExportConfiguration.tiledb_workspace");
+      "ExportConfiguration.workspace");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->tiledb_workspace(), output);
+      1, this->workspace(), output);
   }
 
-  // required string tiledb_array_name = 2;
-  if (has_tiledb_array_name()) {
+  // required string array = 2;
+  if (has_array()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_array_name().data(), this->tiledb_array_name().length(),
+      this->array().data(), this->array().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "ExportConfiguration.tiledb_array_name");
+      "ExportConfiguration.array");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->tiledb_array_name(), output);
+      2, this->array(), output);
   }
 
   // required string reference_genome = 3;
@@ -1123,26 +1122,26 @@ void ExportConfiguration::SerializeWithCachedSizes(
 ::google::protobuf::uint8* ExportConfiguration::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
-  // required string tiledb_workspace = 1;
-  if (has_tiledb_workspace()) {
+  // required string workspace = 1;
+  if (has_workspace()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_workspace().data(), this->tiledb_workspace().length(),
+      this->workspace().data(), this->workspace().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "ExportConfiguration.tiledb_workspace");
+      "ExportConfiguration.workspace");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->tiledb_workspace(), target);
+        1, this->workspace(), target);
   }
 
-  // required string tiledb_array_name = 2;
-  if (has_tiledb_array_name()) {
+  // required string array = 2;
+  if (has_array()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->tiledb_array_name().data(), this->tiledb_array_name().length(),
+      this->array().data(), this->array().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "ExportConfiguration.tiledb_array_name");
+      "ExportConfiguration.array");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->tiledb_array_name(), target);
+        2, this->array(), target);
   }
 
   // required string reference_genome = 3;
@@ -1206,18 +1205,18 @@ void ExportConfiguration::SerializeWithCachedSizes(
 int ExportConfiguration::RequiredFieldsByteSizeFallback() const {
   int total_size = 0;
 
-  if (has_tiledb_workspace()) {
-    // required string tiledb_workspace = 1;
+  if (has_workspace()) {
+    // required string workspace = 1;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->tiledb_workspace());
+        this->workspace());
   }
 
-  if (has_tiledb_array_name()) {
-    // required string tiledb_array_name = 2;
+  if (has_array()) {
+    // required string array = 2;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->tiledb_array_name());
+        this->array());
   }
 
   if (has_reference_genome()) {
@@ -1233,15 +1232,15 @@ int ExportConfiguration::ByteSize() const {
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
-    // required string tiledb_workspace = 1;
+    // required string workspace = 1;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->tiledb_workspace());
+        this->workspace());
 
-    // required string tiledb_array_name = 2;
+    // required string array = 2;
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->tiledb_array_name());
+        this->array());
 
     // required string reference_genome = 3;
     total_size += 1 +
@@ -1310,13 +1309,13 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
   query_column_ranges_.MergeFrom(from.query_column_ranges_);
   attributes_.MergeFrom(from.attributes_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_tiledb_workspace()) {
-      set_has_tiledb_workspace();
-      tiledb_workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_workspace_);
+    if (from.has_workspace()) {
+      set_has_workspace();
+      workspace_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.workspace_);
     }
-    if (from.has_tiledb_array_name()) {
-      set_has_tiledb_array_name();
-      tiledb_array_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.tiledb_array_name_);
+    if (from.has_array()) {
+      set_has_array();
+      array_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.array_);
     }
     if (from.has_reference_genome()) {
       set_has_reference_genome();
@@ -1360,8 +1359,8 @@ void ExportConfiguration::Swap(ExportConfiguration* other) {
   InternalSwap(other);
 }
 void ExportConfiguration::InternalSwap(ExportConfiguration* other) {
-  tiledb_workspace_.Swap(&other->tiledb_workspace_);
-  tiledb_array_name_.Swap(&other->tiledb_array_name_);
+  workspace_.Swap(&other->workspace_);
+  array_.Swap(&other->array_);
   reference_genome_.Swap(&other->reference_genome_);
   query_column_ranges_.UnsafeArenaSwap(&other->query_column_ranges_);
   attributes_.UnsafeArenaSwap(&other->attributes_);
@@ -1383,110 +1382,110 @@ void ExportConfiguration::InternalSwap(ExportConfiguration* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // ExportConfiguration
 
-// required string tiledb_workspace = 1;
-bool ExportConfiguration::has_tiledb_workspace() const {
+// required string workspace = 1;
+bool ExportConfiguration::has_workspace() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-void ExportConfiguration::set_has_tiledb_workspace() {
+void ExportConfiguration::set_has_workspace() {
   _has_bits_[0] |= 0x00000001u;
 }
-void ExportConfiguration::clear_has_tiledb_workspace() {
+void ExportConfiguration::clear_has_workspace() {
   _has_bits_[0] &= ~0x00000001u;
 }
-void ExportConfiguration::clear_tiledb_workspace() {
-  tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_workspace();
+void ExportConfiguration::clear_workspace() {
+  workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_workspace();
 }
- const ::std::string& ExportConfiguration::tiledb_workspace() const {
-  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_workspace)
-  return tiledb_workspace_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ const ::std::string& ExportConfiguration::workspace() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.workspace)
+  return workspace_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void ExportConfiguration::set_tiledb_workspace(const ::std::string& value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_workspace)
+ void ExportConfiguration::set_workspace(const ::std::string& value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.workspace)
 }
- void ExportConfiguration::set_tiledb_workspace(const char* value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_workspace)
+ void ExportConfiguration::set_workspace(const char* value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.workspace)
 }
- void ExportConfiguration::set_tiledb_workspace(const char* value, size_t size) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+ void ExportConfiguration::set_workspace(const char* value, size_t size) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_workspace)
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.workspace)
 }
- ::std::string* ExportConfiguration::mutable_tiledb_workspace() {
-  set_has_tiledb_workspace();
-  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_workspace)
-  return tiledb_workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ ::std::string* ExportConfiguration::mutable_workspace() {
+  set_has_workspace();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.workspace)
+  return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* ExportConfiguration::release_tiledb_workspace() {
-  clear_has_tiledb_workspace();
-  return tiledb_workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ ::std::string* ExportConfiguration::release_workspace() {
+  clear_has_workspace();
+  return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void ExportConfiguration::set_allocated_tiledb_workspace(::std::string* tiledb_workspace) {
-  if (tiledb_workspace != NULL) {
-    set_has_tiledb_workspace();
+ void ExportConfiguration::set_allocated_workspace(::std::string* workspace) {
+  if (workspace != NULL) {
+    set_has_workspace();
   } else {
-    clear_has_tiledb_workspace();
+    clear_has_workspace();
   }
-  tiledb_workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_workspace);
-  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_workspace)
+  workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), workspace);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.workspace)
 }
 
-// required string tiledb_array_name = 2;
-bool ExportConfiguration::has_tiledb_array_name() const {
+// required string array = 2;
+bool ExportConfiguration::has_array() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-void ExportConfiguration::set_has_tiledb_array_name() {
+void ExportConfiguration::set_has_array() {
   _has_bits_[0] |= 0x00000002u;
 }
-void ExportConfiguration::clear_has_tiledb_array_name() {
+void ExportConfiguration::clear_has_array() {
   _has_bits_[0] &= ~0x00000002u;
 }
-void ExportConfiguration::clear_tiledb_array_name() {
-  tiledb_array_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_array_name();
+void ExportConfiguration::clear_array() {
+  array_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_array();
 }
- const ::std::string& ExportConfiguration::tiledb_array_name() const {
-  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_array_name)
-  return tiledb_array_name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ const ::std::string& ExportConfiguration::array() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.array)
+  return array_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void ExportConfiguration::set_tiledb_array_name(const ::std::string& value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_array_name)
+ void ExportConfiguration::set_array(const ::std::string& value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.array)
 }
- void ExportConfiguration::set_tiledb_array_name(const char* value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_array_name)
+ void ExportConfiguration::set_array(const char* value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.array)
 }
- void ExportConfiguration::set_tiledb_array_name(const char* value, size_t size) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+ void ExportConfiguration::set_array(const char* value, size_t size) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_array_name)
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.array)
 }
- ::std::string* ExportConfiguration::mutable_tiledb_array_name() {
-  set_has_tiledb_array_name();
-  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_array_name)
-  return tiledb_array_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ ::std::string* ExportConfiguration::mutable_array() {
+  set_has_array();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.array)
+  return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- ::std::string* ExportConfiguration::release_tiledb_array_name() {
-  clear_has_tiledb_array_name();
-  return tiledb_array_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+ ::std::string* ExportConfiguration::release_array() {
+  clear_has_array();
+  return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
- void ExportConfiguration::set_allocated_tiledb_array_name(::std::string* tiledb_array_name) {
-  if (tiledb_array_name != NULL) {
-    set_has_tiledb_array_name();
+ void ExportConfiguration::set_allocated_array(::std::string* array) {
+  if (array != NULL) {
+    set_has_array();
   } else {
-    clear_has_tiledb_array_name();
+    clear_has_array();
   }
-  tiledb_array_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_array_name);
-  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_array_name)
+  array_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), array);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.array)
 }
 
 // required string reference_genome = 3;

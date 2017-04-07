@@ -298,29 +298,29 @@ class ExportConfiguration : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required string tiledb_workspace = 1;
-  bool has_tiledb_workspace() const;
-  void clear_tiledb_workspace();
-  static const int kTiledbWorkspaceFieldNumber = 1;
-  const ::std::string& tiledb_workspace() const;
-  void set_tiledb_workspace(const ::std::string& value);
-  void set_tiledb_workspace(const char* value);
-  void set_tiledb_workspace(const char* value, size_t size);
-  ::std::string* mutable_tiledb_workspace();
-  ::std::string* release_tiledb_workspace();
-  void set_allocated_tiledb_workspace(::std::string* tiledb_workspace);
+  // required string workspace = 1;
+  bool has_workspace() const;
+  void clear_workspace();
+  static const int kWorkspaceFieldNumber = 1;
+  const ::std::string& workspace() const;
+  void set_workspace(const ::std::string& value);
+  void set_workspace(const char* value);
+  void set_workspace(const char* value, size_t size);
+  ::std::string* mutable_workspace();
+  ::std::string* release_workspace();
+  void set_allocated_workspace(::std::string* workspace);
 
-  // required string tiledb_array_name = 2;
-  bool has_tiledb_array_name() const;
-  void clear_tiledb_array_name();
-  static const int kTiledbArrayNameFieldNumber = 2;
-  const ::std::string& tiledb_array_name() const;
-  void set_tiledb_array_name(const ::std::string& value);
-  void set_tiledb_array_name(const char* value);
-  void set_tiledb_array_name(const char* value, size_t size);
-  ::std::string* mutable_tiledb_array_name();
-  ::std::string* release_tiledb_array_name();
-  void set_allocated_tiledb_array_name(::std::string* tiledb_array_name);
+  // required string array = 2;
+  bool has_array() const;
+  void clear_array();
+  static const int kArrayFieldNumber = 2;
+  const ::std::string& array() const;
+  void set_array(const ::std::string& value);
+  void set_array(const char* value);
+  void set_array(const char* value, size_t size);
+  ::std::string* mutable_array();
+  ::std::string* release_array();
+  void set_allocated_array(::std::string* array);
 
   // required string reference_genome = 3;
   bool has_reference_genome() const;
@@ -388,10 +388,10 @@ class ExportConfiguration : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:ExportConfiguration)
  private:
-  inline void set_has_tiledb_workspace();
-  inline void clear_has_tiledb_workspace();
-  inline void set_has_tiledb_array_name();
-  inline void clear_has_tiledb_array_name();
+  inline void set_has_workspace();
+  inline void clear_has_workspace();
+  inline void set_has_array();
+  inline void clear_has_array();
   inline void set_has_reference_genome();
   inline void clear_has_reference_genome();
   inline void set_has_vid_mapping_file();
@@ -405,8 +405,8 @@ class ExportConfiguration : public ::google::protobuf::Message {
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
-  ::google::protobuf::internal::ArenaStringPtr tiledb_workspace_;
-  ::google::protobuf::internal::ArenaStringPtr tiledb_array_name_;
+  ::google::protobuf::internal::ArenaStringPtr workspace_;
+  ::google::protobuf::internal::ArenaStringPtr array_;
   ::google::protobuf::internal::ArenaStringPtr reference_genome_;
   ::google::protobuf::RepeatedPtrField< ::ColumnRangeList > query_column_ranges_;
   ::google::protobuf::RepeatedPtrField< ::std::string> attributes_;
@@ -513,110 +513,110 @@ ColumnRangeList::range_list() const {
 
 // ExportConfiguration
 
-// required string tiledb_workspace = 1;
-inline bool ExportConfiguration::has_tiledb_workspace() const {
+// required string workspace = 1;
+inline bool ExportConfiguration::has_workspace() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void ExportConfiguration::set_has_tiledb_workspace() {
+inline void ExportConfiguration::set_has_workspace() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void ExportConfiguration::clear_has_tiledb_workspace() {
+inline void ExportConfiguration::clear_has_workspace() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void ExportConfiguration::clear_tiledb_workspace() {
-  tiledb_workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_workspace();
+inline void ExportConfiguration::clear_workspace() {
+  workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_workspace();
 }
-inline const ::std::string& ExportConfiguration::tiledb_workspace() const {
-  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_workspace)
-  return tiledb_workspace_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline const ::std::string& ExportConfiguration::workspace() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.workspace)
+  return workspace_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void ExportConfiguration::set_tiledb_workspace(const ::std::string& value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_workspace)
+inline void ExportConfiguration::set_workspace(const ::std::string& value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.workspace)
 }
-inline void ExportConfiguration::set_tiledb_workspace(const char* value) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_workspace)
+inline void ExportConfiguration::set_workspace(const char* value) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.workspace)
 }
-inline void ExportConfiguration::set_tiledb_workspace(const char* value, size_t size) {
-  set_has_tiledb_workspace();
-  tiledb_workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+inline void ExportConfiguration::set_workspace(const char* value, size_t size) {
+  set_has_workspace();
+  workspace_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_workspace)
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.workspace)
 }
-inline ::std::string* ExportConfiguration::mutable_tiledb_workspace() {
-  set_has_tiledb_workspace();
-  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_workspace)
-  return tiledb_workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* ExportConfiguration::mutable_workspace() {
+  set_has_workspace();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.workspace)
+  return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* ExportConfiguration::release_tiledb_workspace() {
-  clear_has_tiledb_workspace();
-  return tiledb_workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* ExportConfiguration::release_workspace() {
+  clear_has_workspace();
+  return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void ExportConfiguration::set_allocated_tiledb_workspace(::std::string* tiledb_workspace) {
-  if (tiledb_workspace != NULL) {
-    set_has_tiledb_workspace();
+inline void ExportConfiguration::set_allocated_workspace(::std::string* workspace) {
+  if (workspace != NULL) {
+    set_has_workspace();
   } else {
-    clear_has_tiledb_workspace();
+    clear_has_workspace();
   }
-  tiledb_workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_workspace);
-  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_workspace)
+  workspace_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), workspace);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.workspace)
 }
 
-// required string tiledb_array_name = 2;
-inline bool ExportConfiguration::has_tiledb_array_name() const {
+// required string array = 2;
+inline bool ExportConfiguration::has_array() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void ExportConfiguration::set_has_tiledb_array_name() {
+inline void ExportConfiguration::set_has_array() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void ExportConfiguration::clear_has_tiledb_array_name() {
+inline void ExportConfiguration::clear_has_array() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void ExportConfiguration::clear_tiledb_array_name() {
-  tiledb_array_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  clear_has_tiledb_array_name();
+inline void ExportConfiguration::clear_array() {
+  array_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_array();
 }
-inline const ::std::string& ExportConfiguration::tiledb_array_name() const {
-  // @@protoc_insertion_point(field_get:ExportConfiguration.tiledb_array_name)
-  return tiledb_array_name_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline const ::std::string& ExportConfiguration::array() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.array)
+  return array_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void ExportConfiguration::set_tiledb_array_name(const ::std::string& value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ExportConfiguration.tiledb_array_name)
+inline void ExportConfiguration::set_array(const ::std::string& value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.array)
 }
-inline void ExportConfiguration::set_tiledb_array_name(const char* value) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ExportConfiguration.tiledb_array_name)
+inline void ExportConfiguration::set_array(const char* value) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.array)
 }
-inline void ExportConfiguration::set_tiledb_array_name(const char* value, size_t size) {
-  set_has_tiledb_array_name();
-  tiledb_array_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+inline void ExportConfiguration::set_array(const char* value, size_t size) {
+  set_has_array();
+  array_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.tiledb_array_name)
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.array)
 }
-inline ::std::string* ExportConfiguration::mutable_tiledb_array_name() {
-  set_has_tiledb_array_name();
-  // @@protoc_insertion_point(field_mutable:ExportConfiguration.tiledb_array_name)
-  return tiledb_array_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* ExportConfiguration::mutable_array() {
+  set_has_array();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.array)
+  return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline ::std::string* ExportConfiguration::release_tiledb_array_name() {
-  clear_has_tiledb_array_name();
-  return tiledb_array_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* ExportConfiguration::release_array() {
+  clear_has_array();
+  return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
-inline void ExportConfiguration::set_allocated_tiledb_array_name(::std::string* tiledb_array_name) {
-  if (tiledb_array_name != NULL) {
-    set_has_tiledb_array_name();
+inline void ExportConfiguration::set_allocated_array(::std::string* array) {
+  if (array != NULL) {
+    set_has_array();
   } else {
-    clear_has_tiledb_array_name();
+    clear_has_array();
   }
-  tiledb_array_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tiledb_array_name);
-  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.tiledb_array_name)
+  array_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), array);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.array)
 }
 
 // required string reference_genome = 3;
