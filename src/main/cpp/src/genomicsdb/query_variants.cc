@@ -1172,6 +1172,20 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
   return num_queried_attributes - 1;
 }
 
+inline void VariantQueryProcessor::initialize_columnar_iterator(
+    const int ad,
+    const VariantQueryConfig& query_config, const int64_t column,
+    SingleCellTileDBIterator*& forward_iter) const {
+  assert(query_config.is_bookkeeping_done());
+  //Num attributes in query
+  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
+  //Assign forward iterator
+  vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
+    static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
+    column, INT64_MAX };
+  forward_iter = get_storage_manager()->begin_columnar_iterator(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
+}
+
 void VariantQueryProcessor::clear()
 {
   m_schema_idx_to_known_variant_field_enum_LUT.reset_luts();

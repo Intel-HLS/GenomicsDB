@@ -25,6 +25,7 @@
 
 #include "headers.h"
 #include "variant_array_schema.h"
+#include "genomicsdb_iterators.h"
 
 class VariantQueryConfig;
 /*
@@ -132,6 +133,42 @@ class BufferVariantCell
     //Co-ordinates
     int64_t m_row_idx;
     int64_t m_begin_column_idx;
+};
+
+/*
+ * Doesn't store any data - all the data is stored in the columnar structures held
+ * by m_iterator object
+ * Returned when (*SingleCellTileDBIterator) is invoked
+ * Convenience class for holding some functions
+ */
+class GenomicsDBColumnarCell
+{
+  public:
+    GenomicsDBColumnarCell(const SingleCellTileDBIterator* iterator)
+    {
+      m_iterator = iterator;
+    }
+    //Delete copy constructor
+    GenomicsDBColumnarCell(const GenomicsDBColumnarCell& other) = delete;
+    template<typename T=void>
+    inline const T* get_field_ptr_for_query_idx(const int query_idx) const
+    {
+      return reinterpret_cast<const T*>(m_iterator->get_field_ptr_for_query_idx(query_idx));
+    }
+    inline int get_field_length(const int query_idx) const
+    {
+      return m_iterator->get_field_length(query_idx);
+    }
+    inline int get_field_size_in_bytes(const int query_idx) const
+    {
+      return m_iterator->get_field_size_in_bytes(query_idx);
+    }
+    inline bool is_valid(const int query_idx) const
+    {
+      return m_iterator->is_valid(query_idx);
+    }
+  private:
+    const SingleCellTileDBIterator* m_iterator;
 };
 
 #endif

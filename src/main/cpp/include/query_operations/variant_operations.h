@@ -504,6 +504,11 @@ class SingleCellOperatorBase
   public:
     SingleCellOperatorBase() { ; }
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)  { ; }
+    virtual void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+    {
+      throw VariantOperationException("Sub-classes should override operate_on_columnar_cell()");
+    }
 };
 
 class ColumnHistogramOperator : public SingleCellOperatorBase

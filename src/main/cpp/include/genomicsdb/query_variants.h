@@ -322,6 +322,14 @@ class VariantQueryProcessor {
         const int ad,
         const VariantQueryConfig& query_config, const int64_t column,
         VariantArrayCellIterator*& forward_iter) const;
+    /** 
+     * Initializes columnar iterator
+     * Returns the number of attributes used in joint genotyping.
+     */
+    void initialize_columnar_iterator(
+        const int ad,
+        const VariantQueryConfig& query_config, const int64_t column,
+        SingleCellTileDBIterator*& forward_iter) const;
     /*
      * Fill data from tile for attribute query_idx into curr_call
      * @param curr_call  VariantCall object in which data will be stored

@@ -25,7 +25,6 @@
 
 #include "headers.h"
 #include "variant_array_schema.h"
-#include "variant_cell.h"
 #include "genomicsdb_columnar_field.h"
 #include "c_api.h"
 #include "timer.h"
@@ -42,6 +41,7 @@ class GenomicsDBIteratorException : public std::exception {
     std::string msg_;
 };
 
+class GenomicsDBColumnarCell;
 /*
  * Iterates over TileDB cells one at a time
  */
@@ -50,23 +50,41 @@ class SingleCellTileDBIterator
   public:
     SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size);
-    ~SingleCellTileDBIterator()
-    {
-      if(m_tiledb_array)
-        tiledb_array_finalize(m_tiledb_array);
-      m_tiledb_array = 0;
-#ifdef DO_PROFILING
-      m_tiledb_timer.print("TileDB iterator", std::cerr);
-      m_tiledb_to_buffer_cell_timer.print("TileDB to buffer cell", std::cerr);
-#endif
-    }
+    ~SingleCellTileDBIterator();
     //Delete copy and move constructors
     SingleCellTileDBIterator(const SingleCellTileDBIterator& other) = delete;
     SingleCellTileDBIterator(SingleCellTileDBIterator&& other) = delete;
     //Iterator functionality
-    const BufferVariantCell& operator*() const;
+    inline const GenomicsDBColumnarCell& operator*() const
+    {
+      return *m_cell;
+    }
     inline const SingleCellTileDBIterator& operator++();
-    inline bool end() const;
+    //Get field pointer, length, size
+    inline const uint8_t* get_field_ptr_for_query_idx(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_fields.size());
+      auto& genomicsdb_columnar_field = m_fields[query_idx];
+      return genomicsdb_columnar_field.get_pointer_to_curr_index_data_in_live_list_tail();
+    }
+    inline int get_field_length(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_fields.size());
+      auto& genomicsdb_columnar_field = m_fields[query_idx];
+      return genomicsdb_columnar_field.get_length_of_curr_index_data_in_live_list_tail();
+    }
+    inline size_t get_field_size_in_bytes(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_fields.size());
+      auto& genomicsdb_columnar_field = m_fields[query_idx];
+      return genomicsdb_columnar_field.get_size_of_curr_index_data_in_live_list_tail();
+    }
+    inline bool is_valid(const int query_idx) const
+    {
+      assert(static_cast<size_t>(query_idx) < m_fields.size());
+      auto& genomicsdb_columnar_field = m_fields[query_idx];
+      return genomicsdb_columnar_field.is_valid_curr_index_data_in_live_list_tail();
+    }
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec
@@ -74,7 +92,7 @@ class SingleCellTileDBIterator
     void read_from_TileDB();
   private:
     const VariantArraySchema* m_variant_array_schema;
-    BufferVariantCell m_cell;
+    GenomicsDBColumnarCell* m_cell;
     //Buffers for fields
     std::vector<GenomicsDBColumnarField> m_fields;
     //Contains query idx for only the fields that must be fetched from TileDB in the next round

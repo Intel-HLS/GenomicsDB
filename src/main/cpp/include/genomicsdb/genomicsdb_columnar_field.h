@@ -76,7 +76,9 @@ class GenomicsDBBuffer
       --m_num_live_entries;
     }
     inline std::vector<uint8_t>& get_buffer() { return m_buffer; }
+    inline const std::vector<uint8_t>& get_buffer() const { return m_buffer; }
     inline uint8_t* get_buffer_pointer() { return &(m_buffer[0]); }
+    inline const uint8_t* get_buffer_pointer() const { return &(m_buffer[0]); }
     inline size_t get_buffer_size_in_bytes() const { return m_buffer.size(); }
     /*inline std::vector<size_t>& get_offsets() { return m_offsets; }*/
     inline size_t* get_offsets_pointer() { return &(m_offsets[0]); }
@@ -97,6 +99,16 @@ class GenomicsDBBuffer
     {
       assert(idx < m_offsets.size());
       return m_offsets[idx ];
+    }
+    inline size_t get_size_of_variable_length_field(const size_t idx) const
+    {
+      assert(idx+1u < m_offsets.size());
+      return m_offsets[idx+1u] - m_offsets[idx];
+    }
+    inline bool is_valid(const size_t idx) const
+    {
+      assert(idx < m_valid.size());
+      return m_valid[idx];
     }
     inline std::vector<bool>& get_valid_vector() { return m_valid; }
     //Buffer pointers
@@ -167,8 +179,11 @@ class GenomicsDBColumnarField
     }
     GenomicsDBBuffer* get_live_buffer_list_head_ptr() { return m_live_buffer_list_head_ptr; }
     GenomicsDBBuffer* get_live_buffer_list_tail_ptr() { return m_live_buffer_list_tail_ptr; }
+    const GenomicsDBBuffer* get_live_buffer_list_head_ptr() const { return m_live_buffer_list_head_ptr; }
+    const GenomicsDBBuffer* get_live_buffer_list_tail_ptr() const { return m_live_buffer_list_tail_ptr; }
     void move_buffer_to_live_list(GenomicsDBBuffer* buffer);
     void move_buffer_to_free_list(GenomicsDBBuffer* buffer);
+    void set_valid_vector_in_live_buffer_list_tail_ptr();
     //Field lengths
     bool is_variable_length_field() const { return (m_length_descriptor != BCF_VL_FIXED); }
     inline size_t get_fixed_length_field_size_in_bytes() const { return m_fixed_length_field_size; }
@@ -196,8 +211,18 @@ class GenomicsDBColumnarField
       if(m_length_descriptor == BCF_VL_FIXED)
         return m_fixed_length_field_size;
       else
-        return buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail+1u)
-          - buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail);
+        return buffer_ptr->get_size_of_variable_length_field(m_curr_index_in_live_buffer_list_tail);
+    }
+    inline size_t get_length_of_curr_index_data_in_live_list_tail() const
+    {
+      return get_size_of_curr_index_data_in_live_list_tail()/m_element_size;
+    }
+    inline bool is_valid_curr_index_data_in_live_list_tail() const
+    {
+      auto buffer_ptr = get_live_buffer_list_tail_ptr();
+      assert(buffer_ptr);
+      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
+      return buffer_ptr->is_valid(m_curr_index_in_live_buffer_list_tail);
     }
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);

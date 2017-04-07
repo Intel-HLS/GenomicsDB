@@ -51,7 +51,7 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_element_type = other.m_element_type;
   m_check_tiledb_valid_element = other.m_check_tiledb_valid_element;
   m_buffer_size = other.m_buffer_size;
-  m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_head;
+  m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_tail;
 }
 
 GenomicsDBColumnarField::GenomicsDBColumnarField(GenomicsDBColumnarField&& other)
@@ -149,6 +149,8 @@ void GenomicsDBColumnarField::move_buffer_to_live_list(GenomicsDBBuffer* buffer)
   //If this was the head pointer, advance it
   if(buffer == m_free_buffer_list_head_ptr)
     m_free_buffer_list_head_ptr = next_in_free_list;
+  //Reset idx pointed to in tail to 0
+  m_curr_index_in_live_buffer_list_tail = 0u;
 }
 
 void GenomicsDBColumnarField::move_buffer_to_free_list(GenomicsDBBuffer* buffer)
@@ -176,4 +178,24 @@ void GenomicsDBColumnarField::move_buffer_to_free_list(GenomicsDBBuffer* buffer)
   //If this was the head, update to next
   if(buffer == m_live_buffer_list_head_ptr)
     m_live_buffer_list_head_ptr = next_in_live_list;
+}
+
+void GenomicsDBColumnarField::set_valid_vector_in_live_buffer_list_tail_ptr()
+{
+  auto buffer_ptr = get_live_buffer_list_tail_ptr();
+  assert(buffer_ptr);
+  auto& valid_vector = buffer_ptr->get_valid_vector();
+  if(m_length_descriptor == BCF_VL_FIXED)
+    for(auto i=0ull;i<buffer_ptr->get_num_live_entries();++i)
+    {
+      assert(i < valid_vector.size());
+      valid_vector[i] = m_check_tiledb_valid_element(buffer_ptr->get_buffer_pointer() + (m_fixed_length_field_size*i),
+          m_fixed_length_field_num_elements);
+    }
+  else
+    for(auto i=0ull;i<buffer_ptr->get_num_live_entries();++i)
+    {
+      assert(i < valid_vector.size());
+      valid_vector[i] = (buffer_ptr->get_size_of_variable_length_field(i) > 0u);
+    }
 }

@@ -26,7 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "variant_cell.h"
-#include "genomicsdb_columnar_field.h"
+#include "genomicsdb_iterators.h"
 #include "c_api.h"
 #include "timer.h"
 
@@ -241,6 +241,11 @@ class VariantStorageManager
      */
     VariantArrayCellIterator* begin(
         int ad, const int64_t* range, const std::vector<int>& attribute_ids) const ;
+    /*
+     * For columnar iterator
+     */
+    SingleCellTileDBIterator* begin_columnar_iterator(
+        int ad, const int64_t* range, const std::vector<int>& attribute_ids) const;
     /*
      * Write sorted cell
      */
