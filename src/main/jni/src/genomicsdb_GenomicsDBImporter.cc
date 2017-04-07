@@ -333,3 +333,16 @@ Java_com_intel_genomicsdb_GenomicsDBImporter_jniCopyCallsetMap
   // Cast pointer to 64-bit integer and return to Java
   return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(importer));
 } // end of jniCopyCallsetMap
+
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniCreateTileDBWorkspace
+  (JNIEnv* env, jclass currClass, jstring workspace)
+{
+  auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
+  VERIFY_OR_THROW(workspace_cstr);
+  auto return_val = VCF2TileDBLoader::create_tiledb_workspace(workspace_cstr);
+  //Cleanup
+  env->ReleaseStringUTFChars(
+    workspace,
+    workspace_cstr);
+  return return_val;
+}

@@ -188,6 +188,25 @@ public class GenomicsDBImporter
     final String loaderJSONFile,
     final int rank);
 
+  /**
+   * Create TileDB workspace
+   * @param workspace path to workspace directory
+   * @return status 0 = workspace created, -1 = path was not a directory, -2 = failed to create workspace,
+   *          1 = existing directory, nothing changed
+   */
+  private static native int jniCreateTileDBWorkspace(final String workspace);
+
+  /**
+   * Create TileDB workspace
+   * @param workspace path to workspace directory
+   * @return status 0 = workspace created, -1 = path was not a directory, -2 = failed to create workspace,
+   *          1 = existing directory, nothing changed
+   */
+  public static int createTileDBWorkspace(final String workspace)
+  {
+    return jniCreateTileDBWorkspace(workspace);
+  }
+
   private String mLoaderJSONFile = null;
   private int mRank = 0;
   private long mLbRowIdx = 0;
