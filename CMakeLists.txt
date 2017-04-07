@@ -66,6 +66,8 @@ endif()
 if(NOT DISABLE_MPI)
     find_package(MPI REQUIRED)
     set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+else()
+    add_definitions(-DDISABLE_MPI=1)
 endif()
 
 if(NOT DISABLE_OPENMP)
