@@ -45,13 +45,15 @@ import static com.googlecode.protobuf.format.JsonFormat.printToString;
 
 public final class GenomicsDBFeatureReaderSpec {
 
-  private static String TEST_TILEDB_WORKSPACE = "./__workspace";
+  private static File TEST_TILEDB_WORKSPACE = new File("__workspace");
   private static String TEST_TILEDB_ARRAY_NAME = "featureReaderTest";
-  private static String TEMP_VIDMAP_JSON_FILE = "./generated_vid_map.json";
-  private static String TEMP_CALLSETMAP_JSON_FILE = "./generated_callset_map.json";
-  private static String TEST_LOADER_JSON_FILE = "./generated_loader.json";
-  private static String TEST_QUERY_JSON_FILE = "./generated_query.json";
-  private static String TEST_REFERENCE_GENOME = "./tests/inputs/Homo_sapiens_assembly19.fasta";
+  private static File TEMP_VIDMAP_JSON_FILE = new File("generated_vid_map.json");
+  private static File TEMP_CALLSETMAP_JSON_FILE = new File("generated_callset_map.json");
+  private static File TEST_LOADER_JSON_FILE = new File("generated_loader.json");
+  private static File TEST_QUERY_JSON_FILE = new File("generated_query.json");
+  private static File TEST_REFERENCE_GENOME = new File("tests/inputs/Homo_sapiens_assembly19.fasta");
+  private static File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
+  private static File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
 
   private static final String TEST_CHROMOSOME_NAME = "1";
 
@@ -70,12 +72,13 @@ public final class GenomicsDBFeatureReaderSpec {
     return tempQueryJSONFile;
   }
 
-  @Test(testName = "Feature Reader with Merged Header")
+  @Test(testName = "Feature Reader with Merged Header",
+        dataProvider = "vcfFiles",
+        dataProviderClass = GenomicsDBTestUtils.class)
   public void testFeatureReaderWithMergedHeader(
     Map<String, FeatureReader<VariantContext>> variantReaders) throws IOException {
 
-    final String TEMP_VID_JSON_FILE = "./generated_vidmap.json";
-    final String TEMP_CALLSET_JSON_FILE = "./generated_callsetmap.json";
+
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
@@ -91,12 +94,12 @@ public final class GenomicsDBFeatureReaderSpec {
       variantReaders,
       mergedHeader,
       chromosomeInterval,
-      TEST_TILEDB_WORKSPACE,
+      TEST_TILEDB_WORKSPACE.getAbsolutePath(),
       TEST_TILEDB_ARRAY_NAME,
       1000L,
       10000000L,
-      TEMP_VID_JSON_FILE,
-      TEMP_CALLSET_JSON_FILE);
+      TEMP_VID_JSON_FILE.getAbsolutePath(),
+      TEMP_CALLSET_JSON_FILE.getAbsolutePath());
 
     importer.importBatch();
 
@@ -109,7 +112,7 @@ public final class GenomicsDBFeatureReaderSpec {
     GenomicsDBImportConfiguration.Partition partition =
       pBuilder
       .setArray(TEST_TILEDB_ARRAY_NAME)
-      .setWorkspace(TEST_TILEDB_WORKSPACE)
+      .setWorkspace(TEST_TILEDB_WORKSPACE.getAbsolutePath())
       .setBegin(0)
       .build();
 
@@ -119,30 +122,30 @@ public final class GenomicsDBFeatureReaderSpec {
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
       builder
         .setProduceTiledbArray(true)
-        .setCallsetMappingFile(TEMP_CALLSETMAP_JSON_FILE)
-        .setVidMappingFile(TEMP_VIDMAP_JSON_FILE)
+        .setCallsetMappingFile(TEMP_CALLSETMAP_JSON_FILE.getAbsolutePath())
+        .setVidMappingFile(TEMP_VIDMAP_JSON_FILE.getAbsolutePath())
         .setSizePerColumnPartition(1000L)
         .setSegmentSize(1048576)
         .addAllColumnPartitions(partitionList)
         .build();
 
     File importJSONFile = GenomicsDBImporter.printLoaderJSONFile(
-      importConfiguration, TEST_LOADER_JSON_FILE);
+      importConfiguration, TEST_LOADER_JSON_FILE.getAbsolutePath());
 
     GenomicsDBExportConfiguration.ExportConfiguration.Builder eBuilder =
       GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
 
     GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration =
       eBuilder
-        .setTiledbWorkspace(TEST_TILEDB_WORKSPACE)
-        .setTiledbArrayName(TEST_TILEDB_ARRAY_NAME)
-        .setReferenceGenome(TEST_REFERENCE_GENOME)
+        .setWorkspace(TEST_TILEDB_WORKSPACE.getAbsolutePath())
+        .setArray(TEST_TILEDB_ARRAY_NAME)
+        .setReferenceGenome(TEST_REFERENCE_GENOME.getAbsolutePath())
         .build();
 
-    File queryJSONFile = printQueryJSONFile(exportConfiguration, TEST_QUERY_JSON_FILE);
-    BCF2Codec codec = new BCF2Codec();
-    GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader =
-      new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>(
-        importJSONFile.getAbsolutePath(), queryJSONFile.getAbsolutePath(), codec);
+//    File queryJSONFile = printQueryJSONFile(exportConfiguration, TEST_QUERY_JSON_FILE.getAbsolutePath());
+//    BCF2Codec codec = new BCF2Codec();
+//    GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader =
+//      new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>(
+//        importJSONFile.getAbsolutePath(), queryJSONFile.getAbsolutePath(), codec);
   }
 }
