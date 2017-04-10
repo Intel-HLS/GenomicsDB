@@ -27,7 +27,6 @@
 #include "headers.h"
 #include "gt_common.h"
 #include "variant_cell.h"
-#include "genomicsdb_columnar_field.h"
 
 class UnknownAttributeTypeException : public std::exception {
   public:
@@ -101,7 +100,6 @@ class VariantFieldBase
       m_subclass_type = VARIANT_FIELD_BASE;
       m_valid = false;
       m_is_variable_length_field = is_variable_length_field;
-      m_columnar_field = 0;
     }
     virtual ~VariantFieldBase() = default;
     void copy_data_from_tile(const BufferVariantCell::FieldsIter& attr_iter)
@@ -132,8 +130,6 @@ class VariantFieldBase
       m_is_variable_length_field = base_src->m_is_variable_length_field;
       m_subclass_type = base_src->m_subclass_type;
       m_cell_idx = base_src->m_cell_idx;
-      //don't copy m_columnar_field pointer as it must be set by caller
-      //to a copy of the columnar field
     }
     //Resize this field - default do nothing
     virtual void resize(unsigned new_size) { ; }
@@ -147,7 +143,6 @@ class VariantFieldBase
      */
     void set_columnar_field_object(GenomicsDBColumnarField* columnar_field, const uint64_t cell_idx)
     {
-      m_columnar_field = columnar_field;
       m_cell_idx = cell_idx;
     }
   protected:
@@ -162,7 +157,6 @@ class VariantFieldBase
     };
     bool m_is_variable_length_field;
     unsigned m_subclass_type;   //enum from above
-    GenomicsDBColumnarField* m_columnar_field;
     uint64_t m_cell_idx;
   private:
     bool m_valid;

@@ -585,27 +585,26 @@ void VariantQueryProcessor::iterate_over_cells(
   //Initialize forward scan iterators
   VariantArrayCellIterator* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
+  SingleCellTileDBIterator* columnar_forward_iter = 0;
+  initialize_columnar_iterator(ad, query_config, start_column, columnar_forward_iter);
+
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
-  for(;!(forward_iter->end());++(*forward_iter))
+  for(;!(columnar_forward_iter->end());++(*columnar_forward_iter))
   {
-    auto& cell = **forward_iter;
+    auto& cell = **columnar_forward_iter;
+    auto coords = cell.get_coordinates();
     //If only interval requested and end of interval crossed, exit loop
     if(query_config.get_num_column_intervals() > 0 &&
-        cell.get_begin_column() > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
+        coords[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
       break;
-    if(query_config.is_queried_array_row_idx(cell.get_row()))       //If row is part of query, process cell
-    {
-      auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(cell.get_row()));
-      curr_call.reset_for_new_interval();
-      gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
-      //When cells are duplicated at the END, then the VariantCall object need not be valid
-      if(curr_call.is_valid())
-        variant_operator.operate(curr_call, query_config, get_array_schema());
-    }
+    //FIXME: when cells are duplicated at the END, then the VariantCall object need not be valid
+    if(query_config.is_queried_array_row_idx(coords[0]))       //If row is part of query, process cell
+      variant_operator.operate_on_columnar_cell(cell, query_config, get_array_schema());
   }
   delete forward_iter;
+  delete columnar_forward_iter;
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,

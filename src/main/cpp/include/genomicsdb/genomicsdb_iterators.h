@@ -59,38 +59,58 @@ class SingleCellTileDBIterator
     {
       return *m_cell;
     }
-    inline const SingleCellTileDBIterator& operator++();
+    const SingleCellTileDBIterator& operator++();
     //Get field pointer, length, size
     inline const uint8_t* get_field_ptr_for_query_idx(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
-      return genomicsdb_columnar_field.get_pointer_to_curr_index_data_in_live_list_tail();
+      return genomicsdb_columnar_field.get_pointer_to_data_in_buffer_at_index(
+          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
+          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
+          );
     }
     inline int get_field_length(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
-      return genomicsdb_columnar_field.get_length_of_curr_index_data_in_live_list_tail();
+      return genomicsdb_columnar_field.get_length_of_data_in_buffer_at_index(
+          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
+          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
+          );
     }
     inline size_t get_field_size_in_bytes(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
-      return genomicsdb_columnar_field.get_size_of_curr_index_data_in_live_list_tail();
+      return genomicsdb_columnar_field.get_size_of_data_in_buffer_at_index(
+          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
+          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
+          );
     }
     inline bool is_valid(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
-      return genomicsdb_columnar_field.is_valid_curr_index_data_in_live_list_tail();
+      return genomicsdb_columnar_field.is_valid_data_in_buffer_at_index(
+          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
+          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
+          );
     }
+    inline const int64_t* get_coordinates() const
+    {
+      auto coords_query_idx = m_fields.size()-1u;
+      return reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(coords_query_idx));
+    }
+    void print(const int query_idx, std::ostream& fptr=std::cout) const;
+    inline bool end() const { return m_done_reading_from_TileDB; }
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec
      */
     void read_from_TileDB();
   private:
+    bool m_done_reading_from_TileDB;
     const VariantArraySchema* m_variant_array_schema;
     GenomicsDBColumnarCell* m_cell;
     //Buffers for fields

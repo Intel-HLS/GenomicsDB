@@ -50,6 +50,7 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_element_size = other.m_element_size;
   m_element_type = other.m_element_type;
   m_check_tiledb_valid_element = other.m_check_tiledb_valid_element;
+  m_print = other.m_print;
   m_buffer_size = other.m_buffer_size;
   m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_tail;
 }
@@ -89,9 +90,98 @@ GenomicsDBColumnarField::~GenomicsDBColumnarField()
   clear();
 }
 
+//template specialization for printer
+template<typename T>
+class GenomicsDBColumnarFieldPrintOperator<T, true>
+{
+  public:
+    static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements)
+    {
+      assert(num_elements > 0u);
+      auto data = reinterpret_cast<const T*>(ptr);
+      fptr << "[ " << data[0u];
+      for(auto i=1u;i<num_elements;++i)
+        fptr << ", " << data[i];
+      fptr << " ]";
+    }
+};
+
+template<typename T>
+class GenomicsDBColumnarFieldPrintOperator<T, false>
+{
+  public:
+    static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements)
+    {
+      assert(num_elements > 0u);
+      auto data = reinterpret_cast<const T*>(ptr);
+      fptr << *data;
+    }
+};
+
+//string specialization
+template<>
+class GenomicsDBColumnarFieldPrintOperator<char*, false>
+{
+  public:
+    static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements)
+    {
+      assert(num_elements > 0u);
+      auto data = reinterpret_cast<const char*>(ptr);
+      fptr << "\"";
+      fptr.write(data, num_elements);
+      fptr << "\"";
+    }
+};
+
+template<>
+class GenomicsDBColumnarFieldPrintOperator<char*, true>
+{
+  public:
+    static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements)
+    {
+      GenomicsDBColumnarFieldPrintOperator<char*, false>::print(fptr, ptr, num_elements);
+    }
+};
+
+template<bool print_as_list>
+void GenomicsDBColumnarField::assign_print_function_pointers(VariantFieldTypeEnum variant_enum_type)
+{
+  switch(variant_enum_type)
+  {
+    case VariantFieldTypeEnum::VARIANT_FIELD_INT:
+      m_print = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
+      m_print = GenomicsDBColumnarFieldPrintOperator<unsigned, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
+      m_print = GenomicsDBColumnarFieldPrintOperator<int64_t, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
+      m_print = GenomicsDBColumnarFieldPrintOperator<uint64_t, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+      m_print = GenomicsDBColumnarFieldPrintOperator<float, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
+      m_print = GenomicsDBColumnarFieldPrintOperator<double, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
+      m_print = GenomicsDBColumnarFieldPrintOperator<char, print_as_list>::print;
+      break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
+      m_print = GenomicsDBColumnarFieldPrintOperator<char*, false>::print;
+      break;
+    default:
+      throw GenomicsDBColumnarFieldException(std::string("Unhandled type ")+m_element_type.name());
+  }
+}
+
 void GenomicsDBColumnarField::assign_function_pointers()
 {
-  switch(VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(m_element_type))
+  auto variant_enum_type = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(m_element_type);
+  //Validity function
+  switch(variant_enum_type)
   {
     case VariantFieldTypeEnum::VARIANT_FIELD_INT:
     case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
@@ -114,6 +204,11 @@ void GenomicsDBColumnarField::assign_function_pointers()
     default:
       throw GenomicsDBColumnarFieldException(std::string("Unhandled type ")+m_element_type.name());
   }
+  //Singleton field
+  if(m_length_descriptor == BCF_VL_FIXED && m_fixed_length_field_num_elements == 1u)
+    assign_print_function_pointers<false>(variant_enum_type);
+  else
+    assign_print_function_pointers<true>(variant_enum_type);
 }
 
 void GenomicsDBColumnarField::move_buffer_to_live_list(GenomicsDBBuffer* buffer)
@@ -198,4 +293,11 @@ void GenomicsDBColumnarField::set_valid_vector_in_live_buffer_list_tail_ptr()
       assert(i < valid_vector.size());
       valid_vector[i] = (buffer_ptr->get_size_of_variable_length_field(i) > 0u);
     }
+}
+
+void GenomicsDBColumnarField::print_data_in_buffer_at_index(std::ostream& fptr,
+    const GenomicsDBBuffer* buffer_ptr, const size_t index) const
+{
+  m_print(fptr, get_pointer_to_data_in_buffer_at_index(buffer_ptr, index),
+      get_length_of_data_in_buffer_at_index(buffer_ptr, index));
 }

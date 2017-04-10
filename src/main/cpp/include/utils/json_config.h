@@ -46,6 +46,8 @@ class RunConfigException : public std::exception {
     std::string msg_;
 };
 
+extern const char* g_json_indent_unit;
+
 class JSONConfigBase
 {
   public:

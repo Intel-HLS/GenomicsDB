@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "genomicsdb_iterators.h"
+#include "vid_mapper.h"
 
 class VariantQueryConfig;
 /*
@@ -167,6 +168,12 @@ class GenomicsDBColumnarCell
     {
       return m_iterator->is_valid(query_idx);
     }
+    inline const int64_t* get_coordinates() const
+    {
+      return m_iterator->get_coordinates();
+    }
+    void print(std::ostream& fptr, const VariantQueryConfig* query_config,
+        const std::string& indent_prefix, const VidMapper* vid_mapper) const;
   private:
     const SingleCellTileDBIterator* m_iterator;
 };

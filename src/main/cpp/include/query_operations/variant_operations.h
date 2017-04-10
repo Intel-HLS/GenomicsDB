@@ -25,6 +25,7 @@
 
 #include "variant.h"
 #include "lut.h"
+#include "variant_cell.h"
 
 class VariantOperationException : public std::exception {
   public:
@@ -538,6 +539,14 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
       if(m_num_calls_printed > 0ull)
         (*m_fptr) << ",\n";
       call.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
+      ++m_num_calls_printed;
+    }
+    virtual void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+    {
+      if(m_num_calls_printed > 0ull)
+        (*m_fptr) << ",\n";
+      cell.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
       ++m_num_calls_printed;
     }
   private:

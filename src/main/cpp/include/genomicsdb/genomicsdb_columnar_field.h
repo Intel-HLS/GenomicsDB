@@ -25,6 +25,7 @@
 
 #include "headers.h"
 #include "vcf.h"
+#include "gt_common.h"
 
 class GenomicsDBColumnarFieldException : public std::exception {
   public:
@@ -59,6 +60,9 @@ class GenomicsDBBuffer
       m_buffer.resize(num_bytes);
       m_valid.resize(num_bytes);
       m_num_live_entries = 0ull;
+#ifdef DEBUG
+      m_num_filled_entries = 0ull;
+#endif
       m_next_buffer = 0;
       m_previous_buffer = 0;
     }
@@ -69,7 +73,13 @@ class GenomicsDBBuffer
     inline void set_is_in_live_list(const bool val) { m_is_in_live_list = val; }
     inline bool is_in_live_list() const { return m_is_in_live_list; }
     inline size_t get_num_live_entries() const { return m_num_live_entries; }
-    inline void set_num_live_entries(const size_t n) { m_num_live_entries = n; }
+    inline void set_num_live_entries(const size_t n)
+    {
+      m_num_live_entries = n;
+#ifdef DEBUG
+      m_num_filled_entries = n;
+#endif
+    }
     inline void decrement_num_live_entries()
     {
       assert(m_num_live_entries > 0ull);
@@ -97,17 +107,17 @@ class GenomicsDBBuffer
     }
     inline size_t get_offset(const size_t idx) const
     {
-      assert(idx < m_offsets.size());
+      assert(idx < m_offsets.size() && idx < m_num_filled_entries);
       return m_offsets[idx ];
     }
     inline size_t get_size_of_variable_length_field(const size_t idx) const
     {
-      assert(idx+1u < m_offsets.size());
+      assert(idx+1u < m_offsets.size() && idx < m_num_filled_entries);
       return m_offsets[idx+1u] - m_offsets[idx];
     }
     inline bool is_valid(const size_t idx) const
     {
-      assert(idx < m_valid.size());
+      assert(idx < m_valid.size() && idx < m_num_filled_entries);
       return m_valid[idx];
     }
     inline std::vector<bool>& get_valid_vector() { return m_valid; }
@@ -128,6 +138,9 @@ class GenomicsDBBuffer
     //having to write "if(last_cell) else" expressions
     std::vector<size_t> m_offsets;
     size_t m_num_live_entries;
+#ifdef DEBUG
+    size_t m_num_filled_entries;
+#endif
     //Pointers in the linked list of buffers
     GenomicsDBBuffer* m_next_buffer;
     GenomicsDBBuffer* m_previous_buffer;
@@ -143,6 +156,15 @@ class GenomicsDBVariableSizeFieldBuffer: public GenomicsDBBuffer
     {
       m_offsets.resize(GET_ALIGNED_BUFFER_SIZE(num_bytes, sizeof(size_t))/sizeof(size_t), 0ull);
     }
+};
+
+//Printer
+//Partial class specialization is allowed, but partial function template specialization isn't
+template<typename T, bool print_as_list>
+class GenomicsDBColumnarFieldPrintOperator
+{
+  public:
+    static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements);
 };
 
 /*
@@ -162,6 +184,8 @@ class GenomicsDBColumnarField
     void clear()
     {
     }
+    //Static functions - function pointers hold addresses to one of these functions
+    //Check validity
     template<typename T>
     static bool check_tiledb_valid_element(const uint8_t* ptr, const size_t num_elements)
     {
@@ -171,6 +195,7 @@ class GenomicsDBColumnarField
           return true;
       return false;
     }
+    //Buffer pointer handling
     GenomicsDBBuffer* get_free_buffer()
     {
       if(m_free_buffer_list_head_ptr == 0)
@@ -191,42 +216,43 @@ class GenomicsDBColumnarField
     inline void set_curr_index_in_live_list_tail(const size_t val) { m_curr_index_in_live_buffer_list_tail = val; }
     inline void advance_curr_index_in_live_list_tail(const size_t val=1u) { m_curr_index_in_live_buffer_list_tail += val; }
     inline size_t get_curr_index_in_live_list_tail() const { return m_curr_index_in_live_buffer_list_tail; }
-    //Get pointer to data for current idx in tail
-    inline const uint8_t* get_pointer_to_curr_index_data_in_live_list_tail() const
+    //Get pointer to data in GenomicsDBBuffer*
+    inline const uint8_t* get_pointer_to_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
+        const size_t index) const
     {
-      auto buffer_ptr = get_live_buffer_list_tail_ptr();
       assert(buffer_ptr);
-      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
       if(m_length_descriptor == BCF_VL_FIXED)
-        return buffer_ptr->get_buffer_pointer() + (m_fixed_length_field_size*m_curr_index_in_live_buffer_list_tail);
+        return buffer_ptr->get_buffer_pointer() + (m_fixed_length_field_size*index);
       else
-        return buffer_ptr->get_buffer_pointer() + buffer_ptr->get_offset(m_curr_index_in_live_buffer_list_tail);
+        return buffer_ptr->get_buffer_pointer() + buffer_ptr->get_offset(index);
     }
-    //Get num bytes for current idx in tail
-    inline size_t get_size_of_curr_index_data_in_live_list_tail() const
+    //Get num bytes for current idx in buffer
+    inline size_t get_size_of_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
+        const size_t index) const
     {
-      auto buffer_ptr = get_live_buffer_list_tail_ptr();
       assert(buffer_ptr);
-      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
       if(m_length_descriptor == BCF_VL_FIXED)
         return m_fixed_length_field_size;
       else
-        return buffer_ptr->get_size_of_variable_length_field(m_curr_index_in_live_buffer_list_tail);
+        return buffer_ptr->get_size_of_variable_length_field(index);
     }
-    inline size_t get_length_of_curr_index_data_in_live_list_tail() const
+    inline size_t get_length_of_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
+        const size_t index) const
     {
-      return get_size_of_curr_index_data_in_live_list_tail()/m_element_size;
+      return get_size_of_data_in_buffer_at_index(buffer_ptr, index)/m_element_size;
     }
-    inline bool is_valid_curr_index_data_in_live_list_tail() const
+    inline bool is_valid_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
+        const size_t index) const
     {
-      auto buffer_ptr = get_live_buffer_list_tail_ptr();
-      assert(buffer_ptr);
-      assert(m_curr_index_in_live_buffer_list_tail < buffer_ptr->get_num_live_entries());
-      return buffer_ptr->is_valid(m_curr_index_in_live_buffer_list_tail);
+      return buffer_ptr->is_valid(index);
     }
+    void print_data_in_buffer_at_index(std::ostream& fptr,
+        const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();
+    template<bool print_as_list>
+    void assign_print_function_pointers(VariantFieldTypeEnum variant_enum_type);
     void add_new_buffer()
     {
       auto buffer_ptr = create_new_buffer();
@@ -249,8 +275,10 @@ class GenomicsDBColumnarField
     unsigned m_fixed_length_field_size;
     unsigned m_element_size;
     std::type_index m_element_type;
+    //Function pointers - assigned based on type of data
     //Function pointer that determines validity check
-    bool (*m_check_tiledb_valid_element)(const uint8_t* data, const size_t num_elements);
+    bool (*m_check_tiledb_valid_element)(const uint8_t* ptr, const size_t num_elements);
+    void (*m_print)(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements);
     size_t m_buffer_size;
     //Head of list containing free buffers - can be used in invocation of tiledb_array_read()
     GenomicsDBBuffer* m_free_buffer_list_head_ptr;
