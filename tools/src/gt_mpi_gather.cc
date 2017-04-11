@@ -349,21 +349,21 @@ void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& quer
         std::cout << "{\n";
         //variant_calls is an array of dictionaries
         std::cout << indent_prefix << "\"variant_calls\": [\n";
-        VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix+indent_prefix+indent_prefix, &id_mapper);
-        for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
-        {
-          //Each dictionary contains 2 keys - query_interval and variant_calls
-          std::cout << indent_prefix << indent_prefix << "{\n";
-          std::cout << indent_prefix << indent_prefix << indent_prefix << "\"query_interval\": [ "
-            <<query_config.get_column_begin(i) <<", "<<query_config.get_column_end(i)<<" ],\n";
-          //variant_calls is an array of dictionaries
-          std::cout << indent_prefix << indent_prefix << indent_prefix << "\"variant_calls\": [\n";
-          qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, i);
-          std::cout << "\n" << indent_prefix << indent_prefix << indent_prefix << "]\n";
-          std::cout << indent_prefix << indent_prefix << "}\n";
-        }
-        std::cout << indent_prefix << "]\n";
+        VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix, &id_mapper);
+        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, 0u);
+        std::cout << "\n" << indent_prefix << "]\n";
         std::cout << "}\n";
+        //for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
+        //{
+          ////Each dictionary contains 2 keys - query_interval and variant_calls
+          //std::cout << indent_prefix << indent_prefix << "{\n";
+          //std::cout << indent_prefix << indent_prefix << indent_prefix << "\"query_interval\": [ "
+            //<<query_config.get_column_begin(i) <<", "<<query_config.get_column_end(i)<<" ],\n";
+          ////variant_calls is an array of dictionaries
+          //std::cout << indent_prefix << indent_prefix << indent_prefix << "\"variant_calls\": [\n";
+          //std::cout << "\n" << indent_prefix << indent_prefix << indent_prefix << "]\n";
+          //std::cout << indent_prefix << indent_prefix << "}\n";
+        //}
         break;
       }
     case COMMAND_PRINT_CSV:

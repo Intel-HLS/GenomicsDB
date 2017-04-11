@@ -208,7 +208,10 @@ void GenomicsDBColumnarField::assign_function_pointers()
   if(m_length_descriptor == BCF_VL_FIXED && m_fixed_length_field_num_elements == 1u)
     assign_print_function_pointers<false>(variant_enum_type);
   else
-    assign_print_function_pointers<true>(variant_enum_type);
+    if(variant_enum_type == VariantFieldTypeEnum::VARIANT_FIELD_CHAR) //multi char field == string
+      assign_print_function_pointers<true>(VariantFieldTypeEnum::VARIANT_FIELD_STRING);
+    else
+      assign_print_function_pointers<true>(variant_enum_type);
 }
 
 void GenomicsDBColumnarField::move_buffer_to_live_list(GenomicsDBBuffer* buffer)

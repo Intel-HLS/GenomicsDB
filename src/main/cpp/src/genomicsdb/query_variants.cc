@@ -585,9 +585,7 @@ void VariantQueryProcessor::iterate_over_cells(
   //Initialize forward scan iterators
   VariantArrayCellIterator* forward_iter = 0;
   gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
-  SingleCellTileDBIterator* columnar_forward_iter = 0;
-  initialize_columnar_iterator(ad, query_config, start_column, columnar_forward_iter);
-
+  SingleCellTileDBIterator* columnar_forward_iter = get_storage_manager()->begin_columnar_iterator(ad, query_config);
   //Variant object
   Variant variant(&query_config);
   variant.resize_based_on_query();
@@ -595,11 +593,6 @@ void VariantQueryProcessor::iterate_over_cells(
   {
     auto& cell = **columnar_forward_iter;
     auto coords = cell.get_coordinates();
-    //If only interval requested and end of interval crossed, exit loop
-    if(query_config.get_num_column_intervals() > 0 &&
-        coords[1] > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
-      break;
-    //FIXME: when cells are duplicated at the END, then the VariantCall object need not be valid
     if(query_config.is_queried_array_row_idx(coords[0]))       //If row is part of query, process cell
       variant_operator.operate_on_columnar_cell(cell, query_config, get_array_schema());
   }
@@ -1169,20 +1162,6 @@ unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
     column, INT64_MAX };
   forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
   return num_queried_attributes - 1;
-}
-
-inline void VariantQueryProcessor::initialize_columnar_iterator(
-    const int ad,
-    const VariantQueryConfig& query_config, const int64_t column,
-    SingleCellTileDBIterator*& forward_iter) const {
-  assert(query_config.is_bookkeeping_done());
-  //Num attributes in query
-  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
-  //Assign forward iterator
-  vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
-    static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
-    column, INT64_MAX };
-  forward_iter = get_storage_manager()->begin_columnar_iterator(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
 }
 
 void VariantQueryProcessor::clear()

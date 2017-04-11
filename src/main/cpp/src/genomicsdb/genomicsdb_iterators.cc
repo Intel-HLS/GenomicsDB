@@ -22,19 +22,22 @@
 
 #include "genomicsdb_iterators.h"
 #include "variant_cell.h"
+#include "variant_query_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBIteratorException(#X);
 
 SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
-        const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size)
-: m_variant_array_schema(&variant_array_schema)
+        const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
+: m_variant_array_schema(&variant_array_schema), m_query_config(&query_config),
+  m_done_reading_from_TileDB(false),
+  m_cell(new GenomicsDBColumnarCell(this)),
+  m_query_column_interval_idx(0u)
 #ifdef DO_PROFILING
   , m_tiledb_timer()
   , m_tiledb_to_buffer_cell_timer()
 #endif
 {
-  m_cell = new GenomicsDBColumnarCell(this);
-  m_done_reading_from_TileDB = false;
+  const auto& attribute_ids = query_config.get_query_attributes_schema_idxs(); 
   std::vector<const char*> attribute_names(attribute_ids.size()+1u);  //+1 for the COORDS
   m_query_attribute_idx_vec.resize(attribute_ids.size()+1u);//+1 for the COORDS
   m_query_attribute_idx_to_tiledb_buffer_idx.resize(attribute_ids.size()+1u);//+1 for the COORDS
@@ -68,13 +71,22 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const
   //Buffer pointers and size for COORDS
   m_buffer_pointers.push_back(0);
   m_buffer_sizes.push_back(0);
+  //Range of the query
+  int64_t query_range[4] = { query_config.get_smallest_row_idx_in_array(),
+    static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
+    0, INT64_MAX-1 };
+  if(query_config.get_num_column_intervals() > 0u)
+  {
+    query_range[2] = m_query_config->get_column_begin(m_query_column_interval_idx);
+    query_range[3] = m_query_config->get_column_end(m_query_column_interval_idx);
+  }
   /* Initialize the array in READ mode. */
   auto status = tiledb_array_init(
       tiledb_ctx, 
       &m_tiledb_array,
       array_path.c_str(),
       TILEDB_ARRAY_READ,
-      reinterpret_cast<const void*>(range),
+      reinterpret_cast<const void*>(query_range),
       &(attribute_names[0]),           
       attribute_names.size());
   VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB array object");
@@ -153,7 +165,7 @@ void SingleCellTileDBIterator::read_from_TileDB()
     else
     {
       num_live_entries = filled_buffer_size/
-            (genomicsdb_columnar_field.get_fixed_length_field_size_in_bytes());
+        (genomicsdb_columnar_field.get_fixed_length_field_size_in_bytes());
       genomicsdb_buffer_ptr->set_num_live_entries(num_live_entries);
     }
     //Marks data as valid/invalid
@@ -171,33 +183,81 @@ void SingleCellTileDBIterator::read_from_TileDB()
   //fetch data for all fields. TileDB should return 0 for all fields. Hence, either all
   //fields are queried and return with 0 size or none do
   assert(num_done_fields == 0u || num_done_fields == m_fields.size());
-#endif
+#endif 
 }
     
 const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
 {
-  auto next_iteration_num_query_attributes = 0u;
-  m_query_attribute_idx_vec.resize(m_fields.size()); //no heap operations here
-  for(auto i=0u;i<m_fields.size();++i)
+  assert(m_query_config->is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
+  auto END_query_idx = m_query_config->get_query_idx_for_known_field_enum(GVCF_END_IDX);
+  assert(END_query_idx < m_fields.size());
+  auto hitting_duplicate_cells_at_end = true;
+  while(hitting_duplicate_cells_at_end && !m_done_reading_from_TileDB)
   {
-    auto& genomicsdb_columnar_field = m_fields[i];
-    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
-    //still has live data
-    //TODO: either all fields have live data or none do - is that right?
-    if(genomicsdb_buffer_ptr)
+    m_query_attribute_idx_vec.resize(m_fields.size()); //no heap operations here
+    auto next_iteration_num_query_attributes = 0u;
+    for(auto i=0u;i<m_fields.size();++i)
     {
-      genomicsdb_columnar_field.advance_curr_index_in_live_list_tail();
-      genomicsdb_buffer_ptr->decrement_num_live_entries();
-      if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, add to queries in next round
+      auto& genomicsdb_columnar_field = m_fields[i];
+      auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+      //still has live data
+      //TODO: either all fields have live data or none do - is that right?
+      if(genomicsdb_buffer_ptr)
       {
-        genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
-        m_query_attribute_idx_vec[next_iteration_num_query_attributes++] = i;
+        genomicsdb_columnar_field.advance_curr_index_in_live_list_tail();
+        genomicsdb_buffer_ptr->decrement_num_live_entries();
+        if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, add to queries in next round
+        {
+          genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
+          m_query_attribute_idx_vec[next_iteration_num_query_attributes++] = i;
+        }
       }
     }
+    m_query_attribute_idx_vec.resize(next_iteration_num_query_attributes); //no heap operations occur here
+    if(next_iteration_num_query_attributes > 0u) //some fields have exhausted buffers, need to fetch from TileDB
+    {
+      read_from_TileDB();
+      while(m_done_reading_from_TileDB && (m_query_column_interval_idx+1u) < m_query_config->get_num_column_intervals())
+      {
+        //Move to next query column interval
+        ++m_query_column_interval_idx;
+        m_done_reading_from_TileDB = false;
+        int64_t query_range[4] = {
+          m_query_config->get_smallest_row_idx_in_array(),
+          static_cast<int64_t>(m_query_config->get_num_rows_in_array()+m_query_config->get_smallest_row_idx_in_array()-1),
+          static_cast<int64_t>(m_query_config->get_column_begin(m_query_column_interval_idx)),
+          static_cast<int64_t>(m_query_config->get_column_end(m_query_column_interval_idx))
+        };
+        auto status = tiledb_array_reset_subarray(m_tiledb_array, reinterpret_cast<const void*>(query_range));
+        VERIFY_OR_THROW(status == TILEDB_OK);
+        //Query all attributes
+        m_query_attribute_idx_vec.resize(m_fields.size());
+        for(auto i=0u;i<m_fields.size();++i)
+          m_query_attribute_idx_vec[i] = i;
+        read_from_TileDB();
+      }
+    }
+    //keep incrementing iterator if hitting duplicates at end
+    if(!m_done_reading_from_TileDB)
+    {
+      const auto& coords_columnar_field = m_fields[m_fields.size()-1u];
+      const auto* coords = reinterpret_cast<const int64_t*>(
+          coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
+            coords_columnar_field.get_live_buffer_list_tail_ptr(),
+            coords_columnar_field.get_curr_index_in_live_list_tail()
+            )
+          );
+      const auto& END_columnar_field = m_fields[END_query_idx];
+      auto END_position = *(reinterpret_cast<const int64_t*>(
+            END_columnar_field.get_pointer_to_data_in_buffer_at_index(
+              END_columnar_field.get_live_buffer_list_tail_ptr(),
+              END_columnar_field.get_curr_index_in_live_list_tail()
+              )
+            ));
+      if(END_position >= coords[1])
+        hitting_duplicate_cells_at_end = false;
+    }
   }
-  m_query_attribute_idx_vec.resize(next_iteration_num_query_attributes); //no heap operations occur here
-  if(next_iteration_num_query_attributes > 0u) //some fields have exhausted buffers, need to fetch from TileDB
-    read_from_TileDB();
   return *this;
 }
 

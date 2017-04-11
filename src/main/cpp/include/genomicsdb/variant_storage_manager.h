@@ -245,7 +245,7 @@ class VariantStorageManager
      * For columnar iterator
      */
     SingleCellTileDBIterator* begin_columnar_iterator(
-        int ad, const int64_t* range, const std::vector<int>& attribute_ids) const;
+        int ad, const VariantQueryConfig& query_config) const;
     /*
      * Write sorted cell
      */

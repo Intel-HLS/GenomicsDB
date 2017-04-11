@@ -42,6 +42,7 @@ class GenomicsDBIteratorException : public std::exception {
 };
 
 class GenomicsDBColumnarCell;
+class VariantQueryConfig;
 /*
  * Iterates over TileDB cells one at a time
  */
@@ -49,7 +50,7 @@ class SingleCellTileDBIterator
 {
   public:
     SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
-        const std::string& array_path, const int64_t* range, const std::vector<int>& attribute_ids, const size_t buffer_size);
+        const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size);
     ~SingleCellTileDBIterator();
     //Delete copy and move constructors
     SingleCellTileDBIterator(const SingleCellTileDBIterator& other) = delete;
@@ -112,6 +113,8 @@ class SingleCellTileDBIterator
   private:
     bool m_done_reading_from_TileDB;
     const VariantArraySchema* m_variant_array_schema;
+    const VariantQueryConfig* m_query_config;
+    uint64_t m_query_column_interval_idx;
     GenomicsDBColumnarCell* m_cell;
     //Buffers for fields
     std::vector<GenomicsDBColumnarField> m_fields;
