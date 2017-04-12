@@ -55,6 +55,7 @@ enum KnownVariantFieldsEnum
   GVCF_PS_IDX,
   GVCF_PGT_IDX,
   GVCF_PID_IDX,
+  GVCF_EXCESS_HET,
   GVCF_NUM_KNOWN_FIELDS
 };
 
