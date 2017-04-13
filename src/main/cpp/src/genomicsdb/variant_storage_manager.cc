@@ -327,11 +327,8 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
     VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
 }
 
-int VariantStorageManager::open_array(const std::string& array_name, const char* mode)
+bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& array_name)
 {
-  auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
-  VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
-  auto mode_int = (*mode_iter).second;
   //Use tiledb_ls call to avoid non-faulty error message while trying to init array during loading
   std::vector<char*> ws_entries(1024u);
   std::vector<int> ws_entry_types;
@@ -365,6 +362,15 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
   }
   for(auto i=static_cast<size_t>(num_entries);i<ws_entries.size();++i)
     delete[] ws_entries[i];
+  return array_exists;
+}
+
+int VariantStorageManager::open_array(const std::string& array_name, const char* mode)
+{
+  auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
+  VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
+  auto mode_int = (*mode_iter).second;
+  auto array_exists = check_if_TileDB_array_exists(array_name);
   if(array_exists)
   {
     //Try to open the array
@@ -476,6 +482,17 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
       status = define_metadata_schema(variant_array_schema);
   }
   return status;
+}
+
+void VariantStorageManager::delete_array(const std::string& array_name)
+{
+  auto array_exists = check_if_TileDB_array_exists(array_name);
+  if(array_exists)
+  {
+    remove(GET_METADATA_PATH(m_workspace, array_name).c_str());
+    auto status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
+    VERIFY_OR_THROW(status == TILEDB_OK);
+  }
 }
 
 //Define metadata
