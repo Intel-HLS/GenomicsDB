@@ -58,7 +58,8 @@ public class GenomicsDBQueryStream extends InputStream
     private native long jniGenomicsDBInit(String loaderJSONFile, String queryJSONFile,
             String chr, int start, int end,
             int rank, long bufferCapacity, long segmentSize,
-            boolean readAsBCF, boolean useMissingValuesOnlyNotVectorEnd, boolean keepIDXFieldsInHeader);
+            boolean readAsBCF, boolean produceHeaderOnly,
+            boolean useMissingValuesOnlyNotVectorEnd, boolean keepIDXFieldsInHeader);
     
     private native long jniGenomicsDBClose(long handle);
 
@@ -95,9 +96,22 @@ public class GenomicsDBQueryStream extends InputStream
     public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final boolean readAsBCF)
     {
+        this(loaderJSONFile, queryJSONFile, readAsBCF, false);
+    }
+
+    /**
+     * Constructor
+     * @param loaderJSONFile GenomicsDB loader JSON configuration file
+     * @param queryJSONFile GenomicsDB query JSON configuration file
+     * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     * @param produceHeaderOnly produce only the header
+     */
+    public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
+            final boolean readAsBCF, final boolean produceHeaderOnly)
+    {
         this(loaderJSONFile, queryJSONFile, "", 0, 0,
                 0, 10485760,10485760,
-                readAsBCF);
+                readAsBCF, produceHeaderOnly);
     }
 
     /**
@@ -128,7 +142,7 @@ public class GenomicsDBQueryStream extends InputStream
             final boolean readAsBCF)
     {
         this(loaderJSONFile, queryJSONFile, chr, start, end, 0, 10485760,
-          10485760, readAsBCF);
+          10485760, readAsBCF, false);
     }
  
     /**
@@ -165,7 +179,7 @@ public class GenomicsDBQueryStream extends InputStream
             final int rank, final long bufferCapacity, final long segmentSize)
     {
         this(loaderJSONFile, queryJSONFile, chr, start, end, rank, bufferCapacity,
-          segmentSize, mDefaultReadAsBCF);
+          segmentSize, mDefaultReadAsBCF, false);
     }
 
     /**
@@ -184,10 +198,11 @@ public class GenomicsDBQueryStream extends InputStream
     public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end,
             final int rank, final long bufferCapacity, final long segmentSize,
-            final boolean readAsBCF)
+            final boolean readAsBCF, final boolean produceHeaderOnly)
     {
         this(loaderJSONFile, queryJSONFile, chr, start, end, rank, bufferCapacity,
-          segmentSize, readAsBCF, mDefaultUseMissingOnlyNotVectorEnd, mDefaultKeepIDXFieldsInHeader);
+          segmentSize, readAsBCF, produceHeaderOnly,
+          mDefaultUseMissingOnlyNotVectorEnd, mDefaultKeepIDXFieldsInHeader);
     }
 
     /**
@@ -208,13 +223,15 @@ public class GenomicsDBQueryStream extends InputStream
     public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end,
             final int rank, final long bufferCapacity, final long segmentSize,
-            final boolean readAsBCF, final boolean useMissingValuesOnlyNotVectorEnd, final boolean keepIDXFieldsInHeader)
+            final boolean readAsBCF, final boolean produceHeaderOnly,
+            final boolean useMissingValuesOnlyNotVectorEnd, final boolean keepIDXFieldsInHeader)
     {
         mLoaderJSONFile = loaderJSONFile;
         mQueryJSONFile = queryJSONFile;
         mGenomicsDBReadStateHandle = jniGenomicsDBInit(loaderJSONFile, queryJSONFile, chr,
           start, end, rank, bufferCapacity, segmentSize,
-          readAsBCF, useMissingValuesOnlyNotVectorEnd, keepIDXFieldsInHeader);
+          readAsBCF, produceHeaderOnly,
+          useMissingValuesOnlyNotVectorEnd, keepIDXFieldsInHeader);
     }
 
     @Override

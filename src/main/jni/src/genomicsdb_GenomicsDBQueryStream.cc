@@ -30,7 +30,8 @@ JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenom
   (JNIEnv* env, jobject curr_obj, jstring loader_configuration_file, jstring query_configuration_file,
    jstring chr, jint start, jint end,
    jint rank, jlong buffer_capacity, jlong segment_size,
-   jboolean is_bcf, jboolean use_missing_values_only_not_vector_end, jboolean keep_idx_fields_in_bcf_header)
+   jboolean is_bcf, jboolean produce_header_only,
+   jboolean use_missing_values_only_not_vector_end, jboolean keep_idx_fields_in_bcf_header)
 {
   //Java string to char*
   auto loader_configuration_file_cstr = env->GetStringUTFChars(loader_configuration_file, NULL);
@@ -44,6 +45,7 @@ JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenom
   auto bcf_reader_obj = new GenomicsDBBCFGenerator(loader_configuration_file_cstr, query_configuration_file_cstr,
       chr_cstr, start, end,
       rank, buffer_capacity, segment_size, output_format,
+      produce_header_only,
       is_bcf && use_missing_values_only_not_vector_end, is_bcf && keep_idx_fields_in_bcf_header);
   //Cleanup
   env->ReleaseStringUTFChars(loader_configuration_file, loader_configuration_file_cstr);

@@ -592,6 +592,27 @@ public class GenomicsDBImporter
    * @param  variants  Variant Readers objects of the input GVCF files
    * @param useSamplesInOrderProvided  If True, do not sort the samples,
    *                                   use the order they appear in
+   * @return  Mappings of callset (sample) names to TileDB rows
+   */
+  static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+      final Map<String, FeatureReader<VariantContext>> variants,
+      boolean useSamplesInOrderProvided)
+  {
+      return GenomicsDBImporter.generateSortedCallSetMap(variants,
+              useSamplesInOrderProvided,
+              0l);
+  }
+
+  /**
+   * Creates a sorted list of callsets and generates unique TileDB
+   * row indices for them. Sorted to maintain order between
+   * distributed share-nothing load processes.
+   *
+   * Assume one sample per input GVCF file
+   *
+   * @param  variants  Variant Readers objects of the input GVCF files
+   * @param useSamplesInOrderProvided  If True, do not sort the samples,
+   *                                   use the order they appear in
    * @param lbRowIdx Smallest row idx which should be imported by this object
    * @return  Mappings of callset (sample) names to TileDB rows
    */
