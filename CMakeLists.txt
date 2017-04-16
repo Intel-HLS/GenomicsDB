@@ -100,6 +100,13 @@ include_directories(${TILEDB_INCLUDE_DIR})
 #librt
 find_library(LIBRT_LIBRARY rt)
 
+#librt
+find_library(LIBRT_LIBRARY rt)
+
+#pgsql driver and dbi libs
+find_package(libdbi REQUIRED)
+include_directories(${LIBDBI_INCLUDE_DIR})
+
 #Protobuf library
 find_package(ProtobufWrapper REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
@@ -179,6 +186,7 @@ function(build_GenomicsDB_executable target)
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
+    target_link_libraries(${target} ${LIBDBI_DEV_LIBRARY} ${LIBDBI1_LIBRARY} ${LIBPGSQL_DRIVER_LIBRARY})
     target_link_libraries(${target} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${PROTOBUF_LIBRARIES})
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
