@@ -194,6 +194,7 @@ public class GenomicsDBQueryStream extends InputStream
      *                       to store combined BCF2 records
      * @param segmentSize buffer to be used for querying TileDB
      * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     * @param produceHeaderOnly produce VCF/BCF header only - no records (minor optimization)
      */
     public GenomicsDBQueryStream(final String loaderJSONFile, final String queryJSONFile,
             final String chr, final int start, final int end,
@@ -217,6 +218,7 @@ public class GenomicsDBQueryStream extends InputStream
      *                       to store combined BCF2 records
      * @param segmentSize buffer to be used for querying TileDB
      * @param readAsBCF serialize-deserialize VCF records as BCF2 records
+     * @param produceHeaderOnly produce VCF/BCF header only - no records (minor optimization)
      * @param useMissingValuesOnlyNotVectorEnd don't add BCF2.2 vector end values
      * @param keepIDXFieldsInHeader keep BCF IDX fields in header
      */

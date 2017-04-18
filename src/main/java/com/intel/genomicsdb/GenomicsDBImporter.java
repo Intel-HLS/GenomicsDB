@@ -365,6 +365,7 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader Set of VCFHeaderLine from the merged header across all input files
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace TileDB workspace
    * @param arrayname TileDB array name
@@ -374,6 +375,7 @@ public class GenomicsDBImporter
    * @param ubRowIdx Largest row idx which should be imported by this object
    * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
    * @param failIfUpdating if true, fail if updating an existing array
+   * @throws IOException when load into TileDB array fails
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -399,6 +401,7 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader Set of VCFHeaderLine from the merged header across all input files
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace TileDB workspace
    * @param arrayname TileDB array name
@@ -409,6 +412,7 @@ public class GenomicsDBImporter
    * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order provided
    * @param failIfUpdating if true, fail if updating an existing array
    * @param rank Rank of object - corresponds to the partition index in the loader
+   * @throws IOException when load into TileDB array fails
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                      Set<VCFHeaderLine> mergedHeader,
@@ -474,7 +478,7 @@ public class GenomicsDBImporter
    * is developed specifically for GATK4 GenomicsDBImport tool.
    *
    * @param sampleToVCMap  Variant Readers objects of the input GVCF files
-   * @param mergedHeader  Headers from all input GVCF files merged into one
+   * @param mergedHeader Set of VCFHeaderLine from the merged header across all input files
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace  TileDB workspace
    * @param arrayname  TileDB array name
@@ -635,6 +639,7 @@ public class GenomicsDBImporter
    * distributed share-nothing load processes.
    *
    * @param sampleNames list of sample names
+   * @return  Mappings of callset (sample) names to TileDB rows
    */
   public static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
       List<String> sampleNames)
@@ -652,6 +657,7 @@ public class GenomicsDBImporter
    * @param sampleNames list of sample names
    * @param useSamplesInOrderProvided  If True, do not sort the samples,
    *                                   use the order they appear in
+   * @return  Mappings of callset (sample) names to TileDB rows
    */
   public static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
       List<String> sampleNames,

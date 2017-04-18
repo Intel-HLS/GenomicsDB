@@ -58,7 +58,7 @@
     <genomicsdb_source_directory>.</genomicsdb_source_directory>
     <genomicsdb_lib_directory>bin</genomicsdb_lib_directory>
     <genomicsdb_build_directory>${project.basedir}/target</genomicsdb_build_directory>
-    <protobuf.input.directory>${project.basedir}/src/resources</protobuf.input.directory>
+    <protobuf.input.directory>${genomicsdb_source_directory}/src/resources</protobuf.input.directory>
     <protobuf.output.directory>${genomicsdb_build_directory}/protobuf</protobuf.output.directory>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -227,12 +227,12 @@
           <show>private</show>
           <nohelp>true</nohelp>
           <sourceFileExcludes>
-            <exclude>GenomicsDBVidMapProto.java</exclude>
-            <exclude>GenomicsDBCallsetsMapProto.java</exclude>
-            <exclude>GenomicsDBImportConfiguration.java</exclude>
-            <exclude>GenomicsDBExportConfiguration.java</exclude>
+            <exclude>**/GenomicsDBVidMapProto.java</exclude>
+            <exclude>**/GenomicsDBCallsetsMapProto.java</exclude>
+            <exclude>**/GenomicsDBImportConfiguration.java</exclude>
+            <exclude>**/GenomicsDBExportConfiguration.java</exclude>
           </sourceFileExcludes>
-          <sourcepath>${basedir}/src/main/protobuf-generated/com/intel/genomicsdb</sourcepath>
+          <sourcepath>${genomicsdb_source_directory}/src/main/java:${genomicsdb_source_directory}/src/main/scala:${genomicsdb_source_directory}/src/main/protobuf-generated/java</sourcepath>
         </configuration>
         <executions>
           <execution>
