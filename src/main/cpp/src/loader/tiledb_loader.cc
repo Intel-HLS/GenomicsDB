@@ -1039,8 +1039,15 @@ int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
   {
     if(status >= 0)
     {
-      std::cerr << "Directory " << workspace << " exists - doing nothing\n";
-      returnval = 1;
+      auto workspace_file = std::string(workspace)+ "/__tiledb_workspace.tdb";
+      status = stat(workspace_file.c_str(), &st);
+      //__tiledb_workspace.tdb not found or is not a file
+      if(status != 0 || !S_ISREG(st.st_mode))
+      {
+        std::cerr << "Directory " << workspace
+          << " exists, but is not a TileDB workspace (doesn't contain regular file __tiledb_workspace.tdb)\n";
+        returnval = -1;
+      }
     }
     else  //Doesn't exist, create workspace
     {

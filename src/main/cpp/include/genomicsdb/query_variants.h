@@ -169,6 +169,7 @@ class VariantQueryProcessorScanState
     VariantCallEndPQ& get_end_pq() { return m_end_pq; }
     Variant& get_variant() { return m_variant; }
     uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
+    void set_done(const bool val) { m_done = val; }
     /*void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }*/
   private:
     bool m_done;
