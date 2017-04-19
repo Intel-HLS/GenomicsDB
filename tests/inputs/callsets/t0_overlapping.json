@@ -1,8 +1,0 @@
-{
-    "callsets" : {
-        "HG00141" : {
-            "row_idx" : 0,
-            "filename": "inputs/vcfs/t0_overlapping.vcf.gz"
-        }
-    }
-}

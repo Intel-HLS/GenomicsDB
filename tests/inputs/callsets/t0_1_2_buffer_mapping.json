@@ -1,5 +1,0 @@
-{
-    "HG00141_stream": "inputs/vcfs/t0.vcf.gz",
-    "HG01958_stream": "inputs/vcfs/t1.vcf.gz",
-    "HG01530_stream": "inputs/vcfs/t2.vcf.gz"
-}
