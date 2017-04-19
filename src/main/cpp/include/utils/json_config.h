@@ -165,6 +165,8 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_segment_size;
     //TileDB array #cells/tile
     size_t m_num_cells_per_tile;
+    //TileDB compression level
+    int m_tiledb_compression_level;
     //flag to say whether vid_mapping_file is required or optional
     bool m_vid_mapper_file_required;
     //flag that causes the loader to fail if this is an update (rather than a fresh load)

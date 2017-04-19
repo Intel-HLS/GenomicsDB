@@ -25,6 +25,7 @@
 #undef NDEBUG
 #endif
 
+#include <zlib.h>
 #include "json_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw RunConfigException(#X);
@@ -686,8 +687,8 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   //TileDB array #cells/tile
   if(m_json.HasMember("num_cells_per_tile") && m_json["num_cells_per_tile"].IsInt64())
     m_num_cells_per_tile = m_json["num_cells_per_tile"].GetInt64();
-  if(m_json.HasMember("tiledb_compression_level") && m_json["tiledb_compression_level"].IsInt64()) {
-    val = m_json["tiledb_compression_level"].GetInt64()
+  if(m_json.HasMember("tiledb_compression_level") && m_json["tiledb_compression_level"].IsInt()) {
+    int val = m_json["tiledb_compression_level"].GetInt();
     if ((val < Z_DEFAULT_COMPRESSION) || (val > Z_BEST_COMPRESSION))
        val = Z_DEFAULT_COMPRESSION;
     m_tiledb_compression_level = val;
