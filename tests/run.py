@@ -205,6 +205,9 @@ def main():
                         "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
+                        } },
+                    { "query_column_ranges" : [8029500, 8029500], "golden_output": {
+                        "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
             },
