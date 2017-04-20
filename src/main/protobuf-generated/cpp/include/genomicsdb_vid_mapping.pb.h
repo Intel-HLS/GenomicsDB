@@ -40,7 +40,7 @@ class VidMappingPB;
 
 // ===================================================================
 
-class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:InfoField) */ {
+class InfoField : public ::google::protobuf::Message {
  public:
   InfoField();
   virtual ~InfoField();
@@ -82,11 +82,7 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -189,7 +185,7 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
 };
 // -------------------------------------------------------------------
 
-class Chromosome : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:Chromosome) */ {
+class Chromosome : public ::google::protobuf::Message {
  public:
   Chromosome();
   virtual ~Chromosome();
@@ -231,11 +227,7 @@ class Chromosome : public ::google::protobuf::Message /* @@protoc_insertion_poin
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -310,7 +302,7 @@ class Chromosome : public ::google::protobuf::Message /* @@protoc_insertion_poin
 };
 // -------------------------------------------------------------------
 
-class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:VidMappingPB) */ {
+class VidMappingPB : public ::google::protobuf::Message {
  public:
   VidMappingPB();
   virtual ~VidMappingPB();
@@ -352,11 +344,7 @@ class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_po
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -378,29 +366,29 @@ class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_po
 
   // accessors -------------------------------------------------------
 
-  // repeated .InfoField infofields = 1;
-  int infofields_size() const;
-  void clear_infofields();
-  static const int kInfofieldsFieldNumber = 1;
-  const ::InfoField& infofields(int index) const;
-  ::InfoField* mutable_infofields(int index);
-  ::InfoField* add_infofields();
+  // repeated .InfoField fields = 1;
+  int fields_size() const;
+  void clear_fields();
+  static const int kFieldsFieldNumber = 1;
+  const ::InfoField& fields(int index) const;
+  ::InfoField* mutable_fields(int index);
+  ::InfoField* add_fields();
   ::google::protobuf::RepeatedPtrField< ::InfoField >*
-      mutable_infofields();
+      mutable_fields();
   const ::google::protobuf::RepeatedPtrField< ::InfoField >&
-      infofields() const;
+      fields() const;
 
-  // repeated .Chromosome chromosomes = 2;
-  int chromosomes_size() const;
-  void clear_chromosomes();
-  static const int kChromosomesFieldNumber = 2;
-  const ::Chromosome& chromosomes(int index) const;
-  ::Chromosome* mutable_chromosomes(int index);
-  ::Chromosome* add_chromosomes();
+  // repeated .Chromosome contigs = 2;
+  int contigs_size() const;
+  void clear_contigs();
+  static const int kContigsFieldNumber = 2;
+  const ::Chromosome& contigs(int index) const;
+  ::Chromosome* mutable_contigs(int index);
+  ::Chromosome* add_contigs();
   ::google::protobuf::RepeatedPtrField< ::Chromosome >*
-      mutable_chromosomes();
+      mutable_contigs();
   const ::google::protobuf::RepeatedPtrField< ::Chromosome >&
-      chromosomes() const;
+      contigs() const;
 
   // @@protoc_insertion_point(class_scope:VidMappingPB)
  private:
@@ -408,8 +396,8 @@ class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_po
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
-  ::google::protobuf::RepeatedPtrField< ::InfoField > infofields_;
-  ::google::protobuf::RepeatedPtrField< ::Chromosome > chromosomes_;
+  ::google::protobuf::RepeatedPtrField< ::InfoField > fields_;
+  ::google::protobuf::RepeatedPtrField< ::Chromosome > contigs_;
   friend void  protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
   friend void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
@@ -465,7 +453,6 @@ inline ::std::string* InfoField::mutable_name() {
   return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* InfoField::release_name() {
-  // @@protoc_insertion_point(field_release:InfoField.name)
   clear_has_name();
   return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -519,7 +506,6 @@ inline ::std::string* InfoField::mutable_type() {
   return type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* InfoField::release_type() {
-  // @@protoc_insertion_point(field_release:InfoField.type)
   clear_has_type();
   return type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -562,7 +548,6 @@ inline void InfoField::set_vcf_field_class(int index, const char* value, size_t 
   // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class)
 }
 inline ::std::string* InfoField::add_vcf_field_class() {
-  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class)
   return vcf_field_class_.Add();
 }
 inline void InfoField::add_vcf_field_class(const ::std::string& value) {
@@ -628,7 +613,6 @@ inline ::std::string* InfoField::mutable_length() {
   return length_.MutableNoArena(_default_length_);
 }
 inline ::std::string* InfoField::release_length() {
-  // @@protoc_insertion_point(field_release:InfoField.length)
   clear_has_length();
   return length_.ReleaseNoArena(_default_length_);
 }
@@ -686,7 +670,6 @@ inline ::std::string* Chromosome::mutable_name() {
   return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Chromosome::release_name() {
-  // @@protoc_insertion_point(field_release:Chromosome.name)
   clear_has_name();
   return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -752,64 +735,64 @@ inline void Chromosome::set_tiledb_column_offset(::google::protobuf::int64 value
 
 // VidMappingPB
 
-// repeated .InfoField infofields = 1;
-inline int VidMappingPB::infofields_size() const {
-  return infofields_.size();
+// repeated .InfoField fields = 1;
+inline int VidMappingPB::fields_size() const {
+  return fields_.size();
 }
-inline void VidMappingPB::clear_infofields() {
-  infofields_.Clear();
+inline void VidMappingPB::clear_fields() {
+  fields_.Clear();
 }
-inline const ::InfoField& VidMappingPB::infofields(int index) const {
-  // @@protoc_insertion_point(field_get:VidMappingPB.infofields)
-  return infofields_.Get(index);
+inline const ::InfoField& VidMappingPB::fields(int index) const {
+  // @@protoc_insertion_point(field_get:VidMappingPB.fields)
+  return fields_.Get(index);
 }
-inline ::InfoField* VidMappingPB::mutable_infofields(int index) {
-  // @@protoc_insertion_point(field_mutable:VidMappingPB.infofields)
-  return infofields_.Mutable(index);
+inline ::InfoField* VidMappingPB::mutable_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:VidMappingPB.fields)
+  return fields_.Mutable(index);
 }
-inline ::InfoField* VidMappingPB::add_infofields() {
-  // @@protoc_insertion_point(field_add:VidMappingPB.infofields)
-  return infofields_.Add();
+inline ::InfoField* VidMappingPB::add_fields() {
+  // @@protoc_insertion_point(field_add:VidMappingPB.fields)
+  return fields_.Add();
 }
 inline ::google::protobuf::RepeatedPtrField< ::InfoField >*
-VidMappingPB::mutable_infofields() {
-  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.infofields)
-  return &infofields_;
+VidMappingPB::mutable_fields() {
+  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.fields)
+  return &fields_;
 }
 inline const ::google::protobuf::RepeatedPtrField< ::InfoField >&
-VidMappingPB::infofields() const {
-  // @@protoc_insertion_point(field_list:VidMappingPB.infofields)
-  return infofields_;
+VidMappingPB::fields() const {
+  // @@protoc_insertion_point(field_list:VidMappingPB.fields)
+  return fields_;
 }
 
-// repeated .Chromosome chromosomes = 2;
-inline int VidMappingPB::chromosomes_size() const {
-  return chromosomes_.size();
+// repeated .Chromosome contigs = 2;
+inline int VidMappingPB::contigs_size() const {
+  return contigs_.size();
 }
-inline void VidMappingPB::clear_chromosomes() {
-  chromosomes_.Clear();
+inline void VidMappingPB::clear_contigs() {
+  contigs_.Clear();
 }
-inline const ::Chromosome& VidMappingPB::chromosomes(int index) const {
-  // @@protoc_insertion_point(field_get:VidMappingPB.chromosomes)
-  return chromosomes_.Get(index);
+inline const ::Chromosome& VidMappingPB::contigs(int index) const {
+  // @@protoc_insertion_point(field_get:VidMappingPB.contigs)
+  return contigs_.Get(index);
 }
-inline ::Chromosome* VidMappingPB::mutable_chromosomes(int index) {
-  // @@protoc_insertion_point(field_mutable:VidMappingPB.chromosomes)
-  return chromosomes_.Mutable(index);
+inline ::Chromosome* VidMappingPB::mutable_contigs(int index) {
+  // @@protoc_insertion_point(field_mutable:VidMappingPB.contigs)
+  return contigs_.Mutable(index);
 }
-inline ::Chromosome* VidMappingPB::add_chromosomes() {
-  // @@protoc_insertion_point(field_add:VidMappingPB.chromosomes)
-  return chromosomes_.Add();
+inline ::Chromosome* VidMappingPB::add_contigs() {
+  // @@protoc_insertion_point(field_add:VidMappingPB.contigs)
+  return contigs_.Add();
 }
 inline ::google::protobuf::RepeatedPtrField< ::Chromosome >*
-VidMappingPB::mutable_chromosomes() {
-  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.chromosomes)
-  return &chromosomes_;
+VidMappingPB::mutable_contigs() {
+  // @@protoc_insertion_point(field_mutable_list:VidMappingPB.contigs)
+  return &contigs_;
 }
 inline const ::google::protobuf::RepeatedPtrField< ::Chromosome >&
-VidMappingPB::chromosomes() const {
-  // @@protoc_insertion_point(field_list:VidMappingPB.chromosomes)
-  return chromosomes_;
+VidMappingPB::contigs() const {
+  // @@protoc_insertion_point(field_list:VidMappingPB.contigs)
+  return contigs_;
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS

@@ -121,26 +121,26 @@ public class GenomicsDBVidMappingProtoSpec {
       GenomicsDBVidMapProto.VidMappingPB.newBuilder();
     GenomicsDBVidMapProto.VidMappingPB vidmap =
       vidmapBuilder
-        .addAllChromosomes(chromosomes)
-        .addAllInfofields(infoFields)
+        .addAllContigs(chromosomes)
+        .addAllFields(infoFields)
         .build();
 
     Assert.assertEquals(vidmap.isInitialized(), true);
 
     // Assert info fields
-    Assert.assertEquals(vidmap.getInfofieldsCount(), 5);
-    Assert.assertSame(vidmap.getInfofields(0), pass);
-    Assert.assertSame(vidmap.getInfofields(1), lowQual);
-    Assert.assertSame(vidmap.getInfofields(2), pgt);
-    Assert.assertSame(vidmap.getInfofields(3), gt);
-    Assert.assertSame(vidmap.getInfofields(4), dp);
+    Assert.assertEquals(vidmap.getFieldsCount(), 5);
+    Assert.assertSame(vidmap.getFields(0), pass);
+    Assert.assertSame(vidmap.getFields(1), lowQual);
+    Assert.assertSame(vidmap.getFields(2), pgt);
+    Assert.assertSame(vidmap.getFields(3), gt);
+    Assert.assertSame(vidmap.getFields(4), dp);
 
     // Assert chromosomes
-    Assert.assertEquals(vidmap.getChromosomesCount(), 4);
-    Assert.assertSame(vidmap.getChromosomes(0), one);
-    Assert.assertSame(vidmap.getChromosomes(1), two);
-    Assert.assertSame(vidmap.getChromosomes(2), three);
-    Assert.assertSame(vidmap.getChromosomes(3), gl000195);
+    Assert.assertEquals(vidmap.getContigsCount(), 4);
+    Assert.assertSame(vidmap.getContigs(0), one);
+    Assert.assertSame(vidmap.getContigs(1), two);
+    Assert.assertSame(vidmap.getContigs(2), three);
+    Assert.assertSame(vidmap.getContigs(3), gl000195);
   }
 }
 

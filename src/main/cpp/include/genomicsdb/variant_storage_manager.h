@@ -214,9 +214,11 @@ class VariantStorageManager
     /*
      * Wrapper functions around the C-API
      */
+    bool check_if_TileDB_array_exists(const std::string& array_name);
     int open_array(const std::string& array_name, const char* mode);
     void close_array(const int ad);
     int define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile=1000u);
+    void delete_array(const std::string& array_name);
     int define_metadata_schema(const VariantArraySchema* variant_array_schema);
     /*
      * Load array schema

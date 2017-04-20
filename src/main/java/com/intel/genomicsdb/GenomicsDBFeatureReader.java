@@ -95,17 +95,57 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         queryJSON += indentString + "\"scan_full\": true,\n";
         queryJSON += indentString + "\"workspace\": \""+tiledbWorkspace+"\",\n";
         queryJSON += indentString + "\"array\": \""+arrayName+"\",\n";
-        queryJSON += indentString + "\"reference_genome\": \""+referenceGenome+"\",\n";
+        queryJSON += indentString + "\"reference_genome\": \""+referenceGenome+"\"";
         if(templateVCFHeaderFilename != null)
-            queryJSON += indentString + "\"vcf_header_filename\": \"" +
-              templateVCFHeaderFilename+"\"\n";
-        queryJSON += "}\n";
+            queryJSON += ",\n" + indentString + "\"vcf_header_filename\": \"" +
+              templateVCFHeaderFilename+"\"";
+        queryJSON += "\n}\n";
         File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
         tmpQueryJSONFile.deleteOnExit();
         FileWriter fptr = new FileWriter(tmpQueryJSONFile);
         fptr.write(queryJSON);
         fptr.close();
         initialize(loaderJSONFile, tmpQueryJSONFile.getAbsolutePath(), codec);
+    }
+
+    /**
+     * Constructor
+     * @param vidMappingFile GenomicsDB vid mapping JSON configuration file
+     * @param callsetMappingFile GenomicsDB callset mapping JSON configuration file
+     * @param tiledbWorkspace TileDB workspace path
+     * @param arrayName TileDB array name
+     * @param referenceGenome Path to reference genome (fasta file)
+     * @param templateVCFHeaderFilename Template VCF header to be used for
+     *                                  the combined gVCF records
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @throws IOException when data cannot be read from the stream
+     */
+    public GenomicsDBFeatureReader(final String vidMappingFile,
+            final String callsetMappingFile,
+            final String tiledbWorkspace, final String arrayName,
+            final String referenceGenome, final String templateVCFHeaderFilename,
+            final FeatureCodec<T, SOURCE> codec) throws IOException
+    {
+        //Produce temporary JSON query config file
+        String indentString = "    ";
+        String queryJSON = "{\n";
+        queryJSON += indentString + "\"scan_full\": true,\n";
+        queryJSON += indentString + "\"workspace\": \""+tiledbWorkspace+"\",\n";
+        queryJSON += indentString + "\"array\": \""+arrayName+"\",\n";
+        queryJSON += indentString + "\"vid_mapping_file\": \""+vidMappingFile+"\",\n";
+        queryJSON += indentString + "\"callset_mapping_file\": \""+callsetMappingFile+"\",\n";
+        queryJSON += indentString + "\"reference_genome\": \""+referenceGenome+"\"";
+        if(templateVCFHeaderFilename != null)
+            queryJSON += ",\n" + indentString + "\"vcf_header_filename\": \"" +
+              templateVCFHeaderFilename+"\"";
+        queryJSON += "\n}\n";
+        File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
+        tmpQueryJSONFile.deleteOnExit();
+        FileWriter fptr = new FileWriter(tmpQueryJSONFile);
+        fptr.write(queryJSON);
+        fptr.close();
+        initialize("", tmpQueryJSONFile.getAbsolutePath(), codec);
     }
 
     /**
@@ -154,7 +194,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         mQueryJSONFile = queryJSONFile;
         //Read header
         GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile,
-                mCodec instanceof BCF2Codec);
+                mCodec instanceof BCF2Codec, true);
         SOURCE source = codec.makeSourceFromStream(gdbStream);
         mFCHeader = codec.readHeader(source);
         //Store sequence names

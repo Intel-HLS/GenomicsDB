@@ -39,7 +39,7 @@ class Partition;
 
 // ===================================================================
 
-class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:Partition) */ {
+class Partition : public ::google::protobuf::Message {
  public:
   Partition();
   virtual ~Partition();
@@ -81,11 +81,7 @@ class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -187,7 +183,7 @@ class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point
 };
 // -------------------------------------------------------------------
 
-class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:ImportConfiguration) */ {
+class ImportConfiguration : public ::google::protobuf::Message {
  public:
   ImportConfiguration();
   virtual ~ImportConfiguration();
@@ -229,11 +225,7 @@ class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_inser
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
-    return InternalSerializeWithCachedSizesToArray(false, output);
-  }
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -523,7 +515,6 @@ inline ::std::string* Partition::mutable_workspace() {
   return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_workspace() {
-  // @@protoc_insertion_point(field_release:Partition.workspace)
   clear_has_workspace();
   return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -577,7 +568,6 @@ inline ::std::string* Partition::mutable_array() {
   return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_array() {
-  // @@protoc_insertion_point(field_release:Partition.array)
   clear_has_array();
   return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -631,7 +621,6 @@ inline ::std::string* Partition::mutable_vcf_output_filename() {
   return vcf_output_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_vcf_output_filename() {
-  // @@protoc_insertion_point(field_release:Partition.vcf_output_filename)
   clear_has_vcf_output_filename();
   return vcf_output_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -839,7 +828,6 @@ inline ::std::string* ImportConfiguration::mutable_vid_mapping_file() {
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ImportConfiguration::release_vid_mapping_file() {
-  // @@protoc_insertion_point(field_release:ImportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -893,7 +881,6 @@ inline ::std::string* ImportConfiguration::mutable_callset_mapping_file() {
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ImportConfiguration::release_callset_mapping_file() {
-  // @@protoc_insertion_point(field_release:ImportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }

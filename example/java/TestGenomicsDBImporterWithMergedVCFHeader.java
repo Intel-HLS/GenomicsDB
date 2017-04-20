@@ -35,6 +35,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.util.*;
+import java.lang.Long;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
@@ -48,7 +49,8 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
   {
     ARGS_IDX_USE_SAMPLES_IN_ORDER(1000),
     ARGS_IDX_FAIL_IF_UPDATING(1001),
-    ARGS_IDX_AFTER_LAST_ARG_IDX(1002);
+    ARGS_IDX_BATCHSIZE(1002),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1003);
 
     private final int mArgsIdx;
     ArgsIdxEnum(final int idx)
@@ -65,12 +67,13 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     throws IOException, GenomicsDBException, ParseException
   {
     final int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx();
-    LongOpt[] longopts = new LongOpt[5];
+    LongOpt[] longopts = new LongOpt[6];
     longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
     longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
     longopts[2] = new LongOpt("interval", LongOpt.REQUIRED_ARGUMENT, null, 'L');
     longopts[3] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
     longopts[4] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
+    longopts[5] = new LongOpt("batchsize", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_BATCHSIZE.idx());
     //Arg parsing
     Getopt g = new Getopt("TestGenomicsDBImporterWithMergedVCFHeader", args, "w:A:L:", longopts);
     int c = -1;
@@ -82,6 +85,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     String workspace = "";
     String arrayName = "";
     String chromosomeInterval = "";
+    int batchSize = 1000000;
     while ((c = g.getopt()) != -1)
     {
       switch(c)
@@ -109,6 +113,9 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
                 case ARGS_IDX_FAIL_IF_UPDATING:
                   failIfUpdating = true;
                   break;
+                case ARGS_IDX_BATCHSIZE:
+                  batchSize = Integer.parseInt(g.getOptarg());
+                  break;
                 default:
                   System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
                   break;
@@ -125,7 +132,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
         || chromosomeInterval.isEmpty()
         ) {
       System.out.println("Usage: ExampleGenomicsDBImporter" + " -L chromosome:interval " +
-          "-w genomicsdbworkspace -A arrayname variantfile(s) [--use_samples_in_order --fail_if_updating]");
+          "-w genomicsdbworkspace -A arrayname variantfile(s) [--use_samples_in_order --fail_if_updating --batchsize=<N>]");
       System.exit(-1);
     }
 
@@ -137,25 +144,50 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
       files.add(args[i]);
     }
 
-    Map<String, FeatureReader<VariantContext>> map = new LinkedHashMap<>();
     List<VCFHeader> headers = new ArrayList<>();
+    ArrayList<String> sampleNames = new ArrayList<String>();
+    Map<String, String> sampleNameToFileName = new LinkedHashMap<String, String>();
 
+    //Get merged header first
     for (String file : files) {
       AbstractFeatureReader<VariantContext, LineIterator> reader =
         AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
-      String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
       headers.add((VCFHeader) reader.getHeader());
-      map.put(sampleName, reader);
+      final String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
+      sampleNames.add(sampleName);
+      sampleNameToFileName.put(sampleName, file);
+      //Hopefully, GC kicks in and frees resources assigned to reader
     }
-
     Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(headers, true);
 
-    GenomicsDBImporter importer = new GenomicsDBImporter(
-        map, mergedHeader,
-        new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
-        workspace, arrayName, 1000L, 1048576L,
-        useSamplesInOrder, failIfUpdating);
-    boolean isdone = importer.importBatch();
-    assert (isdone);
+    //This sorts the list sampleNames if !useSamplesInOrder
+    //Why you should use this? If you are writing multiple partitions in different machines,
+    //you must have consistent ordering of samples across partitions. If file order is different
+    //in different processes, then set useSamplesInOrder to false and let the sort in
+    //generateSortedCallSetMap ensure consistent ordering across samples
+    GenomicsDBImporter.generateSortedCallSetMap(sampleNames, useSamplesInOrder);
+
+    //Iterate over sorted sample list in batches
+    for(int i=0;i<sampleNames.size();i+=batchSize)
+    {
+      Map<String, FeatureReader<VariantContext>> map = new LinkedHashMap<>();
+      for(int j=i;j<sampleNames.size() && j<i+batchSize;++j)
+      {
+        final String sampleName = sampleNames.get(j);
+        assert sampleNameToFileName.containsKey(sampleName);
+        AbstractFeatureReader<VariantContext, LineIterator> reader =
+          AbstractFeatureReader.getFeatureReader(sampleNameToFileName.get(sampleName), new VCFCodec(), false);
+        assert sampleName.equals(((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0));
+        map.put(sampleName, reader);
+      }
+      GenomicsDBImporter importer = new GenomicsDBImporter(
+          map, mergedHeader,
+          new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
+          workspace, arrayName, 1000L, 1048576L,
+          (long)i, (long)(i+batchSize-1),
+          useSamplesInOrder, failIfUpdating);
+      boolean isdone = importer.importBatch();
+      assert (isdone);
+    }
   }
 }

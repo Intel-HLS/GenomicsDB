@@ -48,7 +48,7 @@ message Chromosome {
 }
 
 message VidMappingPB {
-  repeated InfoField infofields = 1;
-  repeated Chromosome chromosomes  = 2;
+  repeated InfoField fields = 1;
+  repeated Chromosome contigs = 2;
 }
 

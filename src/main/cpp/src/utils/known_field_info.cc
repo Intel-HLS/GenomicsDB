@@ -53,7 +53,8 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "GT",
     "PS",
     "PGT",
-    "PID"
+    "PID",
+    "ExcessHet"
 };
 //Known field name to enum
 std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;
@@ -261,6 +262,7 @@ void KnownFieldInitializer::initialize_INFO_combine_operation(unsigned idx) cons
     case GVCF_READPOSRANKSUM_IDX:
     case GVCF_MQ_IDX:
     case GVCF_MQ0_IDX:
+    case GVCF_EXCESS_HET:
       g_known_field_enum_to_info[idx].m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN;
       break;
     case GVCF_RAW_MQ_IDX:

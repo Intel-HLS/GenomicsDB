@@ -15,7 +15,7 @@ extern "C" {
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIJJ)J
  */
 JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_GenomicsDBQueryStream_jniGenomicsDBInit
-  (JNIEnv *, jobject, jstring, jstring, jstring, jint, jint, jint, jlong, jlong, jboolean, jboolean, jboolean);
+  (JNIEnv *, jobject, jstring, jstring, jstring, jint, jint, jint, jlong, jlong, jboolean, jboolean, jboolean, jboolean);
 
 /*
  * Class:     com_intel_genomicsdb_GenomicsDBQueryStream

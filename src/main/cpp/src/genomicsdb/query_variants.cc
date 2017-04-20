@@ -424,12 +424,21 @@ void VariantQueryProcessor::scan_and_operate(
   //Loop is over - no more data available from TileDB array
   if(end_loop || forward_iter->end())
   {
-    next_start_position =  (query_config.get_num_column_intervals() > 0u)
-      ? query_config.get_column_end(column_interval_idx)+1 //terminate at queried end
-      : 0; //else don't bother with next_start_position, forward_iter->end() must be true
+    auto is_last_call = false;
+    if(query_config.get_num_column_intervals() > 0u)
+    {
+      next_start_position = query_config.get_column_end(column_interval_idx); //terminate at queried end
+      if(next_start_position != INT64_MAX) //avoid wraparound
+        ++next_start_position;
+    }
+    else
+    {
+      next_start_position = 0; //don't bother with next_start_position, forward_iter->end() must be true
+      is_last_call = true;
+    }
     //handle last interval
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position,
-        forward_iter->end(), num_calls_with_deletions, stats_ptr);
+        is_last_call, num_calls_with_deletions, stats_ptr);
     if(!variant_operator.overflow())
       delete forward_iter;
 #ifdef DO_PROFILING
