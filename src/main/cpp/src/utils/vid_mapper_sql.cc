@@ -46,13 +46,22 @@ SQLBasedVidMapper::SQLBasedVidMapper() : VidMapper() {
   VERIFY_OR_THROW(result != NULL);
   num_contigs = 0;
 
-  while (dbi_result_next_row(result)) {
-    num_contigs = dbi_result_get_uint(result, "num_contigs");
-    break;
+  if (dbi_result_first_row(result) != 1) {
+    VERIFY_OR_THROW(1 < 0);
   }
+
+  std::cout <<"=============\n";
+  num_contigs = dbi_result_get_uint(result, "num_contigs");
+  std::cout <<"NUM_CONTIGS: <" <<num_contigs <<">\n";
+  std::cout <<"=============\n";
 
   dbi_result_free(result);
   VERIFY_OR_THROW(num_contigs > 0);
+}
+
+SQLBasedVidMapper::~SQLBasedVidMapper() {
+    dbi_conn_close(conn);
+    dbi_shutdown_r(instance);
 }
 
 int SQLBasedVidMapper::load_contig_info() {
