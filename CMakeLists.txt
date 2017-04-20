@@ -197,6 +197,7 @@ endfunction()
 add_subdirectory(src)
 include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
 add_subdirectory(tools)
+#add_subdirectory(tests)
 add_subdirectory(example)
 
 if(BUILD_JAVA)

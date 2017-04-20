@@ -1,0 +1,172 @@
+/*
+ * The MIT License (MIT)
+ * Copyright (c) 2016 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+#include "vid_mapper_sql.h"
+#include <ctype.h>
+#include <cstdlib>
+#include <cstdio>
+
+#define VERIFY_OR_THROW(X) if(!(X)) throw SQLBasedVidMapperException(#X);
+
+SQLBasedVidMapper::SQLBasedVidMapper() : VidMapper() {
+  dbi_initialize_r(NULL, &instance);
+  conn = dbi_conn_new_r("pgsql", instance);
+  VERIFY_OR_THROW(conn != NULL);
+
+  dbi_conn_set_option(conn, "host", "localhost");
+  dbi_conn_set_option(conn, "username", "postgres");
+  dbi_conn_set_option(conn, "password", "postgres");
+  dbi_conn_set_option(conn, "dbname", "gendb");
+  dbi_conn_set_option(conn, "encoding", "UTF-8");
+
+  if (dbi_conn_connect(conn) < 0) {
+    VERIFY_OR_THROW(1 < 0);
+  }
+
+  dbi_result result = dbi_conn_query(conn, "select count(*) as num_contigs from reference");
+  VERIFY_OR_THROW(result != NULL);
+  num_contigs = 0;
+
+  while (dbi_result_next_row(result)) {
+    num_contigs = dbi_result_get_uint(result, "num_contigs");
+    break;
+  }
+
+  dbi_result_free(result);
+  VERIFY_OR_THROW(num_contigs > 0);
+}
+
+int SQLBasedVidMapper::load_contig_info() {
+  m_contig_idx_to_info.resize(num_contigs);
+  m_contig_begin_2_idx.resize(num_contigs);
+  m_contig_end_2_idx.resize(num_contigs);
+
+  auto duplicate_contigs_exist = false;
+  std::string contig_name;
+  int contig_idx = -1;
+
+  dbi_result result = dbi_conn_query(conn, "select * from reference");
+  VERIFY_OR_THROW(result != NULL);
+
+  while (dbi_result_next_row(result)) {
+    ++contig_idx;
+    contig_name = dbi_result_get_string(result, "name");
+
+    /**
+     * There is probably a constraint which prevents the following
+     */
+    if (m_contig_name_to_idx.find(contig_name) != m_contig_name_to_idx.end()) {
+      std::cerr << "Contig/chromosome name "
+                << contig_name
+                << " appears more than once in reference table\n";
+      duplicate_contigs_exist = true;
+      continue;
+    }
+
+    int64_t tiledb_column_offset = dbi_result_get_longlong(result, "tiledb_column_offset");
+    VERIFY_OR_THROW(tiledb_column_offset >= 0LL);
+    int64_t length = dbi_result_get_longlong(result, "length");
+    VERIFY_OR_THROW(length >= 0LL);
+
+    m_contig_name_to_idx[contig_name] = contig_idx;
+    m_contig_idx_to_info[contig_idx].set_info(
+                                       contig_idx,
+                                       contig_name,
+                                       length,
+                                       tiledb_column_offset);
+    m_contig_begin_2_idx[contig_idx].first = tiledb_column_offset;
+    m_contig_begin_2_idx[contig_idx].second = contig_idx;
+    m_contig_end_2_idx[contig_idx].first =
+        tiledb_column_offset + length - 1; //inclusive
+    m_contig_end_2_idx[contig_idx].second = contig_idx;
+
+    if (duplicate_contigs_exist) {
+        throw SQLBasedVidMapperException(
+          std::string("Duplicate contigs found: ")
+          + contig_name);
+    }
+
+    std::sort(
+        m_contig_begin_2_idx.begin(),
+        m_contig_begin_2_idx.end(),
+        contig_offset_idx_pair_cmp);
+    std::sort(
+        m_contig_end_2_idx.begin(),
+        m_contig_end_2_idx.end(),
+        contig_offset_idx_pair_cmp);
+  }
+
+  // Check that there are no spurious overlaps.
+  // If found, throw an exception
+  auto last_contig_idx = -1;
+  auto last_contig_end_column = -1ll;
+  auto overlapping_contigs_exist = false;
+
+  for (auto contig_idx = 0UL; contig_idx < m_contig_begin_2_idx.size(); ++contig_idx) {
+    const auto& contig_info = m_contig_idx_to_info[contig_idx];
+
+    if (last_contig_idx >= 0) {
+      const auto& last_contig_info = m_contig_idx_to_info[last_contig_idx];
+      if (contig_info.m_tiledb_column_offset <= last_contig_end_column) {
+        std::cerr << "Contig/chromosome "
+                  << contig_info.m_name
+                  << " begins at TileDB column "
+                  << contig_info.m_tiledb_column_offset
+                  << " and intersects with contig/chromosome "
+                  << last_contig_info.m_name
+                  << " that spans columns ["
+                  << last_contig_info.m_tiledb_column_offset
+                  << ", "
+                  << last_contig_info.m_tiledb_column_offset +
+                     last_contig_info.m_length-1
+                  << "]" << "\n";
+        overlapping_contigs_exist = true;
+      }
+    }
+
+    last_contig_idx = contig_idx;
+    last_contig_end_column = (contig_info.m_tiledb_column_offset + contig_info.m_length - 1);
+  }
+
+  if (overlapping_contigs_exist) {
+    throw SQLBasedVidMapperException(
+      std::string("Overlapping contigs found"));
+  }
+
+  dbi_result_free(result);
+  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+}
+
+int SQLBasedVidMapper::load_metadata_from_db() {
+  /**
+   * ret = parse_contigs_from_vidmap(vid_map_protobuf);
+   * assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
+   * ret = parse_infofields_from_vidmap(vid_map_protobuf);
+   * assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
+   */
+  load_contig_info();
+  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+}
+
+SQLBasedVidMapperException::~SQLBasedVidMapperException() {}
+
+SQLBasedVidMapperException::SQLBasedVidMapperException(const std::string m) : msg_("SQLBasedVidMapperException : "+m) {}
