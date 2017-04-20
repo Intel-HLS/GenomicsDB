@@ -1,0 +1,450 @@
+{
+    "fields" : [
+        {"name":"PASS","type":"int"},
+        {"name":"LowQual","type":"int" },
+        {"name":"END", "vcf_field_class":["INFO"], "type":"int" },
+        {"name":"BaseQRankSum", "vcf_field_class" : ["INFO"], "type":"float" },
+        {"name":"ClippingRankSum", "vcf_field_class" : ["INFO"], "type":"float" },
+        {"name":"MQRankSum", "vcf_field_class" : ["INFO"], "type":"float" },
+        {"name":"ReadPosRankSum", "vcf_field_class" : ["INFO"], "type":"float" },
+        {"name":"MQ", "vcf_field_class":["INFO"], "type":"float" },
+        {"name":"RAW_MQ", "vcf_field_class":["INFO"], "type":"float" },
+        {"name":"MQ0", "vcf_field_class":["INFO"], "type":"int" },
+        {"name":"DP", "vcf_field_class":["INFO","FORMAT"], "type":"int" },
+        {"name":"GQ", "vcf_field_class":["FORMAT"], "type":"int" },
+        {"name":"SB", "vcf_field_class" : ["FORMAT"], "type":"int", "length":4 },
+        {"name":"AD", "vcf_field_class":["FORMAT"], "type":"int", "length":"R" },
+        {"name":"PL", "vcf_field_class":["FORMAT"], "type":"int", "length":"G" },
+        {"name":"PGT", "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
+        {"name":"PID", "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
+        {"name":"MIN_DP", "vcf_field_class":["FORMAT"], "type":"int" },
+        {"name":"GT", "vcf_field_class":["FORMAT"], "type":"int", "length":"P" }
+    ],
+    "contigs": [
+        {
+            "name": "1",
+            "length": 249250621,
+            "tiledb_column_offset": 0
+        },
+        {
+            "name": "2",
+            "length": 243199373,
+            "tiledb_column_offset": 249250621
+        },
+        {
+            "name": "3",
+            "length": 198022430,
+            "tiledb_column_offset": 492449994
+        },
+        {
+            "name": "4",
+            "length": 191154276,
+            "tiledb_column_offset": 690472424
+        },
+        {
+            "name": "5",
+            "length": 180915260,
+            "tiledb_column_offset": 881626700
+        },
+        {
+            "name": "6",
+            "length": 171115067,
+            "tiledb_column_offset": 1062541960
+        },
+        {
+            "name": "7",
+            "length": 159138663,
+            "tiledb_column_offset": 1233657027
+        },
+        {
+            "name": "8",
+            "length": 146364022,
+            "tiledb_column_offset": 1392795690
+        },
+        {
+            "name": "9",
+            "length": 141213431,
+            "tiledb_column_offset": 1539159712
+        },
+        {
+            "name": "10",
+            "length": 135534747,
+            "tiledb_column_offset": 1680373143
+        },
+        {
+            "name": "11",
+            "length": 135006516,
+            "tiledb_column_offset": 1815907890
+        },
+        {
+            "name": "12",
+            "length": 133851895,
+            "tiledb_column_offset": 1950914406
+        },
+        {
+            "name": "13",
+            "length": 115169878,
+            "tiledb_column_offset": 2084766301
+        },
+        {
+            "name": "14",
+            "length": 107349540,
+            "tiledb_column_offset": 2199936179
+        },
+        {
+            "name": "15",
+            "length": 102531392,
+            "tiledb_column_offset": 2307285719
+        },
+        {
+            "name": "16",
+            "length": 90354753,
+            "tiledb_column_offset": 2409817111
+        },
+        {
+            "name": "17",
+            "length": 81195210,
+            "tiledb_column_offset": 2500171864
+        },
+        {
+            "name": "18",
+            "length": 78077248,
+            "tiledb_column_offset": 2581367074
+        },
+        {
+            "name": "19",
+            "length": 59128983,
+            "tiledb_column_offset": 2659444322
+        },
+        {
+            "name": "20",
+            "length": 63025520,
+            "tiledb_column_offset": 2718573305
+        },
+        {
+            "name": "21",
+            "length": 48129895,
+            "tiledb_column_offset": 2781598825
+        },
+        {
+            "name": "22",
+            "length": 51304566,
+            "tiledb_column_offset": 2829728720
+        },
+        {
+            "name": "X",
+            "length": 155270560,
+            "tiledb_column_offset": 2881033286
+        },
+        {
+            "name": "Y",
+            "length": 59373566,
+            "tiledb_column_offset": 3036303846
+        },
+        {
+            "name": "MT",
+            "length": 16569,
+            "tiledb_column_offset": 3095677412
+        },
+        {
+            "name": "GL000207.1",
+            "length": 4262,
+            "tiledb_column_offset": 3095693981
+        },
+        {
+            "name": "GL000226.1",
+            "length": 15008,
+            "tiledb_column_offset": 3095698243
+        },
+        {
+            "name": "GL000229.1",
+            "length": 19913,
+            "tiledb_column_offset": 3095713251
+        },
+        {
+            "name": "GL000231.1",
+            "length": 27386,
+            "tiledb_column_offset": 3095733164
+        },
+        {
+            "name": "GL000210.1",
+            "length": 27682,
+            "tiledb_column_offset": 3095760550
+        },
+        {
+            "name": "GL000239.1",
+            "length": 33824,
+            "tiledb_column_offset": 3095788232
+        },
+        {
+            "name": "GL000235.1",
+            "length": 34474,
+            "tiledb_column_offset": 3095822056
+        },
+        {
+            "name": "GL000201.1",
+            "length": 36148,
+            "tiledb_column_offset": 3095856530
+        },
+        {
+            "name": "GL000247.1",
+            "length": 36422,
+            "tiledb_column_offset": 3095892678
+        },
+        {
+            "name": "GL000245.1",
+            "length": 36651,
+            "tiledb_column_offset": 3095929100
+        },
+        {
+            "name": "GL000197.1",
+            "length": 37175,
+            "tiledb_column_offset": 3095965751
+        },
+        {
+            "name": "GL000203.1",
+            "length": 37498,
+            "tiledb_column_offset": 3096002926
+        },
+        {
+            "name": "GL000246.1",
+            "length": 38154,
+            "tiledb_column_offset": 3096040424
+        },
+        {
+            "name": "GL000249.1",
+            "length": 38502,
+            "tiledb_column_offset": 3096078578
+        },
+        {
+            "name": "GL000196.1",
+            "length": 38914,
+            "tiledb_column_offset": 3096117080
+        },
+        {
+            "name": "GL000248.1",
+            "length": 39786,
+            "tiledb_column_offset": 3096155994
+        },
+        {
+            "name": "GL000244.1",
+            "length": 39929,
+            "tiledb_column_offset": 3096195780
+        },
+        {
+            "name": "GL000238.1",
+            "length": 39939,
+            "tiledb_column_offset": 3096235709
+        },
+        {
+            "name": "GL000202.1",
+            "length": 40103,
+            "tiledb_column_offset": 3096275648
+        },
+        {
+            "name": "GL000234.1",
+            "length": 40531,
+            "tiledb_column_offset": 3096315751
+        },
+        {
+            "name": "GL000232.1",
+            "length": 40652,
+            "tiledb_column_offset": 3096356282
+        },
+        {
+            "name": "GL000206.1",
+            "length": 41001,
+            "tiledb_column_offset": 3096396934
+        },
+        {
+            "name": "GL000240.1",
+            "length": 41933,
+            "tiledb_column_offset": 3096437935
+        },
+        {
+            "name": "GL000236.1",
+            "length": 41934,
+            "tiledb_column_offset": 3096479868
+        },
+        {
+            "name": "GL000241.1",
+            "length": 42152,
+            "tiledb_column_offset": 3096521802
+        },
+        {
+            "name": "GL000243.1",
+            "length": 43341,
+            "tiledb_column_offset": 3096563954
+        },
+        {
+            "name": "GL000242.1",
+            "length": 43523,
+            "tiledb_column_offset": 3096607295
+        },
+        {
+            "name": "GL000230.1",
+            "length": 43691,
+            "tiledb_column_offset": 3096650818
+        },
+        {
+            "name": "GL000237.1",
+            "length": 45867,
+            "tiledb_column_offset": 3096694509
+        },
+        {
+            "name": "GL000233.1",
+            "length": 45941,
+            "tiledb_column_offset": 3096740376
+        },
+        {
+            "name": "GL000204.1",
+            "length": 81310,
+            "tiledb_column_offset": 3096786317
+        },
+        {
+            "name": "GL000198.1",
+            "length": 90085,
+            "tiledb_column_offset": 3096867627
+        },
+        {
+            "name": "GL000208.1",
+            "length": 92689,
+            "tiledb_column_offset": 3096957712
+        },
+        {
+            "name": "GL000191.1",
+            "length": 106433,
+            "tiledb_column_offset": 3097050401
+        },
+        {
+            "name": "GL000227.1",
+            "length": 128374,
+            "tiledb_column_offset": 3097156834
+        },
+        {
+            "name": "GL000228.1",
+            "length": 129120,
+            "tiledb_column_offset": 3097285208
+        },
+        {
+            "name": "GL000214.1",
+            "length": 137718,
+            "tiledb_column_offset": 3097414328
+        },
+        {
+            "name": "GL000221.1",
+            "length": 155397,
+            "tiledb_column_offset": 3097552046
+        },
+        {
+            "name": "GL000209.1",
+            "length": 159169,
+            "tiledb_column_offset": 3097707443
+        },
+        {
+            "name": "GL000218.1",
+            "length": 161147,
+            "tiledb_column_offset": 3097866612
+        },
+        {
+            "name": "GL000220.1",
+            "length": 161802,
+            "tiledb_column_offset": 3098027759
+        },
+        {
+            "name": "GL000213.1",
+            "length": 164239,
+            "tiledb_column_offset": 3098189561
+        },
+        {
+            "name": "GL000211.1",
+            "length": 166566,
+            "tiledb_column_offset": 3098353800
+        },
+        {
+            "name": "GL000199.1",
+            "length": 169874,
+            "tiledb_column_offset": 3098520366
+        },
+        {
+            "name": "GL000217.1",
+            "length": 172149,
+            "tiledb_column_offset": 3098690240
+        },
+        {
+            "name": "GL000216.1",
+            "length": 172294,
+            "tiledb_column_offset": 3098862389
+        },
+        {
+            "name": "GL000215.1",
+            "length": 172545,
+            "tiledb_column_offset": 3099034683
+        },
+        {
+            "name": "GL000205.1",
+            "length": 174588,
+            "tiledb_column_offset": 3099207228
+        },
+        {
+            "name": "GL000219.1",
+            "length": 179198,
+            "tiledb_column_offset": 3099381816
+        },
+        {
+            "name": "GL000224.1",
+            "length": 179693,
+            "tiledb_column_offset": 3099561014
+        },
+        {
+            "name": "GL000223.1",
+            "length": 180455,
+            "tiledb_column_offset": 3099740707
+        },
+        {
+            "name": "GL000195.1",
+            "length": 182896,
+            "tiledb_column_offset": 3099921162
+        },
+        {
+            "name": "GL000212.1",
+            "length": 186858,
+            "tiledb_column_offset": 3100104058
+        },
+        {
+            "name": "GL000222.1",
+            "length": 186861,
+            "tiledb_column_offset": 3100290916
+        },
+        {
+            "name": "GL000200.1",
+            "length": 187035,
+            "tiledb_column_offset": 3100477777
+        },
+        {
+            "name": "GL000193.1",
+            "length": 189789,
+            "tiledb_column_offset": 3100664812
+        },
+        {
+            "name": "GL000194.1",
+            "length": 191469,
+            "tiledb_column_offset": 3100854601
+        },
+        {
+            "name": "GL000225.1",
+            "length": 211173,
+            "tiledb_column_offset": 3101046070
+        },
+        {
+            "name": "GL000192.1",
+            "length": 547496,
+            "tiledb_column_offset": 3101257243
+        },
+        {
+            "name": "NC_007605",
+            "length": 171823,
+            "tiledb_column_offset": 3101804739
+        }
+    ]
+}
