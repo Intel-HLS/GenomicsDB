@@ -101,6 +101,8 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
     m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
 
     auto file_idx = get_or_append_global_file_idx(stream_name);
+    if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
+      m_row_idx_to_info.resize(static_cast<size_t>(row_idx)+1u);
     const auto& curr_row_info = m_row_idx_to_info[row_idx];
 
     // If row information for the same callset is found,

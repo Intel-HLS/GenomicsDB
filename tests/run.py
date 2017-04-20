@@ -205,6 +205,9 @@ def main():
                         "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
+                        } },
+                    { "query_column_ranges" : [8029500, 8029500], "golden_output": {
+                        "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
             },
@@ -373,7 +376,8 @@ def main():
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir + ' -A '+test_name + ' --use_samples_in_order ';
+            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir + ' -A '+test_name \
+                    +' --use_samples_in_order ' + ' --batchsize=2 ';
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():

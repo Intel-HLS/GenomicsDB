@@ -194,7 +194,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         mQueryJSONFile = queryJSONFile;
         //Read header
         GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(loaderJSONFile, queryJSONFile,
-                mCodec instanceof BCF2Codec);
+                mCodec instanceof BCF2Codec, true);
         SOURCE source = codec.makeSourceFromStream(gdbStream);
         mFCHeader = codec.readHeader(source);
         //Store sequence names

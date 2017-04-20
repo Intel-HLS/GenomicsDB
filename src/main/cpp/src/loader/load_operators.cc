@@ -137,9 +137,11 @@ LoaderArrayWriter::LoaderArrayWriter(
   //Storage manager
   size_t segment_size = m_loader_json_config.get_segment_size();
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
-  auto mode = m_loader_json_config.delete_and_create_tiledb_array() ? "w" : "a";
+  if(m_loader_json_config.delete_and_create_tiledb_array())
+    m_storage_manager->delete_array(array_name);
+  //Open array in write mode
+  m_array_descriptor = m_storage_manager->open_array(array_name, "w");
   //Check if array already exists
-  m_array_descriptor = m_storage_manager->open_array(array_name, mode);
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
   {

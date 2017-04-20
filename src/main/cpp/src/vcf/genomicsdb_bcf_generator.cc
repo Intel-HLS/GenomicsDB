@@ -28,8 +28,11 @@ unsigned GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
 GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_file, const std::string& query_config_file,
     const char* chr, const int start, const int end,
     int my_rank, size_t buffer_capacity, size_t tiledb_segment_size, const char* output_format,
+    const bool produce_header_only,
     const bool use_missing_values_only_not_vector_end, const bool keep_idx_fields_in_bcf_header)
-  : m_buffer_control(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER), m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header)
+  : m_buffer_control(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER),
+  m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header),
+  m_produce_header_only(produce_header_only)
 #ifdef DO_PROFILING
     , m_timer()
 #endif
@@ -67,9 +70,14 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
   set_write_buffer();
   m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config,
       bcf_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped(), use_missing_values_only_not_vector_end);
-  m_query_column_interval_idx = 0u;
-  m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
-      true, &m_scan_state);
+  if(produce_header_only)
+    m_scan_state.set_done(true);
+  else
+  {
+    m_query_column_interval_idx = 0u;
+    m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
+        true, &m_scan_state);
+  }
 #ifdef DO_PROFILING
   m_timer.stop();
 #endif
@@ -102,7 +110,8 @@ void GenomicsDBBCFGenerator::produce_next_batch()
     if(m_scan_state.end())
     {
       ++m_query_column_interval_idx;
-      if(m_query_column_interval_idx >= m_query_config.get_num_column_intervals())
+      if(m_produce_header_only || 
+          m_query_column_interval_idx >= m_query_config.get_num_column_intervals())
       {
         reset_read_buffer();
         m_done = true;
