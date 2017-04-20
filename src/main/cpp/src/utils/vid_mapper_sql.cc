@@ -50,10 +50,8 @@ SQLBasedVidMapper::SQLBasedVidMapper() : VidMapper() {
     VERIFY_OR_THROW(1 < 0);
   }
 
-  std::cout <<"=============\n";
-  num_contigs = dbi_result_get_uint(result, "num_contigs");
+  num_contigs = (int) dbi_result_get_longlong(result, "num_contigs");
   std::cout <<"NUM_CONTIGS: <" <<num_contigs <<">\n";
-  std::cout <<"=============\n";
 
   dbi_result_free(result);
   VERIFY_OR_THROW(num_contigs > 0);
@@ -157,8 +155,7 @@ int SQLBasedVidMapper::load_contig_info() {
   }
 
   if (overlapping_contigs_exist) {
-    throw SQLBasedVidMapperException(
-      std::string("Overlapping contigs found"));
+    throw SQLBasedVidMapperException(std::string("Overlapping contigs found"));
   }
 
   dbi_result_free(result);

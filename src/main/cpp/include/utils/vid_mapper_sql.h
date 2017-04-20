@@ -24,6 +24,9 @@
 
 #include "vid_mapper.h"
 #include <dbi/dbi.h>
+#include <string>
+#include <vector>
+#include <map>
 
 enum {
   GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
@@ -35,10 +38,21 @@ class SQLBasedVidMapper : public VidMapper {
   public:
     SQLBasedVidMapper();
 
-    ~SQLBasedVidMapper();
-
     int load_contig_info();
+
     int load_metadata_from_db();
+
+    std::vector<ContigInfo> get_contigs() { return(m_contig_idx_to_info); }
+
+    std::vector<std::pair<int64_t, int>> get_contig_begin() {
+      return(m_contig_begin_2_idx);
+    }
+
+    std::vector<std::pair<int64_t, int>> get_contig_end() {
+      return(m_contig_end_2_idx);
+    }
+
+    ~SQLBasedVidMapper();
   protected:
     int num_contigs;
     dbi_conn conn;
