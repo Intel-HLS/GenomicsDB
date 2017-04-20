@@ -132,6 +132,8 @@ LoaderArrayWriter::LoaderArrayWriter(
       m_loader_json_config.compress_tiledb_array());
   //Disable synced writes
   g_TileDB_enable_SYNC_write = m_loader_json_config.disable_synced_writes() ? 0 : 1;
+  //TileDB compression level
+  g_TileDB_compression_level = m_loader_json_config.get_tiledb_compression_level();
   //Storage manager
   size_t segment_size = m_loader_json_config.get_segment_size();
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
