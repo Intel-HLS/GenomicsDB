@@ -26,32 +26,32 @@
 #include "vid_mapper_sql.h"
 
 
-class MetaDataLoaderTester {
+class MappingDataLoaderTester {
   private:
-    SQLBasedVidMapper vid_mapper;
     std::vector<ContigInfo> m_contig_idx_to_info;
     std::vector<std::pair<int64_t, int>> m_contig_begin_2_idx;
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
   public:
-    MetaDataLoaderTester();
+    MappingDataLoaderTester(const SQLVidMapperRequest&);
     void print_contig_info();
-    ~MetaDataLoaderTester();
+    ~MappingDataLoaderTester();
 };
 
-MetaDataLoaderTester::~MetaDataLoaderTester() {
+MappingDataLoaderTester::~MappingDataLoaderTester() {
   m_contig_idx_to_info.clear();
   m_contig_begin_2_idx.clear();
   m_contig_end_2_idx.clear();
 }
 
-MetaDataLoaderTester::MetaDataLoaderTester() {
-  vid_mapper.load_metadata_from_db();
+MappingDataLoaderTester::MappingDataLoaderTester(const SQLVidMapperRequest& request) {
+  SQLBasedVidMapper vid_mapper(request);
+  vid_mapper.load_mapping_data_from_db();
   m_contig_idx_to_info = vid_mapper.get_contigs();
   m_contig_begin_2_idx = vid_mapper.get_contig_begin();
   m_contig_end_2_idx = vid_mapper.get_contig_end();
 }
 
-void MetaDataLoaderTester::print_contig_info() {
+void MappingDataLoaderTester::print_contig_info() {
   std::cout <<"------------------------------------------------------\n";
 
   for (std::vector<ContigInfo>::iterator it = m_contig_idx_to_info.begin(); it != m_contig_idx_to_info.end(); ++it) {
@@ -75,12 +75,20 @@ void MetaDataLoaderTester::print_contig_info() {
 }
 
 int main(int argc, char *argv[]) {
-  std::cout <<"------------ MetaData Loader - BEGIN -----------------\n";
+  std::cout <<"------------ MappingData Loader - BEGIN -----------------\n";
+  SQLVidMapperRequest request;
 
-  MetaDataLoaderTester tester;
+  request.host_name = "localhost";
+  request.user_name = "postgres";
+  request.pass_word = "postgres";
+  request.db_name = "gendb";
+  request.work_space = "";
+  request.array_name = "";
+
+  MappingDataLoaderTester tester(request);
 
   tester.print_contig_info();
 
-  std::cout <<"------------ MetaData Loader -  END  -----------------\n";
+  std::cout <<"------------ MappingData Loader -  END  -----------------\n";
   return(0);
 }

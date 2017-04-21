@@ -31,6 +31,7 @@ set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
+set(LIBDBI_DIR "/usr" CACHE PATH "Path to libdbi install directory")
 
 #Platform check modules
 include(CheckIncludeFileCXX)
@@ -103,12 +104,12 @@ include_directories(${TILEDB_INCLUDE_DIR})
 #librt
 find_library(LIBRT_LIBRARY rt)
 
-#librt
-find_library(LIBRT_LIBRARY rt)
-
 #pgsql driver and dbi libs
 find_package(libdbi REQUIRED)
-include_directories(${LIBDBI_INCLUDE_DIR})
+if(LIBDBI_FOUND)
+    include_directories(${LIBDBI_INCLUDE_DIR})
+    add_definitions(-DLIBDBI)
+endif()
 
 #Protobuf library
 find_package(ProtobufWrapper REQUIRED)
@@ -189,7 +190,9 @@ function(build_GenomicsDB_executable target)
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
-    target_link_libraries(${target} ${LIBDBI_DEV_LIBRARY} ${LIBDBI1_LIBRARY} ${LIBPGSQL_DRIVER_LIBRARY})
+    if(LIBDBI_FOUND)
+        target_link_libraries(${target} ${LIBDBI_DEV_LIBRARY} ${LIBPGSQL_DRIVER_LIBRARY})
+    endif()
     target_link_libraries(${target} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${PROTOBUF_LIBRARIES})
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})

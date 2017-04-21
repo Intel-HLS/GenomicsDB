@@ -20,6 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef LIBDBI
 #include "vid_mapper_sql.h"
 #include <ctype.h>
 #include <cstdlib>
@@ -27,24 +28,24 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw SQLBasedVidMapperException(#X);
 
-SQLBasedVidMapper::SQLBasedVidMapper() : VidMapper() {
-  dbi_initialize_r(NULL, &instance);
-  conn = dbi_conn_new_r("pgsql", instance);
-  VERIFY_OR_THROW(conn != NULL);
+SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMapper() {
+  dbi_initialize_r(NULL, &m_instance);
+  m_conn = dbi_conn_new_r("pgsql", m_instance);
+  VERIFY_OR_THROW(m_conn != NULL);
 
-  dbi_conn_set_option(conn, "host", "localhost");
-  dbi_conn_set_option(conn, "username", "postgres");
-  dbi_conn_set_option(conn, "password", "postgres");
-  dbi_conn_set_option(conn, "dbname", "gendb");
-  dbi_conn_set_option(conn, "encoding", "UTF-8");
+  dbi_conn_set_option(m_conn, "host", request.host_name.c_str());
+  dbi_conn_set_option(m_conn, "username", request.user_name.c_str());
+  dbi_conn_set_option(m_conn, "password", request.pass_word.c_str());
+  dbi_conn_set_option(m_conn, "dbname", request.db_name.c_str());
+  dbi_conn_set_option(m_conn, "encoding", "UTF-8");
 
-  if (dbi_conn_connect(conn) < 0) {
+  if (dbi_conn_connect(m_conn) < 0) {
     VERIFY_OR_THROW(1 < 0);
   }
 
-  dbi_result result = dbi_conn_query(conn, "select count(*) as num_contigs from reference");
+  dbi_result result = dbi_conn_query(m_conn, "select count(*) as num_contigs from reference");
   VERIFY_OR_THROW(result != NULL);
-  num_contigs = 0;
+  int num_contigs = 0;
 
   if (dbi_result_first_row(result) != 1) {
     VERIFY_OR_THROW(1 < 0);
@@ -55,23 +56,25 @@ SQLBasedVidMapper::SQLBasedVidMapper() : VidMapper() {
 
   dbi_result_free(result);
   VERIFY_OR_THROW(num_contigs > 0);
-}
+  m_work_space = request.work_space;
+  m_array_name = request.array_name;
 
-SQLBasedVidMapper::~SQLBasedVidMapper() {
-    dbi_conn_close(conn);
-    dbi_shutdown_r(instance);
-}
-
-int SQLBasedVidMapper::load_contig_info() {
   m_contig_idx_to_info.resize(num_contigs);
   m_contig_begin_2_idx.resize(num_contigs);
   m_contig_end_2_idx.resize(num_contigs);
+}
 
+SQLBasedVidMapper::~SQLBasedVidMapper() {
+  dbi_conn_close(m_conn);
+  dbi_shutdown_r(m_instance);
+}
+
+int SQLBasedVidMapper::load_contig_info() {
   auto duplicate_contigs_exist = false;
   std::string contig_name;
   int contig_idx = -1;
 
-  dbi_result result = dbi_conn_query(conn, "select * from reference");
+  dbi_result result = dbi_conn_query(m_conn, "select * from reference");
   VERIFY_OR_THROW(result != NULL);
 
   while (dbi_result_next_row(result)) {
@@ -162,7 +165,7 @@ int SQLBasedVidMapper::load_contig_info() {
   return(GENOMICSDB_VID_MAPPER_SUCCESS);
 }
 
-int SQLBasedVidMapper::load_metadata_from_db() {
+int SQLBasedVidMapper::load_mapping_data_from_db() {
   /**
    * ret = parse_contigs_from_vidmap(vid_map_protobuf);
    * assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
@@ -176,3 +179,5 @@ int SQLBasedVidMapper::load_metadata_from_db() {
 SQLBasedVidMapperException::~SQLBasedVidMapperException() {}
 
 SQLBasedVidMapperException::SQLBasedVidMapperException(const std::string m) : msg_("SQLBasedVidMapperException : "+m) {}
+#endif
+

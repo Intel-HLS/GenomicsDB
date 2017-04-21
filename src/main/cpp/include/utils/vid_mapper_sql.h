@@ -19,28 +19,38 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifdef LIBDBI
 #ifndef GENOMICSDB_VID_MAPPER_SQL_H
 #define GENOMICSDB_VID_MAPPER_SQL_H
 
 #include "vid_mapper.h"
-#include <dbi/dbi.h>
 #include <string>
 #include <vector>
 #include <map>
+#include <dbi/dbi.h>
 
 enum {
   GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
   GENOMICSDB_VID_MAPPER_FAILURE = 0x1
 };
 
+class SQLVidMapperRequest {
+  public:
+    std::string host_name;
+    std::string user_name;
+    std::string pass_word;
+    std::string db_name;
+    std::string work_space;
+    std::string array_name;
+};
 
 class SQLBasedVidMapper : public VidMapper {
   public:
-    SQLBasedVidMapper();
+    SQLBasedVidMapper(const SQLVidMapperRequest&);
 
     int load_contig_info();
 
-    int load_metadata_from_db();
+    int load_mapping_data_from_db();
 
     std::vector<ContigInfo> get_contigs() { return(m_contig_idx_to_info); }
 
@@ -54,9 +64,10 @@ class SQLBasedVidMapper : public VidMapper {
 
     ~SQLBasedVidMapper();
   protected:
-    int num_contigs;
-    dbi_conn conn;
-    dbi_inst instance;
+    dbi_conn m_conn;
+    dbi_inst m_instance;
+    std::string m_work_space;
+    std::string m_array_name;
 };
 
 class SQLBasedVidMapperException : public std::exception {
@@ -86,3 +97,4 @@ class SQLBasedVidMapperException : public std::exception {
 };
 
 #endif  // GENOMICSDB_VID_MAPPER_SQL_H
+#endif
