@@ -471,6 +471,65 @@ public class GenomicsDBImporter
     }
   }
 
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader Set of VCFHeaderLine from the merged header across all input files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace  TileDB workspace
+   * @param arrayname  TileDB array name
+   * @param sizePerColumnPartition  Buffer size allocated for each column partition
+   * @param segmentSize  Total buffer size allocated for all partitions to write to TileDB
+   * @param lbRowIdx Smallest row idx which should be imported by this object
+   * @param ubRowIdx Largest row idx which should be imported by this object
+   * @param outputVidMapJSONFilePath  Optional parameter to store vid map JSON file to the
+   *                                  given path
+   * @param outputCallsetMapJSONFilePath  Optional parameter to store callset
+   *                                      map JSON file to the given path
+   * @throws IOException  File IO exception
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            String workspace,
+                            String arrayname,
+                            Long sizePerColumnPartition,
+                            Long segmentSize,
+                            Long lbRowIdx,
+                            Long ubRowIdx,
+                            String outputVidMapJSONFilePath,
+                            String outputCallsetMapJSONFilePath) throws IOException {
+
+    this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
+      sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx);
+
+    if (!outputVidMapJSONFilePath.isEmpty()) {
+      String vidMapJSONString = printToString(mVidMap);
+      File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+      try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+        out.println(vidMapJSONString);
+        out.close();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (!outputCallsetMapJSONFilePath.isEmpty()) {
+      String callsetMapJSONString = printToString(mCallsetMap);
+      File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
+
+      try( PrintWriter out = new PrintWriter(callsetMapJSONFile)  ){
+        out.println(callsetMapJSONString);
+        out.close();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
   /**
    * Constructor to create required data structures from a list
@@ -501,31 +560,8 @@ public class GenomicsDBImporter
                             String outputCallsetMapJSONFilePath) throws IOException {
 
     this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
-      sizePerColumnPartition, segmentSize);
-
-    if (!outputVidMapJSONFilePath.isEmpty()) {
-      String vidMapJSONString = printToString(mVidMap);
-      File vidMapJSONFile = new File(outputVidMapJSONFilePath);
-
-      try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-        out.println(vidMapJSONString);
-        out.close();
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      }
-    }
-
-    if (!outputCallsetMapJSONFilePath.isEmpty()) {
-      String callsetMapJSONString = printToString(mCallsetMap);
-      File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
-
-      try( PrintWriter out = new PrintWriter(callsetMapJSONFile)  ){
-        out.println(callsetMapJSONString);
-        out.close();
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      }
-    }
+            sizePerColumnPartition, segmentSize, 0L, (long)(sampleToVCMap.size()-1),
+            outputVidMapJSONFilePath, outputCallsetMapJSONFilePath);
   }
 
   private GenomicsDBImportConfiguration.ImportConfiguration createImportConfiguration(
