@@ -484,6 +484,8 @@ public class GenomicsDBImporter
    * @param arrayname  TileDB array name
    * @param sizePerColumnPartition  Buffer size allocated for each column partition
    * @param segmentSize  Total buffer size allocated for all partitions to write to TileDB
+   * @param lbRowIdx Smallest row idx which should be imported by this object
+   * @param ubRowIdx Largest row idx which should be imported by this object
    * @param outputVidMapJSONFilePath  Optional parameter to store vid map JSON file to the
    *                                  given path
    * @param outputCallsetMapJSONFilePath  Optional parameter to store callset
@@ -497,11 +499,13 @@ public class GenomicsDBImporter
                             String arrayname,
                             Long sizePerColumnPartition,
                             Long segmentSize,
+                            Long lbRowIdx,
+                            Long ubRowIdx,
                             String outputVidMapJSONFilePath,
                             String outputCallsetMapJSONFilePath) throws IOException {
 
     this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
-      sizePerColumnPartition, segmentSize);
+      sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx);
 
     if (!outputVidMapJSONFilePath.isEmpty()) {
       String vidMapJSONString = printToString(mVidMap);
