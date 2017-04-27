@@ -40,7 +40,7 @@ class ExportConfiguration;
 
 // ===================================================================
 
-class ColumnRange : public ::google::protobuf::Message {
+class ColumnRange : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:ColumnRange) */ {
  public:
   ColumnRange();
   virtual ~ColumnRange();
@@ -82,7 +82,11 @@ class ColumnRange : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -142,7 +146,7 @@ class ColumnRange : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class ColumnRangeList : public ::google::protobuf::Message {
+class ColumnRangeList : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:ColumnRangeList) */ {
  public:
   ColumnRangeList();
   virtual ~ColumnRangeList();
@@ -184,7 +188,11 @@ class ColumnRangeList : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -234,7 +242,7 @@ class ColumnRangeList : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class ExportConfiguration : public ::google::protobuf::Message {
+class ExportConfiguration : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:ExportConfiguration) */ {
  public:
   ExportConfiguration();
   virtual ~ExportConfiguration();
@@ -276,7 +284,11 @@ class ExportConfiguration : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -553,6 +565,7 @@ inline ::std::string* ExportConfiguration::mutable_workspace() {
   return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ExportConfiguration::release_workspace() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.workspace)
   clear_has_workspace();
   return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -606,6 +619,7 @@ inline ::std::string* ExportConfiguration::mutable_array() {
   return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ExportConfiguration::release_array() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.array)
   clear_has_array();
   return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -659,6 +673,7 @@ inline ::std::string* ExportConfiguration::mutable_reference_genome() {
   return reference_genome_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ExportConfiguration::release_reference_genome() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.reference_genome)
   clear_has_reference_genome();
   return reference_genome_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -731,6 +746,7 @@ inline void ExportConfiguration::set_attributes(int index, const char* value, si
   // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.attributes)
 }
 inline ::std::string* ExportConfiguration::add_attributes() {
+  // @@protoc_insertion_point(field_add_mutable:ExportConfiguration.attributes)
   return attributes_.Add();
 }
 inline void ExportConfiguration::add_attributes(const ::std::string& value) {
@@ -796,6 +812,7 @@ inline ::std::string* ExportConfiguration::mutable_vid_mapping_file() {
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ExportConfiguration::release_vid_mapping_file() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -849,6 +866,7 @@ inline ::std::string* ExportConfiguration::mutable_callset_mapping_file() {
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ExportConfiguration::release_callset_mapping_file() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }

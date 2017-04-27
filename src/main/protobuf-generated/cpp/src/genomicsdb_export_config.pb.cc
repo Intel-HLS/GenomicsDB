@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -31,6 +32,7 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 }  // namespace
 
 
+void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
   protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
   const ::google::protobuf::FileDescriptor* file =
@@ -99,6 +101,7 @@ inline void protobuf_AssignDescriptorsOnce() {
                  &protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto);
 }
 
+void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -120,6 +123,7 @@ void protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto() {
   delete ExportConfiguration_reflection_;
 }
 
+void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
   static bool already_here = false;
   if (already_here) return;
@@ -155,22 +159,12 @@ struct StaticDescriptorInitializer_genomicsdb_5fexport_5fconfig_2eproto {
   }
 } static_descriptor_initializer_genomicsdb_5fexport_5fconfig_2eproto_;
 
-namespace {
-
-static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD;
-static void MergeFromFail(int line) {
-  GOOGLE_CHECK(false) << __FILE__ << ":" << line;
-}
-
-}  // namespace
-
-
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ColumnRange::kLowFieldNumber;
 const int ColumnRange::kHighFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ColumnRange::ColumnRange()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -232,8 +226,17 @@ ColumnRange* ColumnRange::New(::google::protobuf::Arena* arena) const {
 }
 
 void ColumnRange::Clear() {
+// @@protoc_insertion_point(message_clear_start:ColumnRange)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(ColumnRange, f) \
+  _Pragma("clang diagnostic pop")
+#else
 #define ZR_HELPER_(f) reinterpret_cast<char*>(\
   &reinterpret_cast<ColumnRange*>(16)->f)
+#endif
 
 #define ZR_(first, last) do {\
   ::memset(&first, 0,\
@@ -253,7 +256,7 @@ void ColumnRange::Clear() {
 
 bool ColumnRange::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ColumnRange)
   for (;;) {
@@ -332,8 +335,8 @@ void ColumnRange::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ColumnRange)
 }
 
-::google::protobuf::uint8* ColumnRange::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ColumnRange::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
@@ -354,6 +357,7 @@ void ColumnRange::SerializeWithCachedSizes(
 }
 
 int ColumnRange::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ColumnRange)
   int total_size = 0;
 
   if (has_low()) {
@@ -373,6 +377,7 @@ int ColumnRange::RequiredFieldsByteSizeFallback() const {
   return total_size;
 }
 int ColumnRange::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:ColumnRange)
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
@@ -401,19 +406,27 @@ int ColumnRange::ByteSize() const {
 }
 
 void ColumnRange::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(generalized_merge_from_start:ColumnRange)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   const ColumnRange* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRange>(
           &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRange)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRange)
     MergeFrom(*source);
   }
 }
 
 void ColumnRange::MergeFrom(const ColumnRange& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRange)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_low()) {
       set_low(from.low());
@@ -428,12 +441,14 @@ void ColumnRange::MergeFrom(const ColumnRange& from) {
 }
 
 void ColumnRange::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRange::CopyFrom(const ColumnRange& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRange)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -520,9 +535,9 @@ void ColumnRange::clear_high() {
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ColumnRangeList::kRangeListFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ColumnRangeList::ColumnRangeList()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -582,6 +597,7 @@ ColumnRangeList* ColumnRangeList::New(::google::protobuf::Arena* arena) const {
 }
 
 void ColumnRangeList::Clear() {
+// @@protoc_insertion_point(message_clear_start:ColumnRangeList)
   range_list_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
@@ -591,7 +607,7 @@ void ColumnRangeList::Clear() {
 
 bool ColumnRangeList::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ColumnRangeList)
   for (;;) {
@@ -653,14 +669,14 @@ void ColumnRangeList::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ColumnRangeList)
 }
 
-::google::protobuf::uint8* ColumnRangeList::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ColumnRangeList::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
   for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        1, this->range_list(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        1, this->range_list(i), false, target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -672,6 +688,7 @@ void ColumnRangeList::SerializeWithCachedSizes(
 }
 
 int ColumnRangeList::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:ColumnRangeList)
   int total_size = 0;
 
   // repeated .ColumnRange range_list = 1;
@@ -694,19 +711,27 @@ int ColumnRangeList::ByteSize() const {
 }
 
 void ColumnRangeList::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(generalized_merge_from_start:ColumnRangeList)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   const ColumnRangeList* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ColumnRangeList>(
           &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ColumnRangeList)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ColumnRangeList)
     MergeFrom(*source);
   }
 }
 
 void ColumnRangeList::MergeFrom(const ColumnRangeList& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(class_specific_merge_from_start:ColumnRangeList)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   range_list_.MergeFrom(from.range_list_);
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -714,12 +739,14 @@ void ColumnRangeList::MergeFrom(const ColumnRangeList& from) {
 }
 
 void ColumnRangeList::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ColumnRangeList::CopyFrom(const ColumnRangeList& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ColumnRangeList)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -787,7 +814,7 @@ ColumnRangeList::range_list() const {
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ExportConfiguration::kWorkspaceFieldNumber;
 const int ExportConfiguration::kArrayFieldNumber;
 const int ExportConfiguration::kReferenceGenomeFieldNumber;
@@ -795,7 +822,7 @@ const int ExportConfiguration::kQueryColumnRangesFieldNumber;
 const int ExportConfiguration::kAttributesFieldNumber;
 const int ExportConfiguration::kVidMappingFileFieldNumber;
 const int ExportConfiguration::kCallsetMappingFileFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ExportConfiguration::ExportConfiguration()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -866,6 +893,7 @@ ExportConfiguration* ExportConfiguration::New(::google::protobuf::Arena* arena) 
 }
 
 void ExportConfiguration::Clear() {
+// @@protoc_insertion_point(message_clear_start:ExportConfiguration)
   if (_has_bits_[0 / 32] & 103u) {
     if (has_workspace()) {
       workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -893,7 +921,7 @@ void ExportConfiguration::Clear() {
 
 bool ExportConfiguration::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ExportConfiguration)
   for (;;) {
@@ -1119,8 +1147,8 @@ void ExportConfiguration::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ExportConfiguration)
 }
 
-::google::protobuf::uint8* ExportConfiguration::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ExportConfiguration::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
   // required string workspace = 1;
   if (has_workspace()) {
@@ -1158,8 +1186,8 @@ void ExportConfiguration::SerializeWithCachedSizes(
   // repeated .ColumnRangeList query_column_ranges = 4;
   for (unsigned int i = 0, n = this->query_column_ranges_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->query_column_ranges(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        4, this->query_column_ranges(i), false, target);
   }
 
   // repeated string attributes = 5;
@@ -1203,6 +1231,7 @@ void ExportConfiguration::SerializeWithCachedSizes(
 }
 
 int ExportConfiguration::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:ExportConfiguration)
   int total_size = 0;
 
   if (has_workspace()) {
@@ -1229,6 +1258,7 @@ int ExportConfiguration::RequiredFieldsByteSizeFallback() const {
   return total_size;
 }
 int ExportConfiguration::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:ExportConfiguration)
   int total_size = 0;
 
   if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
@@ -1293,19 +1323,27 @@ int ExportConfiguration::ByteSize() const {
 }
 
 void ExportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(generalized_merge_from_start:ExportConfiguration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   const ExportConfiguration* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ExportConfiguration>(
           &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ExportConfiguration)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ExportConfiguration)
     MergeFrom(*source);
   }
 }
 
 void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(class_specific_merge_from_start:ExportConfiguration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   query_column_ranges_.MergeFrom(from.query_column_ranges_);
   attributes_.MergeFrom(from.attributes_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
@@ -1336,12 +1374,14 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
 }
 
 void ExportConfiguration::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ExportConfiguration::CopyFrom(const ExportConfiguration& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ExportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1422,6 +1462,7 @@ void ExportConfiguration::clear_workspace() {
   return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_workspace() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.workspace)
   clear_has_workspace();
   return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1475,6 +1516,7 @@ void ExportConfiguration::clear_array() {
   return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_array() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.array)
   clear_has_array();
   return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1528,6 +1570,7 @@ void ExportConfiguration::clear_reference_genome() {
   return reference_genome_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_reference_genome() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.reference_genome)
   clear_has_reference_genome();
   return reference_genome_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1600,6 +1643,7 @@ void ExportConfiguration::clear_attributes() {
   // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.attributes)
 }
  ::std::string* ExportConfiguration::add_attributes() {
+  // @@protoc_insertion_point(field_add_mutable:ExportConfiguration.attributes)
   return attributes_.Add();
 }
  void ExportConfiguration::add_attributes(const ::std::string& value) {
@@ -1665,6 +1709,7 @@ void ExportConfiguration::clear_vid_mapping_file() {
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_vid_mapping_file() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1718,6 +1763,7 @@ void ExportConfiguration::clear_callset_mapping_file() {
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ExportConfiguration::release_callset_mapping_file() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }

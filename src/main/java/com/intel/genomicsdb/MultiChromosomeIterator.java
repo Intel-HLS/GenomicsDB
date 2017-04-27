@@ -44,14 +44,14 @@ class MultiChromosomeIterator<SOURCE> implements Iterator<VariantContext>
     //Only add intervals whose chromosomes are present in the VCF header
     final SAMSequenceDictionary contigDictionary = mHeader.getSequenceDictionary();
     for(ChromosomeInterval currInterval : chromosomeIntervals)
-      if(contigDictionary.getSequenceIndex(currInterval.mChromosomeName) != -1)
+      if(contigDictionary.getSequenceIndex(currInterval.getContig()) != -1)
         mChromosomeIntervals.add(currInterval);
     if(mChromosomeIntervals.size() > 0)
     {
       ChromosomeInterval currInterval = mChromosomeIntervals.get(0);
-      mIterator = mReader.query(currInterval.mChromosomeName,
-        (int)currInterval.mBegin,
-        (int)currInterval.mEnd);
+      mIterator = mReader.query(currInterval.getContig(),
+        (int)currInterval.getStart(),
+        (int)currInterval.getEnd());
     }
   }
 
@@ -78,9 +78,9 @@ class MultiChromosomeIterator<SOURCE> implements Iterator<VariantContext>
           ++mIdxInIntervalList)
       {
         ChromosomeInterval currInterval = mChromosomeIntervals.get(mIdxInIntervalList);
-        mIterator = mReader.query(currInterval.mChromosomeName,
-          (int)currInterval.mBegin,
-          (int)currInterval.mEnd);
+        mIterator = mReader.query(currInterval.getContig(),
+          (int)currInterval.getStart(),
+          (int)currInterval.getEnd());
         if(mIterator.hasNext())
           return returnValue;
       }

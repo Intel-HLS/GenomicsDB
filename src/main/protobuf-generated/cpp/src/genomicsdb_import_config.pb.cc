@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -21,6 +22,9 @@ namespace {
 const ::google::protobuf::Descriptor* Partition_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Partition_reflection_ = NULL;
+const ::google::protobuf::Descriptor* GATK4Integration_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  GATK4Integration_reflection_ = NULL;
 const ::google::protobuf::Descriptor* ImportConfiguration_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   ImportConfiguration_reflection_ = NULL;
@@ -28,6 +32,7 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 }  // namespace
 
 
+void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
   protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
   const ::google::protobuf::FileDescriptor* file =
@@ -53,8 +58,28 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
       sizeof(Partition),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partition, _internal_metadata_),
       -1);
-  ImportConfiguration_descriptor_ = file->message_type(1);
-  static const int ImportConfiguration_offsets_[17] = {
+  GATK4Integration_descriptor_ = file->message_type(1);
+  static const int GATK4Integration_offsets_[6] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, output_vidmap_json_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, output_callsetmap_json_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, batch_size_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, use_samples_in_order_provided_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, lower_sample_index_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, upper_sample_index_),
+  };
+  GATK4Integration_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      GATK4Integration_descriptor_,
+      GATK4Integration::default_instance_,
+      GATK4Integration_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, _has_bits_[0]),
+      -1,
+      -1,
+      sizeof(GATK4Integration),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, _internal_metadata_),
+      -1);
+  ImportConfiguration_descriptor_ = file->message_type(2);
+  static const int ImportConfiguration_offsets_[18] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, size_per_column_partition_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, row_based_partitioning_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_combined_vcf_),
@@ -72,6 +97,7 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, compress_tiledb_array_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_cells_per_tile_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, fail_if_updating_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, gatk4_integration_parameters_),
   };
   ImportConfiguration_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -94,10 +120,13 @@ inline void protobuf_AssignDescriptorsOnce() {
                  &protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto);
 }
 
+void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Partition_descriptor_, &Partition::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      GATK4Integration_descriptor_, &GATK4Integration::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       ImportConfiguration_descriptor_, &ImportConfiguration::default_instance());
 }
@@ -107,10 +136,13 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto() {
   delete Partition::default_instance_;
   delete Partition_reflection_;
+  delete GATK4Integration::default_instance_;
+  delete GATK4Integration_reflection_;
   delete ImportConfiguration::default_instance_;
   delete ImportConfiguration_reflection_;
 }
 
+void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
   static bool already_here = false;
   if (already_here) return;
@@ -121,9 +153,15 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "\n\036genomicsdb_import_config.proto\"{\n\tPart"
     "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022"
     "\r\n\005array\030\003 \001(\t\022\033\n\023vcf_output_filename\030\004 "
-    "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\210\005"
+    "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\355\001"
+    "\n\020GATK4Integration\022\037\n\027output_vidmap_json"
+    "_file\030\001 \001(\t\022#\n\033output_callsetmap_json_fi"
+    "le\030\002 \001(\t\022\025\n\nbatch_size\030\003 \001(\005:\0010\022,\n\035use_s"
+    "amples_in_order_provided\030\004 \001(\010:\005false\022\035\n"
+    "\022lower_sample_index\030\005 \001(\003:\0010\022/\n\022upper_sa"
+    "mple_index\030\006 \001(\003:\0239223372036854775807\"\301\005"
     "\n\023ImportConfiguration\022(\n\031size_per_column"
-    "_partition\030\007 \002(\003:\00510240\022%\n\026row_based_par"
+    "_partition\030\007 \002(\003:\00516384\022%\n\026row_based_par"
     "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin"
     "ed_vcf\030\002 \001(\010:\005false\022\"\n\024produce_tiledb_ar"
     "ray\030\003 \001(\010:\004true\022%\n\021column_partitions\030\004 \003"
@@ -138,13 +176,16 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "ent_size\030\016 \001(\003:\01010485760\022#\n\025compress_til"
     "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t"
     "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001("
-    "\010:\005falseB5\n\024com.intel.genomicsdbB\035Genomi"
-    "csDBImportConfiguration", 863);
+    "\010:\005false\0227\n\034gatk4_integration_parameters"
+    "\030\022 \001(\0132\021.GATK4IntegrationB5\n\024com.intel.g"
+    "enomicsdbB\035GenomicsDBImportConfiguration", 1160);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_import_config.proto", &protobuf_RegisterTypes);
   Partition::default_instance_ = new Partition();
+  GATK4Integration::default_instance_ = new GATK4Integration();
   ImportConfiguration::default_instance_ = new ImportConfiguration();
   Partition::default_instance_->InitAsDefaultInstance();
+  GATK4Integration::default_instance_->InitAsDefaultInstance();
   ImportConfiguration::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto);
 }
@@ -156,25 +197,15 @@ struct StaticDescriptorInitializer_genomicsdb_5fimport_5fconfig_2eproto {
   }
 } static_descriptor_initializer_genomicsdb_5fimport_5fconfig_2eproto_;
 
-namespace {
-
-static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD;
-static void MergeFromFail(int line) {
-  GOOGLE_CHECK(false) << __FILE__ << ":" << line;
-}
-
-}  // namespace
-
-
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Partition::kBeginFieldNumber;
 const int Partition::kWorkspaceFieldNumber;
 const int Partition::kArrayFieldNumber;
 const int Partition::kVcfOutputFilenameFieldNumber;
 const int Partition::kEndFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Partition::Partition()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -243,6 +274,7 @@ Partition* Partition::New(::google::protobuf::Arena* arena) const {
 }
 
 void Partition::Clear() {
+// @@protoc_insertion_point(message_clear_start:Partition)
   if (_has_bits_[0 / 32] & 31u) {
     begin_ = GOOGLE_LONGLONG(0);
     if (has_workspace()) {
@@ -264,7 +296,7 @@ void Partition::Clear() {
 
 bool Partition::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:Partition)
   for (;;) {
@@ -424,8 +456,8 @@ void Partition::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:Partition)
 }
 
-::google::protobuf::uint8* Partition::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* Partition::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:Partition)
   // required int64 begin = 1;
   if (has_begin()) {
@@ -479,6 +511,7 @@ void Partition::SerializeWithCachedSizes(
 }
 
 int Partition::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:Partition)
   int total_size = 0;
 
   // required int64 begin = 1;
@@ -529,19 +562,27 @@ int Partition::ByteSize() const {
 }
 
 void Partition::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(generalized_merge_from_start:Partition)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   const Partition* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const Partition>(
           &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:Partition)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:Partition)
     MergeFrom(*source);
   }
 }
 
 void Partition::MergeFrom(const Partition& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(class_specific_merge_from_start:Partition)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_begin()) {
       set_begin(from.begin());
@@ -568,12 +609,14 @@ void Partition::MergeFrom(const Partition& from) {
 }
 
 void Partition::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:Partition)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void Partition::CopyFrom(const Partition& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Partition)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -675,6 +718,7 @@ void Partition::clear_workspace() {
   return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* Partition::release_workspace() {
+  // @@protoc_insertion_point(field_release:Partition.workspace)
   clear_has_workspace();
   return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -728,6 +772,7 @@ void Partition::clear_array() {
   return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* Partition::release_array() {
+  // @@protoc_insertion_point(field_release:Partition.array)
   clear_has_array();
   return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -781,6 +826,7 @@ void Partition::clear_vcf_output_filename() {
   return vcf_output_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* Partition::release_vcf_output_filename() {
+  // @@protoc_insertion_point(field_release:Partition.vcf_output_filename)
   clear_has_vcf_output_filename();
   return vcf_output_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -822,7 +868,708 @@ void Partition::clear_end() {
 
 // ===================================================================
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int GATK4Integration::kOutputVidmapJsonFileFieldNumber;
+const int GATK4Integration::kOutputCallsetmapJsonFileFieldNumber;
+const int GATK4Integration::kBatchSizeFieldNumber;
+const int GATK4Integration::kUseSamplesInOrderProvidedFieldNumber;
+const int GATK4Integration::kLowerSampleIndexFieldNumber;
+const int GATK4Integration::kUpperSampleIndexFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+GATK4Integration::GATK4Integration()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:GATK4Integration)
+}
+
+void GATK4Integration::InitAsDefaultInstance() {
+}
+
+GATK4Integration::GATK4Integration(const GATK4Integration& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:GATK4Integration)
+}
+
+void GATK4Integration::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
+  _cached_size_ = 0;
+  output_vidmap_json_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  output_callsetmap_json_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  batch_size_ = 0;
+  use_samples_in_order_provided_ = false;
+  lower_sample_index_ = GOOGLE_LONGLONG(0);
+  upper_sample_index_ = GOOGLE_LONGLONG(9223372036854775807);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+GATK4Integration::~GATK4Integration() {
+  // @@protoc_insertion_point(destructor:GATK4Integration)
+  SharedDtor();
+}
+
+void GATK4Integration::SharedDtor() {
+  output_vidmap_json_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  output_callsetmap_json_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (this != default_instance_) {
+  }
+}
+
+void GATK4Integration::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* GATK4Integration::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return GATK4Integration_descriptor_;
+}
+
+const GATK4Integration& GATK4Integration::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  return *default_instance_;
+}
+
+GATK4Integration* GATK4Integration::default_instance_ = NULL;
+
+GATK4Integration* GATK4Integration::New(::google::protobuf::Arena* arena) const {
+  GATK4Integration* n = new GATK4Integration;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void GATK4Integration::Clear() {
+// @@protoc_insertion_point(message_clear_start:GATK4Integration)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(GATK4Integration, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<GATK4Integration*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  if (_has_bits_[0 / 32] & 63u) {
+    ZR_(batch_size_, lower_sample_index_);
+    if (has_output_vidmap_json_file()) {
+      output_vidmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    if (has_output_callsetmap_json_file()) {
+      output_callsetmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    upper_sample_index_ = GOOGLE_LONGLONG(9223372036854775807);
+  }
+
+#undef ZR_HELPER_
+#undef ZR_
+
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
+}
+
+bool GATK4Integration::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:GATK4Integration)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional string output_vidmap_json_file = 1;
+      case 1: {
+        if (tag == 10) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_output_vidmap_json_file()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->output_vidmap_json_file().data(), this->output_vidmap_json_file().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "GATK4Integration.output_vidmap_json_file");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(18)) goto parse_output_callsetmap_json_file;
+        break;
+      }
+
+      // optional string output_callsetmap_json_file = 2;
+      case 2: {
+        if (tag == 18) {
+         parse_output_callsetmap_json_file:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_output_callsetmap_json_file()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->output_callsetmap_json_file().data(), this->output_callsetmap_json_file().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "GATK4Integration.output_callsetmap_json_file");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(24)) goto parse_batch_size;
+        break;
+      }
+
+      // optional int32 batch_size = 3 [default = 0];
+      case 3: {
+        if (tag == 24) {
+         parse_batch_size:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &batch_size_)));
+          set_has_batch_size();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(32)) goto parse_use_samples_in_order_provided;
+        break;
+      }
+
+      // optional bool use_samples_in_order_provided = 4 [default = false];
+      case 4: {
+        if (tag == 32) {
+         parse_use_samples_in_order_provided:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &use_samples_in_order_provided_)));
+          set_has_use_samples_in_order_provided();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(40)) goto parse_lower_sample_index;
+        break;
+      }
+
+      // optional int64 lower_sample_index = 5 [default = 0];
+      case 5: {
+        if (tag == 40) {
+         parse_lower_sample_index:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &lower_sample_index_)));
+          set_has_lower_sample_index();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(48)) goto parse_upper_sample_index;
+        break;
+      }
+
+      // optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+      case 6: {
+        if (tag == 48) {
+         parse_upper_sample_index:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &upper_sample_index_)));
+          set_has_upper_sample_index();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:GATK4Integration)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:GATK4Integration)
+  return false;
+#undef DO_
+}
+
+void GATK4Integration::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:GATK4Integration)
+  // optional string output_vidmap_json_file = 1;
+  if (has_output_vidmap_json_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->output_vidmap_json_file().data(), this->output_vidmap_json_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "GATK4Integration.output_vidmap_json_file");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      1, this->output_vidmap_json_file(), output);
+  }
+
+  // optional string output_callsetmap_json_file = 2;
+  if (has_output_callsetmap_json_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->output_callsetmap_json_file().data(), this->output_callsetmap_json_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "GATK4Integration.output_callsetmap_json_file");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      2, this->output_callsetmap_json_file(), output);
+  }
+
+  // optional int32 batch_size = 3 [default = 0];
+  if (has_batch_size()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->batch_size(), output);
+  }
+
+  // optional bool use_samples_in_order_provided = 4 [default = false];
+  if (has_use_samples_in_order_provided()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->use_samples_in_order_provided(), output);
+  }
+
+  // optional int64 lower_sample_index = 5 [default = 0];
+  if (has_lower_sample_index()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(5, this->lower_sample_index(), output);
+  }
+
+  // optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+  if (has_upper_sample_index()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(6, this->upper_sample_index(), output);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+  // @@protoc_insertion_point(serialize_end:GATK4Integration)
+}
+
+::google::protobuf::uint8* GATK4Integration::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:GATK4Integration)
+  // optional string output_vidmap_json_file = 1;
+  if (has_output_vidmap_json_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->output_vidmap_json_file().data(), this->output_vidmap_json_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "GATK4Integration.output_vidmap_json_file");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        1, this->output_vidmap_json_file(), target);
+  }
+
+  // optional string output_callsetmap_json_file = 2;
+  if (has_output_callsetmap_json_file()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->output_callsetmap_json_file().data(), this->output_callsetmap_json_file().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "GATK4Integration.output_callsetmap_json_file");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->output_callsetmap_json_file(), target);
+  }
+
+  // optional int32 batch_size = 3 [default = 0];
+  if (has_batch_size()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->batch_size(), target);
+  }
+
+  // optional bool use_samples_in_order_provided = 4 [default = false];
+  if (has_use_samples_in_order_provided()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->use_samples_in_order_provided(), target);
+  }
+
+  // optional int64 lower_sample_index = 5 [default = 0];
+  if (has_lower_sample_index()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(5, this->lower_sample_index(), target);
+  }
+
+  // optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+  if (has_upper_sample_index()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(6, this->upper_sample_index(), target);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:GATK4Integration)
+  return target;
+}
+
+int GATK4Integration::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:GATK4Integration)
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & 63u) {
+    // optional string output_vidmap_json_file = 1;
+    if (has_output_vidmap_json_file()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->output_vidmap_json_file());
+    }
+
+    // optional string output_callsetmap_json_file = 2;
+    if (has_output_callsetmap_json_file()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->output_callsetmap_json_file());
+    }
+
+    // optional int32 batch_size = 3 [default = 0];
+    if (has_batch_size()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->batch_size());
+    }
+
+    // optional bool use_samples_in_order_provided = 4 [default = false];
+    if (has_use_samples_in_order_provided()) {
+      total_size += 1 + 1;
+    }
+
+    // optional int64 lower_sample_index = 5 [default = 0];
+    if (has_lower_sample_index()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
+          this->lower_sample_index());
+    }
+
+    // optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+    if (has_upper_sample_index()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
+          this->upper_sample_index());
+    }
+
+  }
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void GATK4Integration::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:GATK4Integration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const GATK4Integration* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const GATK4Integration>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:GATK4Integration)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:GATK4Integration)
+    MergeFrom(*source);
+  }
+}
+
+void GATK4Integration::MergeFrom(const GATK4Integration& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:GATK4Integration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_output_vidmap_json_file()) {
+      set_has_output_vidmap_json_file();
+      output_vidmap_json_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.output_vidmap_json_file_);
+    }
+    if (from.has_output_callsetmap_json_file()) {
+      set_has_output_callsetmap_json_file();
+      output_callsetmap_json_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.output_callsetmap_json_file_);
+    }
+    if (from.has_batch_size()) {
+      set_batch_size(from.batch_size());
+    }
+    if (from.has_use_samples_in_order_provided()) {
+      set_use_samples_in_order_provided(from.use_samples_in_order_provided());
+    }
+    if (from.has_lower_sample_index()) {
+      set_lower_sample_index(from.lower_sample_index());
+    }
+    if (from.has_upper_sample_index()) {
+      set_upper_sample_index(from.upper_sample_index());
+    }
+  }
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+  }
+}
+
+void GATK4Integration::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:GATK4Integration)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void GATK4Integration::CopyFrom(const GATK4Integration& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:GATK4Integration)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool GATK4Integration::IsInitialized() const {
+
+  return true;
+}
+
+void GATK4Integration::Swap(GATK4Integration* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void GATK4Integration::InternalSwap(GATK4Integration* other) {
+  output_vidmap_json_file_.Swap(&other->output_vidmap_json_file_);
+  output_callsetmap_json_file_.Swap(&other->output_callsetmap_json_file_);
+  std::swap(batch_size_, other->batch_size_);
+  std::swap(use_samples_in_order_provided_, other->use_samples_in_order_provided_);
+  std::swap(lower_sample_index_, other->lower_sample_index_);
+  std::swap(upper_sample_index_, other->upper_sample_index_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata GATK4Integration::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = GATK4Integration_descriptor_;
+  metadata.reflection = GATK4Integration_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// GATK4Integration
+
+// optional string output_vidmap_json_file = 1;
+bool GATK4Integration::has_output_vidmap_json_file() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void GATK4Integration::set_has_output_vidmap_json_file() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void GATK4Integration::clear_has_output_vidmap_json_file() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void GATK4Integration::clear_output_vidmap_json_file() {
+  output_vidmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_output_vidmap_json_file();
+}
+ const ::std::string& GATK4Integration::output_vidmap_json_file() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.output_vidmap_json_file)
+  return output_vidmap_json_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void GATK4Integration::set_output_vidmap_json_file(const ::std::string& value) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:GATK4Integration.output_vidmap_json_file)
+}
+ void GATK4Integration::set_output_vidmap_json_file(const char* value) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:GATK4Integration.output_vidmap_json_file)
+}
+ void GATK4Integration::set_output_vidmap_json_file(const char* value, size_t size) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:GATK4Integration.output_vidmap_json_file)
+}
+ ::std::string* GATK4Integration::mutable_output_vidmap_json_file() {
+  set_has_output_vidmap_json_file();
+  // @@protoc_insertion_point(field_mutable:GATK4Integration.output_vidmap_json_file)
+  return output_vidmap_json_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* GATK4Integration::release_output_vidmap_json_file() {
+  // @@protoc_insertion_point(field_release:GATK4Integration.output_vidmap_json_file)
+  clear_has_output_vidmap_json_file();
+  return output_vidmap_json_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void GATK4Integration::set_allocated_output_vidmap_json_file(::std::string* output_vidmap_json_file) {
+  if (output_vidmap_json_file != NULL) {
+    set_has_output_vidmap_json_file();
+  } else {
+    clear_has_output_vidmap_json_file();
+  }
+  output_vidmap_json_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), output_vidmap_json_file);
+  // @@protoc_insertion_point(field_set_allocated:GATK4Integration.output_vidmap_json_file)
+}
+
+// optional string output_callsetmap_json_file = 2;
+bool GATK4Integration::has_output_callsetmap_json_file() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void GATK4Integration::set_has_output_callsetmap_json_file() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void GATK4Integration::clear_has_output_callsetmap_json_file() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void GATK4Integration::clear_output_callsetmap_json_file() {
+  output_callsetmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_output_callsetmap_json_file();
+}
+ const ::std::string& GATK4Integration::output_callsetmap_json_file() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.output_callsetmap_json_file)
+  return output_callsetmap_json_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void GATK4Integration::set_output_callsetmap_json_file(const ::std::string& value) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:GATK4Integration.output_callsetmap_json_file)
+}
+ void GATK4Integration::set_output_callsetmap_json_file(const char* value) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:GATK4Integration.output_callsetmap_json_file)
+}
+ void GATK4Integration::set_output_callsetmap_json_file(const char* value, size_t size) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:GATK4Integration.output_callsetmap_json_file)
+}
+ ::std::string* GATK4Integration::mutable_output_callsetmap_json_file() {
+  set_has_output_callsetmap_json_file();
+  // @@protoc_insertion_point(field_mutable:GATK4Integration.output_callsetmap_json_file)
+  return output_callsetmap_json_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* GATK4Integration::release_output_callsetmap_json_file() {
+  // @@protoc_insertion_point(field_release:GATK4Integration.output_callsetmap_json_file)
+  clear_has_output_callsetmap_json_file();
+  return output_callsetmap_json_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void GATK4Integration::set_allocated_output_callsetmap_json_file(::std::string* output_callsetmap_json_file) {
+  if (output_callsetmap_json_file != NULL) {
+    set_has_output_callsetmap_json_file();
+  } else {
+    clear_has_output_callsetmap_json_file();
+  }
+  output_callsetmap_json_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), output_callsetmap_json_file);
+  // @@protoc_insertion_point(field_set_allocated:GATK4Integration.output_callsetmap_json_file)
+}
+
+// optional int32 batch_size = 3 [default = 0];
+bool GATK4Integration::has_batch_size() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void GATK4Integration::set_has_batch_size() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void GATK4Integration::clear_has_batch_size() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void GATK4Integration::clear_batch_size() {
+  batch_size_ = 0;
+  clear_has_batch_size();
+}
+ ::google::protobuf::int32 GATK4Integration::batch_size() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.batch_size)
+  return batch_size_;
+}
+ void GATK4Integration::set_batch_size(::google::protobuf::int32 value) {
+  set_has_batch_size();
+  batch_size_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.batch_size)
+}
+
+// optional bool use_samples_in_order_provided = 4 [default = false];
+bool GATK4Integration::has_use_samples_in_order_provided() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+void GATK4Integration::set_has_use_samples_in_order_provided() {
+  _has_bits_[0] |= 0x00000008u;
+}
+void GATK4Integration::clear_has_use_samples_in_order_provided() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+void GATK4Integration::clear_use_samples_in_order_provided() {
+  use_samples_in_order_provided_ = false;
+  clear_has_use_samples_in_order_provided();
+}
+ bool GATK4Integration::use_samples_in_order_provided() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.use_samples_in_order_provided)
+  return use_samples_in_order_provided_;
+}
+ void GATK4Integration::set_use_samples_in_order_provided(bool value) {
+  set_has_use_samples_in_order_provided();
+  use_samples_in_order_provided_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.use_samples_in_order_provided)
+}
+
+// optional int64 lower_sample_index = 5 [default = 0];
+bool GATK4Integration::has_lower_sample_index() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+void GATK4Integration::set_has_lower_sample_index() {
+  _has_bits_[0] |= 0x00000010u;
+}
+void GATK4Integration::clear_has_lower_sample_index() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+void GATK4Integration::clear_lower_sample_index() {
+  lower_sample_index_ = GOOGLE_LONGLONG(0);
+  clear_has_lower_sample_index();
+}
+ ::google::protobuf::int64 GATK4Integration::lower_sample_index() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.lower_sample_index)
+  return lower_sample_index_;
+}
+ void GATK4Integration::set_lower_sample_index(::google::protobuf::int64 value) {
+  set_has_lower_sample_index();
+  lower_sample_index_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.lower_sample_index)
+}
+
+// optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+bool GATK4Integration::has_upper_sample_index() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+void GATK4Integration::set_has_upper_sample_index() {
+  _has_bits_[0] |= 0x00000020u;
+}
+void GATK4Integration::clear_has_upper_sample_index() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+void GATK4Integration::clear_upper_sample_index() {
+  upper_sample_index_ = GOOGLE_LONGLONG(9223372036854775807);
+  clear_has_upper_sample_index();
+}
+ ::google::protobuf::int64 GATK4Integration::upper_sample_index() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.upper_sample_index)
+  return upper_sample_index_;
+}
+ void GATK4Integration::set_upper_sample_index(::google::protobuf::int64 value) {
+  set_has_upper_sample_index();
+  upper_sample_index_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.upper_sample_index)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ImportConfiguration::kSizePerColumnPartitionFieldNumber;
 const int ImportConfiguration::kRowBasedPartitioningFieldNumber;
 const int ImportConfiguration::kProduceCombinedVcfFieldNumber;
@@ -840,7 +1587,8 @@ const int ImportConfiguration::kSegmentSizeFieldNumber;
 const int ImportConfiguration::kCompressTiledbArrayFieldNumber;
 const int ImportConfiguration::kNumCellsPerTileFieldNumber;
 const int ImportConfiguration::kFailIfUpdatingFieldNumber;
-#endif  // !_MSC_VER
+const int ImportConfiguration::kGatk4IntegrationParametersFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ImportConfiguration::ImportConfiguration()
   : ::google::protobuf::Message(), _internal_metadata_(NULL) {
@@ -849,6 +1597,7 @@ ImportConfiguration::ImportConfiguration()
 }
 
 void ImportConfiguration::InitAsDefaultInstance() {
+  gatk4_integration_parameters_ = const_cast< ::GATK4Integration*>(&::GATK4Integration::default_instance());
 }
 
 ImportConfiguration::ImportConfiguration(const ImportConfiguration& from)
@@ -862,7 +1611,7 @@ ImportConfiguration::ImportConfiguration(const ImportConfiguration& from)
 void ImportConfiguration::SharedCtor() {
   ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
-  size_per_column_partition_ = GOOGLE_LONGLONG(10240);
+  size_per_column_partition_ = GOOGLE_LONGLONG(16384);
   row_based_partitioning_ = false;
   produce_combined_vcf_ = false;
   produce_tiledb_array_ = true;
@@ -878,6 +1627,7 @@ void ImportConfiguration::SharedCtor() {
   compress_tiledb_array_ = true;
   num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   fail_if_updating_ = false;
+  gatk4_integration_parameters_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -890,6 +1640,7 @@ void ImportConfiguration::SharedDtor() {
   vid_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != default_instance_) {
+    delete gatk4_integration_parameters_;
   }
 }
 
@@ -919,8 +1670,17 @@ ImportConfiguration* ImportConfiguration::New(::google::protobuf::Arena* arena) 
 }
 
 void ImportConfiguration::Clear() {
+// @@protoc_insertion_point(message_clear_start:ImportConfiguration)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(ImportConfiguration, f) \
+  _Pragma("clang diagnostic pop")
+#else
 #define ZR_HELPER_(f) reinterpret_cast<char*>(\
   &reinterpret_cast<ImportConfiguration*>(16)->f)
+#endif
 
 #define ZR_(first, last) do {\
   ::memset(&first, 0,\
@@ -929,7 +1689,7 @@ void ImportConfiguration::Clear() {
 
   if (_has_bits_[0 / 32] & 239u) {
     ZR_(row_based_partitioning_, produce_combined_vcf_);
-    size_per_column_partition_ = GOOGLE_LONGLONG(10240);
+    size_per_column_partition_ = GOOGLE_LONGLONG(16384);
     produce_tiledb_array_ = true;
     if (has_vid_mapping_file()) {
       vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -949,7 +1709,12 @@ void ImportConfiguration::Clear() {
     compress_tiledb_array_ = true;
     num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   }
-  fail_if_updating_ = false;
+  if (_has_bits_[16 / 32] & 196608u) {
+    fail_if_updating_ = false;
+    if (has_gatk4_integration_parameters()) {
+      if (gatk4_integration_parameters_ != NULL) gatk4_integration_parameters_->::GATK4Integration::Clear();
+    }
+  }
 
 #undef ZR_HELPER_
 #undef ZR_
@@ -963,7 +1728,7 @@ void ImportConfiguration::Clear() {
 
 bool ImportConfiguration::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
   // @@protoc_insertion_point(parse_start:ImportConfiguration)
   for (;;) {
@@ -1066,7 +1831,7 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         break;
       }
 
-      // required int64 size_per_column_partition = 7 [default = 10240];
+      // required int64 size_per_column_partition = 7 [default = 16384];
       case 7: {
         if (tag == 56) {
          parse_size_per_column_partition:
@@ -1227,6 +1992,19 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(146)) goto parse_gatk4_integration_parameters;
+        break;
+      }
+
+      // optional .GATK4Integration gatk4_integration_parameters = 18;
+      case 18: {
+        if (tag == 146) {
+         parse_gatk4_integration_parameters:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_gatk4_integration_parameters()));
+        } else {
+          goto handle_unusual;
+        }
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -1297,7 +2075,7 @@ void ImportConfiguration::SerializeWithCachedSizes(
       6, this->callset_mapping_file(), output);
   }
 
-  // required int64 size_per_column_partition = 7 [default = 10240];
+  // required int64 size_per_column_partition = 7 [default = 16384];
   if (has_size_per_column_partition()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt64(7, this->size_per_column_partition(), output);
   }
@@ -1352,6 +2130,12 @@ void ImportConfiguration::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(17, this->fail_if_updating(), output);
   }
 
+  // optional .GATK4Integration gatk4_integration_parameters = 18;
+  if (has_gatk4_integration_parameters()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      18, *this->gatk4_integration_parameters_, output);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1359,8 +2143,8 @@ void ImportConfiguration::SerializeWithCachedSizes(
   // @@protoc_insertion_point(serialize_end:ImportConfiguration)
 }
 
-::google::protobuf::uint8* ImportConfiguration::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
+::google::protobuf::uint8* ImportConfiguration::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
   // @@protoc_insertion_point(serialize_to_array_start:ImportConfiguration)
   // optional bool row_based_partitioning = 1 [default = false];
   if (has_row_based_partitioning()) {
@@ -1380,8 +2164,8 @@ void ImportConfiguration::SerializeWithCachedSizes(
   // repeated .Partition column_partitions = 4;
   for (unsigned int i = 0, n = this->column_partitions_size(); i < n; i++) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->column_partitions(i), target);
+      InternalWriteMessageNoVirtualToArray(
+        4, this->column_partitions(i), false, target);
   }
 
   // optional string vid_mapping_file = 5;
@@ -1406,7 +2190,7 @@ void ImportConfiguration::SerializeWithCachedSizes(
         6, this->callset_mapping_file(), target);
   }
 
-  // required int64 size_per_column_partition = 7 [default = 10240];
+  // required int64 size_per_column_partition = 7 [default = 16384];
   if (has_size_per_column_partition()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(7, this->size_per_column_partition(), target);
   }
@@ -1461,6 +2245,13 @@ void ImportConfiguration::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(17, this->fail_if_updating(), target);
   }
 
+  // optional .GATK4Integration gatk4_integration_parameters = 18;
+  if (has_gatk4_integration_parameters()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        18, *this->gatk4_integration_parameters_, false, target);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -1470,9 +2261,10 @@ void ImportConfiguration::SerializeWithCachedSizes(
 }
 
 int ImportConfiguration::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:ImportConfiguration)
   int total_size = 0;
 
-  // required int64 size_per_column_partition = 7 [default = 10240];
+  // required int64 size_per_column_partition = 7 [default = 16384];
   if (has_size_per_column_partition()) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::Int64Size(
@@ -1562,11 +2354,20 @@ int ImportConfiguration::ByteSize() const {
     }
 
   }
-  // optional bool fail_if_updating = 17 [default = false];
-  if (has_fail_if_updating()) {
-    total_size += 2 + 1;
-  }
+  if (_has_bits_[16 / 32] & 196608u) {
+    // optional bool fail_if_updating = 17 [default = false];
+    if (has_fail_if_updating()) {
+      total_size += 2 + 1;
+    }
 
+    // optional .GATK4Integration gatk4_integration_parameters = 18;
+    if (has_gatk4_integration_parameters()) {
+      total_size += 2 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          *this->gatk4_integration_parameters_);
+    }
+
+  }
   // repeated .Partition column_partitions = 4;
   total_size += 1 * this->column_partitions_size();
   for (int i = 0; i < this->column_partitions_size(); i++) {
@@ -1587,19 +2388,27 @@ int ImportConfiguration::ByteSize() const {
 }
 
 void ImportConfiguration::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(generalized_merge_from_start:ImportConfiguration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   const ImportConfiguration* source = 
       ::google::protobuf::internal::DynamicCastToGenerated<const ImportConfiguration>(
           &from);
   if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:ImportConfiguration)
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
   } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:ImportConfiguration)
     MergeFrom(*source);
   }
 }
 
 void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+// @@protoc_insertion_point(class_specific_merge_from_start:ImportConfiguration)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   column_partitions_.MergeFrom(from.column_partitions_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_size_per_column_partition()) {
@@ -1656,6 +2465,9 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
     if (from.has_fail_if_updating()) {
       set_fail_if_updating(from.fail_if_updating());
     }
+    if (from.has_gatk4_integration_parameters()) {
+      mutable_gatk4_integration_parameters()->::GATK4Integration::MergeFrom(from.gatk4_integration_parameters());
+    }
   }
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -1663,12 +2475,14 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
 }
 
 void ImportConfiguration::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:ImportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 void ImportConfiguration::CopyFrom(const ImportConfiguration& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ImportConfiguration)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1703,6 +2517,7 @@ void ImportConfiguration::InternalSwap(ImportConfiguration* other) {
   std::swap(compress_tiledb_array_, other->compress_tiledb_array_);
   std::swap(num_cells_per_tile_, other->num_cells_per_tile_);
   std::swap(fail_if_updating_, other->fail_if_updating_);
+  std::swap(gatk4_integration_parameters_, other->gatk4_integration_parameters_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -1719,7 +2534,7 @@ void ImportConfiguration::InternalSwap(ImportConfiguration* other) {
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
 // ImportConfiguration
 
-// required int64 size_per_column_partition = 7 [default = 10240];
+// required int64 size_per_column_partition = 7 [default = 16384];
 bool ImportConfiguration::has_size_per_column_partition() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1730,7 +2545,7 @@ void ImportConfiguration::clear_has_size_per_column_partition() {
   _has_bits_[0] &= ~0x00000001u;
 }
 void ImportConfiguration::clear_size_per_column_partition() {
-  size_per_column_partition_ = GOOGLE_LONGLONG(10240);
+  size_per_column_partition_ = GOOGLE_LONGLONG(16384);
   clear_has_size_per_column_partition();
 }
  ::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
@@ -1885,6 +2700,7 @@ void ImportConfiguration::clear_vid_mapping_file() {
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ImportConfiguration::release_vid_mapping_file() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1938,6 +2754,7 @@ void ImportConfiguration::clear_callset_mapping_file() {
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
  ::std::string* ImportConfiguration::release_callset_mapping_file() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -2189,6 +3006,50 @@ void ImportConfiguration::clear_fail_if_updating() {
   set_has_fail_if_updating();
   fail_if_updating_ = value;
   // @@protoc_insertion_point(field_set:ImportConfiguration.fail_if_updating)
+}
+
+// optional .GATK4Integration gatk4_integration_parameters = 18;
+bool ImportConfiguration::has_gatk4_integration_parameters() const {
+  return (_has_bits_[0] & 0x00020000u) != 0;
+}
+void ImportConfiguration::set_has_gatk4_integration_parameters() {
+  _has_bits_[0] |= 0x00020000u;
+}
+void ImportConfiguration::clear_has_gatk4_integration_parameters() {
+  _has_bits_[0] &= ~0x00020000u;
+}
+void ImportConfiguration::clear_gatk4_integration_parameters() {
+  if (gatk4_integration_parameters_ != NULL) gatk4_integration_parameters_->::GATK4Integration::Clear();
+  clear_has_gatk4_integration_parameters();
+}
+const ::GATK4Integration& ImportConfiguration::gatk4_integration_parameters() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.gatk4_integration_parameters)
+  return gatk4_integration_parameters_ != NULL ? *gatk4_integration_parameters_ : *default_instance_->gatk4_integration_parameters_;
+}
+::GATK4Integration* ImportConfiguration::mutable_gatk4_integration_parameters() {
+  set_has_gatk4_integration_parameters();
+  if (gatk4_integration_parameters_ == NULL) {
+    gatk4_integration_parameters_ = new ::GATK4Integration;
+  }
+  // @@protoc_insertion_point(field_mutable:ImportConfiguration.gatk4_integration_parameters)
+  return gatk4_integration_parameters_;
+}
+::GATK4Integration* ImportConfiguration::release_gatk4_integration_parameters() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.gatk4_integration_parameters)
+  clear_has_gatk4_integration_parameters();
+  ::GATK4Integration* temp = gatk4_integration_parameters_;
+  gatk4_integration_parameters_ = NULL;
+  return temp;
+}
+void ImportConfiguration::set_allocated_gatk4_integration_parameters(::GATK4Integration* gatk4_integration_parameters) {
+  delete gatk4_integration_parameters_;
+  gatk4_integration_parameters_ = gatk4_integration_parameters;
+  if (gatk4_integration_parameters) {
+    set_has_gatk4_integration_parameters();
+  } else {
+    clear_has_gatk4_integration_parameters();
+  }
+  // @@protoc_insertion_point(field_set_allocated:ImportConfiguration.gatk4_integration_parameters)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

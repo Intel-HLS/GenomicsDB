@@ -6,7 +6,13 @@ package com.intel.genomicsdb;
 public final class GenomicsDBImportConfiguration {
   private GenomicsDBImportConfiguration() {}
   public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistryLite registry) {
+  }
+
+  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   public interface PartitionOrBuilder extends
       // @@protoc_insertion_point(interface_extends:Partition)
@@ -76,11 +82,11 @@ public final class GenomicsDBImportConfiguration {
    * Protobuf type {@code Partition}
    */
   public  static final class Partition extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:Partition)
       PartitionOrBuilder {
     // Use Partition.newBuilder() to construct.
-    private Partition(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private Partition(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private Partition() {
@@ -98,7 +104,8 @@ public final class GenomicsDBImportConfiguration {
     }
     private Partition(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -149,11 +156,10 @@ public final class GenomicsDBImportConfiguration {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -164,7 +170,7 @@ public final class GenomicsDBImportConfiguration {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -348,13 +354,13 @@ public final class GenomicsDBImportConfiguration {
         output.writeInt64(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 2, workspace_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, workspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 3, array_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, array_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 4, vcfOutputFilename_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, vcfOutputFilename_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         output.writeInt64(5, end_);
@@ -372,13 +378,13 @@ public final class GenomicsDBImportConfiguration {
           .computeInt64Size(1, begin_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(2, workspace_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, workspace_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(3, array_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, array_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(4, vcfOutputFilename_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, vcfOutputFilename_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
@@ -390,6 +396,80 @@ public final class GenomicsDBImportConfiguration {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) obj;
+
+      boolean result = true;
+      result = result && (hasBegin() == other.hasBegin());
+      if (hasBegin()) {
+        result = result && (getBegin()
+            == other.getBegin());
+      }
+      result = result && (hasWorkspace() == other.hasWorkspace());
+      if (hasWorkspace()) {
+        result = result && getWorkspace()
+            .equals(other.getWorkspace());
+      }
+      result = result && (hasArray() == other.hasArray());
+      if (hasArray()) {
+        result = result && getArray()
+            .equals(other.getArray());
+      }
+      result = result && (hasVcfOutputFilename() == other.hasVcfOutputFilename());
+      if (hasVcfOutputFilename()) {
+        result = result && getVcfOutputFilename()
+            .equals(other.getVcfOutputFilename());
+      }
+      result = result && (hasEnd() == other.hasEnd());
+      if (hasEnd()) {
+        result = result && (getEnd()
+            == other.getEnd());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasBegin()) {
+        hash = (37 * hash) + BEGIN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getBegin());
+      }
+      if (hasWorkspace()) {
+        hash = (37 * hash) + WORKSPACE_FIELD_NUMBER;
+        hash = (53 * hash) + getWorkspace().hashCode();
+      }
+      if (hasArray()) {
+        hash = (37 * hash) + ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + getArray().hashCode();
+      }
+      if (hasVcfOutputFilename()) {
+        hash = (37 * hash) + VCF_OUTPUT_FILENAME_FIELD_NUMBER;
+        hash = (53 * hash) + getVcfOutputFilename().hashCode();
+      }
+      if (hasEnd()) {
+        hash = (37 * hash) + END_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getEnd());
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -413,34 +493,40 @@ public final class GenomicsDBImportConfiguration {
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -457,7 +543,7 @@ public final class GenomicsDBImportConfiguration {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -465,7 +551,7 @@ public final class GenomicsDBImportConfiguration {
      * Protobuf type {@code Partition}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:Partition)
         com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -473,7 +559,7 @@ public final class GenomicsDBImportConfiguration {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_Partition_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -486,12 +572,13 @@ public final class GenomicsDBImportConfiguration {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -555,6 +642,32 @@ public final class GenomicsDBImportConfiguration {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition)other);
@@ -608,7 +721,7 @@ public final class GenomicsDBImportConfiguration {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -909,6 +1022,16 @@ public final class GenomicsDBImportConfiguration {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:Partition)
     }
@@ -929,16 +1052,7 @@ public final class GenomicsDBImportConfiguration {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new Partition(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -957,16 +1071,1076 @@ public final class GenomicsDBImportConfiguration {
 
   }
 
+  public interface GATK4IntegrationOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:GATK4Integration)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    boolean hasOutputVidmapJsonFile();
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    java.lang.String getOutputVidmapJsonFile();
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getOutputVidmapJsonFileBytes();
+
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    boolean hasOutputCallsetmapJsonFile();
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    java.lang.String getOutputCallsetmapJsonFile();
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getOutputCallsetmapJsonFileBytes();
+
+    /**
+     * <code>optional int32 batch_size = 3 [default = 0];</code>
+     */
+    boolean hasBatchSize();
+    /**
+     * <code>optional int32 batch_size = 3 [default = 0];</code>
+     */
+    int getBatchSize();
+
+    /**
+     * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+     */
+    boolean hasUseSamplesInOrderProvided();
+    /**
+     * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+     */
+    boolean getUseSamplesInOrderProvided();
+
+    /**
+     * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+     */
+    boolean hasLowerSampleIndex();
+    /**
+     * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+     */
+    long getLowerSampleIndex();
+
+    /**
+     * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+     */
+    boolean hasUpperSampleIndex();
+    /**
+     * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+     */
+    long getUpperSampleIndex();
+  }
+  /**
+   * Protobuf type {@code GATK4Integration}
+   */
+  public  static final class GATK4Integration extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:GATK4Integration)
+      GATK4IntegrationOrBuilder {
+    // Use GATK4Integration.newBuilder() to construct.
+    private GATK4Integration(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private GATK4Integration() {
+      outputVidmapJsonFile_ = "";
+      outputCallsetmapJsonFile_ = "";
+      batchSize_ = 0;
+      useSamplesInOrderProvided_ = false;
+      lowerSampleIndex_ = 0L;
+      upperSampleIndex_ = 9223372036854775807L;
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private GATK4Integration(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000001;
+              outputVidmapJsonFile_ = bs;
+              break;
+            }
+            case 18: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000002;
+              outputCallsetmapJsonFile_ = bs;
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              batchSize_ = input.readInt32();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              useSamplesInOrderProvided_ = input.readBool();
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000010;
+              lowerSampleIndex_ = input.readInt64();
+              break;
+            }
+            case 48: {
+              bitField0_ |= 0x00000020;
+              upperSampleIndex_ = input.readInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_GATK4Integration_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_GATK4Integration_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder.class);
+    }
+
+    private int bitField0_;
+    public static final int OUTPUT_VIDMAP_JSON_FILE_FIELD_NUMBER = 1;
+    private volatile java.lang.Object outputVidmapJsonFile_;
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    public boolean hasOutputVidmapJsonFile() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    public java.lang.String getOutputVidmapJsonFile() {
+      java.lang.Object ref = outputVidmapJsonFile_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          outputVidmapJsonFile_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string output_vidmap_json_file = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getOutputVidmapJsonFileBytes() {
+      java.lang.Object ref = outputVidmapJsonFile_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        outputVidmapJsonFile_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int OUTPUT_CALLSETMAP_JSON_FILE_FIELD_NUMBER = 2;
+    private volatile java.lang.Object outputCallsetmapJsonFile_;
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    public boolean hasOutputCallsetmapJsonFile() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    public java.lang.String getOutputCallsetmapJsonFile() {
+      java.lang.Object ref = outputCallsetmapJsonFile_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          outputCallsetmapJsonFile_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string output_callsetmap_json_file = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getOutputCallsetmapJsonFileBytes() {
+      java.lang.Object ref = outputCallsetmapJsonFile_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        outputCallsetmapJsonFile_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int BATCH_SIZE_FIELD_NUMBER = 3;
+    private int batchSize_;
+    /**
+     * <code>optional int32 batch_size = 3 [default = 0];</code>
+     */
+    public boolean hasBatchSize() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional int32 batch_size = 3 [default = 0];</code>
+     */
+    public int getBatchSize() {
+      return batchSize_;
+    }
+
+    public static final int USE_SAMPLES_IN_ORDER_PROVIDED_FIELD_NUMBER = 4;
+    private boolean useSamplesInOrderProvided_;
+    /**
+     * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+     */
+    public boolean hasUseSamplesInOrderProvided() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+     */
+    public boolean getUseSamplesInOrderProvided() {
+      return useSamplesInOrderProvided_;
+    }
+
+    public static final int LOWER_SAMPLE_INDEX_FIELD_NUMBER = 5;
+    private long lowerSampleIndex_;
+    /**
+     * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+     */
+    public boolean hasLowerSampleIndex() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    /**
+     * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+     */
+    public long getLowerSampleIndex() {
+      return lowerSampleIndex_;
+    }
+
+    public static final int UPPER_SAMPLE_INDEX_FIELD_NUMBER = 6;
+    private long upperSampleIndex_;
+    /**
+     * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+     */
+    public boolean hasUpperSampleIndex() {
+      return ((bitField0_ & 0x00000020) == 0x00000020);
+    }
+    /**
+     * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+     */
+    public long getUpperSampleIndex() {
+      return upperSampleIndex_;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, outputVidmapJsonFile_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, outputCallsetmapJsonFile_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt32(3, batchSize_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBool(4, useSamplesInOrderProvided_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeInt64(5, lowerSampleIndex_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeInt64(6, upperSampleIndex_);
+      }
+      unknownFields.writeTo(output);
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, outputVidmapJsonFile_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, outputCallsetmapJsonFile_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(3, batchSize_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(4, useSamplesInOrderProvided_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, lowerSampleIndex_);
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(6, upperSampleIndex_);
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration) obj;
+
+      boolean result = true;
+      result = result && (hasOutputVidmapJsonFile() == other.hasOutputVidmapJsonFile());
+      if (hasOutputVidmapJsonFile()) {
+        result = result && getOutputVidmapJsonFile()
+            .equals(other.getOutputVidmapJsonFile());
+      }
+      result = result && (hasOutputCallsetmapJsonFile() == other.hasOutputCallsetmapJsonFile());
+      if (hasOutputCallsetmapJsonFile()) {
+        result = result && getOutputCallsetmapJsonFile()
+            .equals(other.getOutputCallsetmapJsonFile());
+      }
+      result = result && (hasBatchSize() == other.hasBatchSize());
+      if (hasBatchSize()) {
+        result = result && (getBatchSize()
+            == other.getBatchSize());
+      }
+      result = result && (hasUseSamplesInOrderProvided() == other.hasUseSamplesInOrderProvided());
+      if (hasUseSamplesInOrderProvided()) {
+        result = result && (getUseSamplesInOrderProvided()
+            == other.getUseSamplesInOrderProvided());
+      }
+      result = result && (hasLowerSampleIndex() == other.hasLowerSampleIndex());
+      if (hasLowerSampleIndex()) {
+        result = result && (getLowerSampleIndex()
+            == other.getLowerSampleIndex());
+      }
+      result = result && (hasUpperSampleIndex() == other.hasUpperSampleIndex());
+      if (hasUpperSampleIndex()) {
+        result = result && (getUpperSampleIndex()
+            == other.getUpperSampleIndex());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasOutputVidmapJsonFile()) {
+        hash = (37 * hash) + OUTPUT_VIDMAP_JSON_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getOutputVidmapJsonFile().hashCode();
+      }
+      if (hasOutputCallsetmapJsonFile()) {
+        hash = (37 * hash) + OUTPUT_CALLSETMAP_JSON_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getOutputCallsetmapJsonFile().hashCode();
+      }
+      if (hasBatchSize()) {
+        hash = (37 * hash) + BATCH_SIZE_FIELD_NUMBER;
+        hash = (53 * hash) + getBatchSize();
+      }
+      if (hasUseSamplesInOrderProvided()) {
+        hash = (37 * hash) + USE_SAMPLES_IN_ORDER_PROVIDED_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getUseSamplesInOrderProvided());
+      }
+      if (hasLowerSampleIndex()) {
+        hash = (37 * hash) + LOWER_SAMPLE_INDEX_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getLowerSampleIndex());
+      }
+      if (hasUpperSampleIndex()) {
+        hash = (37 * hash) + UPPER_SAMPLE_INDEX_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getUpperSampleIndex());
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code GATK4Integration}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:GATK4Integration)
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_GATK4Integration_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_GATK4Integration_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.class, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder.class);
+      }
+
+      // Construct using com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        outputVidmapJsonFile_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        outputCallsetmapJsonFile_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        batchSize_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        useSamplesInOrderProvided_ = false;
+        bitField0_ = (bitField0_ & ~0x00000008);
+        lowerSampleIndex_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        upperSampleIndex_ = 9223372036854775807L;
+        bitField0_ = (bitField0_ & ~0x00000020);
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_GATK4Integration_descriptor;
+      }
+
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getDefaultInstanceForType() {
+        return com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance();
+      }
+
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration build() {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration buildPartial() {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration result = new com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.outputVidmapJsonFile_ = outputVidmapJsonFile_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.outputCallsetmapJsonFile_ = outputCallsetmapJsonFile_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.batchSize_ = batchSize_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.useSamplesInOrderProvided_ = useSamplesInOrderProvided_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
+        }
+        result.lowerSampleIndex_ = lowerSampleIndex_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000020;
+        }
+        result.upperSampleIndex_ = upperSampleIndex_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration) {
+          return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration other) {
+        if (other == com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance()) return this;
+        if (other.hasOutputVidmapJsonFile()) {
+          bitField0_ |= 0x00000001;
+          outputVidmapJsonFile_ = other.outputVidmapJsonFile_;
+          onChanged();
+        }
+        if (other.hasOutputCallsetmapJsonFile()) {
+          bitField0_ |= 0x00000002;
+          outputCallsetmapJsonFile_ = other.outputCallsetmapJsonFile_;
+          onChanged();
+        }
+        if (other.hasBatchSize()) {
+          setBatchSize(other.getBatchSize());
+        }
+        if (other.hasUseSamplesInOrderProvided()) {
+          setUseSamplesInOrderProvided(other.getUseSamplesInOrderProvided());
+        }
+        if (other.hasLowerSampleIndex()) {
+          setLowerSampleIndex(other.getLowerSampleIndex());
+        }
+        if (other.hasUpperSampleIndex()) {
+          setUpperSampleIndex(other.getUpperSampleIndex());
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      private java.lang.Object outputVidmapJsonFile_ = "";
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public boolean hasOutputVidmapJsonFile() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public java.lang.String getOutputVidmapJsonFile() {
+        java.lang.Object ref = outputVidmapJsonFile_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            outputVidmapJsonFile_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getOutputVidmapJsonFileBytes() {
+        java.lang.Object ref = outputVidmapJsonFile_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          outputVidmapJsonFile_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public Builder setOutputVidmapJsonFile(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        outputVidmapJsonFile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public Builder clearOutputVidmapJsonFile() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        outputVidmapJsonFile_ = getDefaultInstance().getOutputVidmapJsonFile();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string output_vidmap_json_file = 1;</code>
+       */
+      public Builder setOutputVidmapJsonFileBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        outputVidmapJsonFile_ = value;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object outputCallsetmapJsonFile_ = "";
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public boolean hasOutputCallsetmapJsonFile() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public java.lang.String getOutputCallsetmapJsonFile() {
+        java.lang.Object ref = outputCallsetmapJsonFile_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            outputCallsetmapJsonFile_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getOutputCallsetmapJsonFileBytes() {
+        java.lang.Object ref = outputCallsetmapJsonFile_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          outputCallsetmapJsonFile_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public Builder setOutputCallsetmapJsonFile(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        outputCallsetmapJsonFile_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public Builder clearOutputCallsetmapJsonFile() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        outputCallsetmapJsonFile_ = getDefaultInstance().getOutputCallsetmapJsonFile();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string output_callsetmap_json_file = 2;</code>
+       */
+      public Builder setOutputCallsetmapJsonFileBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        outputCallsetmapJsonFile_ = value;
+        onChanged();
+        return this;
+      }
+
+      private int batchSize_ ;
+      /**
+       * <code>optional int32 batch_size = 3 [default = 0];</code>
+       */
+      public boolean hasBatchSize() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional int32 batch_size = 3 [default = 0];</code>
+       */
+      public int getBatchSize() {
+        return batchSize_;
+      }
+      /**
+       * <code>optional int32 batch_size = 3 [default = 0];</code>
+       */
+      public Builder setBatchSize(int value) {
+        bitField0_ |= 0x00000004;
+        batchSize_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 batch_size = 3 [default = 0];</code>
+       */
+      public Builder clearBatchSize() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        batchSize_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private boolean useSamplesInOrderProvided_ ;
+      /**
+       * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+       */
+      public boolean hasUseSamplesInOrderProvided() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+       */
+      public boolean getUseSamplesInOrderProvided() {
+        return useSamplesInOrderProvided_;
+      }
+      /**
+       * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+       */
+      public Builder setUseSamplesInOrderProvided(boolean value) {
+        bitField0_ |= 0x00000008;
+        useSamplesInOrderProvided_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool use_samples_in_order_provided = 4 [default = false];</code>
+       */
+      public Builder clearUseSamplesInOrderProvided() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        useSamplesInOrderProvided_ = false;
+        onChanged();
+        return this;
+      }
+
+      private long lowerSampleIndex_ ;
+      /**
+       * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+       */
+      public boolean hasLowerSampleIndex() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+       */
+      public long getLowerSampleIndex() {
+        return lowerSampleIndex_;
+      }
+      /**
+       * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+       */
+      public Builder setLowerSampleIndex(long value) {
+        bitField0_ |= 0x00000010;
+        lowerSampleIndex_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 lower_sample_index = 5 [default = 0];</code>
+       */
+      public Builder clearLowerSampleIndex() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        lowerSampleIndex_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long upperSampleIndex_ = 9223372036854775807L;
+      /**
+       * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+       */
+      public boolean hasUpperSampleIndex() {
+        return ((bitField0_ & 0x00000020) == 0x00000020);
+      }
+      /**
+       * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+       */
+      public long getUpperSampleIndex() {
+        return upperSampleIndex_;
+      }
+      /**
+       * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+       */
+      public Builder setUpperSampleIndex(long value) {
+        bitField0_ |= 0x00000020;
+        upperSampleIndex_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 upper_sample_index = 6 [default = 9223372036854775807];</code>
+       */
+      public Builder clearUpperSampleIndex() {
+        bitField0_ = (bitField0_ & ~0x00000020);
+        upperSampleIndex_ = 9223372036854775807L;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:GATK4Integration)
+    }
+
+    // @@protoc_insertion_point(class_scope:GATK4Integration)
+    private static final com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<GATK4Integration>
+        PARSER = new com.google.protobuf.AbstractParser<GATK4Integration>() {
+      public GATK4Integration parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new GATK4Integration(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<GATK4Integration> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<GATK4Integration> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   public interface ImportConfigurationOrBuilder extends
       // @@protoc_insertion_point(interface_extends:ImportConfiguration)
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+     * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
      */
     boolean hasSizePerColumnPartition();
     /**
-     * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+     * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
      */
     long getSizePerColumnPartition();
 
@@ -1138,20 +2312,33 @@ public final class GenomicsDBImportConfiguration {
      * <code>optional bool fail_if_updating = 17 [default = false];</code>
      */
     boolean getFailIfUpdating();
+
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    boolean hasGatk4IntegrationParameters();
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getGatk4IntegrationParameters();
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder getGatk4IntegrationParametersOrBuilder();
   }
   /**
    * Protobuf type {@code ImportConfiguration}
    */
   public  static final class ImportConfiguration extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:ImportConfiguration)
       ImportConfigurationOrBuilder {
     // Use ImportConfiguration.newBuilder() to construct.
-    private ImportConfiguration(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private ImportConfiguration(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private ImportConfiguration() {
-      sizePerColumnPartition_ = 10240L;
+      sizePerColumnPartition_ = 16384L;
       rowBasedPartitioning_ = false;
       produceCombinedVcf_ = false;
       produceTiledbArray_ = true;
@@ -1177,7 +2364,8 @@ public final class GenomicsDBImportConfiguration {
     }
     private ImportConfiguration(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -1217,7 +2405,8 @@ public final class GenomicsDBImportConfiguration {
                 columnPartitions_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition>();
                 mutable_bitField0_ |= 0x00000010;
               }
-              columnPartitions_.add(input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.parser(), extensionRegistry));
+              columnPartitions_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.PARSER, extensionRegistry));
               break;
             }
             case 42: {
@@ -1287,14 +2476,26 @@ public final class GenomicsDBImportConfiguration {
               failIfUpdating_ = input.readBool();
               break;
             }
+            case 146: {
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder subBuilder = null;
+              if (((bitField0_ & 0x00010000) == 0x00010000)) {
+                subBuilder = gatk4IntegrationParameters_.toBuilder();
+              }
+              gatk4IntegrationParameters_ = input.readMessage(com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(gatk4IntegrationParameters_);
+                gatk4IntegrationParameters_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00010000;
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
           columnPartitions_ = java.util.Collections.unmodifiableList(columnPartitions_);
@@ -1308,7 +2509,7 @@ public final class GenomicsDBImportConfiguration {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -1319,13 +2520,13 @@ public final class GenomicsDBImportConfiguration {
     public static final int SIZE_PER_COLUMN_PARTITION_FIELD_NUMBER = 7;
     private long sizePerColumnPartition_;
     /**
-     * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+     * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
      */
     public boolean hasSizePerColumnPartition() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+     * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
      */
     public long getSizePerColumnPartition() {
       return sizePerColumnPartition_;
@@ -1645,6 +2846,27 @@ public final class GenomicsDBImportConfiguration {
       return failIfUpdating_;
     }
 
+    public static final int GATK4_INTEGRATION_PARAMETERS_FIELD_NUMBER = 18;
+    private com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration gatk4IntegrationParameters_;
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    public boolean hasGatk4IntegrationParameters() {
+      return ((bitField0_ & 0x00010000) == 0x00010000);
+    }
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getGatk4IntegrationParameters() {
+      return gatk4IntegrationParameters_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance() : gatk4IntegrationParameters_;
+    }
+    /**
+     * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder getGatk4IntegrationParametersOrBuilder() {
+      return gatk4IntegrationParameters_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance() : gatk4IntegrationParameters_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -1680,10 +2902,10 @@ public final class GenomicsDBImportConfiguration {
         output.writeMessage(4, columnPartitions_.get(i));
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 5, vidMappingFile_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 5, vidMappingFile_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 6, callsetMappingFile_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 6, callsetMappingFile_);
       }
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeInt64(7, sizePerColumnPartition_);
@@ -1718,6 +2940,9 @@ public final class GenomicsDBImportConfiguration {
       if (((bitField0_ & 0x00008000) == 0x00008000)) {
         output.writeBool(17, failIfUpdating_);
       }
+      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+        output.writeMessage(18, getGatk4IntegrationParameters());
+      }
       unknownFields.writeTo(output);
     }
 
@@ -1743,10 +2968,10 @@ public final class GenomicsDBImportConfiguration {
           .computeMessageSize(4, columnPartitions_.get(i));
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(5, vidMappingFile_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, vidMappingFile_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(6, callsetMappingFile_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, callsetMappingFile_);
       }
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
@@ -1792,12 +3017,215 @@ public final class GenomicsDBImportConfiguration {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(17, failIfUpdating_);
       }
+      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(18, getGatk4IntegrationParameters());
+      }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
       return size;
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration other = (com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) obj;
+
+      boolean result = true;
+      result = result && (hasSizePerColumnPartition() == other.hasSizePerColumnPartition());
+      if (hasSizePerColumnPartition()) {
+        result = result && (getSizePerColumnPartition()
+            == other.getSizePerColumnPartition());
+      }
+      result = result && (hasRowBasedPartitioning() == other.hasRowBasedPartitioning());
+      if (hasRowBasedPartitioning()) {
+        result = result && (getRowBasedPartitioning()
+            == other.getRowBasedPartitioning());
+      }
+      result = result && (hasProduceCombinedVcf() == other.hasProduceCombinedVcf());
+      if (hasProduceCombinedVcf()) {
+        result = result && (getProduceCombinedVcf()
+            == other.getProduceCombinedVcf());
+      }
+      result = result && (hasProduceTiledbArray() == other.hasProduceTiledbArray());
+      if (hasProduceTiledbArray()) {
+        result = result && (getProduceTiledbArray()
+            == other.getProduceTiledbArray());
+      }
+      result = result && getColumnPartitionsList()
+          .equals(other.getColumnPartitionsList());
+      result = result && (hasVidMappingFile() == other.hasVidMappingFile());
+      if (hasVidMappingFile()) {
+        result = result && getVidMappingFile()
+            .equals(other.getVidMappingFile());
+      }
+      result = result && (hasCallsetMappingFile() == other.hasCallsetMappingFile());
+      if (hasCallsetMappingFile()) {
+        result = result && getCallsetMappingFile()
+            .equals(other.getCallsetMappingFile());
+      }
+      result = result && (hasTreatDeletionsAsIntervals() == other.hasTreatDeletionsAsIntervals());
+      if (hasTreatDeletionsAsIntervals()) {
+        result = result && (getTreatDeletionsAsIntervals()
+            == other.getTreatDeletionsAsIntervals());
+      }
+      result = result && (hasNumParallelVcfFiles() == other.hasNumParallelVcfFiles());
+      if (hasNumParallelVcfFiles()) {
+        result = result && (getNumParallelVcfFiles()
+            == other.getNumParallelVcfFiles());
+      }
+      result = result && (hasDeleteAndCreateTiledbArray() == other.hasDeleteAndCreateTiledbArray());
+      if (hasDeleteAndCreateTiledbArray()) {
+        result = result && (getDeleteAndCreateTiledbArray()
+            == other.getDeleteAndCreateTiledbArray());
+      }
+      result = result && (hasDoPingPongBuffering() == other.hasDoPingPongBuffering());
+      if (hasDoPingPongBuffering()) {
+        result = result && (getDoPingPongBuffering()
+            == other.getDoPingPongBuffering());
+      }
+      result = result && (hasOffloadVcfOutputProcessing() == other.hasOffloadVcfOutputProcessing());
+      if (hasOffloadVcfOutputProcessing()) {
+        result = result && (getOffloadVcfOutputProcessing()
+            == other.getOffloadVcfOutputProcessing());
+      }
+      result = result && (hasDiscardVcfIndex() == other.hasDiscardVcfIndex());
+      if (hasDiscardVcfIndex()) {
+        result = result && (getDiscardVcfIndex()
+            == other.getDiscardVcfIndex());
+      }
+      result = result && (hasSegmentSize() == other.hasSegmentSize());
+      if (hasSegmentSize()) {
+        result = result && (getSegmentSize()
+            == other.getSegmentSize());
+      }
+      result = result && (hasCompressTiledbArray() == other.hasCompressTiledbArray());
+      if (hasCompressTiledbArray()) {
+        result = result && (getCompressTiledbArray()
+            == other.getCompressTiledbArray());
+      }
+      result = result && (hasNumCellsPerTile() == other.hasNumCellsPerTile());
+      if (hasNumCellsPerTile()) {
+        result = result && (getNumCellsPerTile()
+            == other.getNumCellsPerTile());
+      }
+      result = result && (hasFailIfUpdating() == other.hasFailIfUpdating());
+      if (hasFailIfUpdating()) {
+        result = result && (getFailIfUpdating()
+            == other.getFailIfUpdating());
+      }
+      result = result && (hasGatk4IntegrationParameters() == other.hasGatk4IntegrationParameters());
+      if (hasGatk4IntegrationParameters()) {
+        result = result && getGatk4IntegrationParameters()
+            .equals(other.getGatk4IntegrationParameters());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasSizePerColumnPartition()) {
+        hash = (37 * hash) + SIZE_PER_COLUMN_PARTITION_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getSizePerColumnPartition());
+      }
+      if (hasRowBasedPartitioning()) {
+        hash = (37 * hash) + ROW_BASED_PARTITIONING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getRowBasedPartitioning());
+      }
+      if (hasProduceCombinedVcf()) {
+        hash = (37 * hash) + PRODUCE_COMBINED_VCF_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getProduceCombinedVcf());
+      }
+      if (hasProduceTiledbArray()) {
+        hash = (37 * hash) + PRODUCE_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getProduceTiledbArray());
+      }
+      if (getColumnPartitionsCount() > 0) {
+        hash = (37 * hash) + COLUMN_PARTITIONS_FIELD_NUMBER;
+        hash = (53 * hash) + getColumnPartitionsList().hashCode();
+      }
+      if (hasVidMappingFile()) {
+        hash = (37 * hash) + VID_MAPPING_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getVidMappingFile().hashCode();
+      }
+      if (hasCallsetMappingFile()) {
+        hash = (37 * hash) + CALLSET_MAPPING_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getCallsetMappingFile().hashCode();
+      }
+      if (hasTreatDeletionsAsIntervals()) {
+        hash = (37 * hash) + TREAT_DELETIONS_AS_INTERVALS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getTreatDeletionsAsIntervals());
+      }
+      if (hasNumParallelVcfFiles()) {
+        hash = (37 * hash) + NUM_PARALLEL_VCF_FILES_FIELD_NUMBER;
+        hash = (53 * hash) + getNumParallelVcfFiles();
+      }
+      if (hasDeleteAndCreateTiledbArray()) {
+        hash = (37 * hash) + DELETE_AND_CREATE_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDeleteAndCreateTiledbArray());
+      }
+      if (hasDoPingPongBuffering()) {
+        hash = (37 * hash) + DO_PING_PONG_BUFFERING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDoPingPongBuffering());
+      }
+      if (hasOffloadVcfOutputProcessing()) {
+        hash = (37 * hash) + OFFLOAD_VCF_OUTPUT_PROCESSING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getOffloadVcfOutputProcessing());
+      }
+      if (hasDiscardVcfIndex()) {
+        hash = (37 * hash) + DISCARD_VCF_INDEX_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDiscardVcfIndex());
+      }
+      if (hasSegmentSize()) {
+        hash = (37 * hash) + SEGMENT_SIZE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getSegmentSize());
+      }
+      if (hasCompressTiledbArray()) {
+        hash = (37 * hash) + COMPRESS_TILEDB_ARRAY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getCompressTiledbArray());
+      }
+      if (hasNumCellsPerTile()) {
+        hash = (37 * hash) + NUM_CELLS_PER_TILE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getNumCellsPerTile());
+      }
+      if (hasFailIfUpdating()) {
+        hash = (37 * hash) + FAIL_IF_UPDATING_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getFailIfUpdating());
+      }
+      if (hasGatk4IntegrationParameters()) {
+        hash = (37 * hash) + GATK4_INTEGRATION_PARAMETERS_FIELD_NUMBER;
+        hash = (53 * hash) + getGatk4IntegrationParameters().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1821,34 +3249,40 @@ public final class GenomicsDBImportConfiguration {
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -1865,7 +3299,7 @@ public final class GenomicsDBImportConfiguration {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1873,7 +3307,7 @@ public final class GenomicsDBImportConfiguration {
      * Protobuf type {@code ImportConfiguration}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:ImportConfiguration)
         com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfigurationOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -1881,7 +3315,7 @@ public final class GenomicsDBImportConfiguration {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBImportConfiguration.internal_static_ImportConfiguration_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1894,18 +3328,20 @@ public final class GenomicsDBImportConfiguration {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
           getColumnPartitionsFieldBuilder();
+          getGatk4IntegrationParametersFieldBuilder();
         }
       }
       public Builder clear() {
         super.clear();
-        sizePerColumnPartition_ = 10240L;
+        sizePerColumnPartition_ = 16384L;
         bitField0_ = (bitField0_ & ~0x00000001);
         rowBasedPartitioning_ = false;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -1943,6 +3379,12 @@ public final class GenomicsDBImportConfiguration {
         bitField0_ = (bitField0_ & ~0x00008000);
         failIfUpdating_ = false;
         bitField0_ = (bitField0_ & ~0x00010000);
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          gatk4IntegrationParameters_ = null;
+        } else {
+          gatk4IntegrationParametersBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00020000);
         return this;
       }
 
@@ -2040,11 +3482,45 @@ public final class GenomicsDBImportConfiguration {
           to_bitField0_ |= 0x00008000;
         }
         result.failIfUpdating_ = failIfUpdating_;
+        if (((from_bitField0_ & 0x00020000) == 0x00020000)) {
+          to_bitField0_ |= 0x00010000;
+        }
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          result.gatk4IntegrationParameters_ = gatk4IntegrationParameters_;
+        } else {
+          result.gatk4IntegrationParameters_ = gatk4IntegrationParametersBuilder_.build();
+        }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration)other);
@@ -2087,7 +3563,7 @@ public final class GenomicsDBImportConfiguration {
               columnPartitions_ = other.columnPartitions_;
               bitField0_ = (bitField0_ & ~0x00000010);
               columnPartitionsBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getColumnPartitionsFieldBuilder() : null;
             } else {
               columnPartitionsBuilder_.addAllMessages(other.columnPartitions_);
@@ -2134,6 +3610,9 @@ public final class GenomicsDBImportConfiguration {
         if (other.hasFailIfUpdating()) {
           setFailIfUpdating(other.getFailIfUpdating());
         }
+        if (other.hasGatk4IntegrationParameters()) {
+          mergeGatk4IntegrationParameters(other.getGatk4IntegrationParameters());
+        }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
         return this;
@@ -2160,7 +3639,7 @@ public final class GenomicsDBImportConfiguration {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBImportConfiguration.ImportConfiguration) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -2170,21 +3649,21 @@ public final class GenomicsDBImportConfiguration {
       }
       private int bitField0_;
 
-      private long sizePerColumnPartition_ = 10240L;
+      private long sizePerColumnPartition_ = 16384L;
       /**
-       * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+       * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
        */
       public boolean hasSizePerColumnPartition() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+       * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
        */
       public long getSizePerColumnPartition() {
         return sizePerColumnPartition_;
       }
       /**
-       * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+       * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
        */
       public Builder setSizePerColumnPartition(long value) {
         bitField0_ |= 0x00000001;
@@ -2193,11 +3672,11 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
       /**
-       * <code>required int64 size_per_column_partition = 7 [default = 10240];</code>
+       * <code>required int64 size_per_column_partition = 7 [default = 16384];</code>
        */
       public Builder clearSizePerColumnPartition() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        sizePerColumnPartition_ = 10240L;
+        sizePerColumnPartition_ = 16384L;
         onChanged();
         return this;
       }
@@ -2307,7 +3786,7 @@ public final class GenomicsDBImportConfiguration {
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> columnPartitionsBuilder_;
 
       /**
@@ -2523,11 +4002,11 @@ public final class GenomicsDBImportConfiguration {
            getColumnPartitionsBuilderList() {
         return getColumnPartitionsFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder> 
           getColumnPartitionsFieldBuilder() {
         if (columnPartitionsBuilder_ == null) {
-          columnPartitionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          columnPartitionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition, com.intel.genomicsdb.GenomicsDBImportConfiguration.Partition.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.PartitionOrBuilder>(
                   columnPartitions_,
                   ((bitField0_ & 0x00000010) == 0x00000010),
@@ -3010,6 +4489,134 @@ public final class GenomicsDBImportConfiguration {
         return this;
       }
 
+      private com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration gatk4IntegrationParameters_ = null;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder> gatk4IntegrationParametersBuilder_;
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public boolean hasGatk4IntegrationParameters() {
+        return ((bitField0_ & 0x00020000) == 0x00020000);
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration getGatk4IntegrationParameters() {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          return gatk4IntegrationParameters_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance() : gatk4IntegrationParameters_;
+        } else {
+          return gatk4IntegrationParametersBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public Builder setGatk4IntegrationParameters(com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration value) {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          gatk4IntegrationParameters_ = value;
+          onChanged();
+        } else {
+          gatk4IntegrationParametersBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00020000;
+        return this;
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public Builder setGatk4IntegrationParameters(
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder builderForValue) {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          gatk4IntegrationParameters_ = builderForValue.build();
+          onChanged();
+        } else {
+          gatk4IntegrationParametersBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00020000;
+        return this;
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public Builder mergeGatk4IntegrationParameters(com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration value) {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          if (((bitField0_ & 0x00020000) == 0x00020000) &&
+              gatk4IntegrationParameters_ != null &&
+              gatk4IntegrationParameters_ != com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance()) {
+            gatk4IntegrationParameters_ =
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.newBuilder(gatk4IntegrationParameters_).mergeFrom(value).buildPartial();
+          } else {
+            gatk4IntegrationParameters_ = value;
+          }
+          onChanged();
+        } else {
+          gatk4IntegrationParametersBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00020000;
+        return this;
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public Builder clearGatk4IntegrationParameters() {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          gatk4IntegrationParameters_ = null;
+          onChanged();
+        } else {
+          gatk4IntegrationParametersBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00020000);
+        return this;
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder getGatk4IntegrationParametersBuilder() {
+        bitField0_ |= 0x00020000;
+        onChanged();
+        return getGatk4IntegrationParametersFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder getGatk4IntegrationParametersOrBuilder() {
+        if (gatk4IntegrationParametersBuilder_ != null) {
+          return gatk4IntegrationParametersBuilder_.getMessageOrBuilder();
+        } else {
+          return gatk4IntegrationParameters_ == null ?
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance() : gatk4IntegrationParameters_;
+        }
+      }
+      /**
+       * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder> 
+          getGatk4IntegrationParametersFieldBuilder() {
+        if (gatk4IntegrationParametersBuilder_ == null) {
+          gatk4IntegrationParametersBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.Builder, com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder>(
+                  getGatk4IntegrationParameters(),
+                  getParentForChildren(),
+                  isClean());
+          gatk4IntegrationParameters_ = null;
+        }
+        return gatk4IntegrationParametersBuilder_;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
       // @@protoc_insertion_point(builder_scope:ImportConfiguration)
     }
 
@@ -3029,16 +4636,7 @@ public final class GenomicsDBImportConfiguration {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new ImportConfiguration(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -3057,47 +4655,59 @@ public final class GenomicsDBImportConfiguration {
 
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Partition_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Partition_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_GATK4Integration_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_GATK4Integration_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ImportConfiguration_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_ImportConfiguration_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
       "\n\036genomicsdb_import_config.proto\"{\n\tPart" +
       "ition\022\r\n\005begin\030\001 \002(\003\022\021\n\tworkspace\030\002 \001(\t\022" +
       "\r\n\005array\030\003 \001(\t\022\033\n\023vcf_output_filename\030\004 " +
-      "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\210\005" +
+      "\001(\t\022 \n\003end\030\005 \001(\003:\0239223372036854775807\"\355\001" +
+      "\n\020GATK4Integration\022\037\n\027output_vidmap_json" +
+      "_file\030\001 \001(\t\022#\n\033output_callsetmap_json_fi" +
+      "le\030\002 \001(\t\022\025\n\nbatch_size\030\003 \001(\005:\0010\022,\n\035use_s" +
+      "amples_in_order_provided\030\004 \001(\010:\005false\022\035\n" +
+      "\022lower_sample_index\030\005 \001(\003:\0010\022/\n\022upper_sa" +
+      "mple_index\030\006 \001(\003:\0239223372036854775807\"\301\005",
       "\n\023ImportConfiguration\022(\n\031size_per_column" +
-      "_partition\030\007 \002(\003:\00510240\022%\n\026row_based_par" +
+      "_partition\030\007 \002(\003:\00516384\022%\n\026row_based_par" +
       "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin" +
       "ed_vcf\030\002 \001(\010:\005false\022\"\n\024produce_tiledb_ar" +
       "ray\030\003 \001(\010:\004true\022%\n\021column_partitions\030\004 \003" +
-      "(\0132\n.Partition\022\030\n\020vid_mapping_file\030\005 \001(\t",
+      "(\0132\n.Partition\022\030\n\020vid_mapping_file\030\005 \001(\t" +
       "\022\034\n\024callset_mapping_file\030\006 \001(\t\022*\n\034treat_" +
       "deletions_as_intervals\030\010 \001(\010:\004true\022!\n\026nu" +
       "m_parallel_vcf_files\030\t \001(\005:\0011\022-\n\036delete_" +
-      "and_create_tiledb_array\030\n \001(\010:\005false\022$\n\026" +
+      "and_create_tiledb_array\030\n \001(\010:\005false\022$\n\026",
       "do_ping_pong_buffering\030\013 \001(\010:\004true\022+\n\035of" +
       "fload_vcf_output_processing\030\014 \001(\010:\004true\022" +
       "\037\n\021discard_vcf_index\030\r \001(\010:\004true\022\036\n\014segm" +
       "ent_size\030\016 \001(\003:\01010485760\022#\n\025compress_til" +
       "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t" +
-      "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001(",
-      "\010:\005falseB5\n\024com.intel.genomicsdbB\035Genomi" +
-      "csDBImportConfiguration"
+      "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001(" +
+      "\010:\005false\0227\n\034gatk4_integration_parameters" +
+      "\030\022 \001(\0132\021.GATK4IntegrationB5\n\024com.intel.g" +
+      "enomicsdbB\035GenomicsDBImportConfiguration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3114,15 +4724,21 @@ public final class GenomicsDBImportConfiguration {
     internal_static_Partition_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_Partition_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Partition_descriptor,
         new java.lang.String[] { "Begin", "Workspace", "Array", "VcfOutputFilename", "End", });
-    internal_static_ImportConfiguration_descriptor =
+    internal_static_GATK4Integration_descriptor =
       getDescriptor().getMessageTypes().get(1);
+    internal_static_GATK4Integration_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_GATK4Integration_descriptor,
+        new java.lang.String[] { "OutputVidmapJsonFile", "OutputCallsetmapJsonFile", "BatchSize", "UseSamplesInOrderProvided", "LowerSampleIndex", "UpperSampleIndex", });
+    internal_static_ImportConfiguration_descriptor =
+      getDescriptor().getMessageTypes().get(2);
     internal_static_ImportConfiguration_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ImportConfiguration_descriptor,
-        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", });
+        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", "Gatk4IntegrationParameters", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

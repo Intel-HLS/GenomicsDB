@@ -34,12 +34,13 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
 void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto();
 void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto();
 
+class GATK4Integration;
 class ImportConfiguration;
 class Partition;
 
 // ===================================================================
 
-class Partition : public ::google::protobuf::Message {
+class Partition : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:Partition) */ {
  public:
   Partition();
   virtual ~Partition();
@@ -81,7 +82,11 @@ class Partition : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -183,7 +188,160 @@ class Partition : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class ImportConfiguration : public ::google::protobuf::Message {
+class GATK4Integration : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:GATK4Integration) */ {
+ public:
+  GATK4Integration();
+  virtual ~GATK4Integration();
+
+  GATK4Integration(const GATK4Integration& from);
+
+  inline GATK4Integration& operator=(const GATK4Integration& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const GATK4Integration& default_instance();
+
+  void Swap(GATK4Integration* other);
+
+  // implements Message ----------------------------------------------
+
+  inline GATK4Integration* New() const { return New(NULL); }
+
+  GATK4Integration* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const GATK4Integration& from);
+  void MergeFrom(const GATK4Integration& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(GATK4Integration* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string output_vidmap_json_file = 1;
+  bool has_output_vidmap_json_file() const;
+  void clear_output_vidmap_json_file();
+  static const int kOutputVidmapJsonFileFieldNumber = 1;
+  const ::std::string& output_vidmap_json_file() const;
+  void set_output_vidmap_json_file(const ::std::string& value);
+  void set_output_vidmap_json_file(const char* value);
+  void set_output_vidmap_json_file(const char* value, size_t size);
+  ::std::string* mutable_output_vidmap_json_file();
+  ::std::string* release_output_vidmap_json_file();
+  void set_allocated_output_vidmap_json_file(::std::string* output_vidmap_json_file);
+
+  // optional string output_callsetmap_json_file = 2;
+  bool has_output_callsetmap_json_file() const;
+  void clear_output_callsetmap_json_file();
+  static const int kOutputCallsetmapJsonFileFieldNumber = 2;
+  const ::std::string& output_callsetmap_json_file() const;
+  void set_output_callsetmap_json_file(const ::std::string& value);
+  void set_output_callsetmap_json_file(const char* value);
+  void set_output_callsetmap_json_file(const char* value, size_t size);
+  ::std::string* mutable_output_callsetmap_json_file();
+  ::std::string* release_output_callsetmap_json_file();
+  void set_allocated_output_callsetmap_json_file(::std::string* output_callsetmap_json_file);
+
+  // optional int32 batch_size = 3 [default = 0];
+  bool has_batch_size() const;
+  void clear_batch_size();
+  static const int kBatchSizeFieldNumber = 3;
+  ::google::protobuf::int32 batch_size() const;
+  void set_batch_size(::google::protobuf::int32 value);
+
+  // optional bool use_samples_in_order_provided = 4 [default = false];
+  bool has_use_samples_in_order_provided() const;
+  void clear_use_samples_in_order_provided();
+  static const int kUseSamplesInOrderProvidedFieldNumber = 4;
+  bool use_samples_in_order_provided() const;
+  void set_use_samples_in_order_provided(bool value);
+
+  // optional int64 lower_sample_index = 5 [default = 0];
+  bool has_lower_sample_index() const;
+  void clear_lower_sample_index();
+  static const int kLowerSampleIndexFieldNumber = 5;
+  ::google::protobuf::int64 lower_sample_index() const;
+  void set_lower_sample_index(::google::protobuf::int64 value);
+
+  // optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+  bool has_upper_sample_index() const;
+  void clear_upper_sample_index();
+  static const int kUpperSampleIndexFieldNumber = 6;
+  ::google::protobuf::int64 upper_sample_index() const;
+  void set_upper_sample_index(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:GATK4Integration)
+ private:
+  inline void set_has_output_vidmap_json_file();
+  inline void clear_has_output_vidmap_json_file();
+  inline void set_has_output_callsetmap_json_file();
+  inline void clear_has_output_callsetmap_json_file();
+  inline void set_has_batch_size();
+  inline void clear_has_batch_size();
+  inline void set_has_use_samples_in_order_provided();
+  inline void clear_has_use_samples_in_order_provided();
+  inline void set_has_lower_sample_index();
+  inline void clear_has_lower_sample_index();
+  inline void set_has_upper_sample_index();
+  inline void clear_has_upper_sample_index();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::internal::ArenaStringPtr output_vidmap_json_file_;
+  ::google::protobuf::internal::ArenaStringPtr output_callsetmap_json_file_;
+  ::google::protobuf::int32 batch_size_;
+  bool use_samples_in_order_provided_;
+  ::google::protobuf::int64 lower_sample_index_;
+  ::google::protobuf::int64 upper_sample_index_;
+  friend void  protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  friend void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto();
+  friend void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto();
+
+  void InitAsDefaultInstance();
+  static GATK4Integration* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class ImportConfiguration : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:ImportConfiguration) */ {
  public:
   ImportConfiguration();
   virtual ~ImportConfiguration();
@@ -225,7 +383,11 @@ class ImportConfiguration : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -247,7 +409,7 @@ class ImportConfiguration : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int64 size_per_column_partition = 7 [default = 10240];
+  // required int64 size_per_column_partition = 7 [default = 16384];
   bool has_size_per_column_partition() const;
   void clear_size_per_column_partition();
   static const int kSizePerColumnPartitionFieldNumber = 7;
@@ -381,6 +543,15 @@ class ImportConfiguration : public ::google::protobuf::Message {
   bool fail_if_updating() const;
   void set_fail_if_updating(bool value);
 
+  // optional .GATK4Integration gatk4_integration_parameters = 18;
+  bool has_gatk4_integration_parameters() const;
+  void clear_gatk4_integration_parameters();
+  static const int kGatk4IntegrationParametersFieldNumber = 18;
+  const ::GATK4Integration& gatk4_integration_parameters() const;
+  ::GATK4Integration* mutable_gatk4_integration_parameters();
+  ::GATK4Integration* release_gatk4_integration_parameters();
+  void set_allocated_gatk4_integration_parameters(::GATK4Integration* gatk4_integration_parameters);
+
   // @@protoc_insertion_point(class_scope:ImportConfiguration)
  private:
   inline void set_has_size_per_column_partition();
@@ -415,6 +586,8 @@ class ImportConfiguration : public ::google::protobuf::Message {
   inline void clear_has_num_cells_per_tile();
   inline void set_has_fail_if_updating();
   inline void clear_has_fail_if_updating();
+  inline void set_has_gatk4_integration_parameters();
+  inline void clear_has_gatk4_integration_parameters();
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint32 _has_bits_[1];
@@ -436,6 +609,7 @@ class ImportConfiguration : public ::google::protobuf::Message {
   bool fail_if_updating_;
   ::google::protobuf::int64 segment_size_;
   ::google::protobuf::int64 num_cells_per_tile_;
+  ::GATK4Integration* gatk4_integration_parameters_;
   friend void  protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto();
   friend void protobuf_ShutdownFile_genomicsdb_5fimport_5fconfig_2eproto();
@@ -515,6 +689,7 @@ inline ::std::string* Partition::mutable_workspace() {
   return workspace_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_workspace() {
+  // @@protoc_insertion_point(field_release:Partition.workspace)
   clear_has_workspace();
   return workspace_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -568,6 +743,7 @@ inline ::std::string* Partition::mutable_array() {
   return array_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_array() {
+  // @@protoc_insertion_point(field_release:Partition.array)
   clear_has_array();
   return array_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -621,6 +797,7 @@ inline ::std::string* Partition::mutable_vcf_output_filename() {
   return vcf_output_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Partition::release_vcf_output_filename() {
+  // @@protoc_insertion_point(field_release:Partition.vcf_output_filename)
   clear_has_vcf_output_filename();
   return vcf_output_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -660,9 +837,217 @@ inline void Partition::set_end(::google::protobuf::int64 value) {
 
 // -------------------------------------------------------------------
 
+// GATK4Integration
+
+// optional string output_vidmap_json_file = 1;
+inline bool GATK4Integration::has_output_vidmap_json_file() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void GATK4Integration::set_has_output_vidmap_json_file() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void GATK4Integration::clear_has_output_vidmap_json_file() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void GATK4Integration::clear_output_vidmap_json_file() {
+  output_vidmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_output_vidmap_json_file();
+}
+inline const ::std::string& GATK4Integration::output_vidmap_json_file() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.output_vidmap_json_file)
+  return output_vidmap_json_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void GATK4Integration::set_output_vidmap_json_file(const ::std::string& value) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:GATK4Integration.output_vidmap_json_file)
+}
+inline void GATK4Integration::set_output_vidmap_json_file(const char* value) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:GATK4Integration.output_vidmap_json_file)
+}
+inline void GATK4Integration::set_output_vidmap_json_file(const char* value, size_t size) {
+  set_has_output_vidmap_json_file();
+  output_vidmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:GATK4Integration.output_vidmap_json_file)
+}
+inline ::std::string* GATK4Integration::mutable_output_vidmap_json_file() {
+  set_has_output_vidmap_json_file();
+  // @@protoc_insertion_point(field_mutable:GATK4Integration.output_vidmap_json_file)
+  return output_vidmap_json_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* GATK4Integration::release_output_vidmap_json_file() {
+  // @@protoc_insertion_point(field_release:GATK4Integration.output_vidmap_json_file)
+  clear_has_output_vidmap_json_file();
+  return output_vidmap_json_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void GATK4Integration::set_allocated_output_vidmap_json_file(::std::string* output_vidmap_json_file) {
+  if (output_vidmap_json_file != NULL) {
+    set_has_output_vidmap_json_file();
+  } else {
+    clear_has_output_vidmap_json_file();
+  }
+  output_vidmap_json_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), output_vidmap_json_file);
+  // @@protoc_insertion_point(field_set_allocated:GATK4Integration.output_vidmap_json_file)
+}
+
+// optional string output_callsetmap_json_file = 2;
+inline bool GATK4Integration::has_output_callsetmap_json_file() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void GATK4Integration::set_has_output_callsetmap_json_file() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void GATK4Integration::clear_has_output_callsetmap_json_file() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void GATK4Integration::clear_output_callsetmap_json_file() {
+  output_callsetmap_json_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_output_callsetmap_json_file();
+}
+inline const ::std::string& GATK4Integration::output_callsetmap_json_file() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.output_callsetmap_json_file)
+  return output_callsetmap_json_file_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void GATK4Integration::set_output_callsetmap_json_file(const ::std::string& value) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:GATK4Integration.output_callsetmap_json_file)
+}
+inline void GATK4Integration::set_output_callsetmap_json_file(const char* value) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:GATK4Integration.output_callsetmap_json_file)
+}
+inline void GATK4Integration::set_output_callsetmap_json_file(const char* value, size_t size) {
+  set_has_output_callsetmap_json_file();
+  output_callsetmap_json_file_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:GATK4Integration.output_callsetmap_json_file)
+}
+inline ::std::string* GATK4Integration::mutable_output_callsetmap_json_file() {
+  set_has_output_callsetmap_json_file();
+  // @@protoc_insertion_point(field_mutable:GATK4Integration.output_callsetmap_json_file)
+  return output_callsetmap_json_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* GATK4Integration::release_output_callsetmap_json_file() {
+  // @@protoc_insertion_point(field_release:GATK4Integration.output_callsetmap_json_file)
+  clear_has_output_callsetmap_json_file();
+  return output_callsetmap_json_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void GATK4Integration::set_allocated_output_callsetmap_json_file(::std::string* output_callsetmap_json_file) {
+  if (output_callsetmap_json_file != NULL) {
+    set_has_output_callsetmap_json_file();
+  } else {
+    clear_has_output_callsetmap_json_file();
+  }
+  output_callsetmap_json_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), output_callsetmap_json_file);
+  // @@protoc_insertion_point(field_set_allocated:GATK4Integration.output_callsetmap_json_file)
+}
+
+// optional int32 batch_size = 3 [default = 0];
+inline bool GATK4Integration::has_batch_size() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void GATK4Integration::set_has_batch_size() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void GATK4Integration::clear_has_batch_size() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void GATK4Integration::clear_batch_size() {
+  batch_size_ = 0;
+  clear_has_batch_size();
+}
+inline ::google::protobuf::int32 GATK4Integration::batch_size() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.batch_size)
+  return batch_size_;
+}
+inline void GATK4Integration::set_batch_size(::google::protobuf::int32 value) {
+  set_has_batch_size();
+  batch_size_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.batch_size)
+}
+
+// optional bool use_samples_in_order_provided = 4 [default = false];
+inline bool GATK4Integration::has_use_samples_in_order_provided() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void GATK4Integration::set_has_use_samples_in_order_provided() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void GATK4Integration::clear_has_use_samples_in_order_provided() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void GATK4Integration::clear_use_samples_in_order_provided() {
+  use_samples_in_order_provided_ = false;
+  clear_has_use_samples_in_order_provided();
+}
+inline bool GATK4Integration::use_samples_in_order_provided() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.use_samples_in_order_provided)
+  return use_samples_in_order_provided_;
+}
+inline void GATK4Integration::set_use_samples_in_order_provided(bool value) {
+  set_has_use_samples_in_order_provided();
+  use_samples_in_order_provided_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.use_samples_in_order_provided)
+}
+
+// optional int64 lower_sample_index = 5 [default = 0];
+inline bool GATK4Integration::has_lower_sample_index() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void GATK4Integration::set_has_lower_sample_index() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void GATK4Integration::clear_has_lower_sample_index() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void GATK4Integration::clear_lower_sample_index() {
+  lower_sample_index_ = GOOGLE_LONGLONG(0);
+  clear_has_lower_sample_index();
+}
+inline ::google::protobuf::int64 GATK4Integration::lower_sample_index() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.lower_sample_index)
+  return lower_sample_index_;
+}
+inline void GATK4Integration::set_lower_sample_index(::google::protobuf::int64 value) {
+  set_has_lower_sample_index();
+  lower_sample_index_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.lower_sample_index)
+}
+
+// optional int64 upper_sample_index = 6 [default = 9223372036854775807];
+inline bool GATK4Integration::has_upper_sample_index() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void GATK4Integration::set_has_upper_sample_index() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void GATK4Integration::clear_has_upper_sample_index() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void GATK4Integration::clear_upper_sample_index() {
+  upper_sample_index_ = GOOGLE_LONGLONG(9223372036854775807);
+  clear_has_upper_sample_index();
+}
+inline ::google::protobuf::int64 GATK4Integration::upper_sample_index() const {
+  // @@protoc_insertion_point(field_get:GATK4Integration.upper_sample_index)
+  return upper_sample_index_;
+}
+inline void GATK4Integration::set_upper_sample_index(::google::protobuf::int64 value) {
+  set_has_upper_sample_index();
+  upper_sample_index_ = value;
+  // @@protoc_insertion_point(field_set:GATK4Integration.upper_sample_index)
+}
+
+// -------------------------------------------------------------------
+
 // ImportConfiguration
 
-// required int64 size_per_column_partition = 7 [default = 10240];
+// required int64 size_per_column_partition = 7 [default = 16384];
 inline bool ImportConfiguration::has_size_per_column_partition() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -673,7 +1058,7 @@ inline void ImportConfiguration::clear_has_size_per_column_partition() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void ImportConfiguration::clear_size_per_column_partition() {
-  size_per_column_partition_ = GOOGLE_LONGLONG(10240);
+  size_per_column_partition_ = GOOGLE_LONGLONG(16384);
   clear_has_size_per_column_partition();
 }
 inline ::google::protobuf::int64 ImportConfiguration::size_per_column_partition() const {
@@ -828,6 +1213,7 @@ inline ::std::string* ImportConfiguration::mutable_vid_mapping_file() {
   return vid_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ImportConfiguration::release_vid_mapping_file() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.vid_mapping_file)
   clear_has_vid_mapping_file();
   return vid_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -881,6 +1267,7 @@ inline ::std::string* ImportConfiguration::mutable_callset_mapping_file() {
   return callset_mapping_file_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* ImportConfiguration::release_callset_mapping_file() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.callset_mapping_file)
   clear_has_callset_mapping_file();
   return callset_mapping_file_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1134,7 +1521,53 @@ inline void ImportConfiguration::set_fail_if_updating(bool value) {
   // @@protoc_insertion_point(field_set:ImportConfiguration.fail_if_updating)
 }
 
+// optional .GATK4Integration gatk4_integration_parameters = 18;
+inline bool ImportConfiguration::has_gatk4_integration_parameters() const {
+  return (_has_bits_[0] & 0x00020000u) != 0;
+}
+inline void ImportConfiguration::set_has_gatk4_integration_parameters() {
+  _has_bits_[0] |= 0x00020000u;
+}
+inline void ImportConfiguration::clear_has_gatk4_integration_parameters() {
+  _has_bits_[0] &= ~0x00020000u;
+}
+inline void ImportConfiguration::clear_gatk4_integration_parameters() {
+  if (gatk4_integration_parameters_ != NULL) gatk4_integration_parameters_->::GATK4Integration::Clear();
+  clear_has_gatk4_integration_parameters();
+}
+inline const ::GATK4Integration& ImportConfiguration::gatk4_integration_parameters() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.gatk4_integration_parameters)
+  return gatk4_integration_parameters_ != NULL ? *gatk4_integration_parameters_ : *default_instance_->gatk4_integration_parameters_;
+}
+inline ::GATK4Integration* ImportConfiguration::mutable_gatk4_integration_parameters() {
+  set_has_gatk4_integration_parameters();
+  if (gatk4_integration_parameters_ == NULL) {
+    gatk4_integration_parameters_ = new ::GATK4Integration;
+  }
+  // @@protoc_insertion_point(field_mutable:ImportConfiguration.gatk4_integration_parameters)
+  return gatk4_integration_parameters_;
+}
+inline ::GATK4Integration* ImportConfiguration::release_gatk4_integration_parameters() {
+  // @@protoc_insertion_point(field_release:ImportConfiguration.gatk4_integration_parameters)
+  clear_has_gatk4_integration_parameters();
+  ::GATK4Integration* temp = gatk4_integration_parameters_;
+  gatk4_integration_parameters_ = NULL;
+  return temp;
+}
+inline void ImportConfiguration::set_allocated_gatk4_integration_parameters(::GATK4Integration* gatk4_integration_parameters) {
+  delete gatk4_integration_parameters_;
+  gatk4_integration_parameters_ = gatk4_integration_parameters;
+  if (gatk4_integration_parameters) {
+    set_has_gatk4_integration_parameters();
+  } else {
+    clear_has_gatk4_integration_parameters();
+  }
+  // @@protoc_insertion_point(field_set_allocated:ImportConfiguration.gatk4_integration_parameters)
+}
+
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 
