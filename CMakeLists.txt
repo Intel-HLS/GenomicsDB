@@ -250,7 +250,7 @@ if(BUILD_JAVA)
 endif()
 
 enable_testing()
-add_test(NAME all_java_tests
+add_test(NAME javatests
          COMMAND mvn test
            -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
            -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
@@ -258,4 +258,27 @@ add_test(NAME all_java_tests
            -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
            -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
            ${MAVEN_PROTOBUF_REGENERATE_ARGS}
-         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}})
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+find_package(Java REQUIRED)
+include(UseJava)
+
+set(GENOMICSDB_EXAMPLE_SOURCES
+      ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
+      ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
+      ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
+
+add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
+  SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}
+  INCLUDE_JARS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar
+               ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
+  OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
+
+set(CMAKE_JAVA_INCLUDE_PATH ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar)
+set(CMAKE_INSTALL_RPATH "${LIBCSV_DIR}/.libs")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+add_test(NAME cpptests
+         COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
+           ${CMAKE_BINARY_DIR}
+           ${CMAKE_BINARY_DIR})
