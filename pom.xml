@@ -234,7 +234,7 @@
             <exclude>**/GenomicsDBImportConfiguration.java</exclude>
             <exclude>**/GenomicsDBExportConfiguration.java</exclude>
           </sourceFileExcludes>
-          <sourcepath>${genomicsdb_source_directory}/src/main/java:${genomicsdb_source_directory}/src/main/scala:${genomicsdb_source_directory}/src/main/protobuf-generated/java</sourcepath>
+          <!--sourcepath>${genomicsdb_source_directory}/src/main/java:${genomicsdb_source_directory}/src/main/scala:${genomicsdb_source_directory}/src/main/protobuf-generated/java</sourcepath-->
         </configuration>
         <executions>
           <execution>
