@@ -281,4 +281,4 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 add_test(NAME cpptests
          COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
            ${CMAKE_BINARY_DIR}
-           ${CMAKE_BINARY_DIR})
+           ${CMAKE_INSTALL_PREFIX})
