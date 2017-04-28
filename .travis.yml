@@ -37,7 +37,9 @@ before_script:
 script:
     - cd $GENOMICSDB_BUILD_DIR
     - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv
-    - make -j 4 && make install && make test ARGS=-V
+    - make -j 4
+    - make install
+    - make test
 #    - cd $GENOMICSDB_INSTALL_DIR
 #    - ln -s $TRAVIS_BUILD_DIR/tests
 #    - javac -version && which javac
