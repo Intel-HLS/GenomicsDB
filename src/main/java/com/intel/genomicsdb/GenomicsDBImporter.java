@@ -197,6 +197,13 @@ public class GenomicsDBImporter
   private static native int jniCreateTileDBWorkspace(final String workspace);
 
   /**
+   * Consolidate TileDB array
+   * @param workspace path to workspace directory
+   * @param arrayName array name
+   */
+  private static native void jniConsolidateTileDBArray(final String workspace, final String arrayName);
+
+  /**
    * Create TileDB workspace
    * @param workspace path to workspace directory
    * @return status 0 = workspace created, -1 = path was not a directory, -2 = failed to create workspace,
@@ -205,6 +212,16 @@ public class GenomicsDBImporter
   public static int createTileDBWorkspace(final String workspace)
   {
     return jniCreateTileDBWorkspace(workspace);
+  }
+
+  /**
+   * Consolidate TileDB array
+   * @param workspace path to workspace directory
+   * @param arrayName array name
+   */
+  public static void consolidateTileDBArray(final String workspace, final String arrayName)
+  {
+    jniConsolidateTileDBArray(workspace, arrayName);
   }
 
   private String mLoaderJSONFile = null;

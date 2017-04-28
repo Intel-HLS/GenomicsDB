@@ -405,6 +405,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
      */
     static int create_tiledb_workspace(const char* workspace);
     static int create_tiledb_workspace(const std::string& workspace) { return create_tiledb_workspace(workspace.c_str()); }
+    /*
+     * Consolidate TileDB array
+     */
+    static void consolidate_tiledb_array(const char* workspace, const char* array_name);
   private:
     void common_constructor_initialization(
       const std::string& config_filename,
