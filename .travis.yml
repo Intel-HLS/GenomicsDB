@@ -3,7 +3,14 @@ sudo: required
 dist: trusty
 
 env:
-    - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-0.6.0-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-0.6.0-examples.jar:.
+    global:
+        - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs
+        - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+        - GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
+        - GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install
+        - PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH
+        - GENOMICSDB_RELEASE_VERSION=0.6.0
+        - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 install:
     #Install dependencies
@@ -36,7 +43,7 @@ before_script:
 
 script:
     - cd $GENOMICSDB_BUILD_DIR
-    - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=0.6.0
+    - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=$GENOMICSDB_RELEASE_VERSION
     - make -j 4 && make install && make test ARGS=-V
 #    - cd $GENOMICSDB_INSTALL_DIR
 #    - ln -s $TRAVIS_BUILD_DIR/tests
