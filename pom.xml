@@ -93,6 +93,8 @@
       <version>${protobuf.version}</version>
     </dependency>
     <dependency>
+      <!--Required to convert protocol buffer to JSON string conversion
+         using for JsonFormat.printToString-->
       <groupId>com.googlecode.protobuf-java-format</groupId>
       <artifactId>protobuf-java-format</artifactId>
       <version>1.2</version>
