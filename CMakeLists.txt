@@ -235,7 +235,7 @@ if(BUILD_JAVA)
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
         COMMAND mvn versions:set -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
-        COMMAND mvn package -DskipTests
+        COMMAND mvn package -DskipTests --quiet
           -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
           -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
           -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
@@ -251,7 +251,7 @@ endif()
 
 enable_testing()
 add_test(NAME javatests
-         COMMAND mvn test
+         COMMAND mvn test --quiet
            -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
            -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
            -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
