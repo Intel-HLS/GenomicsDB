@@ -29,6 +29,7 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFUtils;
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
@@ -147,5 +148,7 @@ public final class GenomicsDBFeatureReaderSpec {
 //    GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream> reader =
 //      new GenomicsDBFeatureReader<VariantContext, PositionalBufferedStream>(
 //        importJSONFile.getAbsolutePath(), queryJSONFile.getAbsolutePath(), codec);
+
+    FileUtils.deleteQuietly(importJSONFile);
   }
 }
