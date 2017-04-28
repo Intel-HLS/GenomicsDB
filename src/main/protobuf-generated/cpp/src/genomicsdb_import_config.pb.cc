@@ -79,7 +79,7 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GATK4Integration, _internal_metadata_),
       -1);
   ImportConfiguration_descriptor_ = file->message_type(2);
-  static const int ImportConfiguration_offsets_[18] = {
+  static const int ImportConfiguration_offsets_[20] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, size_per_column_partition_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, row_based_partitioning_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, produce_combined_vcf_),
@@ -98,6 +98,8 @@ void protobuf_AssignDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, num_cells_per_tile_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, fail_if_updating_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, gatk4_integration_parameters_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, tiledb_compression_level_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ImportConfiguration, consolidate_tiledb_array_after_load_),
   };
   ImportConfiguration_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -159,7 +161,7 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "le\030\002 \001(\t\022\025\n\nbatch_size\030\003 \001(\005:\0010\022,\n\035use_s"
     "amples_in_order_provided\030\004 \001(\010:\005false\022\035\n"
     "\022lower_sample_index\030\005 \001(\003:\0010\022/\n\022upper_sa"
-    "mple_index\030\006 \001(\003:\0239223372036854775807\"\301\005"
+    "mple_index\030\006 \001(\003:\0239223372036854775807\"\233\006"
     "\n\023ImportConfiguration\022(\n\031size_per_column"
     "_partition\030\007 \002(\003:\00516384\022%\n\026row_based_par"
     "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin"
@@ -177,8 +179,11 @@ void protobuf_AddDesc_genomicsdb_5fimport_5fconfig_2eproto() {
     "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t"
     "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001("
     "\010:\005false\0227\n\034gatk4_integration_parameters"
-    "\030\022 \001(\0132\021.GATK4IntegrationB5\n\024com.intel.g"
-    "enomicsdbB\035GenomicsDBImportConfiguration", 1160);
+    "\030\022 \001(\0132\021.GATK4Integration\022$\n\030tiledb_comp"
+    "ression_level\030\023 \001(\005:\002-1\0222\n#consolidate_t"
+    "iledb_array_after_load\030\024 \001(\010:\005falseB5\n\024c"
+    "om.intel.genomicsdbB\035GenomicsDBImportCon"
+    "figuration", 1250);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_import_config.proto", &protobuf_RegisterTypes);
   Partition::default_instance_ = new Partition();
@@ -1588,6 +1593,8 @@ const int ImportConfiguration::kCompressTiledbArrayFieldNumber;
 const int ImportConfiguration::kNumCellsPerTileFieldNumber;
 const int ImportConfiguration::kFailIfUpdatingFieldNumber;
 const int ImportConfiguration::kGatk4IntegrationParametersFieldNumber;
+const int ImportConfiguration::kTiledbCompressionLevelFieldNumber;
+const int ImportConfiguration::kConsolidateTiledbArrayAfterLoadFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ImportConfiguration::ImportConfiguration()
@@ -1628,6 +1635,8 @@ void ImportConfiguration::SharedCtor() {
   num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   fail_if_updating_ = false;
   gatk4_integration_parameters_ = NULL;
+  tiledb_compression_level_ = -1;
+  consolidate_tiledb_array_after_load_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1709,11 +1718,12 @@ void ImportConfiguration::Clear() {
     compress_tiledb_array_ = true;
     num_cells_per_tile_ = GOOGLE_LONGLONG(1000);
   }
-  if (_has_bits_[16 / 32] & 196608u) {
-    fail_if_updating_ = false;
+  if (_has_bits_[16 / 32] & 983040u) {
+    ZR_(fail_if_updating_, consolidate_tiledb_array_after_load_);
     if (has_gatk4_integration_parameters()) {
       if (gatk4_integration_parameters_ != NULL) gatk4_integration_parameters_->::GATK4Integration::Clear();
     }
+    tiledb_compression_level_ = -1;
   }
 
 #undef ZR_HELPER_
@@ -2005,6 +2015,36 @@ bool ImportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(152)) goto parse_tiledb_compression_level;
+        break;
+      }
+
+      // optional int32 tiledb_compression_level = 19 [default = -1];
+      case 19: {
+        if (tag == 152) {
+         parse_tiledb_compression_level:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &tiledb_compression_level_)));
+          set_has_tiledb_compression_level();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(160)) goto parse_consolidate_tiledb_array_after_load;
+        break;
+      }
+
+      // optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+      case 20: {
+        if (tag == 160) {
+         parse_consolidate_tiledb_array_after_load:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &consolidate_tiledb_array_after_load_)));
+          set_has_consolidate_tiledb_array_after_load();
+        } else {
+          goto handle_unusual;
+        }
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -2136,6 +2176,16 @@ void ImportConfiguration::SerializeWithCachedSizes(
       18, *this->gatk4_integration_parameters_, output);
   }
 
+  // optional int32 tiledb_compression_level = 19 [default = -1];
+  if (has_tiledb_compression_level()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(19, this->tiledb_compression_level(), output);
+  }
+
+  // optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+  if (has_consolidate_tiledb_array_after_load()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(20, this->consolidate_tiledb_array_after_load(), output);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -2252,6 +2302,16 @@ void ImportConfiguration::SerializeWithCachedSizes(
         18, *this->gatk4_integration_parameters_, false, target);
   }
 
+  // optional int32 tiledb_compression_level = 19 [default = -1];
+  if (has_tiledb_compression_level()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(19, this->tiledb_compression_level(), target);
+  }
+
+  // optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+  if (has_consolidate_tiledb_array_after_load()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(20, this->consolidate_tiledb_array_after_load(), target);
+  }
+
   if (_internal_metadata_.have_unknown_fields()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -2354,7 +2414,7 @@ int ImportConfiguration::ByteSize() const {
     }
 
   }
-  if (_has_bits_[16 / 32] & 196608u) {
+  if (_has_bits_[16 / 32] & 983040u) {
     // optional bool fail_if_updating = 17 [default = false];
     if (has_fail_if_updating()) {
       total_size += 2 + 1;
@@ -2365,6 +2425,18 @@ int ImportConfiguration::ByteSize() const {
       total_size += 2 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           *this->gatk4_integration_parameters_);
+    }
+
+    // optional int32 tiledb_compression_level = 19 [default = -1];
+    if (has_tiledb_compression_level()) {
+      total_size += 2 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->tiledb_compression_level());
+    }
+
+    // optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+    if (has_consolidate_tiledb_array_after_load()) {
+      total_size += 2 + 1;
     }
 
   }
@@ -2468,6 +2540,12 @@ void ImportConfiguration::MergeFrom(const ImportConfiguration& from) {
     if (from.has_gatk4_integration_parameters()) {
       mutable_gatk4_integration_parameters()->::GATK4Integration::MergeFrom(from.gatk4_integration_parameters());
     }
+    if (from.has_tiledb_compression_level()) {
+      set_tiledb_compression_level(from.tiledb_compression_level());
+    }
+    if (from.has_consolidate_tiledb_array_after_load()) {
+      set_consolidate_tiledb_array_after_load(from.consolidate_tiledb_array_after_load());
+    }
   }
   if (from._internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -2518,6 +2596,8 @@ void ImportConfiguration::InternalSwap(ImportConfiguration* other) {
   std::swap(num_cells_per_tile_, other->num_cells_per_tile_);
   std::swap(fail_if_updating_, other->fail_if_updating_);
   std::swap(gatk4_integration_parameters_, other->gatk4_integration_parameters_);
+  std::swap(tiledb_compression_level_, other->tiledb_compression_level_);
+  std::swap(consolidate_tiledb_array_after_load_, other->consolidate_tiledb_array_after_load_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -3050,6 +3130,54 @@ void ImportConfiguration::set_allocated_gatk4_integration_parameters(::GATK4Inte
     clear_has_gatk4_integration_parameters();
   }
   // @@protoc_insertion_point(field_set_allocated:ImportConfiguration.gatk4_integration_parameters)
+}
+
+// optional int32 tiledb_compression_level = 19 [default = -1];
+bool ImportConfiguration::has_tiledb_compression_level() const {
+  return (_has_bits_[0] & 0x00040000u) != 0;
+}
+void ImportConfiguration::set_has_tiledb_compression_level() {
+  _has_bits_[0] |= 0x00040000u;
+}
+void ImportConfiguration::clear_has_tiledb_compression_level() {
+  _has_bits_[0] &= ~0x00040000u;
+}
+void ImportConfiguration::clear_tiledb_compression_level() {
+  tiledb_compression_level_ = -1;
+  clear_has_tiledb_compression_level();
+}
+ ::google::protobuf::int32 ImportConfiguration::tiledb_compression_level() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.tiledb_compression_level)
+  return tiledb_compression_level_;
+}
+ void ImportConfiguration::set_tiledb_compression_level(::google::protobuf::int32 value) {
+  set_has_tiledb_compression_level();
+  tiledb_compression_level_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.tiledb_compression_level)
+}
+
+// optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+bool ImportConfiguration::has_consolidate_tiledb_array_after_load() const {
+  return (_has_bits_[0] & 0x00080000u) != 0;
+}
+void ImportConfiguration::set_has_consolidate_tiledb_array_after_load() {
+  _has_bits_[0] |= 0x00080000u;
+}
+void ImportConfiguration::clear_has_consolidate_tiledb_array_after_load() {
+  _has_bits_[0] &= ~0x00080000u;
+}
+void ImportConfiguration::clear_consolidate_tiledb_array_after_load() {
+  consolidate_tiledb_array_after_load_ = false;
+  clear_has_consolidate_tiledb_array_after_load();
+}
+ bool ImportConfiguration::consolidate_tiledb_array_after_load() const {
+  // @@protoc_insertion_point(field_get:ImportConfiguration.consolidate_tiledb_array_after_load)
+  return consolidate_tiledb_array_after_load_;
+}
+ void ImportConfiguration::set_consolidate_tiledb_array_after_load(bool value) {
+  set_has_consolidate_tiledb_array_after_load();
+  consolidate_tiledb_array_after_load_ = value;
+  // @@protoc_insertion_point(field_set:ImportConfiguration.consolidate_tiledb_array_after_load)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

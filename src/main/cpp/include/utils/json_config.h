@@ -136,6 +136,7 @@ class JSONLoaderConfig : public JSONConfigBase
       m_vid_mapper_file_required = val;
     }
     inline bool fail_if_updating() const { return m_fail_if_updating; }
+    inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -171,6 +172,8 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_vid_mapper_file_required;
     //flag that causes the loader to fail if this is an update (rather than a fresh load)
     bool m_fail_if_updating;
+    //consolidate TileDB array after load - merges fragments
+    bool m_consolidate_tiledb_array_after_load;
 };
 
 #ifdef HTSDIR

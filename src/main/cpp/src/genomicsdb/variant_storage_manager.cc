@@ -401,11 +401,11 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
   return -1;
 }
 
-void VariantStorageManager::close_array(const int ad)
+void VariantStorageManager::close_array(const int ad, const bool consolidate_tiledb_array)
 {
   VERIFY_OR_THROW(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
       m_open_arrays_info_vector[ad].get_array_name().length());
-  m_open_arrays_info_vector[ad].close_array();
+  m_open_arrays_info_vector[ad].close_array(consolidate_tiledb_array);
 }
 
 int VariantStorageManager::define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile)

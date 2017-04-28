@@ -2325,6 +2325,24 @@ public final class GenomicsDBImportConfiguration {
      * <code>optional .GATK4Integration gatk4_integration_parameters = 18;</code>
      */
     com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4IntegrationOrBuilder getGatk4IntegrationParametersOrBuilder();
+
+    /**
+     * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+     */
+    boolean hasTiledbCompressionLevel();
+    /**
+     * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+     */
+    int getTiledbCompressionLevel();
+
+    /**
+     * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+     */
+    boolean hasConsolidateTiledbArrayAfterLoad();
+    /**
+     * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+     */
+    boolean getConsolidateTiledbArrayAfterLoad();
   }
   /**
    * Protobuf type {@code ImportConfiguration}
@@ -2355,6 +2373,8 @@ public final class GenomicsDBImportConfiguration {
       compressTiledbArray_ = true;
       numCellsPerTile_ = 1000L;
       failIfUpdating_ = false;
+      tiledbCompressionLevel_ = -1;
+      consolidateTiledbArrayAfterLoad_ = false;
     }
 
     @java.lang.Override
@@ -2487,6 +2507,16 @@ public final class GenomicsDBImportConfiguration {
                 gatk4IntegrationParameters_ = subBuilder.buildPartial();
               }
               bitField0_ |= 0x00010000;
+              break;
+            }
+            case 152: {
+              bitField0_ |= 0x00020000;
+              tiledbCompressionLevel_ = input.readInt32();
+              break;
+            }
+            case 160: {
+              bitField0_ |= 0x00040000;
+              consolidateTiledbArrayAfterLoad_ = input.readBool();
               break;
             }
           }
@@ -2867,6 +2897,36 @@ public final class GenomicsDBImportConfiguration {
       return gatk4IntegrationParameters_ == null ? com.intel.genomicsdb.GenomicsDBImportConfiguration.GATK4Integration.getDefaultInstance() : gatk4IntegrationParameters_;
     }
 
+    public static final int TILEDB_COMPRESSION_LEVEL_FIELD_NUMBER = 19;
+    private int tiledbCompressionLevel_;
+    /**
+     * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+     */
+    public boolean hasTiledbCompressionLevel() {
+      return ((bitField0_ & 0x00020000) == 0x00020000);
+    }
+    /**
+     * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+     */
+    public int getTiledbCompressionLevel() {
+      return tiledbCompressionLevel_;
+    }
+
+    public static final int CONSOLIDATE_TILEDB_ARRAY_AFTER_LOAD_FIELD_NUMBER = 20;
+    private boolean consolidateTiledbArrayAfterLoad_;
+    /**
+     * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+     */
+    public boolean hasConsolidateTiledbArrayAfterLoad() {
+      return ((bitField0_ & 0x00040000) == 0x00040000);
+    }
+    /**
+     * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+     */
+    public boolean getConsolidateTiledbArrayAfterLoad() {
+      return consolidateTiledbArrayAfterLoad_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -2942,6 +3002,12 @@ public final class GenomicsDBImportConfiguration {
       }
       if (((bitField0_ & 0x00010000) == 0x00010000)) {
         output.writeMessage(18, getGatk4IntegrationParameters());
+      }
+      if (((bitField0_ & 0x00020000) == 0x00020000)) {
+        output.writeInt32(19, tiledbCompressionLevel_);
+      }
+      if (((bitField0_ & 0x00040000) == 0x00040000)) {
+        output.writeBool(20, consolidateTiledbArrayAfterLoad_);
       }
       unknownFields.writeTo(output);
     }
@@ -3020,6 +3086,14 @@ public final class GenomicsDBImportConfiguration {
       if (((bitField0_ & 0x00010000) == 0x00010000)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(18, getGatk4IntegrationParameters());
+      }
+      if (((bitField0_ & 0x00020000) == 0x00020000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(19, tiledbCompressionLevel_);
+      }
+      if (((bitField0_ & 0x00040000) == 0x00040000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(20, consolidateTiledbArrayAfterLoad_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -3125,6 +3199,16 @@ public final class GenomicsDBImportConfiguration {
         result = result && getGatk4IntegrationParameters()
             .equals(other.getGatk4IntegrationParameters());
       }
+      result = result && (hasTiledbCompressionLevel() == other.hasTiledbCompressionLevel());
+      if (hasTiledbCompressionLevel()) {
+        result = result && (getTiledbCompressionLevel()
+            == other.getTiledbCompressionLevel());
+      }
+      result = result && (hasConsolidateTiledbArrayAfterLoad() == other.hasConsolidateTiledbArrayAfterLoad());
+      if (hasConsolidateTiledbArrayAfterLoad()) {
+        result = result && (getConsolidateTiledbArrayAfterLoad()
+            == other.getConsolidateTiledbArrayAfterLoad());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -3220,6 +3304,15 @@ public final class GenomicsDBImportConfiguration {
       if (hasGatk4IntegrationParameters()) {
         hash = (37 * hash) + GATK4_INTEGRATION_PARAMETERS_FIELD_NUMBER;
         hash = (53 * hash) + getGatk4IntegrationParameters().hashCode();
+      }
+      if (hasTiledbCompressionLevel()) {
+        hash = (37 * hash) + TILEDB_COMPRESSION_LEVEL_FIELD_NUMBER;
+        hash = (53 * hash) + getTiledbCompressionLevel();
+      }
+      if (hasConsolidateTiledbArrayAfterLoad()) {
+        hash = (37 * hash) + CONSOLIDATE_TILEDB_ARRAY_AFTER_LOAD_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getConsolidateTiledbArrayAfterLoad());
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -3385,6 +3478,10 @@ public final class GenomicsDBImportConfiguration {
           gatk4IntegrationParametersBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00020000);
+        tiledbCompressionLevel_ = -1;
+        bitField0_ = (bitField0_ & ~0x00040000);
+        consolidateTiledbArrayAfterLoad_ = false;
+        bitField0_ = (bitField0_ & ~0x00080000);
         return this;
       }
 
@@ -3490,6 +3587,14 @@ public final class GenomicsDBImportConfiguration {
         } else {
           result.gatk4IntegrationParameters_ = gatk4IntegrationParametersBuilder_.build();
         }
+        if (((from_bitField0_ & 0x00040000) == 0x00040000)) {
+          to_bitField0_ |= 0x00020000;
+        }
+        result.tiledbCompressionLevel_ = tiledbCompressionLevel_;
+        if (((from_bitField0_ & 0x00080000) == 0x00080000)) {
+          to_bitField0_ |= 0x00040000;
+        }
+        result.consolidateTiledbArrayAfterLoad_ = consolidateTiledbArrayAfterLoad_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3612,6 +3717,12 @@ public final class GenomicsDBImportConfiguration {
         }
         if (other.hasGatk4IntegrationParameters()) {
           mergeGatk4IntegrationParameters(other.getGatk4IntegrationParameters());
+        }
+        if (other.hasTiledbCompressionLevel()) {
+          setTiledbCompressionLevel(other.getTiledbCompressionLevel());
+        }
+        if (other.hasConsolidateTiledbArrayAfterLoad()) {
+          setConsolidateTiledbArrayAfterLoad(other.getConsolidateTiledbArrayAfterLoad());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -4606,6 +4717,70 @@ public final class GenomicsDBImportConfiguration {
         }
         return gatk4IntegrationParametersBuilder_;
       }
+
+      private int tiledbCompressionLevel_ = -1;
+      /**
+       * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+       */
+      public boolean hasTiledbCompressionLevel() {
+        return ((bitField0_ & 0x00040000) == 0x00040000);
+      }
+      /**
+       * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+       */
+      public int getTiledbCompressionLevel() {
+        return tiledbCompressionLevel_;
+      }
+      /**
+       * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+       */
+      public Builder setTiledbCompressionLevel(int value) {
+        bitField0_ |= 0x00040000;
+        tiledbCompressionLevel_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 tiledb_compression_level = 19 [default = -1];</code>
+       */
+      public Builder clearTiledbCompressionLevel() {
+        bitField0_ = (bitField0_ & ~0x00040000);
+        tiledbCompressionLevel_ = -1;
+        onChanged();
+        return this;
+      }
+
+      private boolean consolidateTiledbArrayAfterLoad_ ;
+      /**
+       * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+       */
+      public boolean hasConsolidateTiledbArrayAfterLoad() {
+        return ((bitField0_ & 0x00080000) == 0x00080000);
+      }
+      /**
+       * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+       */
+      public boolean getConsolidateTiledbArrayAfterLoad() {
+        return consolidateTiledbArrayAfterLoad_;
+      }
+      /**
+       * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+       */
+      public Builder setConsolidateTiledbArrayAfterLoad(boolean value) {
+        bitField0_ |= 0x00080000;
+        consolidateTiledbArrayAfterLoad_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
+       */
+      public Builder clearConsolidateTiledbArrayAfterLoad() {
+        bitField0_ = (bitField0_ & ~0x00080000);
+        consolidateTiledbArrayAfterLoad_ = false;
+        onChanged();
+        return this;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
@@ -4688,7 +4863,7 @@ public final class GenomicsDBImportConfiguration {
       "le\030\002 \001(\t\022\025\n\nbatch_size\030\003 \001(\005:\0010\022,\n\035use_s" +
       "amples_in_order_provided\030\004 \001(\010:\005false\022\035\n" +
       "\022lower_sample_index\030\005 \001(\003:\0010\022/\n\022upper_sa" +
-      "mple_index\030\006 \001(\003:\0239223372036854775807\"\301\005",
+      "mple_index\030\006 \001(\003:\0239223372036854775807\"\233\006",
       "\n\023ImportConfiguration\022(\n\031size_per_column" +
       "_partition\030\007 \002(\003:\00516384\022%\n\026row_based_par" +
       "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin" +
@@ -4706,8 +4881,11 @@ public final class GenomicsDBImportConfiguration {
       "edb_array\030\017 \001(\010:\004true\022 \n\022num_cells_per_t" +
       "ile\030\020 \001(\003:\0041000\022\037\n\020fail_if_updating\030\021 \001(" +
       "\010:\005false\0227\n\034gatk4_integration_parameters" +
-      "\030\022 \001(\0132\021.GATK4IntegrationB5\n\024com.intel.g" +
-      "enomicsdbB\035GenomicsDBImportConfiguration"
+      "\030\022 \001(\0132\021.GATK4Integration\022$\n\030tiledb_comp" +
+      "ression_level\030\023 \001(\005:\002-1\0222\n#consolidate_t" +
+      "iledb_array_after_load\030\024 \001(\010:\005falseB5\n\024c",
+      "om.intel.genomicsdbB\035GenomicsDBImportCon" +
+      "figuration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4738,7 +4916,7 @@ public final class GenomicsDBImportConfiguration {
     internal_static_ImportConfiguration_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ImportConfiguration_descriptor,
-        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", "Gatk4IntegrationParameters", });
+        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", "Gatk4IntegrationParameters", "TiledbCompressionLevel", "ConsolidateTiledbArrayAfterLoad", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

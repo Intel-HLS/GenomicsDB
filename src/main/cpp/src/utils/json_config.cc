@@ -603,6 +603,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_vid_mapper_file_required = vid_mapper_file_required;
   m_fail_if_updating = false;
   m_tiledb_compression_level = Z_DEFAULT_COMPRESSION;
+  m_consolidate_tiledb_array_after_load = false;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -702,6 +703,10 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if(m_json.HasMember("fail_if_updating") && m_json["fail_if_updating"].IsBool())
     m_fail_if_updating = m_json["fail_if_updating"].GetBool();
   read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
+  //consolidate TileDB array after load - merges fragments
+  m_consolidate_tiledb_array_after_load = false;
+  if(m_json.HasMember("consolidate_tiledb_array_after_load") && m_json["consolidate_tiledb_array_after_load"].IsBool())
+    m_consolidate_tiledb_array_after_load = m_json["consolidate_tiledb_array_after_load"].GetBool();
 }
    
 #ifdef HTSDIR

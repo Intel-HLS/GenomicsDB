@@ -72,4 +72,6 @@ message ImportConfiguration {
   optional int64 num_cells_per_tile = 16 [default = 1000];
   optional bool fail_if_updating = 17 [default = false];
   optional GATK4Integration gatk4_integration_parameters = 18;
+  optional int32 tiledb_compression_level = 19 [default = -1];
+  optional bool consolidate_tiledb_array_after_load = 20 [default = false];
 }
