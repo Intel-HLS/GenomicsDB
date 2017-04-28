@@ -244,7 +244,7 @@ if(BUILD_JAVA)
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
+        COMMAND mvn versions:set --quiet -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
         COMMAND mvn package -DskipTests
           ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
@@ -271,5 +271,5 @@ if(BUILD_JAVA)
     add_test(NAME CI_tests
         COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR})
+        ${CMAKE_INSTALL_PREFIX})
 endif()

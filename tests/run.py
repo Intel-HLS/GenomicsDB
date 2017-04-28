@@ -116,6 +116,7 @@ def main():
     gcda_prefix_dir = '../';
     if(len(sys.argv) < 3):
         sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
+        sys.exit(-1);
     gcda_prefix_dir = sys.argv[1];
     exe_path = sys.argv[2]+os.path.sep+'bin';
     #Switch to tests directory
