@@ -232,18 +232,21 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    set(MAVEN_ARGS
+        --quiet
+        -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
+        -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
+        -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
+        -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
+        -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
+        ${MAVEN_PROTOBUF_REGENERATE_ARGS})
     #Maven build - depends on dynamic library
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
         COMMAND mvn versions:set -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
-        COMMAND mvn package -DskipTests --quiet
-          -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
-          -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
-          -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
-          -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
-          -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
-          ${MAVEN_PROTOBUF_REGENERATE_ARGS}
+        COMMAND mvn package -DskipTests
+          ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     add_custom_target(mvn_package ALL
@@ -251,13 +254,8 @@ if(BUILD_JAVA)
     install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
 
     add_test(NAME javatests
-        COMMAND mvn test --quiet
-          -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
-          -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
-          -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
-          -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
-          -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
-          ${MAVEN_PROTOBUF_REGENERATE_ARGS}
+        COMMAND mvn test
+          ${MAVEN_ARGS}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
     set(GENOMICSDB_EXAMPLE_SOURCES
@@ -269,10 +267,6 @@ if(BUILD_JAVA)
         SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}
         INCLUDE_JARS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
-
-    set(CMAKE_JAVA_INCLUDE_PATH ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar)
-    set(CMAKE_INSTALL_RPATH "${LIBCSV_DIR}/.libs")
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
     add_test(NAME CI_tests
         COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
