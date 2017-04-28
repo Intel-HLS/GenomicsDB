@@ -45,14 +45,6 @@ script:
     - cd $GENOMICSDB_BUILD_DIR
     - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=$GENOMICSDB_RELEASE_VERSION
     - make -j 4 && make install && make test ARGS=-V
-#    - cd $GENOMICSDB_INSTALL_DIR
-#    - ln -s $TRAVIS_BUILD_DIR/tests
-#    - javac -version && which javac
-#    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestGenomicsDB.java
-#    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestBufferStreamGenomicsDBImporter.java
-#    - javac -d tests $TRAVIS_BUILD_DIR/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
-#    - java -version && which java
-#    - python tests/run.py $GENOMICSDB_BUILD_DIR $GENOMICSDB_INSTALL_DIR
 
 after_success:
     - cd $GENOMICSDB_INSTALL_DIR && lcov --list tests/coverage.info # debug before upload
