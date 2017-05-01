@@ -31,6 +31,7 @@ set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
+set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 
 #Platform check modules
 include(CheckIncludeFileCXX)
@@ -232,8 +233,12 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    set(MAVEN_QUIET_ARGS "")
+    if(MAVEN_QUIET)
+        set(MAVEN_QUIET_ARGS "--quiet")
+    endif()
     set(MAVEN_ARGS
-        --quiet
+        ${MAVEN_QUIET_ARGS}
         -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
         -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
         -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
@@ -244,13 +249,11 @@ if(BUILD_JAVA)
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set --quiet -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
+        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
         COMMAND mvn package -DskipTests
           ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-    add_custom_target(mvn_package ALL
-        DEPENDS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar)
     install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
 
     add_test(NAME javatests
