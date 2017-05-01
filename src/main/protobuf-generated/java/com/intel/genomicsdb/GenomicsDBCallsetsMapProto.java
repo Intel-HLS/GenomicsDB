@@ -6,7 +6,13 @@ package com.intel.genomicsdb;
 public final class GenomicsDBCallsetsMapProto {
   private GenomicsDBCallsetsMapProto() {}
   public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistryLite registry) {
+  }
+
+  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   public interface SampleIDToTileDBIDMapOrBuilder extends
       // @@protoc_insertion_point(interface_extends:SampleIDToTileDBIDMap)
@@ -62,11 +68,11 @@ public final class GenomicsDBCallsetsMapProto {
    * Protobuf type {@code SampleIDToTileDBIDMap}
    */
   public  static final class SampleIDToTileDBIDMap extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:SampleIDToTileDBIDMap)
       SampleIDToTileDBIDMapOrBuilder {
     // Use SampleIDToTileDBIDMap.newBuilder() to construct.
-    private SampleIDToTileDBIDMap(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private SampleIDToTileDBIDMap(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private SampleIDToTileDBIDMap() {
@@ -83,7 +89,8 @@ public final class GenomicsDBCallsetsMapProto {
     }
     private SampleIDToTileDBIDMap(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -128,11 +135,10 @@ public final class GenomicsDBCallsetsMapProto {
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -143,7 +149,7 @@ public final class GenomicsDBCallsetsMapProto {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_SampleIDToTileDBIDMap_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_SampleIDToTileDBIDMap_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -290,7 +296,7 @@ public final class GenomicsDBCallsetsMapProto {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 1, sampleName_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, sampleName_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeInt64(2, rowIdx_);
@@ -299,7 +305,7 @@ public final class GenomicsDBCallsetsMapProto {
         output.writeInt32(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 4, streamName_);
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, streamName_);
       }
       unknownFields.writeTo(output);
     }
@@ -310,7 +316,7 @@ public final class GenomicsDBCallsetsMapProto {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(1, sampleName_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, sampleName_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -321,7 +327,7 @@ public final class GenomicsDBCallsetsMapProto {
           .computeInt32Size(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.GeneratedMessage.computeStringSize(4, streamName_);
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, streamName_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -329,6 +335,70 @@ public final class GenomicsDBCallsetsMapProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap other = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap) obj;
+
+      boolean result = true;
+      result = result && (hasSampleName() == other.hasSampleName());
+      if (hasSampleName()) {
+        result = result && getSampleName()
+            .equals(other.getSampleName());
+      }
+      result = result && (hasRowIdx() == other.hasRowIdx());
+      if (hasRowIdx()) {
+        result = result && (getRowIdx()
+            == other.getRowIdx());
+      }
+      result = result && (hasIdxInFile() == other.hasIdxInFile());
+      if (hasIdxInFile()) {
+        result = result && (getIdxInFile()
+            == other.getIdxInFile());
+      }
+      result = result && (hasStreamName() == other.hasStreamName());
+      if (hasStreamName()) {
+        result = result && getStreamName()
+            .equals(other.getStreamName());
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasSampleName()) {
+        hash = (37 * hash) + SAMPLE_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getSampleName().hashCode();
+      }
+      if (hasRowIdx()) {
+        hash = (37 * hash) + ROW_IDX_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getRowIdx());
+      }
+      if (hasIdxInFile()) {
+        hash = (37 * hash) + IDX_IN_FILE_FIELD_NUMBER;
+        hash = (53 * hash) + getIdxInFile();
+      }
+      if (hasStreamName()) {
+        hash = (37 * hash) + STREAM_NAME_FIELD_NUMBER;
+        hash = (53 * hash) + getStreamName().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -352,34 +422,40 @@ public final class GenomicsDBCallsetsMapProto {
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -396,7 +472,7 @@ public final class GenomicsDBCallsetsMapProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -404,7 +480,7 @@ public final class GenomicsDBCallsetsMapProto {
      * Protobuf type {@code SampleIDToTileDBIDMap}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:SampleIDToTileDBIDMap)
         com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -412,7 +488,7 @@ public final class GenomicsDBCallsetsMapProto {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_SampleIDToTileDBIDMap_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_SampleIDToTileDBIDMap_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -425,12 +501,13 @@ public final class GenomicsDBCallsetsMapProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
         }
       }
       public Builder clear() {
@@ -488,6 +565,32 @@ public final class GenomicsDBCallsetsMapProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap)other);
@@ -542,7 +645,7 @@ public final class GenomicsDBCallsetsMapProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -767,6 +870,16 @@ public final class GenomicsDBCallsetsMapProto {
         onChanged();
         return this;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:SampleIDToTileDBIDMap)
     }
@@ -787,16 +900,7 @@ public final class GenomicsDBCallsetsMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new SampleIDToTileDBIDMap(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -847,11 +951,11 @@ public final class GenomicsDBCallsetsMapProto {
    * Protobuf type {@code CallsetMappingPB}
    */
   public  static final class CallsetMappingPB extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:CallsetMappingPB)
       CallsetMappingPBOrBuilder {
     // Use CallsetMappingPB.newBuilder() to construct.
-    private CallsetMappingPB(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private CallsetMappingPB(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private CallsetMappingPB() {
@@ -865,7 +969,8 @@ public final class GenomicsDBCallsetsMapProto {
     }
     private CallsetMappingPB(
         com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry) {
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
       this();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
@@ -890,17 +995,17 @@ public final class GenomicsDBCallsetsMapProto {
                 callsets_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap>();
                 mutable_bitField0_ |= 0x00000001;
               }
-              callsets_.add(input.readMessage(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.parser(), extensionRegistry));
+              callsets_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.PARSER, extensionRegistry));
               break;
             }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw new RuntimeException(e.setUnfinishedMessage(this));
+        throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new RuntimeException(
-            new com.google.protobuf.InvalidProtocolBufferException(
-                e.getMessage()).setUnfinishedMessage(this));
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
           callsets_ = java.util.Collections.unmodifiableList(callsets_);
@@ -914,7 +1019,7 @@ public final class GenomicsDBCallsetsMapProto {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
@@ -995,6 +1100,39 @@ public final class GenomicsDBCallsetsMapProto {
     }
 
     private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB other = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) obj;
+
+      boolean result = true;
+      result = result && getCallsetsList()
+          .equals(other.getCallsetsList());
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (getCallsetsCount() > 0) {
+        hash = (37 * hash) + CALLSETS_FIELD_NUMBER;
+        hash = (53 * hash) + getCallsetsList().hashCode();
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1018,34 +1156,40 @@ public final class GenomicsDBCallsetsMapProto {
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
     public Builder newBuilderForType() { return newBuilder(); }
@@ -1062,7 +1206,7 @@ public final class GenomicsDBCallsetsMapProto {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1070,7 +1214,7 @@ public final class GenomicsDBCallsetsMapProto {
      * Protobuf type {@code CallsetMappingPB}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:CallsetMappingPB)
         com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPBOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -1078,7 +1222,7 @@ public final class GenomicsDBCallsetsMapProto {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.intel.genomicsdb.GenomicsDBCallsetsMapProto.internal_static_CallsetMappingPB_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1091,12 +1235,13 @@ public final class GenomicsDBCallsetsMapProto {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
           getCallsetsFieldBuilder();
         }
       }
@@ -1144,6 +1289,32 @@ public final class GenomicsDBCallsetsMapProto {
         return result;
       }
 
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) {
           return mergeFrom((com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB)other);
@@ -1174,7 +1345,7 @@ public final class GenomicsDBCallsetsMapProto {
               callsets_ = other.callsets_;
               bitField0_ = (bitField0_ & ~0x00000001);
               callsetsBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getCallsetsFieldBuilder() : null;
             } else {
               callsetsBuilder_.addAllMessages(other.callsets_);
@@ -1204,7 +1375,7 @@ public final class GenomicsDBCallsetsMapProto {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (com.intel.genomicsdb.GenomicsDBCallsetsMapProto.CallsetMappingPB) e.getUnfinishedMessage();
-          throw e;
+          throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -1223,7 +1394,7 @@ public final class GenomicsDBCallsetsMapProto {
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> callsetsBuilder_;
 
       /**
@@ -1439,11 +1610,11 @@ public final class GenomicsDBCallsetsMapProto {
            getCallsetsBuilderList() {
         return getCallsetsFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder> 
           getCallsetsFieldBuilder() {
         if (callsetsBuilder_ == null) {
-          callsetsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          callsetsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder, com.intel.genomicsdb.GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMapOrBuilder>(
                   callsets_,
                   ((bitField0_ & 0x00000001) == 0x00000001),
@@ -1453,6 +1624,16 @@ public final class GenomicsDBCallsetsMapProto {
         }
         return callsetsBuilder_;
       }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:CallsetMappingPB)
     }
@@ -1473,16 +1654,7 @@ public final class GenomicsDBCallsetsMapProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        try {
           return new CallsetMappingPB(input, extensionRegistry);
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof
-              com.google.protobuf.InvalidProtocolBufferException) {
-            throw (com.google.protobuf.InvalidProtocolBufferException)
-                e.getCause();
-          }
-          throw e;
-        }
       }
     };
 
@@ -1501,22 +1673,22 @@ public final class GenomicsDBCallsetsMapProto {
 
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_SampleIDToTileDBIDMap_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_SampleIDToTileDBIDMap_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_CallsetMappingPB_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_CallsetMappingPB_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -1543,13 +1715,13 @@ public final class GenomicsDBCallsetsMapProto {
     internal_static_SampleIDToTileDBIDMap_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_SampleIDToTileDBIDMap_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_SampleIDToTileDBIDMap_descriptor,
         new java.lang.String[] { "SampleName", "RowIdx", "IdxInFile", "StreamName", });
     internal_static_CallsetMappingPB_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_CallsetMappingPB_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_CallsetMappingPB_descriptor,
         new java.lang.String[] { "Callsets", });
   }

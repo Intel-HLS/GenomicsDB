@@ -1067,3 +1067,13 @@ int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
   }
   return returnval;
 }
+
+void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const char* array_name)
+{
+  VariantStorageManager sm(workspace);
+  auto ad = sm.open_array(array_name, "w");
+  if(ad < 0)
+    throw VCF2TileDBException(std::string("Error opening array ")+array_name
+        +" in workspace "+workspace+" when trying to consolidate");
+  sm.close_array(ad, true);
+}

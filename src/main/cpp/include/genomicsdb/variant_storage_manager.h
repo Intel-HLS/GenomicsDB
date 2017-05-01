@@ -130,7 +130,7 @@ class VariantArrayInfo
     {
       close_array();
     }
-    void close_array()
+    void close_array(const bool consolidate_tiledb_array=false)
     {
       //Flush cells in buffer
       auto coords_buffer_idx = m_buffers.size()-1u;
@@ -143,7 +143,17 @@ class VariantArrayInfo
         memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
       }
       if(m_tiledb_array)
-        tiledb_array_finalize(m_tiledb_array);
+      {
+        if(consolidate_tiledb_array)
+        {
+          auto status = tiledb_array_consolidate(m_tiledb_array);
+          if(status != TILEDB_OK)
+            throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
+        }
+        auto status = tiledb_array_finalize(m_tiledb_array);
+        if(status != TILEDB_OK)
+          throw VariantStorageManagerException("Error while finalizing TileDB array "+m_name);
+      }
       m_tiledb_array = 0;
       m_name.clear();
       m_mode = -1;
@@ -216,7 +226,7 @@ class VariantStorageManager
      */
     bool check_if_TileDB_array_exists(const std::string& array_name);
     int open_array(const std::string& array_name, const char* mode);
-    void close_array(const int ad);
+    void close_array(const int ad, const bool consolidate_tiledb_array=false);
     int define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile=1000u);
     void delete_array(const std::string& array_name);
     int define_metadata_schema(const VariantArraySchema* variant_array_schema);

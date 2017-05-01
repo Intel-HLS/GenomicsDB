@@ -116,6 +116,7 @@ def main():
     gcda_prefix_dir = '../';
     if(len(sys.argv) < 3):
         sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
+        sys.exit(-1);
     gcda_prefix_dir = sys.argv[1];
     exe_path = sys.argv[2]+os.path.sep+'bin';
     #Switch to tests directory
@@ -408,6 +409,7 @@ def main():
                         ('vcf','--produce-Broad-GVCF'),
                         ('batched_vcf','--produce-Broad-GVCF -p 128'),
                         ('java_vcf', ''),
+                        ('consolidate_and_vcf', '--produce-Broad-GVCF'), #keep as the last query test
                         ]
                 for query_type,cmd_line_param in query_types_list:
                     if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
@@ -423,6 +425,12 @@ def main():
                         pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
+                        if(query_type == 'consolidate_and_vcf'):
+                            retcode = subprocess.call(exe_path+os.path.sep+'consolidate_tiledb_array '+ws_dir+' '+test_name,
+                                    shell=True)
+                            if(retcode != 0):
+                                sys.stderr.write('TileDB array consolidation failed '+ws_dir+' '+test_name+'\n');
+                                cleanup_and_exit(tmpdir, -1);
                         loader_argument = ' -l '+loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = ''

@@ -197,6 +197,13 @@ public class GenomicsDBImporter
   private static native int jniCreateTileDBWorkspace(final String workspace);
 
   /**
+   * Consolidate TileDB array
+   * @param workspace path to workspace directory
+   * @param arrayName array name
+   */
+  private static native void jniConsolidateTileDBArray(final String workspace, final String arrayName);
+
+  /**
    * Create TileDB workspace
    * @param workspace path to workspace directory
    * @return status 0 = workspace created, -1 = path was not a directory, -2 = failed to create workspace,
@@ -205,6 +212,16 @@ public class GenomicsDBImporter
   public static int createTileDBWorkspace(final String workspace)
   {
     return jniCreateTileDBWorkspace(workspace);
+  }
+
+  /**
+   * Consolidate TileDB array
+   * @param workspace path to workspace directory
+   * @param arrayName array name
+   */
+  public static void consolidateTileDBArray(final String workspace, final String arrayName)
+  {
+    jniConsolidateTileDBArray(workspace, arrayName);
   }
 
   private String mLoaderJSONFile = null;
@@ -226,7 +243,6 @@ public class GenomicsDBImporter
 
   private boolean mUsingVidMappingProtoBuf = false;
   private GenomicsDBVidMapProto.VidMappingPB mVidMap = null;
-  private ChromosomeInterval mChromosomeInterval;
   private GenomicsDBCallsetsMapProto.CallsetMappingPB mCallsetMap = null;
 
   /**
@@ -405,7 +421,7 @@ public class GenomicsDBImporter
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param workspace TileDB workspace
    * @param arrayname TileDB array name
-   * @param sizePerColumnPartition sizePerColumnPartition in bytes
+   * @param vcfBufferSizePerColumnPartition vcfBufferSizePerColumnPartition in bytes
    * @param segmentSize segmentSize in bytes
    * @param lbRowIdx Smallest row idx which should be imported by this object
    * @param ubRowIdx Largest row idx which should be imported by this object
@@ -419,7 +435,7 @@ public class GenomicsDBImporter
                      ChromosomeInterval chromosomeInterval,
                      String workspace,
                      String arrayname,
-                     Long sizePerColumnPartition,
+                     Long vcfBufferSizePerColumnPartition,
                      Long segmentSize,
                      Long lbRowIdx,
                      Long ubRowIdx,
@@ -430,13 +446,11 @@ public class GenomicsDBImporter
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
 
-    if (sizePerColumnPartition == 0L) {
-      sizePerColumnPartition = DEFAULT_SIZE_PER_COLUMN_PARTITION;
-    }
-    sizePerColumnPartition *= sampleToVCMap.size();
+    Long vcfBufferSizeToBeUsed = (vcfBufferSizePerColumnPartition == 0L) ?
+      DEFAULT_SIZE_PER_COLUMN_PARTITION : vcfBufferSizePerColumnPartition;
 
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      createImportConfiguration(workspace, arrayname, sizePerColumnPartition, segmentSize, failIfUpdating);
+      createImportConfiguration(workspace, arrayname, vcfBufferSizeToBeUsed, segmentSize, failIfUpdating);
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
 
@@ -444,7 +458,6 @@ public class GenomicsDBImporter
     File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     initialize(importJSONFile.getAbsolutePath(), rank, lbRowIdx, ubRowIdx);
-    mChromosomeInterval =chromosomeInterval;
 
     mGenomicsDBImporterObjectHandle =
       jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank, mLbRowIdx, mUbRowIdx);
@@ -457,9 +470,8 @@ public class GenomicsDBImporter
         FeatureReader<VariantContext> featureReader =
           sampleToVCMap.get(sampleInfo.getSampleName());
         CloseableIterator<VariantContext> iterator =
-          featureReader.query(mChromosomeInterval.mChromosomeName,
-            (int) mChromosomeInterval.mBegin,
-            (int) mChromosomeInterval.mEnd);
+          featureReader.query(chromosomeInterval.getContig(),
+            chromosomeInterval.getStart(), chromosomeInterval.getEnd());
       String streamName = sampleInfo.getStreamName();
       addSortedVariantContextIterator(
         streamName,
@@ -562,6 +574,35 @@ public class GenomicsDBImporter
     this(sampleToVCMap, mergedHeader, chromosomeInterval, workspace, arrayname,
             sizePerColumnPartition, segmentSize, 0L, (long)(sampleToVCMap.size()-1),
             outputVidMapJSONFilePath, outputCallsetMapJSONFilePath);
+  }
+
+  /**
+   * Constructor with an GenomicsDB import configuration protocol buffer
+   * structure. Avoids passing long list of parameters. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader  Set of VCFHeaderLine from the merged header across all input files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param importConfiguration  Protobuf configuration object containing related input
+   *                             parameters, filenames, etc.
+   * @throws IOException  Throws file IO exception.
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            GenomicsDBImportConfiguration.ImportConfiguration importConfiguration) throws IOException {
+    this(sampleToVCMap,
+            mergedHeader,
+            chromosomeInterval,
+            importConfiguration.getColumnPartitions(0).getWorkspace(),
+            importConfiguration.getColumnPartitions(0).getArray(),
+            importConfiguration.getSizePerColumnPartition(),
+            importConfiguration.getSegmentSize(),
+            importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
+            importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
+            importConfiguration.getGatk4IntegrationParameters().getOutputVidmapJsonFile(),
+            importConfiguration.getGatk4IntegrationParameters().getOutputCallsetmapJsonFile());
   }
 
   private GenomicsDBImportConfiguration.ImportConfiguration createImportConfiguration(

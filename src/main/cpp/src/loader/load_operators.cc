@@ -307,7 +307,7 @@ void LoaderArrayWriter::finish(const int64_t column_interval_end)
     write_top_element_to_disk();
 #endif
   if(m_storage_manager && m_array_descriptor >= 0)
-    m_storage_manager->close_array(m_array_descriptor);
+    m_storage_manager->close_array(m_array_descriptor, m_loader_json_config.consolidate_tiledb_array_after_load());
 }
 
 #ifdef HTSDIR
