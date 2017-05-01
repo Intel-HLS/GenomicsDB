@@ -13,6 +13,7 @@ install:
     - sudo apt-get update -q
     - sudo apt-get install g++-4.9 -y
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
+    - sudo apt-get install libdbi-dev libdbd-pgsql
     - sudo apt-get -y install openjdk-8-jdk icedtea-plugin
     - jdk_switcher use openjdk8
     - echo $JAVA_HOME
