@@ -446,16 +446,12 @@ public class GenomicsDBImporter
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
 
-    Long vcfBufferSizeToBeUsed = (vcfBufferSizePerColumnPartition == 0L) ?
-      DEFAULT_SIZE_PER_COLUMN_PARTITION : vcfBufferSizePerColumnPartition;
-
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-      createImportConfiguration(workspace, arrayname, vcfBufferSizeToBeUsed, segmentSize, failIfUpdating);
+      createImportConfiguration(workspace, arrayname, vcfBufferSizePerColumnPartition, segmentSize, failIfUpdating);
+    File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     mVidMap = generateVidMapFromMergedHeader(mergedHeader);
-
     mCallsetMap = generateSortedCallSetMap(sampleToVCMap, useSamplesInOrderProvided, lbRowIdx);
-    File importJSONFile = printLoaderJSONFile(importConfiguration, "");
 
     initialize(importJSONFile.getAbsolutePath(), rank, lbRowIdx, ubRowIdx);
 
@@ -519,27 +515,11 @@ public class GenomicsDBImporter
       sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx);
 
     if (!outputVidMapJSONFilePath.isEmpty()) {
-      String vidMapJSONString = printToString(mVidMap);
-      File vidMapJSONFile = new File(outputVidMapJSONFilePath);
-
-      try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-        out.println(vidMapJSONString);
-        out.close();
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      }
+      writeVidMapJSONFile(outputVidMapJSONFilePath, mVidMap);
     }
 
     if (!outputCallsetMapJSONFilePath.isEmpty()) {
-      String callsetMapJSONString = printToString(mCallsetMap);
-      File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
-
-      try( PrintWriter out = new PrintWriter(callsetMapJSONFile)  ){
-        out.println(callsetMapJSONString);
-        out.close();
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      }
+      writeCallsetMapJSONFile(outputCallsetMapJSONFilePath, mCallsetMap);
     }
   }
 
@@ -637,6 +617,62 @@ public class GenomicsDBImporter
       .setTreatDeletionsAsIntervals(true)
       .setFailIfUpdating(failIfUpdating)
       .build();
+  }
+
+  /**
+   * Writes a JSON file from a vidmap protobuf object
+   *
+   * @param outputVidMapJSONFilePath  Full path of file to be written
+   * @param vidMappingPB  Protobuf vid map object
+   */
+  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, GenomicsDBVidMapProto.VidMappingPB vidMappingPB) {
+    String vidMapJSONString = printToString(vidMappingPB);
+    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONString);
+      out.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Writes a JSON file from a set of VCF header lines
+   *
+   * @param outputVidMapJSONFilePath  Full path of file to be written
+   * @param headerLines  Set of header lines
+   */
+  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, Set<VCFHeaderLine> headerLines) {
+    GenomicsDBVidMapProto.VidMappingPB vidMappingPB = generateVidMapFromMergedHeader(headerLines);
+    String vidMapJSONString = printToString(vidMappingPB);
+    File vidMapJSONFile = new File(outputVidMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONString);
+      out.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Writes a JSON file from a vidmap protobuf object
+   *
+   * @param outputCallsetMapJSONFilePath  Full path of file to be written
+   * @param callsetMappingPB  Protobuf callset map object
+   */
+  public static void writeCallsetMapJSONFile(String outputCallsetMapJSONFilePath,
+                                              GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) {
+    String vidMapJSONString = printToString(callsetMappingPB);
+    File vidMapJSONFile = new File(outputCallsetMapJSONFilePath);
+
+    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
+      out.println(vidMapJSONString);
+      out.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -812,7 +848,7 @@ public class GenomicsDBImporter
    * @return  a vid map containing all field names, lengths and types
    *          from the merged GVCF header
    */
-  private GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(
+  public static GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(
     Set<VCFHeaderLine> mergedHeader) {
 
     List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
@@ -919,7 +955,7 @@ public class GenomicsDBImporter
   }
 
 
-  private GenomicsDBVidMapProto.InfoField remove(
+  private static GenomicsDBVidMapProto.InfoField remove(
     List<GenomicsDBVidMapProto.InfoField> infoFields,
     int dpIndex) {
     GenomicsDBVidMapProto.InfoField dpFormatField = infoFields.get(dpIndex);
@@ -939,7 +975,7 @@ public class GenomicsDBImporter
    * @param headerLine  Info or Format header line from VCF
    * @return  VAR, A, R, G, or integer values from VCF
    */
-  private String getLength(VCFHeaderLine headerLine) {
+  private static String getLength(VCFHeaderLine headerLine) {
 
     VCFHeaderLineCount type;
 
