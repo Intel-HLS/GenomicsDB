@@ -82,8 +82,10 @@ int main(int argc, char *argv[]) {
   request.user_name = "postgres";
   request.pass_word = "postgres";
   request.db_name = "gendb";
-  request.work_space = "";
-  request.array_name = "";
+
+  request.work_space = "/home/rmantrix/git_repos/NomixDB/INST_GenomicsDB/tests/workspace";
+  //request.array_name = "hg19";
+  request.array_name = "rsm_test";
 
   MappingDataLoaderTester tester(request);
 

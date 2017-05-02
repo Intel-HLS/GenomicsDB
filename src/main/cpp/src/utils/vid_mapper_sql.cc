@@ -25,6 +25,7 @@
 #include <ctype.h>
 #include <cstdlib>
 #include <cstdio>
+#include <sstream>
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw SQLBasedVidMapperException(#X);
 
@@ -43,25 +44,8 @@ SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMa
     VERIFY_OR_THROW(1 < 0);
   }
 
-  dbi_result result = dbi_conn_query(m_conn, "select count(*) as num_contigs from reference");
-  VERIFY_OR_THROW(result != NULL);
-  int num_contigs = 0;
-
-  if (dbi_result_first_row(result) != 1) {
-    VERIFY_OR_THROW(1 < 0);
-  }
-
-  num_contigs = (int) dbi_result_get_longlong(result, "num_contigs");
-  std::cout <<"NUM_CONTIGS: <" <<num_contigs <<">\n";
-
-  dbi_result_free(result);
-  VERIFY_OR_THROW(num_contigs > 0);
   m_work_space = request.work_space;
   m_array_name = request.array_name;
-
-  m_contig_idx_to_info.resize(num_contigs);
-  m_contig_begin_2_idx.resize(num_contigs);
-  m_contig_end_2_idx.resize(num_contigs);
 }
 
 SQLBasedVidMapper::~SQLBasedVidMapper() {
@@ -74,8 +58,22 @@ int SQLBasedVidMapper::load_contig_info() {
   std::string contig_name;
   int contig_idx = -1;
 
-  dbi_result result = dbi_conn_query(m_conn, "select * from reference");
+  std::stringstream ss;
+  ss <<"select a.name, a.length, a.tiledb_column_offset ";
+  ss <<"from reference a, db_array b, workspace c ";
+  ss <<"where ((c.name='" <<m_work_space <<"') and (c.id = b.workspace_id) ";
+  ss <<"and (b.name = '" <<m_array_name <<"') and ";
+  ss <<"(a.reference_set_id = b.reference_set_id))";
+
+  std::string query = ss.str();
+  std::cout <<"QUERY: <" <<query <<">\n";
+  dbi_result result = dbi_conn_query(m_conn, query.c_str());
   VERIFY_OR_THROW(result != NULL);
+
+  int num_contigs = (int) dbi_result_get_numrows(result);
+  m_contig_idx_to_info.resize(num_contigs);
+  m_contig_begin_2_idx.resize(num_contigs);
+  m_contig_end_2_idx.resize(num_contigs);
 
   while (dbi_result_next_row(result)) {
     ++contig_idx;
