@@ -29,17 +29,28 @@ import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
-import htsjdk.variant.vcf.*;
+import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFContigHeaderLine;
+import htsjdk.variant.vcf.VCFFilterHeaderLine;
+import htsjdk.variant.vcf.VCFFormatHeaderLine;
+import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import htsjdk.variant.vcf.VCFConstants;
+import htsjdk.variant.vcf.VCFHeaderLineType;
+import htsjdk.variant.vcf.VCFHeaderLineCount;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
-import java.io.*;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 
-import static com.googlecode.protobuf.format.JsonFormat.*;
+import static com.googlecode.protobuf.format.JsonFormat.printToString;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -64,7 +75,6 @@ public class GenomicsDBImporter
   static long mDefaultBufferCapacity = 20480; //20KB
   private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
   private static final String DEFAULT_ARRAYNAME = "genomicsdb_array";
-  private static final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 10*1024L;
   private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 
 
@@ -624,17 +634,16 @@ public class GenomicsDBImporter
    *
    * @param outputVidMapJSONFilePath  Full path of file to be written
    * @param vidMappingPB  Protobuf vid map object
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
-  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, GenomicsDBVidMapProto.VidMappingPB vidMappingPB) {
+  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath,
+                                         GenomicsDBVidMapProto.VidMappingPB vidMappingPB) throws FileNotFoundException {
     String vidMapJSONString = printToString(vidMappingPB);
     File vidMapJSONFile = new File(outputVidMapJSONFilePath);
 
-    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONString);
-      out.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    PrintWriter out = new PrintWriter(vidMapJSONFile);
+    out.println(vidMapJSONString);
+    out.close();
   }
 
   /**
@@ -642,18 +651,16 @@ public class GenomicsDBImporter
    *
    * @param outputVidMapJSONFilePath  Full path of file to be written
    * @param headerLines  Set of header lines
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
-  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, Set<VCFHeaderLine> headerLines) {
+  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, Set<VCFHeaderLine> headerLines) throws FileNotFoundException {
     GenomicsDBVidMapProto.VidMappingPB vidMappingPB = generateVidMapFromMergedHeader(headerLines);
     String vidMapJSONString = printToString(vidMappingPB);
     File vidMapJSONFile = new File(outputVidMapJSONFilePath);
 
-    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONString);
-      out.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    PrintWriter out = new PrintWriter(vidMapJSONFile);
+    out.println(vidMapJSONString);
+    out.close();
   }
 
   /**
@@ -661,18 +668,16 @@ public class GenomicsDBImporter
    *
    * @param outputCallsetMapJSONFilePath  Full path of file to be written
    * @param callsetMappingPB  Protobuf callset map object
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
   public static void writeCallsetMapJSONFile(String outputCallsetMapJSONFilePath,
-                                              GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) {
-    String vidMapJSONString = printToString(callsetMappingPB);
-    File vidMapJSONFile = new File(outputCallsetMapJSONFilePath);
+                                              GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) throws FileNotFoundException {
+    String callsetMapJSONString = printToString(callsetMappingPB);
+    File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
 
-    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONString);
-      out.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    PrintWriter out = new PrintWriter(callsetMapJSONFile);
+    out.println(callsetMapJSONString);
+    out.close();
   }
 
   /**
@@ -681,21 +686,20 @@ public class GenomicsDBImporter
    * @param importConfiguration  The configuration object
    * @param filename  File to dump the loader JSON to
    * @return  New file (with the specified name) written to local storage
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
   static File printLoaderJSONFile(
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-    String filename) {
+    String filename) throws FileNotFoundException {
     String loaderJSONString = JsonFormat.printToString(importConfiguration);
 
     File tempLoaderJSONFile = (filename.isEmpty()) ?
       new File(mTempLoaderJSONFileName) :
       new File(filename);
 
-    try( PrintWriter out = new PrintWriter(tempLoaderJSONFile)  ){
-      out.println(loaderJSONString);
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    PrintWriter out = new PrintWriter(tempLoaderJSONFile);
+    out.println(loaderJSONString);
+    out.close();
     return tempLoaderJSONFile;
   }
 
