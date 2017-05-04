@@ -43,7 +43,38 @@ void JSONConfigBase::clear()
   m_callset_mapping_file.clear();
 }
 
-void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper)
+void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
+    const VidMapper* id_mapper, ColumnRange& result)
+{
+  // This MUST be a dictionary of the form "contig" : position or "contig" : [start, end]
+  VERIFY_OR_THROW(curr_json_object.IsObject());
+  VERIFY_OR_THROW(curr_json_object.MemberCount() == 1);
+  auto itr = curr_json_object.MemberBegin();
+  std::string contig_name = itr->name.GetString();
+  ContigInfo contig_info;
+  VERIFY_OR_THROW(id_mapper != 0 && id_mapper->is_initialized());
+  if (!id_mapper->get_contig_info(contig_name, contig_info))
+    throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
+  const rapidjson::Value& contig_position = itr->value;
+  if (contig_position.IsArray())
+  {
+    VERIFY_OR_THROW(contig_position.Size() == 2);
+    VERIFY_OR_THROW(contig_position[0u].IsInt64());
+    VERIFY_OR_THROW(contig_position[1u].IsInt64());
+    // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+    result.first = contig_info.m_tiledb_column_offset + contig_position[0u].GetInt64() - 1;
+    result.second = contig_info.m_tiledb_column_offset + contig_position[1u].GetInt64() - 1;
+  }
+  else // single position
+  {
+    VERIFY_OR_THROW(contig_position.IsInt64());
+    // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+    result.first = contig_info.m_tiledb_column_offset + contig_position.GetInt64() - 1;
+    result.second = result.first;
+  }
+}
+
+void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper, const int rank)
 {
   std::ifstream ifs(filename.c_str());
   VERIFY_OR_THROW(ifs.is_open());
@@ -51,6 +82,14 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   m_json.Parse(str.c_str());
   if(m_json.HasParseError())
     throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
+  FileBasedVidMapper tmp_vid_mapper;
+  //Null or un-initialized
+  if(id_mapper == 0 || !(id_mapper->is_initialized()))
+  {
+    read_and_initialize_vid_and_callset_mapping_if_available(&tmp_vid_mapper, rank);
+    if(tmp_vid_mapper.is_initialized())
+      id_mapper = &tmp_vid_mapper;
+  }
   //Workspace
   if(m_json.HasMember("workspace"))
   {
@@ -154,34 +193,8 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset;
             m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
           }
-          else // This MUST be a dictionary of the form "contig" : position or "contig" : [start, end]
-          {
-            VERIFY_OR_THROW(q3.IsObject());
-            VERIFY_OR_THROW(q3.MemberCount() == 1);
-            auto itr = q3.MemberBegin();
-            std::string contig_name = itr->name.GetString();
-            ContigInfo contig_info;
-            assert(id_mapper != 0);
-            if (!id_mapper->get_contig_info(contig_name, contig_info))
-              throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
-            const rapidjson::Value& contig_position = itr->value;
-            if (contig_position.IsArray())
-            {
-              VERIFY_OR_THROW(contig_position.Size() == 2);
-              VERIFY_OR_THROW(contig_position[0u].IsInt64());
-              VERIFY_OR_THROW(contig_position[1u].IsInt64());
-              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-              m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset + contig_position[0u].GetInt64() - 1;
-              m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_position[1u].GetInt64() - 1;
-            }
-            else // single position
-            {
-              VERIFY_OR_THROW(contig_position.IsInt64());
-              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-              m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset + contig_position.GetInt64() - 1;
-              m_column_ranges[i][j].second = m_column_ranges[i][j].first;
-            }
-          }
+          else //must be object { "chr" : [ b , e ] }
+            extract_contig_interval_from_object(q3, id_mapper, m_column_ranges[i][j]);
           if(m_column_ranges[i][j].first > m_column_ranges[i][j].second)
             std::swap<int64_t>(m_column_ranges[i][j].first, m_column_ranges[i][j].second);
         }
@@ -201,15 +214,33 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         auto array_name_string = m_single_array_name ? m_array_names[0] : "";
         for(rapidjson::SizeType partition_idx=0;partition_idx<column_partitions_array.Size();++partition_idx)
         {
+          m_column_ranges[partition_idx].resize(1);      //only 1 std::pair
           //{ "begin" : <Val> }
           const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
           VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
           VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-          m_column_ranges[partition_idx].resize(1);      //only 1 std::pair
-          m_column_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
+          auto& begin_json_value = curr_partition_info_dict["begin"];
+          //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
+          VERIFY_OR_THROW(begin_json_value.IsInt64() || begin_json_value.IsObject());
+          if(begin_json_value.IsInt64())
+            m_column_ranges[partition_idx][0].first = begin_json_value.GetInt64();
+          else
+            extract_contig_interval_from_object(begin_json_value, id_mapper, m_column_ranges[partition_idx][0]);
           m_column_ranges[partition_idx][0].second = INT64_MAX-1;
           if(curr_partition_info_dict.HasMember("end"))
-            m_column_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
+          {
+            auto& end_json_value = curr_partition_info_dict["end"];
+            //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
+            VERIFY_OR_THROW(end_json_value.IsInt64() || end_json_value.IsObject());
+            if(end_json_value.IsInt64())
+              m_column_ranges[partition_idx][0].second = end_json_value.GetInt64();
+            else
+            {
+              ColumnRange tmp_range;
+              extract_contig_interval_from_object(end_json_value, id_mapper, tmp_range);
+              m_column_ranges[partition_idx][0].second = tmp_range.first;
+            }
+          }
           if(m_column_ranges[partition_idx][0].first > m_column_ranges[partition_idx][0].second)
             std::swap<int64_t>(m_column_ranges[partition_idx][0].first, m_column_ranges[partition_idx][0].second);
           if(curr_partition_info_dict.HasMember("workspace"))
@@ -526,7 +557,7 @@ void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQu
     read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
     VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided in loader or query JSON");
   }
-  JSONConfigBase::read_from_file(filename, id_mapper);
+  JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //Workspace
   VERIFY_OR_THROW(m_workspaces.size() && "No workspace specified");
   VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
@@ -608,7 +639,7 @@ JSONLoaderConfig::JSONLoaderConfig(
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
 {
-  JSONConfigBase::read_from_file(filename);
+  JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //Check for row based partitioning - default column based
   m_row_based_partitioning = m_json.HasMember("row_based_partitioning") && m_json["row_based_partitioning"].IsBool()
     && m_json["row_based_partitioning"].GetBool();
@@ -715,7 +746,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     VCFAdapter& vcf_adapter, std::string output_format, const int rank,
     const size_t combined_vcf_records_buffer_size_limit)
 {
-  JSONConfigBase::read_from_file(filename);
+  JSONConfigBase::read_from_file(filename, 0, rank);
   //VCF header filename
   if(m_json.HasMember("vcf_header_filename"))
   {
