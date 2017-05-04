@@ -29,6 +29,22 @@
 #include <map>
 #include <dbi/dbi.h>
 
+const std::string PGSQL_DRIVER = "pgsql";
+const std::string DBCONN_HOST = "host";
+const std::string DBCONN_USERNAME = "username";
+const std::string DBCONN_PASSWORD = "password";
+const std::string DBCONN_DBNAME = "dbname";
+const std::string DBCONN_ENCODING = "encoding";
+const std::string UTF8_ENCODING = "UTF-8";
+
+const std::string DBCONN_NEW_CONNECTION_FAILED = "FAILED to Create new Connection";
+const std::string DBCONN_CONNECT_To_DB_FAILED = "FAILED to Connect to DB";
+const std::string DBQUERY_FAILED = "DB Query Failed";
+
+const std::string DBTABLE_REFERENCE_COLUMN_NAME = "name";
+const std::string DBTABLE_REFERENCE_COLUMN_OFFSET = "tiledb_column_offset";
+const std::string DBTABLE_REFERENCE_COLUMN_LENGTH = "length";
+
 enum {
   GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
   GENOMICSDB_VID_MAPPER_FAILURE = 0x1
@@ -48,17 +64,25 @@ class SQLBasedVidMapper : public VidMapper {
   public:
     SQLBasedVidMapper(const SQLVidMapperRequest&);
 
+    SQLBasedVidMapper(const SQLBasedVidMapper&) = delete;
+
+    SQLBasedVidMapper(SQLBasedVidMapper&&) = delete;
+
+    void operator=(const SQLBasedVidMapper&) = delete;
+
+    SQLBasedVidMapper&& operator=(SQLBasedVidMapper&&) = delete;
+
     int load_contig_info();
 
     int load_mapping_data_from_db();
 
-    std::vector<ContigInfo> get_contigs() { return(m_contig_idx_to_info); }
+    std::vector<ContigInfo>& get_contigs() { return(m_contig_idx_to_info); }
 
-    std::vector<std::pair<int64_t, int>> get_contig_begin() {
+    std::vector<std::pair<int64_t, int>>& get_contig_begin_offsets() {
       return(m_contig_begin_2_idx);
     }
 
-    std::vector<std::pair<int64_t, int>> get_contig_end() {
+    std::vector<std::pair<int64_t, int>>& get_contig_end_offsets() {
       return(m_contig_end_2_idx);
     }
 
