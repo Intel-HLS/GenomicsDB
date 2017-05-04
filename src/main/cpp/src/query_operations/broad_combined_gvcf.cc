@@ -169,8 +169,13 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   {
     auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
     auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
-    assert(status);
-    bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
+    if(!status || callset_name.empty())
+      throw BroadCombinedGVCFException(std::string("No sample/CallSet name specified in JSON file/Protobuf object for TileDB row ")
+          + std::to_string(row_idx));
+    auto add_sample_status = bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
+    if(add_sample_status < 0)
+      throw BroadCombinedGVCFException(std::string("Could not add sample ")
+          +callset_name+" to the combined VCF/gVCF header");
   }
   bcf_hdr_sync(m_vcf_hdr);
   m_vcf_adapter->print_header();
