@@ -218,8 +218,8 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
           //{ "begin" : <Val> }
           const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
           VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
-          auto& begin_json_value = curr_partition_info_dict["begin"];
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
+          auto& begin_json_value = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME];
           //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
           VERIFY_OR_THROW(begin_json_value.IsInt64() || begin_json_value.IsObject());
           if(begin_json_value.IsInt64())
@@ -227,9 +227,9 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
           else
             extract_contig_interval_from_object(begin_json_value, id_mapper, m_column_ranges[partition_idx][0]);
           m_column_ranges[partition_idx][0].second = INT64_MAX-1;
-          if(curr_partition_info_dict.HasMember("end"))
+          if(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_END_FIELD_NAME))
           {
-            auto& end_json_value = curr_partition_info_dict["end"];
+            auto& end_json_value = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_END_FIELD_NAME];
             //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
             VERIFY_OR_THROW(end_json_value.IsInt64() || end_json_value.IsObject());
             if(end_json_value.IsInt64())
@@ -333,12 +333,12 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         {
           const auto& curr_partition_info_dict = row_partitions_array[partition_idx];
           VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
           m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
-          m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
+          m_row_ranges[partition_idx][0].first = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME].GetInt64();
           m_row_ranges[partition_idx][0].second = INT64_MAX-1;
-          if(curr_partition_info_dict.HasMember("end"))
-            m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
+          if(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_END_FIELD_NAME))
+            m_row_ranges[partition_idx][0].second = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_END_FIELD_NAME].GetInt64();
           if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
             std::swap<int64_t>(m_row_ranges[partition_idx][0].first, m_row_ranges[partition_idx][0].second);
           if(curr_partition_info_dict.HasMember("workspace"))
@@ -794,7 +794,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
       // {"begin": x}
       auto& curr_partition_info_dict = column_partitions_array[static_cast<rapidjson::SizeType>(rank)];
       VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-      VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+      VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
       if(curr_partition_info_dict.HasMember("vcf_output_filename"))
       {
         VERIFY_OR_THROW(curr_partition_info_dict["vcf_output_filename"].IsString());

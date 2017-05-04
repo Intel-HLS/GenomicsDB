@@ -111,6 +111,9 @@ class JSONBasicQueryConfig : public JSONConfigBase
     void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
 
+#define JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME "begin"
+#define JSON_LOADER_PARTITION_INFO_END_FIELD_NAME "end"
+
 class JSONLoaderConfig : public JSONConfigBase
 {
   public:
