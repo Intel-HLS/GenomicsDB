@@ -634,17 +634,16 @@ public class GenomicsDBImporter
    *
    * @param outputVidMapJSONFilePath  Full path of file to be written
    * @param vidMappingPB  Protobuf vid map object
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
-  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, GenomicsDBVidMapProto.VidMappingPB vidMappingPB) {
+  public static void writeVidMapJSONFile(String outputVidMapJSONFilePath,
+                                         GenomicsDBVidMapProto.VidMappingPB vidMappingPB) throws FileNotFoundException {
     String vidMapJSONString = printToString(vidMappingPB);
     File vidMapJSONFile = new File(outputVidMapJSONFilePath);
 
-    try( PrintWriter out = new PrintWriter(vidMapJSONFile)  ){
-      out.println(vidMapJSONString);
-      out.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
+    PrintWriter out = new PrintWriter(vidMapJSONFile);
+    out.println(vidMapJSONString);
+    out.close();
   }
 
   /**
@@ -652,6 +651,7 @@ public class GenomicsDBImporter
    *
    * @param outputVidMapJSONFilePath  Full path of file to be written
    * @param headerLines  Set of header lines
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
   public static void writeVidMapJSONFile(String outputVidMapJSONFilePath, Set<VCFHeaderLine> headerLines) throws FileNotFoundException {
     GenomicsDBVidMapProto.VidMappingPB vidMappingPB = generateVidMapFromMergedHeader(headerLines);
@@ -668,6 +668,7 @@ public class GenomicsDBImporter
    *
    * @param outputCallsetMapJSONFilePath  Full path of file to be written
    * @param callsetMappingPB  Protobuf callset map object
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
   public static void writeCallsetMapJSONFile(String outputCallsetMapJSONFilePath,
                                               GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) throws FileNotFoundException {
@@ -685,6 +686,7 @@ public class GenomicsDBImporter
    * @param importConfiguration  The configuration object
    * @param filename  File to dump the loader JSON to
    * @return  New file (with the specified name) written to local storage
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
    */
   static File printLoaderJSONFile(
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
