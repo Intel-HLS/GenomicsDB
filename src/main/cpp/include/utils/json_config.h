@@ -64,7 +64,9 @@ class JSONConfigBase
       clear();
     }
     void clear();
-    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0);
+    static void extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
+        const VidMapper* id_mapper, ColumnRange& result);
+    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0, const int rank=0);
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
@@ -108,6 +110,9 @@ class JSONBasicQueryConfig : public JSONConfigBase
     void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
     void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
+
+#define JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME "begin"
+#define JSON_LOADER_PARTITION_INFO_END_FIELD_NAME "end"
 
 class JSONLoaderConfig : public JSONConfigBase
 {
