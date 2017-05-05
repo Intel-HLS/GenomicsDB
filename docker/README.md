@@ -1,9 +1,12 @@
 ## How to use generate combined VCF file using docker image vcf_combiner
 #### Create vcf_combiner docker image
 
-Clone the project from github. The run:
+1. clone the project from github.
+2. create a directory name tmp
+3. copy your built vcf2tiledb to tmp
+4. Then RUN:
 
-<pre><code>sudo docker -t vcf_combiner --no-cache</code></pre>
+<pre><code>sudo docker -t vcf_combiner --build-arg GENOMICSDB_BUILD_PATH=/path/to/GenomicsDB</code></pre>
 
 adjust `network setting` as `needed`.
 
@@ -32,6 +35,7 @@ _where_
 <pre><code>sudo docker run -it /host_docker_data/:/data/ -v /host_docker_reference/:/ref/ vcf_combiner combine_vcf -R /ref/Homo_sapiens_assembly19.fasta -o /data/output/combined.vcf.gz -i /data/vcfs/info_op1.vcf.gz,/data/vcfs/t7.vcf.gz,/data/vcfs/t1.vcf.gz</code></pre>
 
 #### Examples of running inside the docker container
+
 <p>Create a docker container with bash command
 <pre><code>sudo docker run -it -v /host_docker_data/:/data/ -v /host_docker_reference/:/ref/ vcf_combiner bash</code></pre>
 </p>
@@ -40,7 +44,9 @@ _where_
 *OR run with -i vcf_files ...*
 <pre><code>combine_vcf -R /ref/Homo_sapiens_assembly19.fasta -o /data/output/combined.vcf.2.gz -i /data/vcfs/info_op1.vcf.gz,/data/vcfs/t7.vcf.gz,/data/vcfs/t1.vcf.gz</code></pre>
 </p>
+
 ##### The look of tn.list of above examples
+
     /data/vcfs/info_op1.vcf.gz
     /data/vcfs/t7.vcf.gz
     /data/vcfs/t1.vcf.gz
