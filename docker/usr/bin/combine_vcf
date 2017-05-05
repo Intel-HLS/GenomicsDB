@@ -1,0 +1,180 @@
+#! /usr/bin/python
+"""
+    * The MIT License (MIT)
+    * Copyright (c) 2016 Intel Corporation
+    *
+    * Permission is hereby granted, free of charge, to any person obtaining a copy of
+    * this software and associated documentation files (the "Software"), to deal in
+    * the Software without restriction, including without limitation the rights to
+    * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+    * the Software, and to permit persons to whom the Software is furnished to do so,
+    * subject to the following conditions:
+    *
+    * The above copyright notice and this permission notice shall be included in all
+    * copies or substantial portions of the Software.
+    *
+    * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+    * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+    * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+    * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+    * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
+import sys
+import os
+import os.path
+from datetime import datetime
+from copy import deepcopy
+from subprocess import Popen, call
+import json
+from getopt import getopt
+import uuid
+from collections import OrderedDict
+import vcf
+
+COL_PARTITION_SIZE_UNIT = 16384
+
+loader_cfg_t = {
+    "produce_combined_vcf": True,
+    "num_parallel_vcf_files": 1,
+    "callset_mapping_file" : "",
+    "vcf_output_format" : "z",
+    "vcf_output_filename" : "",
+    "reference_genome" : "", 
+    "column_partitions" : [{"begin": 0, "vcf_output_filename": ""}],
+    "do_ping_pong_buffering" : True,
+    "offload_vcf_output_processing" : True,
+    "produce_GT_field" : False,
+    "size_per_column_partition" : COL_PARTITION_SIZE_UNIT,
+    "vid_mapping_file": "/usr/share/cont-intel/vid.json"    
+}
+
+class CombineVCF():
+    ''' VCF file combiner '''    
+    def __init__(self):
+        self.vcf_inputfiles = None
+        self.callsets = None
+        self.ref_file = None
+        self.output_file = None
+        self.produce_GT_field = None
+
+        DevNull = open(os.devnull, 'wb', 0)
+        if call(["grep", 'docker', '/proc/1/cgroup'], stdout=DevNull, stderr=DevNull) != 0:
+            loader_cfg_t["vid_mapping_file"] = "/home/mingrutar/GenomicsDBPerfTest/dev/templates/vid.json"   
+
+    def parse_args(self, args):
+        assert args and len(args) > 1
+        myopts, _ = getopt(args, "i:o:R:c:p", \
+            ['samples=' 'output=', 'reference=', 'callsets=', 'produce_GT_field'])
+        for opt, user_input in myopts:
+            opt = opt.strip()
+            user_input = user_input.strip()
+            if opt == '-p' or opt == '--produce_GT_field':
+                self.produce_GT_field = True
+            else:
+                assert user_input
+                if opt == '-i' or opt == '--samples':
+                    file_list = user_input.split(',')
+                    self.vcf_inputfiles = file_list
+                if opt == '-o' or opt == '--output':
+                    if not os.path.exists(os.path.dirname(user_input)):
+                        os.makedirs(os.path.dirname(user_input))
+                    assert not os.path.isdir(user_input), user_input + " is not a output file name"
+                    self.output_file = user_input
+                if opt == '-R' or opt == '--reference':
+                    assert os.path.isfile(user_input) or os.path.islink(user_input)
+                    self.ref_file = user_input
+                if opt == '-c' or opt == '--callsets':
+                    assert os.path.isfile(user_input)
+                    self.callsets = user_input
+        assert self.vcf_inputfiles, "missing samples files"
+        assert self.ref_file, "missing reference file"
+        assert self.output_file, "missing output file"
+
+    @staticmethod
+    def __generate_callsets(vcf_inputfiles):
+        global_callset_idx = 0
+        callsets_dict = OrderedDict()
+        for vcf_file in vcf_inputfiles:
+            read_mode = 'r' if vcf_file[-3:] == 'vcf' else 'rb'
+            with open(vcf_file, read_mode) as fd:
+                vcf_reader = vcf.Reader(fd)
+                local_callset_idx = 0
+                for callset_name in vcf_reader.samples:
+                    curr_callset_info = OrderedDict()
+                    if callset_name in callsets_dict:	            #duplicate
+                        ss = str(uuid.uuid4())
+                        print('Duplicate callset name %s: appending _%s' % (callset_name, ss))
+                        callset_name += ('_' + ss)
+                    else:
+                        curr_callset_info["row_idx"] = global_callset_idx
+                        curr_callset_info["idx_in_file"] = local_callset_idx
+                        curr_callset_info["filename"] = vcf_file
+                        callsets_dict[callset_name] = curr_callset_info
+                        local_callset_idx += 1
+                        global_callset_idx += 1
+        json_fn = "callsets_%s.json" % datetime.now().strftime("%y%m%d%H%M")
+        json_fn = os.path.join("/tmp", json_fn)
+        with open(json_fn, 'w') as ofd:
+            json.dump({'callsets' : callsets_dict}, ofd, indent=4, separators=(',', ': '))
+        return json_fn, global_callset_idx
+    
+    @staticmethod
+    def __is_vcf_file_list(fn):
+        with open(fn, 'r') as fd:
+            for line in fd:
+                if line.strip():
+                    return os.path.isfile(line.strip())
+        
+    def check_paths(self):
+        if len(self.vcf_inputfiles) == 1 and self.__is_vcf_file_list(self.vcf_inputfiles[0]):
+            root_path = os.path.dirname(self.vcf_inputfiles[0])
+            with open(self.vcf_inputfiles[0], 'r') as fd:
+                inputs = [line.strip() for line in fd if os.path.isfile(os.path.join(root_path, line.strip()))]
+        else:
+            inputs = [line.strip() for line in self.vcf_inputfiles if os.path.isfile(line)]
+        if inputs:
+            self.vcf_inputfiles = inputs
+            if self.callsets:
+                cs_cfg = json.load(self.callsets)
+                self.num_part_units = 0 - len(cs_cfg["callsets"])
+            else:
+                self.callsets, self.num_part_units = self.__generate_callsets(self.vcf_inputfiles)
+            assert self.num_part_units != 0, "No valid callset/sample found in input files"
+        else:
+            raise RuntimeError("No valid samples input files found")
+
+    def __generate_loader_config(self):
+        loader_cVCF = deepcopy(loader_cfg_t)
+        loader_cVCF["callset_mapping_file"] = self.callsets
+        loader_cVCF['reference_genome'] = self.ref_file
+        loader_cVCF["column_partitions"][0]["vcf_output_filename"] = self.output_file
+        loader_cVCF["vcf_output_filename"] = self.output_file
+        loader_cVCF["size_per_column_partition"] = int(abs(self.num_part_units)) * COL_PARTITION_SIZE_UNIT
+        if self.produce_GT_field:
+            loader_cVCF['produce_GT_field'] = True
+        json_fn = "lc_%s" % datetime.now().strftime("%y%m%d%H%M")
+        json_fn = os.path.join("/tmp", json_fn)
+        with open(json_fn, 'w') as ofd:
+            json.dump(loader_cVCF, ofd)
+        return json_fn
+
+    def combine(self):
+        loader_config = self.__generate_loader_config()
+        the_exec_cmd = ['vcf2tiledb', loader_config]
+        pexec = Popen(the_exec_cmd, shell=False)
+	pexec.communicate()
+        rc = pexec.wait()
+        if rc != 0:
+            print("ERROR: failed to combine vcf files. Error code = ", rc)
+        elif os.path.isfile(self.output_file):
+            print("INFO: combined vcf sample files into a single vcf file %s" % (self.output_file))
+        else:
+            print("FATAL: internal error. No %s produced from vcf sample files" % (self.output_file))
+
+if __name__ == "__main__":
+    combiner = CombineVCF()
+    combiner.parse_args(sys.argv[1:])
+    combiner.check_paths()
+    combiner.combine()
+    print("Done")
