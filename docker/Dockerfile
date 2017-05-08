@@ -36,7 +36,6 @@ ADD ./root /root
 COPY tmp/vcf2tiledb /usr/bin/
 
 WORKDIR /home/default
-VOLUME /data
 
 ENV BASH_ENV=/etc/profile.d/cont-env.sh HOME=/home/default PATH=$PATH:/usr/lib64/mpich/bin 
 
