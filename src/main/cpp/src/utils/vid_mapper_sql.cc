@@ -105,14 +105,40 @@ int SQLBasedVidMapper::load_contig_info() {
   return(GENOMICSDB_VID_MAPPER_SUCCESS);
 }
 
+int SQLBasedVidMapper::load_callset_info() {
+  std::stringstream ss;
+  ss <<"select id, name from callset order by id";
+
+  std::string query = ss.str();
+  std::cout <<"QUERY: <" <<query <<">\n";
+  dbi_result result = dbi_conn_query(m_conn, query.c_str());
+  if (NULL == result) {
+      const char* errmsg = NULL;
+      dbi_conn_error(m_conn, &errmsg);
+      std::string error_message = (DBQUERY_FAILED + " : " + errmsg);
+      THROW_EXCEPTION(error_message);
+  }
+
+  int num_callsets = (int) dbi_result_get_numrows(result);
+  m_row_idx_to_info.resize(num_callsets);
+  m_max_callset_row_idx = -1;
+
+  while (dbi_result_next_row(result)) {
+    std::string callset_name = dbi_result_get_string(result, DBTABLE_CALLSET_COLUMN_NAME.c_str());
+    int64_t row_idx = dbi_result_get_longlong(result, DBTABLE_CALLSET_COLUMN_ID.c_str());
+    int64_t file_idx = row_idx;
+    m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
+    m_callset_name_to_row_idx[callset_name] = row_idx;
+    m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, 0);
+  }
+
+  dbi_result_free(result);
+  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+}
+
 int SQLBasedVidMapper::load_mapping_data_from_db() {
-  /**
-   * ret = parse_contigs_from_vidmap(vid_map_protobuf);
-   * assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
-   * ret = parse_infofields_from_vidmap(vid_map_protobuf);
-   * assert (ret == GENOMICSDB_VID_MAPPER_SUCCESS);
-   */
   load_contig_info();
+  load_callset_info();
   return(GENOMICSDB_VID_MAPPER_SUCCESS);
 }
 

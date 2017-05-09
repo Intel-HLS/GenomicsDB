@@ -32,9 +32,12 @@ class MappingDataLoaderTester {
     std::vector<ContigInfo> m_contig_idx_to_info;
     std::vector<std::pair<int64_t, int>> m_contig_begin_2_idx;
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
+    std::vector<CallSetInfo> m_row_idx_to_info;
+    std::unordered_map<std::string, int64_t> m_callset_name_to_row_idx;
   public:
     MappingDataLoaderTester(const SQLVidMapperRequest&);
-    void print_contig_info();
+    void validate_contig_info();
+    void validate_callset_info();
     ~MappingDataLoaderTester();
 };
 
@@ -42,6 +45,8 @@ MappingDataLoaderTester::~MappingDataLoaderTester() {
   m_contig_idx_to_info.clear();
   m_contig_begin_2_idx.clear();
   m_contig_end_2_idx.clear();
+  m_row_idx_to_info.clear();
+  m_callset_name_to_row_idx.clear();
 }
 
 MappingDataLoaderTester::MappingDataLoaderTester(const SQLVidMapperRequest& request) {
@@ -50,9 +55,11 @@ MappingDataLoaderTester::MappingDataLoaderTester(const SQLVidMapperRequest& requ
   m_contig_idx_to_info = vid_mapper.get_contigs();
   m_contig_begin_2_idx = vid_mapper.get_contig_begin_offsets();
   m_contig_end_2_idx = vid_mapper.get_contig_end_offsets();
+  m_row_idx_to_info = vid_mapper.get_callsets();
+  m_callset_name_to_row_idx = vid_mapper.get_name_to_idx_map();
 }
 
-void MappingDataLoaderTester::print_contig_info() {
+void MappingDataLoaderTester::validate_contig_info() {
   std::cout <<"------------------------------------------------------\n";
   int64_t prev_offset = -1;
 
@@ -78,6 +85,21 @@ void MappingDataLoaderTester::print_contig_info() {
     std::cout <<it->first <<" - " <<it->second <<"\n";
     assert(it->first > prev_end_first);
     prev_end_first = it->first;
+  }
+
+  std::cout <<"------------------------------------------------------\n";
+  return;
+}
+
+void MappingDataLoaderTester::validate_callset_info() {
+  std::cout <<"------------------------------------------------------\n";
+  int64_t index = -1;
+
+  for (std::vector<CallSetInfo>::iterator it = m_row_idx_to_info.begin(); it != m_row_idx_to_info.end(); ++it) {
+    index++;
+    std::cout <<it->m_row_idx <<" - " <<it->m_name <<" - " <<it->m_file_idx <<" - " <<it->m_idx_in_file <<"\n";
+    assert(index == it->m_row_idx);
+    assert(m_callset_name_to_row_idx[it->m_name] == index);
   }
 
   std::cout <<"------------------------------------------------------\n";
@@ -111,7 +133,9 @@ int main(int argc, char *argv[]) {
 
   MappingDataLoaderTester tester(request);
 
-  tester.print_contig_info();
+  tester.validate_contig_info();
+
+  tester.validate_callset_info();
 
   std::cout <<"------------ MappingData Loader -  END  -----------------\n";
   return(0);
