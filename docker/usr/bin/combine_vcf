@@ -26,6 +26,7 @@ import os.path
 from datetime import datetime
 from copy import deepcopy
 from subprocess import Popen, call
+import shutil
 import json
 from getopt import getopt
 import uuid
@@ -41,7 +42,7 @@ loader_cfg_t = {
     "vcf_output_format" : "z",
     "vcf_output_filename" : "",
     "reference_genome" : "", 
-    "column_partitions" : [{"begin": 0, "vcf_output_filename": ""}],
+    "column_partitions" : [],
     "do_ping_pong_buffering" : True,
     "offload_vcf_output_processing" : True,
     "produce_GT_field" : False,
@@ -49,7 +50,7 @@ loader_cfg_t = {
     "vid_mapping_file": "/usr/share/cont-intel/vid.json"    
 }
 
-class CombineVCF():
+class CombineVCF(object):
     ''' VCF file combiner '''    
     def __init__(self):
         self.vcf_inputfiles = None
@@ -57,20 +58,24 @@ class CombineVCF():
         self.ref_file = None
         self.output_file = None
         self.produce_GT_field = None
-
-        DevNull = open(os.devnull, 'wb', 0)
-        if call(["grep", 'docker', '/proc/1/cgroup'], stdout=DevNull, stderr=DevNull) != 0:
-            loader_cfg_t["vid_mapping_file"] = "/home/mingrutar/GenomicsDBPerfTest/dev/templates/vid.json"   
+        self.chromosome = None
+        self.begin = None
+        self.end = None
+        self.num_part_units = 0
+        self.dryrun = False
 
     def parse_args(self, args):
         assert args and len(args) > 1
         myopts, _ = getopt(args, "i:o:R:c:p", \
-            ['samples=' 'output=', 'reference=', 'callsets=', 'produce_GT_field'])
+            ['samples=' 'output=', 'reference=', 'callsets=', 'produce_GT_field', \
+             'chromosome=', 'begin=', 'end=', 'dryrun'])
         for opt, user_input in myopts:
             opt = opt.strip()
             user_input = user_input.strip()
             if opt == '-p' or opt == '--produce_GT_field':
                 self.produce_GT_field = True
+            elif opt == '--dryrun':
+                self.dryrun = True
             else:
                 assert user_input
                 if opt == '-i' or opt == '--samples':
@@ -87,12 +92,35 @@ class CombineVCF():
                 if opt == '-c' or opt == '--callsets':
                     assert os.path.isfile(user_input)
                     self.callsets = user_input
+                if opt == '--chromosome':
+                    self.chromosome = user_input
+                if opt == '--begin':
+                    self.begin = int(user_input)
+                if opt == '--end':
+                    self.end = int(user_input)
+
         assert self.vcf_inputfiles, "missing samples files"
         assert self.ref_file, "missing reference file"
         assert self.output_file, "missing output file"
+        
+        self.tmp_dir = os.path.join(os.path.dirname(self.output_file), "tmp")
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+        os.makedirs(self.tmp_dir)
+
+        if self.end:
+            assert self.end >= self.begin, 'chromosome end position must great or equal to begin position'
+        if self.chromosome:
+            assert self.begin, 'missing begin position of chromosome'
+
+        if not self.dryrun:
+            DevNull = open(os.devnull, 'wb', 0)
+            if call(["grep", 'docker', '/proc/1/cgroup'], stdout=DevNull, stderr=DevNull) != 0:
+                loader_cfg_t["vid_mapping_file"] = "/home/mingrutar/GenomicsDBPerfTest/dev/templates/vid.json"   
+
 
     @staticmethod
-    def __generate_callsets(vcf_inputfiles):
+    def __generate_callsets(vcf_inputfiles, json_fn):
         global_callset_idx = 0
         callsets_dict = OrderedDict()
         for vcf_file in vcf_inputfiles:
@@ -113,24 +141,43 @@ class CombineVCF():
                         callsets_dict[callset_name] = curr_callset_info
                         local_callset_idx += 1
                         global_callset_idx += 1
-        json_fn = "callsets_%s.json" % datetime.now().strftime("%y%m%d%H%M")
-        json_fn = os.path.join("/tmp", json_fn)
+            print("__generate_callsets: vcf_file=%s, global_callset_idx=%d" % (vcf_file, global_callset_idx))
         with open(json_fn, 'w') as ofd:
             json.dump({'callsets' : callsets_dict}, ofd, indent=4, separators=(',', ': '))
         return json_fn, global_callset_idx
     
     @staticmethod
     def __is_vcf_file_list(fn):
+        if fn[-3:] == '.gz' or fn[-4:] == 'vcf':
+            return False
         with open(fn, 'r') as fd:
             for line in fd:
-                if line.strip():
-                    return os.path.isfile(line.strip())
+                line = line.strip()
+                if line:
+                    if fn[-3:] == '.gz' or fn[-4:] == 'vcf' or os.path.isfile(line):
+                        return True 
+        return False
+
+    @staticmethod
+    def col_par_pos(vcf_file, b_pos=0):
+        col_par = {"begin": 0, "vcf_output_filename": ""}
+        col_par["vcf_output_filename"] = vcf_file
+        col_par["begin"] = b_pos
+        return col_par
+
+    @staticmethod
+    def col_par_chrs(vcf_file, chromosome, b_c_pos, e_c_pos=None):
+        col_par = {"begin": {}, "end": {}, "vcf_output_filename": ""} 
+        col_par["vcf_output_filename"] = vcf_file
+        col_par["begin"][chromosome] = b_c_pos
+        if e_c_pos:
+            col_par["end"][chromosome] = e_c_pos
+        return col_par
         
     def check_paths(self):
         if len(self.vcf_inputfiles) == 1 and self.__is_vcf_file_list(self.vcf_inputfiles[0]):
-            root_path = os.path.dirname(self.vcf_inputfiles[0])
             with open(self.vcf_inputfiles[0], 'r') as fd:
-                inputs = [line.strip() for line in fd if os.path.isfile(os.path.join(root_path, line.strip()))]
+                inputs = [line.strip() for line in fd if os.path.isfile(line.strip())]
         else:
             inputs = [line.strip() for line in self.vcf_inputfiles if os.path.isfile(line)]
         if inputs:
@@ -139,31 +186,36 @@ class CombineVCF():
                 cs_cfg = json.load(self.callsets)
                 self.num_part_units = 0 - len(cs_cfg["callsets"])
             else:
-                self.callsets, self.num_part_units = self.__generate_callsets(self.vcf_inputfiles)
+                json_fn = "callsets_%s.json" % datetime.now().strftime("%y%m%d%H%M")
+                json_fn = os.path.join(self.tmp_dir, json_fn)
+                self.callsets, self.num_part_units = self.__generate_callsets(self.vcf_inputfiles, json_fn)
             assert self.num_part_units != 0, "No valid callset/sample found in input files"
         else:
             raise RuntimeError("No valid samples input files found")
 
-    def __generate_loader_config(self):
+    def generate_loader_config(self):
         loader_cVCF = deepcopy(loader_cfg_t)
         loader_cVCF["callset_mapping_file"] = self.callsets
         loader_cVCF['reference_genome'] = self.ref_file
-        loader_cVCF["column_partitions"][0]["vcf_output_filename"] = self.output_file
+        if self.chromosome:
+            col_par_setting = self.col_par_chrs(self.output_file, self.chromosome, self.begin, self.end if self.end else None)
+        else:
+            col_par_setting = self.col_par_pos(self.output_file)
+        loader_cVCF["column_partitions"].append(col_par_setting)
         loader_cVCF["vcf_output_filename"] = self.output_file
         loader_cVCF["size_per_column_partition"] = int(abs(self.num_part_units)) * COL_PARTITION_SIZE_UNIT
         if self.produce_GT_field:
             loader_cVCF['produce_GT_field'] = True
         json_fn = "lc_%s" % datetime.now().strftime("%y%m%d%H%M")
-        json_fn = os.path.join("/tmp", json_fn)
+        json_fn = os.path.join(self.tmp_dir, json_fn)
         with open(json_fn, 'w') as ofd:
             json.dump(loader_cVCF, ofd)
         return json_fn
 
-    def combine(self):
-        loader_config = self.__generate_loader_config()
+    def combine(self, loader_config):
         the_exec_cmd = ['vcf2tiledb', loader_config]
         pexec = Popen(the_exec_cmd, shell=False)
-	pexec.communicate()
+        pexec.communicate()
         rc = pexec.wait()
         if rc != 0:
             print("ERROR: failed to combine vcf files. Error code = ", rc)
@@ -176,5 +228,9 @@ if __name__ == "__main__":
     combiner = CombineVCF()
     combiner.parse_args(sys.argv[1:])
     combiner.check_paths()
-    combiner.combine()
-    print("Done")
+    loader_cfg = combiner.generate_loader_config()
+    if not combiner.dryrun:
+        combiner.combine(loader_cfg)
+        print("Done")
+    else:
+        print("Done dryrun: loader_cfg=", loader_cfg)
