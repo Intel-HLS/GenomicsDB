@@ -107,7 +107,11 @@ int SQLBasedVidMapper::load_contig_info() {
 
 int SQLBasedVidMapper::load_callset_info() {
   std::stringstream ss;
-  ss <<"select id, name from callset order by id";
+  ss <<"select a.id, a.name from callset a, ";
+  ss <<"db_array b, workspace c, callset_to_db_array_association d ";
+  ss <<"where ((c.name='" <<m_work_space <<"') and (c.id = b.workspace_id) ";
+  ss <<"and (b.name = '" <<m_array_name <<"') and ";
+  ss <<"(b.id = d.db_array_id) and (d.callset_id = a.id))";
 
   std::string query = ss.str();
   std::cout <<"QUERY: <" <<query <<">\n";
