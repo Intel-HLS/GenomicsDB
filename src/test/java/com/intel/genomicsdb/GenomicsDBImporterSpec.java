@@ -22,12 +22,15 @@
 
 package com.intel.genomicsdb;
 
+import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.math3.analysis.function.Abs;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -39,78 +42,74 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class GenomicsDBImporterSpec {
 
-  private static final File WORKSPACE = new File("./__workspace");
+  private static final File WORKSPACE = new File("__workspace");
   private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
   private static final String TEST_CHROMOSOME_NAME = "1";
-  private static final File TEMP_VID_JSON_FILE = new File("./generated_vidmap.json");
-  private static final File TEMP_CALLSET_JSON_FILE = new File("./generated_callsetmap.json");
+  private static final File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
+  private static final File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
 
   @Test(testName = "genomicsdb importer with an interval and multiple GVCFs",
-        dataProvider = "vcfFiles",
-        dataProviderClass = GenomicsDBTestUtils.class)
-  public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> variantReaders)
-    throws IOException {
+      dataProvider = "vcfFiles",
+      dataProviderClass = GenomicsDBTestUtils.class)
+  public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
+      throws IOException {
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
 
-    Set<VCFHeaderLine> mergedHeader = createMergedHeader(variantReaders);
+    Set<VCFHeaderLine> mergedHeader = createMergedHeader(sampleToReaderMap);
+
+    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, false);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
-      variantReaders,
+      sampleToReaderMap,
       mergedHeader,
       chromosomeInterval,
       WORKSPACE.getAbsolutePath(),
       TILEDB_ARRAYNAME,
-      0L,
+      1024L,
       10000000L);
 
     importer.importBatch();
+
+    GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
+        callsetMappingPB);
     Assert.assertEquals(importer.isDone(), true);
-  }
-
-  private Set<VCFHeaderLine> createMergedHeader(
-    Map<String, FeatureReader<VariantContext>> variantReaders) {
-
-    List<VCFHeader> headers = new ArrayList<>();
-    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
-      headers.add((VCFHeader) variant.getValue().getHeader());
-    }
-
-    return VCFUtils.smartMergeHeaders(headers, true);
+    File callsetFile = new File(TEMP_CALLSET_JSON_FILE.getAbsolutePath());
+    Assert.assertTrue(callsetFile.exists());
   }
 
   @Test(testName = "genomicsdb importer outputs merged headers as a JSON file",
         dataProvider = "vcfFiles",
         dataProviderClass = GenomicsDBTestUtils.class)
-  public void testVidMapJSONOutput(Map<String, FeatureReader<VariantContext>> variantReaders)
+  public void testVidMapJSONOutput(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
     throws IOException {
 
     ChromosomeInterval chromosomeInterval =
       new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
 
-    Set<VCFHeaderLine> mergedHeader = createMergedHeader(variantReaders);
+    Set<VCFHeaderLine> mergedHeaderLines = createMergedHeader(sampleToReaderMap);
+
+    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A =
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, false);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
-      variantReaders,
-      mergedHeader,
+      sampleToReaderMap,
+      mergedHeaderLines,
       chromosomeInterval,
       WORKSPACE.getAbsolutePath(),
       TILEDB_ARRAYNAME,
-      0L,
-      10000000L,
-      TEMP_VID_JSON_FILE.getAbsolutePath(),
-      TEMP_CALLSET_JSON_FILE.getAbsolutePath());
+      1024L,
+      10000000L);
 
-    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A = 
-      GenomicsDBImporter.generateSortedCallSetMap(variantReaders, false);
+    GenomicsDBImporter.writeVidMapJSONFile(TEMP_VID_JSON_FILE.getAbsolutePath(), mergedHeaderLines);
+    GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
+        callsetMappingPB_A);
 
     importer.importBatch();
     Assert.assertEquals(importer.isDone(), true);
@@ -121,24 +120,20 @@ public final class GenomicsDBImporterSpec {
 
     try {
       FileReader fileReader = new FileReader(TEMP_CALLSET_JSON_FILE.getAbsolutePath());
-      JSONObject jsonObject =
-        (JSONObject) parser.parse(fileReader);
-
+      JSONObject jsonObject = (JSONObject) parser.parse(fileReader);
       JSONArray callsetArray = (JSONArray) jsonObject.get("callsets");
 
       int index = 0;
+
       for (Object cObject : callsetArray) {
         JSONObject sampleObject = (JSONObject) cObject;
         String sampleName_B = (String) sampleObject.get("sample_name");
         Long tiledbRowIndex_B = (Long) sampleObject.get("row_idx");
         String stream_name_B = (String) sampleObject.get("stream_name");
 
-        String sampleName_A =
-          callsetMappingPB_A.getCallsets(index).getSampleName();
-        Long tileDBRowIndex_A =
-          callsetMappingPB_A.getCallsets(index).getRowIdx();
-        String stream_name_A =
-          callsetMappingPB_A.getCallsets(index).getStreamName();
+        String sampleName_A = callsetMappingPB_A.getCallsets(index).getSampleName();
+        Long tileDBRowIndex_A = callsetMappingPB_A.getCallsets(index).getRowIdx();
+        String stream_name_A = callsetMappingPB_A.getCallsets(index).getStreamName();
 
         Assert.assertEquals(sampleName_A, sampleName_B);
         Assert.assertEquals(tileDBRowIndex_A, tiledbRowIndex_B);
@@ -156,5 +151,16 @@ public final class GenomicsDBImporterSpec {
   @AfterTest
   public void deleteWorkspace() throws IOException {
     FileUtils.deleteDirectory(WORKSPACE);
+  }
+
+  private Set<VCFHeaderLine> createMergedHeader(
+      Map<String, FeatureReader<VariantContext>> variantReaders) {
+
+    List<VCFHeader> headers = new ArrayList<>();
+    for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
+      headers.add((VCFHeader) variant.getValue().getHeader());
+    }
+
+    return VCFUtils.smartMergeHeaders(headers, true);
   }
 }

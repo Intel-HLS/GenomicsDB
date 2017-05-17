@@ -55,6 +55,7 @@
     <protobuf.version>3.0.2</protobuf.version>
     <testng.version>6.10</testng.version>
     <gnu.getopt.version>1.0.13</gnu.getopt.version>
+    <surefire.plugin.version>2.20</surefire.plugin.version>
     <genomicsdb_source_directory>.</genomicsdb_source_directory>
     <genomicsdb_lib_directory>bin</genomicsdb_lib_directory>
     <genomicsdb_build_directory>${project.basedir}/target</genomicsdb_build_directory>
@@ -103,6 +104,7 @@
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
       <version>${testng.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>gnu.getopt</groupId>
@@ -113,6 +115,7 @@
 
   <build>
     <directory>${genomicsdb_build_directory}</directory>
+    <testSourceDirectory>${genomicsdb_source_directory}/src/test/java</testSourceDirectory>
     <resources>
       <resource>
         <directory>${genomicsdb_lib_directory}</directory>
@@ -141,6 +144,9 @@
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
+          <compilerArgs>
+            <arg>-Xlint</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
@@ -197,7 +203,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
+        <version>${surefire.plugin.version}</version>
         <configuration>
           <includes>
             <include>**/*.java</include>
@@ -234,7 +240,6 @@
             <exclude>**/GenomicsDBImportConfiguration.java</exclude>
             <exclude>**/GenomicsDBExportConfiguration.java</exclude>
           </sourceFileExcludes>
-          <!--sourcepath>${genomicsdb_source_directory}/src/main/java:${genomicsdb_source_directory}/src/main/scala:${genomicsdb_source_directory}/src/main/protobuf-generated/java</sourcepath-->
         </configuration>
         <executions>
           <execution>

@@ -42,13 +42,12 @@ public final class GenomicsDBTestUtils {
     File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
 
     Map<String, FeatureReader<VariantContext>> variantReaders = new HashMap<>();
-    FeatureCodec<VariantContext, ?> codec = new VCFCodec();
     FeatureReader<VariantContext> reader_t6 =
-      AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), codec, false);
+      AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), new VCFCodec(), false);
     FeatureReader<VariantContext> reader_t7 =
-      AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), codec, false);
+      AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), new VCFCodec(), false);
     FeatureReader<VariantContext> reader_t8 =
-      AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), codec, false);
+      AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), new VCFCodec(), false);
     variantReaders.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
     variantReaders.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
     variantReaders.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
