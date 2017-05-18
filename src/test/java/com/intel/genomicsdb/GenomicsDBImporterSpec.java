@@ -64,7 +64,7 @@ public final class GenomicsDBImporterSpec {
     Set<VCFHeaderLine> mergedHeader = createMergedHeader(sampleToReaderMap);
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
-        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, false);
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
       sampleToReaderMap,
@@ -96,7 +96,7 @@ public final class GenomicsDBImporterSpec {
     Set<VCFHeaderLine> mergedHeaderLines = createMergedHeader(sampleToReaderMap);
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A =
-        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, false);
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
       sampleToReaderMap,
@@ -146,6 +146,20 @@ public final class GenomicsDBImporterSpec {
 
     FileUtils.deleteQuietly(TEMP_VID_JSON_FILE);
     FileUtils.deleteQuietly(TEMP_CALLSET_JSON_FILE);
+  }
+
+  @Test(testName = "genomicsdb importer with null feature readers",
+      dataProvider = "nullFeatureReaders",
+      dataProviderClass = GenomicsDBTestUtils.class,
+      expectedExceptions = IllegalArgumentException.class)
+  public void testNullFeatureReaders(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
+      throws IOException {
+
+    ChromosomeInterval chromosomeInterval =
+        new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
+
+    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true, false);
   }
 
   @AfterTest

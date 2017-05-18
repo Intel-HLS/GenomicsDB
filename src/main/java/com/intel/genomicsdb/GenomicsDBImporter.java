@@ -319,7 +319,7 @@ public class GenomicsDBImporter
                      Long segmentSize) throws IOException {
     this(sampleToVCMap, mergedHeader, chromosomeInterval,
          workspace, arrayname, sizePerColumnPartition, segmentSize,
-         (long)0, Long.MAX_VALUE-1);
+         (long)0, Long.MAX_VALUE-1, true);
   }
 
   /**
@@ -336,6 +336,7 @@ public class GenomicsDBImporter
    * @param segmentSize segmentSize in bytes
    * @param lbRowIdx Smallest row idx which should be imported by this object
    * @param ubRowIdx Largest row idx which should be imported by this object
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
    * @throws  IOException  FeatureReader.query can throw an IOException if invalid file is used
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
@@ -346,10 +347,11 @@ public class GenomicsDBImporter
                      Long sizePerColumnPartition,
                      Long segmentSize,
                      Long lbRowIdx,
-                     Long ubRowIdx) throws IOException {
+                     Long ubRowIdx,
+                     boolean validateSampleToReaderMap) throws IOException {
     this(sampleToReaderMap, mergedHeader, chromosomeInterval,
          workspace, arrayname, sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx,
-        false);
+        false, validateSampleToReaderMap);
   }
 
   /**
@@ -362,11 +364,13 @@ public class GenomicsDBImporter
    * @param chromosomeInterval  Chromosome interval to traverse input VCFs
    * @param importConfiguration  Protobuf configuration object containing related input
    *                             parameters, filenames, etc.
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
    * @throws IOException  Throws file IO exception.
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
                             Set<VCFHeaderLine> mergedHeader,
                             ChromosomeInterval chromosomeInterval,
+                            boolean validateSampleToReaderMap,
                             GenomicsDBImportConfiguration.ImportConfiguration importConfiguration)
       throws IOException {
     this(sampleToVCMap,
@@ -377,7 +381,8 @@ public class GenomicsDBImporter
         importConfiguration.getSizePerColumnPartition(),
         importConfiguration.getSegmentSize(),
         importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
+        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
+        validateSampleToReaderMap);
   }
 
   /**
@@ -396,6 +401,7 @@ public class GenomicsDBImporter
    * @param ubRowIdx Largest row idx which should be imported by this object
    * @param useSamplesInOrderProvided if true, don't sort samples, instead
    *                                  use in the the order provided
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
    * @throws  IOException  FeatureReader.query can throw an IOException if invalid file is used
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
@@ -407,10 +413,11 @@ public class GenomicsDBImporter
                      Long segmentSize,
                      Long lbRowIdx,
                      Long ubRowIdx,
-                     boolean useSamplesInOrderProvided) throws IOException {
+                     boolean useSamplesInOrderProvided,
+                     boolean validateSampleToReaderMap) throws IOException {
     this(sampleToReaderMap, mergedHeader, chromosomeInterval,
          workspace, arrayname, sizePerColumnPartition, segmentSize,
-         lbRowIdx, ubRowIdx, useSamplesInOrderProvided, false);
+         lbRowIdx, ubRowIdx, useSamplesInOrderProvided, false, validateSampleToReaderMap);
   }
 
   /**
@@ -430,6 +437,7 @@ public class GenomicsDBImporter
    * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order
    *                                  provided
    * @param failIfUpdating if true, fail if updating an existing array
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
    * @throws IOException when load into TileDB array fails
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
@@ -442,10 +450,11 @@ public class GenomicsDBImporter
                      Long lbRowIdx,
                      Long ubRowIdx,
                      boolean useSamplesInOrderProvided,
-                     boolean failIfUpdating) throws IOException {
+                     boolean failIfUpdating,
+                     boolean validateSampleToReaderMap) throws IOException {
     this(sampleToReaderMap, mergedHeader, chromosomeInterval,
          workspace, arrayname, sizePerColumnPartition, segmentSize,
-         lbRowIdx, ubRowIdx, useSamplesInOrderProvided, failIfUpdating, 0);
+         lbRowIdx, ubRowIdx, useSamplesInOrderProvided, failIfUpdating, 0, validateSampleToReaderMap);
   }
 
   /**
@@ -466,6 +475,7 @@ public class GenomicsDBImporter
    *                                  provided
    * @param failIfUpdating if true, fail if updating an existing array
    * @param rank Rank of object - corresponds to the partition index in the loader
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
    * @throws IOException when load into TileDB array fails
    */
   public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
@@ -479,7 +489,8 @@ public class GenomicsDBImporter
                             Long ubRowIdx,
                             boolean useSamplesInOrderProvided,
                             boolean failIfUpdating,
-                            int rank) throws IOException {
+                            int rank,
+                            boolean validateSampleToReaderMap) throws IOException, IllegalArgumentException {
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
@@ -490,8 +501,10 @@ public class GenomicsDBImporter
     File importJSONFile = dumpTemporaryLoaderJSONFile(importConfiguration, "");
 
     GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
+
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMapPB =
-        generateSortedCallSetMap(sampleToReaderMap, useSamplesInOrderProvided, lbRowIdx);
+        generateSortedCallSetMap(sampleToReaderMap, useSamplesInOrderProvided,
+        validateSampleToReaderMap, lbRowIdx);
 
     initialize(importJSONFile.getAbsolutePath(), rank, lbRowIdx, ubRowIdx);
 
@@ -508,9 +521,6 @@ public class GenomicsDBImporter
 
       FeatureReader<VariantContext> featureReader = sampleToReaderMap.get(sampleName);
 
-      if (featureReader==null) {
-        throw new IllegalArgumentException("Null FeatureReader found for sample: " + sampleName);
-      }
       CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeInterval.getContig(),
             chromosomeInterval.getStart(), chromosomeInterval.getEnd());
 
@@ -628,18 +638,19 @@ public class GenomicsDBImporter
    *
    * Assume one sample per input GVCF file
    *
-   * @param  variants  Variant Readers objects of the input GVCF files
+   * @param sampleToReaderMap  Variant Readers objects of the input GVCF files
    * @param useSamplesInOrderProvided  If True, do not sort the samples,
    *                                   use the order they appear in
+   * @param validateSampleToReaderMap
    * @return  Mappings of callset (sample) names to TileDB rows
    */
   static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-      final Map<String, FeatureReader<VariantContext>> variants,
+      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+      boolean validateSampleToReaderMap,
       boolean useSamplesInOrderProvided)
   {
-      return GenomicsDBImporter.generateSortedCallSetMap(variants,
-              useSamplesInOrderProvided,
-              0l);
+      return GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap,
+              useSamplesInOrderProvided, validateSampleToReaderMap,0l);
   }
 
   /**
@@ -649,41 +660,56 @@ public class GenomicsDBImporter
    *
    * Assume one sample per input GVCF file
    *
-   * @param  sampleToReaderMap  Variant Readers objects of the input GVCF files
+   * @param sampleToReaderMap  Variant Readers objects of the input GVCF files
    * @param useSamplesInOrderProvided  If True, do not sort the samples,
    *                                   use the order they appear in
+   * @param validateSampleMap Check i) whether sample names are consistent
+   *                          with headers and ii) feature readers are valid
+   *                          in sampleToReaderMap
    * @param lbRowIdx Smallest row idx which should be imported by this object
    * @return  Mappings of callset (sample) names to TileDB rows
    */
-  static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+  public static GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
       final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
       boolean useSamplesInOrderProvided,
+      boolean validateSampleMap,
       final long lbRowIdx)
   {
-    List<String> sampleNames = new ArrayList<>(sampleToReaderMap.size());
+    if (!validateSampleMap) {
+      return GenomicsDBImporter.generateSortedCallSetMap(
+          (List) Arrays.asList(sampleToReaderMap.keySet().toArray()),
+          useSamplesInOrderProvided, lbRowIdx);
+    }
 
+    List<String> listOfSampleNames = new ArrayList<>(sampleToReaderMap.size());
     for (Map.Entry<String, FeatureReader<VariantContext>> mapObject :
         sampleToReaderMap.entrySet()) {
 
       String sampleName = mapObject.getKey();
       FeatureReader<VariantContext> featureReader = mapObject.getValue();
+
+      if (featureReader == null) {
+        throw new IllegalArgumentException("Null FeatureReader found for sample: " + sampleName);
+      }
+
       VCFHeader header = (VCFHeader) featureReader.getHeader();
       List<String> sampleNamesInHeader = header.getSampleNamesInOrder();
       if (sampleNamesInHeader.size() > 1) {
-        String message = "Multiple samples ";
+        StringBuilder messageBuilder = new StringBuilder("Multiple samples ");
         for (String name : sampleNamesInHeader) {
-          message.concat(name + " ");
+          messageBuilder.append(name).append(" ");
         }
-        message.concat(" appear in header for " + sampleName);
-        throw new IllegalArgumentException(message);
+        messageBuilder.append(" appear in header for ").append(sampleName);
+        throw new IllegalArgumentException(messageBuilder.toString());
       } else {
         if (!sampleName.equals(sampleNamesInHeader.get(0))) {
-          System.err.println("Sample does not match with header for " + sampleName);
+          System.err.println("Sample " + header + " does not match with " +
+              sampleNamesInHeader.get(0) + " in header");
         }
       }
-      sampleNames.add(sampleName);
+      listOfSampleNames.add(sampleName);
     }
-    return GenomicsDBImporter.generateSortedCallSetMap(sampleNames, useSamplesInOrderProvided,
+    return GenomicsDBImporter.generateSortedCallSetMap(listOfSampleNames, useSamplesInOrderProvided,
         lbRowIdx);
   }
 
