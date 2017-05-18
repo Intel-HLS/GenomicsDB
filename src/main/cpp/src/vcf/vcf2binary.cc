@@ -261,6 +261,8 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
 {
   clear();
   m_vcf_fields = &vcf_fields;
+  m_discard_missing_GTs = false;
+  m_discard_current_record = false;
   m_discard_index = discard_index;
   m_import_ID_field = false;
   m_close_file = close_file || discard_index;   //close file if index has to be discarded
@@ -288,6 +290,8 @@ VCF2Binary::VCF2Binary(const std::string& stream_name, const std::vector<std::ve
 {
   clear();
   m_vcf_fields = &vcf_fields;
+  m_discard_missing_GTs = false;
+  m_discard_current_record = false;
   //The next parameter is irrelevant for buffered readers
   m_discard_index = false;
   m_import_ID_field = false;
@@ -306,6 +310,8 @@ VCF2Binary::VCF2Binary(VCF2Binary&& other)
   m_vcf_fields = other.m_vcf_fields;
   m_discard_index = other.m_discard_index;
   m_import_ID_field = other.m_import_ID_field;
+  m_discard_missing_GTs = other.m_discard_missing_GTs;
+  m_discard_current_record = other.m_discard_current_record;
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);
   m_vcf_buffer_reader_buffer_size = other.m_vcf_buffer_reader_buffer_size;
@@ -673,12 +679,29 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       print_sep  = !is_vcf_str_type;
     }
   }
+  //For discarding records if missing GT fields
+  if(!buffer_full)
+  {
+    if(is_GT_field && m_discard_missing_GTs)
+    {
+      //beginning of GT field
+      auto int_ptr = reinterpret_cast<const int*>(&(buffer[0])+buffer_offset-num_values*sizeof(int));
+      m_discard_current_record = true;
+      for(auto i=0;i<num_values;++i)
+	if(int_ptr[i] != -1)
+	{
+	  m_discard_current_record = false;
+	  break;
+	}
+    }
+  }
   return buffer_full;
 }
 
 bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition,
     size_t size_per_callset, uint64_t enabled_callsets_idx)
 {
+  m_discard_current_record = false;
   //Cast to VCFReader
   auto vcf_reader_ptr = dynamic_cast<VCFReaderBase*>(vcf_partition.get_base_reader_ptr());
   assert(vcf_reader_ptr);
@@ -843,6 +866,13 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
           break;
       }
     }
+  }
+  //If ignoring current record, set buffer offset to line begin value
+  //tells base class that no data was added
+  if(m_discard_current_record)
+  {
+    buffer_offset = line_begin_buffer_offset;
+    return false;
   }
 #ifdef PRODUCE_BINARY_CELLS
   //Update total size

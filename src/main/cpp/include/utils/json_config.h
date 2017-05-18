@@ -142,6 +142,7 @@ class JSONLoaderConfig : public JSONConfigBase
     }
     inline bool fail_if_updating() const { return m_fail_if_updating; }
     inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
+    inline bool discard_missing_GTs() const { return m_discard_missing_GTs; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -179,6 +180,8 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_fail_if_updating;
     //consolidate TileDB array after load - merges fragments
     bool m_consolidate_tiledb_array_after_load;
+    //Discard entries with ./. or .|. as the GT field
+    bool m_discard_missing_GTs;
 };
 
 #ifdef HTSDIR

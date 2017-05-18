@@ -252,9 +252,12 @@ class VCF2Binary : public File2TileDBBinaryBase
      * Closes the file for partition - useful when printing data for a specific partition (splitting files)
      */
     void close_partition_output_file(File2TileDBBinaryColumnPartitionBase& partition_info);
+    void set_discard_missing_GTs_flag(const bool value) { m_discard_missing_GTs = value; }
   private:
     bool m_discard_index;
     bool m_import_ID_field;
+    bool m_discard_missing_GTs;
+    bool m_discard_current_record;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
     //Local contig idx to global contig idx

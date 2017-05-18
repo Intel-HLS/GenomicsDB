@@ -635,6 +635,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_fail_if_updating = false;
   m_tiledb_compression_level = Z_DEFAULT_COMPRESSION;
   m_consolidate_tiledb_array_after_load = false;
+  m_discard_missing_GTs = false;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -738,6 +739,10 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   m_consolidate_tiledb_array_after_load = false;
   if(m_json.HasMember("consolidate_tiledb_array_after_load") && m_json["consolidate_tiledb_array_after_load"].IsBool())
     m_consolidate_tiledb_array_after_load = m_json["consolidate_tiledb_array_after_load"].GetBool();
+  //Discard entries with ./. or .|. as the GT field
+  m_discard_missing_GTs = false;
+  if(m_json.HasMember("discard_missing_GTs") && m_json["discard_missing_GTs"].IsBool())
+    m_discard_missing_GTs = m_json["discard_missing_GTs"].GetBool();
 }
    
 #ifdef HTSDIR
