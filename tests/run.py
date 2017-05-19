@@ -93,7 +93,7 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
-    with open(filename, 'rb') as fptr:
+    with open(filename, 'r') as fptr:
         data = fptr.read();
         md5sum_hash_str = str(hashlib.md5(data).hexdigest())
         fptr.close();
@@ -361,7 +361,7 @@ def main():
             test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
         test_loader_dict['segment_size'] = load_segment_size;
-        with open(loader_json_filename, 'wb') as fptr:
+        with open(loader_json_filename, 'w') as fptr:
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
         if(test_name  == 'java_t0_1_2'):
@@ -379,7 +379,7 @@ def main():
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
             arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir + ' -A '+test_name \
                     +' --use_samples_in_order ' + ' --batchsize=2 ';
-            with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
+            with open(test_params_dict['callset_mapping_file'], 'r') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
@@ -415,7 +415,7 @@ def main():
                     if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
                         test_query_dict['query_attributes'] = vcf_query_attributes_order;
                     query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
-                    with open(query_json_filename, 'wb') as fptr:
+                    with open(query_json_filename, 'w') as fptr:
                         json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                         fptr.close();
                     if(query_type == 'java_vcf'):
