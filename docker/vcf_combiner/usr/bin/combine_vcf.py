@@ -1,4 +1,6 @@
 #! /usr/bin/python3
+# pylint: disable=missing-docstring, invalid-name, broad-except, too-many-branches, too-many-locals
+
 """
     * The MIT License (MIT)
     * Copyright (c) 2016 Intel Corporation
@@ -250,7 +252,8 @@ class CombineVCF(object):
             if err:
                 raise CombineVCFException("Failed to combining VCF files: %s" % (err))
 
-    def get_version(self):
+    @staticmethod
+    def get_version():
         return "%s %s" % (ProductName, Version)
 
 def test_quick_test():
