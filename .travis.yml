@@ -7,8 +7,9 @@ python: "3.4"
 
 install:
     #Install dependencies
-    - pip install .
-    - pip install -U pytest pylint PyVCF 
+    - pip freeze
+    - pip -V
+    - pip install -r requirements.txt
     - pip freeze
 
 before_script:
