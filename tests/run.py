@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #The MIT License (MIT)
 #Copyright (c) 2016 Intel Corporation
@@ -93,7 +93,7 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
-    with open(filename, 'r') as fptr:
+    with open(filename, 'rb') as fptr:
         data = fptr.read();
         md5sum_hash_str = str(hashlib.md5(data).hexdigest())
         fptr.close();
