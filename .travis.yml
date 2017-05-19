@@ -50,7 +50,8 @@ script:
     - cd $GENOMICSDB_BUILD_DIR
     - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=$GENOMICSDB_RELEASE_VERSION -DMAVEN_QU:IET=True
     - make -j 4 && make install && make test ARGS=-V
-    -  pytest ./docker/vcf_combiner/usr/bin/combine_vcf.py
+    - cd $TRAVIS_BUILD_DIR
+    - pytest ./docker/vcf_combiner/usr/bin/combine_vcf.py
     
 after_success:
     - cd $GENOMICSDB_INSTALL_DIR && lcov --list tests/coverage.info # debug before upload
