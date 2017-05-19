@@ -13,8 +13,13 @@ env:
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 language: python
-python: "3.4"
+python: - "3.4"
 
+before_install:
+  - sudo apt-get -y install python3-pip python-dev
+  - python3 -V
+  - pip3 -V
+  
 install:
     #Install dependencies
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
@@ -40,8 +45,10 @@ install:
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
     - mkdir -p $GENOMICSDB_BUILD_DIR
-    - pip install pytest>=3.0.7
-    - pip install pylint>=1.7.1
+    - sudo pip3 install -U setuptools
+    - sudo pip3 install -U pytest>=3.0.7
+    - sudo pip3 install -U pylint>=1.7.1
+    - sudo pip3 install -U PyVCF>=0.6.8
     
 before_script:
     - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
