@@ -19,8 +19,8 @@ install:
     #Install dependencies
     - sudo pip install -U pytest>=3.0.7
     - sudo pip install -U pylint>=1.7.1
-    - sudo pip install -U PyVCF>=0.6.8
-    - pip list installed | grep PyVCF
+    - sudo pip install -U PyVCF
+    - pip list installed
     
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
