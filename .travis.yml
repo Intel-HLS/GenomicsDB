@@ -12,6 +12,9 @@ env:
         - GENOMICSDB_RELEASE_VERSION=0.6.2
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
+language: python
+python: "3.4"
+
 install:
     #Install dependencies
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
