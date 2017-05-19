@@ -13,7 +13,7 @@ env:
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 language: python
-python: - "3.4"
+python: "3.4"
 
 before_install:
   - sudo apt-get -y install python3-pip python-dev
