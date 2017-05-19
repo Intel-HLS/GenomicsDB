@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-# pylint: disable=missing-docstring, invalid-name, broad-except, too-many-branches, too-many-locals
+# pylint: disable=missing-docstring, invalid-name, broad-except, too-many-branches, too-many-locals, line-too-long
 
 """
     * The MIT License (MIT)
