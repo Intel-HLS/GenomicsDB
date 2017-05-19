@@ -57,10 +57,6 @@ public final class GenomicsDBTestUtils {
 
   @DataProvider(name="nullFeatureReaders")
   public static Object[][] nullFeatureReaders() {
-//    File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
-//    File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
-//    File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
-
     Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
     sampleToReaderMap.put("ABC", null);
 
