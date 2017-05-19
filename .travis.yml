@@ -17,10 +17,10 @@ python: "3.4"
 
 install:
     #Install dependencies
-    - sudo pip install -U pytest>=3.0.7
-    - sudo pip install -U pylint>=1.7.1
-    - sudo pip install -U PyVCF
-    - pip list installed
+    - pip install -U --user pytest>=3.0.7
+    - pip install -U --user pylint>=1.7.1
+    - pip install -U --user PyVCF
+    - pip freeze
     
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -50,7 +50,7 @@ before_script:
     - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
 
 script:
-    - pytest ./docker/vcf_combiner/usr/bin/combine_vcf.py
+    - pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
     - cd $GENOMICSDB_BUILD_DIR
     - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=$GENOMICSDB_RELEASE_VERSION -DMAVEN_QU:IET=True
     - make -j 4 && make install && make test ARGS=-V
