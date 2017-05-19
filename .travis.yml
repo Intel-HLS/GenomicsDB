@@ -12,9 +12,6 @@ install:
     - pip install -r requirements.txt
     - pip freeze
 
-before_script:
-    - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
-
 script:
     - pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
     - pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
