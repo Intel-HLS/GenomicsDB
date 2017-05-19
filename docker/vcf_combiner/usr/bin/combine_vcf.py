@@ -51,13 +51,13 @@ loader_cfg_t = {
     "callset_mapping_file" : "",
     "vcf_output_format" : "z",
     "vcf_output_filename" : "",
-    "reference_genome" : "", 
+    "reference_genome" : "",
     "column_partitions" : [],
     "do_ping_pong_buffering" : True,
     "offload_vcf_output_processing" : True,
     "produce_GT_field" : False,
     "size_per_column_partition" : COL_PARTITION_SIZE_UNIT,
-    "vid_mapping_file": ""    
+    "vid_mapping_file": ""
 }
 cp_pos = namedtuple('pos_only', "begin, vcf_output_filename")
 cp_chr = namedtuple('chromosome', 'begin, end, vcf_output_filename')
@@ -79,7 +79,7 @@ class CombineVCFException(Exception):
     pass
 
 class CombineVCF(object):
-    ''' VCF file combiner '''   
+    ''' VCF file combiner '''
     logger = logging.getLogger("CombineVCF")
     brief_options = "i:o:R:c:p"
     full_options = ['samples=', 'output=', 'reference=', 'callsets=', 'produce_GT_field', \
@@ -88,7 +88,7 @@ class CombineVCF(object):
     def __init__(self):
         self.dryrun = False
         self.output_file = None
-        
+
     def _parse_args(self, args):
         def get_vid_mapping_file():
             return DefaultVIDFile if os.path.isfile(DefaultVIDFile) else os.environ[DefaultVIDEnv]
@@ -98,7 +98,7 @@ class CombineVCF(object):
             if end:
                 assert end >= begin, 'chromosome end position must great or equal to begin position'
             return get_col_partition(self.output_file, begin, chromosome, end if end else None)
-        
+
         myopts, _ = getopt(args, self.brief_options, self.full_options)
         callset_mapping_file = None
         produce_GT_field = False
@@ -114,7 +114,7 @@ class CombineVCF(object):
                 print(self.get_version())
                 exit()
             else:
-                assert user_input, 'specify a value for option %s' % opt 
+                assert user_input, 'specify a value for option %s' % opt
                 if opt == '-i' or opt == '--samples':
                     file_list = user_input.split(',')
                     vcf_inputfiles = self.__get_inputs(file_list)
@@ -144,7 +144,7 @@ class CombineVCF(object):
         assert reference_genome, "missing reference file"
         assert self.output_file, "missing output file"
         assert num_part_units != 0, "No valid callset/sample found in input files"
-        
+
         col_par_setting = check_chromosome() if chromosome \
             else get_col_partition(self.output_file, begin if begin else 0)
         loader_cfg = get_loader_cfg(**vmf_args)
@@ -168,7 +168,7 @@ class CombineVCF(object):
     def __check_callset(callset_mapping_file):
         cs_cfg = json.load(callset_mapping_file)
         return 0 - len(cs_cfg["callsets"])
-                
+
     def __generate_callsets_json(self, vcf_inputfiles, json_fname):
         global_callset_idx = 0
         callsets_dict = OrderedDict()
@@ -181,7 +181,7 @@ class CombineVCF(object):
                     curr_callset_info = OrderedDict()
                     if callset_name in callsets_dict:
                         ss = str(uuid.uuid4())
-                        self.logger.warning('Duplicate callset name %s: appending _%s', callset_name, ss) 
+                        self.logger.warning('Duplicate callset name %s: appending _%s', callset_name, ss)
                         callset_name += ('_' + ss)
                     curr_callset_info["row_idx"] = global_callset_idx
                     curr_callset_info["idx_in_file"] = local_callset_idx
@@ -202,7 +202,7 @@ class CombineVCF(object):
                 line = line.strip()
                 if line:
                     if fn[-3:] == '.gz' or fn[-4:] == 'vcf' or os.path.isfile(line):
-                        return True 
+                        return True
         return False
 
     def __get_inputs(self, inputfiles):
@@ -212,7 +212,7 @@ class CombineVCF(object):
         else:
             inputs = [line.strip() for line in inputfiles if os.path.isfile(line)]
         return inputs if inputs else RuntimeError("No valid samples input files found")
-    
+
     @staticmethod
     def generate_loader_config(nt_loader):
         json_fname = "lc_%s" % datetime.now().strftime("%y%m%d%H%M")
@@ -226,7 +226,7 @@ class CombineVCF(object):
         pexec = Popen(the_exec_cmd, shell=False)
         pexec.communicate()
         return pexec.wait()
-    
+
     def run(self):
         err = None
         try:
