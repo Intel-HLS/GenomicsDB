@@ -4,10 +4,14 @@ python:
     - "2.7"
 install:
     #Install dependencies
-    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -r requirements.txt; fi
-    - echo $TRAVIS_PYTHON_VERSION pip freeze
+    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -U -r requirements.txt; fi
+    - echo $TRAVIS_PYTHON_VERSION 
+    - pip freeze
 script:
-    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; fi
-     - if [[ $TRAVIS_PYTHON_VERSION != "3.4" ]]; then python -c 'import sys; print sys.version'; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; fi
+    # pytest the code
+    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; fi
+    # for python 2.7    
+    - if [[ $TRAVIS_PYTHON_VERSION != "3.4" ]]; then python -c 'import sys; print sys.version'; fi
 notifications:
   email: false
