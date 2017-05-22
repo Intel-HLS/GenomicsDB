@@ -89,6 +89,7 @@ void VCF2TileDBLoaderConverterBase::clear()
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
   m_num_callsets_in_owned_file.clear();
+  m_num_orders_in_owned_file.clear();
   m_owned_row_idx_vec.clear();
 }
 
@@ -100,11 +101,13 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
     //Get list of files handled by this converter
     auto& global_file_idx_vec = vid_mapper->get_global_file_idxs_owned_by(m_idx);
     m_num_callsets_in_owned_file.resize(global_file_idx_vec.size());
+    m_num_orders_in_owned_file.resize(global_file_idx_vec.size());
     for(auto i=0ull;i<global_file_idx_vec.size();++i)
     {
       auto global_file_idx = global_file_idx_vec[i];
       auto& file_info = vid_mapper->get_file_info(global_file_idx);
       m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
+      m_num_orders_in_owned_file[i] = file_info.get_num_orders();
       for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
         m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
     }
@@ -113,11 +116,13 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
   {
     //Same process as loader and column based partitioning - must read all files
     m_num_callsets_in_owned_file.resize(vid_mapper->get_num_files());
+    m_num_orders_in_owned_file.resize(vid_mapper->get_num_files());
     for(auto i=0ll;i<vid_mapper->get_num_files();++i)
     {
       auto global_file_idx = i;
       auto& file_info = vid_mapper->get_file_info(global_file_idx);
       m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
+      m_num_orders_in_owned_file[i] = file_info.get_num_orders();
       for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
         m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
     }
@@ -125,6 +130,9 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
   m_num_callsets_owned = 0;
   for(auto x : m_num_callsets_in_owned_file)
     m_num_callsets_owned += x;
+  m_num_orders_owned = 0;
+  for(const auto x : m_num_orders_in_owned_file)
+    m_num_orders_owned += x;
   assert(static_cast<size_t>(m_num_callsets_owned) == m_owned_row_idx_vec.size());
   std::sort(m_owned_row_idx_vec.begin(), m_owned_row_idx_vec.end());
 }
@@ -182,7 +190,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(
       m_exchanges[i] = &((*exchange_vector)[i]);
   }
   determine_num_callsets_owned(m_vid_mapper, false);
-  m_max_size_per_callset = m_per_partition_size/m_num_callsets_owned;
+  m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   initialize_file2binary_objects();
   initialize_column_batch_objects();
   //Increase capacity to maximum once
@@ -191,7 +199,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(
   if(m_standalone_converter_process)
   {
     for(auto& x : m_ping_pong_buffers)
-      x.resize(m_max_size_per_callset*m_num_callsets_owned*m_partition_batch.size());
+      x.resize(m_max_size_per_callset*m_num_orders_owned*m_partition_batch.size());
     for(auto& x : m_owned_exchanges)
       x.initialize_from_converter(m_partition_batch.size(), m_num_callsets_owned);
   }
@@ -304,7 +312,9 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
   auto num_column_partitions = m_standalone_converter_process ? get_sorted_column_partitions().size()
     : 1u;
   for(auto i=0u;i<num_column_partitions;++i)
-    m_partition_batch.emplace_back(i, m_max_size_per_callset, m_num_callsets_in_owned_file, m_num_entries_in_circular_buffer);
+    m_partition_batch.emplace_back(i, m_max_size_per_callset,
+	m_num_callsets_in_owned_file, m_num_orders_in_owned_file,
+	m_num_entries_in_circular_buffer);
   //Update row idx to ordering
   m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_vid_mapper->get_num_callsets(), -1ll));
   int64_t order = 0ll;
@@ -576,7 +586,7 @@ void VCF2TileDBLoader::common_constructor_initialization(
   if(m_standalone_converter_process)
     m_vid_mapper->verify_file_partitioning();
   determine_num_callsets_owned(m_vid_mapper, true);
-  m_max_size_per_callset = m_per_partition_size/m_num_callsets_owned;
+  m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
   {

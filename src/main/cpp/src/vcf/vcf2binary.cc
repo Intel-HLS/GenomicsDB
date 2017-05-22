@@ -418,13 +418,20 @@ bool VCF2Binary::convert_record_to_binary(std::vector<uint8_t>& buffer, File2Til
 
 void VCF2Binary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
 {
-  for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+  //Point all callsets to the same value of order i.e. the order value for the first callset
+  //This ensures that effectively, a single buffer space is allocated for all callsets in this 
+  //file
+  if(m_enabled_local_callset_idx_vec.size())
   {
-    assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
-    auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
-    assert(row_idx >= 0);
-    assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
-    tiledb_row_idx_to_order[row_idx] = order_value++;
+    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    {
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
+      tiledb_row_idx_to_order[row_idx] = order_value;
+    }
+    order_value++;
   }
 }
 
@@ -433,8 +440,11 @@ void VCF2Binary::list_active_row_idxs(const ColumnPartitionBatch& partition_batc
   auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
   if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
   {
-    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    //Effectively inform loader that only 1 callset in this file is ready
+    //Since all callsets in this file use the same buffer space, it doesn't really matter
+    if(m_enabled_local_callset_idx_vec.size())
     {
+      auto local_callset_idx = m_enabled_local_callset_idx_vec[0];
       assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
       auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
       assert(row_idx >= 0);
@@ -715,9 +725,11 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   assert(vcf_partition.m_local_contig_idx >= 0 && vcf_partition.m_local_contig_idx == line->rid);
   assert(vcf_partition.m_contig_tiledb_column_offset >= 0);
   //Buffer offsets tracking
-  const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[enabled_callsets_idx];
-  const int64_t line_begin_buffer_offset = vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[enabled_callsets_idx];
-  int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[enabled_callsets_idx];
+  auto buffer_idx = 0u;
+  const int64_t begin_buffer_offset = vcf_partition.m_begin_buffer_offset_for_local_callset[buffer_idx];
+  const int64_t line_begin_buffer_offset = vcf_partition.m_last_full_line_end_buffer_offset_for_local_callset[buffer_idx];
+  int64_t& buffer_offset = vcf_partition.m_buffer_offset_for_local_callset[buffer_idx];
+  const int64_t callset_record_begin_buffer_offset = buffer_offset;
   assert(line_begin_buffer_offset >= begin_buffer_offset && line_begin_buffer_offset <= static_cast<int64_t>(begin_buffer_offset + size_per_callset));
   assert(buffer_offset >= begin_buffer_offset && buffer_offset <= static_cast<int64_t>(begin_buffer_offset + size_per_callset));
   assert(buffer_offset >= line_begin_buffer_offset);
@@ -871,12 +883,13 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   //tells base class that no data was added
   if(m_discard_current_record)
   {
-    buffer_offset = line_begin_buffer_offset;
+    buffer_offset = callset_record_begin_buffer_offset;
     return false;
   }
 #ifdef PRODUCE_BINARY_CELLS
   //Update total size
-  buffer_full = buffer_full ||  tiledb_buffer_print<size_t>(buffer, cell_size_offset, buffer_offset_limit, buffer_offset-line_begin_buffer_offset);
+  buffer_full = buffer_full ||  tiledb_buffer_print<size_t>(buffer, cell_size_offset, buffer_offset_limit,
+      buffer_offset-callset_record_begin_buffer_offset);
   if(buffer_full) return true;
 #endif
 #ifdef PRODUCE_CSV_CELLS

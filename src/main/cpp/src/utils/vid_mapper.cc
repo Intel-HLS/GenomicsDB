@@ -93,6 +93,24 @@ std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_e
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
 
+size_t FileInfo::get_num_orders() const
+{
+  size_t num_orders = 0u;
+  switch(m_type)
+  {
+    case VidFileTypeEnum::VCF_FILE_TYPE:
+    case VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE:
+    case VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE:
+    case VidFileTypeEnum::SORTED_CSV_FILE_TYPE:
+    case VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE:
+      num_orders = 1u;
+      break;
+    default:
+      throw VidMapperException(std::string("Unknown file type ")+std::to_string(m_type));
+  }
+  return num_orders;
+}
+
 void VidMapper::clear()
 {
   m_callset_name_to_row_idx.clear();

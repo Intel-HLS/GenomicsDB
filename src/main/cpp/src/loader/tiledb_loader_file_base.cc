@@ -358,7 +358,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
   if(m_parallel_partitions && m_close_file)
     partition_info.m_base_reader_ptr->add_reader();
   //Setup buffer offsets first
-  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+  for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
   {
     auto curr_offset = partition_file_batch.get_offset_for_local_callset_idx(i, m_max_size_per_callset);
     partition_info.m_begin_buffer_offset_for_local_callset[i] = curr_offset;
@@ -381,7 +381,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
     if(!buffer_full)
     {
       //Store buffer offsets at the beginning of the line
-      for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+      for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
         partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i] = partition_info.m_buffer_offset_for_local_callset[i];
       read_one_line_fully = true;
       //For buffered readers, if the read buffer is empty return control to caller
@@ -397,7 +397,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
       VERIFY_OR_THROW(read_one_line_fully && "Buffer did not have space to hold a line fully - increase buffer size")
   }
   //put Tiledb NULL for row_idx as end-of-batch marker
-  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+  for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
   {
 #ifdef PRODUCE_BINARY_CELLS
     tiledb_buffer_print_null<int64_t>(buffer, partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i],
