@@ -207,6 +207,24 @@ class File2TileDBBinaryColumnPartitionBase
 //Buffer stream idx, partition idx
 typedef std::pair<int64_t, unsigned> BufferStreamIdentifier;
 
+class LocalCallSetIdxCompareByTileDBRowIdx
+{
+  public:
+    LocalCallSetIdxCompareByTileDBRowIdx(const std::vector<int64_t>& local_callset_idx_to_tiledb_row_idx_vec)
+    {
+      m_local_callset_idx_to_tiledb_row_idx = &local_callset_idx_to_tiledb_row_idx_vec;
+    }
+    bool operator()(const int64_t a, const int64_t b)
+    {
+      const auto& vec = *m_local_callset_idx_to_tiledb_row_idx;
+      assert(static_cast<size_t>(a) < vec.size());
+      assert(static_cast<size_t>(b) < vec.size());
+      return vec[a] < vec[b];
+    }
+  private:
+    const std::vector<int64_t>* m_local_callset_idx_to_tiledb_row_idx;
+};
+
 /*
  * Base class for all instances of objects that convert file formats for importing
  * to TileDB

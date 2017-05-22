@@ -226,6 +226,8 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
       m_local_callset_idx_to_enabled_idx[i] = m_enabled_local_callset_idx_vec.size();
       m_enabled_local_callset_idx_vec.push_back(i);
     }
+  std::sort(m_enabled_local_callset_idx_vec.begin(), m_enabled_local_callset_idx_vec.end(),
+      LocalCallSetIdxCompareByTileDBRowIdx(m_local_callset_idx_to_enabled_idx));
   m_base_reader_ptr = 0;
   m_histogram = 0;
 }
