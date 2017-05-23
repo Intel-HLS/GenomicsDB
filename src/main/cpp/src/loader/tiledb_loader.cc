@@ -233,6 +233,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
     const std::vector<ColumnRange>& partition_bounds)
 {
   File2TileDBBinaryBase* file2binary_base_ptr = 0;
+  VCF2Binary* fptr = 0;
   switch(file_info.m_type)
   {
     case VidFileTypeEnum::VCF_FILE_TYPE:
@@ -243,8 +244,10 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
             m_treat_deletions_as_intervals,
             false, false, false, m_discard_vcf_index
             ));
-      dynamic_cast<VCF2Binary*>(file2binary_base_ptr)
-	->set_discard_missing_GTs_flag(discard_missing_GTs());
+      fptr = dynamic_cast<VCF2Binary*>(file2binary_base_ptr);
+      assert(fptr);
+      fptr->set_discard_missing_GTs_flag(discard_missing_GTs());
+      fptr->set_no_mandatory_VCF_fields(no_mandatory_VCF_fields());
       break;
     case VidFileTypeEnum::VCF_BUFFER_STREAM_TYPE:
     case VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE:

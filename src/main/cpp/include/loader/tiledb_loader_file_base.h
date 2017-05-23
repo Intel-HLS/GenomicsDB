@@ -360,6 +360,7 @@ class File2TileDBBinaryBase
     {
       throw File2TileDBBinaryException("Unimplemented operation");
     }
+    void set_no_mandatory_VCF_fields(const bool value) { m_no_mandatory_VCF_fields = value; }
   protected:
     inline int64_t get_enabled_idx_for_local_callset_idx(int64_t local_callset_idx) const
     {
@@ -372,6 +373,7 @@ class File2TileDBBinaryBase
     bool m_close_file;
     bool m_treat_deletions_as_intervals;
     bool m_get_data_from_file;
+    bool m_no_mandatory_VCF_fields;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
     int64_t m_buffer_stream_idx;

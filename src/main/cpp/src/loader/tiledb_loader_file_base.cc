@@ -216,6 +216,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_noupdates = noupdates;
   m_close_file = close_file;
   m_get_data_from_file = (buffer_stream_idx < 0) ? true : false;
+  m_no_mandatory_VCF_fields = false;
   //Callset mapping
   vid_mapper.get_local_tiledb_row_idx_vec(filename, m_local_callset_idx_to_tiledb_row_idx);
   m_local_callset_idx_to_enabled_idx.resize(m_local_callset_idx_to_tiledb_row_idx.size(), -1ll);
@@ -259,6 +260,7 @@ void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& oth
   m_close_file = other.m_close_file;
   m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
   m_get_data_from_file = other.m_get_data_from_file;
+  m_no_mandatory_VCF_fields = other.m_no_mandatory_VCF_fields;
   m_file_idx = other.m_file_idx;
   m_buffer_stream_idx = other.m_buffer_stream_idx;
   m_max_size_per_callset = other.m_max_size_per_callset;

@@ -636,6 +636,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_tiledb_compression_level = Z_DEFAULT_COMPRESSION;
   m_consolidate_tiledb_array_after_load = false;
   m_discard_missing_GTs = false;
+  m_no_mandatory_VCF_fields = false;
 }
 
 void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
@@ -743,6 +744,11 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   m_discard_missing_GTs = false;
   if(m_json.HasMember("discard_missing_GTs") && m_json["discard_missing_GTs"].IsBool())
     m_discard_missing_GTs = m_json["discard_missing_GTs"].GetBool();
+  //The array will NOT contain mandatory VCF fields (ref, alt, qual, filter) 
+  //if this flag is enabled
+  m_no_mandatory_VCF_fields = false;
+  if(m_json.HasMember("no_mandatory_VCF_fields") && m_json["no_mandatory_VCF_fields"].IsBool())
+    m_no_mandatory_VCF_fields = m_json["no_mandatory_VCF_fields"].GetBool();
 }
    
 #ifdef HTSDIR

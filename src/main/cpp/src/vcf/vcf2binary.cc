@@ -776,33 +776,35 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
     end_column_idx = vcf_partition.m_contig_tiledb_column_offset + *(reinterpret_cast<int*>(vcf_partition.m_vcf_get_buffer)) - 1; //convert 1-based END to 0-based
   buffer_full = buffer_full || tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit, end_column_idx);
   if(buffer_full) return true;
-  //REF
-#ifdef PRODUCE_BINARY_CELLS
-  buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, strlen(line->d.allele[0]));
-  if(buffer_full) return true;
-#endif
-  buffer_full = buffer_full || tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, line->d.allele[0]);
-  if(buffer_full) return true;
-  //ALT
-#ifdef PRODUCE_BINARY_CELLS
-  //Must write length of ALT string in buffer, keep track of offset and update later
-  auto alt_length_offset = buffer_offset;
-  buffer_offset += sizeof(int);
-#endif
-  std::string alt_allele_serialized = std::move("");
-  for(auto i=1;i<line->n_allele;++i)
+  if(!m_no_mandatory_VCF_fields)
   {
-    if(i > 1)
-      alt_allele_serialized += TILEDB_ALT_ALLELE_SEPARATOR;
-    alt_allele_serialized += (bcf_get_variant_type(line, i) == VCF_NON_REF) ? TILEDB_NON_REF_VARIANT_REPRESENTATION
-      : line->d.allele[i];
-  }
-  buffer_full = buffer_full || tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, alt_allele_serialized);
-  if(buffer_full) return true;
+    //REF
 #ifdef PRODUCE_BINARY_CELLS
-  //write length of alt alleles string
-  buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, alt_length_offset, buffer_offset_limit, alt_allele_serialized.length());
-  if(buffer_full) return true;
+    buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, strlen(line->d.allele[0]));
+    if(buffer_full) return true;
+#endif
+    buffer_full = buffer_full || tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, line->d.allele[0]);
+    if(buffer_full) return true;
+    //ALT
+#ifdef PRODUCE_BINARY_CELLS
+    //Must write length of ALT string in buffer, keep track of offset and update later
+    auto alt_length_offset = buffer_offset;
+    buffer_offset += sizeof(int);
+#endif
+    std::string alt_allele_serialized = std::move("");
+    for(auto i=1;i<line->n_allele;++i)
+    {
+      if(i > 1)
+	alt_allele_serialized += TILEDB_ALT_ALLELE_SEPARATOR;
+      alt_allele_serialized += (bcf_get_variant_type(line, i) == VCF_NON_REF) ? TILEDB_NON_REF_VARIANT_REPRESENTATION
+	: line->d.allele[i];
+    }
+    buffer_full = buffer_full || tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, alt_allele_serialized);
+    if(buffer_full) return true;
+#ifdef PRODUCE_BINARY_CELLS
+    //write length of alt alleles string
+    buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, alt_length_offset, buffer_offset_limit, alt_allele_serialized.length());
+    if(buffer_full) return true;
 #endif
   //ID (if needed)
   if(m_import_ID_field)
