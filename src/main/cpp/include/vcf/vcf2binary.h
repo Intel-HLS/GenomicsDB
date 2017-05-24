@@ -128,21 +128,52 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
 {
   friend class VCF2Binary;
   public:
+    class VCFGetBufferWrapper
+    {
+      //buffers for vcf get functions - 4 KB
+      public:
+	VCFGetBufferWrapper(const size_t num_bytes=4096u)
+	{
+	  m_buffer = (uint8_t*)malloc(num_bytes);
+	  if(m_buffer == 0)
+	    throw VCF2BinaryException("Malloc failure");
+	  m_capacity = num_bytes;
+	  m_num_values = 0;
+	}
+	//Delete copy constructor
+	VCFGetBufferWrapper(const VCFGetBufferWrapper& other) = delete;
+	//Define move constructor explicitly
+	VCFGetBufferWrapper(VCFGetBufferWrapper&& other);
+	//Destructor
+	~VCFGetBufferWrapper()
+	{
+	  if(m_buffer && m_capacity)
+	    free(m_buffer);
+	  m_buffer = 0;
+	  m_capacity = 0u;
+	  m_num_values = 0;
+	}
+	uint8_t* m_buffer;
+	size_t m_capacity;
+	int64_t m_num_values;
+    };
     /*
      * Primary constructor
      */
-    VCFColumnPartition()
+    VCFColumnPartition(const bool prefetch_fields,
+	const size_t num_INFO_fields, const size_t num_FORMAT_fields)
       : File2TileDBBinaryColumnPartitionBase()
     {
       //Initialize as invalid
       m_local_contig_idx = -1;
       m_contig_position = -1;
       m_contig_tiledb_column_offset = -1;
-      //buffer for vcf get functions - 16 KB
-      m_vcf_get_buffer_size = 16*1024;
-      m_vcf_get_buffer = (uint8_t*)malloc(m_vcf_get_buffer_size*sizeof(uint8_t));
-      if(m_vcf_get_buffer == 0)
-        throw VCF2BinaryException("Malloc failure");
+      //If prefetch is enabled, allocate buffer per field, else single buffer
+      //Add 1 buffer for END field
+      m_vcf_get_buffer_vec.emplace_back(prefetch_fields ? num_INFO_fields+1u : 1u);
+      //if prefetch is enabled, allocate buffer per field
+      if(prefetch_fields)
+	m_vcf_get_buffer_vec.emplace_back(num_FORMAT_fields);
       m_split_output_fptr = 0;
     }
     //Delete copy constructor
@@ -164,14 +195,18 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
       assert(vcf_reader_ptr);
       return vcf_reader_ptr->get_header();
     }
+    VCFGetBufferWrapper& get_vcf_get_buffer_wrapper(const bool prefetch_fields,
+	const bool is_INFO_field, const bool is_END_field,
+	const unsigned idx_in_vcf_fields_vector);
   protected:
     //Position in contig from which to fetch next batch of cells
     int m_local_contig_idx;
     int64_t m_contig_position;  //position in contig (0-based)
     int64_t m_contig_tiledb_column_offset;
-    //Buffer for obtaining data from htslib 
-    uint8_t* m_vcf_get_buffer;
-    uint64_t m_vcf_get_buffer_size;
+    //Buffers for obtaining data from htslib
+    //Outer vector of size 2 - INFO, FORMAT - if prefetch enabled, else size 1
+    //Inner vector depends on #INFO and FORMAT fields imported if prefetch enabled, else size 1
+    std::vector<std::vector<VCFGetBufferWrapper> > m_vcf_get_buffer_vec;
     //File pointer to output partition data - useful when splitting files
     htsFile* m_split_output_fptr;
 };
@@ -216,7 +251,9 @@ class VCF2Binary : public File2TileDBBinaryBase
      */
     File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const
     {
-      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new VCFColumnPartition());
+      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new VCFColumnPartition(
+	    m_prefetch_all_VCF_fields_in_record, (*m_vcf_fields)[BCF_HL_INFO].size(),
+	    (*m_vcf_fields)[BCF_HL_FMT].size()));
     }
     /*
      * Create the subclass of GenomicsDBImportReaderBase that must be used
@@ -237,7 +274,11 @@ class VCF2Binary : public File2TileDBBinaryBase
     template<class FieldType>
     bool convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumnPartition& vcf_partition, 
         int64_t& buffer_offset, const int64_t buffer_offset_limit, int local_callset_idx,
-        const std::string& field_name, unsigned field_type_idx);
+        const std::string& field_name, unsigned field_type_idx, const unsigned idx_in_vcf_fields_vector);
+    template<typename FieldType>
+    void fetch_field_from_vcf_record(VCFColumnPartition::VCFGetBufferWrapper& vcf_get_buffer_wrapper,
+	const bcf_hdr_t* hdr, bcf1_t* line,
+	const std::string& field_name, const int field_type_idx, const int bcf_ht_type);
     //Print partitions of the file - useful when splitting files into partitions
     /*
      * Opens the file for partition - useful when printing data for a specific partition (splitting files)
@@ -258,6 +299,7 @@ class VCF2Binary : public File2TileDBBinaryBase
     bool m_import_ID_field;
     bool m_discard_missing_GTs;
     bool m_discard_current_record;
+    bool m_prefetch_all_VCF_fields_in_record;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
     //Local contig idx to global contig idx
