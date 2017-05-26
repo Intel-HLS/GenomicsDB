@@ -3,9 +3,7 @@ sudo: required
 dist: trusty
 
 language: python
-python: 
-    - "3.4"
-    - "2.7"
+python: "3.4"
 
 env:
     global:
@@ -18,9 +16,8 @@ env:
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 install:
-    #Install python dependencies
-    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -r -U requirements.txt; fi
     #Install dependencies
+    - pip install -r requirements.txt
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
     - sudo add-apt-repository -y ppa:openjdk-r/ppa
@@ -49,16 +46,11 @@ before_script:
     - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
 
 script:
-     # lint the code
-     - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; fi
-     # test the code
-     - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py; fi
-     # build genomics
+    - pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
+    - pytest $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
     - cd $GENOMICSDB_BUILD_DIR
     - cmake $TRAVIS_BUILD_DIR -DBUILD_JAVA=1 -DCMAKE_BUILD_TYPE=Coverage -DCMAKE_INSTALL_PREFIX=$GENOMICSDB_INSTALL_DIR -DLIBCSV_DIR=$TRAVIS_BUILD_DIR/dependencies/libcsv -DGENOMICSDB_RELEASE_VERSION=$GENOMICSDB_RELEASE_VERSION -DMAVEN_QUIET=True
-    - make -j 4 && make install
-     # run run.py when not python 3
-    - if [[ $TRAVIS_PYTHON_VERSION != "3.4" ]]; then make test ARGS=-V; fi
+    - make -j 4 && make install && make test ARGS=-V
 
 after_success:
     - cd $GENOMICSDB_INSTALL_DIR && lcov --list tests/coverage.info # debug before upload

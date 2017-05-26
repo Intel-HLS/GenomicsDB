@@ -272,7 +272,7 @@ if(BUILD_JAVA)
         OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
 
     add_test(NAME CI_tests
-        COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
+        COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 endif()
