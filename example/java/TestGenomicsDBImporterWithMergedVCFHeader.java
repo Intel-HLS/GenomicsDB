@@ -21,6 +21,7 @@
  */
 
 import com.intel.genomicsdb.ChromosomeInterval;
+import com.intel.genomicsdb.GenomicsDBCallsetsMapProto;
 import com.intel.genomicsdb.GenomicsDBException;
 import com.intel.genomicsdb.GenomicsDBImporter;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -40,9 +41,6 @@ import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
 
-/**
- * Created by kdatta1 on 3/10/17.
- */
 public final class TestGenomicsDBImporterWithMergedVCFHeader {
 
   public enum ArgsIdxEnum
@@ -185,7 +183,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
           new ChromosomeInterval(chromosomeName, Integer.parseInt(interval[0]), Integer.parseInt(interval[1])),
           workspace, arrayName, 1000L, 1048576L,
           (long)i, (long)(i+batchSize-1),
-          useSamplesInOrder, failIfUpdating);
+          useSamplesInOrder, failIfUpdating, true);
       boolean isdone = importer.importBatch();
       assert (isdone);
     }
