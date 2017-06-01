@@ -262,7 +262,7 @@ VCF2Binary::VCF2Binary(const std::string& vcf_filename, const std::vector<std::v
   clear();
   m_vcf_fields = &vcf_fields;
   m_discard_index = discard_index;
-  m_should_ID_field_be_imported = false;
+  m_import_ID_field = false;
   m_close_file = close_file || discard_index;   //close file if index has to be discarded
   m_vcf_buffer_reader_buffer_size = 0;
   m_vcf_buffer_reader_is_bcf = false;
@@ -290,7 +290,7 @@ VCF2Binary::VCF2Binary(const std::string& stream_name, const std::vector<std::ve
   m_vcf_fields = &vcf_fields;
   //The next parameter is irrelevant for buffered readers
   m_discard_index = false;
-  m_should_ID_field_be_imported = false;
+  m_import_ID_field = false;
   //VCFBufferReader relevant params
   m_vcf_buffer_reader_buffer_size = vcf_buffer_reader_buffer_size;
   m_vcf_buffer_reader_is_bcf = vcf_buffer_reader_is_bcf;
@@ -305,7 +305,7 @@ VCF2Binary::VCF2Binary(VCF2Binary&& other)
 {
   m_vcf_fields = other.m_vcf_fields;
   m_discard_index = other.m_discard_index;
-  m_should_ID_field_be_imported = other.m_should_ID_field_be_imported;
+  m_import_ID_field = other.m_import_ID_field;
   m_local_contig_idx_to_global_contig_idx = std::move(other.m_local_contig_idx_to_global_contig_idx);
   m_local_field_idx_to_global_field_idx = std::move(other.m_local_field_idx_to_global_field_idx);
   m_vcf_buffer_reader_buffer_size = other.m_vcf_buffer_reader_buffer_size;
@@ -361,7 +361,7 @@ void VCF2Binary::initialize(const std::vector<ColumnRange>& partition_bounds)
   for(auto i=0;i<hdr->n[BCF_DT_ID];++i)
     m_vid_mapper->get_global_field_idx(bcf_hdr_int2id(hdr, BCF_DT_ID, i), m_local_field_idx_to_global_field_idx[i]);
   int ID_field_idx = -1;
-  m_should_ID_field_be_imported = m_vid_mapper->get_global_field_idx("ID", ID_field_idx);
+  m_import_ID_field = m_vid_mapper->get_global_field_idx("ID", ID_field_idx);
 }
 
 void VCF2Binary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
@@ -765,7 +765,7 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
   if(buffer_full) return true;
 #endif
   //ID (if needed)
-  if(m_should_ID_field_be_imported)
+  if(m_import_ID_field)
   {
     auto ID_length = strlen(line->d.id);
     if(ID_length > 0 && (ID_length != 1 || line->d.id[0] != '.'))
