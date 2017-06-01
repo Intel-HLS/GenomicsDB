@@ -19,7 +19,8 @@
         "PID": { "vcf_field_class":["FORMAT"], "type":"char", "length":"VAR" },
         "MIN_DP": { "vcf_field_class":["FORMAT"], "type":"int" },
         "GT": { "vcf_field_class":["FORMAT"], "type":"int", "length":"P" },
-        "DS": { "vcf_field_class":["INFO"], "type":"flag" }
+        "DS": { "vcf_field_class":["INFO"], "type":"flag" },
+        "ID": { "type":"char", "length": "VAR" }
     },
     "contigs": {
         "1": {

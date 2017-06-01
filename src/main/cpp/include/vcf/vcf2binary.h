@@ -254,6 +254,7 @@ class VCF2Binary : public File2TileDBBinaryBase
     void close_partition_output_file(File2TileDBBinaryColumnPartitionBase& partition_info);
   private:
     bool m_discard_index;
+    bool m_should_ID_field_be_imported;
     //Vector of vector of strings, outer vector has 2 elements - 0 for INFO, 1 for FORMAT
     const std::vector<std::vector<std::string>>* m_vcf_fields; 
     //Local contig idx to global contig idx

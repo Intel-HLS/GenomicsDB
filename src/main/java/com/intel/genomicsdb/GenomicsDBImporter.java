@@ -823,6 +823,12 @@ public class GenomicsDBImporter
     List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
     List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
 
+    //ID field
+    GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder =
+        GenomicsDBVidMapProto.InfoField.newBuilder();
+    IDFieldBuilder.setName("ID").setType("char").setLength("var");
+    infoFields.add(IDFieldBuilder.build());
+
     int dpIndex = -1;
     long columnOffset = 0L;
 
