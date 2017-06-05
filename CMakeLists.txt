@@ -178,8 +178,8 @@ include_directories (
     src/main/cpp/include/vcf
 )
 
-function(build_GenomicsDB_executable target)
-    add_executable(${target} src/${target}.cc)
+function(build_GenomicsDB_executable_common target)
+    #add_executable(${target} src/${target}.cc)
     if(TILEDB_SOURCE_DIR)
         add_dependencies(${target} TileDB)
     endif()
@@ -198,6 +198,20 @@ function(build_GenomicsDB_executable target)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
     endif()
     install(TARGETS ${target} RUNTIME DESTINATION bin)
+endfunction()
+
+function(build_GenomicsDB_executable target)
+    add_executable(${target} src/${target}.cc)
+    build_GenomicsDB_executable_common(${target})
+endfunction()
+
+function(build_GenomicsDB_test_executable target src_file_list)
+    find_package(GTest)
+    if(GTEST_FOUND)
+        add_executable(${target} ${src_file_list})
+        target_link_libraries(${target} ${GTEST_BOTH_LIBRARIES})
+        build_GenomicsDB_executable_common(${target})
+    endif()
 endfunction()
 
 add_subdirectory(src)
