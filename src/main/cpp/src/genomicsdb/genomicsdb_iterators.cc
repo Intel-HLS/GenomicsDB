@@ -217,9 +217,9 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
     if(next_iteration_num_query_attributes > 0u) //some fields have exhausted buffers, need to fetch from TileDB
     {
       read_from_TileDB();
+      //If done reading current column interval, move to next query column interval
       while(m_done_reading_from_TileDB && (m_query_column_interval_idx+1u) < m_query_config->get_num_column_intervals())
       {
-        //Move to next query column interval
         ++m_query_column_interval_idx;
         m_done_reading_from_TileDB = false;
         int64_t query_range[4] = {
