@@ -41,7 +41,7 @@ query_json_template_string="""
 }"""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
-query_attributes_with_DS = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS"];
+query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -116,6 +116,7 @@ def main():
     gcda_prefix_dir = '../';
     if(len(sys.argv) < 3):
         sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
+        sys.exit(-1);
     gcda_prefix_dir = sys.argv[1];
     exe_path = sys.argv[2]+os.path.sep+'bin';
     #Switch to tests directory
@@ -324,27 +325,27 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_combined",
                         } },
                     ]
-            },
-            { "name" : "test_flag_field", 'golden_output' : 'golden_outputs/t0_1_2_loading',
+            }, 
+            { "name" : "test_flag_field", 'golden_output' : 'golden_outputs/t0_1_2_DS_ID_vcf_at_0',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'vid_mapping_file': 'inputs/vid_DS.json',
+                'vid_mapping_file': 'inputs/vid_DS_ID.json',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000],
-                        "query_attributes": query_attributes_with_DS, "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        "query_attributes": query_attributes_with_DS_ID, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
                         } },
                     ]
             },
-            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS",
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS_ID",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'vid_mapping_file': 'inputs/vid_DS.json',
+                'vid_mapping_file': 'inputs/vid_DS_ID.json',
                 'chromosome_interval': '1:1-100000000',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000],
-                        "query_attributes": query_attributes_with_DS, "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_DS_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_DS_variants_at_0",
+                        "query_attributes": query_attributes_with_DS_ID, "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
+                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
                         } },
                     ]
             },
@@ -408,6 +409,7 @@ def main():
                         ('vcf','--produce-Broad-GVCF'),
                         ('batched_vcf','--produce-Broad-GVCF -p 128'),
                         ('java_vcf', ''),
+                        ('consolidate_and_vcf', '--produce-Broad-GVCF'), #keep as the last query test
                         ]
                 for query_type,cmd_line_param in query_types_list:
                     if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
@@ -423,6 +425,12 @@ def main():
                         pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
+                        if(query_type == 'consolidate_and_vcf'):
+                            retcode = subprocess.call(exe_path+os.path.sep+'consolidate_tiledb_array '+ws_dir+' '+test_name,
+                                    shell=True)
+                            if(retcode != 0):
+                                sys.stderr.write('TileDB array consolidation failed '+ws_dir+' '+test_name+'\n');
+                                cleanup_and_exit(tmpdir, -1);
                         loader_argument = ' -l '+loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = ''

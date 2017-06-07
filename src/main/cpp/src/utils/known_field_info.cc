@@ -54,7 +54,8 @@ std::vector<std::string> g_known_variant_field_names = std::vector<std::string>{
     "PS",
     "PGT",
     "PID",
-    "ExcessHet"
+    "ExcessHet",
+    "ID"
 };
 //Known field name to enum
 std::unordered_map<std::string, unsigned> g_known_variant_field_name_to_enum;

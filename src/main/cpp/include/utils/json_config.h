@@ -64,7 +64,9 @@ class JSONConfigBase
       clear();
     }
     void clear();
-    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0);
+    static void extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
+        const VidMapper* id_mapper, ColumnRange& result);
+    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0, const int rank=0);
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
@@ -109,6 +111,9 @@ class JSONBasicQueryConfig : public JSONConfigBase
     void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
 
+#define JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME "begin"
+#define JSON_LOADER_PARTITION_INFO_END_FIELD_NAME "end"
+
 class JSONLoaderConfig : public JSONConfigBase
 {
   public:
@@ -128,6 +133,7 @@ class JSONLoaderConfig : public JSONConfigBase
     inline bool delete_and_create_tiledb_array() const { return m_delete_and_create_tiledb_array; }
     inline size_t get_segment_size() const { return m_segment_size; }
     inline size_t get_num_cells_per_tile() const { return m_num_cells_per_tile; }
+    inline int64_t get_tiledb_compression_level() const { return m_tiledb_compression_level; }
     inline const std::string& get_vid_mapping_filename() const { return m_vid_mapping_file; }
     inline const std::string& get_callset_mapping_filename() const { return m_callset_mapping_file; }
     inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
@@ -135,6 +141,7 @@ class JSONLoaderConfig : public JSONConfigBase
       m_vid_mapper_file_required = val;
     }
     inline bool fail_if_updating() const { return m_fail_if_updating; }
+    inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -164,10 +171,14 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_segment_size;
     //TileDB array #cells/tile
     size_t m_num_cells_per_tile;
+    //TileDB compression level
+    int m_tiledb_compression_level;
     //flag to say whether vid_mapping_file is required or optional
     bool m_vid_mapper_file_required;
     //flag that causes the loader to fail if this is an update (rather than a fresh load)
     bool m_fail_if_updating;
+    //consolidate TileDB array after load - merges fragments
+    bool m_consolidate_tiledb_array_after_load;
 };
 
 #ifdef HTSDIR

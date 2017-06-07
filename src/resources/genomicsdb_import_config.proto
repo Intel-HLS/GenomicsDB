@@ -44,8 +44,17 @@ message Partition {
   optional int64 end = 5 [default = 0x7FFFFFFFFFFFFFFF ];
 }
 
+message GATK4Integration {
+  optional string output_vidmap_json_file = 1;
+  optional string output_callsetmap_json_file = 2;
+  optional int32 batch_size = 3 [default = 0];
+  optional bool use_samples_in_order_provided = 4 [default = false];
+  optional int64 lower_sample_index = 5 [default = 0];
+  optional int64 upper_sample_index = 6 [default = 0x7FFFFFFFFFFFFFFF];
+}
+
 message ImportConfiguration {
-  required int64 size_per_column_partition = 7 [default = 10240];
+  required int64 size_per_column_partition = 7 [default = 16384];
   optional bool row_based_partitioning = 1 [default = false];
   optional bool produce_combined_vcf = 2 [default = false];
   optional bool produce_tiledb_array = 3 [default = true];
@@ -62,4 +71,7 @@ message ImportConfiguration {
   optional bool compress_tiledb_array = 15 [default = true];
   optional int64 num_cells_per_tile = 16 [default = 1000];
   optional bool fail_if_updating = 17 [default = false];
+  optional GATK4Integration gatk4_integration_parameters = 18;
+  optional int32 tiledb_compression_level = 19 [default = -1];
+  optional bool consolidate_tiledb_array_after_load = 20 [default = false];
 }

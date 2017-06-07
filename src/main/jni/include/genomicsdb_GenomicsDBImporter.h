@@ -91,6 +91,14 @@ JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniGetChr
 JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniCreateTileDBWorkspace
   (JNIEnv *, jclass, jstring);
 
+/*
+ * Class:     com_intel_genomicsdb_GenomicsDBImporter
+ * Method:    jniConsolidateTileDBArray
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBImporter_jniConsolidateTileDBArray
+  (JNIEnv *, jclass, jstring, jstring);
+
 #ifdef __cplusplus
 }
 #endif

@@ -662,12 +662,14 @@ void VCF2TileDBLoader::finish_read_all(const VCF2TileDBLoaderReadState& read_sta
   auto& flush_output_timer = read_state.m_flush_output_timer;
   for(auto op : m_operators)
     op->finish(get_column_partition_end());
+#ifdef DO_PROFILING
   fetch_timer.print_detail("Fetch from VCF", std::cerr);
   load_timer.print_detail("Combining cells", std::cerr);
   flush_output_timer.print_detail("Flush output", std::cerr);
   read_state.m_sections_timer.print_detail("Sections time", std::cerr);
   read_state.m_single_thread_phase_timer.print_detail("Time in single thread phase()", std::cerr);
   read_state.m_time_in_read_all.print_detail("Time in read_all()", std::cerr);
+#endif
 }
 
 void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)
@@ -1066,4 +1068,14 @@ int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
     }
   }
   return returnval;
+}
+
+void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const char* array_name)
+{
+  VariantStorageManager sm(workspace);
+  auto ad = sm.open_array(array_name, "w");
+  if(ad < 0)
+    throw VCF2TileDBException(std::string("Error opening array ")+array_name
+        +" in workspace "+workspace+" when trying to consolidate");
+  sm.close_array(ad, true);
 }

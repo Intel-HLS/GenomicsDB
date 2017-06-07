@@ -11,7 +11,7 @@ execute_process(
     )
 
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.5.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_RELEASE_VERSION "0.6.4" CACHE STRING "GenomicsDB release version") #used in Maven builds
 set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
@@ -32,6 +32,7 @@ set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
 set(LIBDBI_DIR "/usr" CACHE PATH "Path to libdbi install directory")
+set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 
 #Platform check modules
 include(CheckIncludeFileCXX)
@@ -121,6 +122,7 @@ if(BUILD_JAVA)
     find_package(JNI REQUIRED)
     include_directories(${JNI_INCLUDE_DIRS})
     include_directories(src/main/jni/include)
+    include(UseJava)
 endif()
 
 #libcsv
@@ -219,6 +221,7 @@ include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
 add_subdirectory(tools)
 add_subdirectory(example)
 
+enable_testing()
 if(BUILD_JAVA)
     set(JAVA_SCALA_SOURCES
         ./src/main/java/com/intel/genomicsdb/GenomicsDBConfiguration.java
@@ -255,32 +258,46 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    set(MAVEN_QUIET_ARGS "")
+    if(MAVEN_QUIET)
+        set(MAVEN_QUIET_ARGS "--quiet")
+    endif()
+    set(MAVEN_ARGS
+        ${MAVEN_QUIET_ARGS}
+        -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
+        -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
+        -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
+        -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
+        -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
+        ${MAVEN_PROTOBUF_REGENERATE_ARGS})
     #Maven build - depends on dynamic library
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
+        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
         COMMAND mvn package -DskipTests
-          -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
-          -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
-          -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
-          -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
-          -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
-          ${MAVEN_PROTOBUF_REGENERATE_ARGS}
+          ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-    add_custom_target(mvn_package ALL
-        DEPENDS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar)
     install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
-endif()
 
-enable_testing()
-add_test(NAME all_java_tests
-         COMMAND mvn test
-           -Dgenomicsdb.version=${GENOMICSDB_RELEASE_VERSION}
-           -Dgenomicsdb_source_directory=${CMAKE_SOURCE_DIR}
-           -Dgenomicsdb_build_directory=${GENOMICSDB_MAVEN_BUILD_DIR}
-           -Dgenomicsdb_lib_directory=$<TARGET_FILE_DIR:tiledbgenomicsdb>
-           -Dprotobuf.version=${GENOMICSDB_PROTOBUF_VERSION}
-           ${MAVEN_PROTOBUF_REGENERATE_ARGS}
-         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}})
+    add_test(NAME javatests
+        COMMAND mvn test
+          ${MAVEN_ARGS}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+    set(GENOMICSDB_EXAMPLE_SOURCES
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
+        ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
+
+    add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
+        SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}
+        INCLUDE_JARS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
+        OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
+
+    add_test(NAME CI_tests
+        COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_INSTALL_PREFIX})
+endif()

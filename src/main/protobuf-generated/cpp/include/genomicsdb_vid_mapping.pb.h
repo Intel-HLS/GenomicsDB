@@ -40,7 +40,7 @@ class VidMappingPB;
 
 // ===================================================================
 
-class InfoField : public ::google::protobuf::Message {
+class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:InfoField) */ {
  public:
   InfoField();
   virtual ~InfoField();
@@ -82,7 +82,11 @@ class InfoField : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -185,7 +189,7 @@ class InfoField : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class Chromosome : public ::google::protobuf::Message {
+class Chromosome : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:Chromosome) */ {
  public:
   Chromosome();
   virtual ~Chromosome();
@@ -227,7 +231,11 @@ class Chromosome : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -302,7 +310,7 @@ class Chromosome : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class VidMappingPB : public ::google::protobuf::Message {
+class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:VidMappingPB) */ {
  public:
   VidMappingPB();
   virtual ~VidMappingPB();
@@ -344,7 +352,11 @@ class VidMappingPB : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -453,6 +465,7 @@ inline ::std::string* InfoField::mutable_name() {
   return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* InfoField::release_name() {
+  // @@protoc_insertion_point(field_release:InfoField.name)
   clear_has_name();
   return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -506,6 +519,7 @@ inline ::std::string* InfoField::mutable_type() {
   return type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* InfoField::release_type() {
+  // @@protoc_insertion_point(field_release:InfoField.type)
   clear_has_type();
   return type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -548,6 +562,7 @@ inline void InfoField::set_vcf_field_class(int index, const char* value, size_t 
   // @@protoc_insertion_point(field_set_pointer:InfoField.vcf_field_class)
 }
 inline ::std::string* InfoField::add_vcf_field_class() {
+  // @@protoc_insertion_point(field_add_mutable:InfoField.vcf_field_class)
   return vcf_field_class_.Add();
 }
 inline void InfoField::add_vcf_field_class(const ::std::string& value) {
@@ -613,6 +628,7 @@ inline ::std::string* InfoField::mutable_length() {
   return length_.MutableNoArena(_default_length_);
 }
 inline ::std::string* InfoField::release_length() {
+  // @@protoc_insertion_point(field_release:InfoField.length)
   clear_has_length();
   return length_.ReleaseNoArena(_default_length_);
 }
@@ -670,6 +686,7 @@ inline ::std::string* Chromosome::mutable_name() {
   return name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Chromosome::release_name() {
+  // @@protoc_insertion_point(field_release:Chromosome.name)
   clear_has_name();
   return name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }

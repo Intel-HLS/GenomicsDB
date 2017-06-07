@@ -39,7 +39,7 @@ class SampleIDToTileDBIDMap;
 
 // ===================================================================
 
-class SampleIDToTileDBIDMap : public ::google::protobuf::Message {
+class SampleIDToTileDBIDMap : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:SampleIDToTileDBIDMap) */ {
  public:
   SampleIDToTileDBIDMap();
   virtual ~SampleIDToTileDBIDMap();
@@ -81,7 +81,11 @@ class SampleIDToTileDBIDMap : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -171,7 +175,7 @@ class SampleIDToTileDBIDMap : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class CallsetMappingPB : public ::google::protobuf::Message {
+class CallsetMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:CallsetMappingPB) */ {
  public:
   CallsetMappingPB();
   virtual ~CallsetMappingPB();
@@ -213,7 +217,11 @@ class CallsetMappingPB : public ::google::protobuf::Message {
       ::google::protobuf::io::CodedInputStream* input);
   void SerializeWithCachedSizes(
       ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
   int GetCachedSize() const { return _cached_size_; }
   private:
   void SharedCtor();
@@ -309,6 +317,7 @@ inline ::std::string* SampleIDToTileDBIDMap::mutable_sample_name() {
   return sample_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* SampleIDToTileDBIDMap::release_sample_name() {
+  // @@protoc_insertion_point(field_release:SampleIDToTileDBIDMap.sample_name)
   clear_has_sample_name();
   return sample_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -410,6 +419,7 @@ inline ::std::string* SampleIDToTileDBIDMap::mutable_stream_name() {
   return stream_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* SampleIDToTileDBIDMap::release_stream_name() {
+  // @@protoc_insertion_point(field_release:SampleIDToTileDBIDMap.stream_name)
   clear_has_stream_name();
   return stream_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
