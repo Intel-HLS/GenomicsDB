@@ -108,8 +108,11 @@ class SingleCellTileDBIterator
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec
+     * The first call must pass the 3 arguments correctly
+     * Subsequent calls can skip the arguments
      */
-    void read_from_TileDB();
+    void read_from_TileDB(TileDB_CTX* tiledb_ctx=0, const char* array_path=0,
+        std::vector<const char*>* attribute_names=0);
   private:
     bool m_done_reading_from_TileDB;
     const VariantArraySchema* m_variant_array_schema;
