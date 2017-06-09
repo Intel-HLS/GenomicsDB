@@ -178,6 +178,7 @@ include_directories (
     src/main/cpp/include/query_operations
     src/main/cpp/include/utils
     src/main/cpp/include/vcf
+    src/test/cpp/include
 )
 
 function(build_GenomicsDB_executable_common target)
