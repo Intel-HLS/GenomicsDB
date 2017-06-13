@@ -41,6 +41,120 @@ class GenomicsDBIteratorException : public std::exception {
     std::string msg_;
 };
 
+//Whenever a live cell must be pointed to in a buffer, use this structure
+//Useful for the left sweep, tracking cells while producing VCF records etc
+class GenomicsDBLiveCellMarker
+{
+  public:
+    GenomicsDBLiveCellMarker(const size_t num_markers, const unsigned num_fields)
+    {
+      m_valid.resize(num_markers);
+      m_initialized.resize(num_markers);
+      m_row.resize(num_markers);
+      m_begin.resize(num_markers);
+      m_end.resize(num_markers);
+      for(auto i=0ull;i<num_markers;++i)
+      {
+        m_buffer_ptr_vec.emplace_back(num_fields, 0);
+        m_offset.emplace_back(num_fields);
+      }
+      reset();
+    }
+    inline void reset()
+    {
+      //Set columns to -1
+      m_begin.assign(m_begin.size(), -1ll);
+      m_initialized.assign(m_initialized.size(), false);
+      m_valid.assign(m_valid.size(), false);
+    }
+    inline void set_row_idx(const size_t idx, const int64_t row_idx)
+    {
+      assert(idx < m_row.size());
+      m_row[idx] = row_idx;
+    }
+    inline int64_t get_row_idx(const size_t idx) const
+    {
+      assert(idx < m_row.size());
+      return m_row[idx];
+    }
+    inline void set_column_interval(const size_t idx, const int64_t b, const int64_t e)
+    {
+      assert(idx < m_begin.size() && idx < m_end.size());
+      m_begin[idx] = b;
+      m_end[idx] = e;
+    }
+    inline void set_initialized(const size_t idx, const bool val)
+    {
+      assert(idx < m_initialized.size());
+      m_initialized[idx] = val;
+    }
+    inline bool is_initialized(const size_t idx) const
+    {
+      assert(idx < m_initialized.size());
+      return m_initialized[idx];
+    }
+    inline void set_valid(const size_t idx, const bool val)
+    {
+      assert(idx < m_valid.size());
+      m_valid[idx] = val;
+    }
+    inline bool is_valid(const size_t idx) const
+    { 
+      assert(idx < m_valid.size());
+      return m_valid[idx];
+    }
+    inline void set_field_marker(const size_t idx, const unsigned field_idx,
+        GenomicsDBBuffer* buffer_ptr, const size_t offset)
+    {
+      assert(idx < m_buffer_ptr_vec.size() && idx < m_offsets.size());
+      assert(field_idx < m_buffer_ptr_vec[idx].size() && field_idx < m_offsets[idx].size());
+      m_buffer_ptr_vec[idx][field_idx] = buffer_ptr;
+      m_offsets[idx][field_idx] = offset;
+    }
+    inline GenomicsDBBuffer* get_buffer_pointer(const size_t idx, const unsigned field_idx)
+    {
+      assert(idx < m_buffer_ptr_vec.size() && field_idx < m_buffer_ptr_vec[idx].size());
+      return m_buffer_ptr_vec[idx][field_idx];
+    }
+    inline size_t get_offset(const size_t idx, const unsigned field_idx)
+    {
+      assert(idx < m_offsets.size() && field_idx < m_offsets[idx].size());
+      return m_offsets[idx][field_idx];
+    }
+    inline bool column_major_compare_for_PQ(const size_t a, const size_t b) const
+    {
+      assert(a < m_row.size() && b < m_row.size());
+      assert(m_valid[a] && m_initialized[a]);
+      assert(m_valid[b] && m_initialized[b]);
+      return !((m_begin[a] < m_begin[b]) || ((m_begin[a] == m_begin[b]) && (m_row[a] < m_row[b]))); //for min heap
+    }
+  private:
+    //Outermost vector - 1 per cell
+    //Keeping the theme of columnar structures
+    std::vector<bool> m_initialized;
+    std::vector<bool> m_valid;
+    std::vector<int64_t> m_row;
+    std::vector<int64_t> m_begin;
+    std::vector<int64_t> m_end;
+    std::vector<std::vector<GenomicsDBBuffer*> > m_buffer_ptr_vec; //inner vector - 1 per field
+    std::vector<std::vector<size_t> >m_offsets; //inner vector 1 per field
+};
+
+class GenomicsDBLiveCellMarkerColumnMajorComparator
+{
+  public:
+    GenomicsDBLiveCellMarkerColumnMajorComparator(const GenomicsDBLiveCellMarker& obj)
+    {
+      m_ptr = &obj;
+    }
+    bool operator()(const size_t a, const size_t b) const
+    {
+      return m_ptr->column_major_compare_for_PQ(a, b);
+    }
+  private:
+    const GenomicsDBLiveCellMarker* m_ptr;
+}
+
 class GenomicsDBColumnarCell;
 class VariantQueryConfig;
 /*
@@ -115,12 +229,22 @@ class SingleCellTileDBIterator
         std::vector<const char*>* attribute_names=0);
   private:
     bool m_done_reading_from_TileDB;
+    bool m_in_find_intersecting_intervals_mode;
+    bool m_in_simple_traversal_mode;
+    unsigned m_END_query_idx;
     const VariantArraySchema* m_variant_array_schema;
     const VariantQueryConfig* m_query_config;
     uint64_t m_query_column_interval_idx;
     GenomicsDBColumnarCell* m_cell;
     //Buffers for fields
     std::vector<GenomicsDBColumnarField> m_fields;
+    //Cell markers for handling the sweep operation
+    GenomicsDBLiveCellMarker m_live_cell_markers;
+    //Cell markers in column major order
+    std::priority_queue<size_t, std::vector<size_t>,
+      GenomicsDBLiveCellMarkerColumnMajorComparator> m_PQ_live_cell_markers;
+    uint64_t m_num_markers_initialized;
+    int64_t m_smallest_row_idx_in_array;
     //Contains query idx for only the fields that must be fetched from TileDB in the next round
     //The first time all fields are queried - in subsequent iterations only those fields whose
     //buffers are consumed completely are queried

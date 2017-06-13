@@ -60,9 +60,7 @@ class GenomicsDBBuffer
       m_buffer.resize(num_bytes);
       m_valid.resize(num_bytes);
       m_num_live_entries = 0ull;
-#ifdef DEBUG
       m_num_filled_entries = 0ull;
-#endif
       m_next_buffer = 0;
       m_previous_buffer = 0;
     }
@@ -72,18 +70,30 @@ class GenomicsDBBuffer
     //Functions
     inline void set_is_in_live_list(const bool val) { m_is_in_live_list = val; }
     inline bool is_in_live_list() const { return m_is_in_live_list; }
+    //Live and filled entry control
     inline size_t get_num_live_entries() const { return m_num_live_entries; }
     inline void set_num_live_entries(const size_t n)
     {
       m_num_live_entries = n;
-#ifdef DEBUG
       m_num_filled_entries = n;
-#endif
     }
     inline void decrement_num_live_entries()
     {
       assert(m_num_live_entries > 0ull);
       --m_num_live_entries;
+    }
+    inline void increment_num_live_entries(const size_t val=1u)
+    {
+      m_num_live_entries += val;
+    }
+    inline size_t get_num_filled_entries() const
+    {
+      return m_num_filled_entries;
+    }
+    inline void decrement_num_filled_entries()
+    {
+      assert(m_num_filled_entries > 0ull);
+      --m_num_filled_entries;
     }
     inline std::vector<uint8_t>& get_buffer() { return m_buffer; }
     inline const std::vector<uint8_t>& get_buffer() const { return m_buffer; }
@@ -138,9 +148,7 @@ class GenomicsDBBuffer
     //having to write "if(last_cell) else" expressions
     std::vector<size_t> m_offsets;
     size_t m_num_live_entries;
-#ifdef DEBUG
     size_t m_num_filled_entries;
-#endif
     //Pointers in the linked list of buffers
     GenomicsDBBuffer* m_next_buffer;
     GenomicsDBBuffer* m_previous_buffer;
