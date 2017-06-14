@@ -21,5 +21,3 @@ tests/coverage.info
 .idea/*
 /target/
 .tmp_loader.json
-.gitignore
-build

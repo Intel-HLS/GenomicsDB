@@ -18,10 +18,10 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-#The code utilized some features of RedHat pre-built container
+# The code utilized some features of RedHat pre-built container
 FROM centos:7  
 
-LABEL vendor="Intel Corporation" name="VCF Combiner" version="1.1" description="Combine VCF files into a single VCF file"
+LABEL vendor="Intel Corporation" name="VCF Combiner" description="Combine VCF files into a single VCF file"
 
 RUN yum install -y --setopt=tsflags=nodocs epel-release &&  \
     yum repolist && \
@@ -40,10 +40,5 @@ COPY tmp/vcf2tiledb /usr/bin/
 WORKDIR /tmp
 
 ENV BASH_ENV=/etc/profile.d/cont-env.sh HOME=/home/default PATH=$PATH:/usr/lib64/mpich/bin 
-
-RUN  groupadd -r default -f -g 1001 && \
-     useradd -u 1001 -r -g default -d ${HOME} -c "Default User" default -s /sbin/nologin
-                  
-USER 1001
 
 CMD ["container-usage"]
