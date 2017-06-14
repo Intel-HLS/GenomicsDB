@@ -11,7 +11,7 @@ execute_process(
     )
 
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.6.2" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_RELEASE_VERSION "0.6.4" CACHE STRING "GenomicsDB release version") #used in Maven builds
 set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")

@@ -241,6 +241,14 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   attribute_names.push_back("ALT");
   types.push_back(std::type_index(typeid(char)));
   num_vals.push_back(TILEDB_VAR_NUM);
+  //ID field - optional
+  auto iter = m_field_name_to_idx.find("ID");
+  if(iter != m_field_name_to_idx.end())
+  {
+    attribute_names.push_back("ID");
+    types.push_back(std::type_index(typeid(char)));
+    num_vals.push_back(TILEDB_VAR_NUM);
+  }
   //QUAL
   attribute_names.push_back("QUAL");
   types.push_back(std::type_index(typeid(float)));

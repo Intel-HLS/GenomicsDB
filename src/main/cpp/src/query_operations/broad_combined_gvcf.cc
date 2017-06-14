@@ -393,6 +393,36 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
   }
 }
 
+//FIXME: totally naive implementation - too many reallocations etc
+void BroadCombinedGVCFOperator::merge_ID_field(const Variant& variant, const unsigned query_idx)
+{
+  std::unordered_set<std::string> id_set;
+  for(const auto& curr_call : variant)
+  {
+    auto& field_ptr = curr_call.get_field(query_idx);
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      auto* ptr = dynamic_cast<VariantFieldString*>(field_ptr.get());
+      assert(ptr);
+      const auto& curr_ID_value = ptr->get();
+      auto last_begin_value = 0u;
+      for(auto i=0u;i<curr_ID_value.length();++i)
+        if(curr_ID_value[i] == ';')
+        {
+          id_set.insert(curr_ID_value.substr(last_begin_value, i-last_begin_value));
+          last_begin_value = i+1u;
+        }
+      if(curr_ID_value.length() > last_begin_value)
+        id_set.insert(curr_ID_value.substr(last_begin_value, curr_ID_value.length()-last_begin_value));
+    }
+  }
+  m_ID_value.clear();
+  for(const auto& str : id_set)
+    m_ID_value += (str + ';');
+  if(!m_ID_value.empty())
+    m_ID_value.pop_back(); //delete last ';'
+}
+
 void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
 #ifdef DO_PROFILING
@@ -428,6 +458,15 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   //position
   m_bcf_out->rid = m_curr_contig_hdr_idx;
   m_bcf_out->pos = m_remapped_variant.get_column_begin() - m_curr_contig_begin_position;
+  //ID field
+  if(m_query_config->is_defined_query_idx_for_known_field_enum(GVCF_ID_IDX))
+  {
+    auto ID_query_idx = m_query_config->get_query_idx_for_known_field_enum(GVCF_ID_IDX);
+    merge_ID_field(variant, ID_query_idx);
+    if(!m_ID_value.empty())
+      bcf_update_id(m_vcf_hdr, m_bcf_out, m_ID_value.c_str());
+  }
+  m_bcf_record_size += m_ID_value.length();
   //GATK combined GVCF does not care about QUAL value
   m_bcf_out->qual = get_bcf_missing_value<float>();
   if(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(m_vcf_qual_tuple) != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)

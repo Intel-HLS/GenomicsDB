@@ -74,6 +74,7 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void handle_INFO_fields(const Variant& variant);
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
+    void merge_ID_field(const Variant& variant, const unsigned query_idx);
   private:
     bool m_use_missing_values_not_vector_end;
     const VariantQueryConfig* m_query_config;
@@ -93,6 +94,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     bool m_should_add_GQ_field;
     //If QUAL combine operation is specified
     INFO_tuple_type m_vcf_qual_tuple;
+    //ID VCF field - to avoid repeated dynamic reallocations
+    std::string m_ID_value;
     //INFO fields enum vector
     std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<FORMAT_tuple_type> m_FORMAT_fields_vec;
