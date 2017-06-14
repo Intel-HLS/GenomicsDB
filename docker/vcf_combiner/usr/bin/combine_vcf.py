@@ -51,6 +51,7 @@ loader_cfg_t = {
     "callset_mapping_file" : "",
     "vcf_output_format" : "z",
     "vcf_output_filename" : "",
+    "index_output_VCF": True,
     "reference_genome" : "",
     "column_partitions" : [],
     "do_ping_pong_buffering" : True,

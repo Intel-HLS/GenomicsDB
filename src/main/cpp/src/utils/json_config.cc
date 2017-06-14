@@ -844,8 +844,10 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   m_combined_vcf_records_buffer_size_limit = std::max<size_t>(1ull, m_combined_vcf_records_buffer_size_limit);
   //GATK CombineGVCF does not produce GT field by default - option to produce GT
   auto produce_GT_field = (m_json.HasMember("produce_GT_field") && m_json["produce_GT_field"].GetBool());
+  //index output VCF file
+  auto index_output_VCF = (m_json.HasMember("index_output_VCF") && m_json["index_output_VCF"].GetBool());
   vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit,
-      produce_GT_field);
+      produce_GT_field, index_output_VCF);
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
