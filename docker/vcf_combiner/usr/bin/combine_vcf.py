@@ -36,7 +36,7 @@ from collections import OrderedDict
 import types
 import vcf
 
-Version = '1.2'
+Version = '0.6'
 ProductName = os.path.basename(__file__)
 
 COL_PARTITION_SIZE_UNIT = 16384
@@ -95,9 +95,9 @@ class CombineVCF(object):
             return DefaultVIDFile if os.path.isfile(DefaultVIDFile) else os.environ[DefaultVIDEnv]
         vmf_args = {"vid_mapping_file": get_vid_mapping_file}
         def check_chromosome():
-            assert begin, 'missing begin position of chromosome'
+            assert begin, 'No begin position is given'
             if end:
-                assert end >= begin, 'chromosome end position must great or equal to begin position'
+                assert end >= begin, 'End position must be greater or equal to begin position'
             return get_col_partition(self.output_file, begin, chromosome, end if end else None)
 
         myopts, _ = getopt(args, self.brief_options, self.full_options)
