@@ -41,10 +41,13 @@ class MappingDataLoaderTester {
     std::vector<std::pair<int64_t, int>> m_contig_end_2_idx;
     std::vector<CallSetInfo> m_row_idx_to_info;
     std::unordered_map<std::string, int64_t> m_callset_name_to_row_idx;
+    std::unordered_map<std::string, int> m_field_name_to_idx;
+    std::vector<FieldInfo> m_field_idx_to_info;
   public:
     MappingDataLoaderTester(const SQLVidMapperRequest&);
     void validate_contig_info();
     void validate_callset_info();
+    void validate_field_info();
     ~MappingDataLoaderTester();
 };
 

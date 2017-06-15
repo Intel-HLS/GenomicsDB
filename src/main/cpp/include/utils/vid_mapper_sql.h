@@ -48,11 +48,29 @@ const std::string DBTABLE_REFERENCE_COLUMN_LENGTH = "length";
 const std::string DBTABLE_CALLSET_COLUMN_NAME = "name";
 const std::string DBTABLE_CALLSET_COLUMN_ID = "id";
 
+const std::string DBTABLE_FIELD_COLUMN_ID = "id";
+const std::string DBTABLE_FIELD_COLUMN_NAME = "field";
+const std::string DBTABLE_FIELD_COLUMN_FSID = "field_set_id";
+const std::string DBTABLE_FIELD_COLUMN_TYPE = "type";
+const std::string DBTABLE_FIELD_COLUMN_FILTER = "is_filter";
+const std::string DBTABLE_FIELD_COLUMN_FORMAT = "is_format";
+const std::string DBTABLE_FIELD_COLUMN_INFO = "is_info";
+const std::string DBTABLE_FIELD_COLUMN_LENTYPE = "length_type";
+const std::string DBTABLE_FIELD_COLUMN_LENVAL = "length_intval";
+const std::string DBTABLE_FIELD_COLUMN_COMBOP = "vcf_field_combine_operation";
+
+const std::string COMBINE_OPERATION_ERROR_PREFIX = ("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; field ");
+const std::string COMBINE_OPERATION_ERROR_SUFFIX = (" does not have 'VAR' as its length descriptor");
+
 enum {
   GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
   GENOMICSDB_VID_MAPPER_FAILURE = 0x1
 };
 
+/**
+ * This class encapsulates parameters needed to establish a DB connection and
+ * also identify the workspace and db_array.
+ */
 class SQLVidMapperRequest {
   public:
     std::string host_name;
@@ -63,20 +81,28 @@ class SQLVidMapperRequest {
     std::string array_name;
 };
 
+/**
+ * This class will be used to load VID Mapper information from DB. In future it
+ * may also be used to modify DB info.
+ */
 class SQLBasedVidMapper : public VidMapper {
   public:
     SQLBasedVidMapper(const SQLVidMapperRequest&);
 
+    /* following two declarations disable copy semantics since not needed */
     SQLBasedVidMapper(const SQLBasedVidMapper&) = delete;
-
-    SQLBasedVidMapper(SQLBasedVidMapper&&) = delete;
 
     void operator=(const SQLBasedVidMapper&) = delete;
 
+    /* following two declarations disable move semantics since not needed */
+    SQLBasedVidMapper(SQLBasedVidMapper&&) = delete;
+
     SQLBasedVidMapper&& operator=(SQLBasedVidMapper&&) = delete;
 
+    /* public method to load all mapping data from DB */
     int load_mapping_data_from_db();
 
+    /* following three methods return contig mappings */
     std::vector<ContigInfo>& get_contigs() { return(m_contig_idx_to_info); }
 
     std::vector<std::pair<int64_t, int>>& get_contig_begin_offsets() {
@@ -87,10 +113,18 @@ class SQLBasedVidMapper : public VidMapper {
       return(m_contig_end_2_idx);
     }
 
+    /* following two methods return callset mappings */
     std::vector<CallSetInfo>& get_callsets() { return(m_row_idx_to_info); }
 
-    std::unordered_map<std::string, int64_t>& get_name_to_idx_map() {
+    std::unordered_map<std::string, int64_t>& get_callset_name_to_idx_map() {
       return(m_callset_name_to_row_idx);
+    }
+
+    /* following two methods return field mappings */
+    std::vector<FieldInfo>& get_fields() { return(m_field_idx_to_info); }
+
+    std::unordered_map<std::string, int>& get_field_name_to_idx_map() {
+      return(m_field_name_to_idx);
     }
 
     ~SQLBasedVidMapper();
@@ -100,9 +134,14 @@ class SQLBasedVidMapper : public VidMapper {
     std::string m_work_space;
     std::string m_array_name;
 
+    /* method to retrieve contig info from DB and load into VID mapper */
     int load_contig_info();
 
+    /* method to retrieve callset info from DB and load into VID mapper */
     int load_callset_info();
+
+    /* method to retrieve field info from DB and load into VID mapper */
+    int load_field_info();
 };
 
 class SQLBasedVidMapperException : public std::exception {
