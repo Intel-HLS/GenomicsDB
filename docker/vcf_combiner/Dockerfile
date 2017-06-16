@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 Intel Corporation
+# Copyright (c) 2017 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -40,5 +40,12 @@ COPY tmp/vcf2tiledb /usr/bin/
 WORKDIR /tmp
 
 ENV BASH_ENV=/etc/profile.d/cont-env.sh HOME=/home/default PATH=$PATH:/usr/lib64/mpich/bin 
+
+RUN  groupadd -r default -f -g 5658 && \
+     useradd -u 5658 -g default -o -c "Default User" default -s /sbin/nologin
+
+#USER default
+
+ENTRYPOINT ["/usr/bin/container-entrypoint"]
 
 CMD ["container-usage"]

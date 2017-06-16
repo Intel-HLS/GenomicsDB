@@ -1,10 +1,24 @@
 #!/bin/bash
+if [ "$#" -gt 0 -a "$1" == "--version" ]; then
+  echo "INFO CONTAINER: vcf2tiledb version is $(vcf2tiledb --version)"
+  exit 0
+fi
 
+my_uid=$(id -u)
 source /usr/share/cont-lib/cont-lib.sh
-
 cont_debug "command: $*"
-
 __cont_source_scripts "/usr/share/cont-entry"
 
 test -z "$*" && set -- bash
+if [ "$1" == "combine_vcf" ]; then
+  echo "INFO CONTAINER: run combine_vcf as user id $my_uid, vcf2tiledb version is $(vcf2tiledb --version)"
+  echo
+fi
+
+if [ $my_uid == 5658 ]; then
+  cd $HOME
+else
+  export HOME=/  
+fi
+
 exec "$@"
