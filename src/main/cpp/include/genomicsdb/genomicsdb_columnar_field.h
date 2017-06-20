@@ -61,6 +61,7 @@ class GenomicsDBBuffer
       m_valid.resize(num_bytes);
       m_num_live_entries = 0ull;
       m_num_filled_entries = 0ull;
+      m_num_unprocessed_entries = 0ull;
       m_next_buffer = 0;
       m_previous_buffer = 0;
     }
@@ -76,6 +77,7 @@ class GenomicsDBBuffer
     {
       m_num_live_entries = n;
       m_num_filled_entries = n;
+      m_num_unprocessed_entries = n;
     }
     inline void decrement_num_live_entries()
     {
@@ -86,14 +88,14 @@ class GenomicsDBBuffer
     {
       m_num_live_entries += val;
     }
-    inline size_t get_num_filled_entries() const
+    inline size_t get_num_unprocessed_entries() const
     {
-      return m_num_filled_entries;
+      return m_num_unprocessed_entries;
     }
-    inline void decrement_num_filled_entries()
+    inline void decrement_num_unprocessed_entries()
     {
-      assert(m_num_filled_entries > 0ull);
-      --m_num_filled_entries;
+      assert(m_num_unprocessed_entries > 0ull);
+      --m_num_unprocessed_entries;
     }
     inline std::vector<uint8_t>& get_buffer() { return m_buffer; }
     inline const std::vector<uint8_t>& get_buffer() const { return m_buffer; }
@@ -147,8 +149,13 @@ class GenomicsDBBuffer
     //This allows us to use m_offsets for computing the size of every cell data without
     //having to write "if(last_cell) else" expressions
     std::vector<size_t> m_offsets;
+    //m_num_filled_entries - the #items filled in the buffer from TileDB
+    //m_num_unprocessed_entries - a counter that's decremented by iterators
+    //m_num_live_entries <= m_num_filled_entries
+    //m_num_unprocessed_entries <= m_num_filled_entries
     size_t m_num_live_entries;
     size_t m_num_filled_entries;
+    size_t m_num_unprocessed_entries;
     //Pointers in the linked list of buffers
     GenomicsDBBuffer* m_next_buffer;
     GenomicsDBBuffer* m_previous_buffer;
@@ -227,6 +234,15 @@ class GenomicsDBColumnarField
     //Get pointer to data in GenomicsDBBuffer*
     inline const uint8_t* get_pointer_to_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
         const size_t index) const
+    {
+      assert(buffer_ptr);
+      if(m_length_descriptor == BCF_VL_FIXED)
+        return buffer_ptr->get_buffer_pointer() + (m_fixed_length_field_size*index);
+      else
+        return buffer_ptr->get_buffer_pointer() + buffer_ptr->get_offset(index);
+    }
+    inline uint8_t* get_pointer_to_data_in_buffer_at_index(GenomicsDBBuffer* buffer_ptr,
+        const size_t index)
     {
       assert(buffer_ptr);
       if(m_length_descriptor == BCF_VL_FIXED)

@@ -545,50 +545,11 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
 void VariantQueryProcessor::iterate_over_cells(
     const int ad,
     const VariantQueryConfig& query_config, 
-    SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const
+    SingleCellOperatorBase& variant_operator) const
 {
-  GTProfileStats stats;
-  GTProfileStats* stats_ptr = 0;
-#ifdef DO_PROFILING
-  stats_ptr = &stats;
-#endif
   assert(query_config.is_bookkeeping_done());
-  //Rank of tile from which scan should start
-  int64_t start_column = 0;
-  //Scan only queried interval, not whole array
-  if(query_config.get_num_column_intervals() > 0u)
-    start_column = query_config.get_column_begin(column_interval_idx);
-  //Find calls that intersect with begin query position
-  if(start_column > 0)
-  {
-    Variant interval_begin_variant(&query_config);
-    interval_begin_variant.resize_based_on_query();
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
-#ifdef DUPLICATE_CELL_AT_END
-        0
-#else
-        &query_row_idx_in_order
-#endif
-        );
-#ifdef DUPLICATE_CELL_AT_END
-    std::vector<uint64_t> query_row_idx_in_order(interval_begin_variant.get_num_calls());
-    interval_begin_variant.get_column_sorted_call_idx_vec(query_row_idx_in_order);
-    for(auto i=0ull;i<query_row_idx_in_order.size();++i)
-    {
-      assert(interval_begin_variant.get_call(query_row_idx_in_order[i]).is_valid());
-      variant_operator.operate(interval_begin_variant.get_call(query_row_idx_in_order[i]), query_config, get_array_schema());
-    }
-#endif
-    //Now deal with calls that begin AFTER begin position
-    ++start_column;
-  }
   //Initialize forward scan iterators
-  VariantArrayCellIterator* forward_iter = 0;
-  gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
   SingleCellTileDBIterator* columnar_forward_iter = get_storage_manager()->begin_columnar_iterator(ad, query_config);
-  //Variant object
-  Variant variant(&query_config);
-  variant.resize_based_on_query();
   for(;!(columnar_forward_iter->end());++(*columnar_forward_iter))
   {
     auto& cell = **columnar_forward_iter;
@@ -596,7 +557,6 @@ void VariantQueryProcessor::iterate_over_cells(
     if(query_config.is_queried_array_row_idx(coords[0]))       //If row is part of query, process cell
       variant_operator.operate_on_columnar_cell(cell, query_config, get_array_schema());
   }
-  delete forward_iter;
   delete columnar_forward_iter;
 }
 

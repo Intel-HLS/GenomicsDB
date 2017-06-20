@@ -248,7 +248,7 @@ class VariantQueryProcessor {
     void iterate_over_cells(
         const int ad,
         const VariantQueryConfig& query_config, 
-        SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const;
+        SingleCellOperatorBase& variant_operator) const;
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)

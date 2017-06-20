@@ -55,8 +55,8 @@ class GenomicsDBLiveCellMarker
       m_end.resize(num_markers);
       for(auto i=0ull;i<num_markers;++i)
       {
-        m_buffer_ptr_vec.emplace_back(num_fields, 0);
-        m_offset.emplace_back(num_fields);
+        m_buffer_ptr_vec.emplace_back(num_fields, static_cast<GenomicsDBBuffer*>(0));
+        m_indexes.emplace_back(num_fields);
       }
       reset();
     }
@@ -104,22 +104,30 @@ class GenomicsDBLiveCellMarker
       return m_valid[idx];
     }
     inline void set_field_marker(const size_t idx, const unsigned field_idx,
-        GenomicsDBBuffer* buffer_ptr, const size_t offset)
+        GenomicsDBBuffer* buffer_ptr, const size_t index)
     {
-      assert(idx < m_buffer_ptr_vec.size() && idx < m_offsets.size());
-      assert(field_idx < m_buffer_ptr_vec[idx].size() && field_idx < m_offsets[idx].size());
+      assert(idx < m_buffer_ptr_vec.size() && idx < m_indexes.size());
+      assert(field_idx < m_buffer_ptr_vec[idx].size() && field_idx < m_indexes[idx].size());
       m_buffer_ptr_vec[idx][field_idx] = buffer_ptr;
-      m_offsets[idx][field_idx] = offset;
+      m_indexes[idx][field_idx] = index;
     }
     inline GenomicsDBBuffer* get_buffer_pointer(const size_t idx, const unsigned field_idx)
     {
+      assert(m_initialized[idx] && m_valid[idx]);
       assert(idx < m_buffer_ptr_vec.size() && field_idx < m_buffer_ptr_vec[idx].size());
       return m_buffer_ptr_vec[idx][field_idx];
     }
-    inline size_t get_offset(const size_t idx, const unsigned field_idx)
+    inline const GenomicsDBBuffer* get_buffer_pointer(const size_t idx, const unsigned field_idx) const
     {
-      assert(idx < m_offsets.size() && field_idx < m_offsets[idx].size());
-      return m_offsets[idx][field_idx];
+      assert(m_initialized[idx] && m_valid[idx]);
+      assert(idx < m_buffer_ptr_vec.size() && field_idx < m_buffer_ptr_vec[idx].size());
+      return m_buffer_ptr_vec[idx][field_idx];
+    }
+    inline size_t get_index(const size_t idx, const unsigned field_idx) const
+    {
+      assert(m_initialized[idx] && m_valid[idx]);
+      assert(idx < m_indexes.size() && field_idx < m_indexes[idx].size());
+      return m_indexes[idx][field_idx];
     }
     inline bool column_major_compare_for_PQ(const size_t a, const size_t b) const
     {
@@ -137,7 +145,7 @@ class GenomicsDBLiveCellMarker
     std::vector<int64_t> m_begin;
     std::vector<int64_t> m_end;
     std::vector<std::vector<GenomicsDBBuffer*> > m_buffer_ptr_vec; //inner vector - 1 per field
-    std::vector<std::vector<size_t> >m_offsets; //inner vector 1 per field
+    std::vector<std::vector<size_t> >m_indexes; //inner vector 1 per field
 };
 
 class GenomicsDBLiveCellMarkerColumnMajorComparator
@@ -153,7 +161,7 @@ class GenomicsDBLiveCellMarkerColumnMajorComparator
     }
   private:
     const GenomicsDBLiveCellMarker* m_ptr;
-}
+};
 
 class GenomicsDBColumnarCell;
 class VariantQueryConfig;
@@ -174,43 +182,44 @@ class SingleCellTileDBIterator
     {
       return *m_cell;
     }
+    void handle_current_cell_in_find_intersecting_intervals_mode();
     const SingleCellTileDBIterator& operator++();
     //Get field pointer, length, size
     inline const uint8_t* get_field_ptr_for_query_idx(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
+      size_t index = 0ul;
+      auto buffer_ptr = get_buffer_pointer_and_index(query_idx, index);
       return genomicsdb_columnar_field.get_pointer_to_data_in_buffer_at_index(
-          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
-          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
-          );
+          buffer_ptr, index);
     }
     inline int get_field_length(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
+      size_t index = 0ul;
+      auto buffer_ptr = get_buffer_pointer_and_index(query_idx, index);
       return genomicsdb_columnar_field.get_length_of_data_in_buffer_at_index(
-          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
-          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
-          );
+          buffer_ptr, index);
     }
     inline size_t get_field_size_in_bytes(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
+      size_t index = 0ul;
+      auto buffer_ptr = get_buffer_pointer_and_index(query_idx, index);
       return genomicsdb_columnar_field.get_size_of_data_in_buffer_at_index(
-          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
-          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
-          );
+          buffer_ptr, index);
     }
     inline bool is_valid(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
+      size_t index = 0ul;
+      auto buffer_ptr = get_buffer_pointer_and_index(query_idx, index);
       return genomicsdb_columnar_field.is_valid_data_in_buffer_at_index(
-          genomicsdb_columnar_field.get_live_buffer_list_tail_ptr(),
-          genomicsdb_columnar_field.get_curr_index_in_live_list_tail()
-          );
+          buffer_ptr, index);
     }
     inline const int64_t* get_coordinates() const
     {
@@ -218,7 +227,7 @@ class SingleCellTileDBIterator
       return reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(coords_query_idx));
     }
     void print(const int query_idx, std::ostream& fptr=std::cout) const;
-    inline bool end() const { return m_done_reading_from_TileDB; }
+    inline bool end() const { return m_done_reading_from_TileDB && m_PQ_live_cell_markers.empty(); }
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec
@@ -227,6 +236,27 @@ class SingleCellTileDBIterator
      */
     void read_from_TileDB(TileDB_CTX* tiledb_ctx=0, const char* array_path=0,
         std::vector<const char*>* attribute_names=0);
+    //Given the columnar field object, get the buffer pointer and index in the buffer
+    //Response depends on whether this is a cell that begins before the query interval begin
+    //or cell >= query interval begin
+    inline const GenomicsDBBuffer* get_buffer_pointer_and_index(const int field_query_idx, size_t& index) const
+    {
+      assert(static_cast<const size_t>(field_query_idx) < m_fields.size());
+      auto& genomicsdb_columnar_field = m_fields[field_query_idx];
+      //No more markers for intervals intersecting query interval begin
+      //get data from live list tail
+      if(m_PQ_live_cell_markers.empty())
+      {
+        index = genomicsdb_columnar_field.get_curr_index_in_live_list_tail();
+        return genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+      }
+      else
+      {
+        const auto marker_idx = m_PQ_live_cell_markers.top();
+        index = m_live_cell_markers.get_index(marker_idx, field_query_idx);
+        return m_live_cell_markers.get_buffer_pointer(marker_idx, field_query_idx);
+      }
+    }
   private:
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
