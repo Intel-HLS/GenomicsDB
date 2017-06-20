@@ -304,3 +304,36 @@ void GenomicsDBColumnarField::print_data_in_buffer_at_index(std::ostream& fptr,
   m_print(fptr, get_pointer_to_data_in_buffer_at_index(buffer_ptr, index),
       get_length_of_data_in_buffer_at_index(buffer_ptr, index));
 }
+
+void GenomicsDBColumnarField::print_ALT_data_in_buffer_at_index(std::ostream& fptr,
+    const GenomicsDBBuffer* buffer_ptr, const size_t index) const
+{
+  auto curr_ptr = reinterpret_cast<const void*>(get_pointer_to_data_in_buffer_at_index(buffer_ptr, index));
+  auto total_length = get_length_of_data_in_buffer_at_index(buffer_ptr, index);
+  auto first = true;
+  auto remaining_bytes = total_length;
+  fptr << "[ ";
+  do
+  {
+    if(!first)
+      fptr << ", ";
+    auto next_ptr = memchr(curr_ptr, TILEDB_ALT_ALLELE_SEPARATOR[0], remaining_bytes);
+    auto string_length = (next_ptr)
+      ? (reinterpret_cast<const uint8_t*>(next_ptr)-reinterpret_cast<const uint8_t*>(curr_ptr))
+      : remaining_bytes;
+    auto char_ptr = reinterpret_cast<const char*>(curr_ptr);
+    fptr << "\"";
+    if(string_length == 1u && char_ptr[0] == TILEDB_NON_REF_VARIANT_REPRESENTATION[0])
+      fptr.write(g_vcf_NON_REF.c_str(), g_vcf_NON_REF.length());
+    else
+      fptr.write(char_ptr, string_length);
+    fptr << "\"";
+    remaining_bytes -= (next_ptr ? (string_length+1u) : string_length);
+    curr_ptr = next_ptr ? reinterpret_cast<const void*>(reinterpret_cast<const uint8_t*>(next_ptr)+1)
+      : 0;
+    assert((curr_ptr && remaining_bytes)
+        || (curr_ptr == 0 && remaining_bytes == 0u));
+    first = false;
+  } while(curr_ptr);
+  fptr << " ]";
+}

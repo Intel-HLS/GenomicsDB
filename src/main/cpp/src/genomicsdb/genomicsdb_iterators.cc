@@ -337,66 +337,63 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
       if(buffer_ptr->get_num_live_entries() == 0u)
         m_fields[i].move_buffer_to_free_list(buffer_ptr);
     }
-    //This query interval only had data in the PQ - read next column interval from TileDB 
-    if(m_PQ_live_cell_markers.empty() && m_done_reading_from_TileDB
+    if(!m_PQ_live_cell_markers.empty())
+      return *this;
+    //Done processing PQ cells
+    //If this query interval has no more data, read next column interval
+    if(m_done_reading_from_TileDB
         && (m_query_column_interval_idx+1u) < m_query_config->get_num_column_intervals())
       read_from_TileDB();
   }
-  else
+  auto hitting_useless_cells = true;
+  while(hitting_useless_cells && !m_done_reading_from_TileDB)
   {
-    auto hitting_useless_cells = true;
-    while(hitting_useless_cells && !m_done_reading_from_TileDB)
+    m_query_attribute_idx_vec.resize(m_fields.size()); //no heap operations here
+    auto next_iteration_num_query_attributes = 0u;
+    for(auto i=0u;i<m_fields.size();++i)
     {
-      m_query_attribute_idx_vec.resize(m_fields.size()); //no heap operations here
-      auto next_iteration_num_query_attributes = 0u;
-      for(auto i=0u;i<m_fields.size();++i)
+      auto& genomicsdb_columnar_field = m_fields[i];
+      auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+      //still has live data
+      //TODO: either all fields have live data or none do - is that right?
+      if(genomicsdb_buffer_ptr)
       {
-        auto& genomicsdb_columnar_field = m_fields[i];
-        auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
-        //still has live data
-        //TODO: either all fields have live data or none do - is that right?
-        if(genomicsdb_buffer_ptr)
-        {
-          genomicsdb_columnar_field.advance_curr_index_in_live_list_tail();
-          genomicsdb_buffer_ptr->decrement_num_live_entries();
-          genomicsdb_buffer_ptr->decrement_num_unprocessed_entries();
-          if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, move buffer to free list 
-            genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
-          //buffer completely processed, add attribute to next round of fetch from TileDB
-          if(genomicsdb_buffer_ptr->get_num_unprocessed_entries() == 0ull)
-            m_query_attribute_idx_vec[next_iteration_num_query_attributes++] = i;
-        }
-      }
-      m_query_attribute_idx_vec.resize(next_iteration_num_query_attributes); //no heap operations occur here
-      if(next_iteration_num_query_attributes > 0u) //some fields have exhausted buffers, need to fetch from TileDB
-        read_from_TileDB();
-      //keep incrementing iterator if hitting duplicates at end in simple traversal mode
-      if(!m_done_reading_from_TileDB && m_in_simple_traversal_mode)
-      {
-        const auto& coords_columnar_field = m_fields[m_fields.size()-1u];
-        const auto* coords = reinterpret_cast<const int64_t*>(
-            coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
-              coords_columnar_field.get_live_buffer_list_tail_ptr(),
-              coords_columnar_field.get_curr_index_in_live_list_tail()
-              )
-            );
-        assert(m_END_query_idx < m_fields.size());
-        const auto& END_columnar_field = m_fields[m_END_query_idx];
-        assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
-        auto END_field_value = *(reinterpret_cast<const int64_t*>(
-              END_columnar_field.get_pointer_to_data_in_buffer_at_index(
-                END_columnar_field.get_live_buffer_list_tail_ptr(),
-                END_columnar_field.get_curr_index_in_live_list_tail()
-                )
-              ));
-        hitting_useless_cells = (END_field_value < coords[1]);
-      }
-      else
-      {
-        assert(m_done_reading_from_TileDB || (!m_in_simple_traversal_mode && m_in_find_intersecting_intervals_mode));
-        hitting_useless_cells = false; //!m_in_simple_traversal_mode - examine all cells
+        genomicsdb_columnar_field.advance_curr_index_in_live_list_tail();
+        genomicsdb_buffer_ptr->decrement_num_live_entries();
+        genomicsdb_buffer_ptr->decrement_num_unprocessed_entries();
+        if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, move buffer to free list 
+          genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
+        //buffer completely processed, add attribute to next round of fetch from TileDB
+        if(genomicsdb_buffer_ptr->get_num_unprocessed_entries() == 0ull)
+          m_query_attribute_idx_vec[next_iteration_num_query_attributes++] = i;
       }
     }
+    m_query_attribute_idx_vec.resize(next_iteration_num_query_attributes); //no heap operations occur here
+    if(next_iteration_num_query_attributes > 0u) //some fields have exhausted buffers, need to fetch from TileDB
+      read_from_TileDB();
+    //keep incrementing iterator if hitting duplicates at end in simple traversal mode
+    if(!m_done_reading_from_TileDB && m_in_simple_traversal_mode)
+    {
+      const auto& coords_columnar_field = m_fields[m_fields.size()-1u];
+      const auto* coords = reinterpret_cast<const int64_t*>(
+          coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
+            coords_columnar_field.get_live_buffer_list_tail_ptr(),
+            coords_columnar_field.get_curr_index_in_live_list_tail()
+            )
+          );
+      assert(m_END_query_idx < m_fields.size());
+      const auto& END_columnar_field = m_fields[m_END_query_idx];
+      assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
+      auto END_field_value = *(reinterpret_cast<const int64_t*>(
+            END_columnar_field.get_pointer_to_data_in_buffer_at_index(
+              END_columnar_field.get_live_buffer_list_tail_ptr(),
+              END_columnar_field.get_curr_index_in_live_list_tail()
+              )
+            ));
+      hitting_useless_cells = (END_field_value < coords[1]);
+    }
+    else
+      hitting_useless_cells = false; //!m_in_simple_traversal_mode - examine all cells
   }
   return *this;
 }
@@ -408,5 +405,15 @@ void SingleCellTileDBIterator::print(const int field_query_idx, std::ostream& fp
   size_t index = 0ul;
   auto buffer_ptr = get_buffer_pointer_and_index(field_query_idx, index);
   genomicsdb_columnar_field.print_data_in_buffer_at_index(fptr,
+      buffer_ptr, index);
+}
+
+void SingleCellTileDBIterator::print_ALT(const int field_query_idx, std::ostream& fptr) const
+{
+  assert(static_cast<const size_t>(field_query_idx) < m_fields.size());
+  auto& genomicsdb_columnar_field = m_fields[field_query_idx];
+  size_t index = 0ul;
+  auto buffer_ptr = get_buffer_pointer_and_index(field_query_idx, index);
+  genomicsdb_columnar_field.print_ALT_data_in_buffer_at_index(fptr,
       buffer_ptr, index);
 }

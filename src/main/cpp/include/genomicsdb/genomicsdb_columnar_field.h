@@ -272,6 +272,8 @@ class GenomicsDBColumnarField
     }
     void print_data_in_buffer_at_index(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
+    void print_ALT_data_in_buffer_at_index(std::ostream& fptr,
+        const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();

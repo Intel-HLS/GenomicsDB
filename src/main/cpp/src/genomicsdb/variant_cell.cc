@@ -127,10 +127,13 @@ void GenomicsDBColumnarCell::print(std::ostream& fptr, const VariantQueryConfig*
   fptr << indent_string << "\"row\": "<< coords[0] << ",\n";
   assert(query_config->is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   auto end_query_idx = query_config->get_query_idx_for_known_field_enum(GVCF_END_IDX);
+  auto ALT_query_idx = query_config->is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX)
+    ? query_config->get_query_idx_for_known_field_enum(GVCF_ALT_IDX) : UINT64_MAX;
   auto end_position = *(reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(end_query_idx)));
   fptr << indent_string << "\"interval\": [ "<< coords[1] << ", "
     << end_position 
     << " ],\n";
+  assert(coords[1] <= end_position);
   if(vid_mapper)
   {
     std::string contig_name;
@@ -145,12 +148,17 @@ void GenomicsDBColumnarCell::print(std::ostream& fptr, const VariantQueryConfig*
   auto first_valid_field = true;
   for(auto i=0u;i<query_config->get_num_queried_attributes();++i)
   {
-    if(i != end_query_idx && is_valid(i))
+    if(is_valid(i))
     {
+      if(i == end_query_idx)
+        continue;
       if(!first_valid_field)
         fptr << ",\n";
       fptr << indent_string << "\"" << (query_config->get_query_attribute_name(i)) << "\": ";
-      m_iterator->print(i, fptr);
+      if(i == ALT_query_idx)
+        m_iterator->print_ALT(i, fptr);
+      else
+        m_iterator->print(i, fptr);
       first_valid_field = false;
     }
   }

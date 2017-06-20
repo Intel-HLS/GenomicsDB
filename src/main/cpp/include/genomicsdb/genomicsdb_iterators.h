@@ -227,6 +227,7 @@ class SingleCellTileDBIterator
       return reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(coords_query_idx));
     }
     void print(const int query_idx, std::ostream& fptr=std::cout) const;
+    void print_ALT(const int query_idx, std::ostream& fptr=std::cout) const;
     inline bool end() const { return m_done_reading_from_TileDB && m_PQ_live_cell_markers.empty(); }
   protected:
     /*
