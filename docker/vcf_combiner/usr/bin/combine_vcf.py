@@ -3,7 +3,7 @@
 
 """
   The MIT License (MIT)
-  Copyright (c) 2017 Intel Corporation
+  Copyright (c) 2016-2017 Intel Corporation
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of
   this software and associated documentation files (the "Software"), to deal in
@@ -255,7 +255,7 @@ class CombineVCF(object):
     def get_my_name():
         return ProductName
 
-def test_quick_test():
+def test_code_runs_after_pylint():
     ''' a quick test for github check-in '''
     print("Run a quick test ...")
     x = CombineVCF().get_my_name()
