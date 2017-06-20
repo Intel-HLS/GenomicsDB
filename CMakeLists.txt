@@ -301,4 +301,7 @@ if(BUILD_JAVA)
         COMMAND python ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
+
+    add_test(NAME All_GTests
+        COMMAND ${CMAKE_INSTALL_PREFIX}/bin/runAllGTests)
 endif()

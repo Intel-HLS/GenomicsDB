@@ -161,10 +161,10 @@ int SQLBasedVidMapper::load_field_info() {
   int num_fields = (int) dbi_result_get_numrows(result);
   m_field_name_to_idx.reserve(num_fields);
   m_field_idx_to_info.resize(num_fields);
+  auto field_idx = 0;
 
   while (dbi_result_next_row(result)) {
     int64_t field_id = dbi_result_get_longlong(result, DBTABLE_FIELD_COLUMN_ID.c_str());
-    int64_t field_idx = (field_id - 1);
     std::string field_name = dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_NAME.c_str());
 
     m_field_name_to_idx[field_name] = field_idx;
@@ -230,7 +230,8 @@ int SQLBasedVidMapper::load_field_info() {
       }
     }
 
-    std::string combine_op = dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_COMBOP.c_str());
+    const char* c_combine_op = dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_COMBOP.c_str());
+    std::string combine_op = ((NULL == c_combine_op) ? "" : c_combine_op);
     if ((0 == combine_op.compare("ERROR")) || combine_op.empty()) {
       if (is_known_field) {
         ref.m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
@@ -272,6 +273,8 @@ int SQLBasedVidMapper::load_field_info() {
       ref.m_is_vcf_FORMAT_field = false;
       field_idx++;
     }
+
+    field_idx++;
   }
 
   dbi_result_free(result);

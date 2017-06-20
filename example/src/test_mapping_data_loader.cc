@@ -26,6 +26,18 @@
 #include "vid_mapper_sql.h"
 #include <cassert>
 
+const std::string HOSTNAME_PARAM = "host_name";
+const std::string HOSTNAME_DEFAULT = "localhost";
+const std::string USERNAME_PARAM = "user_name";
+const std::string USERNAME_DEFAULT = "postgres";
+const std::string PASSWD_PARAM = "pass_word";
+const std::string PASSWD_DEFAULT = "postgres";
+const std::string DBNAME_PARAM = "db_name";
+const std::string DBNAME_DEFAULT = "gendb";
+const std::string WORKSPACE_PARAM = "work_space";
+const std::string WORKSPACE_DEFAULT = "/home/rmantrix/git_repos/NomixDB/INST_GenomicsDB/tests/workspace";
+const std::string ARRAYNAME_PARAM = "array_name";
+const std::string ARRAYNAME_DEFAULT = "rsm_test";
 
 class MappingDataLoaderTester {
   private:
@@ -122,14 +134,14 @@ int main(int argc, char *argv[]) {
   std::cout <<"------------ MappingData Loader - BEGIN -----------------\n";
   SQLVidMapperRequest request;
 
-  get_input("host_name", "localhost", request.host_name);
-  get_input("user_name", "postgres", request.user_name);
-  get_input("pass_word", "postgres", request.pass_word);
-  get_input("db_name", "gendb", request.db_name);
+  get_input(HOSTNAME_PARAM, HOSTNAME_DEFAULT, request.host_name);
+  get_input(USERNAME_PARAM, postgres, request.user_name);
+  get_input(PASSWD_PARAM, PASSWD_DEFAULT, request.pass_word);
+  get_input(DBNAME_PARAM, DBNAME_DEFAULT, request.db_name);
 
-  get_input("work_space", "/home/rmantrix/git_repos/NomixDB/INST_GenomicsDB/tests/workspace", request.work_space);
+  get_input(WORKSPACE_PARAM, WORKSPACE_DEFAULT, request.work_space);
   //request.array_name = "hg19";
-  get_input("array_name", "rsm_test", request.array_name);
+  get_input(ARRAYNAME_PARAM, ARRAYNAME_DEFAULT, request.array_name);
 
   MappingDataLoaderTester tester(request);
 
