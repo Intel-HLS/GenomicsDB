@@ -1,6 +1,6 @@
 /**
  * The MIT License (MIT)
- * Copyright (c) 2016 Intel Corporation
+ * Copyright (c) 2016-2017 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of 
  * this software and associated documentation files (the "Software"), to deal in 
@@ -24,6 +24,7 @@
 
 #include "vcf_adapter.h"
 #include "vid_mapper.h"
+#include "htslib/tbx.h"
 
 //ReferenceGenomeInfo functions
 void ReferenceGenomeInfo::initialize(const std::string& reference_genome)
@@ -208,7 +209,23 @@ VCFAdapter::~VCFAdapter()
   if(m_template_vcf_hdr)
     bcf_hdr_destroy(m_template_vcf_hdr);
   if(m_open_output && m_output_fptr)
+  {
     bcf_close(m_output_fptr);
+    auto status = 0;
+    switch(m_index_output_VCF)
+    {
+      case VCFIndexType::VCF_INDEX_CSI:
+        status = bcf_index_build(m_output_filename.c_str(), 14); //bcftools had default 14
+        break;
+      case VCFIndexType::VCF_INDEX_TBI:
+        status = tbx_index_build(m_output_filename.c_str(), 0, &tbx_conf_vcf);
+        break;
+      default:
+        break; //do nothing
+    }
+    if(status != 0)
+      std::cerr << "WARNING: error in creating index for output file "<<m_output_filename<<"\n";
+  }
   m_output_fptr = 0;
 #ifdef DO_PROFILING
   m_vcf_serialization_timer.print("bcf_t serialization", std::cerr);
@@ -225,7 +242,8 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     const std::string& vcf_header_filename,
     std::string output_filename, std::string output_format,
     const size_t combined_vcf_records_buffer_size_limit,
-    const bool produce_GT_field)
+    const bool produce_GT_field,
+    const bool index_output_VCF)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -246,6 +264,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   }
   m_is_bcf = valid_output_formats[output_format];
   m_output_filename = output_filename;
+  m_index_output_VCF = VCF_INDEX_NONE;
   if(m_open_output)
   {
     m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
@@ -253,6 +272,16 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     {
       std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
       exit(-1);
+    }
+    if(index_output_VCF && !output_filename.empty())
+    {
+      if(output_format == "z")
+        m_index_output_VCF = VCFIndexType::VCF_INDEX_TBI;
+      else
+      {
+        if(output_format == "b")
+          m_index_output_VCF = VCFIndexType::VCF_INDEX_CSI;
+      }
     }
   }
   //Reference genome

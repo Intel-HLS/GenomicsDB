@@ -21,3 +21,4 @@ tests/coverage.info
 .idea/*
 /target/
 .tmp_loader.json
+build/

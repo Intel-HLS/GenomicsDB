@@ -1,6 +1,6 @@
 /**
  * The MIT License (MIT)
- * Copyright (c) 2016 Intel Corporation
+ * Copyright (c) 2016-2017 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of 
  * this software and associated documentation files (the "Software"), to deal in 
@@ -30,6 +30,13 @@
 #include "htslib/vcf.h"
 #include "htslib/faidx.h"
 #include "timer.h"
+
+enum VCFIndexType
+{
+  VCF_INDEX_CSI=0u,
+  VCF_INDEX_TBI,
+  VCF_INDEX_NONE
+};
 
 //Exceptions thrown
 class VCFAdapterException : public std::exception {
@@ -90,7 +97,8 @@ class VCFAdapter
     void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
         std::string output_filename, std::string output_format="",
         const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE,
-        const bool produce_GT_field=false);
+        const bool produce_GT_field=false,
+        const bool index_output_VCF=false);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -124,6 +132,8 @@ class VCFAdapter
     size_t m_combined_vcf_records_buffer_size_limit;
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     bool m_produce_GT_field;
+    //Index output VCF
+    unsigned m_index_output_VCF;
 #ifdef DO_PROFILING
     //Timer
     Timer m_vcf_serialization_timer;
