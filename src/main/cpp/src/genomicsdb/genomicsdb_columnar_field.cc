@@ -28,7 +28,9 @@ GenomicsDBColumnarField::GenomicsDBColumnarField(const std::type_index element_t
 : m_element_type(element_type), m_length_descriptor(length_descriptor),
   m_fixed_length_field_num_elements(fixed_length_field_length)
 {
-  m_element_size = VariantFieldTypeUtil::size(m_element_type);
+  m_element_size = (element_type == std::type_index(typeid(bool)))
+    ? sizeof(char)
+    : VariantFieldTypeUtil::size(m_element_type);
   m_fixed_length_field_size = m_fixed_length_field_num_elements*m_element_size;
   m_buffer_size = (length_descriptor == BCF_VL_FIXED)
     ? GET_ALIGNED_BUFFER_SIZE(num_bytes, m_fixed_length_field_size)
@@ -148,6 +150,9 @@ void GenomicsDBColumnarField::assign_print_function_pointers(VariantFieldTypeEnu
 {
   switch(variant_enum_type)
   {
+    case VariantFieldTypeEnum::VARIANT_FIELD_BOOL:
+      m_print = GenomicsDBColumnarFieldPrintOperator<bool, print_as_list>::print;
+      break;
     case VariantFieldTypeEnum::VARIANT_FIELD_INT:
       m_print = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print;
       break;
@@ -197,6 +202,7 @@ void GenomicsDBColumnarField::assign_function_pointers()
     case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<double>;
       break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_BOOL:
     case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
     case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<char>;

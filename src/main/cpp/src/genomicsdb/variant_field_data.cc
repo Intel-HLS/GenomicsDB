@@ -30,6 +30,7 @@ di_union g_tiledb_null_double = { .d = TILEDB_EMPTY_FLOAT64 };
 std::unordered_map<std::type_index, VariantFieldTypeEnum> g_variant_field_type_index_to_enum = 
 std::unordered_map<std::type_index, VariantFieldTypeEnum>{
   { std::type_index(typeid(void)), VARIANT_FIELD_VOID },
+  { std::type_index(typeid(bool)), VARIANT_FIELD_BOOL },
   { std::type_index(typeid(int)), VARIANT_FIELD_INT },
   { std::type_index(typeid(int64_t)), VARIANT_FIELD_INT64_T },
   { std::type_index(typeid(unsigned)), VARIANT_FIELD_UNSIGNED },
@@ -48,7 +49,8 @@ std::unordered_map<std::type_index, int>{
   { std::type_index(typeid(uint64_t)), TILEDB_INT64 },
   { std::type_index(typeid(float)), TILEDB_FLOAT32 },
   { std::type_index(typeid(double)), TILEDB_FLOAT64 },
-  { std::type_index(typeid(char)), TILEDB_CHAR }
+  { std::type_index(typeid(char)), TILEDB_CHAR },
+  { std::type_index(typeid(bool)), TILEDB_CHAR }
 };
 
 std::vector<std::type_index> g_tiledb_type_to_variant_field_type_index =
@@ -63,6 +65,7 @@ std::vector<std::type_index> g_tiledb_type_to_variant_field_type_index =
 std::unordered_map<std::type_index, int> g_variant_field_type_index_to_vcf_enum = 
 std::unordered_map<std::type_index, int>{
   { std::type_index(typeid(void)), BCF_HT_VOID },
+  { std::type_index(typeid(bool)), BCF_HT_FLAG },
   { std::type_index(typeid(int)), BCF_HT_INT },
   { std::type_index(typeid(int64_t)), BCF_HT_INT },
   { std::type_index(typeid(unsigned)), BCF_HT_INT },

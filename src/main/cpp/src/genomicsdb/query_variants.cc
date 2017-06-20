@@ -118,6 +118,8 @@ void VariantQueryProcessor::initialize_static_members()
 {
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(bool))] =
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int8_t))] =
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int8_t, int>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint8_t))] =
@@ -232,7 +234,7 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
     VariantQueryProcessor::initialize_static_members();
   clear();
   m_storage_manager = storage_manager;
-  m_ad = storage_manager->open_array(array_name, "r");
+  m_ad = storage_manager->open_array(array_name, &vid_mapper, "r");
   if(m_ad < 0)
     throw VariantQueryProcessorException("Could not open array "+array_name+" at workspace: "+storage_manager->get_workspace());
   m_array_schema = new VariantArraySchema();

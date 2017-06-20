@@ -26,8 +26,9 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBIteratorException(#X);
 
-SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
-        const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
+SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
+    const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
+    const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
 : m_variant_array_schema(&variant_array_schema), m_query_config(&query_config),
   m_cell(new GenomicsDBColumnarCell(this)),
   m_tiledb_array(0),
@@ -54,8 +55,15 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const
     attribute_names[i] = variant_array_schema.attribute_name(schema_idx).c_str();
     m_query_attribute_idx_to_tiledb_buffer_idx[i] = m_buffer_pointers.size();
     auto is_variable_length_field = variant_array_schema.is_variable_length_field(schema_idx);
+    //TileDB does not have a way to distinguish between char, string and int8_t fields
+    //Hence, a series of possibly messy checks here
+    assert(vid_mapper);
+    const auto* vid_field_info = vid_mapper->get_field_info(attribute_names[i]);
+    auto curr_type_index = (vid_field_info && vid_field_info->m_bcf_ht_type == BCF_HT_FLAG)
+      ? std::type_index(typeid(bool))
+      : variant_array_schema.type(schema_idx);
     //GenomicsDBColumnarField
-    m_fields.emplace_back(variant_array_schema.type(schema_idx),
+    m_fields.emplace_back(curr_type_index,
         is_variable_length_field ? BCF_VL_VAR : BCF_VL_FIXED,
         variant_array_schema.val_num(schema_idx), buffer_size);
     //Buffer pointers and size

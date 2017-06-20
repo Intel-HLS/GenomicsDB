@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "genomicsdb_columnar_field.h"
+#include "vid_mapper.h"
 #include "c_api.h"
 #include "timer.h"
 
@@ -171,7 +172,8 @@ class VariantQueryConfig;
 class SingleCellTileDBIterator
 {
   public:
-    SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx, const VariantArraySchema& variant_array_schema,
+    SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
+        const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size);
     ~SingleCellTileDBIterator();
     //Delete copy and move constructors
