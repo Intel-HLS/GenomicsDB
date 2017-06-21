@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "vcf.h"
 #include "gt_common.h"
+#include <execinfo.h>
 
 class GenomicsDBColumnarFieldException : public std::exception {
   public:
@@ -79,10 +80,10 @@ class GenomicsDBBuffer
       m_num_filled_entries = n;
       m_num_unprocessed_entries = n;
     }
-    inline void decrement_num_live_entries()
+    inline void decrement_num_live_entries(const size_t value)
     {
-      assert(m_num_live_entries > 0ull);
-      --m_num_live_entries;
+      assert(m_num_live_entries >= value);
+      m_num_live_entries -= value;
     }
     inline void increment_num_live_entries(const size_t val=1u)
     {
@@ -92,10 +93,10 @@ class GenomicsDBBuffer
     {
       return m_num_unprocessed_entries;
     }
-    inline void decrement_num_unprocessed_entries()
+    inline void decrement_num_unprocessed_entries(const size_t value)
     {
-      assert(m_num_unprocessed_entries > 0ull);
-      --m_num_unprocessed_entries;
+      assert(m_num_unprocessed_entries >= value);
+      m_num_unprocessed_entries -= value;
     }
     inline std::vector<uint8_t>& get_buffer() { return m_buffer; }
     inline const std::vector<uint8_t>& get_buffer() const { return m_buffer; }

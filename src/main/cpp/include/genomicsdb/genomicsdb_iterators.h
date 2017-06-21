@@ -260,6 +260,16 @@ class SingleCellTileDBIterator
         return m_live_cell_markers.get_buffer_pointer(marker_idx, field_query_idx);
       }
     }
+    /*
+     * Optimization for skipping useless cells
+     * Useless are determined using the coords and the END value
+     * a) in simple traversal mode, a cell is useless if END < coords[1] (END cell)
+     * b) in find intersecting intervals mode, a cell is useless if the corresponding row marker is 
+     * already initialized
+     * Once the number of contiguous useless cells are determined, fields other than coords and END
+     * can be skipped in one shot
+     */
+    void increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
   private:
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
@@ -282,6 +292,8 @@ class SingleCellTileDBIterator
     //The first time all fields are queried - in subsequent iterations only those fields whose
     //buffers are consumed completely are queried
     std::vector<int> m_query_attribute_idx_vec;
+    //Contains #cells to skip - 1 for every entry in m_query_attribute_idx_vec
+    std::vector<size_t> m_query_attribute_idx_num_cells_to_increment_vec;
     //Since variable length fields have buffers for offsets, need a mapping structure
     std::vector<size_t> m_query_attribute_idx_to_tiledb_buffer_idx;
     std::vector<void*> m_buffer_pointers;
