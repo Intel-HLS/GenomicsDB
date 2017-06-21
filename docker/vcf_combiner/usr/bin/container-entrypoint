@@ -1,10 +1,25 @@
 #!/bin/bash
+. /usr/share/cont-lib/cont-lib.sh
 
-source /usr/share/cont-lib/cont-lib.sh
+ls /usr/bin/vcf2tiledb > /dev/null 2>&1
+test $? -ne 0 && cont_error "cannot find vcf2tiledb... exiting" && exit 2 
 
-cont_debug "command: $*"
+if [ "$#" -gt 0 -a "$1" == "--version" ]; then
+  __cont_msg "info vcf2tiledb version is $(vcf2tiledb --version)"
+  exit 0
+fi
 
-__cont_source_scripts "/usr/share/cont-entry"
-
+my_uid=$(id -u)
 test -z "$*" && set -- bash
+if [ "$1" == "combine_vcf" ]; then
+  __cont_msg "info  run combine_vcf as user id $my_uid, vcf2tiledb version is $(vcf2tiledb --version)"
+  echo
+fi
+
+if [ $my_uid == 5658 ]; then
+  cd $HOME
+else
+  export HOME=/  
+fi
+
 exec "$@"
