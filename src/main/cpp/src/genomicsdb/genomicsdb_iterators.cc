@@ -432,6 +432,11 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
       assert(!m_done_reading_from_TileDB);
       increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
     }
+#ifdef DEBUG
+    for(auto i=0u;i<m_fields.size();++i)
+      assert(m_fields[i].get_live_buffer_list_tail_ptr()
+          && m_fields[i].get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries());
+#endif
   }
   return *this;
 }
@@ -455,26 +460,23 @@ void SingleCellTileDBIterator::increment_iterator_within_live_buffer_list_tail_p
     assert(static_cast<size_t>(m_query_attribute_idx_vec[i]) < m_fields.size());
     auto& genomicsdb_columnar_field = m_fields[m_query_attribute_idx_vec[i]];
     auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
-    auto increment_by = m_query_attribute_idx_num_cells_to_increment_vec[i];
     //TODO: either all fields are done reading or none are - is that right?
     if(genomicsdb_buffer_ptr)
     {
-      auto unprocessed_entries_delta = std::min(increment_by, genomicsdb_buffer_ptr->get_num_unprocessed_entries());
+      auto unprocessed_entries_delta = std::min(m_query_attribute_idx_num_cells_to_increment_vec[i],
+          genomicsdb_buffer_ptr->get_num_unprocessed_entries());
       genomicsdb_columnar_field.advance_curr_index_in_live_list_tail(unprocessed_entries_delta);
-      auto live_entries_delta = std::min(increment_by, genomicsdb_buffer_ptr->get_num_live_entries());
-      genomicsdb_buffer_ptr->decrement_num_live_entries(live_entries_delta);
+      genomicsdb_buffer_ptr->decrement_num_live_entries(unprocessed_entries_delta);
       genomicsdb_buffer_ptr->decrement_num_unprocessed_entries(unprocessed_entries_delta);
       if(genomicsdb_buffer_ptr->get_num_live_entries() == 0ull) //no more live entries, move buffer to free list 
         genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
-      assert(m_query_attribute_idx_num_cells_to_increment_vec[i] >= unprocessed_entries_delta);
-      auto num_remaining_cells_to_increment = m_query_attribute_idx_num_cells_to_increment_vec[i]
-        - unprocessed_entries_delta;
       //buffer completely processed, add attribute to next round of fetch from TileDB
       if(genomicsdb_buffer_ptr->get_num_unprocessed_entries() == 0ull)
       {
-        m_query_attribute_idx_vec[next_iteration_num_query_attributes] = i;
+        m_query_attribute_idx_vec[next_iteration_num_query_attributes]
+          = m_query_attribute_idx_vec[i];
         m_query_attribute_idx_num_cells_to_increment_vec[next_iteration_num_query_attributes]
-          = num_remaining_cells_to_increment; 
+          = m_query_attribute_idx_num_cells_to_increment_vec[i] - unprocessed_entries_delta;
         ++next_iteration_num_query_attributes;
       }
     }

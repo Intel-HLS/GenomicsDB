@@ -26,7 +26,6 @@
 #include "headers.h"
 #include "vcf.h"
 #include "gt_common.h"
-#include <execinfo.h>
 
 class GenomicsDBColumnarFieldException : public std::exception {
   public:

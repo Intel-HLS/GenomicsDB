@@ -497,12 +497,13 @@ def main():
                     with open(query_json_filename, 'wb') as fptr:
                         json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                         fptr.close();
+                    query_command = ''
                     if(query_type == 'java_vcf'):
                         loader_argument = loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = '""'
-                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
-                                shell=True, stdout=subprocess.PIPE);
+                        query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename;
+                        pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
                     else:
                         if(query_type == 'consolidate_and_vcf'):
                             retcode = subprocess.call(exe_path+os.path.sep+'consolidate_tiledb_array '+ws_dir+' '+test_name,
@@ -513,12 +514,13 @@ def main():
                         loader_argument = ' -l '+loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = ''
-                        pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
+                        query_command = (exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
                             + ' -j '
-                            +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']), shell=True,
-                            stdout=subprocess.PIPE);
+                            +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']);
+                        pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
                     stdout_string = pid.communicate()[0]
                     if(pid.returncode != 0):
+                        sys.stderr.write('Command '+query_command+'\n')
                         sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
                         cleanup_and_exit(tmpdir, -1);
                     md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
