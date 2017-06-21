@@ -35,11 +35,7 @@ install:
     - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.4.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
     - tar xzf protobuf-3.0.2-trusty.tar.gz && sudo rsync -a protobuf-3.0.2-trusty/ /usr/
     #install gtest
-    - sudo apt-get -y install libgtest-dev
-    - cd /usr/src/gtest
-    - sudo cmake .
-    - sudo make
-    - sudo mv libgtest* /usr/lib
+    - sudo apt-get -y install libgtest0 libgtest-dev
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
