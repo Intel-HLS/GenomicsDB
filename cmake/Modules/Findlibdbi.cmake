@@ -6,7 +6,7 @@ find_path(LIBDBI_INCLUDE_DIR NAMES dbi.h HINTS "${LIBDBI_DIR}/include/dbi")
 
 find_library(LIBPGSQL_DRIVER_LIBRARY NAMES dbdpgsql HINTS "${LIBDBI_DIR}/lib/${CMAKE_C_LIBRARY_ARCHITECTURE}/dbd")
 
-find_library(LIBDBI_DEV_LIBRARY NAMES dbi)
+find_library(LIBDBI_DEV_LIBRARY NAMES dbi HINTS "${LIBDBI_DIR}/lib/${CMAKE_C_LIBRARY_ARCHITECTURE})
 
 include(FindPackageHandleStandardArgs)
 
