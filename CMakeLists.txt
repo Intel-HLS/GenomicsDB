@@ -297,10 +297,14 @@ if(BUILD_JAVA)
         INCLUDE_JARS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
 
-    add_test(NAME CI_tests
-        COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
-        ${CMAKE_BINARY_DIR}
-        ${CMAKE_INSTALL_PREFIX})
+    #add_test(NAME CI_tests
+        #COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
+        #${CMAKE_BINARY_DIR}
+        #${CMAKE_INSTALL_PREFIX})
 
     add_test(NAME All_GTests COMMAND ${CMAKE_INSTALL_PREFIX}/bin/runAllGTests)
+
+    add_test(NAME All_GTests_1 COMMAND ${CMAKE_BINARY_DIR}/bin/runAllGTests)
+
+    add_test(NAME All_GTests_2 COMMAND ${CMAKE_BINARY_DIR}/runAllGTests)
 endif()
