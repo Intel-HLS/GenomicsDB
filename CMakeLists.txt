@@ -302,5 +302,5 @@ if(BUILD_JAVA)
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 
-    #add_test(NAME All_GTests COMMAND ${CMAKE_INSTALL_PREFIX}/bin/runAllGTests)
+    add_test(NAME All_GTests COMMAND ${CMAKE_INSTALL_PREFIX}/bin/runAllGTests)
 endif()
