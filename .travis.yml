@@ -56,6 +56,9 @@ install:
 
 before_script:
     - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
+    - psql -U postgres -c 'create database gendb'
+    - psql -U postgres gendb < $TRAVIS_BUILD_DIR/src/resources/gendb_state_for_tests.txt
+    - psql gendb -U postgres -c 'select count(*) from reference'
 
 script:
     - pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py

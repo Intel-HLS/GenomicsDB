@@ -1,0 +1,1408 @@
+--
+-- PostgreSQL database dump
+--
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: field_combine_optype; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE field_combine_optype AS ENUM (
+    'sum',
+    'mean',
+    'median',
+    'move_to_FORMAT',
+    'element_wise_sum',
+    'concatenate'
+);
+
+
+ALTER TYPE public.field_combine_optype OWNER TO postgres;
+
+--
+-- Name: length_enum; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE length_enum AS ENUM (
+    'A',
+    'R',
+    'G',
+    'VAR',
+    'NUM'
+);
+
+
+ALTER TYPE public.length_enum OWNER TO postgres;
+
+--
+-- Name: type_enum; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE type_enum AS ENUM (
+    'Integer',
+    'String',
+    'Float',
+    'Flag'
+);
+
+
+ALTER TYPE public.type_enum OWNER TO postgres;
+
+--
+-- Name: increment_next_column_in_reference_set_pgsql(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION increment_next_column_in_reference_set_pgsql() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+        updated_next_tiledb_column_offset bigint;
+        padded_reference_length bigint;
+    BEGIN
+        padded_reference_length = CAST( CAST(NEW.length AS DOUBLE PRECISION)*(SELECT tiledb_reference_offset_padding_factor FROM reference_set WHERE id=NEW.reference_set_id) AS BIGINT);
+        UPDATE reference_set SET next_tiledb_column_offset=
+            CASE
+                WHEN NEW.tiledb_column_offset IS NULL THEN next_tiledb_column_offset+padded_reference_length
+                WHEN NEW.tiledb_column_offset+padded_reference_length>next_tiledb_column_offset THEN NEW.tiledb_column_offset+padded_reference_length
+                ELSE next_tiledb_column_offset
+            END
+        WHERE id = NEW.reference_set_id RETURNING next_tiledb_column_offset INTO updated_next_tiledb_column_offset;
+        IF NEW.tiledb_column_offset IS NULL THEN
+            NEW.tiledb_column_offset = updated_next_tiledb_column_offset-padded_reference_length;
+        END IF;
+        RETURN NEW;
+    END;
+    $$;
+
+
+ALTER FUNCTION public.increment_next_column_in_reference_set_pgsql() OWNER TO postgres;
+
+--
+-- Name: increment_num_rows_in_db_array_pgsql(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION increment_num_rows_in_db_array_pgsql() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+        updated_num_rows bigint;
+    BEGIN
+        UPDATE db_array SET num_rows=
+            CASE
+               WHEN NEW.tile_row_id IS NULL THEN num_rows+1
+               WHEN NEW.tile_row_id >= num_rows THEN NEW.tile_row_id+1
+               ELSE num_rows
+            END
+        WHERE id=NEW.db_array_id RETURNING num_rows INTO updated_num_rows;
+        IF NEW.tile_row_id IS NULL THEN
+            NEW.tile_row_id = updated_num_rows-1;
+        END IF;
+        RETURN NEW;
+    END;
+    $$;
+
+
+ALTER FUNCTION public.increment_num_rows_in_db_array_pgsql() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE alembic_version (
+    version_num character varying(32) NOT NULL
+);
+
+
+ALTER TABLE public.alembic_version OWNER TO postgres;
+
+--
+-- Name: callset_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE callset_id_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.callset_id_seq OWNER TO postgres;
+
+--
+-- Name: callset; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE callset (
+    id bigint DEFAULT nextval('callset_id_seq'::regclass) NOT NULL,
+    guid character varying(36) NOT NULL,
+    name text NOT NULL,
+    created bigint NOT NULL,
+    updated bigint NOT NULL,
+    info bytea,
+    source_sample_id bigint NOT NULL,
+    target_sample_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.callset OWNER TO postgres;
+
+--
+-- Name: callset_to_db_array_association; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE callset_to_db_array_association (
+    callset_id bigint NOT NULL,
+    db_array_id bigint NOT NULL,
+    tile_row_id bigint
+);
+
+
+ALTER TABLE public.callset_to_db_array_association OWNER TO postgres;
+
+--
+-- Name: callset_variant_set; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE callset_variant_set (
+    callset_id bigint NOT NULL,
+    variant_set_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.callset_variant_set OWNER TO postgres;
+
+--
+-- Name: db_array; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE db_array (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    reference_set_id bigint NOT NULL,
+    workspace_id bigint NOT NULL,
+    name text NOT NULL,
+    num_rows bigint DEFAULT 0 NOT NULL,
+    field_set_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.db_array OWNER TO postgres;
+
+--
+-- Name: db_array_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE db_array_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.db_array_id_seq OWNER TO postgres;
+
+--
+-- Name: db_array_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE db_array_id_seq OWNED BY db_array.id;
+
+
+--
+-- Name: db_row_tile_row_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE db_row_tile_row_id_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.db_row_tile_row_id_seq OWNER TO postgres;
+
+--
+-- Name: field; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE field (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    field character varying(32) NOT NULL,
+    field_set_id bigint NOT NULL,
+    type type_enum,
+    is_filter boolean NOT NULL,
+    is_format boolean NOT NULL,
+    is_info boolean NOT NULL,
+    length_type length_enum,
+    length_intval integer DEFAULT 1,
+    field_combine_op field_combine_optype
+);
+
+
+ALTER TABLE public.field OWNER TO postgres;
+
+--
+-- Name: field_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE field_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.field_id_seq OWNER TO postgres;
+
+--
+-- Name: field_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE field_id_seq OWNED BY field.id;
+
+
+--
+-- Name: field_set; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE field_set (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    description text
+);
+
+
+ALTER TABLE public.field_set OWNER TO postgres;
+
+--
+-- Name: field_set_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE field_set_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.field_set_id_seq OWNER TO postgres;
+
+--
+-- Name: field_set_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE field_set_id_seq OWNED BY field_set.id;
+
+
+--
+-- Name: individual; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE individual (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    name text NOT NULL,
+    info bytea,
+    record_create_time text,
+    record_update_time text
+);
+
+
+ALTER TABLE public.individual OWNER TO postgres;
+
+--
+-- Name: individual_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE individual_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.individual_id_seq OWNER TO postgres;
+
+--
+-- Name: individual_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE individual_id_seq OWNED BY individual.id;
+
+
+--
+-- Name: reference; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE reference (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    length bigint NOT NULL,
+    reference_set_id bigint NOT NULL,
+    md5_checksum character varying(32),
+    name text NOT NULL,
+    source_uri text,
+    is_derived boolean,
+    source_divergence double precision,
+    ncbi_taxon_id integer,
+    tiledb_column_offset bigint
+);
+
+
+ALTER TABLE public.reference OWNER TO postgres;
+
+--
+-- Name: reference_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE reference_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reference_id_seq OWNER TO postgres;
+
+--
+-- Name: reference_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE reference_id_seq OWNED BY reference.id;
+
+
+--
+-- Name: reference_set; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE reference_set (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    md5_checksum character varying(32),
+    description text,
+    source_uri text,
+    is_derived boolean,
+    ncbi_taxon_id integer,
+    assembly_id character varying(100),
+    next_tiledb_column_offset bigint DEFAULT 0 NOT NULL,
+    tiledb_reference_offset_padding_factor double precision DEFAULT 1.10 NOT NULL
+);
+
+
+ALTER TABLE public.reference_set OWNER TO postgres;
+
+--
+-- Name: reference_set_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE reference_set_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.reference_set_id_seq OWNER TO postgres;
+
+--
+-- Name: reference_set_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE reference_set_id_seq OWNED BY reference_set.id;
+
+
+--
+-- Name: reference_set_source_accession; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE reference_set_source_accession (
+    reference_set_id bigint NOT NULL,
+    source_accession_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.reference_set_source_accession OWNER TO postgres;
+
+--
+-- Name: reference_source_accession; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE reference_source_accession (
+    reference_id bigint NOT NULL,
+    source_accession_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.reference_source_accession OWNER TO postgres;
+
+--
+-- Name: sample; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE sample (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    individual_id bigint NOT NULL,
+    name text NOT NULL,
+    info text
+);
+
+
+ALTER TABLE public.sample OWNER TO postgres;
+
+--
+-- Name: sample_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE sample_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.sample_id_seq OWNER TO postgres;
+
+--
+-- Name: sample_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE sample_id_seq OWNED BY sample.id;
+
+
+--
+-- Name: source_accession; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE source_accession (
+    id bigint NOT NULL,
+    accession_id text NOT NULL
+);
+
+
+ALTER TABLE public.source_accession OWNER TO postgres;
+
+--
+-- Name: source_accession_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE source_accession_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.source_accession_id_seq OWNER TO postgres;
+
+--
+-- Name: source_accession_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE source_accession_id_seq OWNED BY source_accession.id;
+
+
+--
+-- Name: variant_set; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE variant_set (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    name text,
+    reference_set_id bigint NOT NULL,
+    dataset_id text,
+    variant_set_metadata text
+);
+
+
+ALTER TABLE public.variant_set OWNER TO postgres;
+
+--
+-- Name: variant_set_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE variant_set_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.variant_set_id_seq OWNER TO postgres;
+
+--
+-- Name: variant_set_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE variant_set_id_seq OWNED BY variant_set.id;
+
+
+--
+-- Name: workspace; Type: TABLE; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE TABLE workspace (
+    id bigint NOT NULL,
+    guid character varying(36) NOT NULL,
+    name text NOT NULL
+);
+
+
+ALTER TABLE public.workspace OWNER TO postgres;
+
+--
+-- Name: workspace_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE workspace_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.workspace_id_seq OWNER TO postgres;
+
+--
+-- Name: workspace_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE workspace_id_seq OWNED BY workspace.id;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY db_array ALTER COLUMN id SET DEFAULT nextval('db_array_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY field ALTER COLUMN id SET DEFAULT nextval('field_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY field_set ALTER COLUMN id SET DEFAULT nextval('field_set_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY individual ALTER COLUMN id SET DEFAULT nextval('individual_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference ALTER COLUMN id SET DEFAULT nextval('reference_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference_set ALTER COLUMN id SET DEFAULT nextval('reference_set_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY sample ALTER COLUMN id SET DEFAULT nextval('sample_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY source_accession ALTER COLUMN id SET DEFAULT nextval('source_accession_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY variant_set ALTER COLUMN id SET DEFAULT nextval('variant_set_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY workspace ALTER COLUMN id SET DEFAULT nextval('workspace_id_seq'::regclass);
+
+
+--
+-- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY alembic_version (version_num) FROM stdin;
+4f93dc7aa8e8
+\.
+
+
+--
+-- Data for Name: callset; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY callset (id, guid, name, created, updated, info, source_sample_id, target_sample_id) FROM stdin;
+0	e5be4e01-0d1d-482b-81d6-9b49c05cd625	HG00141	1497908145461	1497908145461	\N	1	1
+1	eb7193ae-16ba-4dee-a699-67eb99b8488f	HG01958	1497908145493	1497908145493	\N	1	1
+2	871d7751-2d03-4fbb-bf8d-96973dc2b48b	HG01530	1497908145517	1497908145517	\N	1	1
+\.
+
+
+--
+-- Name: callset_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('callset_id_seq', 2, true);
+
+
+--
+-- Data for Name: callset_to_db_array_association; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY callset_to_db_array_association (callset_id, db_array_id, tile_row_id) FROM stdin;
+0	1	0
+1	1	1
+2	1	2
+\.
+
+
+--
+-- Data for Name: callset_variant_set; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY callset_variant_set (callset_id, variant_set_id) FROM stdin;
+0	1
+1	1
+2	1
+\.
+
+
+--
+-- Data for Name: db_array; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY db_array (id, guid, reference_set_id, workspace_id, name, num_rows, field_set_id) FROM stdin;
+1	9fe7894a-a2ce-4206-acf7-d0cae3b1489e	1	1	sql_mapper_test	3	1
+\.
+
+
+--
+-- Name: db_array_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('db_array_id_seq', 1, true);
+
+
+--
+-- Name: db_row_tile_row_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('db_row_tile_row_id_seq', 0, false);
+
+
+--
+-- Data for Name: field; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY field (id, guid, field, field_set_id, type, is_filter, is_format, is_info, length_type, length_intval, field_combine_op) FROM stdin;
+1	8139b6bb-5ecc-414a-b884-28004c1041eb	MIN_DP	1	Integer	f	t	f	NUM	1	\N
+2	206bc81d-87e1-4e33-b214-d90598fd3d35	RAW_MQ	1	Float	f	f	t	NUM	1	\N
+3	c2b2e0f4-9371-4142-9579-2516c86e6ebf	GT	1	String	f	t	f	NUM	1	\N
+4	f8793e4f-6ffd-48fa-a2c4-10fa1fb5b012	END	1	Integer	f	f	t	NUM	1	\N
+5	6ffe77ff-a845-4eac-ae5f-47a3eea7dfe1	AD	1	Integer	f	t	f	R	1	\N
+6	342a57b2-c5c6-4b5f-97ab-e9aa45b2a7c9	GQ	1	Integer	f	t	f	NUM	1	\N
+7	fa63e472-6322-448c-8b1d-25e8638ba68c	PID	1	String	f	t	f	VAR	1	\N
+8	0048a233-a64b-4d1d-a0cb-5f32b0d3ddf3	MQ0	1	Integer	f	f	t	NUM	1	\N
+9	3971d05b-f5bb-4de6-90ff-cb19dc1c477f	PGT	1	String	f	t	f	VAR	1	\N
+10	b21afaf2-2a3e-492c-8145-b42af1455c21	BaseQRankSum	1	Float	f	f	t	NUM	1	\N
+11	becffda4-58cc-46c6-83dc-665150c55ead	MQ	1	Float	f	f	t	NUM	1	\N
+12	b2d4f52d-bc53-499f-ab56-92375857e0d0	PL	1	Integer	f	t	f	G	1	\N
+13	352f3f00-2fcb-4d8a-8eef-ef917091941f	PASS	1	\N	t	f	f	\N	1	\N
+14	94968e55-f685-4a8f-a2d6-4fcc0933e1e0	MQRankSum	1	Float	f	f	t	NUM	1	\N
+15	42908437-60e4-4539-90fe-8dd14bd953cd	SB	1	Integer	f	t	f	NUM	4	\N
+16	7463ac94-e2d3-484e-9b4e-49e90fc354f3	ReadPosRankSum	1	Float	f	f	t	NUM	1	\N
+17	29e44345-3357-4815-8530-7a0387ccade4	DP	1	Integer	f	t	t	NUM	1	\N
+18	5d37916a-7682-451e-bf7b-d62723b62b2d	ClippingRankSum	1	Float	f	f	t	NUM	1	\N
+\.
+
+
+--
+-- Name: field_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('field_id_seq', 18, true);
+
+
+--
+-- Data for Name: field_set; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY field_set (id, guid, description) FROM stdin;
+1	939740c3-bb58-4fa1-9999-af728d49d55a	hg19
+\.
+
+
+--
+-- Name: field_set_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('field_set_id_seq', 1, true);
+
+
+--
+-- Data for Name: individual; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY individual (id, guid, name, info, record_create_time, record_update_time) FROM stdin;
+1	c434bc59-467f-469f-ba3e-f8bb176a98a4	Individual_HG00141	\N	2017-06-19 14:35:4545.454545	2017-06-19 14:35:4545.454545
+\.
+
+
+--
+-- Name: individual_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('individual_id_seq', 1, true);
+
+
+--
+-- Data for Name: reference; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY reference (id, guid, length, reference_set_id, md5_checksum, name, source_uri, is_derived, source_divergence, ncbi_taxon_id, tiledb_column_offset) FROM stdin;
+1	5e41a5dd-0fb1-4a7a-a744-ac31a1282aa6	249250621	1	\N	1	\N	\N	\N	\N	0
+2	72cf24a7-3ba6-46c9-9699-ea2e1a565404	243199373	1	\N	2	\N	\N	\N	\N	274175683
+3	d2eae10c-f44e-4d0a-a4a3-9ea776d0ffb1	198022430	1	\N	3	\N	\N	\N	\N	541694993
+4	534edd70-0f40-4391-a6fa-98c60ae911fa	191154276	1	\N	4	\N	\N	\N	\N	759519666
+5	81ecf620-11e7-4a4c-bf4c-b38784fbf895	180915260	1	\N	5	\N	\N	\N	\N	969789370
+6	9b017959-e059-43b1-a2c6-1ee9f22038d7	171115067	1	\N	6	\N	\N	\N	\N	1168796156
+7	3fcd157e-eb74-47bc-8fa3-ff8a283eb9bc	159138663	1	\N	7	\N	\N	\N	\N	1357022730
+8	953082b9-35e2-419b-bb31-4bb067b228ab	146364022	1	\N	8	\N	\N	\N	\N	1532075259
+9	aca8adea-585a-4391-9a3e-e0d5df8474b9	141213431	1	\N	9	\N	\N	\N	\N	1693075683
+10	888f6b5a-db1d-463f-8ce6-3762d1e730b2	135534747	1	\N	10	\N	\N	\N	\N	1848410457
+11	9d8647bf-7935-49ae-b078-9d7ba6752a1a	135006516	1	\N	11	\N	\N	\N	\N	1997498679
+12	3c1e5a4e-a506-4d39-819b-255f34a60264	133851895	1	\N	12	\N	\N	\N	\N	2146005847
+13	0f0f45fd-d460-461c-973e-da3d6be2a7e1	115169878	1	\N	13	\N	\N	\N	\N	2293242931
+14	ec839dfe-4fad-4f51-8bfd-6c657efd12f6	107349540	1	\N	14	\N	\N	\N	\N	2419929797
+15	dd63355e-9cf1-4ed1-88e7-9b0c026da811	102531392	1	\N	15	\N	\N	\N	\N	2538014291
+16	186e6812-eb80-4987-a848-2f108d6111e7	90354753	1	\N	16	\N	\N	\N	\N	2650798822
+17	90c95e13-6ee8-45c7-af57-6ec7ed26b27d	81195210	1	\N	17	\N	\N	\N	\N	2750189050
+18	dda572b0-b047-4f13-a0f3-bd3e649742ea	78077248	1	\N	18	\N	\N	\N	\N	2839503781
+19	c203b648-90db-459c-893b-1215de45ce7b	59128983	1	\N	19	\N	\N	\N	\N	2925388754
+20	f361ceaf-9c09-4c41-98f4-b84a555ffd84	63025520	1	\N	20	\N	\N	\N	\N	2990430635
+21	ab193111-2eb7-49eb-ab7e-ce793eaff6e7	48129895	1	\N	21	\N	\N	\N	\N	3059758707
+22	716a132f-98f9-4807-b6e4-dfa52cf1e0e9	51304566	1	\N	22	\N	\N	\N	\N	3112701592
+23	05741791-d63a-4b86-9018-7b9d6d558f24	155270560	1	\N	X	\N	\N	\N	\N	3169136615
+24	e06bc7fe-f762-4a6c-959d-2c41226465dc	59373566	1	\N	Y	\N	\N	\N	\N	3339934231
+25	48d88701-ee29-499c-83e9-1e4bfe3d01cf	4262	1	\N	GL000207.1	\N	\N	\N	\N	3405245154
+26	c067d21e-22e4-4489-ab72-c7d31295405d	15008	1	\N	GL000226.1	\N	\N	\N	\N	3405249842
+27	6ad3493b-5a1e-44ec-8423-0aa1bd9a5fdf	19913	1	\N	GL000229.1	\N	\N	\N	\N	3405266351
+28	cb8940cd-787a-43ff-841d-cab971b9dac7	27386	1	\N	GL000231.1	\N	\N	\N	\N	3405288255
+29	8428c943-62d4-424a-afa7-26fefdbe5091	27682	1	\N	GL000210.1	\N	\N	\N	\N	3405318380
+30	c7d6728f-331b-4796-b0f4-cbe85d03440f	33824	1	\N	GL000239.1	\N	\N	\N	\N	3405348830
+31	a34d6a2f-2b17-4d90-a6d5-0aca8da66d6a	34474	1	\N	GL000235.1	\N	\N	\N	\N	3405386036
+32	8cb4babb-fede-4c32-adf5-480191b3fc9b	36148	1	\N	GL000201.1	\N	\N	\N	\N	3405423957
+33	3626faa2-92d4-4b78-83b6-0aacf8c3b55f	36422	1	\N	GL000247.1	\N	\N	\N	\N	3405463720
+34	05c27de5-eb1c-40c4-a9bf-5cba3b6371f9	36651	1	\N	GL000245.1	\N	\N	\N	\N	3405503784
+35	899602a0-0479-4540-9639-50e88b29a58f	37175	1	\N	GL000197.1	\N	\N	\N	\N	3405544100
+36	980124b7-7936-4a21-baa2-f5ea7cafe0a1	37498	1	\N	GL000203.1	\N	\N	\N	\N	3405584992
+37	ff4abbba-edf4-44be-9bba-62364591b43f	38154	1	\N	GL000246.1	\N	\N	\N	\N	3405626240
+38	c66d8641-1169-45e5-b54b-a8df5f84e264	38502	1	\N	GL000249.1	\N	\N	\N	\N	3405668209
+39	96e08bc7-87e7-4a40-9503-507b4fd1b6fb	38914	1	\N	GL000196.1	\N	\N	\N	\N	3405710561
+40	b3b0ab6a-9564-4f3f-8d04-b1730fc99e64	39786	1	\N	GL000248.1	\N	\N	\N	\N	3405753366
+41	ea52a638-6a2a-4950-ae1e-24faf0d3b958	39929	1	\N	GL000244.1	\N	\N	\N	\N	3405797131
+42	bfdf5099-9ae7-4b87-8b50-9b1b9860f5bf	39939	1	\N	GL000238.1	\N	\N	\N	\N	3405841053
+43	57a9b1b9-3bcc-4093-8df6-53c957e931de	40103	1	\N	GL000202.1	\N	\N	\N	\N	3405884986
+44	a1e94204-1237-4145-a3e7-07d45d8fbcaf	40531	1	\N	GL000234.1	\N	\N	\N	\N	3405929099
+45	b972ae8c-aaf2-4e77-973f-621b9c18bb71	40652	1	\N	GL000232.1	\N	\N	\N	\N	3405973683
+46	64e6d514-fc5c-4754-a710-7c3f8f715269	41001	1	\N	GL000206.1	\N	\N	\N	\N	3406018400
+47	93b9223a-a86d-48e2-9561-61e43c1cacc0	41933	1	\N	GL000240.1	\N	\N	\N	\N	3406063501
+48	6797c555-9a98-487f-9433-267174524f28	41934	1	\N	GL000236.1	\N	\N	\N	\N	3406109627
+49	f9549ec1-d3a0-4e20-8416-d99f1df102a2	42152	1	\N	GL000241.1	\N	\N	\N	\N	3406155754
+50	202f7819-12ab-4283-bdb2-a860b8c9e91d	43341	1	\N	GL000243.1	\N	\N	\N	\N	3406202121
+51	7bbf7860-f628-44c7-9529-071ab7bd812e	43523	1	\N	GL000242.1	\N	\N	\N	\N	3406249796
+52	526e53b4-abfb-4106-bdde-900834a0b17d	43691	1	\N	GL000230.1	\N	\N	\N	\N	3406297671
+53	3f633a7b-02be-4fe0-849f-d254c85a1b29	45867	1	\N	GL000237.1	\N	\N	\N	\N	3406345731
+54	f73abde9-b569-4c7d-879b-a1ee0e7257ec	45941	1	\N	GL000233.1	\N	\N	\N	\N	3406396185
+55	80021a25-150b-4b3b-9756-f06f61de8a36	81310	1	\N	GL000204.1	\N	\N	\N	\N	3406446720
+56	230b7f62-e549-4839-a37a-1565107b5d58	90085	1	\N	GL000198.1	\N	\N	\N	\N	3406536161
+57	52003406-4e8d-4c12-be1d-666118c99f84	92689	1	\N	GL000208.1	\N	\N	\N	\N	3406635255
+58	c2a4d842-8a6b-42b4-9fd1-ad4a35f13e79	106433	1	\N	GL000191.1	\N	\N	\N	\N	3406737213
+59	5844ad77-3bf0-4425-bbe6-ea1e29a39f02	128374	1	\N	GL000227.1	\N	\N	\N	\N	3406854289
+60	1b55c4e2-c982-4275-a85c-331048dd7ada	129120	1	\N	GL000228.1	\N	\N	\N	\N	3406995500
+61	475cfbd1-4910-4ae9-8871-f04c9b7a8df8	137718	1	\N	GL000214.1	\N	\N	\N	\N	3407137532
+62	2fb19da0-8a9d-49f3-ac33-79876e23d704	155397	1	\N	GL000221.1	\N	\N	\N	\N	3407289022
+63	c81e86dc-9d44-404f-8087-19609358e362	159169	1	\N	GL000209.1	\N	\N	\N	\N	3407459959
+64	3c41410e-a454-49b3-aab7-34933515dd8e	161147	1	\N	GL000218.1	\N	\N	\N	\N	3407635045
+65	18e845e9-2633-40e4-a6ad-e63746aba8c4	161802	1	\N	GL000220.1	\N	\N	\N	\N	3407812307
+66	62ca47e6-6ca0-47aa-b0ca-7aeadc425901	164239	1	\N	GL000213.1	\N	\N	\N	\N	3407990289
+67	21a5b04c-f0d8-474b-b450-b98e78bb810d	166566	1	\N	GL000211.1	\N	\N	\N	\N	3408170952
+68	f85b636c-48ab-4895-8911-ad02c4732469	169874	1	\N	GL000199.1	\N	\N	\N	\N	3408354175
+69	af7e5399-d0b3-4437-851d-4436f3abfcb7	172149	1	\N	GL000217.1	\N	\N	\N	\N	3408541036
+70	ab82262f-d4ec-449c-aa61-0c5c6222bc72	172294	1	\N	GL000216.1	\N	\N	\N	\N	3408730400
+71	8c39d976-6ac6-44cc-af4e-6e66360bb97b	172545	1	\N	GL000215.1	\N	\N	\N	\N	3408919923
+72	29775bb9-bca7-4830-8478-5b6440f254ee	174588	1	\N	GL000205.1	\N	\N	\N	\N	3409109723
+73	a4467b4a-175a-47f9-90cf-c10bd3e1c1a8	179198	1	\N	GL000219.1	\N	\N	\N	\N	3409301770
+74	52d8f4f2-0649-41c4-b6f1-68c3c96ed520	179693	1	\N	GL000224.1	\N	\N	\N	\N	3409498888
+75	02545439-a346-4229-952e-cbdc7965d0a7	180455	1	\N	GL000223.1	\N	\N	\N	\N	3409696550
+76	a445d98d-f510-4414-8e6b-27546cbd8773	182896	1	\N	GL000195.1	\N	\N	\N	\N	3409895051
+77	05470969-8505-4de2-88eb-151902111e7f	186858	1	\N	GL000212.1	\N	\N	\N	\N	3410096237
+78	7bf626f9-9857-4abc-9cb5-3ed69275c88b	186861	1	\N	GL000222.1	\N	\N	\N	\N	3410301781
+79	76c5a74c-5c44-4f8c-8147-0d451c62dd93	187035	1	\N	GL000200.1	\N	\N	\N	\N	3410507328
+80	a357fbed-f132-4896-8786-03f4abee1c28	189789	1	\N	GL000193.1	\N	\N	\N	\N	3410713067
+81	226085a2-ba32-48b3-9d8d-3049f2aaff71	191469	1	\N	GL000194.1	\N	\N	\N	\N	3410921835
+82	0b38ed29-0f23-4a1b-861e-143d0dbeb6c0	211173	1	\N	GL000225.1	\N	\N	\N	\N	3411132451
+83	ffc2f50f-7bda-4686-9b43-a5d38e41f7b4	547496	1	\N	GL000192.1	\N	\N	\N	\N	3411364741
+84	fd227e9c-ccff-4c3f-956a-9483ab13e2fb	171823	1	\N	NC_007605	\N	\N	\N	\N	3411966987
+85	04c7a482-2f8f-48f1-8327-e7526b0aa9be	16569	1	\N	M	\N	\N	\N	\N	3412155992
+\.
+
+
+--
+-- Name: reference_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('reference_id_seq', 85, true);
+
+
+--
+-- Data for Name: reference_set; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY reference_set (id, guid, md5_checksum, description, source_uri, is_derived, ncbi_taxon_id, assembly_id, next_tiledb_column_offset, tiledb_reference_offset_padding_factor) FROM stdin;
+1	6ae1462e-b657-4513-953b-4a8679ebee63	\N	\N	\N	\N	\N	hg19	3412174218	1.10000000000000009
+\.
+
+
+--
+-- Name: reference_set_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('reference_set_id_seq', 1, true);
+
+
+--
+-- Data for Name: reference_set_source_accession; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY reference_set_source_accession (reference_set_id, source_accession_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: reference_source_accession; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY reference_source_accession (reference_id, source_accession_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sample; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY sample (id, guid, individual_id, name, info) FROM stdin;
+1	5dd2f1cc-aef5-4154-8b4e-8be21e6ad21d	1	HG00141	{"type": "source"}
+\.
+
+
+--
+-- Name: sample_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('sample_id_seq', 1, true);
+
+
+--
+-- Data for Name: source_accession; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY source_accession (id, accession_id) FROM stdin;
+\.
+
+
+--
+-- Name: source_accession_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('source_accession_id_seq', 1, false);
+
+
+--
+-- Data for Name: variant_set; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY variant_set (id, guid, name, reference_set_id, dataset_id, variant_set_metadata) FROM stdin;
+1	cb406bd7-4dd2-4c31-b790-958ed01da18b	\N	1	workspace	\N
+\.
+
+
+--
+-- Name: variant_set_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('variant_set_id_seq', 1, true);
+
+
+--
+-- Data for Name: workspace; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY workspace (id, guid, name) FROM stdin;
+1	6f9a0dd7-6a17-4788-bade-b43aacffb90c	/tmp/sql_mapper/workspace
+\.
+
+
+--
+-- Name: workspace_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('workspace_id_seq', 1, true);
+
+
+--
+-- Name: callset_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY callset
+    ADD CONSTRAINT callset_guid_key UNIQUE (guid);
+
+
+--
+-- Name: callset_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY callset
+    ADD CONSTRAINT callset_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: callset_variant_set_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY callset_variant_set
+    ADD CONSTRAINT callset_variant_set_pkey PRIMARY KEY (callset_id, variant_set_id);
+
+
+--
+-- Name: db_array_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY db_array
+    ADD CONSTRAINT db_array_guid_key UNIQUE (guid);
+
+
+--
+-- Name: db_array_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY db_array
+    ADD CONSTRAINT db_array_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: field_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY field
+    ADD CONSTRAINT field_guid_key UNIQUE (guid);
+
+
+--
+-- Name: field_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY field
+    ADD CONSTRAINT field_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: field_set_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY field_set
+    ADD CONSTRAINT field_set_guid_key UNIQUE (guid);
+
+
+--
+-- Name: field_set_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY field_set
+    ADD CONSTRAINT field_set_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: individual_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY individual
+    ADD CONSTRAINT individual_guid_key UNIQUE (guid);
+
+
+--
+-- Name: individual_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY individual
+    ADD CONSTRAINT individual_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: primary_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY callset_to_db_array_association
+    ADD CONSTRAINT primary_key PRIMARY KEY (callset_id, db_array_id);
+
+
+--
+-- Name: reference_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference
+    ADD CONSTRAINT reference_guid_key UNIQUE (guid);
+
+
+--
+-- Name: reference_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference
+    ADD CONSTRAINT reference_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reference_set_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference_set
+    ADD CONSTRAINT reference_set_guid_key UNIQUE (guid);
+
+
+--
+-- Name: reference_set_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference_set
+    ADD CONSTRAINT reference_set_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reference_set_source_accession_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference_set_source_accession
+    ADD CONSTRAINT reference_set_source_accession_pkey PRIMARY KEY (reference_set_id, source_accession_id);
+
+
+--
+-- Name: reference_source_accession_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference_source_accession
+    ADD CONSTRAINT reference_source_accession_pkey PRIMARY KEY (reference_id, source_accession_id);
+
+
+--
+-- Name: sample_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY sample
+    ADD CONSTRAINT sample_guid_key UNIQUE (guid);
+
+
+--
+-- Name: sample_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY sample
+    ADD CONSTRAINT sample_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: source_accession_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY source_accession
+    ADD CONSTRAINT source_accession_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: unique_name_per_field_set_constraint; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY field
+    ADD CONSTRAINT unique_name_per_field_set_constraint UNIQUE (field_set_id, field);
+
+
+--
+-- Name: unique_name_per_reference_set_constraint; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY reference
+    ADD CONSTRAINT unique_name_per_reference_set_constraint UNIQUE (reference_set_id, name);
+
+
+--
+-- Name: variant_set_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY variant_set
+    ADD CONSTRAINT variant_set_guid_key UNIQUE (guid);
+
+
+--
+-- Name: variant_set_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY variant_set
+    ADD CONSTRAINT variant_set_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: workspace_guid_key; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY workspace
+    ADD CONSTRAINT workspace_guid_key UNIQUE (guid);
+
+
+--
+-- Name: workspace_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres; Tablespace: 
+--
+
+ALTER TABLE ONLY workspace
+    ADD CONSTRAINT workspace_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: db_array_id_tile_row_id_idx; Type: INDEX; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE UNIQUE INDEX db_array_id_tile_row_id_idx ON callset_to_db_array_association USING btree (db_array_id, tile_row_id);
+
+
+--
+-- Name: unique_reference_set_id_offset_idx; Type: INDEX; Schema: public; Owner: postgres; Tablespace: 
+--
+
+CREATE UNIQUE INDEX unique_reference_set_id_offset_idx ON reference USING btree (reference_set_id, tiledb_column_offset);
+
+
+--
+-- Name: increment_next_column_in_reference_set; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER increment_next_column_in_reference_set BEFORE INSERT ON reference FOR EACH ROW EXECUTE PROCEDURE increment_next_column_in_reference_set_pgsql();
+
+
+--
+-- Name: increment_num_rows_in_db_array; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER increment_num_rows_in_db_array BEFORE INSERT ON callset_to_db_array_association FOR EACH ROW EXECUTE PROCEDURE increment_num_rows_in_db_array_pgsql();
+
+
+--
+-- Name: callset_source_sample_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset
+    ADD CONSTRAINT callset_source_sample_id_fkey FOREIGN KEY (source_sample_id) REFERENCES sample(id);
+
+
+--
+-- Name: callset_target_sample_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset
+    ADD CONSTRAINT callset_target_sample_id_fkey FOREIGN KEY (target_sample_id) REFERENCES sample(id);
+
+
+--
+-- Name: callset_to_db_array_association_callset_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset_to_db_array_association
+    ADD CONSTRAINT callset_to_db_array_association_callset_id_fkey FOREIGN KEY (callset_id) REFERENCES callset(id);
+
+
+--
+-- Name: callset_to_db_array_association_db_array_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset_to_db_array_association
+    ADD CONSTRAINT callset_to_db_array_association_db_array_id_fkey FOREIGN KEY (db_array_id) REFERENCES db_array(id);
+
+
+--
+-- Name: callset_variant_set_callset_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset_variant_set
+    ADD CONSTRAINT callset_variant_set_callset_id_fkey FOREIGN KEY (callset_id) REFERENCES callset(id);
+
+
+--
+-- Name: callset_variant_set_variant_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY callset_variant_set
+    ADD CONSTRAINT callset_variant_set_variant_set_id_fkey FOREIGN KEY (variant_set_id) REFERENCES variant_set(id);
+
+
+--
+-- Name: db_array_field_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY db_array
+    ADD CONSTRAINT db_array_field_set_id_fkey FOREIGN KEY (field_set_id) REFERENCES field_set(id);
+
+
+--
+-- Name: db_array_reference_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY db_array
+    ADD CONSTRAINT db_array_reference_set_id_fkey FOREIGN KEY (reference_set_id) REFERENCES reference_set(id);
+
+
+--
+-- Name: db_array_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY db_array
+    ADD CONSTRAINT db_array_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspace(id);
+
+
+--
+-- Name: field_field_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY field
+    ADD CONSTRAINT field_field_set_id_fkey FOREIGN KEY (field_set_id) REFERENCES field_set(id);
+
+
+--
+-- Name: reference_reference_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference
+    ADD CONSTRAINT reference_reference_set_id_fkey FOREIGN KEY (reference_set_id) REFERENCES reference_set(id);
+
+
+--
+-- Name: reference_set_source_accession_reference_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference_set_source_accession
+    ADD CONSTRAINT reference_set_source_accession_reference_set_id_fkey FOREIGN KEY (reference_set_id) REFERENCES reference_set(id);
+
+
+--
+-- Name: reference_set_source_accession_source_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference_set_source_accession
+    ADD CONSTRAINT reference_set_source_accession_source_accession_id_fkey FOREIGN KEY (source_accession_id) REFERENCES source_accession(id);
+
+
+--
+-- Name: reference_source_accession_reference_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference_source_accession
+    ADD CONSTRAINT reference_source_accession_reference_id_fkey FOREIGN KEY (reference_id) REFERENCES reference(id);
+
+
+--
+-- Name: reference_source_accession_source_accession_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY reference_source_accession
+    ADD CONSTRAINT reference_source_accession_source_accession_id_fkey FOREIGN KEY (source_accession_id) REFERENCES source_accession(id);
+
+
+--
+-- Name: sample_individual_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY sample
+    ADD CONSTRAINT sample_individual_id_fkey FOREIGN KEY (individual_id) REFERENCES individual(id);
+
+
+--
+-- Name: variant_set_reference_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY variant_set
+    ADD CONSTRAINT variant_set_reference_set_id_fkey FOREIGN KEY (reference_set_id) REFERENCES reference_set(id);
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
