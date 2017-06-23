@@ -208,15 +208,6 @@ function(build_GenomicsDB_executable target)
     build_GenomicsDB_executable_common(${target})
 endfunction()
 
-function(build_GenomicsDB_test_executable target src_file_list)
-    find_package(GTest)
-    if(GTEST_FOUND)
-        add_executable(${target} ${src_file_list})
-        target_link_libraries(${target} ${GTEST_BOTH_LIBRARIES})
-        build_GenomicsDB_executable_common(${target})
-    endif()
-endfunction()
-
 add_subdirectory(src)
 include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
 add_subdirectory(tools)
@@ -302,5 +293,5 @@ if(BUILD_JAVA)
         #${CMAKE_BINARY_DIR}
         #${CMAKE_INSTALL_PREFIX})
 
-    add_test(NAME All_GTests COMMAND ${CMAKE_INSTALL_PREFIX}/bin/runAllGTests)
+    add_test(NAME All_GTests COMMAND runAllGTests)
 endif()
