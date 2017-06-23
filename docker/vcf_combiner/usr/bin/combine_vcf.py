@@ -2,25 +2,25 @@
 # pylint: disable=missing-docstring, invalid-name, broad-except, too-many-branches, too-many-locals, line-too-long
 
 """
-    * The MIT License (MIT)
-    * Copyright (c) 2016-2017 Intel Corporation
-    *
-    * Permission is hereby granted, free of charge, to any person obtaining a copy of
-    * this software and associated documentation files (the "Software"), to deal in
-    * the Software without restriction, including without limitation the rights to
-    * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-    * the Software, and to permit persons to whom the Software is furnished to do so,
-    * subject to the following conditions:
-    *
-    * The above copyright notice and this permission notice shall be included in all
-    * copies or substantial portions of the Software.
-    *
-    * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-    * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-    * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-    * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-    * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  The MIT License (MIT)
+  Copyright (c) 2016-2017 Intel Corporation
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 import sys
 import os
@@ -41,7 +41,6 @@ ProductName = os.path.basename(__file__)
 
 COL_PARTITION_SIZE_UNIT = 16384
 DefaultVIDFile = "/usr/share/cont-intel/vid.json"
-DefaultVIDEnv = 'HOST_VID_PATH'                         # to run the script at host, specify the path to a vid file
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 ##### loader config file tags
@@ -58,7 +57,7 @@ loader_cfg_t = {
     "offload_vcf_output_processing" : True,
     "produce_GT_field" : False,
     "size_per_column_partition" : COL_PARTITION_SIZE_UNIT,
-    "vid_mapping_file": ""
+    "vid_mapping_file": ''
 }
 cp_pos = namedtuple('pos_only', "begin, vcf_output_filename")
 cp_chr = namedtuple('chromosome', 'begin, end, vcf_output_filename')
@@ -83,17 +82,15 @@ class CombineVCF(object):
     ''' VCF file combiner '''
     logger = logging.getLogger("CombineVCF")
     brief_options = "i:o:R:c:p"
-    full_options = ['samples=', 'output=', 'reference=', 'callsets=', 'produce_GT_field', \
-            'chromosome=', 'begin=', 'end=', 'dryrun', 'version']
+    full_options = ['samples=', 'output=', 'reference=', 'callsets=', 'vid_mapping_file=', \
+        'produce_GT_field', 'chromosome=', 'begin=', 'end=', 'dryrun']
 
     def __init__(self):
         self.dryrun = False
         self.output_file = None
+        self.vid_mapping_file = DefaultVIDFile
 
     def _parse_args(self, args):
-        def get_vid_mapping_file():
-            return DefaultVIDFile if os.path.isfile(DefaultVIDFile) else os.environ[DefaultVIDEnv]
-        vmf_args = {"vid_mapping_file": get_vid_mapping_file}
         def check_chromosome():
             assert begin, 'No begin position is given'
             if end:
@@ -106,14 +103,12 @@ class CombineVCF(object):
         chromosome = None
         begin = None
         end = None
+        vid_mapping_file = DefaultVIDFile
         for opt, user_input in myopts:
             if opt == '-p' or opt == '--produce_GT_field':
                 produce_GT_field = True
             elif opt == '--dryrun':
                 self.dryrun = True
-            elif opt == '--version':
-                print(self.get_version())
-                exit()
             else:
                 assert user_input, 'specify a value for option %s' % opt
                 if opt == '-i' or opt == '--samples':
@@ -128,6 +123,9 @@ class CombineVCF(object):
                     assert os.path.isfile(user_input), "specify a valid callset file name"
                     callset_mapping_file = user_input
                     num_part_units = self.__check_callset(callset_mapping_file)
+                elif opt == '--vid_mapping_file':
+                    assert os.path.isfile(user_input), "specify a valid vid mapping file"
+                    vid_mapping_file = user_input
                 elif opt == '--chromosome':
                     chromosome = user_input
                 elif opt == '--begin':
@@ -135,8 +133,7 @@ class CombineVCF(object):
                 elif opt == '--end':
                     end = int(user_input)
                 else:
-                    print(self.get_version())
-                    exit()
+                    print("WARN: unknown option %s, ignored", opt)
 
         if not callset_mapping_file:
             callset_mapping_file = "callsets_%s.json" % datetime.now().strftime("%y%m%d%H%M")
@@ -148,12 +145,13 @@ class CombineVCF(object):
 
         col_par_setting = check_chromosome() if chromosome \
             else get_col_partition(self.output_file, begin if begin else 0)
-        loader_cfg = get_loader_cfg(**vmf_args)
+        loader_cfg = get_loader_cfg()
         loader_cfg = loader_cfg._replace(reference_genome=reference_genome, \
             vcf_output_filename=self.output_file, \
             column_partitions=[col_par_setting],  \
             size_per_column_partition=int(abs(num_part_units)) * COL_PARTITION_SIZE_UNIT, \
             callset_mapping_file=callset_mapping_file, \
+            vid_mapping_file=vid_mapping_file, \
             produce_GT_field=True if produce_GT_field else False)
         return loader_cfg
 
@@ -214,9 +212,9 @@ class CombineVCF(object):
             inputs = [line.strip() for line in inputfiles if os.path.isfile(line)]
         return inputs if inputs else RuntimeError("No valid samples input files found")
 
-    @staticmethod
-    def generate_loader_config(nt_loader):
-        json_fname = "lc_%s" % datetime.now().strftime("%y%m%d%H%M")
+    def generate_loader_config(self, nt_loader):
+        json_fname = os.path.join(os.path.dirname(self.output_file), \
+            "loader_config_%s.json" % datetime.now().strftime("%y%m%d%H%M"))
         with open(json_fname, 'w') as ofd:
             json.dump(nt_loader._asdict(), ofd)
         return json_fname
@@ -254,18 +252,19 @@ class CombineVCF(object):
                 raise CombineVCFException("Failed to combining VCF files: %s" % (err))
 
     @staticmethod
-    def get_version():
-        return "%s %s" % (ProductName, Version)
+    def get_my_name():
+        return ProductName
 
-def test_quick_test():
+def test_code_runs_after_pylint():
     ''' a quick test for github check-in '''
-    x = CombineVCF().get_version()
+    print("Run a quick test ...")
+    x = CombineVCF().get_my_name()
     assert x
-    x = x.split()
-    assert len(x) == 2
-    x = x[1]
-    assert x == Version
+    assert x == ProductName
 
 if __name__ == "__main__":
     combiner = CombineVCF()
-    combiner.run()
+    if len(sys.argv) > 1:
+        combiner.run()
+    else:
+        combiner.get_my_name()

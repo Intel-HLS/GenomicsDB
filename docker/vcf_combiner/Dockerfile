@@ -41,4 +41,11 @@ WORKDIR /tmp
 
 ENV BASH_ENV=/etc/profile.d/cont-env.sh HOME=/home/default PATH=$PATH:/usr/lib64/mpich/bin 
 
+RUN  groupadd -r default -f -g 5658 && \
+     useradd -u 5658 -g default -o -c "Default User" default -s /sbin/nologin
+
+#USER default
+
+ENTRYPOINT ["/usr/bin/container-entrypoint"]
+
 CMD ["container-usage"]
