@@ -288,6 +288,26 @@ class SingleVariantOperatorBase
     bool m_is_reference_block_only;
 };
 
+/*
+ *  Prints interesting positions in the array
+ *  A position with column = X is interesting iff
+ *  a. a new variant call begins at X OR
+ *  b. a variant call ends at X-1
+ */
+class InterestingLocationsPrinter : public SingleVariantOperatorBase
+{
+  public:
+    InterestingLocationsPrinter(std::ostream& fptr)
+      : SingleVariantOperatorBase()
+    {
+      m_fptr = &fptr;
+    }
+    virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
+  protected:
+    //Output stream
+    std::ostream* m_fptr;
+};
+
 class MaxAllelesCountOperator : public SingleVariantOperatorBase
 {
   public:

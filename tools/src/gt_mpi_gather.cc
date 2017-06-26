@@ -45,7 +45,8 @@ enum ArgsEnum
   ARGS_IDX_PRODUCE_HISTOGRAM,
   ARGS_IDX_PRINT_CALLS,
   ARGS_IDX_PRINT_CSV,
-  ARGS_IDX_VERSION
+  ARGS_IDX_VERSION,
+  ARGS_IDX_PRODUCE_INTERESTING_POSITIONS
 };
 
 enum CommandsEnum
@@ -55,6 +56,13 @@ enum CommandsEnum
   COMMAND_PRODUCE_HISTOGRAM,
   COMMAND_PRINT_CALLS,
   COMMAND_PRINT_CSV
+};
+
+enum ProduceBroadGVCFSubOperation
+{
+  PRODUCE_BROAD_GVCF_PRODUCE_GVCF=0,
+  PRODUCE_BROAD_GVCF_PRODUCE_INTERESTING_POSITIONS,
+  PRODUCE_BROAD_GVCF_UNKNOWN
 };
 
 #define MegaByte (1024*1024)
@@ -309,7 +317,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 #if defined(HTSDIR)
 void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config,
     VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const JSONVCFAdapterQueryConfig& json_scan_config,
-    int num_mpi_processes, int my_world_mpi_rank, bool skip_query_on_root)
+    const ProduceBroadGVCFSubOperation sub_operation_type, int my_world_mpi_rank, bool skip_query_on_root)
 {
   //Read output in batches if required
   //Must initialize buffer before constructing gvcf_op
@@ -317,7 +325,20 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
   auto serialized_vcf_adapter_ptr = dynamic_cast<VCFSerializedBufferAdapter*>(&vcf_adapter);
   if(serialized_vcf_adapter_ptr)
     serialized_vcf_adapter_ptr->set_buffer(rw_buffer);
-  BroadCombinedGVCFOperator gvcf_op(vcf_adapter, id_mapper, query_config, json_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
+  SingleVariantOperatorBase* op_ptr = 0;
+  switch(sub_operation_type)
+  {
+    case ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_PRODUCE_GVCF:
+      op_ptr = new BroadCombinedGVCFOperator(vcf_adapter, id_mapper, query_config,
+          json_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
+      break;
+    case ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_PRODUCE_INTERESTING_POSITIONS:
+      op_ptr = new InterestingLocationsPrinter(std::cout);
+      break;
+    default:
+      throw VariantOperationException(std::string("Unknown gvcf sub-operation type: ")
+          + std::to_string(sub_operation_type) + "n");
+  }
   Timer timer;
   timer.start();
   //At least 1 iteration
@@ -326,7 +347,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
     VariantQueryProcessorScanState scan_state;
     while(!scan_state.end())
     {
-      qp.scan_and_operate(qp.get_array_descriptor(), query_config, gvcf_op, i, true, &scan_state);
+      qp.scan_and_operate(qp.get_array_descriptor(), query_config, *op_ptr, i, true, &scan_state);
       if(serialized_vcf_adapter_ptr)
       {
         serialized_vcf_adapter_ptr->do_output();
@@ -336,6 +357,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
   }
   timer.stop();
   timer.print(std::string("Total scan_and_produce_Broad_GVCF time")+" for rank "+std::to_string(my_world_mpi_rank), std::cerr);
+  delete op_ptr;
 }
 #endif
 
@@ -422,6 +444,7 @@ int main(int argc, char *argv[]) {
     {"segment-size",1,0,'s'},
     {"skip-query-on-root",0,0,ARGS_IDX_SKIP_QUERY_ON_ROOT},
     {"produce-Broad-GVCF",0,0,ARGS_IDX_PRODUCE_BROAD_GVCF},
+    {"produce-interesting-positions",0,0,ARGS_IDX_PRODUCE_INTERESTING_POSITIONS},
     {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
     {"print-calls",0,0,ARGS_IDX_PRINT_CALLS},
     {"print-csv",0,0,ARGS_IDX_PRINT_CSV},
@@ -440,6 +463,7 @@ int main(int argc, char *argv[]) {
   auto print_version_only = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
+  auto sub_operation_type = ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_UNKNOWN;
   while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
   {
     switch(c)
@@ -468,6 +492,11 @@ int main(int argc, char *argv[]) {
         break;
       case ARGS_IDX_PRODUCE_BROAD_GVCF:
         command_idx = COMMAND_PRODUCE_BROAD_GVCF;
+        sub_operation_type = PRODUCE_BROAD_GVCF_PRODUCE_GVCF;
+        break;
+      case ARGS_IDX_PRODUCE_INTERESTING_POSITIONS:
+        command_idx = COMMAND_PRODUCE_BROAD_GVCF;
+        sub_operation_type = PRODUCE_BROAD_GVCF_PRODUCE_INTERESTING_POSITIONS;
         break;
       case ARGS_IDX_PRODUCE_HISTOGRAM:
         command_idx = COMMAND_PRODUCE_HISTOGRAM;
@@ -594,7 +623,7 @@ int main(int argc, char *argv[]) {
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
         scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
-            num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
+            sub_operation_type, my_world_mpi_rank, skip_query_on_root);
 #endif
         break;
       case COMMAND_PRODUCE_HISTOGRAM:
