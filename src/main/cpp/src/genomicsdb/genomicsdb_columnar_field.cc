@@ -53,6 +53,7 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_element_type = other.m_element_type;
   m_check_tiledb_valid_element = other.m_check_tiledb_valid_element;
   m_print = other.m_print;
+  m_print_csv = other.m_print_csv;
   m_buffer_size = other.m_buffer_size;
   m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_tail;
 }
@@ -106,6 +107,29 @@ class GenomicsDBColumnarFieldPrintOperator<T, true>
         fptr << ", " << data[i];
       fptr << " ]";
     }
+    static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid)
+    {
+      if(is_variable_length_field)
+        fptr << num_elements;
+      if(is_valid)
+      {
+        if(is_variable_length_field)
+          fptr << ",";
+        assert(num_elements > 0u);
+        auto data = reinterpret_cast<const T*>(ptr);
+        fptr << data[0u];
+        for(auto i=1u;i<num_elements;++i)
+          fptr << "," << data[i];
+      }
+      else
+        if(!is_variable_length_field)
+        {
+          auto first_element = true;
+          for(auto i=1u;i<num_elements;++i)
+            fptr.put(',');
+        }
+    }
 };
 
 template<typename T>
@@ -117,6 +141,12 @@ class GenomicsDBColumnarFieldPrintOperator<T, false>
       assert(num_elements > 0u);
       auto data = reinterpret_cast<const T*>(ptr);
       fptr << *data;
+    }
+    static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid)
+    {
+      if(is_valid)
+        print(fptr, ptr, num_elements);
     }
 };
 
@@ -133,6 +163,15 @@ class GenomicsDBColumnarFieldPrintOperator<char*, false>
       fptr.write(data, num_elements);
       fptr << "\"";
     }
+    static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid)
+    {
+      if(is_valid)
+      {
+        auto data = reinterpret_cast<const char*>(ptr);
+        fptr.write(data, num_elements);
+      }
+    }
 };
 
 template<>
@@ -143,6 +182,12 @@ class GenomicsDBColumnarFieldPrintOperator<char*, true>
     {
       GenomicsDBColumnarFieldPrintOperator<char*, false>::print(fptr, ptr, num_elements);
     }
+    static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid)
+    {
+      GenomicsDBColumnarFieldPrintOperator<char*, false>::print_csv(fptr, ptr, num_elements,
+          is_variable_length_field, is_valid);
+    }
 };
 
 template<bool print_as_list>
@@ -152,30 +197,39 @@ void GenomicsDBColumnarField::assign_print_function_pointers(VariantFieldTypeEnu
   {
     case VariantFieldTypeEnum::VARIANT_FIELD_BOOL:
       m_print = GenomicsDBColumnarFieldPrintOperator<bool, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<bool, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_INT:
       m_print = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
       m_print = GenomicsDBColumnarFieldPrintOperator<unsigned, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<unsigned, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
       m_print = GenomicsDBColumnarFieldPrintOperator<int64_t, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<int64_t, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
       m_print = GenomicsDBColumnarFieldPrintOperator<uint64_t, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<uint64_t, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
       m_print = GenomicsDBColumnarFieldPrintOperator<float, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<float, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
       m_print = GenomicsDBColumnarFieldPrintOperator<double, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<double, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
       m_print = GenomicsDBColumnarFieldPrintOperator<char, print_as_list>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<char, print_as_list>::print_csv;
       break;
     case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
       m_print = GenomicsDBColumnarFieldPrintOperator<char*, false>::print;
+      m_print_csv = GenomicsDBColumnarFieldPrintOperator<char*, print_as_list>::print_csv;
       break;
     default:
       throw GenomicsDBColumnarFieldException(std::string("Unhandled type ")+m_element_type.name());
@@ -342,4 +396,12 @@ void GenomicsDBColumnarField::print_ALT_data_in_buffer_at_index(std::ostream& fp
     first = false;
   } while(curr_ptr);
   fptr << " ]";
+}
+
+void GenomicsDBColumnarField::print_data_in_buffer_at_index_as_csv(std::ostream& fptr,
+    const GenomicsDBBuffer* buffer_ptr, const size_t index) const
+{
+  m_print_csv(fptr, get_pointer_to_data_in_buffer_at_index(buffer_ptr, index),
+      get_length_of_data_in_buffer_at_index(buffer_ptr, index),
+      m_length_descriptor != BCF_VL_FIXED, buffer_ptr->is_valid(index));
 }

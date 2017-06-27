@@ -379,19 +379,22 @@ void SingleVariantOperatorBase::operate(Variant& variant, const VariantQueryConf
 void InterestingLocationsPrinter::operate(Variant& variant, const VariantQueryConfig& query_config)
 {
   auto num_valid_calls = 0ull;
-  auto num_NON_REF_calls = 0ull;
+  auto num_ref_block_calls = 0ull;
   auto num_begin_at_position = 0ull;
-  SingleVariantOperatorBase::operate(variant, query_config);
   //Valid calls
   for(const auto& curr_call : variant)
   {
     ++num_valid_calls;
-    if(m_is_reference_block_only)
-      ++num_NON_REF_calls;
+    const auto& ref = get_known_field<VariantFieldString, true>(curr_call, query_config, GVCF_REF_IDX);
+    const auto&  alt_field = get_known_field<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX);
+    if(ref->get().length() == 1u && alt_field->get().size() == 1u
+        && alt_field->get()[0u].length() == 1u
+        && alt_field->get()[0u][0u] == TILEDB_NON_REF_VARIANT_REPRESENTATION[0u])
+      ++num_ref_block_calls;
     if(curr_call.get_column_begin() == variant.get_column_begin())
       ++num_begin_at_position;
   }
-  (*m_fptr) << variant.get_column_begin()<<" "<<num_valid_calls<<" "<<num_NON_REF_calls<<" "
+  (*m_fptr) << variant.get_column_begin()<<" "<<num_valid_calls<<" "<<num_ref_block_calls<<" "
     <<num_begin_at_position<<"\n";
 }
 
@@ -717,4 +720,10 @@ void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryC
     }
   }
   fptr << "\n";
+}
+
+void VariantCallPrintCSVOperator::operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+{
+  cell.print_csv(*m_fptr, &query_config);
 }

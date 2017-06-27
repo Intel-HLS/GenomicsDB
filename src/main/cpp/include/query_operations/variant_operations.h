@@ -584,7 +584,9 @@ class VariantCallPrintCSVOperator : public SingleCellOperatorBase
       : SingleCellOperatorBase(), m_fptr(&fptr)
       {
       }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
   private:
     std::ostream* m_fptr;
 };

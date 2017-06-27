@@ -493,3 +493,13 @@ void SingleCellTileDBIterator::print_ALT(const int field_query_idx, std::ostream
   genomicsdb_columnar_field.print_ALT_data_in_buffer_at_index(fptr,
       buffer_ptr, index);
 }
+
+void SingleCellTileDBIterator::print_csv(const int field_query_idx, std::ostream& fptr) const
+{
+  assert(static_cast<const size_t>(field_query_idx) < m_fields.size());
+  auto& genomicsdb_columnar_field = m_fields[field_query_idx];
+  size_t index = 0ul;
+  auto buffer_ptr = get_buffer_pointer_and_index(field_query_idx, index);
+  genomicsdb_columnar_field.print_data_in_buffer_at_index_as_csv(fptr,
+      buffer_ptr, index);
+}

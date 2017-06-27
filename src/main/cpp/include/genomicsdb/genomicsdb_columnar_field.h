@@ -180,6 +180,8 @@ class GenomicsDBColumnarFieldPrintOperator
 {
   public:
     static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements);
+    static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid);
 };
 
 /*
@@ -274,6 +276,8 @@ class GenomicsDBColumnarField
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
     void print_ALT_data_in_buffer_at_index(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
+    void print_data_in_buffer_at_index_as_csv(std::ostream& fptr,
+        const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();
@@ -305,6 +309,8 @@ class GenomicsDBColumnarField
     //Function pointer that determines validity check
     bool (*m_check_tiledb_valid_element)(const uint8_t* ptr, const size_t num_elements);
     void (*m_print)(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements);
+    void (*m_print_csv)(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
+        const bool is_variable_length_field, const bool is_valid);
     size_t m_buffer_size;
     //Head of list containing free buffers - can be used in invocation of tiledb_array_read()
     GenomicsDBBuffer* m_free_buffer_list_head_ptr;

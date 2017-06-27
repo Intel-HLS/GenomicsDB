@@ -174,6 +174,7 @@ class GenomicsDBColumnarCell
     }
     void print(std::ostream& fptr, const VariantQueryConfig* query_config,
         const std::string& indent_prefix, const VidMapper* vid_mapper) const;
+    void print_csv(std::ostream& fptr, const VariantQueryConfig* query_config) const;
   private:
     const SingleCellTileDBIterator* m_iterator;
 };

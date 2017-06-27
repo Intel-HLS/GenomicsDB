@@ -230,6 +230,7 @@ class SingleCellTileDBIterator
     }
     void print(const int query_idx, std::ostream& fptr=std::cout) const;
     void print_ALT(const int query_idx, std::ostream& fptr=std::cout) const;
+    void print_csv(const int query_idx, std::ostream& fptr=std::cout) const;
     inline bool end() const { return m_done_reading_from_TileDB && m_PQ_live_cell_markers.empty(); }
   protected:
     /*
