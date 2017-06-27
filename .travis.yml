@@ -5,6 +5,9 @@ dist: trusty
 language: python
 python: "3.4"
 
+services:
+    - postgresql
+
 env:
     global:
         - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/dependencies/libcsv/.libs
@@ -24,6 +27,7 @@ install:
     - sudo apt-get update -q
     - sudo apt-get install g++-4.9 -y
     - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 60
+    - sudo apt-get install libdbi-dev libdbd-pgsql -y
     - sudo apt-get -y install openjdk-8-jdk icedtea-plugin
     - jdk_switcher use openjdk8
     - echo $JAVA_HOME
@@ -33,6 +37,14 @@ install:
     #Copy protobuf binaries
     - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.4.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
     - tar xzf protobuf-3.0.2-trusty.tar.gz && sudo rsync -a protobuf-3.0.2-trusty/ /usr/
+    #install gtest
+    #- sudo apt-get -y install libgtest0 libgtest-dev
+    # above package (libgtest0) not built for 14.04
+    - sudo apt-get -y install libgtest-dev
+    - cd /usr/src/gtest
+    - sudo cmake .
+    - sudo make
+    - sudo mv libgtest* /usr/lib
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
@@ -44,6 +56,9 @@ install:
 
 before_script:
     - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
+    - psql -U postgres -c 'create database gendb'
+    - psql -U postgres gendb < $TRAVIS_BUILD_DIR/src/resources/gendb_state_for_tests.txt
+    - psql gendb -U postgres -c 'select count(*) from reference'
 
 script:
     - pylint $TRAVIS_BUILD_DIR/docker/vcf_combiner/usr/bin/combine_vcf.py
