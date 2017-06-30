@@ -186,7 +186,7 @@ class JSONMapperConfig : public SQLVidMapperRequest {
   private:
 	void parse_mapper_config(std::string mapper_config_file);
   public:
-	JSONMapperConfig(std::string mapper_config_file) : parse_mapper_config(mapper_config_file) {}
+	JSONMapperConfig(std::string mapper_config_file) { parse_mapper_config(mapper_config_file); }
 	void populate_mapper_request(SQLVidMapperRequest&);
 };
 

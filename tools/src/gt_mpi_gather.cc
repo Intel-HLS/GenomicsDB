@@ -585,18 +585,18 @@ int main(int argc, char *argv[]) {
       SQLVidMapperRequest mapper_request;
       mapper_config.populate_mapper_request(mapper_request);
       try {
-        sql_vid_mapper.create_db_connection();
+        sql_vid_mapper.create_db_connection(mapper_request);
         if (sql_vid_mapper.is_dbconn_created) {
           sql_vid_mapper.load_mapping_data_from_db();
           workspace = mapper_request.work_space;
           array_name = mapper_request.array_name;
         }
-      } catch (const SQLBasedVidMapperException& e) {
+      } catch (const std::exception& e) {
     	std::cerr << "ERROR: Exception while trying to create DB connection\n";
       }
     }
 
-    VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? sql_vid_mapper : file_vid_mapper);
+    const VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? static_cast<VidMapper>(sql_vid_mapper) : static_cast<VidMapper>(file_vid_mapper));
 
     if(workspace == "" || array_name == "")
     {

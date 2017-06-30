@@ -740,7 +740,53 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
     m_consolidate_tiledb_array_after_load = m_json["consolidate_tiledb_array_after_load"].GetBool();
 }
 
-void parse_mapper_config(std::string mapper_config_file) {
+void JSONMapperConfig::parse_mapper_config(std::string mapper_config_file) {
+  std::ifstream ifs(mapper_config_file.c_str());
+  VERIFY_OR_THROW(ifs.is_open());
+  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+
+  rapidjson::Document m_json;
+  m_json.Parse(str.c_str());
+  if (m_json.HasParseError()) {
+    throw RunConfigException(std::string("Syntax error in JSON file <") + mapper_config_file + ">");
+  }
+
+  if (m_json.HasMember("host_name")) {
+    const rapidjson::Value& host_name = m_json["host_name"];
+    VERIFY_OR_THROW(host_name.IsString());
+    this->host_name = host_name.GetString();
+  }
+
+  if (m_json.HasMember("user_name")) {
+    const rapidjson::Value& user_name = m_json["user_name"];
+    VERIFY_OR_THROW(user_name.IsString());
+    this->user_name = user_name.GetString();
+  }
+
+  if (m_json.HasMember("pass_word")) {
+    const rapidjson::Value& pass_word = m_json["pass_word"];
+    VERIFY_OR_THROW(pass_word.IsString());
+    this->pass_word = pass_word.GetString();
+  }
+
+  if (m_json.HasMember("db_name")) {
+    const rapidjson::Value& db_name = m_json["db_name"];
+    VERIFY_OR_THROW(db_name.IsString());
+    this->db_name = db_name.GetString();
+  }
+
+  if (m_json.HasMember("work_space")) {
+    const rapidjson::Value& work_space = m_json["work_space"];
+    VERIFY_OR_THROW(work_space.IsString());
+    this->work_space = work_space.GetString();
+  }
+
+  if (m_json.HasMember("array_name")) {
+    const rapidjson::Value& array_name = m_json["array_name"];
+    VERIFY_OR_THROW(array_name.IsString());
+    this->array_name = array_name.GetString();
+  }
+
   return;
 }
 
