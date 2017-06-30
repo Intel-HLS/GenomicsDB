@@ -739,6 +739,20 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
   if(m_json.HasMember("consolidate_tiledb_array_after_load") && m_json["consolidate_tiledb_array_after_load"].IsBool())
     m_consolidate_tiledb_array_after_load = m_json["consolidate_tiledb_array_after_load"].GetBool();
 }
+
+void parse_mapper_config(std::string mapper_config_file) {
+  return;
+}
+
+void JSONMapperConfig::populate_mapper_request(SQLVidMapperRequest& mapper_request) {
+  mapper_request.host_name = host_name;
+  mapper_request.user_name = user_name;
+  mapper_request.pass_word = pass_word;
+  mapper_request.db_name = db_name;
+  mapper_request.work_space = work_space;
+  mapper_request.array_name = array_name;
+  return;
+}
    
 #ifdef HTSDIR
 

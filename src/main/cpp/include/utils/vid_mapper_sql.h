@@ -63,8 +63,8 @@ const std::string COMBINE_OPERATION_ERROR_PREFIX = ("VCF field combined operatio
 const std::string COMBINE_OPERATION_ERROR_SUFFIX = (" does not have 'VAR' as its length descriptor");
 
 enum {
-  GENOMICSDB_VID_MAPPER_SUCCESS = 0x0,
-  GENOMICSDB_VID_MAPPER_FAILURE = 0x1
+  GENOMICSDB_SQLVID_MAPPER_SUCCESS = 0x0,
+  GENOMICSDB_SQLVID_MAPPER_FAILURE = 0x1
 };
 
 /**
@@ -87,6 +87,8 @@ class SQLVidMapperRequest {
  */
 class SQLBasedVidMapper : public VidMapper {
   public:
+	SQLBasedVidMapper() : VidMapper() {}
+
     SQLBasedVidMapper(const SQLVidMapperRequest&);
 
     /* following two declarations disable copy semantics since not needed */
@@ -127,6 +129,8 @@ class SQLBasedVidMapper : public VidMapper {
       return(m_field_name_to_idx);
     }
 
+    bool is_dbconn_created = false;
+    void create_db_connection(const SQLVidMapperRequest&);
     ~SQLBasedVidMapper();
   protected:
     dbi_conn m_conn;

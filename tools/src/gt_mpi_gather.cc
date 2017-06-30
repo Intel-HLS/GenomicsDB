@@ -29,6 +29,7 @@
 #include "timer.h"
 #include "broad_combined_gvcf.h"
 #include "vid_mapper_pb.h"
+#include "vid_mapper_sql.h"
 
 #ifdef USE_BIGMPI
 #include "bigmpi.h"
@@ -418,6 +419,7 @@ int main(int argc, char *argv[]) {
     {"rank",1,0,'r'},
     {"output-format",1,0,'O'},
     {"workspace",1,0,'w'},
+	{"mapper-config",1,0,'m'},
     {"json-config",1,0,'j'},
     {"loader-json-config",1,0,'l'},
     {"segment-size",1,0,'s'},
@@ -435,13 +437,19 @@ int main(int argc, char *argv[]) {
   std::string output_format = "";
   std::string workspace = "";
   std::string array_name = "";
+
+  // mapper config file is also in json format but is meant for enhancement.
+  // Primarily it can be used to specify DB connection parameters for SQL
+  // VID mapper, but can also be used for other necessary purposes in future.
+  std::string mapper_config_file = "";
+
   std::string json_config_file = "";
   std::string loader_json_config_file = "";
   bool skip_query_on_root = false;
   auto print_version_only = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
-  while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
+  while((c=getopt_long(argc, argv, "m:j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
   {
     switch(c)
     {
@@ -473,6 +481,9 @@ int main(int argc, char *argv[]) {
       case ARGS_IDX_PRODUCE_HISTOGRAM:
         command_idx = COMMAND_PRODUCE_HISTOGRAM;
         break;
+      case 'm':
+    	mapper_config_file = std::move(std::string(optarg));
+    	break;
       case 'j':
         json_config_file = std::move(std::string(optarg));
         break;
@@ -499,13 +510,14 @@ int main(int argc, char *argv[]) {
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
     //Vid mapping
-    FileBasedVidMapper id_mapper;
+    FileBasedVidMapper file_vid_mapper;
+    SQLBasedVidMapper sql_vid_mapper;
     //Loader configuration
     JSONLoaderConfig loader_config;
     JSONLoaderConfig* loader_config_ptr = 0;
     if(!(loader_json_config_file.empty()))
     {
-      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+      loader_config.read_from_file(loader_json_config_file, &file_vid_mapper, my_world_mpi_rank);
       loader_config_ptr = &loader_config;
     }
 #ifdef HTSDIR
@@ -523,7 +535,7 @@ int main(int argc, char *argv[]) {
       {
         case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
+          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &file_vid_mapper, output_format, my_world_mpi_rank);
           json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
           std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
@@ -531,7 +543,7 @@ int main(int argc, char *argv[]) {
 #endif
           break;
         default:
-          range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
+          range_query_config.read_from_file(json_config_file, query_config, &file_vid_mapper, my_world_mpi_rank, loader_config_ptr);
           json_config_ptr = &range_query_config;
           break;
       }
@@ -567,6 +579,25 @@ int main(int argc, char *argv[]) {
           break;
       }
     }
+
+    if (! mapper_config_file.empty()) {
+      JSONMapperConfig mapper_config(mapper_config_file);
+      SQLVidMapperRequest mapper_request;
+      mapper_config.populate_mapper_request(mapper_request);
+      try {
+        sql_vid_mapper.create_db_connection();
+        if (sql_vid_mapper.is_dbconn_created) {
+          sql_vid_mapper.load_mapping_data_from_db();
+          workspace = mapper_request.work_space;
+          array_name = mapper_request.array_name;
+        }
+      } catch (const SQLBasedVidMapperException& e) {
+    	std::cerr << "ERROR: Exception while trying to create DB connection\n";
+      }
+    }
+
+    VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? sql_vid_mapper : file_vid_mapper);
+
     if(workspace == "" || array_name == "")
     {
       std::cerr << "Missing workspace(-w) or array name (-A)\n";

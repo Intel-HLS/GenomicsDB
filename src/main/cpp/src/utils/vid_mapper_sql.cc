@@ -32,7 +32,7 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw SQLBasedVidMapperException(#X);
 
-SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMapper() {
+void SQLBasedVidMapper::create_db_connection(const SQLVidMapperRequest& request) {
   dbi_initialize_r(NULL, &m_instance);
   m_conn = dbi_conn_new_r(PGSQL_DRIVER.c_str(), m_instance);
   if (NULL == m_conn) {
@@ -51,6 +51,12 @@ SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMa
 
   m_work_space = request.work_space;
   m_array_name = request.array_name;
+  is_dbconn_created = true;
+  return;
+}
+
+SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMapper() {
+  create_db_connection(request);
 }
 
 SQLBasedVidMapper::~SQLBasedVidMapper() {
@@ -102,7 +108,7 @@ int SQLBasedVidMapper::load_contig_info() {
   }
 
   dbi_result_free(result);
-  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+  return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
 int SQLBasedVidMapper::load_callset_info() {
@@ -136,7 +142,7 @@ int SQLBasedVidMapper::load_callset_info() {
   }
 
   dbi_result_free(result);
-  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+  return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
 int SQLBasedVidMapper::load_field_info() {
@@ -278,14 +284,14 @@ int SQLBasedVidMapper::load_field_info() {
   }
 
   dbi_result_free(result);
-  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+  return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
 int SQLBasedVidMapper::load_mapping_data_from_db() {
   load_contig_info();
   load_callset_info();
   load_field_info();
-  return(GENOMICSDB_VID_MAPPER_SUCCESS);
+  return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
 SQLBasedVidMapperException::~SQLBasedVidMapperException() {}

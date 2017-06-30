@@ -26,6 +26,7 @@
 #include "variant_query_config.h"
 #include "vcf_adapter.h"
 #include "vid_mapper.h"
+#include "vid_mapper_sql.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/reader.h"
@@ -179,6 +180,14 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_fail_if_updating;
     //consolidate TileDB array after load - merges fragments
     bool m_consolidate_tiledb_array_after_load;
+};
+
+class JSONMapperConfig : public SQLVidMapperRequest {
+  private:
+	void parse_mapper_config(std::string mapper_config_file);
+  public:
+	JSONMapperConfig(std::string mapper_config_file) : parse_mapper_config(mapper_config_file) {}
+	void populate_mapper_request(SQLVidMapperRequest&);
 };
 
 #ifdef HTSDIR
