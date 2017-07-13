@@ -31,6 +31,7 @@ GenomicsDBColumnarField::GenomicsDBColumnarField(const std::type_index element_t
   m_element_size = (element_type == std::type_index(typeid(bool)))
     ? sizeof(char)
     : VariantFieldTypeUtil::size(m_element_type);
+  m_log2_element_size = __builtin_ctzll(m_element_size);
   m_fixed_length_field_size = m_fixed_length_field_num_elements*m_element_size;
   m_buffer_size = (length_descriptor == BCF_VL_FIXED)
     ? GET_ALIGNED_BUFFER_SIZE(num_bytes, m_fixed_length_field_size)
@@ -50,6 +51,7 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_fixed_length_field_num_elements = other.m_fixed_length_field_num_elements;
   m_fixed_length_field_size = other.m_fixed_length_field_size;
   m_element_size = other.m_element_size;
+  m_log2_element_size = other.m_log2_element_size;
   m_element_type = other.m_element_type;
   m_check_tiledb_valid_element = other.m_check_tiledb_valid_element;
   m_print = other.m_print;

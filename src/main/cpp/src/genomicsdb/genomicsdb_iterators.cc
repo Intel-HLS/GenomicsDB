@@ -197,7 +197,7 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
       //Get a free buffer and move it to the live list - buffer gets added to tail of live list
-      genomicsdb_columnar_field.move_buffer_to_live_list(genomicsdb_columnar_field.get_free_buffer());
+      genomicsdb_columnar_field.move_buffer_to_live_list(genomicsdb_columnar_field.get_or_allocate_free_buffer());
       //Always read new data into tail
       auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
       assert(genomicsdb_buffer_ptr);

@@ -38,16 +38,6 @@ class GenomicsDBColumnarFieldException : public std::exception {
     std::string msg_;
 };
 
-/*
- * Think of this class as a vector which cannot be resized
- * The buffer space of this object is owned by GenomicsDBColumnarField - this object
- * only contains offsets within the buffer
- */
-template<class DataType>
-class LinkedVector
-{
-
-};
 //ceil(buffer_size/field_size)*field_size
 #define GET_ALIGNED_BUFFER_SIZE(buffer_size, field_size) ((((buffer_size)+(field_size)-1u)/(field_size))*(field_size))
 
@@ -69,42 +59,90 @@ class GenomicsDBBuffer
     GenomicsDBBuffer(const GenomicsDBBuffer& other) = delete;
     GenomicsDBBuffer(GenomicsDBBuffer&& other) = delete;
     //Functions
+    /*
+     * Set if this buffer object is in the live list
+     */
     inline void set_is_in_live_list(const bool val) { m_is_in_live_list = val; }
+    /*
+     * Check if this buffer object is in the live list
+     */
     inline bool is_in_live_list() const { return m_is_in_live_list; }
     //Live and filled entry control
+    /*
+     * Set number of live entries in this buffer
+     */
     inline size_t get_num_live_entries() const { return m_num_live_entries; }
+    /*
+     * Get number of live entries in this buffer
+     */
     inline void set_num_live_entries(const size_t n)
     {
       m_num_live_entries = n;
       m_num_filled_entries = n;
       m_num_unprocessed_entries = n;
     }
+    /*
+     * Decrement number of live entries in this buffer by value
+     */
     inline void decrement_num_live_entries(const size_t value)
     {
       assert(m_num_live_entries >= value);
       m_num_live_entries -= value;
     }
-    inline void increment_num_live_entries(const size_t val=1u)
+    /*
+     * Increment number of live entries in this buffer by value
+     */
+    inline void increment_num_live_entries(const size_t value=1u)
     {
-      m_num_live_entries += val;
+      m_num_live_entries += value;
     }
+    /*
+     * Get number of unprocessed entries in this buffer
+     */
     inline size_t get_num_unprocessed_entries() const
     {
       return m_num_unprocessed_entries;
     }
+    /*
+     * Decrement number of unprocessed entries in this buffer by value
+     */
     inline void decrement_num_unprocessed_entries(const size_t value)
     {
       assert(m_num_unprocessed_entries >= value);
       m_num_unprocessed_entries -= value;
     }
+    /*
+     * Get raw byte buffer in read-write mode
+     */
     inline std::vector<uint8_t>& get_buffer() { return m_buffer; }
+    /*
+     * Get raw byte buffer in read-only mode
+     */
     inline const std::vector<uint8_t>& get_buffer() const { return m_buffer; }
+    /*
+     * Get pointer into raw byte buffer in read-write mode
+     */
     inline uint8_t* get_buffer_pointer() { return &(m_buffer[0]); }
+    /*
+     * Get pointer into raw byte buffer in read-only mode
+     */
     inline const uint8_t* get_buffer_pointer() const { return &(m_buffer[0]); }
+    /*
+     * Get raw byte buffer size in bytes
+     */
     inline size_t get_buffer_size_in_bytes() const { return m_buffer.size(); }
     /*inline std::vector<size_t>& get_offsets() { return m_offsets; }*/
+    /*
+     * Get pointer into offsets vector in read-write mode
+     */
     inline size_t* get_offsets_pointer() { return &(m_offsets[0]); }
+    /*
+     * Get number of bytes of offset elements that can be written when fetching from TileDB
+     */
     inline size_t get_offsets_size_in_bytes() const { return ((m_offsets.size()-1u)*sizeof(size_t)); } //last offsets element holds the "size"
+    /*
+     * Get number of offset elements that can be written when fetching from TileDB
+     */
     inline size_t get_offsets_length() const { return (m_offsets.size()-1u); } //last offsets element holds the "size"
     /*
      * Set offset in buffer of the idx-th element
@@ -117,31 +155,63 @@ class GenomicsDBBuffer
       assert(idx < m_offsets.size());
       m_offsets[idx] = value;
     }
+    /*
+     * Get offset of idx-th element
+     */
     inline size_t get_offset(const size_t idx) const
     {
       assert(idx < m_offsets.size() && idx < m_num_filled_entries);
       return m_offsets[idx ];
     }
+    /*
+     * Get size in bytes of the idx-th element
+     */
     inline size_t get_size_of_variable_length_field(const size_t idx) const
     {
       assert(idx+1u < m_offsets.size() && idx < m_num_filled_entries);
       return m_offsets[idx+1u] - m_offsets[idx];
     }
+    /*
+     * Return true if the idx-th cell in the buffer is valid (!= TILEDB_NULL)
+     */
     inline bool is_valid(const size_t idx) const
     {
       assert(idx < m_valid.size() && idx < m_num_filled_entries);
       return m_valid[idx];
     }
+    /*
+     * Return bitmask vector specifying the validity of each cell of the buffer
+     * in read-only mode
+     */
+    inline const std::vector<bool>& get_valid_vector() const { return m_valid; }
+    /*
+     * Return bitmask vector specifying the validity of each element of the buffer
+     * in read-write mode
+     */
     inline std::vector<bool>& get_valid_vector() { return m_valid; }
-    //Buffer pointers
+    //Buffer pointers in a doubly linked list
+    /*
+     * Set pointer to next buffer in the doubly linked list
+     */
     inline void set_next_buffer(GenomicsDBBuffer* next) { m_next_buffer = next; }
+    /*
+     * Set pointer to previous buffer in the doubly linked list
+     */
     inline void set_previous_buffer(GenomicsDBBuffer* previous) { m_previous_buffer = previous; }
+    /*
+     * Get pointer to next buffer in the doubly linked list in read-write mode
+     */
     inline GenomicsDBBuffer* get_next_buffer() { return m_next_buffer; }
-    inline GenomicsDBBuffer* get_previous_buffer() { return m_previous_buffer; } 
+    /*
+     * Get pointer to previous buffer in the doubly linked list in read-write mode
+     */
+    inline GenomicsDBBuffer* get_previous_buffer() { return m_previous_buffer; }
   protected:
     //bool used only in assertions - for debugging
     bool m_is_in_live_list;
+    //Byte buffer for storing raw data from TileDB etc
     std::vector<uint8_t> m_buffer;
+    //Bitmask specifying validity for each cell read from TileDB etc
     std::vector<bool> m_valid;
     //For variable length fields, stores the offsets
     //If the buffer has data from N-1 cells, this vector has N elements
@@ -151,7 +221,6 @@ class GenomicsDBBuffer
     std::vector<size_t> m_offsets;
     //m_num_filled_entries - the #items filled in the buffer from TileDB
     //m_num_unprocessed_entries - a counter that's decremented by iterators
-    //m_num_live_entries <= m_num_filled_entries
     //m_num_unprocessed_entries <= m_num_filled_entries
     size_t m_num_live_entries;
     size_t m_num_filled_entries;
@@ -198,9 +267,7 @@ class GenomicsDBColumnarField
     GenomicsDBColumnarField(const GenomicsDBColumnarField& other) = delete;
     //Define move constructor
     GenomicsDBColumnarField(GenomicsDBColumnarField&& other);
-    void clear()
-    {
-    }
+    void clear() { }
     //Static functions - function pointers hold addresses to one of these functions
     //Check validity
     template<typename T>
@@ -213,7 +280,7 @@ class GenomicsDBColumnarField
       return false;
     }
     //Buffer pointer handling
-    GenomicsDBBuffer* get_free_buffer()
+    GenomicsDBBuffer* get_or_allocate_free_buffer()
     {
       if(m_free_buffer_list_head_ptr == 0)
         add_new_buffer();
@@ -265,17 +332,27 @@ class GenomicsDBColumnarField
     inline size_t get_length_of_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
         const size_t index) const
     {
-      return get_size_of_data_in_buffer_at_index(buffer_ptr, index)/m_element_size;
+      return get_size_of_data_in_buffer_at_index(buffer_ptr, index) >> m_log2_element_size;
     }
     inline bool is_valid_data_in_buffer_at_index(const GenomicsDBBuffer* buffer_ptr,
         const size_t index) const
     {
       return buffer_ptr->is_valid(index);
     }
+    /*
+     * Prints data in buffer as list (variable length non-string fields)
+     * or element (single element or string fields) to fptr
+     */
     void print_data_in_buffer_at_index(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
+    /*
+     * Print ALT alleles as a list of strings
+     */
     void print_ALT_data_in_buffer_at_index(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
+    /*
+     * Print data in a CSV format that can be imported into GenomicsDB directly
+     */
     void print_data_in_buffer_at_index_as_csv(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
   private:
@@ -304,6 +381,7 @@ class GenomicsDBColumnarField
     unsigned m_fixed_length_field_num_elements;
     unsigned m_fixed_length_field_size;
     unsigned m_element_size;
+    unsigned m_log2_element_size;
     std::type_index m_element_type;
     //Function pointers - assigned based on type of data
     //Function pointer that determines validity check
