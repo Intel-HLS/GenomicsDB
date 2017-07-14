@@ -97,6 +97,13 @@ class GenomicsDBBuffer
       m_num_live_entries += value;
     }
     /*
+     * Get number of filled entries in this buffer
+     */
+    inline size_t get_num_filled_entries() const
+    {
+      return m_num_filled_entries;
+    }
+    /*
      * Get number of unprocessed entries in this buffer
      */
     inline size_t get_num_unprocessed_entries() const
@@ -251,6 +258,56 @@ class GenomicsDBColumnarFieldPrintOperator
     static void print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements);
     static void print_csv(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements,
         const bool is_variable_length_field, const bool is_valid);
+};
+
+/*
+ * An STL RandomAccessIterator for iterating over a single coords buffer
+ * Useful in STL algorithms like upper_bound etc
+ */
+class GenomicsDBCoordinatesIteratorInBuffer
+: std::iterator<std::random_access_iterator_tag, const int64_t*, size_t, const int64_t*, const int64_t*>
+
+{
+  public:
+    GenomicsDBCoordinatesIteratorInBuffer(const GenomicsDBBuffer* coords_buffer, const size_t cell_idx)
+    {
+      m_buffer = reinterpret_cast<const int64_t*>(coords_buffer->get_buffer_pointer());
+      m_num_filled_entries = coords_buffer->get_num_filled_entries();
+      m_cell_idx = cell_idx;
+    }
+    //default copy, move constructors and equality operators
+
+    //pre-increment
+    GenomicsDBCoordinatesIteratorInBuffer& operator++()
+    {
+      ++m_cell_idx;
+      return *this;
+    }
+    //pre-decrement
+    GenomicsDBCoordinatesIteratorInBuffer& operator--()
+    {
+      --m_cell_idx;
+      return *this;
+    }
+    GenomicsDBCoordinatesIteratorInBuffer& operator+=(const size_t value)
+    {
+      m_cell_idx += value;
+      return *this;
+    }
+    GenomicsDBCoordinatesIteratorInBuffer& operator-=(const size_t value)
+    {
+      m_cell_idx -= value;
+      return *this;
+    }
+    const int64_t* operator*()
+    {
+      assert(m_cell_idx < m_num_filled_entries);
+      return m_buffer + (m_cell_idx << 1); //each cell has two int64 coordinates
+    }
+  private:
+    const int64_t* m_buffer;
+    size_t m_num_filled_entries;
+    size_t m_cell_idx;
 };
 
 /*

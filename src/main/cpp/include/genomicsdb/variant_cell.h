@@ -156,7 +156,7 @@ class GenomicsDBColumnarCell
     {
       return reinterpret_cast<const T*>(m_iterator->get_field_ptr_for_query_idx(query_idx));
     }
-    inline int get_field_length(const int query_idx) const
+    inline size_t get_field_length(const int query_idx) const
     {
       return m_iterator->get_field_length(query_idx);
     }
@@ -175,6 +175,7 @@ class GenomicsDBColumnarCell
     void print(std::ostream& fptr, const VariantQueryConfig* query_config,
         const std::string& indent_prefix, const VidMapper* vid_mapper) const;
     void print_csv(std::ostream& fptr, const VariantQueryConfig* query_config) const;
+    inline bool at_new_query_column_interval() const { return m_iterator->at_new_query_column_interval(); }
   private:
     const SingleCellTileDBIterator* m_iterator;
 };

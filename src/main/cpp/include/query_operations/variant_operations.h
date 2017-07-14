@@ -593,6 +593,31 @@ class VariantCallPrintCSVOperator : public SingleCellOperatorBase
     std::ostream* m_fptr;
 };
 
+class AlleleCountOperator : public SingleCellOperatorBase
+{
+  public:
+    AlleleCountOperator(const VidMapper& vid_mapper, const VariantQueryConfig& query_config);
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
+    void print_allele_counts(std::ostream& fptr=std::cout) const;
+    void normalize_REF_ALT_pair(std::pair<std::string, std::string>& REF_ALT_pair);
+    std::map<std::pair<std::string, std::string>, uint64_t>& get_REF_ALT_to_count_map(
+        const int64_t curr_column);
+  private:
+    unsigned m_GT_query_idx;
+    unsigned m_REF_query_idx;
+    unsigned m_ALT_query_idx;
+    unsigned m_GT_step_value;
+    //Outer vec - 1 per query column position
+    //map - 1 per cell begin position
+    //map: REF,ALT -> count
+    std::vector<std::map<int64_t, std::map<std::pair<std::string, std::string>, uint64_t>>>
+      m_column_to_REF_ALT_to_count_vec;
+    const VidMapper* m_vid_mapper;
+    //Avoid memory allocation
+    std::vector<size_t> m_cell_ALT_offsets;
+};
 /*
  * If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
  */

@@ -51,6 +51,7 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
   m_done_reading_from_TileDB(false),
   m_in_find_intersecting_intervals_mode(false),
   m_in_simple_traversal_mode(false),
+  m_at_new_query_column_interval(true),
   m_live_cell_markers(query_config.get_num_rows_in_array(), query_config.get_num_queried_attributes()+1u), //+1 for coords
   m_num_markers_initialized(0),
   m_PQ_live_cell_markers(m_live_cell_markers),
@@ -181,6 +182,7 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
         m_done_reading_from_TileDB = false;
         m_in_simple_traversal_mode = false;
         ++m_query_column_interval_idx;
+        m_at_new_query_column_interval = true;
         assert(m_query_column_interval_idx < m_query_config->get_num_column_intervals());
         //Reset markers
         assert(m_PQ_live_cell_markers.empty());
@@ -431,6 +433,7 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
       if(buffer_ptr->get_num_live_entries() == 0u)
         m_fields[i].move_buffer_to_free_list(buffer_ptr);
     }
+    m_at_new_query_column_interval = false;
     if(!m_PQ_live_cell_markers.empty())
       return *this;
     //Done processing PQ cells
@@ -492,6 +495,7 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
     //keep incrementing iterator if hitting duplicates at end in simple traversal mode
     if(m_in_simple_traversal_mode)
     {
+      m_at_new_query_column_interval = false;
       assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
       auto END_field_value = *(reinterpret_cast<const int64_t*>(
             END_columnar_field.get_pointer_to_data_in_buffer_at_index(

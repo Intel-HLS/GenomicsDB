@@ -738,3 +738,194 @@ void VariantCallPrintCSVOperator::operate_on_columnar_cell(const GenomicsDBColum
 {
   cell.print_csv(*m_fptr, &query_config);
 }
+
+//AlleleCountOperator
+AlleleCountOperator::AlleleCountOperator(const VidMapper& vid_mapper, const VariantQueryConfig& query_config)
+{
+  m_vid_mapper = &vid_mapper;
+  m_GT_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_GT_IDX);
+  if(m_GT_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
+    throw VariantOperationException("GT field must be queried for AlleleCountOperator");
+  m_REF_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX);
+  if(m_REF_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
+    throw VariantOperationException("REF field must be queried for AlleleCountOperator");
+  m_ALT_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX);
+  if(m_ALT_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
+    throw VariantOperationException("ALT field must be queried for AlleleCountOperator");
+  auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
+  m_GT_step_value = (GT_length_descriptor == BCF_VL_Phased_Ploidy) ? 2u : 1u;
+}
+
+//Unoptimized iterator only traverses single query position/interval
+void AlleleCountOperator::operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
+{
+  m_column_to_REF_ALT_to_count_vec.resize(1u);
+  auto REF_ptr = call.get_field<VariantFieldString>(m_REF_query_idx);
+  auto ALT_ptr = call.get_field<VariantFieldALTData>(m_ALT_query_idx);
+  auto GT_ptr = call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx);
+  //If any field is invalid, return
+  if(!(REF_ptr && REF_ptr->is_valid())
+      || !(ALT_ptr && ALT_ptr->is_valid())
+      || !(GT_ptr && GT_ptr->is_valid())
+      )
+    return;
+  auto& REF_ALT_to_count_map = get_REF_ALT_to_count_map(call.get_column_begin());
+  auto GT_vec = GT_ptr->get();
+  auto REF_string = REF_ptr->get();
+  auto ALT_vec = ALT_ptr->get();
+  //Iterate over GT field
+  for(auto i=0u;i<GT_vec.size();i+=m_GT_step_value)
+  {
+    auto curr_GT_value = GT_vec[i];
+    if(is_bcf_valid_value<int>(curr_GT_value) && curr_GT_value > 0) //ignore REF GT
+    {
+      auto ALT_idx = curr_GT_value-1;
+      assert(static_cast<size_t>(ALT_idx) < ALT_vec.size());
+      auto REF_ALT_pair = std::pair<std::string, std::string>(
+          REF_string, ALT_vec[ALT_idx]);
+      normalize_REF_ALT_pair(REF_ALT_pair);
+      auto pair_iter = REF_ALT_to_count_map.find(REF_ALT_pair);
+      if(pair_iter == REF_ALT_to_count_map.end())
+        pair_iter = REF_ALT_to_count_map.insert(std::pair<std::pair<std::string, std::string>, uint64_t>(REF_ALT_pair, 1u)).first;
+      else
+        ++((*pair_iter).second);
+    }
+  }
+}
+
+void AlleleCountOperator::operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+{
+  if(cell.at_new_query_column_interval())
+    m_column_to_REF_ALT_to_count_vec.emplace_back();
+  //If any field is invalid, return
+  if(!cell.is_valid(m_REF_query_idx) || !cell.is_valid(m_ALT_query_idx)
+      || !cell.is_valid(m_GT_query_idx))
+    return;
+  auto REF_ptr = cell.get_field_ptr_for_query_idx<char>(m_REF_query_idx);
+  auto REF_length = cell.get_field_length(m_REF_query_idx);
+  auto ALT_ptr = cell.get_field_ptr_for_query_idx<char>(m_ALT_query_idx);
+  auto ALT_length = cell.get_field_length(m_ALT_query_idx);
+  //ALT is delimited string
+  m_cell_ALT_offsets.clear(); //no deallocation
+  m_cell_ALT_offsets.push_back(0u); //first ALT allele begins at 0
+  auto curr_ALT_ptr = ALT_ptr;
+  auto remaining_bytes = ALT_length;
+  while(remaining_bytes)
+  {
+    auto next_ptr = reinterpret_cast<const char*>(memchr(curr_ALT_ptr, TILEDB_ALT_ALLELE_SEPARATOR[0], remaining_bytes));
+    auto next_offset = next_ptr
+      ? (reinterpret_cast<const char*>(next_ptr)-reinterpret_cast<const char*>(ALT_ptr))+1u //+1 for the delim
+      : ALT_length+1u; //+1 for the delim
+    //ensures that the last offset element == ALT_length+1
+    m_cell_ALT_offsets.push_back(next_offset);
+    remaining_bytes = next_ptr ? ALT_length-next_offset : 0;
+    curr_ALT_ptr = next_ptr+1u; //skip past the delimiter
+  }
+  //Find <REF,ALT> -> count map for current column
+  auto coords = cell.get_coordinates();
+  auto& REF_ALT_to_count_map = get_REF_ALT_to_count_map(coords[1]);
+  //Iterate over GT field
+  auto GT_ptr = cell.get_field_ptr_for_query_idx<int>(m_GT_query_idx);
+  auto GT_length = cell.get_field_length(m_GT_query_idx);
+  for(auto i=0u;i<GT_length;i+=m_GT_step_value)
+  {
+    auto curr_GT_value = GT_ptr[i];
+    if(is_bcf_valid_value<int>(curr_GT_value) && curr_GT_value > 0) //ignore REF GT
+    {
+      auto ALT_idx = curr_GT_value-1;
+      assert(static_cast<size_t>(ALT_idx+1) < m_cell_ALT_offsets.size());
+      auto REF_ALT_pair = std::move(std::pair<std::string, std::string>(
+            std::string(REF_ptr, REF_length),
+            std::string(ALT_ptr+m_cell_ALT_offsets[ALT_idx],
+              m_cell_ALT_offsets[ALT_idx+1]-m_cell_ALT_offsets[ALT_idx]-1))); //-1 to ignore delim char
+      normalize_REF_ALT_pair(REF_ALT_pair);
+      auto pair_iter = REF_ALT_to_count_map.find(REF_ALT_pair);
+      if(pair_iter == REF_ALT_to_count_map.end())
+        pair_iter = REF_ALT_to_count_map.insert(std::pair<std::pair<std::string, std::string>, uint64_t>(REF_ALT_pair, 1u)).first;
+      else
+        ++((*pair_iter).second);
+    }
+  }
+}
+
+//Normalize ALT before inserting into map
+//For example, if REF=TGG ALT=T,AGG  (deletion and SNV), then normalize the SNV to T->A
+void AlleleCountOperator::normalize_REF_ALT_pair(std::pair<std::string, std::string>& REF_ALT_pair)
+{
+  auto REF_length = REF_ALT_pair.first.length();
+  auto curr_ALT_length = REF_ALT_pair.second.length();
+  auto contains_deletion = (REF_length > 1u);
+  if(contains_deletion && curr_ALT_length)
+  {
+    auto REF_suffix_length = 0u;
+    if(VariantUtils::is_symbolic_allele(REF_ALT_pair.second))
+      REF_ALT_pair.first.resize(1u); //only store 1 bp for REF in case of symbolic alleles
+    else
+    {
+      if(curr_ALT_length == REF_length) //SNV
+      {
+        //Last n-1 chars are same
+        REF_suffix_length = REF_length-1u;
+      }
+      else
+        if(curr_ALT_length > REF_length) //insertion
+        {
+          //suffix of ALT and REF must be the same for insertion
+          //normalized insertion  A -> ATTG
+          //With deletion    ACCG -> ATTGCCG,A
+          REF_suffix_length = REF_length-1u;
+        }
+        else //deletion
+        {
+          //Could be 2 deletions in the same cell
+          //ATCCCG -> ACCCG,A
+          //Normalized AT->A and ATCCCG->A
+          if(curr_ALT_length > 1u)
+            REF_suffix_length = curr_ALT_length-1u;
+        }
+      assert(REF_ALT_pair.first.substr(REF_length-REF_suffix_length, REF_suffix_length)
+          == REF_ALT_pair.second.substr(curr_ALT_length-REF_suffix_length, REF_suffix_length));
+      //Chop off suffix
+      REF_ALT_pair.first.resize(REF_length-REF_suffix_length);
+      REF_ALT_pair.second.resize(curr_ALT_length-REF_suffix_length);
+    }
+  }
+}
+
+std::map<std::pair<std::string, std::string>, uint64_t>& AlleleCountOperator::get_REF_ALT_to_count_map(
+    const int64_t curr_column)
+{
+  auto& column_to_REF_ALT_to_count_map = m_column_to_REF_ALT_to_count_vec.back();
+  auto column_to_REF_ALT_to_count_map_iter = column_to_REF_ALT_to_count_map.find(curr_column);
+  //If missing, place empty map
+  if(column_to_REF_ALT_to_count_map_iter == column_to_REF_ALT_to_count_map.end())
+    column_to_REF_ALT_to_count_map_iter = column_to_REF_ALT_to_count_map.insert(std::make_pair(curr_column,
+          std::map<std::pair<std::string, std::string>, uint64_t>())).first;
+  return (*column_to_REF_ALT_to_count_map_iter).second;
+}
+
+void AlleleCountOperator::print_allele_counts(std::ostream& fptr) const
+{
+  std::string indent_string = "    ";
+  std::string curr_indent_string = indent_string;
+  //fptr << "{\n";
+  //fptr << indent_string << "\"results\": [\n";
+  for(const auto& curr_column_to_REF_ALT_to_count : m_column_to_REF_ALT_to_count_vec)
+  {
+    //curr_indent_string = indent_string + indent_string;
+    //fptr << curr_indent_string << "{\n"
+    for(const auto& curr_column_to_REF_ALT_to_count_entry : curr_column_to_REF_ALT_to_count)
+    {
+      for(const auto& curr_REF_ALT_to_count_entry : curr_column_to_REF_ALT_to_count_entry.second)
+        fptr << curr_column_to_REF_ALT_to_count_entry.first << " "
+          << curr_REF_ALT_to_count_entry.first.first << " "
+          << curr_REF_ALT_to_count_entry.first.second << " "
+          << curr_REF_ALT_to_count_entry.second <<"\n";
+    }
+    //fptr << curr_indent_string << "{\n"
+  }
+  //fptr << indent_string << "]\n"
+  //fptr << "}\n";
+}

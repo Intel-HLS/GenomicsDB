@@ -46,7 +46,8 @@ enum ArgsEnum
   ARGS_IDX_PRINT_CALLS,
   ARGS_IDX_PRINT_CSV,
   ARGS_IDX_VERSION,
-  ARGS_IDX_PRODUCE_INTERESTING_POSITIONS
+  ARGS_IDX_PRODUCE_INTERESTING_POSITIONS,
+  ARGS_IDX_PRINT_ALT_ALLELE_COUNTS
 };
 
 enum CommandsEnum
@@ -55,7 +56,8 @@ enum CommandsEnum
   COMMAND_PRODUCE_BROAD_GVCF,
   COMMAND_PRODUCE_HISTOGRAM,
   COMMAND_PRINT_CALLS,
-  COMMAND_PRINT_CSV
+  COMMAND_PRINT_CSV,
+  COMMAND_PRINT_ALT_ALLELE_COUNTS
 };
 
 enum ProduceBroadGVCFSubOperation
@@ -394,6 +396,13 @@ void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& quer
         qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, true);
         break;
       }
+    case COMMAND_PRINT_ALT_ALLELE_COUNTS:
+      {
+        AlleleCountOperator AC_counter(id_mapper, query_config);
+        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, AC_counter, true);
+        AC_counter.print_allele_counts();
+        break;
+      }
     default:
       std::cerr << "Unknown print_calls command "<<command_idx<<"\n";
       exit(-1);
@@ -448,6 +457,7 @@ int main(int argc, char *argv[]) {
     {"produce-histogram",0,0,ARGS_IDX_PRODUCE_HISTOGRAM},
     {"print-calls",0,0,ARGS_IDX_PRINT_CALLS},
     {"print-csv",0,0,ARGS_IDX_PRINT_CSV},
+    {"print-AC",0,0,ARGS_IDX_PRINT_ALT_ALLELE_COUNTS},
     {"array",1,0,'A'},
     {"version",0,0,ARGS_IDX_VERSION},
     {0,0,0,0},
@@ -509,6 +519,9 @@ int main(int argc, char *argv[]) {
         break;
       case ARGS_IDX_PRINT_CSV:
         command_idx = COMMAND_PRINT_CSV;
+        break;
+      case ARGS_IDX_PRINT_ALT_ALLELE_COUNTS:
+        command_idx = COMMAND_PRINT_ALT_ALLELE_COUNTS;
         break;
       case 'l':
         loader_json_config_file = std::move(std::string(optarg));
@@ -631,6 +644,7 @@ int main(int argc, char *argv[]) {
         break;
       case COMMAND_PRINT_CALLS:
       case COMMAND_PRINT_CSV:
+      case COMMAND_PRINT_ALT_ALLELE_COUNTS:
         print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
         break;
     }

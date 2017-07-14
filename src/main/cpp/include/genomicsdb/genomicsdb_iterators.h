@@ -216,7 +216,7 @@ class SingleCellTileDBIterator
       return genomicsdb_columnar_field.get_pointer_to_data_in_buffer_at_index(
           buffer_ptr, index);
     }
-    inline int get_field_length(const int query_idx) const
+    inline size_t get_field_length(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
       auto& genomicsdb_columnar_field = m_fields[query_idx];
@@ -252,6 +252,7 @@ class SingleCellTileDBIterator
     void print_ALT(const int query_idx, std::ostream& fptr=std::cout) const;
     void print_csv(const int query_idx, std::ostream& fptr=std::cout) const;
     inline bool end() const { return m_done_reading_from_TileDB && m_PQ_live_cell_markers.empty(); }
+    inline bool at_new_query_column_interval() const { return m_at_new_query_column_interval; }
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec
@@ -298,6 +299,7 @@ class SingleCellTileDBIterator
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
     bool m_in_simple_traversal_mode;
+    bool m_at_new_query_column_interval;
     //Flag that specifies if this is the first time reading from TileDB
     bool m_first_read_from_TileDB;
     unsigned m_END_query_idx;
