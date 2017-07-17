@@ -144,6 +144,9 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
         assert(m_PQ_live_cell_markers.empty());
         m_live_cell_markers.reset();
         m_num_markers_initialized = 0u;
+        //Move all buffers to free list - moving to the next query interval
+        for(auto& field : m_fields)
+          field.move_all_buffers_from_live_list_to_free_list();
       }
       //Query all attributes
       m_query_attribute_idx_vec.resize(m_fields.size());
@@ -251,6 +254,7 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
         ++num_done_fields;
 #endif
         m_done_reading_from_TileDB = true;
+        genomicsdb_columnar_field.move_buffer_to_free_list(genomicsdb_buffer_ptr);
       }
     }
 #ifdef DEBUG

@@ -340,6 +340,12 @@ void GenomicsDBColumnarField::move_buffer_to_free_list(GenomicsDBBuffer* buffer)
     m_live_buffer_list_head_ptr = next_in_live_list;
 }
 
+void GenomicsDBColumnarField::move_all_buffers_from_live_list_to_free_list()
+{
+  while(m_live_buffer_list_head_ptr)
+    move_buffer_to_free_list(m_live_buffer_list_head_ptr);
+}
+
 void GenomicsDBColumnarField::set_valid_vector_in_live_buffer_list_tail_ptr()
 {
   auto buffer_ptr = get_live_buffer_list_tail_ptr();

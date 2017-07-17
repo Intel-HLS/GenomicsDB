@@ -292,6 +292,7 @@ class GenomicsDBColumnarField
     const GenomicsDBBuffer* get_live_buffer_list_tail_ptr() const { return m_live_buffer_list_tail_ptr; }
     void move_buffer_to_live_list(GenomicsDBBuffer* buffer);
     void move_buffer_to_free_list(GenomicsDBBuffer* buffer);
+    void move_all_buffers_from_live_list_to_free_list();
     void set_valid_vector_in_live_buffer_list_tail_ptr();
     //Field lengths
     bool is_variable_length_field() const { return (m_length_descriptor != BCF_VL_FIXED); }
