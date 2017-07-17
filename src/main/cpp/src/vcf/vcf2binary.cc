@@ -714,7 +714,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
 	field_name, field_type_idx, bcf_ht_type);
   auto buffer_full = false;
   auto num_values = static_cast<int>(curr_vcf_get_buffer_wrapper.m_num_values);
-  auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
+  auto* ptr = reinterpret_cast<const FieldType*>(curr_vcf_get_buffer_wrapper.m_buffer);
   //Curr line does not have this field or field is missing
   //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
   //Example GT:PL   0/0:.  0/1:0,0,0
@@ -916,38 +916,39 @@ bool VCF2Binary::convert_VCF_to_binary_for_callset(std::vector<uint8_t>& buffer,
     buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, alt_length_offset, buffer_offset_limit, alt_allele_serialized.length());
     if(buffer_full) return true;
 #endif
-  //ID (if needed)
-  if(m_import_ID_field)
-  {
-    auto ID_length = strlen(line->d.id);
-    if(ID_length > 0 && (ID_length != 1 || line->d.id[0] != '.'))
+    //ID (if needed)
+    if(m_import_ID_field)
     {
+      auto ID_length = strlen(line->d.id);
+      if(ID_length > 0 && (ID_length != 1 || line->d.id[0] != '.'))
+      {
 #ifdef PRODUCE_BINARY_CELLS
-      buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, ID_length);
-      if(buffer_full) return true;
+	buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, ID_length);
+	if(buffer_full) return true;
 #endif
-      buffer_full = buffer_full || tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, line->d.id);
+	buffer_full = buffer_full || tiledb_buffer_print<const char*>(buffer, buffer_offset, buffer_offset_limit, line->d.id);
+	if(buffer_full) return true;
+      }
+#ifdef PRODUCE_BINARY_CELLS
+      else
+	buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0);
+#endif
+    }
+    //QUAL
+    buffer_full = buffer_full || ( is_bcf_missing_value<float>(line->qual)
+	? tiledb_buffer_print_null<float>(buffer, buffer_offset, buffer_offset_limit) 
+	: tiledb_buffer_print<float>(buffer, buffer_offset, buffer_offset_limit, line->qual) );
+    if(buffer_full) return true;
+    //Filter
+    buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, line->d.n_flt);
+    if(buffer_full) return true;
+    for(auto i=0;i<line->d.n_flt;++i)
+    {
+      assert(line->d.flt[i] < static_cast<int64_t>(m_local_field_idx_to_global_field_idx.size()));
+      buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
+	  m_local_field_idx_to_global_field_idx[line->d.flt[i]]);
       if(buffer_full) return true;
     }
-#ifdef PRODUCE_BINARY_CELLS
-    else
-      buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0);
-#endif
-  }
-  //QUAL
-  buffer_full = buffer_full || ( is_bcf_missing_value<float>(line->qual)
-      ? tiledb_buffer_print_null<float>(buffer, buffer_offset, buffer_offset_limit) 
-      : tiledb_buffer_print<float>(buffer, buffer_offset, buffer_offset_limit, line->qual) );
-  if(buffer_full) return true;
-  //Filter
-  buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, line->d.n_flt);
-  if(buffer_full) return true;
-  for(auto i=0;i<line->d.n_flt;++i)
-  {
-    assert(line->d.flt[i] < static_cast<int64_t>(m_local_field_idx_to_global_field_idx.size()));
-    buffer_full = buffer_full ||  tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
-        m_local_field_idx_to_global_field_idx[line->d.flt[i]]);
-    if(buffer_full) return true;
   }
   //Get INFO and FORMAT fields
   for(auto field_type_idx=BCF_HL_INFO;field_type_idx<=BCF_HL_FMT;++field_type_idx)
