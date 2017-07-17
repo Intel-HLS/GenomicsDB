@@ -336,6 +336,7 @@ void SingleCellTileDBIterator::handle_current_cell_in_find_intersecting_interval
 
 const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
 {
+  auto curr_query_column_interval_idx = m_query_column_interval_idx;
   //In simple traversal mode, but intervals intersecting the column begin still exist in PQ
   if(m_in_simple_traversal_mode && !m_PQ_live_cell_markers.empty())
   {
@@ -354,8 +355,11 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
     //Done processing PQ cells
     //If this query interval has no more data, read next column interval
     if(m_done_reading_from_TileDB
-        && (m_query_column_interval_idx+1u) < m_query_config->get_num_column_intervals())
+        && (curr_query_column_interval_idx+1u) < m_query_config->get_num_column_intervals())
+    {
       read_from_TileDB();
+      return *this;
+    }
   }
   auto hitting_useless_cells = true;
   //Must increment by 1 at least
@@ -374,70 +378,75 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
     m_query_attribute_idx_num_cells_to_increment_vec[1u] = 1u;
     increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
     if(m_query_attribute_idx_vec.size() > 0u) //some fields have exhausted buffers, need to fetch from TileDB
-      read_from_TileDB();
-    if(!m_done_reading_from_TileDB)
     {
-      const auto* coords = reinterpret_cast<const int64_t*>(
-          coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
-            coords_columnar_field.get_live_buffer_list_tail_ptr(),
-            coords_columnar_field.get_curr_index_in_live_list_tail()
-            )
-          );
-      //keep incrementing iterator if hitting duplicates at end in simple traversal mode
-      if(m_in_simple_traversal_mode)
-      {
-        assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
-        auto END_field_value = *(reinterpret_cast<const int64_t*>(
-              END_columnar_field.get_pointer_to_data_in_buffer_at_index(
-                END_columnar_field.get_live_buffer_list_tail_ptr(),
-                END_columnar_field.get_curr_index_in_live_list_tail()
-                )
-              ));
-        hitting_useless_cells = (END_field_value < coords[1]);
-      }
-      else
-      {
-        assert(m_in_find_intersecting_intervals_mode);
-        auto row_idx = coords[0];
-        assert(row_idx >= m_smallest_row_idx_in_array);
-        auto marker_idx = row_idx - m_smallest_row_idx_in_array;
-        assert(m_live_cell_markers.get_row_idx(marker_idx) == row_idx);
-        //if the row is already initialized in the find intersecting intervals mode, can skip
-        //this cell
-        hitting_useless_cells = m_live_cell_markers.is_initialized(marker_idx);
-      }
-      if(hitting_useless_cells)
-        ++num_cells_incremented;
+      read_from_TileDB();
+      //The read_from_TileDB() might have determined that no more cells exist for the current query
+      //interval. It would move on to the next interval. So, this stack frame must assume the query is done
+      //and do nothing
+      if(m_done_reading_from_TileDB
+          || (curr_query_column_interval_idx != m_query_column_interval_idx))
+        return *this;
     }
+    const auto* coords = reinterpret_cast<const int64_t*>(
+        coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
+          coords_columnar_field.get_live_buffer_list_tail_ptr(),
+          coords_columnar_field.get_curr_index_in_live_list_tail()
+          )
+        );
+    //keep incrementing iterator if hitting duplicates at end in simple traversal mode
+    if(m_in_simple_traversal_mode)
+    {
+      assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
+      auto END_field_value = *(reinterpret_cast<const int64_t*>(
+            END_columnar_field.get_pointer_to_data_in_buffer_at_index(
+              END_columnar_field.get_live_buffer_list_tail_ptr(),
+              END_columnar_field.get_curr_index_in_live_list_tail()
+              )
+            ));
+      hitting_useless_cells = (END_field_value < coords[1]);
+    }
+    else
+    {
+      assert(m_in_find_intersecting_intervals_mode);
+      auto row_idx = coords[0];
+      assert(row_idx >= m_smallest_row_idx_in_array);
+      auto marker_idx = row_idx - m_smallest_row_idx_in_array;
+      assert(m_live_cell_markers.get_row_idx(marker_idx) == row_idx);
+      //if the row is already initialized in the find intersecting intervals mode, can skip
+      //this cell
+      hitting_useless_cells = m_live_cell_markers.is_initialized(marker_idx);
+    }
+    if(hitting_useless_cells)
+      ++num_cells_incremented;
   }
+  assert(m_in_find_intersecting_intervals_mode || m_PQ_live_cell_markers.empty());
   //Increment iterator for other fields
-  if(!m_done_reading_from_TileDB)
+  //All fields other than coords and END
+  m_query_attribute_idx_vec.resize(m_fields.size()-2u);
+  //END must be the first field
+  assert(m_END_query_idx == 0u);
+  for(auto i=0u;i<m_query_attribute_idx_vec.size();++i)
+    m_query_attribute_idx_vec[i] = i+1u;  //END is the first field - ignore
+  //For all fields, #cells to skip == num_cells_incremented initially
+  m_query_attribute_idx_num_cells_to_increment_vec.resize(m_fields.size()-2u);
+  m_query_attribute_idx_num_cells_to_increment_vec.assign(
+      m_query_attribute_idx_num_cells_to_increment_vec.size(), num_cells_incremented);
+  increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
+  //some fields have exhausted buffers, need to fetch from TileDB
+  while(!m_query_attribute_idx_vec.empty())
   {
-    //All fields other than coords and END
-    m_query_attribute_idx_vec.resize(m_fields.size()-2u);
-    //END must be the first field
-    assert(m_END_query_idx == 0u);
-    for(auto i=0u;i<m_query_attribute_idx_vec.size();++i)
-      m_query_attribute_idx_vec[i] = i+1u;  //END is the first field - ignore
-    //For all fields, #cells to skip == num_cells_incremented initially
-    m_query_attribute_idx_num_cells_to_increment_vec.resize(m_fields.size()-2u);
-    m_query_attribute_idx_num_cells_to_increment_vec.assign(
-        m_query_attribute_idx_num_cells_to_increment_vec.size(), num_cells_incremented);
+    read_from_TileDB();
+    //TODO: either all fields are done reading or none are - is that right?
+    //also, same column interval being queried
+    assert(!m_done_reading_from_TileDB
+        && m_query_column_interval_idx == curr_query_column_interval_idx);
     increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
-    //some fields have exhausted buffers, need to fetch from TileDB
-    while(!m_query_attribute_idx_vec.empty())
-    {
-      read_from_TileDB();
-      //TODO: either all fields are done reading or none are - is that right?
-      assert(!m_done_reading_from_TileDB);
-      increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
-    }
-#ifdef DEBUG
-    for(auto i=0u;i<m_fields.size();++i)
-      assert(m_fields[i].get_live_buffer_list_tail_ptr()
-          && m_fields[i].get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries());
-#endif
   }
+#ifdef DEBUG
+  for(auto i=0u;i<m_fields.size();++i)
+    assert(m_fields[i].get_live_buffer_list_tail_ptr()
+        && m_fields[i].get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries());
+#endif
   return *this;
 }
 
