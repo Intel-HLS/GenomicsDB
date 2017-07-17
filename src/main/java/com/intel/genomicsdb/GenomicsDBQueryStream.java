@@ -44,7 +44,7 @@ public class GenomicsDBQueryStream extends InputStream
         }
         catch(UnsatisfiedLinkError ule)
         {
-            throw new GenomicsDBException("Could not load genomicsdb native library");
+            throw new GenomicsDBException("Could not load genomicsdb native library", ule);
         }
     }
     private static boolean mDefaultReadAsBCF = true;
