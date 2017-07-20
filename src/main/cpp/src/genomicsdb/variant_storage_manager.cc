@@ -584,12 +584,13 @@ VariantArrayCellIterator* VariantStorageManager::begin(
 }
 
 SingleCellTileDBIterator* VariantStorageManager::begin_columnar_iterator(
-    int ad, const VariantQueryConfig& query_config) const
+    int ad, const VariantQueryConfig& query_config, const bool use_common_array_object) const
 {
   VERIFY_OR_THROW(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
       m_open_arrays_info_vector[ad].get_array_name().length());
   auto& curr_elem = m_open_arrays_info_vector[ad];
   return new SingleCellTileDBIterator(m_tiledb_ctx,
+      use_common_array_object ? m_open_arrays_info_vector[ad].get_tiledb_array() : 0,
       curr_elem.get_vid_mapper(), curr_elem.get_schema(),
       m_workspace+'/'+curr_elem.get_array_name(),
       query_config, m_segment_size);

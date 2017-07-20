@@ -245,10 +245,16 @@ class VariantQueryProcessor {
         int64_t& current_start_position, int64_t next_start_position, bool is_last_call, uint64_t& num_calls_with_deletions,
         GTProfileStats* stats_ptr) const;
     //while scan breaks up the intervals, iterate does not
+    //@param use_common_array_object - VariantStorageManager invoked tiledb_array_init()
+    //for the array once. If you wish to use that TileDB_Array object in your iterator, pass true
+    //for the use_common_array_object parameter. Note that if you are using multi-threading, then 2 iterators in different
+    //threads should NOT use the same TileDB_Array object. Instead, each should initialize one on their own and this
+    //flag should be set to false
     void iterate_over_cells(
         const int ad,
         const VariantQueryConfig& query_config, 
-        SingleCellOperatorBase& variant_operator) const;
+        SingleCellOperatorBase& variant_operator,
+        const bool use_common_array_object) const;
     /** Fills genotyping info for column col from the input array. */
     //Row ordering vector stores the query row idx in the order in which rows were filled by gt_get_column function
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)

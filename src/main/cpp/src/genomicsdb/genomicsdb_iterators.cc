@@ -29,10 +29,21 @@
 SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
     const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
     const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
+  : SingleCellTileDBIterator(tiledb_ctx,
+      0,
+      vid_mapper, variant_array_schema,
+      array_path, query_config, buffer_size)
+{}
+
+SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
+    const TileDB_Array* tiledb_array,
+    const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
+    const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
 : m_variant_array_schema(&variant_array_schema), m_query_config(&query_config),
   m_cell(new GenomicsDBColumnarCell(this)),
-  m_tiledb_array(0),
+  m_tiledb_array(tiledb_array), m_owned_tiledb_array(0),
   m_query_column_interval_idx(0u),
+  m_first_read_from_TileDB(true),
   m_done_reading_from_TileDB(false),
   m_in_find_intersecting_intervals_mode(false),
   m_in_simple_traversal_mode(false),
@@ -104,8 +115,9 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
   if(m_cell)
     delete m_cell;
   m_cell = 0;
-  if(m_tiledb_array)
-    tiledb_array_finalize(m_tiledb_array);
+  if(m_owned_tiledb_array)
+    tiledb_array_finalize(m_owned_tiledb_array);
+  m_owned_tiledb_array = 0;
   m_tiledb_array = 0;
 #ifdef DO_PROFILING
   m_tiledb_timer.print("TileDB iterator", std::cerr);
@@ -122,7 +134,7 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
   {
     //First time or completed query for m_query_column_interval_idx or
     //this stack was in find intersecting mode in the previous iteration
-    if(m_tiledb_array == 0 || m_done_reading_from_TileDB || this_stack_frame_in_find_intersecting_intervals_mode)
+    if(m_first_read_from_TileDB || m_done_reading_from_TileDB || this_stack_frame_in_find_intersecting_intervals_mode)
     {
       //shouldn't enter this if condition if called recursively through operator++ in m_in_find_intersecting_intervals_mode
       assert(!m_in_find_intersecting_intervals_mode);
@@ -177,19 +189,29 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
         /* Initialize the array in READ mode. */
         status = tiledb_array_init(
             tiledb_ctx,
-            &m_tiledb_array,
+            &m_owned_tiledb_array,
             array_path,
             TILEDB_ARRAY_READ,
             reinterpret_cast<const void*>(query_range),
             &((*attribute_names)[0]),
             attribute_names->size());
         VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB array object");
+        m_tiledb_array = m_owned_tiledb_array;
       }
       else //next column interval - reset subarray
       {
+        //TileDB_Array object is provided by caller and this is the first read, reset attributes to query
+        if(m_first_read_from_TileDB)
+        {
+          status = tiledb_array_reset_attributes(m_tiledb_array,
+              &((*attribute_names)[0]),
+              attribute_names->size());
+          VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing attributes for the TileDB array object");
+        }
         status = tiledb_array_reset_subarray(m_tiledb_array, reinterpret_cast<const void*>(query_range));
         VERIFY_OR_THROW(status == TILEDB_OK && "Error in tiledb_array_reset_subarray()");
       }
+      m_first_read_from_TileDB = false;
     }
     //Zero out all buffer sizes
     memset(&(m_buffer_sizes[0]), 0, m_buffer_sizes.size()*sizeof(size_t));

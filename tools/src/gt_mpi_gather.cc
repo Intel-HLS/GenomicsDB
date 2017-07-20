@@ -372,7 +372,7 @@ void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& quer
         //variant_calls is an array of dictionaries
         std::cout << indent_prefix << "\"variant_calls\": [\n";
         VariantCallPrintOperator printer(std::cout, indent_prefix+indent_prefix, &id_mapper);
-        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer);
+        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, true);
         std::cout << "\n" << indent_prefix << "]\n";
         std::cout << "}\n";
         //for(auto i=0ull;i<query_config.get_num_column_intervals();++i)
@@ -391,7 +391,7 @@ void print_calls(const VariantQueryProcessor& qp, const VariantQueryConfig& quer
     case COMMAND_PRINT_CSV:
       {
         VariantCallPrintCSVOperator printer(std::cout);
-        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer);
+        qp.iterate_over_cells(qp.get_array_descriptor(), query_config, printer, true);
         break;
       }
     default:
@@ -404,7 +404,7 @@ void produce_column_histogram(const VariantQueryProcessor& qp, const VariantQuer
     const std::vector<uint64_t>& num_equi_load_bins)
 {
   ColumnHistogramOperator histogram_op(0, 4000000000ull, bin_size);
-  qp.iterate_over_cells(qp.get_array_descriptor(), query_config, histogram_op);
+  qp.iterate_over_cells(qp.get_array_descriptor(), query_config, histogram_op, true);
   for(auto val : num_equi_load_bins)
     histogram_op.equi_partition_and_print_bins(val);
 }

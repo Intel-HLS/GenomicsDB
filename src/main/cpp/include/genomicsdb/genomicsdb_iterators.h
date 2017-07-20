@@ -172,7 +172,13 @@ class VariantQueryConfig;
 class SingleCellTileDBIterator
 {
   public:
+    //Initializes tiledb_array object internally
     SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
+        const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
+        const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size);
+    //Uses tiledb_array object provided by caller (if non-NULL)
+    SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
+        const TileDB_Array* tiledb_array,
         const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
         const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size);
     ~SingleCellTileDBIterator();
@@ -275,6 +281,8 @@ class SingleCellTileDBIterator
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
     bool m_in_simple_traversal_mode;
+    //Flag that specifies if this is the first time reading from TileDB
+    bool m_first_read_from_TileDB;
     unsigned m_END_query_idx;
     const VariantArraySchema* m_variant_array_schema;
     const VariantQueryConfig* m_query_config;
@@ -300,7 +308,12 @@ class SingleCellTileDBIterator
     std::vector<void*> m_buffer_pointers;
     std::vector<size_t> m_buffer_sizes;
     //The TileDB array object
-    TileDB_Array* m_tiledb_array;
+    //Could point to an object initialized by the caller or could point
+    //to an object owned by the iterator
+    const TileDB_Array* m_tiledb_array;
+    //If the iterator owns a TileDB array object, then tiledb_array_init() is
+    //called for this object and m_tiledb_array points to it
+    TileDB_Array* m_owned_tiledb_array;
 #ifdef DO_PROFILING
     Timer m_tiledb_timer;
     Timer m_tiledb_to_buffer_cell_timer;

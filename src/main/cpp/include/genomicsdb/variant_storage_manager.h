@@ -182,6 +182,7 @@ class VariantArrayInfo
       return (m_max_valid_row_idx_in_array - m_schema.dim_domains()[0].first + 1);
     }
     inline const VidMapper* get_vid_mapper() const { return m_vid_mapper; }
+    const TileDB_Array* get_tiledb_array() const { return m_tiledb_array; }
   private:
     int m_idx;
     int m_mode;
@@ -250,7 +251,8 @@ class VariantStorageManager
      * For columnar iterator
      */
     SingleCellTileDBIterator* begin_columnar_iterator(
-        int ad, const VariantQueryConfig& query_config) const;
+        int ad, const VariantQueryConfig& query_config,
+        const bool use_common_array_object) const;
     /*
      * Write sorted cell
      */

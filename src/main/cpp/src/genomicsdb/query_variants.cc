@@ -547,11 +547,13 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
 void VariantQueryProcessor::iterate_over_cells(
     const int ad,
     const VariantQueryConfig& query_config, 
-    SingleCellOperatorBase& variant_operator) const
+    SingleCellOperatorBase& variant_operator,
+    const bool use_common_array_object) const
 {
   assert(query_config.is_bookkeeping_done());
   //Initialize forward scan iterators
-  SingleCellTileDBIterator* columnar_forward_iter = get_storage_manager()->begin_columnar_iterator(ad, query_config);
+  SingleCellTileDBIterator* columnar_forward_iter = get_storage_manager()->begin_columnar_iterator(ad, query_config,
+      use_common_array_object);
   for(;!(columnar_forward_iter->end());++(*columnar_forward_iter))
   {
     auto& cell = **columnar_forward_iter;
