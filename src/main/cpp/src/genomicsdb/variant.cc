@@ -376,9 +376,11 @@ void VariantCall::binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offse
 void VariantCall::binary_deserialize_header(const std::vector<uint8_t>& buffer, uint64_t& offset)
 {
   //is_valid, is_initialized, contains_deletion, is_reference_block, row_idx, col_begin, col_end, num fields[unsigned]
+  std::cout <<"BUFF: <" <<buffer.size() <<" - " <<offset <<">\n";
   assert(offset + 4*sizeof(bool) + 3*sizeof(uint64_t) + sizeof(unsigned) <= buffer.size());
   //is_valid
   m_is_valid = *(reinterpret_cast<const bool*>(&(buffer[offset])));
+  std::cout <<"ISVALID: <" <<m_is_valid <<">\n";
   offset += sizeof(bool);
   //is_initialized
   m_is_initialized = *(reinterpret_cast<const bool*>(&(buffer[offset])));

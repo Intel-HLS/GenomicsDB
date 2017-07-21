@@ -93,6 +93,51 @@ std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_e
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
 
+void VidMapper::print_debug() {
+  std::cout <<"------------------------------------------------------\n";
+
+  for (auto& contig : m_contig_idx_to_info) {
+    std::cout <<contig.m_contig_idx <<" - " <<contig.m_name <<" - "
+      <<contig.m_tiledb_column_offset <<" - " <<contig.m_length <<"\n";
+  }
+
+  std::cout <<"------------------------------------------------------\n";
+
+  for (auto& contig_begin : m_contig_begin_2_idx) {
+    std::cout <<contig_begin.first <<" - " <<contig_begin.second <<"\n";
+  }
+
+
+  std::cout <<"------------------------------------------------------\n";
+
+  for (auto& contig_end : m_contig_end_2_idx) {
+    std::cout <<contig_end.first <<" - " <<contig_end.second <<"\n";
+  }
+
+  std::cout <<"------------------------------------------------------\n";
+
+  std::cout <<"------------------------------------------------------\n";
+
+  for (std::vector<CallSetInfo>::iterator it = m_row_idx_to_info.begin(); it != m_row_idx_to_info.end(); ++it) {
+    std::cout <<it->m_row_idx <<" - " <<it->m_name <<" - " <<it->m_file_idx <<" - " <<it->m_idx_in_file <<"\n";
+  }
+
+  std::cout <<"------------------------------------------------------\n";
+
+  std::cout <<"------------------------------------------------------\n";
+
+  for (auto& field : m_field_idx_to_info) {
+    std::cout <<field.m_field_idx <<" - " <<field.m_name <<" - "
+      <<field.m_length_descriptor <<" - " <<field.m_num_elements <<" - "
+      <<field.m_bcf_ht_type <<" - " <<field.m_is_vcf_FILTER_field <<" - "
+      <<field.m_is_vcf_INFO_field <<" - " <<field.m_is_vcf_FORMAT_field <<" - "
+      <<field.m_VCF_field_combine_operation <<"\n";
+  }
+
+  std::cout <<"------------------------------------------------------\n";
+    return;
+}
+
 void VidMapper::clear()
 {
   m_callset_name_to_row_idx.clear();

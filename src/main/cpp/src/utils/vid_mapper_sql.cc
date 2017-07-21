@@ -60,8 +60,11 @@ SQLBasedVidMapper::SQLBasedVidMapper(const SQLVidMapperRequest& request) : VidMa
 }
 
 SQLBasedVidMapper::~SQLBasedVidMapper() {
-  dbi_conn_close(m_conn);
-  dbi_shutdown_r(m_instance);
+  if (is_dbconn_created) {
+    dbi_conn_close(m_conn);
+    dbi_shutdown_r(m_instance);
+    is_dbconn_created = false;
+  }
 }
 
 int SQLBasedVidMapper::load_contig_info() {
@@ -108,6 +111,7 @@ int SQLBasedVidMapper::load_contig_info() {
   }
 
   dbi_result_free(result);
+  std::cout <<"NUM_CONTIGS: <" <<num_contigs <<">\n";
   return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
@@ -142,6 +146,7 @@ int SQLBasedVidMapper::load_callset_info() {
   }
 
   dbi_result_free(result);
+  std::cout <<"NUM_CALLSETS: <" <<num_callsets <<">\n";
   return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
@@ -192,14 +197,14 @@ int SQLBasedVidMapper::load_field_info() {
       ref.m_bcf_ht_type = (*iter).second;
     }
 
-    signed char is_filter = dbi_result_get_char(result, DBTABLE_FIELD_COLUMN_FILTER.c_str());
-    ref.m_is_vcf_FILTER_field = ((is_filter == 't') ? true : false);
+    std::string info_str(dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_INFO.c_str()));
+    ref.m_is_vcf_INFO_field = ((0 == info_str.compare("t")) ? true : false);
 
-    signed char is_format = dbi_result_get_char(result, DBTABLE_FIELD_COLUMN_FORMAT.c_str());
-    ref.m_is_vcf_FORMAT_field = ((is_format == 't') ? true : false);
+    std::string filter_str(dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_FILTER.c_str()));
+    ref.m_is_vcf_FILTER_field = ((0 == filter_str.compare("t")) ? true : false);
 
-    signed char is_info = dbi_result_get_char(result, DBTABLE_FIELD_COLUMN_INFO.c_str());
-    ref.m_is_vcf_INFO_field = ((is_info == 't') ? true : false);
+    std::string format_str(dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_FORMAT.c_str()));
+    ref.m_is_vcf_FORMAT_field = ((0 == format_str.compare("t")) ? true : false);
 
     const char* c_length_type = dbi_result_get_string(result, DBTABLE_FIELD_COLUMN_LENTYPE.c_str());
     std::string length_type = ((NULL == c_length_type) ? "" : c_length_type);
@@ -284,13 +289,16 @@ int SQLBasedVidMapper::load_field_info() {
   }
 
   dbi_result_free(result);
+  std::cout <<"NUM_FIELDS: <" <<num_fields <<">\n";
   return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 
 int SQLBasedVidMapper::load_mapping_data_from_db() {
   load_contig_info();
   load_callset_info();
+  m_is_callset_mapping_initialized = true;
   load_field_info();
+  m_is_initialized = true;
   return(GENOMICSDB_SQLVID_MAPPER_SUCCESS);
 }
 

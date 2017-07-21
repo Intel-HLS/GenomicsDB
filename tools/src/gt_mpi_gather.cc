@@ -59,6 +59,7 @@ enum CommandsEnum
 };
 
 #define MegaByte (1024*1024)
+#define VERBOSE 1
 
 #ifdef DO_PROFILING
 enum TimerTypesEnum
@@ -102,9 +103,11 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   GTProfileStats stats;
   stats_ptr = &stats;
 #endif
+  std::cout <<"IN run_range_query\n";
   //Variants vector
   std::vector<Variant> variants;
   uint64_t num_column_intervals = query_config.get_num_column_intervals();
+  std::cout <<"IN run_range_query: num_column_intervals: " <<num_column_intervals <<"\n";
   std::vector<uint64_t> queried_column_positions(num_column_intervals * 2, 0ull);
   std::vector<uint64_t> query_column_lengths(num_column_intervals, 0ull);
   //Perform query if not root or !skip_query_on_root
@@ -266,11 +269,15 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   {
     variants.clear();
     uint64_t offset = 0ull;
+    std::cout <<"Serialized SIZE: <" <<total_serialized_size <<">\n";
     while(offset < total_serialized_size)
     {
       variants.emplace_back();
       auto& variant = variants.back();
+      std::cout <<"---- I ----\n";
+      std::cout <<"Buff_Offset: <" <<receive_buffer.size() <<" - " <<offset <<">\n";
       qp.binary_deserialize(variant, query_config, receive_buffer, offset);
+      std::cout <<"---- II ----\n";
     }
 #if VERBOSE>0
     std::cerr << "Completed binary deserialization at root\n";
@@ -419,7 +426,7 @@ int main(int argc, char *argv[]) {
     {"rank",1,0,'r'},
     {"output-format",1,0,'O'},
     {"workspace",1,0,'w'},
-	{"mapper-config",1,0,'m'},
+    {"mapper-config",1,0,'m'},
     {"json-config",1,0,'j'},
     {"loader-json-config",1,0,'l'},
     {"segment-size",1,0,'s'},
@@ -482,8 +489,8 @@ int main(int argc, char *argv[]) {
         command_idx = COMMAND_PRODUCE_HISTOGRAM;
         break;
       case 'm':
-    	mapper_config_file = std::move(std::string(optarg));
-    	break;
+        mapper_config_file = std::move(std::string(optarg));
+        break;
       case 'j':
         json_config_file = std::move(std::string(optarg));
         break;
@@ -581,6 +588,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (! mapper_config_file.empty()) {
+      std::cout <<"---------------------------------------\n";
+      std::cout <<"MAPPER FILE: <" <<mapper_config_file <<">\n";
       JSONMapperConfig mapper_config(mapper_config_file);
       SQLVidMapperRequest mapper_request;
       mapper_config.populate_mapper_request(mapper_request);
@@ -592,11 +601,17 @@ int main(int argc, char *argv[]) {
           array_name = mapper_request.array_name;
         }
       } catch (const std::exception& e) {
-    	std::cerr << "ERROR: Exception while trying to create DB connection\n";
+        std::cerr << "ERROR: Exception while trying to create DB connection\n";
       }
+      std::cout <<"IS_DBCONN_CREATED: <" <<(sql_vid_mapper.is_dbconn_created ? "YES" : "NO") <<">\n";
+      std::cout <<"---------------------------------------\n";
+      file_vid_mapper.print_debug();
+      std::cout <<"---------------------------------------\n";
+      sql_vid_mapper.print_debug();
+      std::cout <<"---------------------------------------\n";
     }
 
-    const VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? static_cast<VidMapper>(sql_vid_mapper) : static_cast<VidMapper>(file_vid_mapper));
+    const VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? static_cast<const VidMapper&>(sql_vid_mapper) : static_cast<const VidMapper&>(file_vid_mapper));
 
     if(workspace == "" || array_name == "")
     {
@@ -611,29 +626,36 @@ int main(int argc, char *argv[]) {
 #endif
     /*Create storage manager*/
     VariantStorageManager sm(workspace, segment_size);
+    std::cout <<" ----- VariantStorageManager ----\n";
     /*Create query processor*/
     VariantQueryProcessor qp(&sm, array_name, id_mapper);
+    std::cout <<" ----- VariantQueryProcessor ----\n";
     auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
         || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
     qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
+    std::cout <<" ----- Book Keeping ----\n";
     switch(command_idx)
     {
       case COMMAND_RANGE_QUERY:
+        std::cout <<"COMMAND_RANGE_QUERY\n";
         run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
             (loader_json_config_file.empty() || loader_config.is_partitioned_by_column()),
             num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
         break;
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
+        std::cout <<"COMMAND_PRODUCE_BROAD_GVCF\n";
         scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
             num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
 #endif
         break;
       case COMMAND_PRODUCE_HISTOGRAM:
+        std::cout <<"COMMAND_PRODUCE_HISTOGRAM\n";
         produce_column_histogram(qp, query_config, 100, std::vector<uint64_t>({ 128, 64, 32, 16, 8, 4, 2 }));
         break;
       case COMMAND_PRINT_CALLS:
       case COMMAND_PRINT_CSV:
+        std::cout <<"COMMAND_PRINT_CALLS\n";
         print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
         break;
     }

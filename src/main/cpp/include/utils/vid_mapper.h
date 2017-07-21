@@ -208,6 +208,7 @@ class VidMapper
       m_is_callset_mapping_initialized = false;
       m_max_callset_row_idx = -1;
     }
+    void print_debug();
     void clear();
     inline bool is_initialized() const { return m_is_initialized; }
     inline bool is_callset_mapping_initialized() const { return m_is_callset_mapping_initialized; }

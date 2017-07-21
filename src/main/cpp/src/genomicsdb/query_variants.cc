@@ -985,11 +985,14 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
 {
   assert(offset < buffer.size());
   //deserialize header
+  std::cout <<"ATTR: <" <<query_config.get_num_queried_attributes() <<">\n";
   variant.binary_deserialize_header(buffer, offset, query_config.get_num_queried_attributes());
+  std::cout <<"HEADER NUM_CALLS: <" <<variant.get_num_calls() <<">\n";
   //VariantCall info
   for(auto i=0ull;i<variant.get_num_calls();++i)
   {
     auto& curr_call = variant.get_call(i);
+    std::cout <<"FIELDS: <" <<curr_call.get_num_fields() <<">\n";
     curr_call.binary_deserialize_header(buffer, offset);
     //Fields
     assert(query_config.get_num_queried_attributes() == curr_call.get_num_fields());
@@ -1008,6 +1011,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       }
     }
   }
+  std::cout <<"HEADER NUM_FIELDS: <" <<variant.get_num_common_fields() <<">\n";
   //Common fields in the Variant object
   for(auto i=0u;i<variant.get_num_common_fields();++i)
   {
@@ -1027,6 +1031,7 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
     }
   }
+  std::cout <<"----------------------\n";
 }
 
 void VariantQueryProcessor::gt_fill_row(
