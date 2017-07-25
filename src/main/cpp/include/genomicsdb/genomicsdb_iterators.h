@@ -164,6 +164,16 @@ class GenomicsDBLiveCellMarkerColumnMajorComparator
     const GenomicsDBLiveCellMarker* m_ptr;
 };
 
+
+enum GenomicsDBIteratorStatsEnum
+{
+  TOTAL_CELLS_TRAVERSED=0,
+  NUM_CELLS_TRAVERSED_IN_FIND_INTERSECTING_INTERVALS_MODE,
+  NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE,
+  NUM_USELESS_CELLS_IN_SIMPLE_TRAVERSAL_MODE,
+  NUM_STATS
+};
+
 class GenomicsDBColumnarCell;
 class VariantQueryConfig;
 /*
@@ -277,6 +287,9 @@ class SingleCellTileDBIterator
      * can be skipped in one shot
      */
     void increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
+#ifdef DO_PROFILING
+    void increment_num_cells_traversed_stats(const uint64_t num_cells_incremented);
+#endif
   private:
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
@@ -315,8 +328,8 @@ class SingleCellTileDBIterator
     //called for this object and m_tiledb_array points to it
     TileDB_Array* m_owned_tiledb_array;
 #ifdef DO_PROFILING
-    Timer m_tiledb_timer;
-    Timer m_tiledb_to_buffer_cell_timer;
+    uint64_t m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_STATS];
+    std::vector<uint64_t> m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram;
 #endif
 };
 
