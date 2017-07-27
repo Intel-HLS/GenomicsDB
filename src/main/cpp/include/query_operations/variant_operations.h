@@ -537,6 +537,8 @@ class ColumnHistogramOperator : public SingleCellOperatorBase
   public:
     ColumnHistogramOperator(uint64_t begin, uint64_t end, uint64_t bin_size);
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
     bool equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr=std::cout) const; 
   private:
     std::vector<uint64_t> m_bin_counts_vector;

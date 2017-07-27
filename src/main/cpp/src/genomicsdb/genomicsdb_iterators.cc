@@ -26,6 +26,10 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBIteratorException(#X);
 
+#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#define COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE 1ull
+#endif
+
 SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
     const VidMapper* vid_mapper, const VariantArraySchema& variant_array_schema,
     const std::string& array_path, const VariantQueryConfig& query_config, const size_t buffer_size)
@@ -55,7 +59,10 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
 #ifdef DO_PROFILING
   memset(m_num_cells_traversed_stats, 0, GenomicsDBIteratorStatsEnum::NUM_STATS*sizeof(uint64_t));
   m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram.resize(query_config.get_num_rows_in_array(), 0ull);
-#endif
+#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+  m_cell_counts_since_last_cell_from_same_row.resize(query_config.get_num_rows_in_array(), 0ull);
+#endif //COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#endif //DO_PROFILING
   const auto& attribute_ids = query_config.get_query_attributes_schema_idxs();
   std::vector<const char*> attribute_names(attribute_ids.size()+1u);  //+1 for the COORDS
   m_query_attribute_idx_vec.resize(attribute_ids.size()+1u);//+1 for the COORDS
@@ -124,7 +131,15 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
   std::cerr << "Histogram:\n";
   for(auto val : m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram)
     std::cerr << val << "\n";
-#endif
+#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+  std::cerr << "COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW histogram\n";
+  for(auto i=0ull;i<m_histogram_cell_counts_since_last_cell_from_same_row.size();++i)
+    std::cerr << COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE*(i+1ull)
+      << " " << m_histogram_cell_counts_since_last_cell_from_same_row[i] << "\n";
+  m_histogram_cell_counts_since_last_cell_from_same_row.clear();
+  m_cell_counts_since_last_cell_from_same_row.clear();
+#endif //COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE
+#endif //DO_PROFILING
 }
 
 void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const char* array_path,
@@ -465,6 +480,17 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
               )
             ));
       hitting_useless_cells = (END_field_value < coords[1]);
+#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+      auto marker_idx = coords[0] - m_smallest_row_idx_in_array;
+      auto histogram_bin_idx = (m_cell_counts_since_last_cell_from_same_row[marker_idx]/
+        COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE);
+      if(histogram_bin_idx >= m_histogram_cell_counts_since_last_cell_from_same_row.size())
+        m_histogram_cell_counts_since_last_cell_from_same_row.resize(histogram_bin_idx+1ull, 0ull);
+      ++(m_histogram_cell_counts_since_last_cell_from_same_row[histogram_bin_idx]);
+      for(auto i=0ull;i<m_cell_counts_since_last_cell_from_same_row.size();++i)
+        ++(m_cell_counts_since_last_cell_from_same_row[i]);
+      m_cell_counts_since_last_cell_from_same_row[marker_idx] = 0ull;
+#endif
     }
     else
     {

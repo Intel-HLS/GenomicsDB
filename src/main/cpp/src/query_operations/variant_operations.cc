@@ -638,6 +638,17 @@ void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfi
   ++(m_bin_counts_vector[bin_idx]);
 }
 
+void ColumnHistogramOperator::operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+{
+  auto call_begin = static_cast<uint64_t>(cell.get_coordinates()[1]);
+  auto bin_idx = call_begin <= m_begin_column ? 0ull
+    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1
+    : (call_begin - m_begin_column)/m_bin_size;
+  assert(bin_idx < m_bin_counts_vector.size());
+  ++(m_bin_counts_vector[bin_idx]);
+}
+
 bool ColumnHistogramOperator::equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr) const
 {
   if(num_bins >= m_bin_counts_vector.size())
