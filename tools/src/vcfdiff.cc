@@ -140,8 +140,8 @@ void VCFDiffFile::set_regions_and_open_file()
   bcf_sr_set_regions(m_reader, m_regions.c_str(), 0);
   if(bcf_sr_add_reader(m_reader, m_filename.c_str()) != 1)
     throw VCFDiffException(std::string("Could not open file ")+m_filename+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
-  bcf_sr_next_line(m_reader);
-  m_line = bcf_sr_get_line(m_reader, 0);
+  auto next_line_exists = bcf_sr_next_line(m_reader);
+  m_line = next_line_exists ? bcf_sr_get_line(m_reader, 0) : 0;
   if(m_line)
     ++m_num_lines_read;
 }
@@ -149,8 +149,8 @@ void VCFDiffFile::set_regions_and_open_file()
 void VCFDiffFile::read_and_advance()
 {
   assert(m_line);
-  bcf_sr_next_line(m_reader);
-  m_line = bcf_sr_get_line(m_reader, 0);
+  auto next_line_exists = bcf_sr_next_line(m_reader);
+  m_line = next_line_exists ? bcf_sr_get_line(m_reader, 0) : 0;
   if(m_line)
     ++m_num_lines_read;
 }
@@ -160,8 +160,8 @@ void VCFDiffFile::seek_and_read(const int rid, const int pos)
   assert(rid >= 0 && rid < m_hdr->n[BCF_DT_CTG]);
   auto contig = bcf_hdr_id2name(m_hdr, rid);
   bcf_sr_seek(m_reader, contig, pos);
-  bcf_sr_next_line(m_reader);
-  m_line = bcf_sr_get_line(m_reader, 0);
+  auto next_line_exists = bcf_sr_next_line(m_reader);
+  m_line = next_line_exists ? bcf_sr_get_line(m_reader, 0) : 0;
   if(m_line)
     ++m_num_lines_read;
 }
