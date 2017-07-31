@@ -26,7 +26,8 @@
 GenomicsDBColumnarField::GenomicsDBColumnarField(const std::type_index element_type, const int length_descriptor,
     const unsigned fixed_length_field_length, const size_t num_bytes)
 : m_element_type(element_type), m_length_descriptor(length_descriptor),
-  m_fixed_length_field_num_elements(fixed_length_field_length)
+  m_fixed_length_field_num_elements(fixed_length_field_length),
+  m_free_buffer_list_length(0ull), m_live_buffer_list_length(0ull)
 {
   m_element_size = (element_type == std::type_index(typeid(bool)))
     ? sizeof(char)
@@ -58,6 +59,8 @@ void GenomicsDBColumnarField::copy_simple_members(const GenomicsDBColumnarField&
   m_print_csv = other.m_print_csv;
   m_buffer_size = other.m_buffer_size;
   m_curr_index_in_live_buffer_list_tail = other.m_curr_index_in_live_buffer_list_tail;
+  m_free_buffer_list_length = other.m_free_buffer_list_length;
+  m_live_buffer_list_length = other.m_live_buffer_list_length;
 }
 
 GenomicsDBColumnarField::GenomicsDBColumnarField(GenomicsDBColumnarField&& other)
@@ -311,6 +314,10 @@ void GenomicsDBColumnarField::move_buffer_to_live_list(GenomicsDBBuffer* buffer)
     m_free_buffer_list_head_ptr = next_in_free_list;
   //Reset idx pointed to in tail to 0
   m_curr_index_in_live_buffer_list_tail = 0u;
+  //Modify lengths
+  assert(m_free_buffer_list_length > 0u);
+  --m_free_buffer_list_length;
+  ++m_live_buffer_list_length;
 }
 
 void GenomicsDBColumnarField::move_buffer_to_free_list(GenomicsDBBuffer* buffer)
@@ -338,6 +345,9 @@ void GenomicsDBColumnarField::move_buffer_to_free_list(GenomicsDBBuffer* buffer)
   //If this was the head, update to next
   if(buffer == m_live_buffer_list_head_ptr)
     m_live_buffer_list_head_ptr = next_in_live_list;
+  //Modify lengths
+  ++m_free_buffer_list_length;
+  --m_live_buffer_list_length;
 }
 
 void GenomicsDBColumnarField::move_all_buffers_from_live_list_to_free_list()

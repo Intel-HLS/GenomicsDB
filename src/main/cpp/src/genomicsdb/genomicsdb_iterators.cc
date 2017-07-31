@@ -128,6 +128,15 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
   for(auto i=0u;i<GenomicsDBIteratorStatsEnum::NUM_STATS;++i)
     std::cerr << "," << m_num_cells_traversed_stats[i];
   std::cerr << "\n";
+  auto num_live_list_entries = 0ull;
+  auto num_free_list_entries = 0ull;
+  for(const auto& field : m_fields)
+  {
+    num_free_list_entries += field.get_free_buffer_list_length();
+    num_live_list_entries += field.get_live_buffer_list_length();
+  }
+  std::cerr << "Buffer_lists_lengths final "<<num_free_list_entries
+    <<" "<<num_live_list_entries <<"\n";
   std::cerr << "Histogram:\n";
   for(auto val : m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram)
     std::cerr << val << "\n";
@@ -329,6 +338,17 @@ void SingleCellTileDBIterator::read_from_TileDB(TileDB_CTX* tiledb_ctx, const ch
           break;
       }
       m_in_find_intersecting_intervals_mode = false;
+#ifdef DO_PROFILING
+      auto num_live_list_entries = 0ull;
+      auto num_free_list_entries = 0ull;
+      for(const auto& field : m_fields)
+      {
+        num_free_list_entries += field.get_free_buffer_list_length();
+        num_live_list_entries += field.get_live_buffer_list_length();
+      }
+      std::cerr << "Buffer_lists_lengths end_of_intersecting_intervals_mode "<<num_free_list_entries
+        <<" "<<num_live_list_entries <<"\n";
+#endif
     }
     //If done reading current column interval, move to next query column interval, if any remaining OR
     //this stack was performing intersecting intervals search

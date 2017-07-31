@@ -356,6 +356,9 @@ class GenomicsDBColumnarField
      */
     void print_data_in_buffer_at_index_as_csv(std::ostream& fptr,
         const GenomicsDBBuffer* buffer_ptr, const size_t index) const;
+    //Get list lengths
+    size_t get_free_buffer_list_length() const { return m_free_buffer_list_length; }
+    size_t get_live_buffer_list_length() const { return m_live_buffer_list_length; }
   private:
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();
@@ -371,6 +374,7 @@ class GenomicsDBColumnarField
         buffer_ptr->set_next_buffer(m_free_buffer_list_head_ptr);
       }
       m_free_buffer_list_head_ptr = buffer_ptr;
+      ++m_free_buffer_list_length;
     }
     GenomicsDBBuffer* create_new_buffer() const
     {
@@ -400,6 +404,9 @@ class GenomicsDBColumnarField
     GenomicsDBBuffer* m_live_buffer_list_tail_ptr;
     //Index of the element in the live buffer list head that must be read next
     size_t m_curr_index_in_live_buffer_list_tail;
+    //Length of live and free lists
+    size_t m_live_buffer_list_length;
+    size_t m_free_buffer_list_length;
 };
 
 #endif
