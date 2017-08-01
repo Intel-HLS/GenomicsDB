@@ -5,7 +5,12 @@
 include(FindPackageHandleStandardArgs)
 #Build if htslib source directory specified
 if(HTSLIB_SOURCE_DIR)
-    set(HTSLIB_Debug_BUILD_FLAGS "DEBUG=1")  #will be picked if compiling in debug mode
+    set(HTSLIB_Debug_CFLAGS "-Wall -fPIC -DDEBUG  -g3 -gdwarf-3")  #will be picked if compiling in debug mode
+    set(HTSLIB_Coverage_CFLAGS "${HTSLIB_Debug_CFLAGS}")
+    set(HTSLIB_Release_CFLAGS " -Wall -fPIC -O3")
+    set(HTSLIB_Debug_LDFLAGS "-g3 -gdwarf-3")
+    set(HTSLIB_Coverage_LDFLAGS "${HTSLIB_Debug_LDFLAGS}")
+    set(HTSLIB_Release_LDFLAGS "")
     include(ExternalProject)
     if(APPLE AND BUILD_DISTRIBUTABLE_LIBRARY)
         set(HTSLIB_EXTRA_CFLAGS -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
@@ -14,10 +19,11 @@ if(HTSLIB_SOURCE_DIR)
         htslib
         DOWNLOAD_COMMAND ""
         SOURCE_DIR "${HTSLIB_SOURCE_DIR}"
-        UPDATE_COMMAND ""
+        UPDATE_COMMAND "autoreconf"
         PATCH_COMMAND ""
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND $(MAKE) ${HTSLIB_${CMAKE_BUILD_TYPE}_BUILD_FLAGS} CPPFLAGS=${HTSLIB_EXTRA_CFLAGS}
+        CONFIGURE_COMMAND ./configure CFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} LDFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_LDFLAGS}
+                --disable-lzma --disable-bz2 --disable-libcurl
+        BUILD_COMMAND $(MAKE)
         BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
         )

@@ -250,7 +250,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   if(m_vcf_header_filename.length() > 0u)
   {
     auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
-    m_template_vcf_hdr = bcf_hdr_read(fptr);
+    m_template_vcf_hdr = bcf_hdr_read_required_sample_line(fptr, 0); //sample line is not required
     bcf_close(fptr);
   }
   else
