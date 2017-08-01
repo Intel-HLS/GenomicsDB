@@ -209,8 +209,8 @@ void VCFReader::read_and_advance()
   }
   else  //indexed reader
   {
-    bcf_sr_next_line(m_indexed_reader);
-    auto line = bcf_sr_get_line(m_indexed_reader, 0);
+    auto next_line_exists = bcf_sr_next_line(m_indexed_reader);
+    auto line = next_line_exists ? bcf_sr_get_line(m_indexed_reader, 0) : 0;
     if(line)
     {
       std::swap<bcf1_t*>(m_indexed_reader->readers[0].buffer[0], m_line);
