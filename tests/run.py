@@ -42,6 +42,7 @@ query_json_template_string="""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
+query_attributes_with_PL_only = [ "PL" ]
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -139,6 +140,11 @@ def main():
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_PL_only,
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0_with_PL_only",
                         } },
                     { "query_column_ranges" : [0, 1000000000],#vid and callset jsons passed through query json
                         "query_without_loader": True,
