@@ -595,11 +595,12 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     vcf_partition.m_vcf_get_buffer_size = static_cast<uint64_t>(max_num_values)*sizeof(FieldType);
   auto buffer_full = false;
   auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
-  //Curr line does not have this field, or flag is not set
+  //Curr line does not have this field or field is missing
   //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
   //Example GT:PL   0/0:.  0/1:0,0,0
+  //However, flag fields have num_values == 1, but no value is returned in the buffer
   if(num_values <= 0
-     || (num_values == 1 && is_bcf_missing_value(ptr[0])))
+     || (num_values == 1 && bcf_ht_type != BCF_HT_FLAG && is_bcf_missing_value<FieldType>(ptr[0])))
   {
     //variable length field, print #elements = 0
     if(length_descriptor != BCF_VL_FIXED)
