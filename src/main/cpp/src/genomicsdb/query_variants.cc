@@ -625,7 +625,11 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   unsigned REF_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_REF_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(REF_schema_idx));
+  unsigned GT_schema_idx =
+    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_GT_IDX);
+  assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(GVCF_GT_IDX));
   auto added_ALT_REF = false;
+  auto added_GT = false;
   //Required by the caller
   if(alleles_required)
   {
@@ -664,6 +668,12 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       query_config.add_attribute_to_query("REF", REF_schema_idx);
       added_ALT_REF = true;
     }
+    //Does the length of the field depend on the ploidy? If yes, add GT field
+    if(!added_GT && KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor))
+    {
+      query_config.add_attribute_to_query("GT", GT_schema_idx);
+      added_GT = true;
+    }
   }
   //Re-order query fields so that special fields are first
   query_config.reorder_query_fields();
@@ -698,6 +708,17 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
         KnownFieldInfo::get_length_descriptor_for_known_field_enum(GVCF_ALT_IDX),
         KnownFieldInfo::get_num_elements_for_known_field_enum(GVCF_ALT_IDX, 0u, 0u),
         KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(GVCF_ALT_IDX)
+        );
+  }
+  //Set attributes for GT field if added in for loop above
+  if(added_GT)
+  {
+    assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX));
+    auto GT_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_GT_IDX);
+    query_config.set_query_attribute_info_parameters(GT_query_idx,
+        KnownFieldInfo::get_length_descriptor_for_known_field_enum(GVCF_GT_IDX),
+        KnownFieldInfo::get_num_elements_for_known_field_enum(GVCF_GT_IDX, 0u, 0u),
+        KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(GVCF_GT_IDX)
         );
   }
   //Set number of rows in the array

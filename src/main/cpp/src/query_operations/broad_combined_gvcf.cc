@@ -589,6 +589,24 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       ref_allele = "N"; //set to unknown REF for now
       alt_alleles[0u] = g_vcf_SPANNING_DELETION;
       unsigned num_reduced_alleles = alt_alleles.size() + 1u;   //+1 for REF
+      auto ploidy = 0u;
+      //GT field
+      if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+      {
+
+        auto& original_GT_field = curr_call.get_field(m_GT_query_idx);
+        if(original_GT_field.get() && original_GT_field->is_valid())
+        {
+          auto& input_GT =
+            curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+          m_spanning_deletion_remapped_GT.resize(input_GT.size());
+          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
+              num_reduced_alleles, has_NON_REF);
+          //Copy back
+          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
+          ploidy = input_GT.size();
+        }
+      }
       //Remap fields that need to be remapped
       for(auto i=0u;i<m_remapped_fields_query_idxs.size();++i)
       {
@@ -596,7 +614,8 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
         //field whose length is dependent on #alleles
         assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
-        unsigned num_reduced_elements = KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_reduced_alleles-1u, 0u, 0u);     //#alt alleles
+        unsigned num_reduced_elements =
+          KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
         //Remapper for variant
         RemappedVariant remapper_variant(variant, query_field_idx); 
         auto& curr_field = curr_call.get_field(query_field_idx);
@@ -612,24 +631,8 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           //Call remap function
           handler->remap_vector_data(
               m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
-              m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF,
+              m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
               length_descriptor, num_reduced_elements, remapper_variant);
-        }
-      }
-      //GT field
-      if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
-      {
-
-        auto& original_GT_field = curr_call.get_field(m_GT_query_idx);
-        if(original_GT_field.get() && original_GT_field->is_valid())
-        {
-          auto& input_GT =
-            curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
-          m_spanning_deletion_remapped_GT.resize(input_GT.size());
-          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
-              num_reduced_alleles, has_NON_REF);
-          //Copy back
-          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
         }
       }
       //Invalidate INFO fields

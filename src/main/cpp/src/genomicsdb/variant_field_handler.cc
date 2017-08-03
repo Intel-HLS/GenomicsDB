@@ -91,7 +91,8 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
 template<class DataType>
 void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType>& input_data,
     const uint64_t input_call_idx, 
-    const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
     RemappedDataWrapperBase& remapped_data,
     std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value) {
   //index of NON_REF in merged variant
@@ -149,7 +150,8 @@ void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType
 //Variant handler functions
 template<class DataType>
 void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
-    const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+    const CombineAllelesLUT& alleles_LUT,
+    unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
     unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant)
 {
   auto* raw_orig_field_ptr = orig_field_ptr.get();
@@ -165,7 +167,8 @@ void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFie
   if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor))
     VariantOperations::remap_data_based_on_genotype<DataType>( 
         orig_vector_field_ptr->get(), curr_call_idx_in_variant, 
-        alleles_LUT, num_merged_alleles, non_ref_exists, 
+        alleles_LUT,
+        num_merged_alleles, non_ref_exists, ploidy,
         remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value); 
   else 
     VariantOperations::remap_data_based_on_alleles<DataType>( 

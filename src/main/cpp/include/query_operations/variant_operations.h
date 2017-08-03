@@ -122,7 +122,8 @@ class VariantOperations
     template<class DataType>
     static void remap_data_based_on_genotype(const std::vector<DataType>& input_data,
         const uint64_t input_call_idx, 
-        const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
         RemappedDataWrapperBase& remapped_data,
         std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value);
     static void do_dummy_genotyping(Variant& variant, std::ostream& output);
@@ -255,7 +256,8 @@ class VariantFieldHandlerBase
     VariantFieldHandlerBase() { ; }
     virtual ~VariantFieldHandlerBase() = default;
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
-        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
@@ -294,7 +296,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * E.g. PL, AD etc
      */
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
-        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
     /*
      * Computes median for a given field over all Calls (only considers calls with valid field)
@@ -363,6 +366,8 @@ class GA4GHOperator : public SingleVariantOperatorBase
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
     //Max alt alleles that can be handled for computing the PL fields - default 50
     unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
+    //1 per VariantCall (row)
+    std::vector<unsigned> m_ploidy;
 };
 
 class SingleCellOperatorBase
