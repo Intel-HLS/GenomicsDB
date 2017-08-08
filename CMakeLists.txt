@@ -254,6 +254,11 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    if(GENOMICSDB_SPARK_PROFILE)
+        set(MAVEN_PROFILE "-P${GENOMICSDB_SPARK_PROFILE}")
+    else()
+        set(MAVEN_PROFILE "")
+    endif()
     set(MAVEN_QUIET_ARGS "")
     if(MAVEN_QUIET)
         set(MAVEN_QUIET_ARGS "--quiet")
@@ -270,7 +275,7 @@ if(BUILD_JAVA)
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION} -P${GENOMICSDB_SPARK_PROFILE}
+        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION} ${MAVEN_PROFILE}
         COMMAND mvn package -DskipTests
           ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
