@@ -39,7 +39,7 @@ std::string get_zero_value() { return ""; }
  */
 template<class DataType>
 void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>& input_data,
-    const uint64_t input_call_idx, 
+    const uint64_t input_call_idx,
     const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists, bool alt_alleles_only,
     RemappedDataWrapperBase& remapped_data,
     std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value) {
@@ -78,6 +78,48 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
     }
   }
 }
+
+template<class DataType>
+void  VariantOperations::remap_data_based_on_genotype_haploid(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value) {
+  //index of NON_REF in merged variant
+  const auto merged_non_reference_allele_idx = NON_REF_exists ? 
+    static_cast<int64_t>(static_cast<int>(num_merged_alleles-1)) : lut_missing_value;
+  //index of NON_REF in input sample
+  const auto input_non_reference_allele_idx = NON_REF_exists ? 
+    alleles_LUT.get_input_idx_for_merged(input_call_idx, merged_non_reference_allele_idx) : lut_missing_value;
+  //Loop over all possible genotype combinations == #alleles
+  for (auto allele_j = 0u; allele_j < num_merged_alleles; ++allele_j) {
+    auto input_j_allele = alleles_LUT.get_input_idx_for_merged(input_call_idx, allele_j);
+    auto gt_idx = allele_j;
+    if (CombineAllelesLUT::is_missing_value(input_j_allele))	//no mapping found for current allele in input gvcf
+    {
+      if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
+      {
+        *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) = (missing_value);
+        continue;	//skip to next value of allele_j
+      }
+      else //input contains NON_REF allele, use its idx
+        input_j_allele = input_non_reference_allele_idx;
+    }
+    //Input data could have been truncated due to missing values - if so, put missing value
+    if(static_cast<size_t>(input_j_allele) >= input_data.size())
+      *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) = (missing_value);
+    else
+    {
+      auto input_gt_idx = input_j_allele;
+      *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, gt_idx))) =
+        input_data[input_gt_idx];
+      if(is_bcf_valid_value<DataType>(input_data[input_gt_idx]))
+        ++(num_calls_with_valid_data[gt_idx]);
+    }
+  }
+}
+
 /*
   Copied from defunct gamgee library
   Remaps data dependent on number of genotypes to the new order of alleles as specified in alleles_LUT
@@ -89,10 +131,10 @@ void  VariantOperations::remap_data_based_on_alleles(const std::vector<DataType>
   @num_calls_with_valid_data - keeps track of how many samples had valid values for given genotype idx
  */
 template<class DataType>
-void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType>& input_data,
-    const uint64_t input_call_idx, 
+void  VariantOperations::remap_data_based_on_genotype_diploid(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
     const CombineAllelesLUT& alleles_LUT,
-    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+    const unsigned num_merged_alleles, bool NON_REF_exists,
     RemappedDataWrapperBase& remapped_data,
     std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value) {
   //index of NON_REF in merged variant
@@ -147,6 +189,200 @@ void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType
   }
 }
 
+
+/*
+ * Reorders fields whose length and order depend on the number of genotypes (BCF_VL_G)
+ * for general ploidy
+ */
+template<class DataType>
+void VariantOperations::remap_data_based_on_genotype_general(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination,
+    remap_operator_function_type<DataType> op
+)
+{
+  //index of NON_REF in merged variant
+  const auto merged_non_reference_allele_idx = NON_REF_exists ? 
+    static_cast<int64_t>(static_cast<int>(num_merged_alleles-1)) : lut_missing_value;
+  //index of NON_REF in input sample
+  const auto input_non_reference_allele_idx = NON_REF_exists ? 
+    alleles_LUT.get_input_idx_for_merged(input_call_idx, merged_non_reference_allele_idx) : lut_missing_value;
+#define SET_PLOIDY_INDEX_IN_STACK_ELEMENT(X,Y) ((X).first = (Y))
+#define SET_ALLELE_INDEX_IN_STACK_ELEMENT(X,Y) ((X).second = (Y))
+#define GET_PLOIDY_INDEX_IN_STACK_ELEMENT(X) ((X).first)
+#define GET_ALLELE_INDEX_IN_STACK_ELEMENT(X) ((X).second)
+  remapped_allele_idx_vec_for_current_gt_combination.resize(ploidy+1u); //+1 to avoid unnecessary if statements in the while loop
+  input_call_allele_idx_vec_for_current_gt_combination.resize(ploidy);
+  //Enumerate genotypes based on method described in 
+  //http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
+  //Use custom "stack" instead of a recursive function call
+  //"top" of the stack is the last element of the vector
+  assert(ploidy > 0u);
+  //resize to max #genotypes - avoids frequent dynamic memory allocations/frees
+  ploidy_index_allele_index_stack.resize(KnownFieldInfo::get_number_of_genotypes(num_merged_alleles-1u, ploidy));
+  //In each iteration, generate all genotypes where the last ploidy corresponds to the allele
+  //corresponding to top_level_allele_idx
+  auto allele_idx = 0;
+  auto ploidy_idx = 0;
+  //In each iteration of the loop, let the top of the stack contain (P=x, A=y)
+  //The subsequent iterations will generate all genotype combinations corresponding to
+  //gt[x] == y first before moving on to elements in the stack below
+  //Initializer element in the stack set (P=ploidy, A=#alleles-1)
+  //Thus, the while loop will generate all genotype combinations for ploidies 0..ploidy-1
+  //with alleles 0..alleles-1
+  SET_PLOIDY_INDEX_IN_STACK_ELEMENT(ploidy_index_allele_index_stack[0u], ploidy);
+  SET_ALLELE_INDEX_IN_STACK_ELEMENT(ploidy_index_allele_index_stack[0u], num_merged_alleles-1);
+  auto num_elements_in_stack = 1u;
+  auto remapped_gt_idx = 0ull;
+  while(num_elements_in_stack > 0u)
+  {
+    auto& top_stack_element = ploidy_index_allele_index_stack[num_elements_in_stack-1u];
+    allele_idx = GET_ALLELE_INDEX_IN_STACK_ELEMENT(top_stack_element);
+    ploidy_idx = GET_PLOIDY_INDEX_IN_STACK_ELEMENT(top_stack_element);
+    --num_elements_in_stack; //popped stack
+    assert(ploidy_idx >= 0 && static_cast<size_t>(ploidy_idx) < remapped_allele_idx_vec_for_current_gt_combination.size());
+    remapped_allele_idx_vec_for_current_gt_combination[ploidy_idx] = allele_idx;
+    //Assigned one allele idx for all ploidys
+    if(ploidy_idx == 0)
+    {
+      auto curr_genotype_combination_contains_missing_allele_for_input = false;
+      for(auto i=0u;i<ploidy;++i)
+      {
+        auto input_allele_idx = alleles_LUT.get_input_idx_for_merged(input_call_idx, remapped_allele_idx_vec_for_current_gt_combination[i]);
+        if (CombineAllelesLUT::is_missing_value(input_allele_idx))	//no mapping found for current allele in input gvcf
+        {
+          input_call_allele_idx_vec_for_current_gt_combination[i] = input_non_reference_allele_idx; //set to NON_REF idx, possibly missing
+          curr_genotype_combination_contains_missing_allele_for_input =
+            curr_genotype_combination_contains_missing_allele_for_input ||
+            CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx);
+        }
+        else
+          input_call_allele_idx_vec_for_current_gt_combination[i] = input_allele_idx;
+      }
+      op(input_data,
+          input_call_idx,
+          alleles_LUT,
+          num_merged_alleles, NON_REF_exists,
+          curr_genotype_combination_contains_missing_allele_for_input,
+          ploidy,
+          remapped_data,
+          num_calls_with_valid_data, missing_value,
+          remapped_allele_idx_vec_for_current_gt_combination,
+          remapped_gt_idx,
+          input_call_allele_idx_vec_for_current_gt_combination);
+      ++remapped_gt_idx;
+    }
+    else
+    {
+      --ploidy_idx; //current ploidy_idx
+      //Reverse order so that alleles with lower idx are closer to the top of the stack
+      for(auto i=allele_idx;i>=0;--i)
+      {
+        assert(num_elements_in_stack < ploidy_index_allele_index_stack.size());
+        auto& curr_stack_element = ploidy_index_allele_index_stack[num_elements_in_stack];
+        SET_PLOIDY_INDEX_IN_STACK_ELEMENT(curr_stack_element, ploidy_idx);
+        SET_ALLELE_INDEX_IN_STACK_ELEMENT(curr_stack_element, i);
+        ++num_elements_in_stack;
+      }
+    }
+  }
+}
+
+uint64_t VariantOperations::get_genotype_index(std::vector<int>& allele_idx_vec, const bool is_sorted)
+{
+  //To get genotype combination index for the input, alleles must be in sorted order
+  if(!is_sorted)
+    std::sort(allele_idx_vec.begin(), allele_idx_vec.end());
+  auto input_gt_idx = 0ull;
+  //From http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
+  for(auto i=0ull;i<allele_idx_vec.size();++i)
+    input_gt_idx += VariantOperations::nCr(i+allele_idx_vec[i], allele_idx_vec[i]-1);
+  return input_gt_idx;
+}
+
+template<class DataType>
+void VariantOperations::reorder_field_based_on_genotype_index(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists,
+    const bool curr_genotype_combination_contains_missing_allele_for_input,
+    const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    const uint64_t remapped_gt_idx,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+    )
+{
+  if(curr_genotype_combination_contains_missing_allele_for_input) //no genotype in input corresponding to this allele combination
+  {
+    //Put missing value
+    *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, remapped_gt_idx))) = (missing_value);
+    return;
+  }
+  auto input_gt_idx = VariantOperations::get_genotype_index(input_call_allele_idx_vec_for_current_gt_combination, false);
+  assert(input_gt_idx < KnownFieldInfo::get_number_of_genotypes(num_merged_alleles-1u, ploidy));
+  //Input data could have been truncated due to missing values - if so, put missing value
+  if(input_gt_idx >= input_data.size())
+    *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, remapped_gt_idx))) = (missing_value);
+  else
+  {
+    *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, remapped_gt_idx))) =
+      input_data[input_gt_idx];
+    if(is_bcf_valid_value<DataType>(input_data[input_gt_idx]))
+      ++(num_calls_with_valid_data[remapped_gt_idx]);
+  }
+}
+
+//Wrapper function
+template<class DataType>
+void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination, std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination)
+{
+  switch(ploidy)
+  {
+    case 1u:
+      remap_data_based_on_genotype_haploid(input_data,
+          input_call_idx,
+          alleles_LUT,
+          num_merged_alleles, NON_REF_exists,
+          remapped_data,
+          num_calls_with_valid_data, missing_value);
+      break;
+    case 2u:
+      remap_data_based_on_genotype_diploid(input_data,
+          input_call_idx,
+          alleles_LUT,
+          num_merged_alleles, NON_REF_exists,
+          remapped_data,
+          num_calls_with_valid_data, missing_value);
+      break;
+    default:  //why not let this case handle diploid and haploid? A. speed, diploid is common case
+      remap_data_based_on_genotype_general<DataType>(input_data,
+          input_call_idx,
+          alleles_LUT,
+          num_merged_alleles, NON_REF_exists, ploidy,
+          remapped_data,
+          num_calls_with_valid_data, missing_value,
+          remapped_allele_idx_vec_for_current_gt_combination, ploidy_index_allele_index_stack,
+          input_call_allele_idx_vec_for_current_gt_combination,
+          VariantOperations::reorder_field_based_on_genotype_index<DataType>);
+      break;
+  }
+}
+
 //Variant handler functions
 template<class DataType>
 void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
@@ -169,7 +405,9 @@ void VariantFieldHandler<DataType>::remap_vector_data(std::unique_ptr<VariantFie
         orig_vector_field_ptr->get(), curr_call_idx_in_variant, 
         alleles_LUT,
         num_merged_alleles, non_ref_exists, ploidy,
-        remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value); 
+        remapper_variant, m_num_calls_with_valid_data, m_bcf_missing_value,
+        m_allele_idx_vec_for_current_genotype, m_ploidy_index_alleles_index_stack,
+        m_input_call_allele_idx_vec); 
   else 
     VariantOperations::remap_data_based_on_alleles<DataType>( 
         orig_vector_field_ptr->get(), curr_call_idx_in_variant, 

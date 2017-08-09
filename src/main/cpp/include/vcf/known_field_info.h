@@ -138,6 +138,10 @@ class KnownFieldInfo
     static unsigned get_num_elements_given_length_descriptor(unsigned length_descriptor,
         unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements);
     /*
+     * Get #possible genotypes given #ALT alleles and ploidy
+     */
+    static unsigned get_number_of_genotypes(const unsigned num_ALT_alleles, const unsigned ploidy);
+    /*
      * Function that determines whether length of the field is dependent on the #genotypes
      */
     static bool is_length_genotype_dependent(unsigned enumIdx);

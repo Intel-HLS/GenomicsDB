@@ -2,6 +2,7 @@ find_package(GTest)
 if(GTEST_FOUND)
     set(CPP_TEST_SOURCES
         main_testall.cc
+        test_non_diploid_mapper.cc
         )
     if(LIBDBI_FOUND)
         set(CPP_TEST_SOURCES
