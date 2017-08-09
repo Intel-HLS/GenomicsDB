@@ -302,7 +302,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
       std::vector<int> tmp_input_call_allele_idx_vec;
       std::vector<std::pair<int, int> > tmp_stack_vec;
       auto& input_pl_vector = PL_field_ptr->get();
-      remap_data_based_on_genotype<int>(input_pl_vector, curr_call_idx_in_variant,
+      VariantOperations::remap_data_based_on_genotype<int>(input_pl_vector, curr_call_idx_in_variant,
           alleles_LUT,
           num_merged_alleles, NON_REF_exists, ploidy,
           remapped_PLs,  num_calls_with_valid_data, bcf_int32_missing,

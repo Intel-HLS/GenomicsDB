@@ -651,3 +651,16 @@ template class VariantFieldHandler<float>;
 template class VariantFieldHandler<double>;
 template class VariantFieldHandler<std::string>;
 template class VariantFieldHandler<char>;
+
+//The following function is called in variant_operations.cc also. For some compilers, explicit instantiation
+//of VariantFieldHandler is insufficient. The following function must also be instantiated, else weird link time
+//errors are seen for variant_operations.cc. I'm guessing there is some inline error, but cannot be sure.
+template
+void VariantOperations::remap_data_based_on_genotype(const std::vector<int>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, int missing_value,
+    std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination, std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination);
