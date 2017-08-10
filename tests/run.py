@@ -366,6 +366,15 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
                 "vid_mapping_file": "inputs/vid_as_array.json",
             },
+            { "name" : "t0_1_2_coverage", 'golden_output' : 'golden_outputs/t0_1_2_coverage',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_coverage.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_coverage_calls_at_0",
+                        "variants"      : "golden_outputs/t0_1_2_coverage_variants_at_0",
+                        } },
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -435,7 +444,14 @@ def main():
                         loader_argument = loader_json_filename;
                         if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                             loader_argument = '""'
-                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename,
+                        misc_args = '';
+                        #htsjdk doesn't like printing VCF lines where there are no FORMAT fields (even GT missing)
+                        #Including coverage files generally cause such lines to be printed by htslib
+                        #hence, don't print in Java when including coverage files
+                        if(test_name.find('coverage') != -1):
+                            misc_args += '--count_only';
+                        pid = subprocess.Popen('java -ea TestGenomicsDB --query -l '+loader_argument+' '
+                                +query_json_filename+' '+misc_args,
                                 shell=True, stdout=subprocess.PIPE);
                     else:
                         if(query_type == 'consolidate_and_vcf'):

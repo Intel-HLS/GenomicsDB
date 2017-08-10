@@ -101,18 +101,127 @@ void LineBasedTextFileReader::read_and_advance()
   }
 }
 
+//DelimitedLineBasedTextFile2TileDBBinary functions
+void DelimitedLineBasedTextFile2TileDBBinary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
+{
+  //Initialize reader, if needed
+  if(!m_parallel_partitions)
+  {
+    auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(m_base_reader_ptr);
+    assert(csv_reader_ptr);
+    csv_reader_ptr->initialize(m_filename.c_str(), !m_close_file);
+  }
+  for(auto i=0u;i<partition_bounds.size();++i)
+  {
+    auto csv_column_partition_ptr = dynamic_cast<DelimitedLineBasedTextFile2TileDBBinaryColumnPartition*>(m_base_partition_ptrs[i]);
+    assert(csv_column_partition_ptr);
+    //If parallel partitions, each interval gets its own reader
+    if(m_parallel_partitions)
+    {
+      auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(csv_column_partition_ptr->get_base_reader_ptr());
+      assert(csv_reader_ptr);
+      csv_reader_ptr->initialize(m_filename.c_str(), !m_close_file);
+    }
+    csv_column_partition_ptr->m_current_enabled_local_callset_idx_vec.resize(1u, -1ll);
+  }
+}
+
+void DelimitedLineBasedTextFile2TileDBBinary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
+{
+  //Point all callsets to the same value of order i.e. the order value for the first callset
+  //This ensures that effectively, a single buffer space is allocated for all callsets in this 
+  //file
+  if(m_enabled_local_callset_idx_vec.size())
+  {
+    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
+    {
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
+      tiledb_row_idx_to_order[row_idx] = order_value;
+    }
+    order_value++;
+  }
+}
+
+void DelimitedLineBasedTextFile2TileDBBinary::list_active_row_idxs(const ColumnPartitionBatch& partition_batch,
+    int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
+{
+  auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
+  if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
+  {
+    //Effectively inform loader that only 1 callset in this file is ready
+    //Since all callsets in this file use the same buffer space, it doesn't really matter
+    if(m_enabled_local_callset_idx_vec.size())
+    {
+      auto local_callset_idx = m_enabled_local_callset_idx_vec[0];
+      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
+      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
+      assert(row_idx >= 0);
+      row_idx_vec[row_idx_offset++] = row_idx;
+    }
+  }
+}
+
+bool DelimitedLineBasedTextFile2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+    bool force_seek, bool advance_reader)
+{
+  auto& csv_partition_info = dynamic_cast<DelimitedLineBasedTextFile2TileDBBinaryColumnPartition&>(partition_info);
+  auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(partition_info.get_base_reader_ptr());
+  assert(csv_reader_ptr);
+  if(force_seek || !(csv_partition_info.is_initialized_file_position_to_partition_begin()))
+  {
+    //Had previously sought file ptr to the column partition begin - now just use fpos_t
+    if(csv_partition_info.is_initialized_file_position_to_partition_begin())
+    {
+      csv_reader_ptr->seek(csv_partition_info.m_file_position);
+      csv_reader_ptr->read_and_advance();
+    }
+    else
+    {
+      //First read
+      csv_reader_ptr->read_and_advance();
+      auto line = csv_reader_ptr->get_line();
+      while(line != 0)
+      {
+        parse_line(line, csv_partition_info, m_column_field_token_idx, false);        //parse only till column idx
+        if(csv_partition_info.m_current_end_position >= csv_partition_info.m_column_interval_begin)
+          break;
+        csv_reader_ptr->read_and_advance();
+        line = csv_reader_ptr->get_line();
+      }
+      csv_partition_info.set_initialized_file_position_to_partition_begin(true);
+    }
+  }
+  else
+    if(advance_reader)
+      csv_reader_ptr->read_and_advance();
+  //Store file position
+  csv_reader_ptr->get_position(csv_partition_info.m_file_position);
+  auto line = csv_reader_ptr->get_line();
+  if(line)
+  {
+    //Parse line for column idx to check whether file pointer has gone beyond column_partition_end
+    parse_line(line, csv_partition_info, m_column_field_token_idx, false);        //parse only till column idx
+    return (csv_partition_info.m_current_column_position <= csv_partition_info.m_column_interval_end);
+  }
+  else
+    return false;
+}
+
 CSV2TileDBBinary::CSV2TileDBBinary(const std::string& filename,
         unsigned file_idx, VidMapper& vid_mapper,
         size_t max_size_per_callset,
         const std::vector<ColumnRange>& partition_bounds,
         bool treat_deletions_as_intervals,
         bool parallel_partitions, bool noupdates, bool close_file)
-      : LineBasedTextFile2TileDBBinary(filename, file_idx, vid_mapper,
+      : DelimitedLineBasedTextFile2TileDBBinary(filename, file_idx, vid_mapper,
           max_size_per_callset,
           treat_deletions_as_intervals,
+          TileDBCSVFieldPosIdxEnum::TILEDB_CSV_END_IDX,
           parallel_partitions, noupdates, close_file)
 {
-  m_cleanup_file = false;
   auto file_type = 0u;
   auto status = vid_mapper.get_file_type(filename, file_type);
   if(!status)
@@ -145,123 +254,9 @@ CSV2TileDBBinary::CSV2TileDBBinary(const std::string& filename,
   initialize_base_column_partitions(partition_bounds);
 }
 
-CSV2TileDBBinary::~CSV2TileDBBinary()
-{
-  //Cleanup if unsorted csv file
-  if(m_cleanup_file)
-    remove(m_filename.c_str());
-  m_cleanup_file = false;
-}
-
-void CSV2TileDBBinary::initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds)
-{
-  //Initialize reader, if needed
-  if(!m_parallel_partitions)
-  {
-    auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(m_base_reader_ptr);
-    assert(csv_reader_ptr);
-    csv_reader_ptr->initialize(m_filename.c_str(), !m_close_file);
-  }
-  for(auto i=0u;i<partition_bounds.size();++i)
-  {
-    auto csv_column_partition_ptr = dynamic_cast<CSV2TileDBBinaryColumnPartition*>(m_base_partition_ptrs[i]);
-    assert(csv_column_partition_ptr);
-    //If parallel partitions, each interval gets its own reader
-    if(m_parallel_partitions)
-    {
-      auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(csv_column_partition_ptr->get_base_reader_ptr());
-      assert(csv_reader_ptr);
-      csv_reader_ptr->initialize(m_filename.c_str(), !m_close_file);
-    }
-  }
-}
-
-void CSV2TileDBBinary::set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const
-{
-  //Point all callsets to the same value of order i.e. the order value for the first callset
-  //This ensures that effectively, a single buffer space is allocated for all callsets in this 
-  //file
-  if(m_enabled_local_callset_idx_vec.size())
-  {
-    for(auto local_callset_idx : m_enabled_local_callset_idx_vec)
-    {
-      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
-      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
-      assert(row_idx >= 0);
-      assert(static_cast<size_t>(row_idx) < tiledb_row_idx_to_order.size());
-      tiledb_row_idx_to_order[row_idx] = order_value;
-    }
-    order_value++;
-  }
-}
-
-void CSV2TileDBBinary::list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const
-{
-  auto& partition_file_batch = partition_batch.get_partition_file_batch(m_file_idx);
-  if(partition_file_batch.m_fetch && !partition_file_batch.m_completed)
-  {
-    //Effectively inform loader that only 1 callset in this file is ready
-    //Since all callsets in this file use the same buffer space, it doesn't really matter
-    if(m_enabled_local_callset_idx_vec.size())
-    {
-      auto local_callset_idx = m_enabled_local_callset_idx_vec[0];
-      assert(static_cast<size_t>(local_callset_idx) < m_local_callset_idx_to_tiledb_row_idx.size());
-      auto row_idx = m_local_callset_idx_to_tiledb_row_idx[local_callset_idx];
-      assert(row_idx >= 0);
-      row_idx_vec[row_idx_offset++] = row_idx;
-    }
-  }
-}
-
-bool CSV2TileDBBinary::seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
-    bool force_seek, bool advance_reader)
-{
-  auto& csv_partition_info = dynamic_cast<CSV2TileDBBinaryColumnPartition&>(partition_info);
-  auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(partition_info.get_base_reader_ptr());
-  assert(csv_reader_ptr);
-  if(force_seek || !(csv_partition_info.is_initialized_file_position_to_partition_begin()))
-  {
-    //Had previously sought file ptr to the column partition begin - now just use fpos_t
-    if(csv_partition_info.is_initialized_file_position_to_partition_begin())
-    {
-      csv_reader_ptr->seek(csv_partition_info.m_file_position);
-      csv_reader_ptr->read_and_advance();
-    }
-    else
-    {
-      //First read
-      csv_reader_ptr->read_and_advance();
-      auto line = csv_reader_ptr->get_line();
-      while(line != 0)
-      {
-        parse_line(line, csv_partition_info, TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX, false);        //parse only till column idx
-        if(csv_partition_info.m_current_column_position >= csv_partition_info.m_column_interval_begin)
-          break;
-        csv_reader_ptr->read_and_advance();
-        line = csv_reader_ptr->get_line();
-      }
-      csv_partition_info.set_initialized_file_position_to_partition_begin(true);
-    }
-  }
-  else
-    if(advance_reader)
-      csv_reader_ptr->read_and_advance();
-  //Store file position
-  csv_reader_ptr->get_position(csv_partition_info.m_file_position);
-  auto line = csv_reader_ptr->get_line();
-  if(line)
-  {
-    //Parse line for column idx to check whether file pointer has gone beyond column_partition_end
-    parse_line(line, csv_partition_info, TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX, false);        //parse only till column idx
-    return (csv_partition_info.m_current_column_position <= csv_partition_info.m_column_interval_end);
-  }
-  else
-    return false;
-}
-
 template<class FieldType>
 void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
-    CSVLineParseStruct* csv_line_parse_ptr, CSV2TileDBBinaryColumnPartition& csv_partition_info,
+    CSVLineParseStruct* csv_line_parse_ptr, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info,
     std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
     VariantFieldTypeEnum variant_field_type_enum)
 {
@@ -333,12 +328,20 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
         auto local_callset_idx = m_vid_mapper->get_idx_in_file_for_row_idx(row_idx);
         auto enabled_idx_in_file = get_enabled_idx_for_local_callset_idx(local_callset_idx);
         csv_line_parse_ptr->set_enabled_idx_in_file(enabled_idx_in_file);
+        csv_partition_info.m_current_enabled_local_callset_idx_vec[0] = enabled_idx_in_file;
+        csv_partition_info.m_min_current_tiledb_row_idx = row_idx;
         break;
       }
     case TileDBCSVFieldPosIdxEnum::TILEDB_CSV_COLUMN_POS_IDX:
       {
         csv_partition_info.m_current_column_position = strtoll(token_ptr, &endptr, 0);
         VERIFY_OR_THROW((endptr != token_ptr) && "Could not parse column field");
+        break;
+      }
+    case TileDBCSVFieldPosIdxEnum::TILEDB_CSV_END_IDX:
+      {
+        csv_partition_info.m_current_end_position = strtoll(token_ptr, &endptr, 0);
+        VERIFY_OR_THROW((endptr != token_ptr) && "Could not parse column-end field");
         break;
       }
     default:
@@ -390,7 +393,7 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
               {
                 csv_partition_info.set_buffer_full_if_true(buffer_idx,
                   tiledb_buffer_print<int64_t>(buffer, buffer_offset, buffer_offset_limit,
-                      from_string_to_tiledb<int64_t>(token_ptr)));
+                      csv_partition_info.m_current_end_position));
                 break;
               }
             case VariantArraySchemaFixedFieldsEnum::VARIANT_ARRAY_SCHEMA_REF_IDX:
@@ -502,14 +505,16 @@ void CSV2TileDBBinary::handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr
   }
 }
 
-bool CSV2TileDBBinary::parse_line(const char* line, CSV2TileDBBinaryColumnPartition& csv_partition_info, const unsigned max_token_idx, const bool store_in_buffer)
+bool CSV2TileDBBinary::parse_line(const char* line, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info,
+    const unsigned max_token_idx, const bool store_in_buffer)
 {
   auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(csv_partition_info.get_base_reader_ptr());
   assert(csv_reader_ptr);
   CSVLineParseStruct parse_obj(this, &csv_partition_info, max_token_idx, store_in_buffer);
 #ifdef USE_LIBCSV
   csv_parse(&(csv_partition_info.m_csv_parser), line, csv_reader_ptr->get_line_length(),
-      csv_parse_callback, csv_line_end_callback,
+      DelimitedLineBasedTextFile2TileDBBinary::csv_parse_callback<CSV2TileDBBinary>,
+      DelimitedLineBasedTextFile2TileDBBinary::csv_line_end_callback<CSV2TileDBBinary>,
       reinterpret_cast<void*>(&(parse_obj)));
 #endif
   //Direct all data to the buffer corresponding to the first enabled callset in this file
@@ -517,16 +522,80 @@ bool CSV2TileDBBinary::parse_line(const char* line, CSV2TileDBBinaryColumnPartit
   return (store_in_buffer && csv_partition_info.is_buffer_full(buffer_idx));
 }
 
-void csv_parse_callback(void* token_ptr, size_t field_size, void* parse_ptr)
+//BED2TileDBBinary functions
+BED2TileDBBinary::BED2TileDBBinary(const std::string& filename,
+        unsigned file_idx, VidMapper& vid_mapper,
+        size_t max_size_per_callset,
+        const std::vector<ColumnRange>& partition_bounds,
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions, bool noupdates, bool close_file)
+      : DelimitedLineBasedTextFile2TileDBBinary(filename, file_idx, vid_mapper,
+          max_size_per_callset,
+          treat_deletions_as_intervals,
+          BEDFieldPosIdxEnum::BED_FILE_CONTIG_END_FIELD_IDX,
+          parallel_partitions, noupdates, close_file)
 {
-  auto csv_line_parse_ptr = reinterpret_cast<CSVLineParseStruct*>(parse_ptr);
-  if(!(csv_line_parse_ptr->is_past_max_token_idx()))
-    csv_line_parse_ptr->get_csv2tiledb_binary_ptr()->handle_token(csv_line_parse_ptr, reinterpret_cast<const char*>(token_ptr), field_size);
-  csv_line_parse_ptr->increment_token_idx();
+  //Initialize partition info
+  initialize_base_column_partitions(partition_bounds);
 }
 
-void csv_line_end_callback(int terminating_token, void* parse_ptr)
+bool BED2TileDBBinary::parse_line(const char* line, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info,
+    const unsigned max_token_idx, const bool store_in_buffer)
 {
-  auto csv_line_parse_ptr = reinterpret_cast<CSVLineParseStruct*>(parse_ptr);
-  csv_line_parse_ptr->get_csv2tiledb_binary_ptr()->handle_end_of_line(csv_line_parse_ptr);
+  auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(csv_partition_info.get_base_reader_ptr());
+  assert(csv_reader_ptr);
+  CSVLineParseStruct parse_obj(this, &csv_partition_info, max_token_idx, store_in_buffer);
+#ifdef USE_LIBCSV
+  csv_parse(&(csv_partition_info.m_csv_parser), line, csv_reader_ptr->get_line_length(),
+      DelimitedLineBasedTextFile2TileDBBinary::csv_parse_callback<BED2TileDBBinary>,
+      DelimitedLineBasedTextFile2TileDBBinary::csv_line_end_callback<BED2TileDBBinary>,
+      reinterpret_cast<void*>(&(parse_obj)));
+#endif
+  //Direct all data to the buffer corresponding to the first enabled callset in this file
+  auto buffer_idx = 0u;
+  return (store_in_buffer && csv_partition_info.is_buffer_full(buffer_idx));
+}
+
+void BED2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, const char* token_ptr, const size_t field_size)
+{
+  if(csv_line_parse_ptr->is_past_max_token_idx())
+    return;
+  auto& csv_partition_info = *(csv_line_parse_ptr->get_csv_column_partition_ptr());
+  char* endptr = 0;
+  //Special fields
+  switch(csv_line_parse_ptr->get_token_idx())
+  {
+    case BEDFieldPosIdxEnum::BED_FILE_CONTIG_FIELD_IDX:
+      {
+        VERIFY_OR_THROW(strnlen(token_ptr, field_size) && "Could not parse contig field");
+        //TODO: un-optimized, can 'cache' contig info till contig changes
+        ContigInfo contig_info;
+        auto status = m_vid_mapper->get_contig_info(token_ptr, contig_info);
+        if(!status)
+          throw LineBasedTextFileException(std::string("No information found for contig ")+token_ptr
+              +"in the vid_mapping file");
+        //Set to TileDB column value
+        csv_partition_info.m_current_column_position = contig_info.m_tiledb_column_offset;
+        csv_partition_info.m_current_end_position = contig_info.m_tiledb_column_offset;
+        break;
+      }
+    case BEDFieldPosIdxEnum::BED_FILE_CONTIG_BEGIN_FIELD_IDX:
+      {
+        //m_current_column_position is initialized to TileDB column for the contig - add position within contig
+        //-1 since BED file position is 1-based
+        csv_partition_info.m_current_column_position += (strtoll(token_ptr, &endptr, 0) - 1);
+        VERIFY_OR_THROW((endptr != token_ptr) && "Could not parse column field");
+        break;
+      }
+    case BEDFieldPosIdxEnum::BED_FILE_CONTIG_END_FIELD_IDX:
+      {
+        //m_current_end_position is initialized to TileDB column for the contig - add position within contig
+        //-1 since BED file position is 1-based
+        csv_partition_info.m_current_end_position += (strtoll(token_ptr, &endptr, 0) - 1);
+        VERIFY_OR_THROW((endptr != token_ptr) && "Could not parse column-end field");
+        break;
+      }
+    default:
+      break;
+  }
 }

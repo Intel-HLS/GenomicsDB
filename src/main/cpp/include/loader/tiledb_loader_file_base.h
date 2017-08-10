@@ -139,6 +139,11 @@ class File2TileDBBinaryColumnPartitionBase
   public:
     File2TileDBBinaryColumnPartitionBase()
     {
+      m_is_coverage_partition = false;
+      m_current_column_position = -1;
+      m_current_end_position = -1;
+      m_min_current_tiledb_row_idx = -1;
+      m_last_variant_end_position = -1;
       m_base_reader_ptr = 0;
       m_buffer_ptr = 0;
     }
@@ -150,6 +155,7 @@ class File2TileDBBinaryColumnPartitionBase
       m_buffer_offset_for_local_callset.clear();
       m_buffer_full_for_local_callset.clear();
       m_split_filename.clear();
+      m_current_enabled_local_callset_idx_vec.clear();
     }
     //Delete copy constructor
     File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
@@ -181,13 +187,37 @@ class File2TileDBBinaryColumnPartitionBase
       assert(m_buffer_ptr);
       return *m_buffer_ptr;
     }
-    /*
-     * abstract virtual functions
-     */
-    virtual int64_t get_column_position_in_record() const = 0;
+    inline int64_t get_column_position_in_record() const { return m_current_column_position; }
+    inline int64_t get_end_position_in_record() const { return m_current_end_position; }
+    inline int64_t get_last_variant_end_position() const { return m_last_variant_end_position; }
+    inline const std::vector<int64_t>& get_enabled_local_callset_idx_vec_in_record() const
+    { return m_current_enabled_local_callset_idx_vec; }
+    bool column_major_compare(const File2TileDBBinaryColumnPartitionBase* other) const
+    {
+      //both should not be variant file data
+      assert(m_is_coverage_partition || (other->m_is_coverage_partition));
+      assert(m_min_current_tiledb_row_idx >= 0 && other->m_min_current_tiledb_row_idx >= 0);
+      if(m_current_column_position < other->get_column_position_in_record())
+        return true;
+      if(m_current_column_position == other->get_column_position_in_record())
+      {
+        if(m_min_current_tiledb_row_idx < other->m_min_current_tiledb_row_idx)
+          return true;
+        if(m_min_current_tiledb_row_idx == other->m_min_current_tiledb_row_idx
+            && !m_is_coverage_partition)
+          return true;
+      }
+      return false;
+    }
   protected:
+    bool m_is_coverage_partition;
     int64_t m_column_interval_begin;
     int64_t m_column_interval_end;
+    int64_t m_current_column_position;
+    int64_t m_current_end_position;
+    int64_t m_min_current_tiledb_row_idx;  //Useful for dealing with coverage files - should be set to the min row idx in the current record
+    int64_t m_last_variant_end_position;   //Useful for dealing with coverage files - this is set based on the last variant interval
+    std::vector<int64_t> m_current_enabled_local_callset_idx_vec; //enabled callset idx vec in current record
     //Buffer offsets - 1 per callset
     //Offset at which data should be copied for the current batch
     std::vector<int64_t> m_begin_buffer_offset_for_local_callset;
@@ -206,6 +236,19 @@ class File2TileDBBinaryColumnPartitionBase
 
 //Buffer stream idx, partition idx
 typedef std::pair<int64_t, unsigned> BufferStreamIdentifier;
+
+//Operator for the PQ below
+struct File2TileDBBinaryColumnPartitionBaseColumnMajorCompare
+{
+  bool operator()(const File2TileDBBinaryColumnPartitionBase* a, const File2TileDBBinaryColumnPartitionBase* b)
+  {
+    return !(a->column_major_compare(b)); //For min-heap
+  }
+};
+
+//Priority queue for File2TileDBBinaryColumnPartitionBase - useful when coverage files are specified
+typedef std::priority_queue<File2TileDBBinaryColumnPartitionBase*, std::vector<File2TileDBBinaryColumnPartitionBase*>,
+        File2TileDBBinaryColumnPartitionBaseColumnMajorCompare> File2TileDBBinaryColumnPartitionBasePQ;
 
 /*
  * Base class for all instances of objects that convert file formats for importing
@@ -273,11 +316,38 @@ class File2TileDBBinaryBase
      */
     void create_histogram(uint64_t max_histogram_range, unsigned num_bins);
     UniformHistogram* get_histogram() { return m_histogram; }
+    /*
+     * Get base reader pointer used for all partitions
+     */
+    GenomicsDBImportReaderBase* get_base_reader_ptr()
+    {
+      assert(!m_parallel_partitions);
+      return m_base_reader_ptr;
+    }
     GenomicsDBImportReaderBase* get_base_reader_ptr(const unsigned column_partition_idx)
     {
       assert(column_partition_idx < m_base_partition_ptrs.size());
       return m_base_partition_ptrs[column_partition_idx]->get_base_reader_ptr();
     }
+    File2TileDBBinaryColumnPartitionBase* get_base_column_partition_info(const unsigned partition_idx)
+    {
+      assert(partition_idx < m_base_partition_ptrs.size());
+      return m_base_partition_ptrs[partition_idx];
+    }
+    const File2TileDBBinaryColumnPartitionBase* get_base_column_partition_info(const unsigned partition_idx) const
+    {
+      assert(partition_idx < m_base_partition_ptrs.size());
+      return m_base_partition_ptrs[partition_idx];
+    }
+    std::vector<File2TileDBBinaryColumnPartitionBase*>& get_base_column_partition_info_vec()
+    {
+      return m_base_partition_ptrs;
+    }
+    const std::vector<File2TileDBBinaryColumnPartitionBase*>& get_base_column_partition_info_vec() const
+    {
+      return m_base_partition_ptrs;
+    }
+    int64_t get_file_idx() const { return m_file_idx; }
     //Functions that must be over-ridden by all sub-classes
     /*
      * Initialization of column partitions by sub class
@@ -296,6 +366,12 @@ class File2TileDBBinaryBase
      */
     virtual bool convert_record_to_binary(std::vector<uint8_t>& buffer,
         File2TileDBBinaryColumnPartitionBase& partition_info) = 0;
+    /*
+     * Write a null cell to represent a region that is covered by the sequencing data, but does not have a variant
+     * (as determined by the variant caller)
+     */
+    bool write_coverage_cell(std::vector<uint8_t>& buffer, File2TileDBBinaryColumnPartitionBase& partition_info,
+        const int64_t enabled_local_callset_idx, const int64_t column_begin, const int64_t column_end);
     /*
      * Seek and/or advance to position in the file as described by partition_info
      */
@@ -375,6 +451,10 @@ class File2TileDBBinaryBase
   private:
     //Called by move constructor
     void copy_simple_members(const File2TileDBBinaryBase& other);
+  private:
+    std::vector<File2TileDBBinaryColumnPartitionBasePQ> m_column_partition_pq_vec; //vector of PQs - one for each column partition
+    std::vector<File2TileDBBinaryBase*> m_coverage_file2tiledb_binary_ptr_vec; //vector to File2TileDBBinaryBase pointers - one for each callset in the file
+    std::vector<uint8_t> m_coverage_cell;
 };
 
 #endif

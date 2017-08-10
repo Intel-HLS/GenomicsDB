@@ -118,39 +118,38 @@ class LineBasedTextFile2TileDBBinaryColumnPartition : public File2TileDBBinaryCo
     fpos_t m_file_position;
 };
 
-class CSV2TileDBBinaryColumnPartition : public LineBasedTextFile2TileDBBinaryColumnPartition
+class DelimitedLineBasedTextFile2TileDBBinaryColumnPartition : public LineBasedTextFile2TileDBBinaryColumnPartition
 {
+  friend class DelimitedLineBasedTextFile2TileDBBinary;
   friend class CSV2TileDBBinary;
+  friend class BED2TileDBBinary;
   public:
-    CSV2TileDBBinaryColumnPartition() : LineBasedTextFile2TileDBBinaryColumnPartition()
+    DelimitedLineBasedTextFile2TileDBBinaryColumnPartition(const unsigned char delim=',') : LineBasedTextFile2TileDBBinaryColumnPartition()
     {
-      m_current_column_position = -1;
 #ifdef USE_LIBCSV
       csv_init(&m_csv_parser, CSV_STRICT|CSV_APPEND_NULL);
+      csv_set_delim(&m_csv_parser, delim);
 #else
-      throw LineBasedTextFileException("Cannot import CSV files without libcsv - recompile GenomicsDB with USE_LIBCSV and/or LIBCSV_DIR set");
+      throw LineBasedTextFileException("Cannot import TSV/CSV files without libcsv - recompile GenomicsDB with USE_LIBCSV and/or LIBCSV_DIR set");
 #endif
     }
     //Delete copy constructor
-    CSV2TileDBBinaryColumnPartition(const CSV2TileDBBinaryColumnPartition& other) = delete;
+    DelimitedLineBasedTextFile2TileDBBinaryColumnPartition(const DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& other) = delete;
     //Define move constructor
-    CSV2TileDBBinaryColumnPartition(CSV2TileDBBinaryColumnPartition&& other)
+    DelimitedLineBasedTextFile2TileDBBinaryColumnPartition(DelimitedLineBasedTextFile2TileDBBinaryColumnPartition&& other)
       : LineBasedTextFile2TileDBBinaryColumnPartition(std::move(other))
     {
-      m_current_column_position = other.m_current_column_position;
 #ifdef USE_LIBCSV
       std::swap(m_csv_parser, other.m_csv_parser);
 #endif
     }
-    ~CSV2TileDBBinaryColumnPartition()
+    ~DelimitedLineBasedTextFile2TileDBBinaryColumnPartition()
     {
 #ifdef USE_LIBCSV
       csv_free(&m_csv_parser);
 #endif
     }
-    int64_t get_column_position_in_record() const { return m_current_column_position; }
   private:
-    int64_t m_current_column_position;
 #ifdef USE_LIBCSV
     struct csv_parser m_csv_parser;
 #endif
@@ -206,94 +205,15 @@ enum TileDBCSVFieldPosIdxEnum
   TILEDB_CSV_END_IDX,
 };
 
-//Forward declaration for pointer
-class CSVLineParseStruct;
-
-//Callback functions
-void csv_parse_callback(void* field_ptr, size_t field_size, void* parse_ptr);
-void csv_line_end_callback(int terminating_token, void* parse_ptr);
-
-class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
+enum BEDFieldPosIdxEnum
 {
-  public:
-    CSV2TileDBBinary(const std::string& filename,
-        unsigned file_idx, VidMapper& vid_mapper,
-        size_t max_size_per_callset,
-        const std::vector<ColumnRange>& partition_bounds,
-        bool treat_deletions_as_intervals,
-        bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
-    //Delete copy constructor
-    CSV2TileDBBinary(const CSV2TileDBBinary& other) = delete;
-    //Define move constructor
-    CSV2TileDBBinary(CSV2TileDBBinary&& other)
-      : LineBasedTextFile2TileDBBinary(std::move(other))
-    {
-      m_cleanup_file = other.m_cleanup_file;
-      other.m_cleanup_file = false;
-    }
-    ~CSV2TileDBBinary();
-    //Functions that must be over-ridden by all sub-classes
-    /*
-     * Set order of enabled callsets
-     * In a CSV, a line contains information from a single callset
-     */
-    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
-    /*
-     * List active row idxs
-     * In a CSV, a line contains information from a single callset
-     */
-    void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
-    /*
-     * Initialization of column partitions by sub class
-     */
-    void initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds);
-    /*
-     * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used
-     */
-    File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const
-    {
-      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new CSV2TileDBBinaryColumnPartition());
-    }
-    /*
-     * Convert current record to TileDB binary in the buffer
-     */
-    bool convert_record_to_binary(std::vector<uint8_t>& buffer,
-        File2TileDBBinaryColumnPartitionBase& partition_info)
-    {
-      auto& csv_partition_info = dynamic_cast<CSV2TileDBBinaryColumnPartition&>(partition_info);
-      auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(partition_info.get_base_reader_ptr());
-      assert(csv_reader_ptr);
-      assert(csv_reader_ptr->get_line());
-      return parse_line(csv_reader_ptr->get_line(), csv_partition_info, UINT32_MAX, true);
-    }
-    /*
-     * Seek and/or advance to position in the file as described by partition_info
-     */
-    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
-        bool force_seek, bool advance_reader);
-    /*
-     * Return #callsets in current line
-     */
-    uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const
-    { return 1u; }
-    /*
-     * Invoke libcsv function
-     * Returns true if (store_in_buffer && buffer is full)
-     */
-    bool parse_line(const char* line, CSV2TileDBBinaryColumnPartition& csv_partition_info, const unsigned max_token_idx, const bool store_in_buffer);
-    /*
-     * CSV handling functions - token and end of line
-     */
-    void handle_token(CSVLineParseStruct* csv_line_parse_ptr, const char* field_ptr, const size_t field_size);
-    template<class FieldType>
-    void handle_field_token(const char* token_ptr,
-        CSVLineParseStruct* csv_line_parse_ptr, CSV2TileDBBinaryColumnPartition& csv_partition_info,
-        std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
-        VariantFieldTypeEnum variant_field_type_enum);
-    void handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr);
-  private:
-    bool m_cleanup_file;
+  BED_FILE_CONTIG_FIELD_IDX=0u,
+  BED_FILE_CONTIG_BEGIN_FIELD_IDX,
+  BED_FILE_CONTIG_END_FIELD_IDX
 };
+
+//Forward declaration
+class DelimitedLineBasedTextFile2TileDBBinary;
 
 /*
  * Class that maintains state while parsing a csv line
@@ -302,7 +222,7 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
 class CSVLineParseStruct
 {
   public:
-    CSVLineParseStruct(CSV2TileDBBinary* ptr, CSV2TileDBBinaryColumnPartition* col_info, unsigned max_token_idx,
+    CSVLineParseStruct(DelimitedLineBasedTextFile2TileDBBinary* ptr, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition* col_info, unsigned max_token_idx,
         bool store_in_buffer)
     {
       m_converter = ptr;
@@ -348,8 +268,8 @@ class CSVLineParseStruct
     /*
      * Access members
      */
-    CSV2TileDBBinary* get_csv2tiledb_binary_ptr() { return m_converter; }
-    CSV2TileDBBinaryColumnPartition* get_csv_column_partition_ptr() { return m_column_partition; }
+    DelimitedLineBasedTextFile2TileDBBinary* get_csv2tiledb_binary_ptr() { return m_converter; }
+    DelimitedLineBasedTextFile2TileDBBinaryColumnPartition* get_csv_column_partition_ptr() { return m_column_partition; }
     bool should_store_in_buffer() const { return m_store_in_buffer; }
     void set_row_idx(int64_t val) { m_row_idx = val; }
     void set_enabled_idx_in_file(int64_t val) { m_enabled_idx_in_file = val; }
@@ -364,11 +284,202 @@ class CSVLineParseStruct
     unsigned m_field_idx;
     unsigned m_num_elements_in_field;
     unsigned m_field_element_idx;
-    CSV2TileDBBinary* m_converter;
-    CSV2TileDBBinaryColumnPartition* m_column_partition;
+    DelimitedLineBasedTextFile2TileDBBinary* m_converter;
+    DelimitedLineBasedTextFile2TileDBBinaryColumnPartition* m_column_partition;
     int64_t m_row_idx;
     int64_t m_enabled_idx_in_file;
     int64_t m_cell_size_offset;
+};
+
+class DelimitedLineBasedTextFile2TileDBBinary : public LineBasedTextFile2TileDBBinary
+{
+  public:
+    DelimitedLineBasedTextFile2TileDBBinary(const std::string& filename,
+        unsigned file_idx, VidMapper& vid_mapper,
+        size_t max_size_per_callset,
+        bool treat_deletions_as_intervals,
+        const unsigned column_field_token_idx,
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false)
+      : LineBasedTextFile2TileDBBinary(filename, file_idx, vid_mapper,
+          max_size_per_callset,
+          treat_deletions_as_intervals,
+          parallel_partitions, noupdates, close_file), m_cleanup_file(false), m_column_field_token_idx(column_field_token_idx)
+    { }
+    //Delete copy constructor
+    DelimitedLineBasedTextFile2TileDBBinary(const DelimitedLineBasedTextFile2TileDBBinary& other) = delete;
+    //Define move constructor
+    DelimitedLineBasedTextFile2TileDBBinary(DelimitedLineBasedTextFile2TileDBBinary&& other)
+      : LineBasedTextFile2TileDBBinary(std::move(other))
+    {
+      m_cleanup_file = other.m_cleanup_file;
+      other.m_cleanup_file = false;
+      m_column_field_token_idx = other.m_column_field_token_idx;
+    }
+    //Destructor
+    ~DelimitedLineBasedTextFile2TileDBBinary()
+    {
+      //Cleanup if unsorted csv file
+      if(m_cleanup_file)
+        remove(m_filename.c_str());
+      m_cleanup_file = false;
+    }
+    //Functions that must be over-ridden by all sub-classes
+    /*
+     * Invoke libcsv function to do actual parsing
+     * Returns true if (store_in_buffer && buffer is full)
+     */
+    virtual bool parse_line(const char* line, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info, const unsigned max_token_idx,
+        const bool store_in_buffer) = 0;
+    /*
+     * List active row idxs
+     * In a CSV, a line contains information from a single callset
+     */
+    void list_active_row_idxs(const ColumnPartitionBatch& partition_batch, int64_t& row_idx_offset, std::vector<int64_t>& row_idx_vec) const;
+    /*
+     * Set order of enabled callsets
+     * In a CSV, a line contains information from a single callset
+     */
+    void set_order_of_enabled_callsets(int64_t& order_value, std::vector<int64_t>& tiledb_row_idx_to_order) const;
+    /*
+     * Initialization of column partitions by sub class
+     */
+    void initialize_column_partitions(const std::vector<ColumnRange>& partition_bounds);
+    /*
+     * Seek and/or advance to position in the file as described by partition_info
+     */
+    bool seek_and_fetch_position(File2TileDBBinaryColumnPartitionBase& partition_info, bool& is_read_buffer_exhausted,
+        bool force_seek, bool advance_reader);
+    //Templated call back functions for libcsv parsing
+    //Typename must be a subclass of DelimitedLineBasedTextFile2TileDBBinary
+    template<typename SubClass>
+    static void csv_parse_callback(void* token_ptr, size_t field_size, void* parse_ptr)
+    {
+      static_assert(std::is_base_of<DelimitedLineBasedTextFile2TileDBBinary, SubClass>::value,
+          "Template parameter for function csv_parse_callback must be a subclass of DelimitedLineBasedTextFile2TileDBBinary");
+      auto csv_line_parse_ptr = reinterpret_cast<CSVLineParseStruct*>(parse_ptr);
+      if(!(csv_line_parse_ptr->is_past_max_token_idx()))
+        reinterpret_cast<SubClass*>(csv_line_parse_ptr->get_csv2tiledb_binary_ptr())->handle_token(
+            csv_line_parse_ptr, reinterpret_cast<const char*>(token_ptr), field_size);
+      csv_line_parse_ptr->increment_token_idx();
+    }
+    template<typename SubClass>
+    static void csv_line_end_callback(int terminating_token, void* parse_ptr)
+    {
+      static_assert(std::is_base_of<DelimitedLineBasedTextFile2TileDBBinary, SubClass>::value,
+          "Template parameter for function csv_line_end_callback must be a subclass of DelimitedLineBasedTextFile2TileDBBinary");
+      auto csv_line_parse_ptr = reinterpret_cast<CSVLineParseStruct*>(parse_ptr);
+      reinterpret_cast<SubClass*>(csv_line_parse_ptr->get_csv2tiledb_binary_ptr())->handle_end_of_line(csv_line_parse_ptr);
+    }
+  protected:
+    bool m_cleanup_file;
+    unsigned m_column_field_token_idx;
+};
+
+class CSV2TileDBBinary : public DelimitedLineBasedTextFile2TileDBBinary
+{
+  public:
+    CSV2TileDBBinary(const std::string& filename,
+        unsigned file_idx, VidMapper& vid_mapper,
+        size_t max_size_per_callset,
+        const std::vector<ColumnRange>& partition_bounds,
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
+    //Delete copy constructor
+    CSV2TileDBBinary(const CSV2TileDBBinary& other) = delete;
+    //Define move constructor
+    CSV2TileDBBinary(CSV2TileDBBinary&& other)
+      : DelimitedLineBasedTextFile2TileDBBinary(std::move(other)) { }
+    /*
+     * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used
+     */
+    File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const
+    {
+      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new DelimitedLineBasedTextFile2TileDBBinaryColumnPartition());
+    }
+    /*
+     * Convert current record to TileDB binary in the buffer
+     */
+    bool convert_record_to_binary(std::vector<uint8_t>& buffer,
+        File2TileDBBinaryColumnPartitionBase& partition_info)
+    {
+      auto& csv_partition_info = dynamic_cast<DelimitedLineBasedTextFile2TileDBBinaryColumnPartition&>(partition_info);
+      auto csv_reader_ptr = dynamic_cast<LineBasedTextFileReader*>(partition_info.get_base_reader_ptr());
+      assert(csv_reader_ptr);
+      assert(csv_reader_ptr->get_line());
+      return parse_line(csv_reader_ptr->get_line(), csv_partition_info, UINT32_MAX, true);
+    }
+    /*
+     * Return #callsets in current line
+     */
+    uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const
+    { return 1u; }
+    /*
+     * Invoke libcsv function
+     * Returns true if (store_in_buffer && buffer is full)
+     */
+    bool parse_line(const char* line, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info, const unsigned max_token_idx,
+        const bool store_in_buffer);
+    /*
+     * CSV handling functions - token and end of line
+     */
+    void handle_token(CSVLineParseStruct* csv_line_parse_ptr, const char* field_ptr, const size_t field_size);
+    template<class FieldType>
+    void handle_field_token(const char* token_ptr,
+        CSVLineParseStruct* csv_line_parse_ptr, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info,
+        std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
+        VariantFieldTypeEnum variant_field_type_enum);
+    void handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr);
+};
+
+class BED2TileDBBinary : public DelimitedLineBasedTextFile2TileDBBinary
+{
+  public:
+    BED2TileDBBinary(const std::string& filename,
+        unsigned file_idx, VidMapper& vid_mapper,
+        size_t max_size_per_callset,
+        const std::vector<ColumnRange>& partition_bounds,
+        bool treat_deletions_as_intervals,
+        bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
+    //Delete copy constructor
+    BED2TileDBBinary(const BED2TileDBBinary& other) = delete;
+    //Define move constructor
+    BED2TileDBBinary(BED2TileDBBinary&& other)
+      : DelimitedLineBasedTextFile2TileDBBinary(std::move(other)) { }
+    /*
+     * Create the subclass of File2TileDBBinaryColumnPartitionBase that must be used
+     */
+    File2TileDBBinaryColumnPartitionBase* create_new_column_partition_object() const
+    {
+      return dynamic_cast<File2TileDBBinaryColumnPartitionBase*>(new DelimitedLineBasedTextFile2TileDBBinaryColumnPartition('\t'));
+    }
+    /*
+     * Convert current record to TileDB binary in the buffer
+     */
+    bool convert_record_to_binary(std::vector<uint8_t>& buffer,
+        File2TileDBBinaryColumnPartitionBase& partition_info)
+    {
+      throw LineBasedTextFileException("BED2TileDBBinary does not yet implement convert_record_to_binary");
+      return false;
+    }
+    /*
+     * Return #callsets in current line
+     */
+    uint64_t get_num_callsets_in_record(const File2TileDBBinaryColumnPartitionBase& partition_info) const
+    {
+      throw LineBasedTextFileException("BED2TileDBBinary does not yet implement get_num_callsets_in_record");
+      return 0u;
+    }
+    /*
+     * Invoke libcsv function
+     * Returns true if (store_in_buffer && buffer is full)
+     */
+    bool parse_line(const char* line, DelimitedLineBasedTextFile2TileDBBinaryColumnPartition& csv_partition_info, const unsigned max_token_idx,
+        const bool store_in_buffer);
+    /*
+     * libcsv handling functions - token and end of line
+     */
+    void handle_token(CSVLineParseStruct* csv_line_parse_ptr, const char* field_ptr, const size_t field_size);
+    void handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr) { }
 };
 
 #endif

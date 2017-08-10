@@ -1,0 +1,27 @@
+{
+    "callsets" : {
+        "HG00141" : {
+            "row_idx" : 0,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t0.vcf.gz",
+            "coverage_file": "inputs/coverage_files/t0.tsv"
+        },
+        "HG01958" : {
+            "row_idx" : 1,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t1.vcf.gz",
+            "coverage_file": "inputs/coverage_files/t1.tsv"
+        },
+        "HG01530" : {
+            "row_idx" : 2,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t2.vcf.gz",
+            "coverage_file": "inputs/coverage_files/t2.tsv"
+        }
+    },
+    "sorted_BED_files": [
+        "inputs/coverage_files/t0.tsv",
+        "inputs/coverage_files/t1.tsv",
+        "inputs/coverage_files/t2.tsv"
+    ]
+}

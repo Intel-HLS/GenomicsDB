@@ -112,14 +112,22 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
   else
   {
     //Same process as loader and column based partitioning - must read all files
-    m_num_callsets_in_owned_file.resize(vid_mapper->get_num_files());
-    for(auto i=0ll;i<vid_mapper->get_num_files();++i)
+    //Don't bother with coverage files - since they contain the same callsets as the variant files
+    m_num_callsets_in_owned_file.resize(vid_mapper->get_num_variant_files());
+    //With coverage files, local_file_idx != global_file_idx
+    for(auto i=0ull;i<vid_mapper->get_num_files();++i)
     {
       auto global_file_idx = i;
       auto& file_info = vid_mapper->get_file_info(global_file_idx);
-      m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
-      for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
-        m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
+      //Don't bother with coverage files - since they contain the same callsets as the variant files
+      if(!file_info.m_is_coverage_file)
+      {
+        auto local_file_idx = file_info.m_local_file_idx;
+        assert(local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_num_callsets_in_owned_file.size());
+        m_num_callsets_in_owned_file[local_file_idx] = file_info.get_num_callsets();
+        for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
+          m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
+      }
     }
   }
   m_num_callsets_owned = 0;
@@ -290,8 +298,17 @@ void VCF2TileDBConverter::initialize_file2binary_objects()
     //Same process as loader - must read all files
     //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
     auto partition_bounds = std::vector<ColumnRange>(1u, get_column_partition());
-    for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i, partition_bounds));
+    //With coverage files, local_file_idx != global_file_idx
+    //Increment local file idx for variant files only
+    auto local_file_idx = 0ull;
+    for(auto i=0ull;i<m_vid_mapper->get_num_files();++i)
+    {
+      if(!(m_vid_mapper->get_file_info(i).m_is_coverage_file)) //not a coverage file
+      {
+        m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), local_file_idx, partition_bounds));
+        ++local_file_idx;
+      }
+    }
   }
 }
 
@@ -336,11 +353,9 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     assert(static_cast<size_t>(idx_offset+i) < all_partitions_tiledb_row_idx_vec.size());
     auto row_idx = all_partitions_tiledb_row_idx_vec[idx_offset+i];
     int64_t local_file_idx = -1;
-    //For non-standalone converters, global_file_idx == local_file_idx
-    auto status = (m_standalone_converter_process || m_row_based_partitioning)
-      ? m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx)
-      : m_vid_mapper->get_global_file_idx_for_row(row_idx, local_file_idx);
+    auto status = m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
     assert(status && local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_file2binary_handlers.size());
+    assert(local_file_idx == m_file2binary_handlers[local_file_idx]->get_file_idx());
     //Activate file - enable fetch flag and reserve entry in circular buffer
     m_partition_batch[partition_idx].activate_file(local_file_idx);
   }
