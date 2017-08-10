@@ -127,6 +127,9 @@ class VCFDiffFile
         int gold_line_field_pos_idx, int test_line_field_pos_idx);
     std::string create_region(const std::string& regions,
         const std::unordered_map<std::string, std::pair<int64_t, int64_t>>& regions_contig_to_interval, const std::string& contig);
+    template<class T>
+    void get_ploidy(const uint64_t num_samples, const bcf_fmt_t& GT_fmt_t);
+    void get_ploidy_wrapper(const bcf_hdr_t* hdr, const bcf1_t* line);
   public:
     std::string m_filename;
     std::string m_regions;

@@ -35,7 +35,7 @@ query_json_template_string="""
         "array" : "",
         "vcf_header_filename" : ["inputs/template_vcf_header.vcf"],
         "query_column_ranges" : [ [ [0, 10000000000 ] ] ],
-        "query_row_ranges" : [ [ [0, 2 ] ] ],
+        "query_row_ranges" : [ [ [0, 3 ] ] ],
         "reference_genome" : "inputs/chr1_10MB.fasta.gz",
         "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
@@ -93,7 +93,7 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
     if('size_per_column_partition' in test_params_dict):
-        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition']
+        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition'];
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
@@ -375,6 +375,19 @@ def main():
                         "calls"      : "golden_outputs/t0_with_missing_PL_SB_fields_t1_calls.json",
                         } },
                     ]
+            },
+            { "name" : "t0_haploid_triploid_1_2_3_triploid_deletion",
+                'golden_output' : 'golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                "vid_mapping_file": "inputs/vid_DS_ID.json",
+                'size_per_column_partition': 1200,
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                        "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
+                        } }
+                ]
             },
     ];
     for test_params_dict in loader_tests:

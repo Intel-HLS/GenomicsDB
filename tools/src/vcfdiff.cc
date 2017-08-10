@@ -607,6 +607,48 @@ std::unordered_set<std::string> get_ID_set(const bcf1_t* line)
   return id_set;
 }
 
+template<class DataType>
+void VCFDiffFile::get_ploidy(const uint64_t num_samples, const bcf_fmt_t& GT_fmt_t)
+{
+  auto GT_ptr = reinterpret_cast<const DataType*>(GT_fmt_t.p);
+  auto k = 0ull;
+  auto max_num_per_sample = GT_fmt_t.n;
+  for(auto i=0ull;i<num_samples;++i,k+=max_num_per_sample)
+  {
+    m_gold_ploidy[i] = max_num_per_sample; //default initialize to max value
+    for(auto j=0;j<max_num_per_sample;++j)
+      if(!is_bcf_valid_value<DataType>(GT_ptr[k+j]))
+      {
+        m_gold_ploidy[i] = j; //for example, if 1 sample is haploid
+        break;
+      }
+  }
+}
+
+void VCFDiffFile::get_ploidy_wrapper(const bcf_hdr_t* hdr, const bcf1_t* line)
+{
+  //Get ploidy for each sample in the golden set
+  //First FORMAT field must be GT field
+  auto& GT_fmt_t = line->d.fmt[0];
+  assert(strcmp(bcf_hdr_int2id(hdr, BCF_DT_ID, GT_fmt_t.id), "GT") == 0);
+  auto num_samples = bcf_hdr_nsamples(hdr);
+  switch(GT_fmt_t.type)
+  {
+    case BCF_BT_INT8:
+      get_ploidy<int8_t>(num_samples, GT_fmt_t);
+      break;
+    case BCF_BT_INT16:
+      get_ploidy<int16_t>(num_samples, GT_fmt_t);
+      break;
+    case BCF_BT_INT32:
+      get_ploidy<int32_t>(num_samples, GT_fmt_t);
+      break;
+    default:
+      throw VCFDiffException(std::string("Unknown type for GT field ")
+          + std::to_string(GT_fmt_t.type));
+  }
+}
+
 void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
 {
   //Ignore chr,pos as it's already handled previously
@@ -686,29 +728,8 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
   }
   error_message += (diff_FILTER_flag ? "FILTER list different\n" : "");
   diff_line_flag = diff_FILTER_flag || diff_line_flag;
-  //Get ploidy for each sample in the golden set
-  {
-    int num_values_allocated = m_tmp_hts_string.m/sizeof(int);
-    auto num_values_returned = bcf_get_genotypes(gold_hdr, gold_line, reinterpret_cast<void**>(&(m_tmp_hts_string.s)),
-        &num_values_allocated);
-    VERIFY_OR_THROW(num_values_returned >= 0);
-    m_tmp_hts_string.m = std::max(m_tmp_hts_string.m,
-        static_cast<size_t>(num_values_allocated)*sizeof(int));
-    auto num_samples = bcf_hdr_nsamples(gold_hdr);
-    auto max_values_per_sample = num_values_returned/num_samples;
-    auto GT_ptr = reinterpret_cast<const int*>(m_tmp_hts_string.s);
-    auto k=0ull;
-    for(auto i=0;i<num_samples;++i,k+=max_values_per_sample)
-    {
-      m_gold_ploidy[i] = max_values_per_sample; //default initialize to max value
-      for(auto j=0;j<max_values_per_sample;++j)
-        if(!is_bcf_valid_value<int>(GT_ptr[k+j]))
-        {
-          m_gold_ploidy[i] = j; //for example, if 1 sample is haploid
-          break;
-        }
-    }
-  }
+  //Get ploidy of all samples
+  get_ploidy_wrapper(gold_hdr, gold_line);
   //Build haploid and diploid genotype index mapping
   m_gold_genotype_idx_to_test_idx.build_haploid_and_diploid_gt_mappings(gold_line->n_allele, m_alleles_lut);
   //INFO fields
