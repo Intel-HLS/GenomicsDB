@@ -366,6 +366,14 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
                 "vid_mapping_file": "inputs/vid_as_array.json",
             },
+            { "name" : "t0_with_missing_PL_SB_fields", 'golden_output' : 'golden_outputs/t0_with_missing_PL_SB_fields_t1.vcf',
+                'callset_mapping_file': 'inputs/callsets/t0_with_missing_PL_SB_fields_t1.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_with_missing_PL_SB_fields_t1_calls.json",
+                        } },
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
