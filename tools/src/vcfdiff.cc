@@ -634,8 +634,10 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
     diff_line_flag = diff_ID_flag || diff_line_flag ;
   }
   //REF + ALT
+  //When partitioned, the positions might be different and so it makes no sense to
+  //compare REF allele
   m_diff_alleles_flag = (m_line->n_allele != gold_line->n_allele)
-    || (strcmp(m_line->d.allele[0], gold_line->d.allele[0]) != 0);
+    || (m_line->pos == gold_line->pos && strcmp(m_line->d.allele[0], gold_line->d.allele[0]) != 0);
   if(!m_diff_alleles_flag)
   {
     m_alleles_lut.resize_luts_if_needed(1, m_line->n_allele);

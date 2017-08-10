@@ -672,3 +672,16 @@ void VariantOperations::remap_data_based_on_genotype(const std::vector<int>& inp
     std::vector<uint64_t>& num_calls_with_valid_data, int missing_value,
     std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination, std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
     std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination);
+//Same reason - vcfdiff.cc
+template
+void VariantOperations::remap_data_based_on_genotype_general(const std::vector<int>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, int missing_value,
+    std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination,
+    remap_operator_function_type<int> op
+);
