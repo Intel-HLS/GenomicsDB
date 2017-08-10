@@ -586,7 +586,8 @@ bool VariantFieldHandler<DataType>::concatenate_field(const Variant& variant, co
 template<class DataType>
 bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
-        const bool use_missing_values_only_not_vector_end, const bool use_vector_end_only)
+        const bool use_missing_values_only_not_vector_end, const bool use_vector_end_only,
+        const bool is_GT_field)
 {
   auto max_elements_per_call = 0u;
   auto valid_idx = 0u;
@@ -623,10 +624,17 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
       num_elements_inserted = field_ptr->length();
       extended_field_vector_idx += num_elements_inserted;
     }
-    if(num_elements_inserted == 0u) //no elements inserted, insert missing value first
+    //WARNING: bunch of horrible hacks to deal with VCF spec and its implementations: htslib and htsjdk
+    if(num_elements_inserted == 0u) //no elements inserted for this call, insert missing value first
     {
-      m_extended_field_vector[extended_field_vector_idx] = use_vector_end_only ? get_bcf_vector_end_value<DataType>()
-        : get_bcf_missing_value<DataType>();
+      //use_vector_end_only - true only for string fields when the Java interface is used
+      //use_missing_values_only_not_vector_end - true only when the Java interface is used
+      m_extended_field_vector[extended_field_vector_idx] =
+        (use_vector_end_only || (is_GT_field && !use_missing_values_only_not_vector_end))
+        ? get_bcf_vector_end_value<DataType>()
+        : ((is_GT_field && use_missing_values_only_not_vector_end)
+            ? get_bcf_gt_missing_value<DataType>() //why? htsjdk does not handle a record where GT is missing in 1 sample, present in another
+            : get_bcf_missing_value<DataType>());
       ++num_elements_inserted;
       ++extended_field_vector_idx;
     }

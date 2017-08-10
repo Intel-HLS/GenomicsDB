@@ -304,7 +304,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
         ? m_remapped_variant : variant;
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements,
-        m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type);
+        m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type,
+        known_field_enum == GVCF_GT_IDX);
     if(valid_field_found)
     {
       auto j=0u;
@@ -317,13 +318,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           if(m_vcf_adapter->produce_GT_field())
           {
             for(j=0u;j<num_elements;++j)
-              int_vec[j] = is_bcf_valid_value(int_vec[j]) ? bcf_gt_unphased(int_vec[j]) : bcf_gt_missing;
+              int_vec[j] = is_bcf_valid_value(int_vec[j]) ? bcf_gt_unphased(int_vec[j]) : int_vec[j];
           }
           else
           {
             //CombineGVCF sets GT field to missing
             for(j=0u;j<num_elements;++j)
-              int_vec[j] = bcf_gt_missing;
+              int_vec[j] = is_bcf_valid_value(int_vec[j]) ? bcf_gt_missing : int_vec[j];
           }
           break;
         case GVCF_GQ_IDX:
