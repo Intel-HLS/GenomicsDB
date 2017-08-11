@@ -26,7 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "variant_cell.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "timer.h"
 
 //Exceptions thrown 

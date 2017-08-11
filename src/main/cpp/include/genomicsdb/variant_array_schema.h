@@ -24,7 +24,7 @@
 #define VARIANT_ARRAY_SCHEMA_H
 
 #include "headers.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "gt_common.h"
 
 //Exceptions thrown 
