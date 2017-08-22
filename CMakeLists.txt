@@ -31,8 +31,13 @@ set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
-set(LIBDBI_DIR "/usr" CACHE PATH "Path to libdbi install directory")
+set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
+set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
+
+#See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
+enable_testing()
 
 #Platform check modules
 include(CheckIncludeFileCXX)
@@ -194,12 +199,12 @@ function(build_GenomicsDB_executable_common target)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
     if(LIBDBI_FOUND)
-        target_link_libraries(${target} ${LIBDBI_DEV_LIBRARY} ${LIBPGSQL_DRIVER_LIBRARY})
+        target_link_libraries(${target} ${LIBPGSQL_DRIVER_LIBRARY} ${LIBDBI_DEV_LIBRARY})
     endif()
-    target_link_libraries(${target} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${PROTOBUF_LIBRARIES})
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
     endif()
+    target_link_libraries(${target} ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
     install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
 
@@ -213,7 +218,6 @@ include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
 add_subdirectory(tools)
 add_subdirectory(example)
 
-enable_testing()
 if(BUILD_JAVA)
     set(JAVA_SCALA_SOURCES
         ./src/main/java/com/intel/genomicsdb/GenomicsDBConfiguration.java
@@ -250,6 +254,11 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    if(GENOMICSDB_SPARK_PROFILE)
+        set(MAVEN_PROFILE "-P${GENOMICSDB_SPARK_PROFILE}")
+    else()
+        set(MAVEN_PROFILE "")
+    endif()
     set(MAVEN_QUIET_ARGS "")
     if(MAVEN_QUIET)
         set(MAVEN_QUIET_ARGS "--quiet")
@@ -266,7 +275,7 @@ if(BUILD_JAVA)
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
+        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION} ${MAVEN_PROFILE}
         COMMAND mvn package -DskipTests
           ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
@@ -293,5 +302,4 @@ if(BUILD_JAVA)
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 
-    add_test(NAME All_GTests COMMAND runAllGTests)
 endif()

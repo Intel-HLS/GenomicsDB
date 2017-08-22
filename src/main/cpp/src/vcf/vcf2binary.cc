@@ -209,8 +209,8 @@ void VCFReader::read_and_advance()
   }
   else  //indexed reader
   {
-    bcf_sr_next_line(m_indexed_reader);
-    auto line = bcf_sr_get_line(m_indexed_reader, 0);
+    auto next_line_exists = bcf_sr_next_line(m_indexed_reader);
+    auto line = next_line_exists ? bcf_sr_get_line(m_indexed_reader, 0) : 0;
     if(line)
     {
       std::swap<bcf1_t*>(m_indexed_reader->readers[0].buffer[0], m_line);
@@ -594,7 +594,13 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   if(static_cast<uint64_t>(max_num_values)*sizeof(FieldType) >  vcf_partition.m_vcf_get_buffer_size)
     vcf_partition.m_vcf_get_buffer_size = static_cast<uint64_t>(max_num_values)*sizeof(FieldType);
   auto buffer_full = false;
-  if(num_values <= 0) //Curr line does not have this field, or flag is not set
+  auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
+  //Curr line does not have this field or field is missing
+  //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
+  //Example GT:PL   0/0:.  0/1:0,0,0
+  //However, flag fields have num_values == 1, but no value is returned in the buffer
+  if(num_values <= 0
+     || (num_values == 1 && bcf_ht_type != BCF_HT_FLAG && is_bcf_missing_value<FieldType>(ptr[0])))
   {
     //variable length field, print #elements = 0
     if(length_descriptor != BCF_VL_FIXED)
@@ -621,7 +627,6 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   }
   else
   {
-    auto* ptr = reinterpret_cast<const FieldType*>(vcf_partition.m_vcf_get_buffer);
     //For format fields, the ptr should point to where data for the current callset begins
     if(field_type_idx == BCF_HL_FMT)
     {
