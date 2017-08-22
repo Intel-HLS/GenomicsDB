@@ -38,7 +38,11 @@ std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_in
     {"BCF_VL_P", BCF_VL_P},
     {"P", BCF_VL_P},
     {"BCF_VL_VAR", BCF_VL_VAR},
-    {"VAR", BCF_VL_VAR}
+    {"VAR", BCF_VL_VAR},
+    {"PP", BCF_VL_Phased_Ploidy},
+    {"Phased_Ploidy", BCF_VL_Phased_Ploidy},
+    {"phased_ploidy", BCF_VL_Phased_Ploidy},
+    {"PHASED_PLOIDY", BCF_VL_Phased_Ploidy}
     });
 
 std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to_type_index =

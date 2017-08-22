@@ -209,7 +209,8 @@ bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant
     return false;
   //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
   //else we should use field objects from the original variant
-  auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor) || query_field_idx == m_GT_query_idx))
+  auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor)
+        || query_field_idx == m_GT_query_idx))
     ? m_remapped_variant : variant;
   auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
   //valid field handler
@@ -281,7 +282,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
   m_DP_FORMAT_vector.resize(m_remapped_variant.get_num_calls());
   //Pointer to extended vector inside field handler object 
   const void* ptr = 0;
-  auto num_elements = 0u;
+  uint64_t num_elements = 0ull;
   int* int_vec = 0;     //will point to same address as ptr, but as int*
   //Handle all fields - simply need to extend to the largest size
   for(auto i=0u;i<m_FORMAT_fields_vec.size();++i)
@@ -313,20 +314,44 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       switch(known_field_enum)
       {
         case GVCF_GT_IDX: //GT field is a pita
-          int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
-          //GATK CombineGVCF does not produce GT field by default - option to produce GT
-          if(m_vcf_adapter->produce_GT_field())
           {
-            for(j=0u;j<num_elements;++j)
-              int_vec[j] = is_bcf_valid_value(int_vec[j]) ? bcf_gt_unphased(int_vec[j]) : int_vec[j];
+            int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
+            //GT of type 0/2 is stored as [0,0,2] in GenomicsDB if phased ploidy is used, else [0, 2]
+            //GT of type 0|2 is stored as [0,1,2] in GenomicsDB if phased ploidy is used, else [0, 2]
+            auto GT_length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+            auto num_elements_per_sample = num_elements/variant.get_num_calls();
+            auto store_phase_information_in_GT = GT_length_descriptor == BCF_VL_Phased_Ploidy;
+            auto max_ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, num_elements_per_sample);
+            //skip over phasing elements
+            auto step = store_phase_information_in_GT ? 2u : 1u;
+            auto output_idx = 0ull;
+            //GATK CombineGVCF does not produce GT field by default - option to produce GT
+            if(m_vcf_adapter->produce_GT_field())
+            {
+              for(j=0ull;j<num_elements;j+=num_elements_per_sample)
+              {
+                for(auto k=0u;k<num_elements_per_sample;k+=step)
+                  int_vec[output_idx++] = is_bcf_valid_value(int_vec[j+k])
+                    ? ((store_phase_information_in_GT && k > 0u && int_vec[j+k-1u])
+                      ? bcf_gt_phased(int_vec[j+k]) : bcf_gt_unphased(int_vec[j+k]))
+                    : int_vec[j+k];
+              }
+            }
+            else
+            {
+              //CombineGVCF sets GT field to missing
+              for(j=0ull;j<num_elements;j+=num_elements_per_sample)
+              {
+                for(auto k=0u;k<num_elements_per_sample;k+=step)
+                  int_vec[output_idx++] = is_bcf_valid_value(int_vec[j+k])
+                    ? ((store_phase_information_in_GT && k > 0u && int_vec[j+k-1u])
+                      ? (bcf_gt_missing | 1) : bcf_gt_missing)
+                    : int_vec[j+k];
+              }
+            }
+            num_elements = max_ploidy*variant.get_num_calls();
+            break;
           }
-          else
-          {
-            //CombineGVCF sets GT field to missing
-            for(j=0u;j<num_elements;++j)
-              int_vec[j] = is_bcf_valid_value(int_vec[j]) ? bcf_gt_missing : int_vec[j];
-          }
-          break;
         case GVCF_GQ_IDX:
           do_insert = m_should_add_GQ_field;
           break;
@@ -528,6 +553,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
 {
   m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 10u);    //will not have more than 3 alleles anyway
   m_reduced_alleles_LUT.reset_luts();
+  auto GT_length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
   for(auto iter=variant.begin(), e=variant.end();iter != e;++iter)
   {
     auto& curr_call = *iter;
@@ -594,7 +620,6 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       //GT field
       if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
       {
-
         auto& original_GT_field = curr_call.get_field(m_GT_query_idx);
         if(original_GT_field.get() && original_GT_field->is_valid())
         {
@@ -602,10 +627,10 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
             curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
           m_spanning_deletion_remapped_GT.resize(input_GT.size());
           VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
-              num_reduced_alleles, has_NON_REF);
+              num_reduced_alleles, has_NON_REF, GT_length_descriptor);
           //Copy back
           memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
-          ploidy = input_GT.size();
+          ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, input_GT.size());
         }
       }
       //Remap fields that need to be remapped

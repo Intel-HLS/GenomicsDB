@@ -143,6 +143,7 @@ unsigned KnownFieldInfo::get_num_elements_given_length_descriptor(unsigned lengt
     case BCF_VL_G:
       return KnownFieldInfo::get_number_of_genotypes(num_ALT_alleles, ploidy);
     case BCF_VL_P:
+    case BCF_VL_Phased_Ploidy:
       return ploidy;
     default:
       return num_elements;
@@ -199,6 +200,7 @@ unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_
       length = (num_alleles*(num_alleles+1))/2;
       break;
     case BCF_VL_P:
+    case BCF_VL_Phased_Ploidy:
       length = ploidy;
       break;
     default:
@@ -248,7 +250,7 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_G;
       break;
     case GVCF_GT_IDX:
-      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_P;
+      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_Phased_Ploidy;
       break;
     case GVCF_SB_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;

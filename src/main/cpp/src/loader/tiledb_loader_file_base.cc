@@ -231,6 +231,8 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
       LocalCallSetIdxCompareByTileDBRowIdx(m_local_callset_idx_to_tiledb_row_idx));
   m_base_reader_ptr = 0;
   m_histogram = 0;
+  auto* GT_field_info_ptr = vid_mapper.get_field_info("GT");
+  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor == BCF_VL_Phased_Ploidy);
 }
 
 void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds)
@@ -261,6 +263,7 @@ void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& oth
   m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
   m_get_data_from_file = other.m_get_data_from_file;
   m_no_mandatory_VCF_fields = other.m_no_mandatory_VCF_fields;
+  m_store_phase_information_for_GT = other.m_store_phase_information_for_GT;
   m_file_idx = other.m_file_idx;
   m_buffer_stream_idx = other.m_buffer_stream_idx;
   m_max_size_per_callset = other.m_max_size_per_callset;

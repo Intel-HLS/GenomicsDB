@@ -374,6 +374,7 @@ class File2TileDBBinaryBase
     bool m_treat_deletions_as_intervals;
     bool m_get_data_from_file;
     bool m_no_mandatory_VCF_fields;
+    bool m_store_phase_information_for_GT;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
     int64_t m_buffer_stream_idx;

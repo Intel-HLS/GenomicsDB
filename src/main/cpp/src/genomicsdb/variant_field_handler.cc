@@ -585,7 +585,7 @@ bool VariantFieldHandler<DataType>::concatenate_field(const Variant& variant, co
 
 template<class DataType>
 bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
         const bool use_missing_values_only_not_vector_end, const bool use_vector_end_only,
         const bool is_GT_field)
 {

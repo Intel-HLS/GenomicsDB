@@ -120,7 +120,7 @@ class VariantOperations
      */
     static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
         const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx,
-        const unsigned num_merged_alleles, const bool has_NON_REF);
+        const unsigned num_merged_alleles, const bool has_NON_REF, const unsigned length_descriptor);
     /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
@@ -386,7 +386,7 @@ class VariantFieldHandlerBase
     virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
         const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
         const bool is_GT_field = false) = 0;
 };
@@ -446,7 +446,7 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
+        unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
         const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
         const bool is_GT_field=false);
   private:

@@ -697,7 +697,9 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   //Check left in for safety
   VERIFY_OR_THROW(field_idx >= 0 && bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx));
   //FIXME: special length descriptors
-  auto length_descriptor = is_GT_field ? BCF_VL_P : bcf_hdr_id2length(hdr, field_type_idx, field_idx);
+  auto length_descriptor = is_GT_field
+    ? (m_store_phase_information_for_GT ? BCF_VL_Phased_Ploidy : BCF_VL_P)
+    : bcf_hdr_id2length(hdr, field_type_idx, field_idx);
   auto bcf_ht_type = is_GT_field ? BCF_HT_INT : bcf_hdr_id2type(hdr, field_type_idx, field_idx);
   auto field_length = bcf_hdr_id2number(hdr, field_type_idx, field_idx);
   //Flag field lengths are set to 0 in the header :(
@@ -765,7 +767,11 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       if(!is_vcf_str_type)
 #endif
       {
-        buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_values);
+        if(is_GT_field && m_store_phase_information_for_GT && num_values > 0)
+          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
+              ((num_values << 1)-1)); //phasing information is stored as elements
+        else
+          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_values);
         if(buffer_full) return true;
       }
     }
@@ -787,7 +793,18 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
         break;
       }
       if(is_GT_field)
-        val = bcf_gt_allele(static_cast<int>(val));
+      {
+        auto gt_element = static_cast<int>(val);
+        if(m_store_phase_information_for_GT && k>0)
+        {
+          if(is_bcf_valid_value<int>(gt_element) && bcf_gt_is_phased(gt_element))
+            buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 1, print_sep);
+          else
+            buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0, print_sep);
+          if(buffer_full) return true;
+        }
+        val = bcf_gt_allele(gt_element);
+      }
       buffer_full = buffer_full || tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
       if(buffer_full) return true;
       print_sep  = !is_vcf_str_type;
