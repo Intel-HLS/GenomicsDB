@@ -733,14 +733,26 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         }
         if(field_info_dict.HasMember("length"))
         {
-          if(field_info_dict["length"].IsInt64())
-            m_field_idx_to_info[field_idx].m_num_elements = field_info_dict["length"].GetInt64();
+          const auto& length_json_value = field_info_dict["length"];
+          if(length_json_value.IsInt64())
+            m_field_idx_to_info[field_idx].m_num_elements = length_json_value.GetInt64();
           else
           {
-            VERIFY_OR_THROW(field_info_dict["length"].IsString());
-            auto iter = VidMapper::m_length_descriptor_string_to_int.find(field_info_dict["length"].GetString());
+            VERIFY_OR_THROW(length_json_value.IsString());
+            auto length_value_str = length_json_value.GetString();
+            auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_str);
             if(iter == VidMapper::m_length_descriptor_string_to_int.end())
-              m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+            {
+              //JSON produced by Protobuf specifies fixed length field lengths as strings - e.g. "1"
+              char* endptr = 0;
+              auto length_value_int = strtoull(length_value_str, &endptr, 0);
+              auto num_chars_traversed = endptr-length_value_str;
+              if(length_json_value.GetStringLength() > 0u
+                  && num_chars_traversed == length_json_value.GetStringLength()) //whole string is an integer
+                m_field_idx_to_info[field_idx].m_num_elements = length_value_int;
+              else
+                m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+            }
             else
               m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
           }
