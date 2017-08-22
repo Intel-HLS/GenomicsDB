@@ -577,7 +577,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       auto PL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX);
       auto has_NON_REF = false;
       //PL field exists
-      if(PL_field_ptr)
+      if(PL_field_ptr && PL_field_ptr->is_valid())
       {
         auto& PL_vector = PL_field_ptr->get();
         for(auto i=0u;i<alt_alleles.size();++i)
