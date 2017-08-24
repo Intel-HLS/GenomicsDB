@@ -85,6 +85,9 @@ class RemapDataGoldGtIdxToTestGtIdx : public RemappedDataWrapperBase
       auto* vec_ptr = &m_haploid_gold_genotype_idx_to_test_idx;
       switch(ploidy)
       {
+        case 1u:
+          vec_ptr = &m_haploid_gold_genotype_idx_to_test_idx;
+          break;
         case 2u:
           vec_ptr = &m_diploid_gold_genotype_idx_to_test_idx;
           break;

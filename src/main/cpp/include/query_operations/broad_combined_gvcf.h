@@ -109,6 +109,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
     std::vector<int> m_spanning_deletion_remapped_GT;
+    //Stores current genotype when dealing with spanning deletions - avoid dynamic reallocs
+    std::vector<int> m_spanning_deletion_current_genotype;
     //Allowed bases
     static const std::unordered_set<char> m_legal_bases;
     //For profiling

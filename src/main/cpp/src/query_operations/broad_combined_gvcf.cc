@@ -195,6 +195,7 @@ void BroadCombinedGVCFOperator::clear()
   m_DP_FORMAT_vector.clear();
   m_spanning_deletions_remapped_fields.clear();
   m_spanning_deletion_remapped_GT.clear();
+  m_spanning_deletion_current_genotype.clear();
 }
 
 bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant& variant,
@@ -571,7 +572,17 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         continue;
       //Reduced allele list will be REF="N", ALT="*, <NON_REF>"
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, 0, 0);  //REF-REF mapping
-      //Need to find deletion allele with lowest PL value - this deletion allele is mapped to "*" allele
+      //For each deletion allele, find the PL value corresponding to the genotype in which all the elements
+      //of the genotype are equal to the deletion allele. The deletion allele with the lowest PL value is
+      //mapped to "*" allele
+      //GT field - for ploidy
+      auto ploidy = 2u; //diploid default
+      auto* original_GT_field_ptr = (m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+          ? curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx) : 0;
+      if(original_GT_field_ptr && original_GT_field_ptr->is_valid())
+        ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, original_GT_field_ptr->get().size());
+      else
+        original_GT_field_ptr = 0;
       auto lowest_deletion_allele_idx = -1;
       int lowest_PL_value = INT_MAX;
       auto PL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX);
@@ -580,12 +591,15 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       if(PL_field_ptr && PL_field_ptr->is_valid())
       {
         auto& PL_vector = PL_field_ptr->get();
+        m_spanning_deletion_current_genotype.resize(ploidy);
         for(auto i=0u;i<alt_alleles.size();++i)
         {
           auto allele_idx = i+1;  //+1 for REF
           if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
           {
-            unsigned gt_idx = bcf_alleles2gt(allele_idx, allele_idx);
+            //Genotype with all elements set to the deletion allele
+            m_spanning_deletion_current_genotype.assign(ploidy, allele_idx);
+            auto gt_idx = VariantOperations::get_genotype_index(m_spanning_deletion_current_genotype, true);
             assert(gt_idx < PL_vector.size());
             if(PL_vector[gt_idx] < lowest_PL_value || lowest_deletion_allele_idx < 0)
             {
@@ -616,22 +630,16 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       ref_allele = "N"; //set to unknown REF for now
       alt_alleles[0u] = g_vcf_SPANNING_DELETION;
       unsigned num_reduced_alleles = alt_alleles.size() + 1u;   //+1 for REF
-      auto ploidy = 0u;
       //GT field
-      if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+      if(original_GT_field_ptr)
       {
-        auto& original_GT_field = curr_call.get_field(m_GT_query_idx);
-        if(original_GT_field.get() && original_GT_field->is_valid())
-        {
-          auto& input_GT =
-            curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
-          m_spanning_deletion_remapped_GT.resize(input_GT.size());
-          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
-              num_reduced_alleles, has_NON_REF, GT_length_descriptor);
-          //Copy back
-          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
-          ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, input_GT.size());
-        }
+        auto& input_GT =
+          original_GT_field_ptr->get();
+        m_spanning_deletion_remapped_GT.resize(input_GT.size());
+        VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
+            num_reduced_alleles, has_NON_REF, GT_length_descriptor);
+        //Copy back
+        memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
       }
       //Remap fields that need to be remapped
       for(auto i=0u;i<m_remapped_fields_query_idxs.size();++i)

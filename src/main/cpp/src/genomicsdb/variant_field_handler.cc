@@ -299,11 +299,21 @@ uint64_t VariantOperations::get_genotype_index(std::vector<int>& allele_idx_vec,
   //To get genotype combination index for the input, alleles must be in sorted order
   if(!is_sorted)
     std::sort(allele_idx_vec.begin(), allele_idx_vec.end());
-  auto input_gt_idx = 0ull;
-  //From http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
-  for(auto i=0ull;i<allele_idx_vec.size();++i)
-    input_gt_idx += VariantOperations::nCr(i+allele_idx_vec[i], allele_idx_vec[i]-1);
-  return input_gt_idx;
+  switch(allele_idx_vec.size()) //ploidy
+  {
+    case 1u:
+      return allele_idx_vec[0u];
+    case 2u:
+      return bcf_alleles2gt(allele_idx_vec[0u], allele_idx_vec[1u]);
+    default:
+      {
+        auto gt_idx = 0ull;
+        //From http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
+        for(auto i=0ull;i<allele_idx_vec.size();++i)
+          gt_idx += VariantOperations::nCr(i+allele_idx_vec[i], allele_idx_vec[i]-1);
+        return gt_idx;
+      }
+  }
 }
 
 template<class DataType>
@@ -327,7 +337,7 @@ void VariantOperations::reorder_field_based_on_genotype_index(const std::vector<
     return;
   }
   auto input_gt_idx = VariantOperations::get_genotype_index(input_call_allele_idx_vec_for_current_gt_combination, false);
-  assert(input_gt_idx < KnownFieldInfo::get_number_of_genotypes(num_merged_alleles-1u, ploidy));
+  assert(remapped_gt_idx < KnownFieldInfo::get_number_of_genotypes(num_merged_alleles-1u, ploidy));
   //Input data could have been truncated due to missing values - if so, put missing value
   if(input_gt_idx >= input_data.size())
     *(reinterpret_cast<DataType*>(remapped_data.put_address(input_call_idx, remapped_gt_idx))) = (missing_value);

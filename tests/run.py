@@ -44,6 +44,7 @@ vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRan
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
 query_attributes_with_PL_only = [ "PL" ]
 query_attributes_with_MLEAC_only = [ "MLEAC" ]
+default_segment_size = 40
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -56,6 +57,11 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
     if("query_attributes" in query_param_dict):
         test_dict["query_attributes"] = query_param_dict["query_attributes"];
+    if('segment_size' in query_param_dict):
+        test_dict['segment_size'] = query_param_dict['segment_size'];
+    else:
+        test_dict['segment_size'] = default_segment_size;
+
     return test_dict;
 
 
@@ -94,6 +100,10 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
     if('size_per_column_partition' in test_params_dict):
         test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition'];
+    if('segment_size' in test_params_dict):
+        test_dict['segment_size'] = test_params_dict['segment_size'];
+    else:
+        test_dict['segment_size'] = default_segment_size;
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
@@ -130,9 +140,6 @@ def main():
     subprocess.call('lcov --directory '+gcda_prefix_dir+' --zerocounters', shell=True);
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
-    #Buffer size
-    segment_size = 40
-    load_segment_size = 40
     loader_tests = [
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
@@ -381,10 +388,12 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                 "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                 'size_per_column_partition': 1200,
+                'segment_size': 100,
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000],
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'segment_size': 100,
                         "golden_output": {
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
@@ -398,7 +407,6 @@ def main():
         if(test_name == "t0_1_2"):
             test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
-        test_loader_dict['segment_size'] = load_segment_size;
         with open(loader_json_filename, 'wb') as fptr:
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
@@ -474,7 +482,7 @@ def main():
                             loader_argument = ''
                         pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
                             + ' -j '
-                            +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
+                            +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']), shell=True,
                             stdout=subprocess.PIPE);
                     stdout_string = pid.communicate()[0]
                     if(pid.returncode != 0):
