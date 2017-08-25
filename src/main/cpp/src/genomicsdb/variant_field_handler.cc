@@ -593,6 +593,37 @@ bool VariantFieldHandler<DataType>::concatenate_field(const Variant& variant, co
   return (curr_result_size > 0u);
 }
 
+//I apologize - really should not have distinguished between vector<non-char> and string [vector<char>] :(
+//In the columnar field branch, I hope to remove this unnecessary distinction
+template<>
+bool VariantFieldHandler<char>::concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx, const void** output_ptr, unsigned& num_elements)
+{
+  auto curr_result_size = 0ull;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      auto* ptr = dynamic_cast<VariantFieldString*>(field_ptr.get());
+      assert(ptr);
+      auto& vec = ptr->get();
+      if(curr_result_size + vec.size() > m_element_wise_operations_result.size())
+        m_element_wise_operations_result.resize(curr_result_size+vec.size());
+      memcpy(&(m_element_wise_operations_result[curr_result_size]), &(vec[0]), vec.size()*sizeof(char));
+      curr_result_size += vec.size();
+    }
+  }
+  if(curr_result_size > 0u)
+    m_element_wise_operations_result.resize(curr_result_size);
+  (*output_ptr) = &(m_element_wise_operations_result[0]);
+  num_elements = curr_result_size;
+  return (curr_result_size > 0u);
+}
+
 template<class DataType>
 bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,

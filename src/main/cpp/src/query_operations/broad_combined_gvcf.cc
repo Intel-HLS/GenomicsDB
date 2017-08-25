@@ -597,11 +597,13 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           auto allele_idx = i+1;  //+1 for REF
           if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
           {
+            if(lowest_deletion_allele_idx < 0) //uninitialized
+              lowest_deletion_allele_idx = allele_idx;
             //Genotype with all elements set to the deletion allele
             m_spanning_deletion_current_genotype.assign(ploidy, allele_idx);
             auto gt_idx = VariantOperations::get_genotype_index(m_spanning_deletion_current_genotype, true);
-            assert(gt_idx < PL_vector.size());
-            if(PL_vector[gt_idx] < lowest_PL_value || lowest_deletion_allele_idx < 0)
+            //Truncations - dropped values etc
+            if(gt_idx < PL_vector.size() && PL_vector[gt_idx] < lowest_PL_value)
             {
               lowest_PL_value = PL_vector[gt_idx];
               lowest_deletion_allele_idx = allele_idx;
