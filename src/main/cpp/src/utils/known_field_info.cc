@@ -218,6 +218,9 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
       g_known_field_enum_to_info[idx].m_field_creator = std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldALTData>());
       break;
+    case GVCF_ID_IDX:
+      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
+      break;
     case GVCF_FILTER_IDX: 
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_VAR;
       break;
