@@ -4,7 +4,7 @@
 
 find_path(LIBDBI_INCLUDE_DIR NAMES dbi/dbi.h HINTS "${LIBDBI_DIR}/include")
 
-find_library(LIBPGSQL_DRIVER_LIBRARY NAMES dbdpgsql HINTS "${LIBDBI_DIR}/lib/dbd")
+find_library(LIBPGSQL_DRIVER_LIBRARY NAMES dbdpgsql HINTS "${LIBDBI_DIR}/lib/dbd" "${LIBDBI_DIR}/lib/*/dbd")
 
 find_library(LIBDBI_DEV_LIBRARY NAMES dbi HINTS "${LIBDBI_DIR}/lib")
 

@@ -189,6 +189,7 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_no_mandatory_VCF_fields;
 };
 
+#ifdef LIBDBI
 class JSONMapperConfig : public SQLVidMapperRequest {
   private:
 	void parse_mapper_config(std::string mapper_config_file);
@@ -196,6 +197,7 @@ class JSONMapperConfig : public SQLVidMapperRequest {
 	JSONMapperConfig(std::string mapper_config_file) { parse_mapper_config(mapper_config_file); }
 	void populate_mapper_request(SQLVidMapperRequest&);
 };
+#endif
 
 #ifdef HTSDIR
 

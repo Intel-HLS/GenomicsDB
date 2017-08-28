@@ -751,6 +751,7 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
     m_no_mandatory_VCF_fields = m_json["no_mandatory_VCF_fields"].GetBool();
 }
 
+#ifdef LIBDBI
 void JSONMapperConfig::parse_mapper_config(std::string mapper_config_file) {
   std::ifstream ifs(mapper_config_file.c_str());
   VERIFY_OR_THROW(ifs.is_open());
@@ -810,6 +811,7 @@ void JSONMapperConfig::populate_mapper_request(SQLVidMapperRequest& mapper_reque
   mapper_request.array_name = array_name;
   return;
 }
+#endif //ifdef LIBDBI
    
 #ifdef HTSDIR
 
