@@ -92,6 +92,8 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
+    if('size_per_column_partition' in test_params_dict):
+        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition']
     return test_dict;
 
 def get_file_content_and_md5sum(filename):

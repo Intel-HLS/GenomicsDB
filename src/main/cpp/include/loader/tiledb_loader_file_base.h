@@ -207,6 +207,24 @@ class File2TileDBBinaryColumnPartitionBase
 //Buffer stream idx, partition idx
 typedef std::pair<int64_t, unsigned> BufferStreamIdentifier;
 
+class LocalCallSetIdxCompareByTileDBRowIdx
+{
+  public:
+    LocalCallSetIdxCompareByTileDBRowIdx(const std::vector<int64_t>& local_callset_idx_to_tiledb_row_idx_vec)
+    {
+      m_local_callset_idx_to_tiledb_row_idx = &local_callset_idx_to_tiledb_row_idx_vec;
+    }
+    bool operator()(const int64_t a, const int64_t b)
+    {
+      const auto& vec = *m_local_callset_idx_to_tiledb_row_idx;
+      assert(static_cast<size_t>(a) < vec.size());
+      assert(static_cast<size_t>(b) < vec.size());
+      return vec[a] < vec[b];
+    }
+  private:
+    const std::vector<int64_t>* m_local_callset_idx_to_tiledb_row_idx;
+};
+
 /*
  * Base class for all instances of objects that convert file formats for importing
  * to TileDB
@@ -342,6 +360,7 @@ class File2TileDBBinaryBase
     {
       throw File2TileDBBinaryException("Unimplemented operation");
     }
+    void set_no_mandatory_VCF_fields(const bool value) { m_no_mandatory_VCF_fields = value; }
   protected:
     inline int64_t get_enabled_idx_for_local_callset_idx(int64_t local_callset_idx) const
     {
@@ -354,6 +373,7 @@ class File2TileDBBinaryBase
     bool m_close_file;
     bool m_treat_deletions_as_intervals;
     bool m_get_data_from_file;
+    bool m_no_mandatory_VCF_fields;
     VidMapper* m_vid_mapper;
     int64_t m_file_idx;
     int64_t m_buffer_stream_idx;
