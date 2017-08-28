@@ -129,7 +129,7 @@ LoaderArrayWriter::LoaderArrayWriter(
   auto array_name = m_loader_json_config.get_array_name(rank);
   //Schema
   id_mapper->build_tiledb_array_schema(m_schema, array_name, m_loader_json_config.is_partitioned_by_row(), m_row_partition,
-      m_loader_json_config.compress_tiledb_array());
+      m_loader_json_config.compress_tiledb_array(), m_loader_json_config.no_mandatory_VCF_fields());
   //Disable synced writes
   g_TileDB_enable_SYNC_write = m_loader_json_config.disable_synced_writes() ? 0 : 1;
   //TileDB compression level
@@ -322,7 +322,8 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
-  m_vid_mapper->build_tiledb_array_schema(m_schema, "", false, RowRange(0, id_mapper->get_num_callsets()-1), false);
+  m_vid_mapper->build_tiledb_array_schema(m_schema, "", false, RowRange(0, id_mapper->get_num_callsets()-1),
+      false, false);
   m_query_processor = new VariantQueryProcessor(*m_schema, *id_mapper);
   //Initialize query config
   std::vector<std::string> query_attributes(m_schema->attribute_num());

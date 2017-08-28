@@ -125,8 +125,12 @@ class VCF2TileDBLoaderConverterBase : public JSONLoaderConfig
     std::vector<LoaderConverterMessageExchange> m_owned_exchanges;
     //#callsets owned by this entity
     int64_t m_num_callsets_owned;
+    //#orders owned by entity
+    int64_t m_num_orders_owned;
     //One entry for every owned file - contains #callsets per owned file
     std::vector<int64_t> m_num_callsets_in_owned_file;
+    //One entry for every owned file - contains #orders per owned file
+    std::vector<int64_t> m_num_orders_in_owned_file;
     //Row idxs for callsets owned by this entity - may not be initialized
     std::vector<int64_t> m_owned_row_idx_vec;
 };

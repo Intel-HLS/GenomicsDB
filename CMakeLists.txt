@@ -29,10 +29,12 @@ set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
+set(USE_GPERFTOOLS False CACHE BOOL "Collect profiling information using gperftools")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
 set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
+set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -149,6 +151,17 @@ if(DO_PROFILING)
     add_definitions(-DDO_PROFILING=1)
 endif()
 
+if(USE_GPERFTOOLS)
+    find_package(GPerftools)
+    if(GPERFTOOLS_FOUND)
+        message(STATUS "Enabling profiling using GPerftools")
+	add_definitions(-DUSE_GPERFTOOLS)
+        include_directories(${GPERFTOOLS_INCLUDE_DIR})
+    else()
+        message(WARNING "GPerftools headers/library not found")
+    endif()
+endif()
+
 #Collect memory consumption stats while producing combined VCF records
 if(DO_MEMORY_PROFILING)
     message(STATUS "Enabling memory consumption profiling while producing combined VCF records")
@@ -203,6 +216,9 @@ function(build_GenomicsDB_executable_common target)
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
     endif()
+    if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
+        target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
+    endif()
     target_link_libraries(${target} ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
     install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
@@ -253,6 +269,11 @@ if(BUILD_JAVA)
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
     endif()
+    if(GENOMICSDB_SPARK_PROFILE)
+        set(MAVEN_PROFILE "-P${GENOMICSDB_SPARK_PROFILE}")
+    else()
+        set(MAVEN_PROFILE "")
+    endif()
     set(MAVEN_QUIET_ARGS "")
     if(MAVEN_QUIET)
         set(MAVEN_QUIET_ARGS "--quiet")
@@ -269,7 +290,7 @@ if(BUILD_JAVA)
     add_custom_command(
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
-        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION}
+        COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION} ${MAVEN_PROFILE}
         COMMAND mvn package -DskipTests
           ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml

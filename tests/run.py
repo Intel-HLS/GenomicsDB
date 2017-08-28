@@ -42,6 +42,8 @@ query_json_template_string="""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
+query_attributes_with_PL_only = [ "PL" ]
+query_attributes_with_MLEAC_only = [ "MLEAC" ]
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -90,6 +92,8 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
+    if('size_per_column_partition' in test_params_dict):
+        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition']
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
@@ -139,6 +143,11 @@ def main():
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],
+                        "query_attributes": query_attributes_with_PL_only,
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0_with_PL_only",
                         } },
                     { "query_column_ranges" : [0, 1000000000],#vid and callset jsons passed through query json
                         "query_without_loader": True,
@@ -273,7 +282,13 @@ def main():
             },
             { "name" : "test_new_fields", 'golden_output' : 'golden_outputs/t6_7_8_new_field_gatk.vcf',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
-                'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json'
+                'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                      "query_attributes" : query_attributes_with_MLEAC_only, "golden_output": {
+                        "calls"        : "golden_outputs/test_new_fields_MLEAC_only.json",
+                        } },
+                    ]
             },
             { "name" : "test_info_combine_ops0", 'golden_output' : 'golden_outputs/info_ops0.vcf',
                 'callset_mapping_file': 'inputs/callsets/info_ops.json',
@@ -352,6 +367,14 @@ def main():
             { "name" : "t0_1_2_as_array", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_as_array.json',
                 "vid_mapping_file": "inputs/vid_as_array.json",
+            },
+            { "name" : "t0_with_missing_PL_SB_fields", 'golden_output' : 'golden_outputs/t0_with_missing_PL_SB_fields_t1.vcf',
+                'callset_mapping_file': 'inputs/callsets/t0_with_missing_PL_SB_fields_t1.json',
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                        "calls"      : "golden_outputs/t0_with_missing_PL_SB_fields_t1_calls.json",
+                        } },
+                    ]
             },
     ];
     for test_params_dict in loader_tests:

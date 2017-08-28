@@ -123,6 +123,7 @@ class FileInfo
       m_local_tiledb_row_idx_pairs.push_back(std::make_pair(local, global));
     }
     size_t get_num_callsets() const { return m_local_tiledb_row_idx_pairs.size(); }
+    size_t get_num_orders() const;
     std::string m_name;
     int64_t m_file_idx;
     //Idx of the entity that handles this file (used when loaders and owners are distinct MPI processes)
@@ -503,7 +504,8 @@ class VidMapper
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
     void build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
-        const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields) const;
+        const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields,
+	const bool no_mandatory_VCF_fields) const;
     /*
      * Get num contigs
      */
