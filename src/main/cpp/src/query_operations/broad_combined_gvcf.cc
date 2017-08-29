@@ -45,6 +45,93 @@
 //Static member
 const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
 
+//Utility functions for encoding GT field
+template<bool phase_information_in_TileDB, bool produce_GT_field>
+int encode_GT_element(const int value, const bool is_phased);
+
+//Specialization - phase information exists in TileDB and produce_GT_field
+template<>
+inline int encode_GT_element<true, true>(const int value, const bool is_phased)
+{
+  return is_bcf_valid_value(value)
+    ? (is_phased ? bcf_gt_phased(value) : bcf_gt_unphased(value))
+    : value;
+}
+
+//Specialization - phase information exists in TileDB and !produce_GT_field
+template<>
+inline int encode_GT_element<true, false>(const int value, const bool is_phased)
+{
+  return is_bcf_valid_value(value)
+    ? (is_phased ? (bcf_gt_missing | 1) : bcf_gt_missing)
+    : value;
+}
+//Specialization - phase information doesn't exist in TileDB and produce_GT_field
+template<>
+inline int encode_GT_element<false, true>(const int value, const bool is_phased)
+{
+  return is_bcf_valid_value(value) ? bcf_gt_unphased(value) : value;
+}
+
+//Specialization - phase information doesn't exist in TileDB and !produce_GT_field
+template<>
+inline int encode_GT_element<false, false>(const int value, const bool is_phased)
+{
+  return is_bcf_valid_value(value) ? bcf_gt_missing : value;
+}
+
+template<bool phase_information_in_TileDB, bool produce_GT_field>
+void encode_GT_vector(int* inout_vec, const uint64_t input_offset,
+    const unsigned num_elements_per_sample, uint64_t& output_idx);
+
+//Specialization - phase information exists in TileDB and produce_GT_field
+template<>
+inline void encode_GT_vector<true, true>(int* inout_vec, const uint64_t input_offset,
+    const unsigned num_elements_per_sample, uint64_t& output_idx)
+{
+  if(num_elements_per_sample > 0u)
+    inout_vec[output_idx++] = encode_GT_element<false, true>(inout_vec[input_offset], false);
+  //skip over phasing elements
+  for(auto k=2u;k<num_elements_per_sample;k+=2u)
+    inout_vec[output_idx++] = encode_GT_element<true, true>(inout_vec[input_offset+k], (inout_vec[input_offset+k-1u] > 0));
+}
+
+//Specialization - phase information exists in TileDB and !produce_GT_field
+template<>
+inline void encode_GT_vector<true, false>(int* inout_vec, const uint64_t input_offset,
+    const unsigned num_elements_per_sample, uint64_t& output_idx)
+{
+  if(num_elements_per_sample > 0u)
+    inout_vec[output_idx++] = encode_GT_element<false, false>(inout_vec[input_offset], false);
+  //skip over phasing elements
+  for(auto k=2u;k<num_elements_per_sample;k+=2u)
+    inout_vec[output_idx++] = encode_GT_element<true, false>(inout_vec[input_offset+k], (inout_vec[input_offset+k-1u] > 0));
+}
+
+//Specialization - phase information doesn't exist in TileDB and produce_GT_field
+template<>
+inline void encode_GT_vector<false, true>(int* inout_vec, const uint64_t input_offset,
+    const unsigned num_elements_per_sample, uint64_t& output_idx)
+{
+  if(num_elements_per_sample > 0u)
+    inout_vec[output_idx++] = encode_GT_element<false, true>(inout_vec[input_offset], false);
+  //skip over phasing elements
+  for(auto k=1u;k<num_elements_per_sample;++k)
+    inout_vec[output_idx++] = encode_GT_element<false, true>(inout_vec[input_offset+k], false);
+}
+
+//Specialization - phase information doesn't exist in TileDB and !produce_GT_field
+template<>
+inline void encode_GT_vector<false, false>(int* inout_vec, const uint64_t input_offset,
+    const unsigned num_elements_per_sample, uint64_t& output_idx)
+{
+  if(num_elements_per_sample > 0u)
+    inout_vec[output_idx++] = encode_GT_element<false, false>(inout_vec[input_offset], false);
+  //skip over phasing elements
+  for(auto k=1u;k<num_elements_per_sample;++k)
+    inout_vec[output_idx++] = encode_GT_element<false, false>(inout_vec[input_offset+k], false);
+}
+
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     const VariantQueryConfig& query_config,
     const unsigned max_diploid_alt_alleles_that_can_be_genotyped, const bool use_missing_values_only_not_vector_end)
@@ -182,6 +269,26 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   //vector of field pointers used for handling remapped fields when dealing with spanning deletions
   //Individual pointers will be allocated later
   m_spanning_deletions_remapped_fields.resize(m_remapped_fields_query_idxs.size());
+  //Initialize GT encoding function pointer
+  auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
+  auto phase_information_in_TileDB = (GT_length_descriptor == BCF_VL_Phased_Ploidy);
+  if(phase_information_in_TileDB)
+  {
+    //GATK CombineGVCF does not produce GT field by default - option to produce GT
+    if(m_vcf_adapter->produce_GT_field())
+      m_encode_GT_vector_function_ptr = encode_GT_vector<true, true>;
+    else
+      m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>;
+  }
+  else
+  {
+    //GATK CombineGVCF does not produce GT field by default - option to produce GT
+    if(m_vcf_adapter->produce_GT_field())
+      m_encode_GT_vector_function_ptr = encode_GT_vector<false, true>;
+    else
+      m_encode_GT_vector_function_ptr = encode_GT_vector<false, false>;
+  }
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -317,39 +424,15 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
         case GVCF_GT_IDX: //GT field is a pita
           {
             int_vec = const_cast<int*>(reinterpret_cast<const int*>(ptr));
+            auto num_elements_per_sample = num_elements/variant.get_num_calls();
             //GT of type 0/2 is stored as [0,0,2] in GenomicsDB if phased ploidy is used, else [0, 2]
             //GT of type 0|2 is stored as [0,1,2] in GenomicsDB if phased ploidy is used, else [0, 2]
-            auto GT_length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-            auto num_elements_per_sample = num_elements/variant.get_num_calls();
-            auto store_phase_information_in_GT = GT_length_descriptor == BCF_VL_Phased_Ploidy;
-            auto max_ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, num_elements_per_sample);
-            //skip over phasing elements
-            auto step = store_phase_information_in_GT ? 2u : 1u;
-            auto output_idx = 0ull;
-            //GATK CombineGVCF does not produce GT field by default - option to produce GT
-            if(m_vcf_adapter->produce_GT_field())
-            {
-              for(j=0ull;j<num_elements;j+=num_elements_per_sample)
-              {
-                for(auto k=0u;k<num_elements_per_sample;k+=step)
-                  int_vec[output_idx++] = is_bcf_valid_value(int_vec[j+k])
-                    ? ((store_phase_information_in_GT && k > 0u && int_vec[j+k-1u])
-                      ? bcf_gt_phased(int_vec[j+k]) : bcf_gt_unphased(int_vec[j+k]))
-                    : int_vec[j+k];
-              }
-            }
-            else
-            {
-              //CombineGVCF sets GT field to missing
-              for(j=0ull;j<num_elements;j+=num_elements_per_sample)
-              {
-                for(auto k=0u;k<num_elements_per_sample;k+=step)
-                  int_vec[output_idx++] = is_bcf_valid_value(int_vec[j+k])
-                    ? ((store_phase_information_in_GT && k > 0u && int_vec[j+k-1u])
-                      ? (bcf_gt_missing | 1) : bcf_gt_missing)
-                    : int_vec[j+k];
-              }
-            }
+            auto max_ploidy = KnownFieldInfo::get_ploidy(
+                m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx),
+                num_elements_per_sample);
+            uint64_t output_idx = 0ull;
+            for(j=0ull;j<num_elements;j+=num_elements_per_sample)
+              (*m_encode_GT_vector_function_ptr)(int_vec, j, num_elements_per_sample, output_idx);
             num_elements = max_ploidy*variant.get_num_calls();
             break;
           }

@@ -115,6 +115,9 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     static const std::unordered_set<char> m_legal_bases;
     //For profiling
     Timer m_bcf_t_creation_timer;
+    //To avoid doing complex if-else statements for encoding the GT vector
+    void (*m_encode_GT_vector_function_ptr)(int* inout_vec, const uint64_t input_offset,
+        const unsigned num_elements_per_sample, uint64_t& output_idx);
 };
 
 #endif //ifdef HTSDIR

@@ -61,6 +61,8 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict['segment_size'] = query_param_dict['segment_size'];
     else:
         test_dict['segment_size'] = default_segment_size;
+    if('produce_GT_field' in query_param_dict):
+        test_dict['produce_GT_field'] = query_param_dict['produce_GT_field'];
 
     return test_dict;
 
@@ -414,6 +416,15 @@ def main():
                         "golden_output": {
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],
+                      'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                      "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'produce_GT_field': True,
+                      'segment_size': 100,
+                        "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT",
                         } }
                 ]
             },
