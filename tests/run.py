@@ -35,7 +35,7 @@ query_json_template_string="""
         "array" : "",
         "vcf_header_filename" : ["inputs/template_vcf_header.vcf"],
         "query_column_ranges" : [ [ [0, 10000000000 ] ] ],
-        "query_row_ranges" : [ [ [0, 2 ] ] ],
+        "query_row_ranges" : [ [ [0, 3 ] ] ],
         "reference_genome" : "inputs/chr1_10MB.fasta.gz",
         "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
@@ -44,6 +44,7 @@ vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRan
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
 query_attributes_with_PL_only = [ "PL" ]
 query_attributes_with_MLEAC_only = [ "MLEAC" ]
+default_segment_size = 40
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
@@ -56,6 +57,13 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
     if("query_attributes" in query_param_dict):
         test_dict["query_attributes"] = query_param_dict["query_attributes"];
+    if('segment_size' in query_param_dict):
+        test_dict['segment_size'] = query_param_dict['segment_size'];
+    else:
+        test_dict['segment_size'] = default_segment_size;
+    if('produce_GT_field' in query_param_dict):
+        test_dict['produce_GT_field'] = query_param_dict['produce_GT_field'];
+
     return test_dict;
 
 
@@ -93,7 +101,11 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
     if('size_per_column_partition' in test_params_dict):
-        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition']
+        test_dict['size_per_column_partition'] = test_params_dict['size_per_column_partition'];
+    if('segment_size' in test_params_dict):
+        test_dict['segment_size'] = test_params_dict['segment_size'];
+    else:
+        test_dict['segment_size'] = default_segment_size;
     return test_dict;
 
 def get_file_content_and_md5sum(filename):
@@ -130,9 +142,6 @@ def main():
     subprocess.call('lcov --directory '+gcda_prefix_dir+' --zerocounters', shell=True);
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
-    #Buffer size
-    segment_size = 40
-    load_segment_size = 40
     loader_tests = [
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
@@ -223,17 +232,18 @@ def main():
             },
             { "name" : "java_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_variants_at_0",
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_0_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
                     { "query_column_ranges" : [12150, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
-                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
@@ -301,13 +311,20 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 'chromosome_interval': '1:1-100000000',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [0, 1000000000],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [12150, 1000000000],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
@@ -317,16 +334,23 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8",
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'chromosome_interval': '1:1-100000000',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t6_7_8_calls_at_0",
-                        "variants"   : "golden_outputs/t6_7_8_variants_at_0",
+                    { "query_column_ranges" : [0, 1000000000],
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_0_phased_GT",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [8029500, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
-                        "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
+                    { "query_column_ranges" : [8029500, 1000000000],
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_8029500_phased_GT",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_8029500_phased_GT",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
                         } }
@@ -353,14 +377,16 @@ def main():
                     ]
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS_ID",
+                'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'vid_mapping_file': 'inputs/vid_DS_ID.json',
                 'chromosome_interval': '1:1-100000000',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000],
+                        'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "query_attributes": query_attributes_with_DS_ID, "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
+                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0_phased_GT",
                         } },
                     ]
             },
@@ -376,6 +402,32 @@ def main():
                         } },
                     ]
             },
+            { "name" : "t0_haploid_triploid_1_2_3_triploid_deletion",
+                'golden_output' : 'golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                'size_per_column_partition': 1200,
+                'segment_size': 100,
+                "query_params": [
+                    { "query_column_ranges" : [0, 1000000000],
+                      'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                      "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'segment_size': 100,
+                        "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],
+                      'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                      "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'produce_GT_field': True,
+                      'segment_size': 100,
+                        "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT",
+                        } }
+                ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -383,7 +435,6 @@ def main():
         if(test_name == "t0_1_2"):
             test_loader_dict["compress_tiledb_array"] = True;
         loader_json_filename = tmpdir+os.path.sep+test_name+'.json'
-        test_loader_dict['segment_size'] = load_segment_size;
         with open(loader_json_filename, 'wb') as fptr:
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
@@ -459,7 +510,7 @@ def main():
                             loader_argument = ''
                         pid = subprocess.Popen((exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
                             + ' -j '
-                            +query_json_filename+' '+cmd_line_param)%(segment_size), shell=True,
+                            +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']), shell=True,
                             stdout=subprocess.PIPE);
                     stdout_string = pid.communicate()[0]
                     if(pid.returncode != 0):

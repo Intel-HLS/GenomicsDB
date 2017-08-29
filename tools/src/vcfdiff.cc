@@ -31,6 +31,30 @@ int64_t g_num_callsets = INT64_MAX;
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCFDiffException(#X);
 
+template<class DataType>
+void build_gold_gt_idx_to_test_gt_idx(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists, 
+    const bool curr_genotype_combination_contains_missing_allele_for_input,
+    const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    const uint64_t remapped_gt_idx,
+    std::vector<int>& input_call_allele_idx_vec
+    )
+{
+  auto& remapper = dynamic_cast<RemapDataGoldGtIdxToTestGtIdx&>(remapped_data);
+  if(curr_genotype_combination_contains_missing_allele_for_input)
+    remapper.add_mapping(remapped_gt_idx, lut_missing_value);
+  else
+  {
+    auto input_gt_idx = VariantOperations::get_genotype_index(input_call_allele_idx_vec, false);
+    remapper.add_mapping(remapped_gt_idx, input_gt_idx);
+  }
+}
+
 VCFDiffFile::VCFDiffFile(const std::string& filename, const std::string& regions)
 : m_samples_lut(1u, 1u), m_fields_lut(1u, 1u), m_contigs_lut(1u, 1u)
 {
@@ -75,6 +99,7 @@ VCFDiffFile::VCFDiffFile(const std::string& filename, const std::string& regions
     if(m_samples.find(bcf_hdr_int2id(m_hdr, BCF_DT_SAMPLE, i)) == m_samples.end())
       m_samples.insert(bcf_hdr_int2id(m_hdr, BCF_DT_SAMPLE, i));
   m_samples_lut.resize_luts_if_needed(1u, m_samples.size());
+  m_gold_ploidy.resize(m_samples.size(), 0u);
 }
 
 VCFDiffFile::~VCFDiffFile()
@@ -96,7 +121,6 @@ VCFDiffFile::~VCFDiffFile()
   m_samples_lut.clear();
   m_fields_in_gold_line.clear();
   m_fields_in_test_line.clear();
-  m_gold_genotype_idx_to_test_idx.clear();
   if(m_tmp_hts_string.m && m_tmp_hts_string.s)
     free(m_tmp_hts_string.s);
   m_tmp_hts_string.s = 0;
@@ -324,18 +348,24 @@ bool bcf_is_empty_field(const bcf_hdr_t* hdr, const bcf1_t* line, const int bcf_
 }
 
 template<class T1, class T2>
-inline bool compare_unequal(const T1 a, const T2 b)
+inline bool compare_unequal(const T1 a, const T2 b, const bool is_GT_field)
 {
   return !(
       (a == b) ||
       (is_bcf_missing_value<T1>(a) && is_bcf_missing_value<T2>(b)) ||
-      (is_bcf_vector_end_value<T1>(a) && is_bcf_vector_end_value<T2>(b))
+      (is_bcf_vector_end_value<T1>(a) && is_bcf_vector_end_value<T2>(b)) ||
+      (is_GT_field  //htsjdk does not have a vector end value
+       && (         //hence, it pads bcf_gt_missing values
+         (is_bcf_vector_end_value<T1>(a) && b == bcf_gt_missing)
+         || (is_bcf_vector_end_value<T2>(b) && a == bcf_gt_missing)
+         )
+       )
       );
 }
 
 //Specialization for float - values should be close
 template<>
-inline bool compare_unequal(const float a, const float b)
+inline bool compare_unequal(const float a, const float b, const bool is_GT_field)
 {
   if((is_bcf_missing_value<float>(a) && is_bcf_missing_value<float>(b)) ||
       (is_bcf_vector_end_value<float>(a) && is_bcf_vector_end_value<float>(b)))
@@ -359,6 +389,7 @@ bool VCFDiffFile::compare_unequal_vector(const bcf_hdr_t* gold_hdr, const bcf1_t
   auto test_field_idx = GET_FIELD_IDX(m_line, bcf_field_type, test_line_field_pos_idx);
   //Length descriptor
   auto known_field_enum = m_field_idx_to_known_field_enum.get_known_field_enum_for_schema_idx(test_field_idx);
+  auto is_GT_field = known_field_enum == GVCF_GT_IDX;
   auto length_descriptor = BCF_VL_FIXED;
   if(m_field_idx_to_known_field_enum.is_defined_value(known_field_enum))
     length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
@@ -377,6 +408,22 @@ bool VCFDiffFile::compare_unequal_vector(const bcf_hdr_t* gold_hdr, const bcf1_t
     return true;
   for(auto j=0;j<num_samples;++j)
   {
+    //genotype idx mapping - general ploidy
+    if(length_descriptor == BCF_VL_G && m_gold_ploidy[j] > 2u)
+    {
+      std::vector<int> tmp_vector; //not really used for anything
+      m_gold_genotype_idx_to_test_idx.clear_general_mapping_vector();
+      VariantOperations::remap_data_based_on_genotype_general<int>(tmp_vector,
+          0ull,
+          m_alleles_lut,
+          gold_line->n_allele, m_contains_NON_REF_allele, m_gold_ploidy[j],
+          m_gold_genotype_idx_to_test_idx,
+          m_remap_count_vector, get_bcf_missing_value<T1>(),
+          m_gold_allele_idx_vec_for_curr_gt,
+          m_stack,
+          m_test_allele_idx_vec_for_curr_gt,
+          build_gold_gt_idx_to_test_gt_idx);
+    }
     int lut_test_sample_idx = (bcf_field_type == BCF_HL_INFO) ? 0 : m_samples_lut.get_test_idx_for_gold(0, j);
     assert(!GoldLUT::is_missing_value(lut_test_sample_idx) && lut_test_sample_idx < bcf_hdr_nsamples(m_hdr));
     auto gold_ptr = GET_DATA_PTR<const T1*>(gold_line, bcf_field_type, gold_line_field_pos_idx, j, num_gold_elements);
@@ -393,26 +440,27 @@ bool VCFDiffFile::compare_unequal_vector(const bcf_hdr_t* gold_hdr, const bcf1_t
           test_vector_idx = m_alleles_lut.get_input_idx_for_merged(0, k);
           break;
         case BCF_VL_G:
-          assert(static_cast<size_t>(k) < m_gold_genotype_idx_to_test_idx.size());
-          test_vector_idx = m_gold_genotype_idx_to_test_idx[k];
-          break;
+          {
+            test_vector_idx = m_gold_genotype_idx_to_test_idx.get_mapping(k, m_gold_ploidy[j]);
+            break;
+          }
         default:
           break;        //test_vector_idx = k
       }
       assert(!CombineAllelesLUT::is_missing_value(test_vector_idx) && test_vector_idx < min_num_per_sample);
-      if(compare_unequal<T1, T2>(gold_ptr[k], test_ptr[test_vector_idx]))
+      if(compare_unequal<T1, T2>(gold_ptr[k], test_ptr[test_vector_idx], is_GT_field))
         return true;    //unequal
     }
     if(num_test_elements > num_gold_elements)
     {
       for(auto k=min_num_per_sample;k<max_num_per_sample;++k)
-        if(is_bcf_valid_value<T2>(test_ptr[k]))
+        if(is_bcf_valid_value<T2>(test_ptr[k]) && !(is_GT_field && test_ptr[k] == bcf_gt_missing))
           return true;  //extra elements
     }
     else
     {
       for(auto k=min_num_per_sample;k<max_num_per_sample;++k)
-        if(is_bcf_valid_value<T1>(gold_ptr[k]))
+        if(is_bcf_valid_value<T1>(gold_ptr[k]) && !(is_GT_field && gold_ptr[k] == bcf_gt_missing) )
           return true;  //extra elements
     }
   }
@@ -543,6 +591,64 @@ bool VCFDiffFile::compare_unequal_fields(const bcf_hdr_t* gold_hdr, const bcf1_t
   return diff_fields;
 }
 
+std::unordered_set<std::string> get_ID_set(const bcf1_t* line)
+{
+  std::unordered_set<std::string> id_set;
+  auto curr_ID_value = std::string(line->d.id);
+  auto last_begin_value = 0u; 
+  for(auto i=0u;i<curr_ID_value.length();++i)
+    if(curr_ID_value[i] == ';' || curr_ID_value[i] == ',')  //GATK doesn't follow VCF spec for IDs, concatenates ID list with a comma
+    {   
+      id_set.insert(curr_ID_value.substr(last_begin_value, i-last_begin_value));
+      last_begin_value = i+1u;
+    }   
+  if(curr_ID_value.length() > last_begin_value)
+    id_set.insert(curr_ID_value.substr(last_begin_value, curr_ID_value.length()-last_begin_value));
+  return id_set;
+}
+
+template<class DataType>
+void VCFDiffFile::get_ploidy(const uint64_t num_samples, const bcf_fmt_t& GT_fmt_t)
+{
+  auto GT_ptr = reinterpret_cast<const DataType*>(GT_fmt_t.p);
+  auto k = 0ull;
+  auto max_num_per_sample = GT_fmt_t.n;
+  for(auto i=0ull;i<num_samples;++i,k+=max_num_per_sample)
+  {
+    m_gold_ploidy[i] = max_num_per_sample; //default initialize to max value
+    for(auto j=0;j<max_num_per_sample;++j)
+      if(!is_bcf_valid_value<DataType>(GT_ptr[k+j]))
+      {
+        m_gold_ploidy[i] = j; //for example, if 1 sample is haploid
+        break;
+      }
+  }
+}
+
+void VCFDiffFile::get_ploidy_wrapper(const bcf_hdr_t* hdr, const bcf1_t* line)
+{
+  //Get ploidy for each sample in the golden set
+  //First FORMAT field must be GT field
+  auto& GT_fmt_t = line->d.fmt[0];
+  assert(strcmp(bcf_hdr_int2id(hdr, BCF_DT_ID, GT_fmt_t.id), "GT") == 0);
+  auto num_samples = bcf_hdr_nsamples(hdr);
+  switch(GT_fmt_t.type)
+  {
+    case BCF_BT_INT8:
+      get_ploidy<int8_t>(num_samples, GT_fmt_t);
+      break;
+    case BCF_BT_INT16:
+      get_ploidy<int16_t>(num_samples, GT_fmt_t);
+      break;
+    case BCF_BT_INT32:
+      get_ploidy<int32_t>(num_samples, GT_fmt_t);
+      break;
+    default:
+      throw VCFDiffException(std::string("Unknown type for GT field ")
+          + std::to_string(GT_fmt_t.type));
+  }
+}
+
 void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
 {
   //Ignore chr,pos as it's already handled previously
@@ -551,11 +657,29 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
   std::string error_message = "";
   auto diff_line_flag = false;
   //ID field
-  auto diff_ID_flag = (strcmp(m_line->d.id, gold_line->d.id) != 0);
-  error_message += (diff_ID_flag ? "ID field different\n" : "");
-  diff_line_flag = diff_ID_flag || diff_line_flag ;
+  {
+    auto gold_ID_set = std::move(get_ID_set(gold_line));
+    auto test_ID_set = std::move(get_ID_set(m_line));
+    auto diff_ID_flag = false;
+    if(gold_ID_set.size() != test_ID_set.size())
+      diff_ID_flag = true;
+    else
+    {
+      for(const auto& val : gold_ID_set)
+        if(test_ID_set.find(val) == test_ID_set.end())
+        {
+          diff_ID_flag = true;
+          break;
+        }
+    }
+    error_message += (diff_ID_flag ? "ID field different\n" : "");
+    diff_line_flag = diff_ID_flag || diff_line_flag ;
+  }
   //REF + ALT
-  m_diff_alleles_flag = (m_line->n_allele != gold_line->n_allele);
+  //When partitioned, the positions might be different and so it makes no sense to
+  //compare REF allele
+  m_diff_alleles_flag = (m_line->n_allele != gold_line->n_allele)
+    || (m_line->pos == gold_line->pos && strcmp(m_line->d.allele[0], gold_line->d.allele[0]) != 0);
   if(!m_diff_alleles_flag)
   {
     m_alleles_lut.resize_luts_if_needed(1, m_line->n_allele);
@@ -575,27 +699,12 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
       }
       m_alleles_lut.add_input_merged_idx_pair(0, i, (*iter).second);
     }
-    //Setup genotypes map
-    if(!m_diff_alleles_flag)
-    {
-      auto num_alleles = m_line->n_allele;
-      auto num_gts = (num_alleles*(num_alleles+1))/2;
-      m_gold_genotype_idx_to_test_idx.resize(num_gts);
-      for(auto i=0;i<gold_line->n_allele;++i)
-      {
-        auto lut_test_allele_idx_i = m_alleles_lut.get_input_idx_for_merged(0, i);
-        for(auto j=i;j<gold_line->n_allele;++j)
-        {
-          auto lut_test_allele_idx_j = m_alleles_lut.get_input_idx_for_merged(0, j);
-          m_gold_genotype_idx_to_test_idx[bcf_alleles2gt(i, j)] = bcf_alleles2gt(lut_test_allele_idx_i, lut_test_allele_idx_j);
-        }
-      }
-    }
+    m_contains_NON_REF_allele = (strcmp(gold_line->d.allele[gold_line->n_allele-1], "<NON_REF>") == 0);
   }
   error_message += (m_diff_alleles_flag ? "Allele list different\n" : "");
   diff_line_flag = m_diff_alleles_flag || diff_line_flag;
   //QUAL
-  auto diff_QUAL_flag = compare_unequal<float>(m_line->qual, gold_line->qual);
+  auto diff_QUAL_flag = compare_unequal<float>(m_line->qual, gold_line->qual, false);
   error_message += (diff_QUAL_flag ? "QUAL field different\n" : "");
   diff_line_flag = diff_QUAL_flag || diff_line_flag;
   //FILTER
@@ -619,6 +728,10 @@ void VCFDiffFile::compare_line(const bcf_hdr_t* gold_hdr, bcf1_t* gold_line)
   }
   error_message += (diff_FILTER_flag ? "FILTER list different\n" : "");
   diff_line_flag = diff_FILTER_flag || diff_line_flag;
+  //Get ploidy of all samples
+  get_ploidy_wrapper(gold_hdr, gold_line);
+  //Build haploid and diploid genotype index mapping
+  m_gold_genotype_idx_to_test_idx.build_haploid_and_diploid_gt_mappings(gold_line->n_allele, m_alleles_lut);
   //INFO fields
   auto  diff_INFO_fields = compare_unequal_fields(gold_hdr, gold_line, BCF_HL_INFO, error_message);
   diff_line_flag = diff_INFO_fields || diff_line_flag;

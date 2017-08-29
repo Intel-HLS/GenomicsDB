@@ -230,10 +230,13 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
    Remaps GT field
  */
 void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
-    const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx, const unsigned num_merged_alleles, const bool NON_REF_exists)
+    const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx, const unsigned num_merged_alleles, const bool NON_REF_exists,
+    const unsigned length_descriptor)
 {
   assert(input_GT.size() == output_GT.size());
-  for(auto i=0u;i<input_GT.size();++i)
+  auto should_store_phase_information = (length_descriptor == BCF_VL_Phased_Ploidy);
+  auto step = should_store_phase_information ? 2u : 1u;
+  for(auto i=0u;i<input_GT.size();i+=step)
   {
     if(is_tiledb_missing_value<int>(input_GT[i]) || input_GT[i] == -1 || is_bcf_missing_value<int>(input_GT[i]))
       output_GT[i] = input_GT[i];
@@ -253,6 +256,8 @@ void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::ve
       else
         output_GT[i] = output_allele_idx;
     }
+    if(should_store_phase_information && i+1u<input_GT.size())
+      output_GT[i+1u] = input_GT[i+1u];
   }
 }
 
@@ -292,12 +297,26 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
     auto* PL_field_ptr =
       get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()), 
           GVCF_PL_IDX);
+    auto* GT_field_ptr =
+      get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()),
+          GVCF_GT_IDX);
+    auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(
+        query_config.get_query_idx_for_known_field_enum(GVCF_GT_IDX)
+        );
+    auto ploidy = (GT_field_ptr && GT_field_ptr->is_valid())
+      ? KnownFieldInfo::get_ploidy(length_descriptor, GT_field_ptr->get().size()) : 2u;
     if(PL_field_ptr && PL_field_ptr->is_valid())
     {
+      std::vector<int> tmp_allele_idx_vec;
+      std::vector<int> tmp_input_call_allele_idx_vec;
+      std::vector<std::pair<int, int> > tmp_stack_vec;
       auto& input_pl_vector = PL_field_ptr->get();
-      remap_data_based_on_genotype<int>(input_pl_vector, curr_call_idx_in_variant,
-          alleles_LUT, num_merged_alleles, NON_REF_exists,
-          remapped_PLs,  num_calls_with_valid_data, bcf_int32_missing);
+      VariantOperations::remap_data_based_on_genotype<int>(input_pl_vector, curr_call_idx_in_variant,
+          alleles_LUT,
+          num_merged_alleles, NON_REF_exists, ploidy,
+          remapped_PLs,  num_calls_with_valid_data, bcf_int32_missing,
+          tmp_allele_idx_vec, tmp_stack_vec,
+          tmp_input_call_allele_idx_vec);
     }
   }
   //Compute medians
@@ -381,6 +400,7 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
       m_GT_query_idx = query_field_idx;
   }
   m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
+  m_ploidy.resize(query_config.get_num_rows_in_array());
   for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
   {
     unsigned variant_field_type_idx = ti_enum_pair.second;
@@ -442,6 +462,32 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   //Known fields that need to be re-mapped
   if(m_remapping_needed)
   {
+    //if GT field is queried
+    if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
+    {
+      auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+      //Valid calls
+      for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
+      {
+        auto& remapped_call = *iter;
+        auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
+        m_ploidy[curr_call_idx_in_variant] = 0u;
+        auto& remapped_field = remapped_call.get_field(m_GT_query_idx);
+        auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(m_GT_query_idx);
+        copy_field(remapped_field, orig_field);
+        if(remapped_field.get() && remapped_field->is_valid())      //Not null
+        {
+          auto& input_GT =
+            variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+          auto& output_GT =
+            remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
+          VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant,
+              num_merged_alleles, m_NON_REF_exists, GT_length_descriptor);
+          m_ploidy[curr_call_idx_in_variant] = KnownFieldInfo::get_ploidy(GT_length_descriptor,
+            input_GT.size());
+        }
+      }
+    }
     for(auto query_field_idx : m_remapped_fields_query_idxs)
     {
       auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
@@ -455,7 +501,6 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
           << ". Fields, such as  PL, with length equal to the number of genotypes will NOT be added for this location.\n";
         continue;
       }
-      unsigned num_merged_elements = KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_merged_alleles-1u, 0u, 0u);  //#alt alleles
       //Remapper for m_remapped_variant
       RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
       //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
@@ -468,6 +513,10 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
         copy_field(remapped_field, orig_field);
         if(remapped_field.get() && remapped_field->is_valid())      //Not null
         {
+          auto curr_ploidy = m_ploidy[curr_call_idx_in_variant];
+          unsigned num_merged_elements =
+            KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_merged_alleles-1u,
+                curr_ploidy, 0u);  //#alt alleles, current ploidy
           remapped_field->resize(num_merged_elements);
           //Get handler for current type
           auto& handler = get_handler_for_type(remapped_field->get_element_type());
@@ -475,30 +524,8 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
           //Call remap function
           handler->remap_vector_data(
               orig_field, curr_call_idx_in_variant,
-              m_alleles_LUT, num_merged_alleles, m_NON_REF_exists,
+              m_alleles_LUT, num_merged_alleles, m_NON_REF_exists, curr_ploidy,
               query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx), num_merged_elements, remapper_variant);
-        }
-      }
-    }
-    //if GT field is queried
-    if(m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
-    {
-      //Valid calls
-      for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
-      {
-        auto& remapped_call = *iter;
-        auto curr_call_idx_in_variant = iter.get_call_idx_in_variant();
-        auto& remapped_field = remapped_call.get_field(m_GT_query_idx);
-        auto& orig_field = variant.get_call(curr_call_idx_in_variant).get_field(m_GT_query_idx);
-        copy_field(remapped_field, orig_field);
-        if(remapped_field.get() && remapped_field->is_valid())      //Not null
-        {
-          auto& input_GT =
-            variant.get_call(curr_call_idx_in_variant).get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
-          auto& output_GT = 
-            remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
-          VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant,
-              num_merged_alleles, m_NON_REF_exists);
         }
       }
     }

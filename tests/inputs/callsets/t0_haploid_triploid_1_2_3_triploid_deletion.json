@@ -1,0 +1,23 @@
+{
+    "callsets" : {
+        "HG00141" : {
+            "row_idx" : 0,
+            "filename": "inputs/vcfs/t0_haploid_triploid.vcf.gz"
+        },
+        "HG01958" : {
+            "row_idx" : 1,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t1.vcf.gz"
+        },
+        "HG01530" : {
+            "row_idx" : 2,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t2.vcf.gz"
+        },
+        "NA12878" : {
+            "row_idx" : 3,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/t3_triploid_deletion.vcf.gz"
+        }
+    }
+}

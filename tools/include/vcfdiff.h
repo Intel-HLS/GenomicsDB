@@ -30,6 +30,7 @@
 #include "vcf.h"
 #include "htslib/synced_bcf_reader.h"
 #include "known_field_info.h"
+#include "variant_operations.h"
 
 //Exceptions thrown
 class VCFDiffException : public std::exception{
@@ -43,6 +44,66 @@ class VCFDiffException : public std::exception{
     std::string msg_;
 };
 
+class RemapDataGoldGtIdxToTestGtIdx : public RemappedDataWrapperBase
+{
+  public:
+    RemapDataGoldGtIdxToTestGtIdx()
+    {
+    }
+    void* put_address(uint64_t input_call_idx, unsigned allele_or_gt_idx)
+    {
+      throw VariantOperationException("Unimplemented");
+    }
+    void build_haploid_and_diploid_gt_mappings(const unsigned num_alleles, const CombineAllelesLUT& lut)
+    {
+      m_haploid_gold_genotype_idx_to_test_idx.resize(num_alleles);
+      auto num_diploid_gts = (num_alleles*(num_alleles+1))/2;
+      m_diploid_gold_genotype_idx_to_test_idx.resize(num_diploid_gts);
+      for(auto i=0u;i<num_alleles;++i)
+      {
+        auto lut_test_allele_idx_i = lut.get_input_idx_for_merged(0, i);
+        m_haploid_gold_genotype_idx_to_test_idx[i] = lut_test_allele_idx_i;
+        for(auto j=i;j<num_alleles;++j)
+        {
+          auto lut_test_allele_idx_j = lut.get_input_idx_for_merged(0, j);
+          m_diploid_gold_genotype_idx_to_test_idx[bcf_alleles2gt(i, j)] = bcf_alleles2gt(lut_test_allele_idx_i, lut_test_allele_idx_j);
+        }
+      }
+    }
+    void clear_general_mapping_vector() { m_general_gold_genotype_idx_to_test_idx.clear(); }
+    void add_mapping(const uint64_t gold_gt_idx, const uint64_t input_gt_idx)
+    {
+      assert(gold_gt_idx != static_cast<uint64_t>(lut_missing_value));
+      if(gold_gt_idx >= m_general_gold_genotype_idx_to_test_idx.size())
+        m_general_gold_genotype_idx_to_test_idx.resize(gold_gt_idx+1u, lut_missing_value);
+      m_general_gold_genotype_idx_to_test_idx[gold_gt_idx] = input_gt_idx;
+    }
+    uint64_t get_mapping(const uint64_t gold_gt_idx, const unsigned ploidy) const
+    {
+      if(gold_gt_idx == static_cast<uint64_t>(lut_missing_value))
+        return lut_missing_value;
+      auto* vec_ptr = &m_haploid_gold_genotype_idx_to_test_idx;
+      switch(ploidy)
+      {
+        case 1u:
+          vec_ptr = &m_haploid_gold_genotype_idx_to_test_idx;
+          break;
+        case 2u:
+          vec_ptr = &m_diploid_gold_genotype_idx_to_test_idx;
+          break;
+        default:
+          vec_ptr = &m_general_gold_genotype_idx_to_test_idx;
+          break;
+      }
+      auto& vec_ref = *vec_ptr;
+      //Might be part of padding - hence gold_gt_idx might be greater than #genotypes
+      return (gold_gt_idx >= vec_ref.size()) ? gold_gt_idx : vec_ref[gold_gt_idx];
+    }
+  private:
+    std::vector<uint64_t> m_haploid_gold_genotype_idx_to_test_idx;
+    std::vector<uint64_t> m_diploid_gold_genotype_idx_to_test_idx;
+    std::vector<uint64_t> m_general_gold_genotype_idx_to_test_idx;
+};
 
 class VCFDiffFile
 {
@@ -69,6 +130,9 @@ class VCFDiffFile
         int gold_line_field_pos_idx, int test_line_field_pos_idx);
     std::string create_region(const std::string& regions,
         const std::unordered_map<std::string, std::pair<int64_t, int64_t>>& regions_contig_to_interval, const std::string& contig);
+    template<class T>
+    void get_ploidy(const uint64_t num_samples, const bcf_fmt_t& GT_fmt_t);
+    void get_ploidy_wrapper(const bcf_hdr_t* hdr, const bcf1_t* line);
   public:
     std::string m_filename;
     std::string m_regions;
@@ -89,10 +153,17 @@ class VCFDiffFile
     std::vector<int> m_fields_in_test_line;
     SchemaIdxToKnownVariantFieldsEnumLUT m_field_idx_to_known_field_enum;
     bool m_diff_alleles_flag;
-    std::vector<int> m_gold_genotype_idx_to_test_idx;
+    RemapDataGoldGtIdxToTestGtIdx m_gold_genotype_idx_to_test_idx;
     CombineAllelesLUT m_alleles_lut;
     //Temp buffer
     kstring_t m_tmp_hts_string;
+    std::vector<unsigned> m_gold_ploidy;
+    bool m_contains_NON_REF_allele;
+    //Remapping
+    std::vector<int> m_gold_allele_idx_vec_for_curr_gt;
+    std::vector<std::pair<int, int> > m_stack;
+    std::vector<int> m_test_allele_idx_vec_for_curr_gt;
+    std::vector<uint64_t> m_remap_count_vector;
 };
 
 #endif

@@ -378,6 +378,36 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       }
       fptr << " ]";
     }
+    void print_phased_GT_field(std::ostream& fptr)
+    {
+      fptr << "[ ";
+      auto first_elem = true;
+      auto is_phase_element = false;
+      for(auto val : m_data)
+      {
+        if(first_elem)
+        {
+          fptr << static_cast<PrintType>(val);
+          first_elem = false;
+        }
+        else
+        {
+          fptr << ",";
+          if(is_phase_element)
+          {
+            if(val)
+              fptr << "|";
+            else
+              fptr << "\\";
+          }
+          else
+            fptr << static_cast<PrintType>(val);
+        }
+        is_phase_element = !is_phase_element; //flip
+      }
+      fptr << " ]";
+    }
+
     virtual void print_csv(std::ostream& fptr) const
     {
       if(m_length_descriptor != BCF_VL_FIXED)

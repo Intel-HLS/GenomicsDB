@@ -38,7 +38,11 @@ std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_in
     {"BCF_VL_P", BCF_VL_P},
     {"P", BCF_VL_P},
     {"BCF_VL_VAR", BCF_VL_VAR},
-    {"VAR", BCF_VL_VAR}
+    {"VAR", BCF_VL_VAR},
+    {"PP", BCF_VL_Phased_Ploidy},
+    {"Phased_Ploidy", BCF_VL_Phased_Ploidy},
+    {"phased_ploidy", BCF_VL_Phased_Ploidy},
+    {"PHASED_PLOIDY", BCF_VL_Phased_Ploidy}
     });
 
 std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to_type_index =
@@ -729,14 +733,33 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         }
         if(field_info_dict.HasMember("length"))
         {
-          if(field_info_dict["length"].IsInt64())
-            m_field_idx_to_info[field_idx].m_num_elements = field_info_dict["length"].GetInt64();
+          const auto& length_json_value = field_info_dict["length"];
+          if(length_json_value.IsInt64())
+            m_field_idx_to_info[field_idx].m_num_elements = length_json_value.GetInt64();
           else
           {
-            VERIFY_OR_THROW(field_info_dict["length"].IsString());
-            auto iter = VidMapper::m_length_descriptor_string_to_int.find(field_info_dict["length"].GetString());
+            VERIFY_OR_THROW(length_json_value.IsString());
+            auto length_value_str = length_json_value.GetString();
+            auto length_value_upper_case_str = std::move(std::string(length_value_str));
+            for(auto i=0u;i<length_value_upper_case_str.length();++i)
+              length_value_upper_case_str[i] = toupper(length_value_upper_case_str[i]);
+            auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_upper_case_str);
             if(iter == VidMapper::m_length_descriptor_string_to_int.end())
-              m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+            {
+              //JSON produced by Protobuf specifies fixed length field lengths as strings - e.g. "1"
+              char* endptr = 0;
+              auto length_value_int = strtoull(length_value_str, &endptr, 0);
+              auto num_chars_traversed = endptr-length_value_str;
+              if(length_json_value.GetStringLength() > 0u
+                  && num_chars_traversed == length_json_value.GetStringLength()) //whole string is an integer
+                m_field_idx_to_info[field_idx].m_num_elements = length_value_int;
+              else
+              {
+                std::cerr << "WARNING: unknown length descriptor " << length_value_str
+                  << " for field " << field_name  << " ; setting to 'VAR'\n";
+                m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+              }
+            }
             else
               m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
           }

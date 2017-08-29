@@ -31,8 +31,6 @@
 ##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities">
 ##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias">
 ##reference=file:///seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta
-##FORMAT=<ID=MLEAC,Number=A,Type=Integer,Description="MLEAC">
-##FORMAT=<ID=MLEAF,Number=A,Type=Float,Description="MLEAF">
 ##contig=<ID=1,length=249250621>
 ##contig=<ID=2,length=243199373>
 ##contig=<ID=3,length=198022430>
@@ -118,7 +116,10 @@
 ##contig=<ID=GL000225.1,length=211173>
 ##contig=<ID=GL000192.1,length=547496>
 ##contig=<ID=NC_007605,length=171823>
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00141	HG01958	HG01530
-1	8029500	.	TGG	T,TG,<NON_REF>	.	.	BaseQRankSum=1.067;ClippingRankSum=-1.647;MQRankSum=1.018;ReadPosRankSum=1.611;MQ=59.59;MQ0=0;DP=197	GT:MLEAC:MLEAF:GQ:SB:AD:PL:DP	./.:1,0,0:0.5,0,0:40:0,0,0,0:6,2,0,0:40,0,197,58,203,262,58,203,262,262:8	./.:0,1,0:0,0.5,0:99:5,40,3,29:45,1,32,0:733,872,3465,0,1789,1573,862,2677,1670,2532:78	./.:0,1,0:0,0.5,0:89:5,42,1,9:47,0,10,0:89,229,1348,0,1119,1086,229,1348,1119,1348:57
-1	8029501	.	G	*,<NON_REF>	.	.	DP=197	GT:MLEAC:MLEAF:GQ:SB:AD:PL:DP	./.:1,0:0.5,0:40:0,0,0,0:6,2,0:40,0,197,58,203,262:8	./.:1,0:0.5,0:99:5,40,3,29:45,32,0:733,0,1573,862,1670,2532:78	./.:1,0:0.5,0:89:5,42,1,9:47,10,0:89,0,1086,229,1119,1348:57
-1	8029502	.	G	*,<NON_REF>	.	.	DP=112	GT:MLEAC:MLEAF:GQ:SB:AD:PL:DP	./.:1,0:0.5,0:40:0,0,0,0:6,2,0:40,0,197,58,203,262:8	./.:1,0:0.5,0:99:5,40,3,29:45,32,0:733,0,1573,862,1670,2532:78	.:.:.:.:.:.:.:.
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00141	HG01958	HG01530	NA12878
+1	12141	.	C	<NON_REF>	.	.	END=12144	GT:GQ:PL:MIN_DP:DP	0:0:0,0:0:2	.:.:.:.:.	.:.:.:.:.	.:.:.:.:.
+1	12145	.	C	<NON_REF>	.	.	END=12277	GT:GQ:PL:MIN_DP:DP	0:0:0,0:0:2	0/0:0:0,0,0:0:3	.:.:.:.:.	.:.:.:.:.
+1	12278	.	C	<NON_REF>	.	.	END=12295	GT:GQ:PL:MIN_DP:DP	0:0:0,0:0:2	.:.:.:.:.	.:.:.:.:.	.:.:.:.:.
+1	17384	.	TGG	T,TG,<NON_REF>	.	.	BaseQRankSum=1.067;ClippingRankSum=-1.067;MQRankSum=0.055555;MQ=55.72;MQ0=0;DP=9	GT:GQ:SB:AD:PL:DP	.:.:.:.:.:.	.:.:.:.:.:.	.:.:.:.:.:.	0/1|0:40:0,0,0,0:6,2,3,0:40,0,197,58,203,262,123,456,789,12,0,1,2,3,4,5,6,7,8,9:8
+1	17385	.	G	A,T,*,<NON_REF>	.	.	BaseQRankSum=-2.074;ClippingRankSum=-1.859;MQRankSum=-0.432;ReadPosRankSum=0.005;MQ=31.72;RAW_MQ=2.5;MQ0=3;DP=285	GT:GQ:SB:AD:PL:PGT:PID:DP	0|1/0:99:58,0,22,0:58,22,17,17,17:504,0,9807,678,1870,2548,123,456,789,12,1870,2548,123,456,789,12,456,789,12,12,1870,2548,123,456,789,12,456,789,12,12,456,789,12,12,12:0|1:17385_G_A:80	2/2:99:0,0,0,0:0,37,120,37,37:3336,4536,7349,358,958,0,4536,7349,958,7349,4536,7349,958,7349,7349:0|1:17385_G_T:120	0/1:99:9,31,13,23:40,36,0,0,0:1018,0,1116,1137,1224,2361,1137,1224,2361,2361,1137,1224,2361,2361,2361:.:.:76	0/4|0:40:0,0,0,0:6,0,0,3,0:40,0,6,9,0,6,9,6,9,9,203,3,8,3,8,8,456,5,5,12,0,6,9,6,9,9,3,8,8,5,6,9,9,8,9:.:.:8
+1	17386	.	G	*,<NON_REF>	.	.	DP=9	GT:GQ:SB:AD:PL:DP	.:.:.:.:.:.	.:.:.:.:.:.	.:.:.:.:.:.	0/2|0:40:0,0,0,0:6,3,0:40,203,456,12,0,3,5,6,8,9:8

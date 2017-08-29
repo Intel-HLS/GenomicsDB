@@ -840,7 +840,7 @@ public class GenomicsDBImporter
         VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
         boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
         String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
-        String genomicsDBLength = isGT ? "P" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
+        String genomicsDBLength = isGT ? "PP" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
             ? "VAR" : getLength(formatHeaderLine);
         infoBuilder
           .setName(formatHeaderLine.getID())

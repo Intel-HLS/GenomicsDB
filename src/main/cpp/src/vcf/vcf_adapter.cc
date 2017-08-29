@@ -273,7 +273,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
       std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
       exit(-1);
     }
-    if(index_output_VCF && !output_filename.empty())
+    if(index_output_VCF && !output_filename.empty() && !(output_filename.length() == 1u && output_filename[0] == '-'))
     {
       if(output_format == "z")
         m_index_output_VCF = VCFIndexType::VCF_INDEX_TBI;

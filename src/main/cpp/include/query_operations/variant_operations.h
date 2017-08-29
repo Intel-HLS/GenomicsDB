@@ -86,6 +86,20 @@ class RemappedVariant : public RemappedDataWrapperBase
     unsigned m_queried_field_idx;
 };
 
+template<class DataType>
+using remap_operator_function_type = void(*)(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists,
+    const bool curr_genotype_combination_contains_missing_allele_for_input,
+    const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    const uint64_t remapped_gt_idx,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+    );
+
 class VariantOperations
 {
   public:
@@ -106,7 +120,7 @@ class VariantOperations
      */
     static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
         const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx,
-        const unsigned num_merged_alleles, const bool has_NON_REF);
+        const unsigned num_merged_alleles, const bool has_NON_REF, const unsigned length_descriptor);
     /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
@@ -122,10 +136,113 @@ class VariantOperations
     template<class DataType>
     static void remap_data_based_on_genotype(const std::vector<DataType>& input_data,
         const uint64_t input_call_idx, 
-        const CombineAllelesLUT& alleles_LUT, const unsigned num_merged_alleles, bool NON_REF_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+        std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+        std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+        std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination);
+    /*
+     * Reorders fields whose length and order depend on the number of genotypes (BCF_VL_G)
+     * for haploid data
+     */
+    template<class DataType>
+    static void remap_data_based_on_genotype_haploid(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx, 
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists,
         RemappedDataWrapperBase& remapped_data,
         std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value);
+    /*
+     * Reorders fields whose length and order depend on the number of genotypes (BCF_VL_G)
+     * for diploid data
+     */
+    template<class DataType>
+    static void remap_data_based_on_genotype_diploid(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx, 
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value);
+    /*
+     * Reorders fields whose length and order depend on the number of genotypes (BCF_VL_G)
+     * for general ploidy
+     */
+    template<class DataType>
+    static void remap_data_based_on_genotype_general(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists, const unsigned ploidy,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+        std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+        std::vector<std::pair<int, int> >& ploidy_index_allele_index_stack,
+        std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination,
+        remap_operator_function_type<DataType> op
+        );
+
     static void do_dummy_genotyping(Variant& variant, std::ostream& output);
+
+    template<class DataType>
+    static void null_remap_genotype_operator(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists,
+        const bool curr_genotype_combination_contains_missing_allele_for_input,
+        const unsigned ploidy,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+        const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+        const uint64_t remapped_gt_idx,
+        std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+        )
+    {
+      return;
+    }
+
+    template<class DataType>
+    static void reorder_field_based_on_genotype_index(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists,
+        const bool curr_genotype_combination_contains_missing_allele_for_input,
+        const unsigned ploidy,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+        const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+        const uint64_t remapped_gt_idx,
+        std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+        );
+
+    //Combination operation
+    static inline uint64_t nCr(const int64_t n, const int64_t r)
+    {
+      if(n < 0 || r < 0 || n < r)
+        return 0u;
+      //Not the fastest method - if this is a bottleneck, implement faster algorithm
+      auto begin_idx = 0ull;
+      auto end_idx = 0ull;
+      if(r > n-r)
+      {
+        begin_idx = r+1u;
+        end_idx = n-r;
+      }
+      else
+      {
+        begin_idx = n-r+1u;
+        end_idx = r;
+      }
+      auto numerator = 1ull;
+      for(auto i=begin_idx;i<=static_cast<uint64_t>(n);++i)
+        numerator *= i;
+      auto denominator = 1ull;
+      for(auto i=1ull;i<=end_idx;++i)
+        denominator *= i;
+      return numerator/denominator;
+    }
+    //Return genotype index given a list of allele indexes
+    static uint64_t get_genotype_index(std::vector<int>& allele_idx_vec, const bool is_sorted);
 };
 
 /*
@@ -255,7 +372,8 @@ class VariantFieldHandlerBase
     VariantFieldHandlerBase() { ; }
     virtual ~VariantFieldHandlerBase() = default;
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
-        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
@@ -268,8 +386,9 @@ class VariantFieldHandlerBase
     virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
-        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false) = 0;
+        unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
+        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
+        const bool is_GT_field = false) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -294,7 +413,8 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * E.g. PL, AD etc
      */
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
-        const CombineAllelesLUT& alleles_LUT, unsigned num_merged_alleles, bool non_ref_exists,
+        const CombineAllelesLUT& alleles_LUT,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
     /*
      * Computes median for a given field over all Calls (only considers calls with valid field)
@@ -326,8 +446,9 @@ class VariantFieldHandler : public VariantFieldHandlerBase
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
-        unsigned query_idx, const void ** output_ptr, unsigned& num_elements,
-        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false);
+        unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
+        const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
+        const bool is_GT_field=false);
   private:
     std::vector<uint64_t> m_num_calls_with_valid_data;
     DataType m_bcf_missing_value;
@@ -337,6 +458,17 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<DataType> m_extended_field_vector;
     //Vector to hold data for element wise operations
     std::vector<DataType> m_element_wise_operations_result;
+    //Data structures for iterating over genotypes in the non-diploid and non-haploid
+    //ploidy. Avoids dynamic memory re-allocation
+    //Vector storing allele indexes for current genotype
+    std::vector<int> m_allele_idx_vec_for_current_genotype;
+    //To avoid dynamic memory allocation - a placeholder for storing
+    //input alleles for the given genotype combination in the merged variant
+    std::vector<int> m_input_call_allele_idx_vec;
+    //"Stack" for enumerating genotypes - rather than using a recursive function
+    //as described in http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes,
+    //keep stack of (ploidy index, allele_idx) - only when the stack is empty are all genotypes enumerated
+    std::vector<std::pair<int, int> > m_ploidy_index_alleles_index_stack;
 };
 
 /*
@@ -363,6 +495,8 @@ class GA4GHOperator : public SingleVariantOperatorBase
     std::vector<std::unique_ptr<VariantFieldHandlerBase>> m_field_handlers;
     //Max alt alleles that can be handled for computing the PL fields - default 50
     unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
+    //1 per VariantCall (row)
+    std::vector<unsigned> m_ploidy;
 };
 
 class SingleCellOperatorBase

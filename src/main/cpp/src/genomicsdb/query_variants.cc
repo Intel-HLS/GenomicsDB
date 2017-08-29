@@ -618,14 +618,17 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(END_schema_idx));
   query_config.add_attribute_to_query("END", END_schema_idx);
   //Check if REF, ALT needs to be added as part of queried attributes
-  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
   unsigned ALT_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_ALT_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(ALT_schema_idx));
   unsigned REF_schema_idx =
     m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_REF_IDX);
   assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(REF_schema_idx));
+  unsigned GT_schema_idx =
+    m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(GVCF_GT_IDX);
+  assert(m_schema_idx_to_known_variant_field_enum_LUT.is_defined_value(GVCF_GT_IDX));
   auto added_ALT_REF = false;
+  auto added_GT = false;
   //Required by the caller
   if(alleles_required)
   {
@@ -633,7 +636,9 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     query_config.add_attribute_to_query("REF", REF_schema_idx);
     added_ALT_REF = true;
   }
-  for(auto i=0u;i<num_queried_attributes;++i)
+  //As attributes are added to the query, the #queried attributes increases
+  //So, do not store this number into a scalar before the loop
+  for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
     const auto& field_name = query_config.get_query_attribute_name(i);
@@ -664,6 +669,12 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       query_config.add_attribute_to_query("REF", REF_schema_idx);
       added_ALT_REF = true;
     }
+    //Does the length of the field depend on the ploidy? If yes, add GT field
+    if(!added_GT && KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor))
+    {
+      query_config.add_attribute_to_query("GT", GT_schema_idx);
+      added_GT = true;
+    }
   }
   //Re-order query fields so that special fields are first
   query_config.reorder_query_fields();
@@ -681,25 +692,12 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       assert(g_known_variant_field_names[known_variant_field_enum] == query_config.get_query_attribute_name(i));
     }
   }
-  //Set attributes for REF and ALT fields if added in for loop above
-  if(added_ALT_REF)
-  {
-
-    assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX));
-    auto REF_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_REF_IDX);
-    assert(query_config.is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX));
-    auto ALT_query_idx = query_config.get_query_idx_for_known_field_enum(GVCF_ALT_IDX);
-    query_config.set_query_attribute_info_parameters(REF_query_idx,
-        KnownFieldInfo::get_length_descriptor_for_known_field_enum(GVCF_REF_IDX),
-        KnownFieldInfo::get_num_elements_for_known_field_enum(GVCF_REF_IDX, 0u, 0u),
-        KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(GVCF_REF_IDX)
-        );
-    query_config.set_query_attribute_info_parameters(ALT_query_idx,
-        KnownFieldInfo::get_length_descriptor_for_known_field_enum(GVCF_ALT_IDX),
-        KnownFieldInfo::get_num_elements_for_known_field_enum(GVCF_ALT_IDX, 0u, 0u),
-        KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(GVCF_ALT_IDX)
-        );
-  }
+  //Either not added or both REF and ALT must be part of query
+  assert(!added_ALT_REF
+      || (query_config.is_defined_query_idx_for_known_field_enum(GVCF_REF_IDX)
+        && query_config.is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX)));
+  assert(!added_GT
+      || query_config.is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX));
   //Set number of rows in the array
   auto& dim_domains = array_schema.dim_domains();
   uint64_t row_num = m_storage_manager ? m_storage_manager->get_num_valid_rows_in_array(m_ad) :   //may read from array metadata

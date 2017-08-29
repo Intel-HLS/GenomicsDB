@@ -964,13 +964,19 @@ bool VCF2TileDBLoader::produce_cells_in_column_major_order(unsigned exchange_idx
     if(!(column > m_previous_cell_column || (column == m_previous_cell_column && row_idx > m_previous_cell_row_idx)))
       throw VCF2TileDBException(std::string("Incorrect cell order found - cells must be in column major order. Previous cell: [ ")
           +std::to_string(m_previous_cell_row_idx)+", "+std::to_string(m_previous_cell_column)
-          +" ] current cell: [ "+std::to_string(row_idx)+", "+std::to_string(column)+" ]");
+          +" ] current cell: [ "+std::to_string(row_idx)+", "+std::to_string(column)+" ].\n"
+          +"The most likely cause is unexpected data in the input file:\n"
+          +"(a) A VCF file has two lines with the same genomic position\n"
+          +"(b) An unsorted CSV file\n"
+          +"(c) Malformed VCF file (or malformed index)\n"
+          +"See point 2 at: https://github.com/Intel-HLS/GenomicsDB/wiki/Importing-VCF-data-into-GenomicsDB#organizing-your-data\n"
+          );
     auto skip_cell = (column > get_column_partition_end());
     if(skip_cell && !m_ignore_cells_not_in_partition)
       throw VCF2TileDBException(std::string("Found cell that does not belong to the current partition. Partition bounds: [ ")
             + std::to_string(get_column_partition_begin()) + ", "
             + std::to_string(get_column_partition_end()) + " ] - current cell [ "
-            + std::to_string(row_idx) + ", " + std::to_string(column));
+            + std::to_string(row_idx) + ", " + std::to_string(column) + " ]");
     //Either no overflow or !skip_cell (overflow can occur iff retrying the same cell)
     assert(m_num_operators_overflow_in_last_round == 0u || !skip_cell);
     if(!skip_cell)
