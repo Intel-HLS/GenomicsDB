@@ -740,7 +740,10 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
           {
             VERIFY_OR_THROW(length_json_value.IsString());
             auto length_value_str = length_json_value.GetString();
-            auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_str);
+            auto length_value_upper_case_str = std::move(std::string(length_value_str));
+            for(auto i=0u;i<length_value_upper_case_str.length();++i)
+              length_value_upper_case_str[i] = toupper(length_value_upper_case_str[i]);
+            auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_upper_case_str);
             if(iter == VidMapper::m_length_descriptor_string_to_int.end())
             {
               //JSON produced by Protobuf specifies fixed length field lengths as strings - e.g. "1"
@@ -751,7 +754,11 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
                   && num_chars_traversed == length_json_value.GetStringLength()) //whole string is an integer
                 m_field_idx_to_info[field_idx].m_num_elements = length_value_int;
               else
+              {
+                std::cerr << "WARNING: unknown length descriptor " << length_value_str
+                  << " for field " << field_name  << " ; setting to 'VAR'\n";
                 m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
+              }
             }
             else
               m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;

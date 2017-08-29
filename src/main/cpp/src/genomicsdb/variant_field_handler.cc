@@ -207,6 +207,8 @@ void VariantOperations::remap_data_based_on_genotype_general(const std::vector<D
     remap_operator_function_type<DataType> op
 )
 {
+  if(ploidy == 0u)
+    return;
   //index of NON_REF in merged variant
   const auto merged_non_reference_allele_idx = NON_REF_exists ? 
     static_cast<int64_t>(static_cast<int>(num_merged_alleles-1)) : lut_missing_value;
@@ -223,7 +225,6 @@ void VariantOperations::remap_data_based_on_genotype_general(const std::vector<D
   //http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
   //Use custom "stack" instead of a recursive function call
   //"top" of the stack is the last element of the vector
-  assert(ploidy > 0u);
   //resize to max #genotypes - avoids frequent dynamic memory allocations/frees
   ploidy_index_allele_index_stack.resize(KnownFieldInfo::get_number_of_genotypes(num_merged_alleles-1u, ploidy));
   //In each iteration, generate all genotypes where the last ploidy corresponds to the allele
@@ -301,6 +302,8 @@ uint64_t VariantOperations::get_genotype_index(std::vector<int>& allele_idx_vec,
     std::sort(allele_idx_vec.begin(), allele_idx_vec.end());
   switch(allele_idx_vec.size()) //ploidy
   {
+    case 0u:
+      return 0u;
     case 1u:
       return allele_idx_vec[0u];
     case 2u:

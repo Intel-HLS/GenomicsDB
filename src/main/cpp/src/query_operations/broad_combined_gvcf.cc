@@ -576,7 +576,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       //of the genotype are equal to the deletion allele. The deletion allele with the lowest PL value is
       //mapped to "*" allele
       //GT field - for ploidy
-      auto ploidy = 2u; //diploid default
+      auto ploidy = 0u;
       auto* original_GT_field_ptr = (m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
           ? curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx) : 0;
       if(original_GT_field_ptr && original_GT_field_ptr->is_valid())
