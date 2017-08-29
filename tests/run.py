@@ -230,17 +230,18 @@ def main():
             },
             { "name" : "java_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_variants_at_0",
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_0_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
                     { "query_column_ranges" : [12150, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
-                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12150_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_variants_at_12150_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
@@ -308,13 +309,20 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 'chromosome_interval': '1:1-100000000',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [0, 1000000000],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [12150, 1000000000],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
@@ -324,16 +332,23 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8",
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'chromosome_interval': '1:1-100000000',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t6_7_8_calls_at_0",
-                        "variants"   : "golden_outputs/t6_7_8_variants_at_0",
+                    { "query_column_ranges" : [0, 1000000000],
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_0_phased_GT",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [8029500, 1000000000], "golden_output": {
-                        "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
-                        "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
+                    { "query_column_ranges" : [8029500, 1000000000],
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "golden_output": {
+                        "calls"      : "golden_outputs/t6_7_8_calls_at_8029500_phased_GT",
+                        "variants"   : "golden_outputs/t6_7_8_variants_at_8029500_phased_GT",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
                         } }
@@ -360,14 +375,16 @@ def main():
                     ]
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS_ID",
+                'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'vid_mapping_file': 'inputs/vid_DS_ID.json',
                 'chromosome_interval': '1:1-100000000',
                 "query_params": [
                     { "query_column_ranges" : [0, 1000000000],
+                        'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "query_attributes": query_attributes_with_DS_ID, "golden_output": {
-                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
-                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
+                        "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0_phased_GT",
+                        "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0_phased_GT",
                         } },
                     ]
             },
