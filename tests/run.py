@@ -28,6 +28,7 @@ import os
 import sys
 import shutil
 from collections import OrderedDict
+import jsondiff
 
 query_json_template_string="""
 {   
@@ -527,9 +528,25 @@ def main():
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
                         golden_stdout, golden_md5sum = get_file_content_and_md5sum(query_param_dict['golden_output'][query_type]);
                         if(golden_md5sum != md5sum_hash_str):
-                            sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
-                            print_diff(golden_stdout, stdout_string);
-                            cleanup_and_exit(tmpdir, -1);
+                            is_error = True;
+                            #do JSON diff for variant and call format print
+                            json_diff_result = None
+                            if(query_type in set(['calls', 'variants'])):
+                                try:
+                                    golden_stdout_dict = json.loads(golden_stdout);
+                                    test_stdout_dict = json.loads(stdout_string);
+                                    json_diff_result = jsondiff.diff(golden_stdout_dict, test_stdout_dict);
+                                    if(len(json_diff_result) == 0):
+                                        is_error = False;
+                                except:
+                                    json_diff_result = None;
+                                    is_error = True
+                            if(is_error):
+                                sys.stderr.write('Mismatch in query test: '+test_name+'-'+query_type+'\n');
+                                print_diff(golden_stdout, stdout_string);
+                                if(json_diff_result):
+                                    print(json.dumps(json_diff_result, indent=4, separators=(',', ': ')));
+                                cleanup_and_exit(tmpdir, -1);
     coverage_file='coverage.info'
     subprocess.call('lcov --directory '+gcda_prefix_dir+' --capture --output-file '+coverage_file, shell=True);
     #Remove protocol buffer generated files from the coverage information

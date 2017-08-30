@@ -1,64 +1,59 @@
 {
     "variant_calls": [
         {
-            "query_interval": [ 0, 1000000000 ],
-            "variant_calls": [
-                {
-                    "row": 0,
-                    "interval": [ 12140, 12294 ],
-                    "genomic_interval": { "1" : [ 12141, 12295 ] },
-                    "fields": {
-                        "REF": "C",
-                        "ALT": [ "<NON_REF>" ],
-                        "PL": [ 0,0,0 ],
-                        "GT": [ 0,0 ]
-                    }
-                },
-                {
-                    "row": 1,
-                    "interval": [ 12144, 12276 ],
-                    "genomic_interval": { "1" : [ 12145, 12277 ] },
-                    "fields": {
-                        "REF": "C",
-                        "ALT": [ "<NON_REF>" ],
-                        "PL": [ 0,0,0 ],
-                        "GT": [ 0,0 ]
-                    }
-                },
-                {
-                    "row": 0,
-                    "interval": [ 17384, 17384 ],
-                    "genomic_interval": { "1" : [ 17385, 17385 ] },
-                    "fields": {
-                        "REF": "G",
-                        "ALT": [ "A","<NON_REF>" ],
-                        "PL": [ 504,0,9807,678,1870,2548 ],
-                        "GT": [ 0,1 ]
-                    }
-                },
-                {
-                    "row": 1,
-                    "interval": [ 17384, 17384 ],
-                    "genomic_interval": { "1" : [ 17385, 17385 ] },
-                    "fields": {
-                        "REF": "G",
-                        "ALT": [ "T","<NON_REF>" ],
-                        "PL": [ 3336,358,0,4536,958,7349 ],
-                        "GT": [ 1,1 ]
-                    }
-                },
-                {
-                    "row": 2,
-                    "interval": [ 17384, 17384 ],
-                    "genomic_interval": { "1" : [ 17385, 17385 ] },
-                    "fields": {
-                        "REF": "G",
-                        "ALT": [ "A","<NON_REF>" ],
-                        "PL": [ 1018,0,1116,1137,1224,2361 ],
-                        "GT": [ 0,1 ]
-                    }
-                }
-            ]
+            "row": 0,
+            "interval": [ 12140, 12294 ],
+            "genomic_interval": { "1" : [ 12141, 12295 ] },
+            "fields": {
+                "REF": "C",
+                "ALT": [ "<NON_REF>" ],
+                "PL": [ 0, 0, 0 ],
+                "GT": [ 0, 0 ]
+            }
+        },
+        {
+            "row": 1,
+            "interval": [ 12144, 12276 ],
+            "genomic_interval": { "1" : [ 12145, 12277 ] },
+            "fields": {
+                "REF": "C",
+                "ALT": [ "<NON_REF>" ],
+                "PL": [ 0, 0, 0 ],
+                "GT": [ 0, 0 ]
+            }
+        },
+        {
+            "row": 0,
+            "interval": [ 17384, 17384 ],
+            "genomic_interval": { "1" : [ 17385, 17385 ] },
+            "fields": {
+                "REF": "G",
+                "ALT": [ "A", "<NON_REF>" ],
+                "PL": [ 504, 0, 9807, 678, 1870, 2548 ],
+                "GT": [ 0, 1 ]
+            }
+        },
+        {
+            "row": 1,
+            "interval": [ 17384, 17384 ],
+            "genomic_interval": { "1" : [ 17385, 17385 ] },
+            "fields": {
+                "REF": "G",
+                "ALT": [ "T", "<NON_REF>" ],
+                "PL": [ 3336, 358, 0, 4536, 958, 7349 ],
+                "GT": [ 1, 1 ]
+            }
+        },
+        {
+            "row": 2,
+            "interval": [ 17384, 17384 ],
+            "genomic_interval": { "1" : [ 17385, 17385 ] },
+            "fields": {
+                "REF": "G",
+                "ALT": [ "A", "<NON_REF>" ],
+                "PL": [ 1018, 0, 1116, 1137, 1224, 2361 ],
+                "GT": [ 0, 1 ]
+            }
         }
     ]
 }
