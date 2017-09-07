@@ -98,7 +98,8 @@ class VCFAdapter
         std::string output_filename, std::string output_format="",
         const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE,
         const bool produce_GT_field=false,
-        const bool index_output_VCF=false);
+        const bool index_output_VCF=false,
+        const bool produce_FILTER_field=false);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -116,6 +117,7 @@ class VCFAdapter
     char get_reference_base_at_position(const char* contig, int pos)
     { return m_reference_genome_info.get_reference_base_at_position(contig, pos); }
     const bool produce_GT_field() const { return m_produce_GT_field; }
+    const bool produce_FILTER_field() const { return m_produce_FILTER_field; }
   protected:
     bool m_open_output;
     //Output file
@@ -132,6 +134,8 @@ class VCFAdapter
     size_t m_combined_vcf_records_buffer_size_limit;
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     bool m_produce_GT_field;
+    //GATK CombineGVCF does not produce FILTER field by default - option to produce FILTER
+    bool m_produce_FILTER_field;
     //Index output VCF
     unsigned m_index_output_VCF;
 #ifdef DO_PROFILING

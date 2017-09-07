@@ -462,6 +462,13 @@ class VidMapper
       }
     }
     /*
+     * Get #fields in VidMapper
+     */
+    inline unsigned get_num_fields() const
+    {
+      return m_field_idx_to_info.size();
+    }
+    /*
      * Given a field name, return global field idx
      */
     inline bool get_global_field_idx(const std::string& name, int& field_idx) const
