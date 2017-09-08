@@ -210,6 +210,16 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       }
     }
   }
+  //is FILTER field queried?
+  if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_FILTER_IDX))
+  {
+    for(auto i=0u;i<m_vid_mapper->get_num_fields();++i)
+    {
+      auto& field_info = m_vid_mapper->get_field_info(i);
+      if(field_info.m_is_vcf_FILTER_field)
+        VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, m_vid_mapper, field_info.m_vcf_name, BCF_HL_FLT);
+    }
+  }
   //If DP is queried, it should always be the last field in m_FORMAT_fields_vec
   if(is_DP_INFO_queried)
   {
@@ -265,6 +275,14 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           +callset_name+" to the combined VCF/gVCF header");
   }
   bcf_hdr_sync(m_vcf_hdr);
+  //Map from vid mapper field idx to hdr field idx
+  m_global_field_idx_to_hdr_idx.resize(m_vid_mapper->get_num_fields(), -1);
+  for(auto i=0u;i<m_vid_mapper->get_num_fields();++i)
+  {
+    auto& field_info = m_vid_mapper->get_field_info(i);
+    //Could be -1
+    m_global_field_idx_to_hdr_idx[i] = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_ID, field_info.m_vcf_name.c_str());
+  }
   m_vcf_adapter->print_header();
   //vector of field pointers used for handling remapped fields when dealing with spanning deletions
   //Individual pointers will be allocated later
@@ -303,6 +321,8 @@ void BroadCombinedGVCFOperator::clear()
   m_spanning_deletions_remapped_fields.clear();
   m_spanning_deletion_remapped_GT.clear();
   m_spanning_deletion_current_genotype.clear();
+  m_global_field_idx_to_hdr_idx.clear();
+  m_FILTER_idx_vec.clear();
 }
 
 bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant& variant,
@@ -611,6 +631,36 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
     m_bcf_record_size += alt_alleles[i-1u].length()*sizeof(char);
   }
   bcf_update_alleles(m_vcf_hdr, m_bcf_out, &(m_alleles_pointer_buffer[0]), total_num_merged_alleles);
+  //FILTER fields
+  if(m_vcf_adapter->produce_FILTER_field() &&
+      m_query_config->is_defined_query_idx_for_known_field_enum(GVCF_FILTER_IDX))
+  {
+    auto FILTER_query_idx = m_query_config->get_query_idx_for_known_field_enum(GVCF_FILTER_IDX);
+    //Remove duplicates across samples
+    std::unordered_set<int> filter_idx_set;
+    for(const auto& call : variant)
+    {
+      auto curr_FILTER_field = call.get_field<VariantFieldPrimitiveVectorData<int>>(FILTER_query_idx);
+      if(curr_FILTER_field && curr_FILTER_field->is_valid())
+      {
+        auto& curr_FILTER_idx_vec = curr_FILTER_field->get();
+        filter_idx_set.insert(curr_FILTER_idx_vec.begin(), curr_FILTER_idx_vec.end());
+      }
+    }
+    if(filter_idx_set.size())
+    {
+      m_FILTER_idx_vec.resize(filter_idx_set.size());
+      auto idx = 0u;
+      for(auto global_field_idx : filter_idx_set)
+      {
+        assert(static_cast<size_t>(global_field_idx) < m_global_field_idx_to_hdr_idx.size());
+        auto hdr_field_idx = m_global_field_idx_to_hdr_idx[global_field_idx];
+        if(hdr_field_idx >= 0)
+          m_FILTER_idx_vec[idx++] = hdr_field_idx;
+      }
+      bcf_update_filter(m_vcf_hdr, m_bcf_out, &(m_FILTER_idx_vec[0]), m_FILTER_idx_vec.size());
+    }
+  }
   //Flag that determines when to add GQ field - only when <NON_REF> is the only alternate allele
   //m_should_add_GQ_field = (m_NON_REF_exists && alt_alleles.size() == 1u);
   m_should_add_GQ_field = true; //always added in new version of CombineGVCFs

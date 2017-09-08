@@ -40,7 +40,7 @@ query_json_template_string="""
         "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
 
-vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT" ];
+vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER" ];
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
 query_attributes_with_PL_only = [ "PL" ]
 query_attributes_with_MLEAC_only = [ "MLEAC" ]
@@ -63,7 +63,8 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict['segment_size'] = default_segment_size;
     if('produce_GT_field' in query_param_dict):
         test_dict['produce_GT_field'] = query_param_dict['produce_GT_field'];
-
+    if('produce_FILTER_field' in query_param_dict):
+        test_dict['produce_FILTER_field'] = query_param_dict['produce_FILTER_field'];
     return test_dict;
 
 
@@ -175,7 +176,11 @@ def main():
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
-                        } }
+                        } },
+                    { "query_column_ranges" : [0, 1000000000],
+                        "produce_FILTER_field": True, "golden_output": {
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_0_with_FILTER",
+                        } },
                     ]
             },
             { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
