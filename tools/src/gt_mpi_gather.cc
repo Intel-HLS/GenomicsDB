@@ -518,7 +518,9 @@ int main(int argc, char *argv[]) {
     VariantQueryConfig query_config;
     //Vid mapping
     FileBasedVidMapper file_vid_mapper;
+#ifdef LIBDBI
     SQLBasedVidMapper sql_vid_mapper;
+#endif
     //Loader configuration
     JSONLoaderConfig loader_config;
     JSONLoaderConfig* loader_config_ptr = 0;
@@ -587,6 +589,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
+#ifdef LIBDBI
     if (! mapper_config_file.empty()) {
       std::cout <<"---------------------------------------\n";
       std::cout <<"MAPPER FILE: <" <<mapper_config_file <<">\n";
@@ -610,8 +613,10 @@ int main(int argc, char *argv[]) {
       sql_vid_mapper.print_debug();
       std::cout <<"---------------------------------------\n";
     }
-
     const VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? static_cast<const VidMapper&>(sql_vid_mapper) : static_cast<const VidMapper&>(file_vid_mapper));
+#else //ifdef LIBDBI
+    const VidMapper& id_mapper = static_cast<const VidMapper&>(file_vid_mapper);
+#endif //ifdef LIBDBI
 
     if(workspace == "" || array_name == "")
     {

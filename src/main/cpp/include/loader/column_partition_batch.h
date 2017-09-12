@@ -35,20 +35,27 @@ class ColumnPartitionFileBatch : public CircularBufferController
       m_completed = false;
       m_buffer_offset = -1;
       m_num_callsets = 1;
+      m_num_orders = 1;
     }
     /*
      * For a given local callset idx, compute offset
      */
-    inline int64_t get_offset_for_local_callset_idx(int to_process_local_callset_idx, size_t max_size_per_callset) const
+    inline int64_t get_offset_for_local_callset_idx(int to_process_local_callset_idx, size_t max_size_per_order) const
     {
       assert(to_process_local_callset_idx < m_num_callsets);
-      return m_buffer_offset + to_process_local_callset_idx*max_size_per_callset;
+      if(m_num_callsets == m_num_orders)
+	return m_buffer_offset + to_process_local_callset_idx*max_size_per_order;
+      else
+      {
+	assert(m_num_orders == 1);
+	return m_buffer_offset;
+      }
     }
     inline unsigned get_buffer_idx() const { return get_write_idx(); }
-    void update_buffer_offset(int64_t& offset, size_t max_size_per_callset)
+    void update_buffer_offset(int64_t& offset, size_t max_size_per_order)
     {
       m_buffer_offset = offset;
-      offset += m_num_callsets*max_size_per_callset;
+      offset += m_num_orders*max_size_per_order;
     }
     //Advance circular buffer controls
     void advance_write_idx()
@@ -63,10 +70,12 @@ class ColumnPartitionFileBatch : public CircularBufferController
       if(get_num_entries_with_valid_data())
         CircularBufferController::advance_read_idx();
     }
+    int64_t get_num_orders() const { return m_num_orders; }
     //Members
     bool m_fetch;
     bool m_completed;
     int64_t m_num_callsets;
+    int64_t m_num_orders;
   private:
     int64_t m_buffer_offset;
 };
@@ -74,18 +83,20 @@ class ColumnPartitionFileBatch : public CircularBufferController
 class ColumnPartitionBatch
 {
   public:
-    ColumnPartitionBatch(int column_partition_idx, uint64_t max_size_per_callset, const std::vector<int64_t>& num_callsets_in_file,
+    ColumnPartitionBatch(int column_partition_idx, uint64_t max_size_per_order, const std::vector<int64_t>& num_callsets_in_file,
+	const std::vector<int64_t>& num_orders_in_file,
         unsigned num_entries_in_circular_buffer)
     {
       m_num_completed = 0;
       m_total_num_callsets = 0;
+      m_total_num_orders = 0;
       m_idx = column_partition_idx;
-      m_max_size_per_callset = max_size_per_callset;
+      m_max_size_per_order = max_size_per_order;
       m_file_batches.resize(num_callsets_in_file.size(), ColumnPartitionFileBatch(num_entries_in_circular_buffer));
       for(auto i=0ull;i<num_callsets_in_file.size();++i)
-        set_num_callsets_in_file(i, num_callsets_in_file[i]);
+        set_num_callsets_in_file(i, num_callsets_in_file[i], num_orders_in_file[i]);
       //In the global buffer, data for the current partition begins here
-      m_partition_begin_offset = m_total_num_callsets*m_max_size_per_callset*m_idx;
+      m_partition_begin_offset = m_total_num_orders*m_max_size_per_order*m_idx;
       //First time initialization of buffer offsets
       update_buffer_offsets(true);
     }
@@ -125,7 +136,7 @@ class ColumnPartitionBatch
       for(auto& file_batch : m_file_batches)
       {
         if(force_update || (file_batch.m_fetch && !file_batch.m_completed))
-          file_batch.update_buffer_offset(offset, m_max_size_per_callset);
+          file_batch.update_buffer_offset(offset, m_max_size_per_order);
       }
     }
     /*
@@ -160,21 +171,24 @@ class ColumnPartitionBatch
       assert(static_cast<size_t>(file_idx) < m_file_batches.size());
       return m_file_batches[file_idx];
     }
-    inline size_t get_max_size_per_callset() const { return m_max_size_per_callset; }
+    inline size_t get_max_size_per_callset() const { return m_max_size_per_order; }
     inline int64_t get_partition_begin_offset() const { return m_partition_begin_offset; }
   private:
-    void set_num_callsets_in_file(int64_t file_idx, int64_t num_callsets)
+    void set_num_callsets_in_file(int64_t file_idx, int64_t num_callsets, int64_t num_orders)
     {
       assert(file_idx < static_cast<int64_t>(m_file_batches.size()));
       auto& curr_file_batch = m_file_batches[file_idx];
       curr_file_batch.m_num_callsets = num_callsets;
+      curr_file_batch.m_num_orders = num_orders;
       m_total_num_callsets += num_callsets;
+      m_total_num_orders += num_orders;
     }
     //Members
     int m_idx;
-    size_t m_max_size_per_callset;
+    size_t m_max_size_per_order;
     int64_t m_num_completed;
     int64_t m_total_num_callsets;
+    int64_t m_total_num_orders;
     int64_t m_partition_begin_offset;
     std::vector<ColumnPartitionFileBatch> m_file_batches;
 #if 0
@@ -194,12 +208,12 @@ class ColumnPartitionBatch
         curr_file_batch.m_fetch = true;
         num_callsets += curr_file_batch.m_num_callsets;
       }
-      m_max_size_per_callset = per_partition_size/num_callsets;
+      m_max_size_per_order = per_partition_size/num_callsets;
       for(auto file_idx : file_idx_vec)
       {
         auto& curr_file_batch = m_file_batches[file_idx];
         curr_file_batch.m_buffer_offset = offset;
-        offset = (curr_file_batch.m_fetch) ? offset + curr_file_batch.m_num_callsets*m_max_size_per_callset : offset;
+        offset = (curr_file_batch.m_fetch) ? offset + curr_file_batch.m_num_callsets*m_max_size_per_order : offset;
       }
       return offset;
     }

@@ -143,6 +143,8 @@ class JSONLoaderConfig : public JSONConfigBase
     }
     inline bool fail_if_updating() const { return m_fail_if_updating; }
     inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
+    inline bool discard_missing_GTs() const { return m_discard_missing_GTs; }
+    inline bool no_mandatory_VCF_fields() const { return m_no_mandatory_VCF_fields; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -180,8 +182,14 @@ class JSONLoaderConfig : public JSONConfigBase
     bool m_fail_if_updating;
     //consolidate TileDB array after load - merges fragments
     bool m_consolidate_tiledb_array_after_load;
+    //Discard entries with ./. or .|. as the GT field
+    bool m_discard_missing_GTs;
+    //The array will NOT contain mandatory VCF fields (ref, alt, qual, filter) 
+    //if this flag is enabled
+    bool m_no_mandatory_VCF_fields;
 };
 
+#ifdef LIBDBI
 class JSONMapperConfig : public SQLVidMapperRequest {
   private:
 	void parse_mapper_config(std::string mapper_config_file);
@@ -189,6 +197,7 @@ class JSONMapperConfig : public SQLVidMapperRequest {
 	JSONMapperConfig(std::string mapper_config_file) { parse_mapper_config(mapper_config_file); }
 	void populate_mapper_request(SQLVidMapperRequest&);
 };
+#endif
 
 #ifdef HTSDIR
 
