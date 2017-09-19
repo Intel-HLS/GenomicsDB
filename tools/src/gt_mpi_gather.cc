@@ -29,7 +29,6 @@
 #include "timer.h"
 #include "broad_combined_gvcf.h"
 #include "vid_mapper_pb.h"
-#include "vid_mapper_sql.h"
 
 #ifdef USE_BIGMPI
 #include "bigmpi.h"
@@ -103,11 +102,9 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   GTProfileStats stats;
   stats_ptr = &stats;
 #endif
-  std::cout <<"IN run_range_query\n";
   //Variants vector
   std::vector<Variant> variants;
   uint64_t num_column_intervals = query_config.get_num_column_intervals();
-  std::cout <<"IN run_range_query: num_column_intervals: " <<num_column_intervals <<"\n";
   std::vector<uint64_t> queried_column_positions(num_column_intervals * 2, 0ull);
   std::vector<uint64_t> query_column_lengths(num_column_intervals, 0ull);
   //Perform query if not root or !skip_query_on_root
@@ -269,15 +266,11 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
   {
     variants.clear();
     uint64_t offset = 0ull;
-    std::cout <<"Serialized SIZE: <" <<total_serialized_size <<">\n";
     while(offset < total_serialized_size)
     {
       variants.emplace_back();
       auto& variant = variants.back();
-      std::cout <<"---- I ----\n";
-      std::cout <<"Buff_Offset: <" <<receive_buffer.size() <<" - " <<offset <<">\n";
       qp.binary_deserialize(variant, query_config, receive_buffer, offset);
-      std::cout <<"---- II ----\n";
     }
 #if VERBOSE>0
     std::cerr << "Completed binary deserialization at root\n";
@@ -439,16 +432,12 @@ int main(int argc, char *argv[]) {
     {"version",0,0,ARGS_IDX_VERSION},
     {0,0,0,0},
   };
+
   int c;
   uint64_t page_size = 0u;
   std::string output_format = "";
   std::string workspace = "";
   std::string array_name = "";
-
-  // mapper config file is also in json format but is meant for enhancement.
-  // Primarily it can be used to specify DB connection parameters for SQL
-  // VID mapper, but can also be used for other necessary purposes in future.
-  std::string mapper_config_file = "";
 
   std::string json_config_file = "";
   std::string loader_json_config_file = "";
@@ -456,6 +445,7 @@ int main(int argc, char *argv[]) {
   auto print_version_only = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
+
   while((c=getopt_long(argc, argv, "m:j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
   {
     switch(c)
@@ -488,9 +478,6 @@ int main(int argc, char *argv[]) {
       case ARGS_IDX_PRODUCE_HISTOGRAM:
         command_idx = COMMAND_PRODUCE_HISTOGRAM;
         break;
-      case 'm':
-        mapper_config_file = std::move(std::string(optarg));
-        break;
       case 'j':
         json_config_file = std::move(std::string(optarg));
         break;
@@ -512,21 +499,20 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
   }
+
   if(!print_version_only)
   {
     //Use VariantQueryConfig to setup query info
     VariantQueryConfig query_config;
     //Vid mapping
-    FileBasedVidMapper file_vid_mapper;
-#ifdef LIBDBI
-    SQLBasedVidMapper sql_vid_mapper;
-#endif
+    VidMapper vid_mapper;
+
     //Loader configuration
     JSONLoaderConfig loader_config;
     JSONLoaderConfig* loader_config_ptr = 0;
     if(!(loader_json_config_file.empty()))
     {
-      loader_config.read_from_file(loader_json_config_file, &file_vid_mapper, my_world_mpi_rank);
+      loader_config.read_from_file(loader_json_config_file, &vid_mapper, my_world_mpi_rank);
       loader_config_ptr = &loader_config;
     }
 #ifdef HTSDIR
@@ -544,7 +530,7 @@ int main(int argc, char *argv[]) {
       {
         case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &file_vid_mapper, output_format, my_world_mpi_rank);
+          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &vid_mapper, output_format, my_world_mpi_rank);
           json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
           std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
@@ -552,7 +538,7 @@ int main(int argc, char *argv[]) {
 #endif
           break;
         default:
-          range_query_config.read_from_file(json_config_file, query_config, &file_vid_mapper, my_world_mpi_rank, loader_config_ptr);
+          range_query_config.read_from_file(json_config_file, query_config, &vid_mapper, my_world_mpi_rank, loader_config_ptr);
           json_config_ptr = &range_query_config;
           break;
       }
@@ -589,34 +575,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-#ifdef LIBDBI
-    if (! mapper_config_file.empty()) {
-      std::cout <<"---------------------------------------\n";
-      std::cout <<"MAPPER FILE: <" <<mapper_config_file <<">\n";
-      JSONMapperConfig mapper_config(mapper_config_file);
-      SQLVidMapperRequest mapper_request;
-      mapper_config.populate_mapper_request(mapper_request);
-      try {
-        sql_vid_mapper.create_db_connection(mapper_request);
-        if (sql_vid_mapper.is_dbconn_created) {
-          sql_vid_mapper.load_mapping_data_from_db();
-          workspace = mapper_request.work_space;
-          array_name = mapper_request.array_name;
-        }
-      } catch (const std::exception& e) {
-        std::cerr << "ERROR: Exception while trying to create DB connection\n";
-      }
-      std::cout <<"IS_DBCONN_CREATED: <" <<(sql_vid_mapper.is_dbconn_created ? "YES" : "NO") <<">\n";
-      std::cout <<"---------------------------------------\n";
-      file_vid_mapper.print_debug();
-      std::cout <<"---------------------------------------\n";
-      sql_vid_mapper.print_debug();
-      std::cout <<"---------------------------------------\n";
-    }
-    const VidMapper& id_mapper = (sql_vid_mapper.is_dbconn_created ? static_cast<const VidMapper&>(sql_vid_mapper) : static_cast<const VidMapper&>(file_vid_mapper));
-#else //ifdef LIBDBI
-    const VidMapper& id_mapper = static_cast<const VidMapper&>(file_vid_mapper);
-#endif //ifdef LIBDBI
+    const VidMapper& id_mapper = vid_mapper;
 
     if(workspace == "" || array_name == "")
     {
@@ -631,14 +590,11 @@ int main(int argc, char *argv[]) {
 #endif
     /*Create storage manager*/
     VariantStorageManager sm(workspace, segment_size);
-    std::cout <<" ----- VariantStorageManager ----\n";
     /*Create query processor*/
     VariantQueryProcessor qp(&sm, array_name, id_mapper);
-    std::cout <<" ----- VariantQueryProcessor ----\n";
     auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
         || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
     qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
-    std::cout <<" ----- Book Keeping ----\n";
     switch(command_idx)
     {
       case COMMAND_RANGE_QUERY:
@@ -669,6 +625,7 @@ int main(int argc, char *argv[]) {
 #endif
     sm.close_array(qp.get_array_descriptor());
   }
+
   GenomicsDBProtoBufInitAndCleanup::shutdown_protobuf_library();
   MPI_Finalize();
   return 0;

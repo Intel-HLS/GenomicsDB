@@ -73,7 +73,7 @@ class JSONConfigBase
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
-    void read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank);
+    void read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank);
     const std::vector<ColumnRange>& get_query_column_ranges(const int rank) const;
     const std::vector<RowRange>& get_query_row_ranges(const int rank) const;
   protected:
@@ -99,6 +99,12 @@ class JSONConfigBase
     std::string m_vid_mapping_file;
     //callset mapping file - if defined in upper level config file
     std::string m_callset_mapping_file;
+    // The following four fields are required to establish a DB connection
+    // for SQLVidMapper
+    std::string m_mapping_db_hostname;
+    std::string m_mapping_db_username;
+    std::string m_mapping_db_password;
+    std::string m_mapping_db_name;
 };
 
 class JSONLoaderConfig;
@@ -107,7 +113,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
     JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
     void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
     void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
@@ -119,7 +125,7 @@ class JSONLoaderConfig : public JSONConfigBase
 {
   public:
     JSONLoaderConfig(bool vid_mapper_file_required = true);
-    void read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper=0, int rank=0);
+    void read_from_file(const std::string& filename, VidMapper* id_mapper=0, int rank=0);
     inline bool is_partitioned_by_row() const { return m_row_based_partitioning; }
     inline bool is_partitioned_by_column() const { return !m_row_based_partitioning; }
     inline ColumnRange get_column_partition(int idx) const
@@ -135,6 +141,10 @@ class JSONLoaderConfig : public JSONConfigBase
     inline size_t get_segment_size() const { return m_segment_size; }
     inline size_t get_num_cells_per_tile() const { return m_num_cells_per_tile; }
     inline int64_t get_tiledb_compression_level() const { return m_tiledb_compression_level; }
+    inline const std::string& get_mapping_db_hostname() const { return m_mapping_db_hostname; }
+    inline const std::string& get_mapping_db_username() const { return m_mapping_db_username; }
+    inline const std::string& get_mapping_db_password() const { return m_mapping_db_password; }
+    inline const std::string& get_mapping_db_name() const { return m_mapping_db_name; }
     inline const std::string& get_vid_mapping_filename() const { return m_vid_mapping_file; }
     inline const std::string& get_callset_mapping_filename() const { return m_callset_mapping_file; }
     inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
@@ -232,10 +242,7 @@ class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQ
 {
   public:
     JSONVCFAdapterQueryConfig() : JSONVCFAdapterConfig(), JSONBasicQueryConfig() { ; }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
-        std::string output_format="", int rank=0,
-        const size_t combined_vcf_records_buffer_size_limit=0u);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VCFAdapter& vcf_adapter, VidMapper* id_mapper, std::string output_format="", int rank=0, const size_t combined_vcf_records_buffer_size_limit=0u);
 };
 
 

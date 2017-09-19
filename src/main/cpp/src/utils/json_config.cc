@@ -82,14 +82,31 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   m_json.Parse(str.c_str());
   if(m_json.HasParseError())
     throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
-  FileBasedVidMapper tmp_vid_mapper;
-  //Null or un-initialized
-  if(id_mapper == 0 || !(id_mapper->is_initialized()))
-  {
-    read_and_initialize_vid_and_callset_mapping_if_available(&tmp_vid_mapper, rank);
-    if(tmp_vid_mapper.is_initialized())
-      id_mapper = &tmp_vid_mapper;
+
+  if (m_json.HasMember("host_name")) {
+    const rapidjson::Value& host_name = m_json["host_name"];
+    VERIFY_OR_THROW(host_name.IsString());
+    this->m_mapping_db_hostname = host_name.GetString();
   }
+
+  if (m_json.HasMember("user_name")) {
+    const rapidjson::Value& user_name = m_json["user_name"];
+    VERIFY_OR_THROW(user_name.IsString());
+    this->m_mapping_db_username = user_name.GetString();
+  }
+
+  if (m_json.HasMember("pass_word")) {
+    const rapidjson::Value& pass_word = m_json["pass_word"];
+    VERIFY_OR_THROW(pass_word.IsString());
+    this->m_mapping_db_password = pass_word.GetString();
+  }
+
+  if (m_json.HasMember("db_name")) {
+    const rapidjson::Value& db_name = m_json["db_name"];
+    VERIFY_OR_THROW(db_name.IsString());
+    this->m_mapping_db_name = db_name.GetString();
+  }
+
   //Workspace
   if(m_json.HasMember("workspace"))
   {
@@ -110,6 +127,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       m_single_workspace_path = true;
     }
   }
+
   //Array
   if(m_json.HasMember("array"))
   {
@@ -130,6 +148,41 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       m_single_array_name = true;
     }
   }
+
+  bool db_conn_created = false;
+
+  #ifdef LIBDBI
+    SQLVidMapperRequest mapper_request;
+    mapper_request.host_name = this->m_mapping_db_hostname;
+    mapper_request.user_name = this->m_mapping_db_username;
+    mapper_request.pass_word = this->m_mapping_db_password;
+    mapper_request.db_name = this->m_mapping_db_name;
+    mapper_request.work_space = this->m_workspaces[0];
+    mapper_request.array_name = this->m_array_names[0];
+
+    SQLBasedVidMapper sql_vid_mapper;
+    try {
+      sql_vid_mapper.create_db_connection(mapper_request);
+      if (sql_vid_mapper.is_dbconn_created) {
+        sql_vid_mapper.load_mapping_data_from_db();
+      }
+      db_conn_created = true;
+      id_mapper = &sql_vid_mapper;
+    } catch (const std::exception& e) {
+      std::cerr << "ERROR: Exception while trying to create DB connection\n";
+    }
+  #endif //ifdef LIBDBI
+
+  if (! db_conn_created) {
+    FileBasedVidMapper tmp_vid_mapper;
+    //Null or un-initialized
+    if(id_mapper == 0 || !(id_mapper->is_initialized())) {
+      read_and_initialize_vid_and_callset_mapping_if_available(&tmp_vid_mapper, rank);
+    if(tmp_vid_mapper.is_initialized())
+      id_mapper = &tmp_vid_mapper;
+    }
+  }
+
   //VERIFY_OR_THROW(m_json.HasMember("query_column_ranges") || m_json.HasMember("column_partitions")
   //|| m_json.HasMember("scan_full"));
   if(m_json.HasMember("scan_full"))
@@ -448,7 +501,7 @@ const std::vector<ColumnRange>& JSONConfigBase::get_query_column_ranges(const in
   return m_column_ranges[fixed_rank];
 }
 
-void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank)
+void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank)
 {
   auto& vid_mapping_file = m_vid_mapping_file;
   auto& callset_mapping_file = m_callset_mapping_file;
@@ -540,7 +593,7 @@ void JSONBasicQueryConfig::subset_query_column_ranges_based_on_partition(const J
 }
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-    FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
+    VidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
   //Need to parse here first because id_mapper initialization in read_and_initialize_vid_and_callset_mapping_if_available() requires
   //valid m_json object
@@ -639,7 +692,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_no_mandatory_VCF_fields = false;
 }
 
-void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
+void JSONLoaderConfig::read_from_file(const std::string& filename, VidMapper* id_mapper, const int rank)
 {
   JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //Check for row based partitioning - default column based
@@ -751,68 +804,6 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
     m_no_mandatory_VCF_fields = m_json["no_mandatory_VCF_fields"].GetBool();
 }
 
-#ifdef LIBDBI
-void JSONMapperConfig::parse_mapper_config(std::string mapper_config_file) {
-  std::ifstream ifs(mapper_config_file.c_str());
-  VERIFY_OR_THROW(ifs.is_open());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-
-  rapidjson::Document m_json;
-  m_json.Parse(str.c_str());
-  if (m_json.HasParseError()) {
-    throw RunConfigException(std::string("Syntax error in JSON file <") + mapper_config_file + ">");
-  }
-
-  if (m_json.HasMember("host_name")) {
-    const rapidjson::Value& host_name = m_json["host_name"];
-    VERIFY_OR_THROW(host_name.IsString());
-    this->host_name = host_name.GetString();
-  }
-
-  if (m_json.HasMember("user_name")) {
-    const rapidjson::Value& user_name = m_json["user_name"];
-    VERIFY_OR_THROW(user_name.IsString());
-    this->user_name = user_name.GetString();
-  }
-
-  if (m_json.HasMember("pass_word")) {
-    const rapidjson::Value& pass_word = m_json["pass_word"];
-    VERIFY_OR_THROW(pass_word.IsString());
-    this->pass_word = pass_word.GetString();
-  }
-
-  if (m_json.HasMember("db_name")) {
-    const rapidjson::Value& db_name = m_json["db_name"];
-    VERIFY_OR_THROW(db_name.IsString());
-    this->db_name = db_name.GetString();
-  }
-
-  if (m_json.HasMember("work_space")) {
-    const rapidjson::Value& work_space = m_json["work_space"];
-    VERIFY_OR_THROW(work_space.IsString());
-    this->work_space = work_space.GetString();
-  }
-
-  if (m_json.HasMember("array_name")) {
-    const rapidjson::Value& array_name = m_json["array_name"];
-    VERIFY_OR_THROW(array_name.IsString());
-    this->array_name = array_name.GetString();
-  }
-
-  return;
-}
-
-void JSONMapperConfig::populate_mapper_request(SQLVidMapperRequest& mapper_request) {
-  mapper_request.host_name = host_name;
-  mapper_request.user_name = user_name;
-  mapper_request.pass_word = pass_word;
-  mapper_request.db_name = db_name;
-  mapper_request.work_space = work_space;
-  mapper_request.array_name = array_name;
-  return;
-}
-#endif //ifdef LIBDBI
-   
 #ifdef HTSDIR
 
 void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
@@ -924,10 +915,11 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
+        VCFAdapter& vcf_adapter, VidMapper* id_mapper,
         std::string output_format, const int rank, const size_t combined_vcf_records_buffer_size_limit)
 {
   JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
   JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank, combined_vcf_records_buffer_size_limit);
 }
 #endif
+
