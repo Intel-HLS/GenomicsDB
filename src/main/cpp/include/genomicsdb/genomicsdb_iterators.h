@@ -30,10 +30,6 @@
 #include "c_api.h"
 #include "timer.h"
 
-#ifdef DO_PROFILING
-/*#define COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW 1*/
-#endif
-
 //Exceptions thrown
 class GenomicsDBIteratorException : public std::exception {
   public:
@@ -336,11 +332,19 @@ class SingleCellTileDBIterator
 #ifdef DO_PROFILING
     uint64_t m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_STATS];
     std::vector<uint64_t> m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram;
-#endif
 #ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
     std::vector<uint64_t> m_cell_counts_since_last_cell_from_same_row;
     std::vector<uint64_t> m_histogram_cell_counts_since_last_cell_from_same_row;
-#endif
+#endif //COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#ifdef PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
+    std::vector<std::pair<int64_t, int64_t>> m_observed_cells_in_curr_window;
+    std::vector<uint64_t> m_row_idx_to_num_observed_cells_in_curr_window;
+    uint64_t m_num_observed_row_idxs_in_curr_window;
+    uint64_t m_num_observed_cells_in_curr_window;
+    void update_sliding_window_to_profile_num_cells_to_traverse(
+        const GenomicsDBColumnarField& coords_columnar_field);
+#endif //PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
+#endif //DO_PROFILING
 };
 
 #endif

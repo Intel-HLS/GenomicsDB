@@ -26,7 +26,7 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBIteratorException(#X);
 
-#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#if defined(DO_PROFILING) && defined(COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW)
 #define COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE 1ull
 #endif
 
@@ -63,6 +63,11 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
 #ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
   m_cell_counts_since_last_cell_from_same_row.resize(query_config.get_num_rows_in_array(), 0ull);
 #endif //COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#ifdef PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
+  m_num_observed_row_idxs_in_curr_window = 0ull;
+  m_num_observed_cells_in_curr_window = 0ull;
+  m_row_idx_to_num_observed_cells_in_curr_window.resize(query_config.get_num_rows_in_array(), 0ull);
+#endif //PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
 #endif //DO_PROFILING
   const auto& attribute_ids = query_config.get_query_attributes_schema_idxs();
   std::vector<const char*> attribute_names(attribute_ids.size()+1u);  //+1 for the COORDS
@@ -149,6 +154,12 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
   m_histogram_cell_counts_since_last_cell_from_same_row.clear();
   m_cell_counts_since_last_cell_from_same_row.clear();
 #endif //COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE
+#ifdef PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
+  //Final window
+  if(m_num_observed_cells_in_curr_window > 0u)
+    std::cerr << m_observed_cells_in_curr_window[0].second << '\t'
+      << INT64_MAX-1 << '\t' << m_num_observed_cells_in_curr_window << '\n';
+#endif //PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL
 #endif //DO_PROFILING
 }
 
@@ -460,6 +471,10 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
     //in simple mode, create bitvector Columnar[COORDS[1]] <= Columnar[END]
     //find first bit != 0, num_cells_incremented == index of first bit
 
+#if defined(DO_PROFILING) && defined(PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL)
+    update_sliding_window_to_profile_num_cells_to_traverse(coords_columnar_field);
+#endif
+
     if(num_cells_incremented > 0u)
     {
       //Increment coords and END fields only first - increment other fields only when a useful cell is found
@@ -504,7 +519,7 @@ const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
               )
             ));
       hitting_useless_cells = (END_field_value < coords[1]);
-#ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
+#if defined(DO_PROFILING) && defined(COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW)
       auto marker_idx = coords[0] - m_smallest_row_idx_in_array;
       auto histogram_bin_idx = (m_cell_counts_since_last_cell_from_same_row[marker_idx]/
         COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW_HISTOGRAM_BIN_SIZE);
@@ -640,5 +655,60 @@ void SingleCellTileDBIterator::increment_num_cells_traversed_stats(const uint64_
   m_num_cells_traversed_stats[m_in_find_intersecting_intervals_mode
     ? GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE
     : GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_SIMPLE_TRAVERSAL_MODE] += (num_cells_incremented - 1u);
+}
+#endif
+
+#if defined(DO_PROFILING) && defined(PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL)
+void SingleCellTileDBIterator::update_sliding_window_to_profile_num_cells_to_traverse(
+    const GenomicsDBColumnarField& coords_columnar_field)
+{
+  const auto* curr_coords = reinterpret_cast<const int64_t*>(
+      coords_columnar_field.get_pointer_to_data_in_buffer_at_index(
+        coords_columnar_field.get_live_buffer_list_tail_ptr(),
+        coords_columnar_field.get_curr_index_in_live_list_tail()
+        )
+      );
+  auto curr_row_idx = curr_coords[0];
+  auto num_observed_cells_in_curr_window_for_row_idx_before_increment
+    = m_row_idx_to_num_observed_cells_in_curr_window[curr_row_idx];
+  ++(m_row_idx_to_num_observed_cells_in_curr_window[curr_row_idx]);
+  ++m_num_observed_cells_in_curr_window;
+  m_observed_cells_in_curr_window.emplace_back(curr_row_idx, curr_coords[1]);
+  //no cells for this row were seen in the current window before this cell
+  //Check if window is "complete"
+  if(num_observed_cells_in_curr_window_for_row_idx_before_increment == 0u)
+  {
+    ++m_num_observed_row_idxs_in_curr_window;
+    if(m_num_observed_row_idxs_in_curr_window == m_query_config->get_num_rows_in_array())
+      std::cerr << m_observed_cells_in_curr_window[0].second << '\t'
+        << curr_coords[1] << '\t' << m_num_observed_cells_in_curr_window << '\n';
+    //Current sliding window is "complete" - move left edge of window
+    //Complete == contains at least 1 cell from every row
+    auto window_left_idx = 0ull;
+    auto last_column = -1ll;
+    //One row has no cells in window OR
+    //Cells in the same column
+    while(m_num_observed_row_idxs_in_curr_window == m_query_config->get_num_rows_in_array()
+        || (window_left_idx < m_observed_cells_in_curr_window.size()
+          && last_column == m_observed_cells_in_curr_window[window_left_idx].second))
+    {
+      const auto& left_cell_pair = m_observed_cells_in_curr_window[window_left_idx];
+      auto left_row_idx = left_cell_pair.first;
+      --(m_row_idx_to_num_observed_cells_in_curr_window[left_row_idx]);
+      //No cells for this row left in the window
+      if(m_row_idx_to_num_observed_cells_in_curr_window[left_row_idx] == 0u)
+        --m_num_observed_row_idxs_in_curr_window;
+      ++window_left_idx;
+      last_column = left_cell_pair.second;
+    }
+    //Delete cells from the left of the window
+    if(window_left_idx > 0u)
+    {
+      m_observed_cells_in_curr_window.erase(m_observed_cells_in_curr_window.begin(),
+          m_observed_cells_in_curr_window.begin()+window_left_idx);
+      assert(window_left_idx <= m_num_observed_cells_in_curr_window);
+      m_num_observed_cells_in_curr_window -= window_left_idx;
+    }
+  }
 }
 #endif
