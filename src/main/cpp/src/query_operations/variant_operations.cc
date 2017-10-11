@@ -685,6 +685,52 @@ void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryCon
   }
 }
 
+void VariantCallPrintOperator::operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
+{
+  if(m_num_calls_printed > 0ull)
+    (*m_fptr) << ",\n";
+  call.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
+  ++m_num_calls_printed;
+}
+
+void VariantCallPrintOperator::operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+    const VariantArraySchema& schema)
+{
+  if(cell.at_new_query_column_interval())
+  {
+    if(m_num_query_intervals_printed > 0u)
+    {
+      (*m_fptr) << "\n";
+      (*m_fptr) << m_indent_prefix_plus_one << "]\n";
+      (*m_fptr) << m_indent_prefix << "},\n";
+    }
+    m_num_calls_printed = 0u;
+    (*m_fptr) << m_indent_prefix << "{\n";
+    auto curr_query_column_interval_idx = cell.get_current_query_column_interval_idx();
+    auto begin = (query_config.get_num_column_intervals() > 0u)
+      ? query_config.get_column_begin(curr_query_column_interval_idx) : 0ll;
+    auto end = (query_config.get_num_column_intervals() > 0u)
+      ? query_config.get_column_end(curr_query_column_interval_idx) : INT64_MAX-1ll;
+    (*m_fptr) << m_indent_prefix_plus_one << "\"query_interval\": [ "<< begin <<", "<< end << " ],\n";
+    (*m_fptr) << m_indent_prefix_plus_one << "\"variant_calls\": [\n";
+  }
+  if(m_num_calls_printed > 0ull)
+    (*m_fptr) << ",\n";
+  cell.print(*m_fptr, &query_config, m_indent_prefix_plus_two, m_vid_mapper);
+  ++m_num_calls_printed;
+  ++m_num_query_intervals_printed;
+}
+
+void VariantCallPrintOperator::finalize()
+{
+  if(m_num_query_intervals_printed > 0u)
+  {
+    (*m_fptr) << "\n";
+    (*m_fptr) << m_indent_prefix_plus_one << "]\n";
+    (*m_fptr) << m_indent_prefix << "}";
+  }
+}
+
 void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
 {
   auto& fptr = *m_fptr;

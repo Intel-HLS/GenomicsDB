@@ -176,6 +176,7 @@ class GenomicsDBColumnarCell
         const std::string& indent_prefix, const VidMapper* vid_mapper) const;
     void print_csv(std::ostream& fptr, const VariantQueryConfig* query_config) const;
     inline bool at_new_query_column_interval() const { return m_iterator->at_new_query_column_interval(); }
+    inline uint64_t get_current_query_column_interval_idx() const { return m_iterator->get_current_query_column_interval_idx(); }
   private:
     const SingleCellTileDBIterator* m_iterator;
 };

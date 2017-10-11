@@ -561,6 +561,7 @@ void VariantQueryProcessor::iterate_over_cells(
     if(query_config.is_queried_array_row_idx(coords[0]))       //If row is part of query, process cell
       variant_operator.operate_on_columnar_cell(cell, query_config, get_array_schema());
   }
+  variant_operator.finalize();
   delete columnar_forward_iter;
 }
 

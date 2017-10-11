@@ -249,6 +249,7 @@ class SingleCellTileDBIterator
     void print_csv(const int query_idx, std::ostream& fptr=std::cout) const;
     inline bool end() const { return m_done_reading_from_TileDB && m_PQ_live_cell_markers.empty(); }
     inline bool at_new_query_column_interval() const { return m_at_new_query_column_interval; }
+    inline uint64_t get_current_query_column_interval_idx() const { return m_query_column_interval_idx; }
   protected:
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec

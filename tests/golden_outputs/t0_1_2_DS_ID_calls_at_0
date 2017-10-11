@@ -1,108 +1,113 @@
 {
     "variant_calls": [
         {
-            "row": 0,
-            "interval": [ 12140, 12294 ],
-            "genomic_interval": { "1" : [ 12141, 12295 ] },
-            "fields": {
-                "REF": "C",
-                "ALT": [ "<NON_REF>" ],
-                "GT": [ 0, 0 ],
-                "GQ": 0,
-                "PL": [ 0, 0, 0 ],
-                "DP_FORMAT": 2,
-                "MIN_DP": 0,
-                "DS": 1
-            }
-        },
-        {
-            "row": 1,
-            "interval": [ 12144, 12276 ],
-            "genomic_interval": { "1" : [ 12145, 12277 ] },
-            "fields": {
-                "REF": "C",
-                "ALT": [ "<NON_REF>" ],
-                "GT": [ 0, 0 ],
-                "GQ": 0,
-                "PL": [ 0, 0, 0 ],
-                "DP_FORMAT": 3,
-                "MIN_DP": 0,
-                "DS": 1
-            }
-        },
-        {
-            "row": 0,
-            "interval": [ 17384, 17384 ],
-            "genomic_interval": { "1" : [ 17385, 17385 ] },
-            "fields": {
-                "REF": "G",
-                "ALT": [ "A", "<NON_REF>" ],
-                "MQ": 31.72,
-                "RAW_MQ": 5.5,
-                "MQ0": 8,
-                "ClippingRankSum": -1.859,
-                "MQRankSum": -0.329,
-                "ReadPosRankSum": 0.005,
-                "GT": [ 0, 1 ],
-                "GQ": 99,
-                "SB": [ 58, 0, 22, 0 ],
-                "AD": [ 58, 22, 17 ],
-                "PL": [ 504, 0, 9807, 678, 1870, 2548 ],
-                "DP_FORMAT": 80,
-                "PID": "17385_G_A",
-                "PGT": "0|1",
-                "DS": 1,
-                "ID": "rs1234;db567",
-                "BaseQRankSum": -2.096
-            }
-        },
-        {
-            "row": 1,
-            "interval": [ 17384, 17384 ],
-            "genomic_interval": { "1" : [ 17385, 17385 ] },
-            "fields": {
-                "REF": "G",
-                "ALT": [ "T", "<NON_REF>" ],
-                "MQ": 29.82,
-                "RAW_MQ": 2.5,
-                "MQ0": 3,
-                "ClippingRankSum": 0.555,
-                "MQRankSum": -1.369,
-                "ReadPosRankSum": -0.101,
-                "DP": 120,
-                "GT": [ 1, 1 ],
-                "GQ": 99,
-                "SB": [ 0, 0, 0, 0 ],
-                "AD": [ 0, 120, 37 ],
-                "PL": [ 3336, 358, 0, 4536, 958, 7349 ],
-                "DP_FORMAT": 120,
-                "PID": "17385_G_T",
-                "PGT": "0|1",
-                "ID": "db567;rs890",
-                "BaseQRankSum": -2.074
-            }
-        },
-        {
-            "row": 2,
-            "interval": [ 17384, 17384 ],
-            "genomic_interval": { "1" : [ 17385, 17385 ] },
-            "fields": {
-                "REF": "G",
-                "ALT": [ "A", "<NON_REF>" ],
-                "MQ": 59.37,
-                "MQ0": 0,
-                "ClippingRankSum": -2.242,
-                "MQRankSum": -0.432,
-                "ReadPosRankSum": 2.055,
-                "DP": 76,
-                "GT": [ 0, 1 ],
-                "GQ": 99,
-                "SB": [ 9, 31, 13, 23 ],
-                "AD": [ 40, 36, 0 ],
-                "PL": [ 1018, 0, 1116, 1137, 1224, 2361 ],
-                "DP_FORMAT": 76,
-                "BaseQRankSum": 1.046
-            }
+            "query_interval": [ 0, 1000000000 ],
+            "variant_calls": [
+                {
+                    "row": 0,
+                    "interval": [ 12140, 12294 ],
+                    "genomic_interval": { "1" : [ 12141, 12295 ] },
+                    "fields": {
+                        "REF": "C",
+                        "ALT": [ "<NON_REF>" ],
+                        "GT": [ 0, 0 ],
+                        "GQ": 0,
+                        "PL": [ 0, 0, 0 ],
+                        "DP_FORMAT": 2,
+                        "MIN_DP": 0,
+                        "DS": 1
+                    }
+                },
+                {
+                    "row": 1,
+                    "interval": [ 12144, 12276 ],
+                    "genomic_interval": { "1" : [ 12145, 12277 ] },
+                    "fields": {
+                        "REF": "C",
+                        "ALT": [ "<NON_REF>" ],
+                        "GT": [ 0, 0 ],
+                        "GQ": 0,
+                        "PL": [ 0, 0, 0 ],
+                        "DP_FORMAT": 3,
+                        "MIN_DP": 0,
+                        "DS": 1
+                    }
+                },
+                {
+                    "row": 0,
+                    "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
+                    "fields": {
+                        "REF": "G",
+                        "ALT": [ "A", "<NON_REF>" ],
+                        "MQ": 31.72,
+                        "RAW_MQ": 5.5,
+                        "MQ0": 8,
+                        "ClippingRankSum": -1.859,
+                        "MQRankSum": -0.329,
+                        "ReadPosRankSum": 0.005,
+                        "GT": [ 0, 1 ],
+                        "GQ": 99,
+                        "SB": [ 58, 0, 22, 0 ],
+                        "AD": [ 58, 22, 17 ],
+                        "PL": [ 504, 0, 9807, 678, 1870, 2548 ],
+                        "DP_FORMAT": 80,
+                        "PID": "17385_G_A",
+                        "PGT": "0|1",
+                        "DS": 1,
+                        "ID": "rs1234;db567",
+                        "BaseQRankSum": -2.096
+                    }
+                },
+                {
+                    "row": 1,
+                    "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
+                    "fields": {
+                        "REF": "G",
+                        "ALT": [ "T", "<NON_REF>" ],
+                        "MQ": 29.82,
+                        "RAW_MQ": 2.5,
+                        "MQ0": 3,
+                        "ClippingRankSum": 0.555,
+                        "MQRankSum": -1.369,
+                        "ReadPosRankSum": -0.101,
+                        "DP": 120,
+                        "GT": [ 1, 1 ],
+                        "GQ": 99,
+                        "SB": [ 0, 0, 0, 0 ],
+                        "AD": [ 0, 120, 37 ],
+                        "PL": [ 3336, 358, 0, 4536, 958, 7349 ],
+                        "DP_FORMAT": 120,
+                        "PID": "17385_G_T",
+                        "PGT": "0|1",
+                        "ID": "db567;rs890",
+                        "BaseQRankSum": -2.074
+                    }
+                },
+                {
+                    "row": 2,
+                    "interval": [ 17384, 17384 ],
+                    "genomic_interval": { "1" : [ 17385, 17385 ] },
+                    "fields": {
+                        "REF": "G",
+                        "ALT": [ "A", "<NON_REF>" ],
+                        "MQ": 59.37,
+                        "MQ0": 0,
+                        "ClippingRankSum": -2.242,
+                        "MQRankSum": -0.432,
+                        "ReadPosRankSum": 2.055,
+                        "DP": 76,
+                        "GT": [ 0, 1 ],
+                        "GQ": 99,
+                        "SB": [ 9, 31, 13, 23 ],
+                        "AD": [ 40, 36, 0 ],
+                        "PL": [ 1018, 0, 1116, 1137, 1224, 2361 ],
+                        "DP_FORMAT": 76,
+                        "BaseQRankSum": 1.046
+                    }
+                }
+            ]
         }
     ]
 }

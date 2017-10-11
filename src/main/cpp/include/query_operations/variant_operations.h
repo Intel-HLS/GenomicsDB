@@ -26,6 +26,7 @@
 #include "variant.h"
 #include "lut.h"
 #include "variant_cell.h"
+#include "json_config.h"
 
 class VariantOperationException : public std::exception {
   public:
@@ -530,6 +531,7 @@ class SingleCellOperatorBase
     {
       throw VariantOperationException("Sub-classes should override operate_on_columnar_cell()");
     }
+    virtual void finalize() { ; } //do nothing
 };
 
 class ColumnHistogramOperator : public SingleCellOperatorBase
@@ -554,26 +556,21 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
       : SingleCellOperatorBase(), m_fptr(&fptr), m_indent_prefix(indent_prefix)
       {
         m_num_calls_printed = 0ull;
+        m_num_query_intervals_printed = 0ull;
         m_vid_mapper = (vid_mapper && vid_mapper->is_initialized()) ? vid_mapper : 0;
+        m_indent_prefix_plus_one = m_indent_prefix + g_json_indent_unit;
+        m_indent_prefix_plus_two = m_indent_prefix_plus_one + g_json_indent_unit;
       }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
-    {
-      if(m_num_calls_printed > 0ull)
-        (*m_fptr) << ",\n";
-      call.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
-      ++m_num_calls_printed;
-    }
-    virtual void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
-        const VariantArraySchema& schema)
-    {
-      if(m_num_calls_printed > 0ull)
-        (*m_fptr) << ",\n";
-      cell.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
-      ++m_num_calls_printed;
-    }
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
+    void finalize();
   private:
     uint64_t m_num_calls_printed;
+    uint64_t m_num_query_intervals_printed;
     std::string m_indent_prefix;
+    std::string m_indent_prefix_plus_one;
+    std::string m_indent_prefix_plus_two;
     std::ostream* m_fptr;
     const VidMapper* m_vid_mapper;
 };
