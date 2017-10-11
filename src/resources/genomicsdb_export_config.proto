@@ -47,4 +47,6 @@ message ExportConfiguration {
   repeated string attributes = 5;
   optional string vid_mapping_file = 6;
   optional string callset_mapping_file = 7;
+  optional bool produce_GT_field = 8;
+  optional bool produce_FILTER_field = 9;
 }

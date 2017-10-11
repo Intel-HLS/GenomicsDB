@@ -23,7 +23,7 @@ set(OPENSSL_PREFIX_DIR "" CACHE PATH "OpenSSL installation prefix")
 set(GENOMICSDB_PROTOBUF_VERSION "3.0.2" CACHE STRING "Version of Google Protocol Buffer library")
 set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
-set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
+set(PROTOBUF_REGENERATE True CACHE BOOL "Regenerate protocol buffers C++ files")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
 set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
@@ -254,6 +254,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
+	./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
