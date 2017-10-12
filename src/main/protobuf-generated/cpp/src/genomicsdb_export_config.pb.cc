@@ -25,6 +25,12 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* ColumnRangeList_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   ColumnRangeList_reflection_ = NULL;
+const ::google::protobuf::Descriptor* RowRange_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  RowRange_reflection_ = NULL;
+const ::google::protobuf::Descriptor* RowRangeList_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  RowRangeList_reflection_ = NULL;
 const ::google::protobuf::Descriptor* ExportConfiguration_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   ExportConfiguration_reflection_ = NULL;
@@ -70,15 +76,54 @@ void protobuf_AssignDesc_genomicsdb_5fexport_5fconfig_2eproto() {
       sizeof(ColumnRangeList),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ColumnRangeList, _internal_metadata_),
       -1);
-  ExportConfiguration_descriptor_ = file->message_type(2);
-  static const int ExportConfiguration_offsets_[7] = {
+  RowRange_descriptor_ = file->message_type(2);
+  static const int RowRange_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRange, low_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRange, high_),
+  };
+  RowRange_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      RowRange_descriptor_,
+      RowRange::default_instance_,
+      RowRange_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRange, _has_bits_[0]),
+      -1,
+      -1,
+      sizeof(RowRange),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRange, _internal_metadata_),
+      -1);
+  RowRangeList_descriptor_ = file->message_type(3);
+  static const int RowRangeList_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRangeList, range_list_),
+  };
+  RowRangeList_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      RowRangeList_descriptor_,
+      RowRangeList::default_instance_,
+      RowRangeList_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRangeList, _has_bits_[0]),
+      -1,
+      -1,
+      sizeof(RowRangeList),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RowRangeList, _internal_metadata_),
+      -1);
+  ExportConfiguration_descriptor_ = file->message_type(4);
+  static const int ExportConfiguration_offsets_[15] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, workspace_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, array_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, reference_genome_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_column_ranges_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, query_row_ranges_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, attributes_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, vcf_header_filename_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, vcf_output_filename_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, vcf_output_format_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, vid_mapping_file_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, callset_mapping_file_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, max_diploid_alt_alleles_that_can_be_genotyped_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, index_output_vcf_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, produce_gt_field_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ExportConfiguration, produce_filter_field_),
   };
   ExportConfiguration_reflection_ =
     ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
@@ -109,6 +154,10 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       ColumnRangeList_descriptor_, &ColumnRangeList::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      RowRange_descriptor_, &RowRange::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      RowRangeList_descriptor_, &RowRangeList::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       ExportConfiguration_descriptor_, &ExportConfiguration::default_instance());
 }
 
@@ -119,6 +168,10 @@ void protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto() {
   delete ColumnRange_reflection_;
   delete ColumnRangeList::default_instance_;
   delete ColumnRangeList_reflection_;
+  delete RowRange::default_instance_;
+  delete RowRange_reflection_;
+  delete RowRangeList::default_instance_;
+  delete RowRangeList_reflection_;
   delete ExportConfiguration::default_instance_;
   delete ExportConfiguration_reflection_;
 }
@@ -134,20 +187,33 @@ void protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto() {
     "\n\036genomicsdb_export_config.proto\"(\n\013Colu"
     "mnRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high\030\002 \002(\003\"3\n\017Co"
     "lumnRangeList\022 \n\nrange_list\030\001 \003(\0132\014.Colu"
-    "mnRange\"\314\001\n\023ExportConfiguration\022\021\n\tworks"
-    "pace\030\001 \002(\t\022\r\n\005array\030\002 \002(\t\022\030\n\020reference_g"
-    "enome\030\003 \002(\t\022-\n\023query_column_ranges\030\004 \003(\013"
-    "2\020.ColumnRangeList\022\022\n\nattributes\030\005 \003(\t\022\030"
-    "\n\020vid_mapping_file\030\006 \001(\t\022\034\n\024callset_mapp"
-    "ing_file\030\007 \001(\tB5\n\024com.intel.genomicsdbB\035"
-    "GenomicsDBExportConfiguration", 389);
+    "mnRange\"%\n\010RowRange\022\013\n\003low\030\001 \002(\003\022\014\n\004high"
+    "\030\002 \002(\003\"-\n\014RowRangeList\022\035\n\nrange_list\030\001 \003"
+    "(\0132\t.RowRange\"\323\003\n\023ExportConfiguration\022\021\n"
+    "\tworkspace\030\001 \002(\t\022\r\n\005array\030\002 \002(\t\022\030\n\020refer"
+    "ence_genome\030\003 \002(\t\022-\n\023query_column_ranges"
+    "\030\004 \003(\0132\020.ColumnRangeList\022\'\n\020query_row_ra"
+    "nges\030\005 \003(\0132\r.RowRangeList\022\022\n\nattributes\030"
+    "\006 \003(\t\022\033\n\023vcf_header_filename\030\007 \001(\t\022\033\n\023vc"
+    "f_output_filename\030\010 \001(\t\022\031\n\021vcf_output_fo"
+    "rmat\030\t \001(\t\022\030\n\020vid_mapping_file\030\n \001(\t\022\034\n\024"
+    "callset_mapping_file\030\013 \001(\t\0225\n-max_diploi"
+    "d_alt_alleles_that_can_be_genotyped\030\014 \001("
+    "\r\022\030\n\020index_output_VCF\030\r \001(\010\022\030\n\020produce_G"
+    "T_field\030\016 \001(\010\022\034\n\024produce_FILTER_field\030\017 "
+    "\001(\010B5\n\024com.intel.genomicsdbB\035GenomicsDBE"
+    "xportConfiguration", 738);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_export_config.proto", &protobuf_RegisterTypes);
   ColumnRange::default_instance_ = new ColumnRange();
   ColumnRangeList::default_instance_ = new ColumnRangeList();
+  RowRange::default_instance_ = new RowRange();
+  RowRangeList::default_instance_ = new RowRangeList();
   ExportConfiguration::default_instance_ = new ExportConfiguration();
   ColumnRange::default_instance_->InitAsDefaultInstance();
   ColumnRangeList::default_instance_->InitAsDefaultInstance();
+  RowRange::default_instance_->InitAsDefaultInstance();
+  RowRangeList::default_instance_->InitAsDefaultInstance();
   ExportConfiguration::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_genomicsdb_5fexport_5fconfig_2eproto);
 }
@@ -337,6 +403,7 @@ void ColumnRange::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ColumnRange::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
@@ -671,6 +738,7 @@ void ColumnRangeList::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ColumnRangeList::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
   for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
@@ -815,13 +883,676 @@ ColumnRangeList::range_list() const {
 // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int RowRange::kLowFieldNumber;
+const int RowRange::kHighFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+RowRange::RowRange()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:RowRange)
+}
+
+void RowRange::InitAsDefaultInstance() {
+}
+
+RowRange::RowRange(const RowRange& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:RowRange)
+}
+
+void RowRange::SharedCtor() {
+  _cached_size_ = 0;
+  low_ = GOOGLE_LONGLONG(0);
+  high_ = GOOGLE_LONGLONG(0);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+RowRange::~RowRange() {
+  // @@protoc_insertion_point(destructor:RowRange)
+  SharedDtor();
+}
+
+void RowRange::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void RowRange::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* RowRange::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return RowRange_descriptor_;
+}
+
+const RowRange& RowRange::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
+  return *default_instance_;
+}
+
+RowRange* RowRange::default_instance_ = NULL;
+
+RowRange* RowRange::New(::google::protobuf::Arena* arena) const {
+  RowRange* n = new RowRange;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void RowRange::Clear() {
+// @@protoc_insertion_point(message_clear_start:RowRange)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(RowRange, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<RowRange*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  ZR_(low_, high_);
+
+#undef ZR_HELPER_
+#undef ZR_
+
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
+}
+
+bool RowRange::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:RowRange)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required int64 low = 1;
+      case 1: {
+        if (tag == 8) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &low_)));
+          set_has_low();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_high;
+        break;
+      }
+
+      // required int64 high = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_high:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &high_)));
+          set_has_high();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:RowRange)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:RowRange)
+  return false;
+#undef DO_
+}
+
+void RowRange::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:RowRange)
+  // required int64 low = 1;
+  if (has_low()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(1, this->low(), output);
+  }
+
+  // required int64 high = 2;
+  if (has_high()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->high(), output);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+  // @@protoc_insertion_point(serialize_end:RowRange)
+}
+
+::google::protobuf::uint8* RowRange::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:RowRange)
+  // required int64 low = 1;
+  if (has_low()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(1, this->low(), target);
+  }
+
+  // required int64 high = 2;
+  if (has_high()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->high(), target);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:RowRange)
+  return target;
+}
+
+int RowRange::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:RowRange)
+  int total_size = 0;
+
+  if (has_low()) {
+    // required int64 low = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->low());
+  }
+
+  if (has_high()) {
+    // required int64 high = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->high());
+  }
+
+  return total_size;
+}
+int RowRange::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:RowRange)
+  int total_size = 0;
+
+  if (((_has_bits_[0] & 0x00000003) ^ 0x00000003) == 0) {  // All required fields are present.
+    // required int64 low = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->low());
+
+    // required int64 high = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int64Size(
+        this->high());
+
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
+  }
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void RowRange::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:RowRange)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const RowRange* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const RowRange>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:RowRange)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:RowRange)
+    MergeFrom(*source);
+  }
+}
+
+void RowRange::MergeFrom(const RowRange& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:RowRange)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_low()) {
+      set_low(from.low());
+    }
+    if (from.has_high()) {
+      set_high(from.high());
+    }
+  }
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+  }
+}
+
+void RowRange::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:RowRange)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RowRange::CopyFrom(const RowRange& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:RowRange)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RowRange::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+
+  return true;
+}
+
+void RowRange::Swap(RowRange* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void RowRange::InternalSwap(RowRange* other) {
+  std::swap(low_, other->low_);
+  std::swap(high_, other->high_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata RowRange::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = RowRange_descriptor_;
+  metadata.reflection = RowRange_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// RowRange
+
+// required int64 low = 1;
+bool RowRange::has_low() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void RowRange::set_has_low() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void RowRange::clear_has_low() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void RowRange::clear_low() {
+  low_ = GOOGLE_LONGLONG(0);
+  clear_has_low();
+}
+ ::google::protobuf::int64 RowRange::low() const {
+  // @@protoc_insertion_point(field_get:RowRange.low)
+  return low_;
+}
+ void RowRange::set_low(::google::protobuf::int64 value) {
+  set_has_low();
+  low_ = value;
+  // @@protoc_insertion_point(field_set:RowRange.low)
+}
+
+// required int64 high = 2;
+bool RowRange::has_high() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void RowRange::set_has_high() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void RowRange::clear_has_high() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void RowRange::clear_high() {
+  high_ = GOOGLE_LONGLONG(0);
+  clear_has_high();
+}
+ ::google::protobuf::int64 RowRange::high() const {
+  // @@protoc_insertion_point(field_get:RowRange.high)
+  return high_;
+}
+ void RowRange::set_high(::google::protobuf::int64 value) {
+  set_has_high();
+  high_ = value;
+  // @@protoc_insertion_point(field_set:RowRange.high)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int RowRangeList::kRangeListFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+RowRangeList::RowRangeList()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:RowRangeList)
+}
+
+void RowRangeList::InitAsDefaultInstance() {
+}
+
+RowRangeList::RowRangeList(const RowRangeList& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:RowRangeList)
+}
+
+void RowRangeList::SharedCtor() {
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+RowRangeList::~RowRangeList() {
+  // @@protoc_insertion_point(destructor:RowRangeList)
+  SharedDtor();
+}
+
+void RowRangeList::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void RowRangeList::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* RowRangeList::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return RowRangeList_descriptor_;
+}
+
+const RowRangeList& RowRangeList::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fexport_5fconfig_2eproto();
+  return *default_instance_;
+}
+
+RowRangeList* RowRangeList::default_instance_ = NULL;
+
+RowRangeList* RowRangeList::New(::google::protobuf::Arena* arena) const {
+  RowRangeList* n = new RowRangeList;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void RowRangeList::Clear() {
+// @@protoc_insertion_point(message_clear_start:RowRangeList)
+  range_list_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
+}
+
+bool RowRangeList::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:RowRangeList)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated .RowRange range_list = 1;
+      case 1: {
+        if (tag == 10) {
+          DO_(input->IncrementRecursionDepth());
+         parse_loop_range_list:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_range_list()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(10)) goto parse_loop_range_list;
+        input->UnsafeDecrementRecursionDepth();
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:RowRangeList)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:RowRangeList)
+  return false;
+#undef DO_
+}
+
+void RowRangeList::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:RowRangeList)
+  // repeated .RowRange range_list = 1;
+  for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->range_list(i), output);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+  // @@protoc_insertion_point(serialize_end:RowRangeList)
+}
+
+::google::protobuf::uint8* RowRangeList::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:RowRangeList)
+  // repeated .RowRange range_list = 1;
+  for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        1, this->range_list(i), false, target);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:RowRangeList)
+  return target;
+}
+
+int RowRangeList::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:RowRangeList)
+  int total_size = 0;
+
+  // repeated .RowRange range_list = 1;
+  total_size += 1 * this->range_list_size();
+  for (int i = 0; i < this->range_list_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->range_list(i));
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void RowRangeList::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:RowRangeList)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const RowRangeList* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const RowRangeList>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:RowRangeList)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:RowRangeList)
+    MergeFrom(*source);
+  }
+}
+
+void RowRangeList::MergeFrom(const RowRangeList& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:RowRangeList)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  range_list_.MergeFrom(from.range_list_);
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+  }
+}
+
+void RowRangeList::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:RowRangeList)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RowRangeList::CopyFrom(const RowRangeList& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:RowRangeList)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RowRangeList::IsInitialized() const {
+
+  if (!::google::protobuf::internal::AllAreInitialized(this->range_list())) return false;
+  return true;
+}
+
+void RowRangeList::Swap(RowRangeList* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void RowRangeList::InternalSwap(RowRangeList* other) {
+  range_list_.UnsafeArenaSwap(&other->range_list_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata RowRangeList::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = RowRangeList_descriptor_;
+  metadata.reflection = RowRangeList_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// RowRangeList
+
+// repeated .RowRange range_list = 1;
+int RowRangeList::range_list_size() const {
+  return range_list_.size();
+}
+void RowRangeList::clear_range_list() {
+  range_list_.Clear();
+}
+const ::RowRange& RowRangeList::range_list(int index) const {
+  // @@protoc_insertion_point(field_get:RowRangeList.range_list)
+  return range_list_.Get(index);
+}
+::RowRange* RowRangeList::mutable_range_list(int index) {
+  // @@protoc_insertion_point(field_mutable:RowRangeList.range_list)
+  return range_list_.Mutable(index);
+}
+::RowRange* RowRangeList::add_range_list() {
+  // @@protoc_insertion_point(field_add:RowRangeList.range_list)
+  return range_list_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::RowRange >*
+RowRangeList::mutable_range_list() {
+  // @@protoc_insertion_point(field_mutable_list:RowRangeList.range_list)
+  return &range_list_;
+}
+const ::google::protobuf::RepeatedPtrField< ::RowRange >&
+RowRangeList::range_list() const {
+  // @@protoc_insertion_point(field_list:RowRangeList.range_list)
+  return range_list_;
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int ExportConfiguration::kWorkspaceFieldNumber;
 const int ExportConfiguration::kArrayFieldNumber;
 const int ExportConfiguration::kReferenceGenomeFieldNumber;
 const int ExportConfiguration::kQueryColumnRangesFieldNumber;
+const int ExportConfiguration::kQueryRowRangesFieldNumber;
 const int ExportConfiguration::kAttributesFieldNumber;
+const int ExportConfiguration::kVcfHeaderFilenameFieldNumber;
+const int ExportConfiguration::kVcfOutputFilenameFieldNumber;
+const int ExportConfiguration::kVcfOutputFormatFieldNumber;
 const int ExportConfiguration::kVidMappingFileFieldNumber;
 const int ExportConfiguration::kCallsetMappingFileFieldNumber;
+const int ExportConfiguration::kMaxDiploidAltAllelesThatCanBeGenotypedFieldNumber;
+const int ExportConfiguration::kIndexOutputVCFFieldNumber;
+const int ExportConfiguration::kProduceGTFieldFieldNumber;
+const int ExportConfiguration::kProduceFILTERFieldFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 ExportConfiguration::ExportConfiguration()
@@ -847,8 +1578,15 @@ void ExportConfiguration::SharedCtor() {
   workspace_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   array_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_header_filename_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_output_filename_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_output_format_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vid_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  max_diploid_alt_alleles_that_can_be_genotyped_ = 0u;
+  index_output_vcf_ = false;
+  produce_gt_field_ = false;
+  produce_filter_field_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -861,6 +1599,9 @@ void ExportConfiguration::SharedDtor() {
   workspace_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   array_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   reference_genome_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_header_filename_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_output_filename_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  vcf_output_format_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   vid_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   callset_mapping_file_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != default_instance_) {
@@ -894,7 +1635,23 @@ ExportConfiguration* ExportConfiguration::New(::google::protobuf::Arena* arena) 
 
 void ExportConfiguration::Clear() {
 // @@protoc_insertion_point(message_clear_start:ExportConfiguration)
-  if (_has_bits_[0 / 32] & 103u) {
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(ExportConfiguration, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<ExportConfiguration*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  if (_has_bits_[0 / 32] & 199u) {
     if (has_workspace()) {
       workspace_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
@@ -904,6 +1661,18 @@ void ExportConfiguration::Clear() {
     if (has_reference_genome()) {
       reference_genome_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
+    if (has_vcf_header_filename()) {
+      vcf_header_filename_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    if (has_vcf_output_filename()) {
+      vcf_output_filename_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+  }
+  if (_has_bits_[8 / 32] & 32512u) {
+    ZR_(max_diploid_alt_alleles_that_can_be_genotyped_, produce_filter_field_);
+    if (has_vcf_output_format()) {
+      vcf_output_format_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
     if (has_vid_mapping_file()) {
       vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
@@ -911,7 +1680,12 @@ void ExportConfiguration::Clear() {
       callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
   }
+
+#undef ZR_HELPER_
+#undef ZR_
+
   query_column_ranges_.Clear();
+  query_row_ranges_.Clear();
   attributes_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
@@ -991,14 +1765,30 @@ bool ExportConfiguration::MergePartialFromCodedStream(
           goto handle_unusual;
         }
         if (input->ExpectTag(34)) goto parse_loop_query_column_ranges;
+        if (input->ExpectTag(42)) goto parse_loop_query_row_ranges;
         input->UnsafeDecrementRecursionDepth();
-        if (input->ExpectTag(42)) goto parse_attributes;
         break;
       }
 
-      // repeated string attributes = 5;
+      // repeated .RowRangeList query_row_ranges = 5;
       case 5: {
         if (tag == 42) {
+          DO_(input->IncrementRecursionDepth());
+         parse_loop_query_row_ranges:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_query_row_ranges()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(42)) goto parse_loop_query_row_ranges;
+        input->UnsafeDecrementRecursionDepth();
+        if (input->ExpectTag(50)) goto parse_attributes;
+        break;
+      }
+
+      // repeated string attributes = 6;
+      case 6: {
+        if (tag == 50) {
          parse_attributes:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->add_attributes()));
@@ -1010,14 +1800,65 @@ bool ExportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(42)) goto parse_attributes;
-        if (input->ExpectTag(50)) goto parse_vid_mapping_file;
+        if (input->ExpectTag(50)) goto parse_attributes;
+        if (input->ExpectTag(58)) goto parse_vcf_header_filename;
         break;
       }
 
-      // optional string vid_mapping_file = 6;
-      case 6: {
-        if (tag == 50) {
+      // optional string vcf_header_filename = 7;
+      case 7: {
+        if (tag == 58) {
+         parse_vcf_header_filename:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_vcf_header_filename()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->vcf_header_filename().data(), this->vcf_header_filename().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.vcf_header_filename");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(66)) goto parse_vcf_output_filename;
+        break;
+      }
+
+      // optional string vcf_output_filename = 8;
+      case 8: {
+        if (tag == 66) {
+         parse_vcf_output_filename:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_vcf_output_filename()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->vcf_output_filename().data(), this->vcf_output_filename().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.vcf_output_filename");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(74)) goto parse_vcf_output_format;
+        break;
+      }
+
+      // optional string vcf_output_format = 9;
+      case 9: {
+        if (tag == 74) {
+         parse_vcf_output_format:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_vcf_output_format()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->vcf_output_format().data(), this->vcf_output_format().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "ExportConfiguration.vcf_output_format");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(82)) goto parse_vid_mapping_file;
+        break;
+      }
+
+      // optional string vid_mapping_file = 10;
+      case 10: {
+        if (tag == 82) {
          parse_vid_mapping_file:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_vid_mapping_file()));
@@ -1028,13 +1869,13 @@ bool ExportConfiguration::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(58)) goto parse_callset_mapping_file;
+        if (input->ExpectTag(90)) goto parse_callset_mapping_file;
         break;
       }
 
-      // optional string callset_mapping_file = 7;
-      case 7: {
-        if (tag == 58) {
+      // optional string callset_mapping_file = 11;
+      case 11: {
+        if (tag == 90) {
          parse_callset_mapping_file:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_callset_mapping_file()));
@@ -1042,6 +1883,66 @@ bool ExportConfiguration::MergePartialFromCodedStream(
             this->callset_mapping_file().data(), this->callset_mapping_file().length(),
             ::google::protobuf::internal::WireFormat::PARSE,
             "ExportConfiguration.callset_mapping_file");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(96)) goto parse_max_diploid_alt_alleles_that_can_be_genotyped;
+        break;
+      }
+
+      // optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+      case 12: {
+        if (tag == 96) {
+         parse_max_diploid_alt_alleles_that_can_be_genotyped:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &max_diploid_alt_alleles_that_can_be_genotyped_)));
+          set_has_max_diploid_alt_alleles_that_can_be_genotyped();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(104)) goto parse_index_output_VCF;
+        break;
+      }
+
+      // optional bool index_output_VCF = 13;
+      case 13: {
+        if (tag == 104) {
+         parse_index_output_VCF:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &index_output_vcf_)));
+          set_has_index_output_vcf();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(112)) goto parse_produce_GT_field;
+        break;
+      }
+
+      // optional bool produce_GT_field = 14;
+      case 14: {
+        if (tag == 112) {
+         parse_produce_GT_field:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &produce_gt_field_)));
+          set_has_produce_gt_field();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(120)) goto parse_produce_FILTER_field;
+        break;
+      }
+
+      // optional bool produce_FILTER_field = 15;
+      case 15: {
+        if (tag == 120) {
+         parse_produce_FILTER_field:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &produce_filter_field_)));
+          set_has_produce_filter_field();
         } else {
           goto handle_unusual;
         }
@@ -1110,34 +2011,90 @@ void ExportConfiguration::SerializeWithCachedSizes(
       4, this->query_column_ranges(i), output);
   }
 
-  // repeated string attributes = 5;
+  // repeated .RowRangeList query_row_ranges = 5;
+  for (unsigned int i = 0, n = this->query_row_ranges_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      5, this->query_row_ranges(i), output);
+  }
+
+  // repeated string attributes = 6;
   for (int i = 0; i < this->attributes_size(); i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->attributes(i).data(), this->attributes(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "ExportConfiguration.attributes");
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      5, this->attributes(i), output);
+      6, this->attributes(i), output);
   }
 
-  // optional string vid_mapping_file = 6;
+  // optional string vcf_header_filename = 7;
+  if (has_vcf_header_filename()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_header_filename().data(), this->vcf_header_filename().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_header_filename");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      7, this->vcf_header_filename(), output);
+  }
+
+  // optional string vcf_output_filename = 8;
+  if (has_vcf_output_filename()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_output_filename().data(), this->vcf_output_filename().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_output_filename");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      8, this->vcf_output_filename(), output);
+  }
+
+  // optional string vcf_output_format = 9;
+  if (has_vcf_output_format()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_output_format().data(), this->vcf_output_format().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_output_format");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      9, this->vcf_output_format(), output);
+  }
+
+  // optional string vid_mapping_file = 10;
   if (has_vid_mapping_file()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->vid_mapping_file().data(), this->vid_mapping_file().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "ExportConfiguration.vid_mapping_file");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      6, this->vid_mapping_file(), output);
+      10, this->vid_mapping_file(), output);
   }
 
-  // optional string callset_mapping_file = 7;
+  // optional string callset_mapping_file = 11;
   if (has_callset_mapping_file()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->callset_mapping_file().data(), this->callset_mapping_file().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "ExportConfiguration.callset_mapping_file");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      7, this->callset_mapping_file(), output);
+      11, this->callset_mapping_file(), output);
+  }
+
+  // optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+  if (has_max_diploid_alt_alleles_that_can_be_genotyped()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(12, this->max_diploid_alt_alleles_that_can_be_genotyped(), output);
+  }
+
+  // optional bool index_output_VCF = 13;
+  if (has_index_output_vcf()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(13, this->index_output_vcf(), output);
+  }
+
+  // optional bool produce_GT_field = 14;
+  if (has_produce_gt_field()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(14, this->produce_gt_field(), output);
+  }
+
+  // optional bool produce_FILTER_field = 15;
+  if (has_produce_filter_field()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(15, this->produce_filter_field(), output);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1149,6 +2106,7 @@ void ExportConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ExportConfiguration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
   // required string workspace = 1;
   if (has_workspace()) {
@@ -1190,17 +2148,57 @@ void ExportConfiguration::SerializeWithCachedSizes(
         4, this->query_column_ranges(i), false, target);
   }
 
-  // repeated string attributes = 5;
+  // repeated .RowRangeList query_row_ranges = 5;
+  for (unsigned int i = 0, n = this->query_row_ranges_size(); i < n; i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        5, this->query_row_ranges(i), false, target);
+  }
+
+  // repeated string attributes = 6;
   for (int i = 0; i < this->attributes_size(); i++) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->attributes(i).data(), this->attributes(i).length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "ExportConfiguration.attributes");
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(5, this->attributes(i), target);
+      WriteStringToArray(6, this->attributes(i), target);
   }
 
-  // optional string vid_mapping_file = 6;
+  // optional string vcf_header_filename = 7;
+  if (has_vcf_header_filename()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_header_filename().data(), this->vcf_header_filename().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_header_filename");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        7, this->vcf_header_filename(), target);
+  }
+
+  // optional string vcf_output_filename = 8;
+  if (has_vcf_output_filename()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_output_filename().data(), this->vcf_output_filename().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_output_filename");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        8, this->vcf_output_filename(), target);
+  }
+
+  // optional string vcf_output_format = 9;
+  if (has_vcf_output_format()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->vcf_output_format().data(), this->vcf_output_format().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "ExportConfiguration.vcf_output_format");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        9, this->vcf_output_format(), target);
+  }
+
+  // optional string vid_mapping_file = 10;
   if (has_vid_mapping_file()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->vid_mapping_file().data(), this->vid_mapping_file().length(),
@@ -1208,10 +2206,10 @@ void ExportConfiguration::SerializeWithCachedSizes(
       "ExportConfiguration.vid_mapping_file");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        6, this->vid_mapping_file(), target);
+        10, this->vid_mapping_file(), target);
   }
 
-  // optional string callset_mapping_file = 7;
+  // optional string callset_mapping_file = 11;
   if (has_callset_mapping_file()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->callset_mapping_file().data(), this->callset_mapping_file().length(),
@@ -1219,7 +2217,27 @@ void ExportConfiguration::SerializeWithCachedSizes(
       "ExportConfiguration.callset_mapping_file");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        7, this->callset_mapping_file(), target);
+        11, this->callset_mapping_file(), target);
+  }
+
+  // optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+  if (has_max_diploid_alt_alleles_that_can_be_genotyped()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(12, this->max_diploid_alt_alleles_that_can_be_genotyped(), target);
+  }
+
+  // optional bool index_output_VCF = 13;
+  if (has_index_output_vcf()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(13, this->index_output_vcf(), target);
+  }
+
+  // optional bool produce_GT_field = 14;
+  if (has_produce_gt_field()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(14, this->produce_gt_field(), target);
+  }
+
+  // optional bool produce_FILTER_field = 15;
+  if (has_produce_filter_field()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(15, this->produce_filter_field(), target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -1280,19 +2298,64 @@ int ExportConfiguration::ByteSize() const {
   } else {
     total_size += RequiredFieldsByteSizeFallback();
   }
-  if (_has_bits_[5 / 32] & 96u) {
-    // optional string vid_mapping_file = 6;
+  if (_has_bits_[6 / 32] & 192u) {
+    // optional string vcf_header_filename = 7;
+    if (has_vcf_header_filename()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->vcf_header_filename());
+    }
+
+    // optional string vcf_output_filename = 8;
+    if (has_vcf_output_filename()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->vcf_output_filename());
+    }
+
+  }
+  if (_has_bits_[8 / 32] & 32512u) {
+    // optional string vcf_output_format = 9;
+    if (has_vcf_output_format()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->vcf_output_format());
+    }
+
+    // optional string vid_mapping_file = 10;
     if (has_vid_mapping_file()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->vid_mapping_file());
     }
 
-    // optional string callset_mapping_file = 7;
+    // optional string callset_mapping_file = 11;
     if (has_callset_mapping_file()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->callset_mapping_file());
+    }
+
+    // optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+    if (has_max_diploid_alt_alleles_that_can_be_genotyped()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->max_diploid_alt_alleles_that_can_be_genotyped());
+    }
+
+    // optional bool index_output_VCF = 13;
+    if (has_index_output_vcf()) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool produce_GT_field = 14;
+    if (has_produce_gt_field()) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool produce_FILTER_field = 15;
+    if (has_produce_filter_field()) {
+      total_size += 1 + 1;
     }
 
   }
@@ -1304,7 +2367,15 @@ int ExportConfiguration::ByteSize() const {
         this->query_column_ranges(i));
   }
 
-  // repeated string attributes = 5;
+  // repeated .RowRangeList query_row_ranges = 5;
+  total_size += 1 * this->query_row_ranges_size();
+  for (int i = 0; i < this->query_row_ranges_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->query_row_ranges(i));
+  }
+
+  // repeated string attributes = 6;
   total_size += 1 * this->attributes_size();
   for (int i = 0; i < this->attributes_size(); i++) {
     total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
@@ -1345,6 +2416,7 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
     ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
   }
   query_column_ranges_.MergeFrom(from.query_column_ranges_);
+  query_row_ranges_.MergeFrom(from.query_row_ranges_);
   attributes_.MergeFrom(from.attributes_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_workspace()) {
@@ -1359,6 +2431,20 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
       set_has_reference_genome();
       reference_genome_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.reference_genome_);
     }
+    if (from.has_vcf_header_filename()) {
+      set_has_vcf_header_filename();
+      vcf_header_filename_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vcf_header_filename_);
+    }
+    if (from.has_vcf_output_filename()) {
+      set_has_vcf_output_filename();
+      vcf_output_filename_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vcf_output_filename_);
+    }
+  }
+  if (from._has_bits_[8 / 32] & (0xffu << (8 % 32))) {
+    if (from.has_vcf_output_format()) {
+      set_has_vcf_output_format();
+      vcf_output_format_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vcf_output_format_);
+    }
     if (from.has_vid_mapping_file()) {
       set_has_vid_mapping_file();
       vid_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.vid_mapping_file_);
@@ -1366,6 +2452,18 @@ void ExportConfiguration::MergeFrom(const ExportConfiguration& from) {
     if (from.has_callset_mapping_file()) {
       set_has_callset_mapping_file();
       callset_mapping_file_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.callset_mapping_file_);
+    }
+    if (from.has_max_diploid_alt_alleles_that_can_be_genotyped()) {
+      set_max_diploid_alt_alleles_that_can_be_genotyped(from.max_diploid_alt_alleles_that_can_be_genotyped());
+    }
+    if (from.has_index_output_vcf()) {
+      set_index_output_vcf(from.index_output_vcf());
+    }
+    if (from.has_produce_gt_field()) {
+      set_produce_gt_field(from.produce_gt_field());
+    }
+    if (from.has_produce_filter_field()) {
+      set_produce_filter_field(from.produce_filter_field());
     }
   }
   if (from._internal_metadata_.have_unknown_fields()) {
@@ -1391,6 +2489,7 @@ bool ExportConfiguration::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000007) != 0x00000007) return false;
 
   if (!::google::protobuf::internal::AllAreInitialized(this->query_column_ranges())) return false;
+  if (!::google::protobuf::internal::AllAreInitialized(this->query_row_ranges())) return false;
   return true;
 }
 
@@ -1403,9 +2502,17 @@ void ExportConfiguration::InternalSwap(ExportConfiguration* other) {
   array_.Swap(&other->array_);
   reference_genome_.Swap(&other->reference_genome_);
   query_column_ranges_.UnsafeArenaSwap(&other->query_column_ranges_);
+  query_row_ranges_.UnsafeArenaSwap(&other->query_row_ranges_);
   attributes_.UnsafeArenaSwap(&other->attributes_);
+  vcf_header_filename_.Swap(&other->vcf_header_filename_);
+  vcf_output_filename_.Swap(&other->vcf_output_filename_);
+  vcf_output_format_.Swap(&other->vcf_output_format_);
   vid_mapping_file_.Swap(&other->vid_mapping_file_);
   callset_mapping_file_.Swap(&other->callset_mapping_file_);
+  std::swap(max_diploid_alt_alleles_that_can_be_genotyped_, other->max_diploid_alt_alleles_that_can_be_genotyped_);
+  std::swap(index_output_vcf_, other->index_output_vcf_);
+  std::swap(produce_gt_field_, other->produce_gt_field_);
+  std::swap(produce_filter_field_, other->produce_filter_field_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -1614,7 +2721,37 @@ ExportConfiguration::query_column_ranges() const {
   return query_column_ranges_;
 }
 
-// repeated string attributes = 5;
+// repeated .RowRangeList query_row_ranges = 5;
+int ExportConfiguration::query_row_ranges_size() const {
+  return query_row_ranges_.size();
+}
+void ExportConfiguration::clear_query_row_ranges() {
+  query_row_ranges_.Clear();
+}
+const ::RowRangeList& ExportConfiguration::query_row_ranges(int index) const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.query_row_ranges)
+  return query_row_ranges_.Get(index);
+}
+::RowRangeList* ExportConfiguration::mutable_query_row_ranges(int index) {
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.query_row_ranges)
+  return query_row_ranges_.Mutable(index);
+}
+::RowRangeList* ExportConfiguration::add_query_row_ranges() {
+  // @@protoc_insertion_point(field_add:ExportConfiguration.query_row_ranges)
+  return query_row_ranges_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::RowRangeList >*
+ExportConfiguration::mutable_query_row_ranges() {
+  // @@protoc_insertion_point(field_mutable_list:ExportConfiguration.query_row_ranges)
+  return &query_row_ranges_;
+}
+const ::google::protobuf::RepeatedPtrField< ::RowRangeList >&
+ExportConfiguration::query_row_ranges() const {
+  // @@protoc_insertion_point(field_list:ExportConfiguration.query_row_ranges)
+  return query_row_ranges_;
+}
+
+// repeated string attributes = 6;
 int ExportConfiguration::attributes_size() const {
   return attributes_.size();
 }
@@ -1669,15 +2806,177 @@ ExportConfiguration::mutable_attributes() {
   return &attributes_;
 }
 
-// optional string vid_mapping_file = 6;
+// optional string vcf_header_filename = 7;
+bool ExportConfiguration::has_vcf_header_filename() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+void ExportConfiguration::set_has_vcf_header_filename() {
+  _has_bits_[0] |= 0x00000040u;
+}
+void ExportConfiguration::clear_has_vcf_header_filename() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+void ExportConfiguration::clear_vcf_header_filename() {
+  vcf_header_filename_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_vcf_header_filename();
+}
+ const ::std::string& ExportConfiguration::vcf_header_filename() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.vcf_header_filename)
+  return vcf_header_filename_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_vcf_header_filename(const ::std::string& value) {
+  set_has_vcf_header_filename();
+  vcf_header_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.vcf_header_filename)
+}
+ void ExportConfiguration::set_vcf_header_filename(const char* value) {
+  set_has_vcf_header_filename();
+  vcf_header_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.vcf_header_filename)
+}
+ void ExportConfiguration::set_vcf_header_filename(const char* value, size_t size) {
+  set_has_vcf_header_filename();
+  vcf_header_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.vcf_header_filename)
+}
+ ::std::string* ExportConfiguration::mutable_vcf_header_filename() {
+  set_has_vcf_header_filename();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.vcf_header_filename)
+  return vcf_header_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* ExportConfiguration::release_vcf_header_filename() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.vcf_header_filename)
+  clear_has_vcf_header_filename();
+  return vcf_header_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_allocated_vcf_header_filename(::std::string* vcf_header_filename) {
+  if (vcf_header_filename != NULL) {
+    set_has_vcf_header_filename();
+  } else {
+    clear_has_vcf_header_filename();
+  }
+  vcf_header_filename_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vcf_header_filename);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.vcf_header_filename)
+}
+
+// optional string vcf_output_filename = 8;
+bool ExportConfiguration::has_vcf_output_filename() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+void ExportConfiguration::set_has_vcf_output_filename() {
+  _has_bits_[0] |= 0x00000080u;
+}
+void ExportConfiguration::clear_has_vcf_output_filename() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+void ExportConfiguration::clear_vcf_output_filename() {
+  vcf_output_filename_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_vcf_output_filename();
+}
+ const ::std::string& ExportConfiguration::vcf_output_filename() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.vcf_output_filename)
+  return vcf_output_filename_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_vcf_output_filename(const ::std::string& value) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.vcf_output_filename)
+}
+ void ExportConfiguration::set_vcf_output_filename(const char* value) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.vcf_output_filename)
+}
+ void ExportConfiguration::set_vcf_output_filename(const char* value, size_t size) {
+  set_has_vcf_output_filename();
+  vcf_output_filename_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.vcf_output_filename)
+}
+ ::std::string* ExportConfiguration::mutable_vcf_output_filename() {
+  set_has_vcf_output_filename();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.vcf_output_filename)
+  return vcf_output_filename_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* ExportConfiguration::release_vcf_output_filename() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.vcf_output_filename)
+  clear_has_vcf_output_filename();
+  return vcf_output_filename_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_allocated_vcf_output_filename(::std::string* vcf_output_filename) {
+  if (vcf_output_filename != NULL) {
+    set_has_vcf_output_filename();
+  } else {
+    clear_has_vcf_output_filename();
+  }
+  vcf_output_filename_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vcf_output_filename);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.vcf_output_filename)
+}
+
+// optional string vcf_output_format = 9;
+bool ExportConfiguration::has_vcf_output_format() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+void ExportConfiguration::set_has_vcf_output_format() {
+  _has_bits_[0] |= 0x00000100u;
+}
+void ExportConfiguration::clear_has_vcf_output_format() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+void ExportConfiguration::clear_vcf_output_format() {
+  vcf_output_format_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_vcf_output_format();
+}
+ const ::std::string& ExportConfiguration::vcf_output_format() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.vcf_output_format)
+  return vcf_output_format_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_vcf_output_format(const ::std::string& value) {
+  set_has_vcf_output_format();
+  vcf_output_format_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:ExportConfiguration.vcf_output_format)
+}
+ void ExportConfiguration::set_vcf_output_format(const char* value) {
+  set_has_vcf_output_format();
+  vcf_output_format_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:ExportConfiguration.vcf_output_format)
+}
+ void ExportConfiguration::set_vcf_output_format(const char* value, size_t size) {
+  set_has_vcf_output_format();
+  vcf_output_format_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:ExportConfiguration.vcf_output_format)
+}
+ ::std::string* ExportConfiguration::mutable_vcf_output_format() {
+  set_has_vcf_output_format();
+  // @@protoc_insertion_point(field_mutable:ExportConfiguration.vcf_output_format)
+  return vcf_output_format_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* ExportConfiguration::release_vcf_output_format() {
+  // @@protoc_insertion_point(field_release:ExportConfiguration.vcf_output_format)
+  clear_has_vcf_output_format();
+  return vcf_output_format_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void ExportConfiguration::set_allocated_vcf_output_format(::std::string* vcf_output_format) {
+  if (vcf_output_format != NULL) {
+    set_has_vcf_output_format();
+  } else {
+    clear_has_vcf_output_format();
+  }
+  vcf_output_format_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), vcf_output_format);
+  // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.vcf_output_format)
+}
+
+// optional string vid_mapping_file = 10;
 bool ExportConfiguration::has_vid_mapping_file() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
+  return (_has_bits_[0] & 0x00000200u) != 0;
 }
 void ExportConfiguration::set_has_vid_mapping_file() {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000200u;
 }
 void ExportConfiguration::clear_has_vid_mapping_file() {
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 void ExportConfiguration::clear_vid_mapping_file() {
   vid_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -1723,15 +3022,15 @@ void ExportConfiguration::clear_vid_mapping_file() {
   // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.vid_mapping_file)
 }
 
-// optional string callset_mapping_file = 7;
+// optional string callset_mapping_file = 11;
 bool ExportConfiguration::has_callset_mapping_file() const {
-  return (_has_bits_[0] & 0x00000040u) != 0;
+  return (_has_bits_[0] & 0x00000400u) != 0;
 }
 void ExportConfiguration::set_has_callset_mapping_file() {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000400u;
 }
 void ExportConfiguration::clear_has_callset_mapping_file() {
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000400u;
 }
 void ExportConfiguration::clear_callset_mapping_file() {
   callset_mapping_file_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -1775,6 +3074,102 @@ void ExportConfiguration::clear_callset_mapping_file() {
   }
   callset_mapping_file_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), callset_mapping_file);
   // @@protoc_insertion_point(field_set_allocated:ExportConfiguration.callset_mapping_file)
+}
+
+// optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+bool ExportConfiguration::has_max_diploid_alt_alleles_that_can_be_genotyped() const {
+  return (_has_bits_[0] & 0x00000800u) != 0;
+}
+void ExportConfiguration::set_has_max_diploid_alt_alleles_that_can_be_genotyped() {
+  _has_bits_[0] |= 0x00000800u;
+}
+void ExportConfiguration::clear_has_max_diploid_alt_alleles_that_can_be_genotyped() {
+  _has_bits_[0] &= ~0x00000800u;
+}
+void ExportConfiguration::clear_max_diploid_alt_alleles_that_can_be_genotyped() {
+  max_diploid_alt_alleles_that_can_be_genotyped_ = 0u;
+  clear_has_max_diploid_alt_alleles_that_can_be_genotyped();
+}
+ ::google::protobuf::uint32 ExportConfiguration::max_diploid_alt_alleles_that_can_be_genotyped() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.max_diploid_alt_alleles_that_can_be_genotyped)
+  return max_diploid_alt_alleles_that_can_be_genotyped_;
+}
+ void ExportConfiguration::set_max_diploid_alt_alleles_that_can_be_genotyped(::google::protobuf::uint32 value) {
+  set_has_max_diploid_alt_alleles_that_can_be_genotyped();
+  max_diploid_alt_alleles_that_can_be_genotyped_ = value;
+  // @@protoc_insertion_point(field_set:ExportConfiguration.max_diploid_alt_alleles_that_can_be_genotyped)
+}
+
+// optional bool index_output_VCF = 13;
+bool ExportConfiguration::has_index_output_vcf() const {
+  return (_has_bits_[0] & 0x00001000u) != 0;
+}
+void ExportConfiguration::set_has_index_output_vcf() {
+  _has_bits_[0] |= 0x00001000u;
+}
+void ExportConfiguration::clear_has_index_output_vcf() {
+  _has_bits_[0] &= ~0x00001000u;
+}
+void ExportConfiguration::clear_index_output_vcf() {
+  index_output_vcf_ = false;
+  clear_has_index_output_vcf();
+}
+ bool ExportConfiguration::index_output_vcf() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.index_output_VCF)
+  return index_output_vcf_;
+}
+ void ExportConfiguration::set_index_output_vcf(bool value) {
+  set_has_index_output_vcf();
+  index_output_vcf_ = value;
+  // @@protoc_insertion_point(field_set:ExportConfiguration.index_output_VCF)
+}
+
+// optional bool produce_GT_field = 14;
+bool ExportConfiguration::has_produce_gt_field() const {
+  return (_has_bits_[0] & 0x00002000u) != 0;
+}
+void ExportConfiguration::set_has_produce_gt_field() {
+  _has_bits_[0] |= 0x00002000u;
+}
+void ExportConfiguration::clear_has_produce_gt_field() {
+  _has_bits_[0] &= ~0x00002000u;
+}
+void ExportConfiguration::clear_produce_gt_field() {
+  produce_gt_field_ = false;
+  clear_has_produce_gt_field();
+}
+ bool ExportConfiguration::produce_gt_field() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.produce_GT_field)
+  return produce_gt_field_;
+}
+ void ExportConfiguration::set_produce_gt_field(bool value) {
+  set_has_produce_gt_field();
+  produce_gt_field_ = value;
+  // @@protoc_insertion_point(field_set:ExportConfiguration.produce_GT_field)
+}
+
+// optional bool produce_FILTER_field = 15;
+bool ExportConfiguration::has_produce_filter_field() const {
+  return (_has_bits_[0] & 0x00004000u) != 0;
+}
+void ExportConfiguration::set_has_produce_filter_field() {
+  _has_bits_[0] |= 0x00004000u;
+}
+void ExportConfiguration::clear_has_produce_filter_field() {
+  _has_bits_[0] &= ~0x00004000u;
+}
+void ExportConfiguration::clear_produce_filter_field() {
+  produce_filter_field_ = false;
+  clear_has_produce_filter_field();
+}
+ bool ExportConfiguration::produce_filter_field() const {
+  // @@protoc_insertion_point(field_get:ExportConfiguration.produce_FILTER_field)
+  return produce_filter_field_;
+}
+ void ExportConfiguration::set_produce_filter_field(bool value) {
+  set_has_produce_filter_field();
+  produce_filter_field_ = value;
+  // @@protoc_insertion_point(field_set:ExportConfiguration.produce_FILTER_field)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
