@@ -39,14 +39,29 @@ message ColumnRangeList {
   repeated ColumnRange range_list = 1;
 }
 
+message RowRange {
+  required int64 low = 1;
+  required int64 high = 2;
+}
+
+message RowRangeList {
+  repeated RowRange range_list = 1;
+}
+
 message ExportConfiguration {
   required string workspace = 1;
   required string array = 2;
   required string reference_genome = 3;
   repeated ColumnRangeList query_column_ranges = 4;
-  repeated string attributes = 5;
-  optional string vid_mapping_file = 6;
-  optional string callset_mapping_file = 7;
-  optional bool produce_GT_field = 8;
-  optional bool produce_FILTER_field = 9;
+  repeated RowRangeList query_row_ranges = 5;
+  repeated string attributes = 6;
+  optional string vcf_header_filename = 7;
+  optional string vcf_output_filename = 8;
+  optional string vcf_output_format = 9;
+  optional string vid_mapping_file = 10;
+  optional string callset_mapping_file = 11;
+  optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
+  optional bool index_output_VCF = 13; 
+  optional bool produce_GT_field = 14;
+  optional bool produce_FILTER_field = 15;
 }
