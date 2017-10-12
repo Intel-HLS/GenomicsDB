@@ -120,7 +120,7 @@ public class GenomicsDBImportConfigurationSpec {
     Assert.assertEquals(importConfiguration.getSizePerColumnPartition(), 10000);
     Assert.assertEquals(importConfiguration.getColumnPartitionsCount(), 2);
     Assert.assertEquals(importConfiguration.getDisableSyncedWrites(), true);
-    Assert.assertEquals(importConfiguration.getIgnoreCellsNotInPartition(), true);
+    Assert.assertEquals(importConfiguration.getIgnoreCellsNotInPartition(), false);
     Assert.assertSame(importConfiguration.getFailIfUpdating(), false);
     Assert.assertSame(importConfiguration.getGatk4IntegrationParameters(), integrationParameters);
   }
