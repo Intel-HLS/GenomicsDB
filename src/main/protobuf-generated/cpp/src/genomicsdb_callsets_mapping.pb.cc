@@ -356,6 +356,7 @@ void SampleIDToTileDBIDMap::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SampleIDToTileDBIDMap::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:SampleIDToTileDBIDMap)
   // required string sample_name = 1;
   if (has_sample_name()) {
@@ -849,6 +850,7 @@ void CallsetMappingPB::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* CallsetMappingPB::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:CallsetMappingPB)
   // repeated .SampleIDToTileDBIDMap callsets = 1;
   for (unsigned int i = 0, n = this->callsets_size(); i < n; i++) {

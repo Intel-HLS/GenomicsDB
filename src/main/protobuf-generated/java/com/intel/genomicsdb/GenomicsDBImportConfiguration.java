@@ -2343,6 +2343,24 @@ public final class GenomicsDBImportConfiguration {
      * <code>optional bool consolidate_tiledb_array_after_load = 20 [default = false];</code>
      */
     boolean getConsolidateTiledbArrayAfterLoad();
+
+    /**
+     * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+     */
+    boolean hasDisableSyncedWrites();
+    /**
+     * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+     */
+    boolean getDisableSyncedWrites();
+
+    /**
+     * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+     */
+    boolean hasIgnoreCellsNotInPartition();
+    /**
+     * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+     */
+    boolean getIgnoreCellsNotInPartition();
   }
   /**
    * Protobuf type {@code ImportConfiguration}
@@ -2375,6 +2393,8 @@ public final class GenomicsDBImportConfiguration {
       failIfUpdating_ = false;
       tiledbCompressionLevel_ = -1;
       consolidateTiledbArrayAfterLoad_ = false;
+      disableSyncedWrites_ = true;
+      ignoreCellsNotInPartition_ = false;
     }
 
     @java.lang.Override
@@ -2517,6 +2537,16 @@ public final class GenomicsDBImportConfiguration {
             case 160: {
               bitField0_ |= 0x00040000;
               consolidateTiledbArrayAfterLoad_ = input.readBool();
+              break;
+            }
+            case 168: {
+              bitField0_ |= 0x00080000;
+              disableSyncedWrites_ = input.readBool();
+              break;
+            }
+            case 176: {
+              bitField0_ |= 0x00100000;
+              ignoreCellsNotInPartition_ = input.readBool();
               break;
             }
           }
@@ -2927,6 +2957,36 @@ public final class GenomicsDBImportConfiguration {
       return consolidateTiledbArrayAfterLoad_;
     }
 
+    public static final int DISABLE_SYNCED_WRITES_FIELD_NUMBER = 21;
+    private boolean disableSyncedWrites_;
+    /**
+     * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+     */
+    public boolean hasDisableSyncedWrites() {
+      return ((bitField0_ & 0x00080000) == 0x00080000);
+    }
+    /**
+     * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+     */
+    public boolean getDisableSyncedWrites() {
+      return disableSyncedWrites_;
+    }
+
+    public static final int IGNORE_CELLS_NOT_IN_PARTITION_FIELD_NUMBER = 22;
+    private boolean ignoreCellsNotInPartition_;
+    /**
+     * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+     */
+    public boolean hasIgnoreCellsNotInPartition() {
+      return ((bitField0_ & 0x00100000) == 0x00100000);
+    }
+    /**
+     * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+     */
+    public boolean getIgnoreCellsNotInPartition() {
+      return ignoreCellsNotInPartition_;
+    }
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -3008,6 +3068,12 @@ public final class GenomicsDBImportConfiguration {
       }
       if (((bitField0_ & 0x00040000) == 0x00040000)) {
         output.writeBool(20, consolidateTiledbArrayAfterLoad_);
+      }
+      if (((bitField0_ & 0x00080000) == 0x00080000)) {
+        output.writeBool(21, disableSyncedWrites_);
+      }
+      if (((bitField0_ & 0x00100000) == 0x00100000)) {
+        output.writeBool(22, ignoreCellsNotInPartition_);
       }
       unknownFields.writeTo(output);
     }
@@ -3094,6 +3160,14 @@ public final class GenomicsDBImportConfiguration {
       if (((bitField0_ & 0x00040000) == 0x00040000)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(20, consolidateTiledbArrayAfterLoad_);
+      }
+      if (((bitField0_ & 0x00080000) == 0x00080000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(21, disableSyncedWrites_);
+      }
+      if (((bitField0_ & 0x00100000) == 0x00100000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(22, ignoreCellsNotInPartition_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -3209,6 +3283,16 @@ public final class GenomicsDBImportConfiguration {
         result = result && (getConsolidateTiledbArrayAfterLoad()
             == other.getConsolidateTiledbArrayAfterLoad());
       }
+      result = result && (hasDisableSyncedWrites() == other.hasDisableSyncedWrites());
+      if (hasDisableSyncedWrites()) {
+        result = result && (getDisableSyncedWrites()
+            == other.getDisableSyncedWrites());
+      }
+      result = result && (hasIgnoreCellsNotInPartition() == other.hasIgnoreCellsNotInPartition());
+      if (hasIgnoreCellsNotInPartition()) {
+        result = result && (getIgnoreCellsNotInPartition()
+            == other.getIgnoreCellsNotInPartition());
+      }
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -3313,6 +3397,16 @@ public final class GenomicsDBImportConfiguration {
         hash = (37 * hash) + CONSOLIDATE_TILEDB_ARRAY_AFTER_LOAD_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
             getConsolidateTiledbArrayAfterLoad());
+      }
+      if (hasDisableSyncedWrites()) {
+        hash = (37 * hash) + DISABLE_SYNCED_WRITES_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getDisableSyncedWrites());
+      }
+      if (hasIgnoreCellsNotInPartition()) {
+        hash = (37 * hash) + IGNORE_CELLS_NOT_IN_PARTITION_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIgnoreCellsNotInPartition());
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -3482,6 +3576,10 @@ public final class GenomicsDBImportConfiguration {
         bitField0_ = (bitField0_ & ~0x00040000);
         consolidateTiledbArrayAfterLoad_ = false;
         bitField0_ = (bitField0_ & ~0x00080000);
+        disableSyncedWrites_ = true;
+        bitField0_ = (bitField0_ & ~0x00100000);
+        ignoreCellsNotInPartition_ = false;
+        bitField0_ = (bitField0_ & ~0x00200000);
         return this;
       }
 
@@ -3595,6 +3693,14 @@ public final class GenomicsDBImportConfiguration {
           to_bitField0_ |= 0x00040000;
         }
         result.consolidateTiledbArrayAfterLoad_ = consolidateTiledbArrayAfterLoad_;
+        if (((from_bitField0_ & 0x00100000) == 0x00100000)) {
+          to_bitField0_ |= 0x00080000;
+        }
+        result.disableSyncedWrites_ = disableSyncedWrites_;
+        if (((from_bitField0_ & 0x00200000) == 0x00200000)) {
+          to_bitField0_ |= 0x00100000;
+        }
+        result.ignoreCellsNotInPartition_ = ignoreCellsNotInPartition_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3723,6 +3829,12 @@ public final class GenomicsDBImportConfiguration {
         }
         if (other.hasConsolidateTiledbArrayAfterLoad()) {
           setConsolidateTiledbArrayAfterLoad(other.getConsolidateTiledbArrayAfterLoad());
+        }
+        if (other.hasDisableSyncedWrites()) {
+          setDisableSyncedWrites(other.getDisableSyncedWrites());
+        }
+        if (other.hasIgnoreCellsNotInPartition()) {
+          setIgnoreCellsNotInPartition(other.getIgnoreCellsNotInPartition());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -4781,6 +4893,70 @@ public final class GenomicsDBImportConfiguration {
         onChanged();
         return this;
       }
+
+      private boolean disableSyncedWrites_ = true;
+      /**
+       * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+       */
+      public boolean hasDisableSyncedWrites() {
+        return ((bitField0_ & 0x00100000) == 0x00100000);
+      }
+      /**
+       * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+       */
+      public boolean getDisableSyncedWrites() {
+        return disableSyncedWrites_;
+      }
+      /**
+       * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+       */
+      public Builder setDisableSyncedWrites(boolean value) {
+        bitField0_ |= 0x00100000;
+        disableSyncedWrites_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool disable_synced_writes = 21 [default = true];</code>
+       */
+      public Builder clearDisableSyncedWrites() {
+        bitField0_ = (bitField0_ & ~0x00100000);
+        disableSyncedWrites_ = true;
+        onChanged();
+        return this;
+      }
+
+      private boolean ignoreCellsNotInPartition_ ;
+      /**
+       * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+       */
+      public boolean hasIgnoreCellsNotInPartition() {
+        return ((bitField0_ & 0x00200000) == 0x00200000);
+      }
+      /**
+       * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+       */
+      public boolean getIgnoreCellsNotInPartition() {
+        return ignoreCellsNotInPartition_;
+      }
+      /**
+       * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+       */
+      public Builder setIgnoreCellsNotInPartition(boolean value) {
+        bitField0_ |= 0x00200000;
+        ignoreCellsNotInPartition_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool ignore_cells_not_in_partition = 22;</code>
+       */
+      public Builder clearIgnoreCellsNotInPartition() {
+        bitField0_ = (bitField0_ & ~0x00200000);
+        ignoreCellsNotInPartition_ = false;
+        onChanged();
+        return this;
+      }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
@@ -4863,7 +5039,7 @@ public final class GenomicsDBImportConfiguration {
       "le\030\002 \001(\t\022\025\n\nbatch_size\030\003 \001(\005:\0010\022,\n\035use_s" +
       "amples_in_order_provided\030\004 \001(\010:\005false\022\035\n" +
       "\022lower_sample_index\030\005 \001(\003:\0010\022/\n\022upper_sa" +
-      "mple_index\030\006 \001(\003:\0239223372036854775807\"\233\006",
+      "mple_index\030\006 \001(\003:\0239223372036854775807\"\347\006",
       "\n\023ImportConfiguration\022(\n\031size_per_column" +
       "_partition\030\007 \002(\003:\00516384\022%\n\026row_based_par" +
       "titioning\030\001 \001(\010:\005false\022#\n\024produce_combin" +
@@ -4883,9 +5059,11 @@ public final class GenomicsDBImportConfiguration {
       "\010:\005false\0227\n\034gatk4_integration_parameters" +
       "\030\022 \001(\0132\021.GATK4Integration\022$\n\030tiledb_comp" +
       "ression_level\030\023 \001(\005:\002-1\0222\n#consolidate_t" +
-      "iledb_array_after_load\030\024 \001(\010:\005falseB5\n\024c",
-      "om.intel.genomicsdbB\035GenomicsDBImportCon" +
-      "figuration"
+      "iledb_array_after_load\030\024 \001(\010:\005false\022#\n\025d",
+      "isable_synced_writes\030\025 \001(\010:\004true\022%\n\035igno" +
+      "re_cells_not_in_partition\030\026 \001(\010B5\n\024com.i" +
+      "ntel.genomicsdbB\035GenomicsDBImportConfigu" +
+      "ration"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4916,7 +5094,7 @@ public final class GenomicsDBImportConfiguration {
     internal_static_ImportConfiguration_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ImportConfiguration_descriptor,
-        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", "Gatk4IntegrationParameters", "TiledbCompressionLevel", "ConsolidateTiledbArrayAfterLoad", });
+        new java.lang.String[] { "SizePerColumnPartition", "RowBasedPartitioning", "ProduceCombinedVcf", "ProduceTiledbArray", "ColumnPartitions", "VidMappingFile", "CallsetMappingFile", "TreatDeletionsAsIntervals", "NumParallelVcfFiles", "DeleteAndCreateTiledbArray", "DoPingPongBuffering", "OffloadVcfOutputProcessing", "DiscardVcfIndex", "SegmentSize", "CompressTiledbArray", "NumCellsPerTile", "FailIfUpdating", "Gatk4IntegrationParameters", "TiledbCompressionLevel", "ConsolidateTiledbArrayAfterLoad", "DisableSyncedWrites", "IgnoreCellsNotInPartition", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

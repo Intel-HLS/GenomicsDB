@@ -74,4 +74,6 @@ message ImportConfiguration {
   optional GATK4Integration gatk4_integration_parameters = 18;
   optional int32 tiledb_compression_level = 19 [default = -1];
   optional bool consolidate_tiledb_array_after_load = 20 [default = false];
+  optional bool disable_synced_writes = 21 [default = true];
+  optional bool ignore_cells_not_in_partition = 22;
 }

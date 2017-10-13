@@ -86,6 +86,8 @@ public class GenomicsDBImportConfigurationSpec {
         .addAllColumnPartitions(partitions)
         .setFailIfUpdating(false)
         .setGatk4IntegrationParameters(integrationParameters)
+        .setDisableSyncedWrites(true)
+        .setIgnoreCellsNotInPartition(false)
         .build();
     
     Assert.assertEquals(importConfiguration.isInitialized(), true);
@@ -105,6 +107,9 @@ public class GenomicsDBImportConfigurationSpec {
     Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasOutputCallsetmapJsonFile(), true);
     Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasOutputVidmapJsonFile(), true);
     Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasUseSamplesInOrderProvided(), true);
+    Assert.assertEquals(importConfiguration.hasDisableSyncedWrites(), true);
+    Assert.assertEquals(importConfiguration.hasIgnoreCellsNotInPartition(), true);
+
 
     // Assert gets
     Assert.assertEquals(importConfiguration.getDoPingPongBuffering(), true);
@@ -114,6 +119,8 @@ public class GenomicsDBImportConfigurationSpec {
     Assert.assertEquals(importConfiguration.getProduceTiledbArray(), true);
     Assert.assertEquals(importConfiguration.getSizePerColumnPartition(), 10000);
     Assert.assertEquals(importConfiguration.getColumnPartitionsCount(), 2);
+    Assert.assertEquals(importConfiguration.getDisableSyncedWrites(), true);
+    Assert.assertEquals(importConfiguration.getIgnoreCellsNotInPartition(), false);
     Assert.assertSame(importConfiguration.getFailIfUpdating(), false);
     Assert.assertSame(importConfiguration.getGatk4IntegrationParameters(), integrationParameters);
   }
