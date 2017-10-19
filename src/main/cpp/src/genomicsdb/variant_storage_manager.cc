@@ -381,7 +381,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
         m_tiledb_ctx, 
         &tiledb_array,
         (m_workspace+'/'+array_name).c_str(),
-        mode_int,
+        mode_int, NULL,
         0, 0, 0);
     if(status == TILEDB_OK)
     {

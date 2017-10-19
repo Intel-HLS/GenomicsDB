@@ -25,7 +25,6 @@ set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
 set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
-set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
@@ -104,8 +103,9 @@ find_package(htslib REQUIRED)
 include_directories(${HTSLIB_INCLUDE_DIR})
 
 #TileDB
-find_package(TileDB REQUIRED)
-include_directories(${TILEDB_INCLUDE_DIR})
+#find_package(TileDB REQUIRED)
+include(TileDB)
+include_directories(${TileDB_INCLUDE_DIRS})
 
 #librt
 find_library(LIBRT_LIBRARY rt)
