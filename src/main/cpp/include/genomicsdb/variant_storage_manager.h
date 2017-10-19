@@ -26,7 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "variant_cell.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "timer.h"
 
 //Exceptions thrown 
@@ -120,7 +120,7 @@ class VariantArrayInfo
 {
   public:
     VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema,
-        TileDB_Array* tiledb_array, const std::string& metadata_filename,
+        TileDB_CTX* tiledb_ctx, TileDB_Array* tiledb_array, const std::string& metadata_filename,
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
@@ -146,7 +146,7 @@ class VariantArrayInfo
       {
         if(consolidate_tiledb_array)
         {
-          auto status = tiledb_array_consolidate(m_tiledb_array);
+          auto status = tiledb_array_consolidate(m_tiledb_ctx, m_name.c_str());
           if(status != TILEDB_OK)
             throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
         }
@@ -184,6 +184,7 @@ class VariantArrayInfo
     std::string m_name;
     VariantArraySchema m_schema;
     BufferVariantCell m_cell;
+    TileDB_CTX* m_tiledb_ctx;
     TileDB_Array* m_tiledb_array;
     std::string m_metadata_filename;
     //For writing cells

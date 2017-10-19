@@ -36,15 +36,19 @@ if(TILEDB_SOURCE_DIR)
         UPDATE_COMMAND ""
         PATCH_COMMAND ""
         CONFIGURE_COMMAND ""
+#        CMAKE_COMMAND "cmake3"
+        CMAKE_ARGS "-DGNU_PARALLEL${GNU_PARALLEL} -DCMAKE_BUILD_TYPE=${TileDB_BUILD_TYPE}"
+        BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
+        STEP_TARGETS build
         BUILD_COMMAND $(MAKE) OPENSSL_PREFIX_DIR=${OPENSSL_ROOT_DIR} GNU_PARALLEL=${GNU_PARALLEL} BUILD=${TileDB_BUILD_TYPE}
-        BUILD_IN_SOURCE 1
-        INSTALL_COMMAND ""
+#       INSTALL_COMMAND ""
         )
-    find_path(TILEDB_INCLUDE_DIR NAMES c_api.h HINTS "${TILEDB_SOURCE_DIR}/core/include/c_api")
+    find_path(TILEDB_INCLUDE_DIR NAMES tiledb.h HINTS "${TILEDB_SOURCE_DIR}/core/include/c_api")
     set(TILEDB_LIBRARY "${TILEDB_SOURCE_DIR}/core/lib/${TileDB_BUILD_TYPE}/libtiledb.a")
+    add_custom_target(${TILEDB_LIBRARY} ${CMAKE_MAKE_COMMAND} TileDB)
     find_package_handle_standard_args(TileDB "Could not find TileDB headers ${DEFAULT_MSG}" TILEDB_INCLUDE_DIR)
 else()
-    find_path(TILEDB_INCLUDE_DIR NAMES "include/c_api.h" HINTS "${TILEDB_INSTALL_DIR}")
+    find_path(TILEDB_INCLUDE_DIR NAMES "include/tiledb.h" HINTS "${TILEDB_INSTALL_DIR}")
     find_library(TILEDB_LIBRARY NAMES libtiledb.a tiledb HINTS "${TILEDB_INSTALL_DIR}")
     find_package_handle_standard_args(TileDB "Could not find TileDB headers and/or libraries ${DEFAULT_MSG}" TILEDB_INCLUDE_DIR TILEDB_LIBRARY)
 endif()

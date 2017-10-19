@@ -82,6 +82,7 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
       tiledb_ctx, 
       &m_tiledb_array_iterator,
       array_path.c_str(),
+      TILEDB_ARRAY_READ,
       reinterpret_cast<const void*>(range), // range, 
       &(attribute_names[0]),           
       attribute_names.size(),
@@ -128,10 +129,11 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
 
 //VariantArrayInfo functions
 VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name,
-    const VariantArraySchema& schema, TileDB_Array* tiledb_array, const std::string& metadata_filename,
+    const VariantArraySchema& schema, TileDB_CTX* tiledb_ctx,
+    TileDB_Array* tiledb_array, const std::string& metadata_filename,
     const size_t buffer_size)
 : m_idx(idx), m_mode(mode), m_name(name), m_schema(schema), m_cell(m_schema), m_tiledb_array(tiledb_array),
-  m_metadata_filename(metadata_filename)
+  m_tiledb_ctx(tiledb_ctx), m_metadata_filename(metadata_filename)
 {
   //If writing, allocate buffers
   if(mode == TILEDB_ARRAY_WRITE || mode == TILEDB_ARRAY_WRITE_UNSORTED)
@@ -379,7 +381,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
         m_tiledb_ctx, 
         &tiledb_array,
         (m_workspace+'/'+array_name).c_str(),
-        mode_int,
+        mode_int, NULL,
         0, 0, 0);
     if(status == TILEDB_OK)
     {
@@ -393,7 +395,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const char*
         define_metadata_schema(&tmp_schema);
       else
         fclose(fptr);
-      m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, tiledb_array,
+      m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name, tmp_schema, m_tiledb_ctx, tiledb_array,
           GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
       return idx;
     }
