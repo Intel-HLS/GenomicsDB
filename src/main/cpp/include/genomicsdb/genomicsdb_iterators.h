@@ -201,8 +201,12 @@ class SingleCellTileDBIterator
       return *m_cell;
     }
     void handle_current_cell_in_find_intersecting_intervals_mode();
+    /*
+     * Should be called by consumers of this iterator - not internally
+     * See advance_*() functions below for internal use
+     */
     const SingleCellTileDBIterator& operator++();
-    //Get field pointer, length, size
+    //Get pointer, length, size for current cell for field corresponding to query_idx
     inline const uint8_t* get_field_ptr_for_query_idx(const int query_idx) const
     {
       assert(static_cast<size_t>(query_idx) < m_fields.size());
@@ -252,12 +256,24 @@ class SingleCellTileDBIterator
     inline uint64_t get_current_query_column_interval_idx() const { return m_query_column_interval_idx; }
   protected:
     /*
-     * Does one read for the attributes in m_query_attribute_idx_vec
-     * The first call must pass the 3 arguments correctly
+     * Function that starts a new query interval
+     * (a) For scan, starts the scan in simple traversal mode
+     * (b) With intervals
+     *     * Determines all intersecting intervals in find intersecting intervals mode
+     *     * Moves into simple traversal mode
+     *     * Finds first 'useful' cell in the simple traversal mode
+     * The first call to this function must pass the 3 arguments correctly
      * Subsequent calls can skip the arguments
      */
-    void read_from_TileDB(TileDB_CTX* tiledb_ctx=0, const char* array_path=0,
+    void begin_new_query_column_interval(TileDB_CTX* tiledb_ctx=0, const char* array_path=0,
         std::vector<const char*>* attribute_names=0);
+    //Helper functions - sets flags and preps some fields
+    void move_into_simple_traversal_mode();
+    void reset_for_next_query_interval();
+    /*
+     * Does one read for the attributes in m_query_attribute_idx_vec from TileDB
+     */
+    void read_from_TileDB();
     //Given the columnar field object, get the buffer pointer and index in the buffer
     //Response depends on whether this is a cell that begins before the query interval begin
     //or cell >= query interval begin
@@ -282,9 +298,10 @@ class SingleCellTileDBIterator
     /*
      * Optimization for skipping useless cells
      * Useless are determined using the coords and the END value
-     * a) in simple traversal mode, a cell is useless if END < coords[1] (END cell)
-     * b) in find intersecting intervals mode, a cell is useless if the corresponding row marker is 
-     * already initialized
+     * a) in simple traversal mode, a cell is useless if END < coords[1] (END cell) OR
+     * b) in find intersecting intervals mode, a cell is useless if the corresponding row marker is
+     * already initialized OR
+     * c) the row is not part of the query 
      * Once the number of contiguous useless cells are determined, fields other than coords and END
      * can be skipped in one shot
      */
@@ -292,6 +309,31 @@ class SingleCellTileDBIterator
 #ifdef DO_PROFILING
     void increment_num_cells_traversed_stats(const uint64_t num_cells_incremented);
 #endif
+    /*
+     * These functions must be called internally only. Consumers of iterator objects
+     * should use operator++ only.
+     */
+    /*
+     * Advance indexes till a useful cell is found
+     * Return true iff the current query interval has valid cells after increment
+     * min_num_cells_to_increment - can be set to 0, in that case the "current" cell is checked
+     * to see if it's useful. If not, the index is incremented.
+     * If min_num_cells_to_increment >0,
+     * the index is advanced first and then the cells underneath are checked for "usefulness"
+     * A cell is "useful" iff
+     *   its row is part of the queried rows
+     *   in simple traversal mode - END >= begin
+     *   in find intersecting intervals mode the row marker is !initialized 
+     */
+    bool advance_to_next_useful_cell(const uint64_t min_num_cells_to_increment);
+    /*
+     * num_cells_incremented - returns the actual #cells passed over
+     */
+    bool advance_coords_and_END_till_useful_cell_found(
+        const uint64_t min_num_cells_to_increment,
+        uint64_t& num_cells_incremented);
+    bool advance_coords_and_END(const uint64_t num_cells_to_advance);
+    void advance_fields_other_than_coords_END(const uint64_t num_cells_to_increment);
   private:
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
