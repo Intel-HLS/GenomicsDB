@@ -1,0 +1,23 @@
+{
+    "variant_calls": [
+        {
+            "query_interval": [ 12141, 12141 ],
+            "variant_calls": [
+                {
+                    "row": 0,
+                    "interval": [ 12140, 12294 ],
+                    "genomic_interval": { "1" : [ 12141, 12295 ] },
+                    "fields": {
+                        "REF": "C",
+                        "ALT": [ "<NON_REF>" ],
+                        "GT": [ 0, 0 ],
+                        "GQ": 0,
+                        "PL": [ 0, 0, 0 ],
+                        "DP_FORMAT": 2,
+                        "MIN_DP": 0
+                    }
+                }
+            ]
+        }
+    ]
+}

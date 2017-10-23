@@ -51,7 +51,7 @@ def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array"] = test_name
-    test_dict["query_column_ranges"] = [ [ query_param_dict["query_column_ranges"] ] ]
+    test_dict["query_column_ranges"] = [ query_param_dict["query_column_ranges"] ]
     if("vid_mapping_file" in query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
@@ -148,19 +148,34 @@ def main():
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ 12100 ], "golden_output": {   #
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12100",
+                        } },
+                    { "query_column_ranges" : [ 12100, 12141 ], "golden_output": {   #
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141",
+                        } },
+                    { "query_column_ranges" : [ 12100, 12141, 12150 ], "golden_output": {   #
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_12150",
+                        } },
+                    { "query_column_ranges" : [ 12100, [ 12141, 12150] ], "golden_output": {   #
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_to_12150",
+                        } },
+                    { "query_column_ranges" : [ 12100, [ 12141, 12150], 12300, 17384 ], "golden_output": {   #
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_to_12150_12300_17384",
+                        } },
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         "query_attributes": query_attributes_with_PL_only,
                         "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0_with_PL_only",
                         } },
-                    { "query_column_ranges" : [0, 1000000000],#vid and callset jsons passed through query json
+                    { "query_column_ranges" : [ [0, 1000000000] ],#vid and callset jsons passed through query json
                         "query_without_loader": True,
                         "vid_mapping_file": "inputs/vid.json",
                         "callset_mapping_file": "inputs/callsets/t0_1_2.json",
@@ -171,14 +186,14 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
                         } },
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         "produce_FILTER_field": True, "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0_with_FILTER",
                         } },
@@ -187,14 +202,14 @@ def main():
             { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_csv.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
@@ -206,7 +221,7 @@ def main():
             { "name" : "t0_overlapping", 'golden_output': 'golden_outputs/t0_overlapping',
                 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
                 "query_params": [
-                    { "query_column_ranges" : [12202, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12202, 1000000000] ], "golden_output": {
                         "vcf"        : "golden_outputs/t0_overlapping_at_12202",
                         }
                     }
@@ -219,19 +234,19 @@ def main():
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t6_7_8_calls_at_0",
                         "variants"   : "golden_outputs/t6_7_8_variants_at_0",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [8029500, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [8029500, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
                         "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
                         } },
-                    { "query_column_ranges" : [8029500, 8029500], "golden_output": {
+                    { "query_column_ranges" : [ [8029500, 8029500] ], "golden_output": {
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
@@ -240,14 +255,14 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0_phased_GT",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150_phased_GT",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150_phased_GT",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
@@ -260,14 +275,14 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_buffer.json',
                 'stream_name_to_filename_mapping': 'inputs/callsets/t0_1_2_buffer_mapping.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
@@ -280,14 +295,14 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_buffer.json',
                 'stream_name_to_filename_mapping': 'inputs/callsets/t0_1_2_buffer_mapping.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
@@ -300,7 +315,7 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 'vid_mapping_file': 'inputs/vid_MLEAC_MLEAF.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                       "query_attributes" : query_attributes_with_MLEAC_only, "golden_output": {
                         "calls"        : "golden_outputs/test_new_fields_MLEAC_only.json",
                         } },
@@ -319,7 +334,7 @@ def main():
                 'chromosome_interval': '1:1-100000000',
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         "golden_output": {
@@ -327,7 +342,7 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [12150, 1000000000],
+                    { "query_column_ranges" : [ [12150, 1000000000] ],
                         'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         "golden_output": {
@@ -342,7 +357,7 @@ def main():
                 'chromosome_interval': '1:1-100000000',
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                         "golden_output": {
@@ -351,7 +366,7 @@ def main():
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [8029500, 1000000000],
+                    { "query_column_ranges" : [ [8029500, 1000000000] ],
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                         "golden_output": {
@@ -365,7 +380,7 @@ def main():
             { "name" : "t0_1_2_combined", 'golden_output' : 'golden_outputs/t0_1_2_combined',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_combined.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_combined",
                         "batched_vcf": "golden_outputs/t0_1_2_combined",
                         } },
@@ -375,7 +390,7 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 'vid_mapping_file': 'inputs/vid_DS_ID.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         "query_attributes": query_attributes_with_DS_ID, "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
@@ -387,7 +402,7 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 'chromosome_interval': '1:1-100000000',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                         'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                         'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "query_attributes": query_attributes_with_DS_ID, "golden_output": {
@@ -403,7 +418,7 @@ def main():
             { "name" : "t0_with_missing_PL_SB_fields", 'golden_output' : 'golden_outputs/t0_with_missing_PL_SB_fields_t1.vcf',
                 'callset_mapping_file': 'inputs/callsets/t0_with_missing_PL_SB_fields_t1.json',
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000], "golden_output": {
+                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_with_missing_PL_SB_fields_t1_calls.json",
                         } },
                     ]
@@ -415,7 +430,7 @@ def main():
                 'size_per_column_partition': 1200,
                 'segment_size': 100,
                 "query_params": [
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'segment_size': 100,
@@ -423,7 +438,7 @@ def main():
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
                         } },
-                    { "query_column_ranges" : [0, 1000000000],
+                    { "query_column_ranges" : [ [0, 1000000000] ],
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'produce_GT_field': True,
@@ -492,40 +507,40 @@ def main():
                         ('consolidate_and_vcf', '--produce-Broad-GVCF'), #keep as the last query test
                         ]
                 for query_type,cmd_line_param in query_types_list:
-                    if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
-                        test_query_dict['query_attributes'] = vcf_query_attributes_order;
-                    query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
-                    with open(query_json_filename, 'wb') as fptr:
-                        json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
-                        fptr.close();
-                    query_command = ''
-                    if(query_type == 'java_vcf'):
-                        loader_argument = loader_json_filename;
-                        if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
-                            loader_argument = '""'
-                        query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename;
-                        pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
-                    else:
-                        if(query_type == 'consolidate_and_vcf'):
-                            retcode = subprocess.call(exe_path+os.path.sep+'consolidate_tiledb_array '+ws_dir+' '+test_name,
-                                    shell=True)
-                            if(retcode != 0):
-                                sys.stderr.write('TileDB array consolidation failed '+ws_dir+' '+test_name+'\n');
-                                cleanup_and_exit(tmpdir, -1);
-                        loader_argument = ' -l '+loader_json_filename;
-                        if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
-                            loader_argument = ''
-                        query_command = (exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
-                            + ' -j '
-                            +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']);
-                        pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
-                    stdout_string = pid.communicate()[0]
-                    if(pid.returncode != 0):
-                        sys.stderr.write('Command '+query_command+'\n')
-                        sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
-                        cleanup_and_exit(tmpdir, -1);
-                    md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
+                        if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
+                            test_query_dict['query_attributes'] = vcf_query_attributes_order;
+                        query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
+                        with open(query_json_filename, 'wb') as fptr:
+                            json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
+                            fptr.close();
+                        query_command = ''
+                        if(query_type == 'java_vcf'):
+                            loader_argument = loader_json_filename;
+                            if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
+                                loader_argument = '""'
+                            query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename;
+                            pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
+                        else:
+                            if(query_type == 'consolidate_and_vcf'):
+                                retcode = subprocess.call(exe_path+os.path.sep+'consolidate_tiledb_array '+ws_dir+' '+test_name,
+                                        shell=True)
+                                if(retcode != 0):
+                                    sys.stderr.write('TileDB array consolidation failed '+ws_dir+' '+test_name+'\n');
+                                    cleanup_and_exit(tmpdir, -1);
+                            loader_argument = ' -l '+loader_json_filename;
+                            if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
+                                loader_argument = ''
+                            query_command = (exe_path+os.path.sep+'gt_mpi_gather -s %d'+loader_argument
+                                + ' -j '
+                                +query_json_filename+' '+cmd_line_param)%(test_query_dict['segment_size']);
+                            pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
+                        stdout_string = pid.communicate()[0]
+                        if(pid.returncode != 0):
+                            sys.stderr.write('Command '+query_command+'\n')
+                            sys.stderr.write('Query test: '+test_name+'-'+query_type+' failed\n');
+                            cleanup_and_exit(tmpdir, -1);
+                        md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
                         golden_stdout, golden_md5sum = get_file_content_and_md5sum(query_param_dict['golden_output'][query_type]);
                         if(golden_md5sum != md5sum_hash_str):
                             is_error = True;
