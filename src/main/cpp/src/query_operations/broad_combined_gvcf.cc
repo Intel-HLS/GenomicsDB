@@ -795,7 +795,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
           curr_field->resize(num_reduced_elements);
           //Get handler for current type
-          auto& handler = get_handler_for_type(curr_field->get_element_type());
+          auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
           assert(handler.get());
           //Call remap function
           handler->remap_vector_data(

@@ -30,6 +30,8 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw RunConfigException(#X);
 
+const char* g_json_indent_unit = "    ";
+
 void JSONConfigBase::clear()
 {
   m_workspaces.clear();

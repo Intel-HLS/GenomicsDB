@@ -1,7 +1,7 @@
 {
     "variant_calls": [
         {
-            "query_interval": [ 0, 1000000000 ],
+            "query_interval": [ 12141, 12150 ],
             "variant_calls": [
                 {
                     "row": 0,
@@ -30,7 +30,12 @@
                         "DP_FORMAT": 3,
                         "MIN_DP": 0
                     }
-                },
+                }
+            ]
+        },
+        {
+            "query_interval": [ 17384, 17384 ],
+            "variant_calls": [
                 {
                     "row": 0,
                     "interval": [ 17384, 17384 ],

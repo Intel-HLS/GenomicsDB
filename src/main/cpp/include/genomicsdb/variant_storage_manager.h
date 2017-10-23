@@ -26,6 +26,7 @@
 #include "headers.h"
 #include "variant_array_schema.h"
 #include "variant_cell.h"
+#include "genomicsdb_iterators.h"
 #include "c_api.h"
 #include "timer.h"
 
@@ -119,7 +120,9 @@ class VariantArrayCellIterator
 class VariantArrayInfo
 {
   public:
-    VariantArrayInfo(int idx, int mode, const std::string& name, const VariantArraySchema& schema,
+    VariantArrayInfo(int idx, int mode, const std::string& name,
+        const VidMapper* vid_mapper,
+        const VariantArraySchema& schema,
         TileDB_Array* tiledb_array, const std::string& metadata_filename,
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
@@ -178,6 +181,8 @@ class VariantArrayInfo
     {
       return (m_max_valid_row_idx_in_array - m_schema.dim_domains()[0].first + 1);
     }
+    inline const VidMapper* get_vid_mapper() const { return m_vid_mapper; }
+    const TileDB_Array* get_tiledb_array() const { return m_tiledb_array; }
   private:
     int m_idx;
     int m_mode;
@@ -196,6 +201,8 @@ class VariantArrayInfo
     //Max valid row idx in array
     int64_t m_max_valid_row_idx_in_array;
     bool m_metadata_contains_max_valid_row_idx_in_array;
+    //Vid mapper
+    const VidMapper* m_vid_mapper;
 #ifdef DEBUG
     int64_t m_last_row;
     int64_t m_last_column;
@@ -225,7 +232,7 @@ class VariantStorageManager
      * Wrapper functions around the C-API
      */
     bool check_if_TileDB_array_exists(const std::string& array_name);
-    int open_array(const std::string& array_name, const char* mode);
+    int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode);
     void close_array(const int ad, const bool consolidate_tiledb_array=false);
     int define_array(const VariantArraySchema* variant_array_schema, const size_t num_cells_per_tile=1000u);
     void delete_array(const std::string& array_name);
@@ -240,6 +247,12 @@ class VariantStorageManager
      */
     VariantArrayCellIterator* begin(
         int ad, const int64_t* range, const std::vector<int>& attribute_ids) const ;
+    /*
+     * For columnar iterator
+     */
+    SingleCellTileDBIterator* begin_columnar_iterator(
+        int ad, const VariantQueryConfig& query_config,
+        const bool use_common_array_object) const;
     /*
      * Write sorted cell
      */

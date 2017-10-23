@@ -23,6 +23,7 @@
 #include "variant_cell.h"
 #include "variant_field_data.h"
 #include "variant_query_config.h"
+#include "json_config.h"
 
 BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema)
 {
@@ -114,4 +115,73 @@ void BufferVariantCell::set_cell(const void* ptr)
 #ifdef DEBUG
   assert(offset == cell_size);
 #endif
+}
+
+void GenomicsDBColumnarCell::print(std::ostream& fptr, const VariantQueryConfig* query_config,
+    const std::string& indent_prefix, const VidMapper* vid_mapper) const
+{
+  assert(query_config && query_config->is_bookkeeping_done());
+  auto coords = get_coordinates();
+  auto indent_string = indent_prefix+g_json_indent_unit;
+  fptr << indent_prefix << "{\n";
+  fptr << indent_string << "\"row\": "<< coords[0] << ",\n";
+  assert(query_config->is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
+  auto end_query_idx = query_config->get_query_idx_for_known_field_enum(GVCF_END_IDX);
+  auto ALT_query_idx = query_config->is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX)
+    ? query_config->get_query_idx_for_known_field_enum(GVCF_ALT_IDX) : UINT64_MAX;
+  auto end_position = *(reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(end_query_idx)));
+  fptr << indent_string << "\"interval\": [ "<< coords[1] << ", "
+    << end_position 
+    << " ],\n";
+  assert(coords[1] <= end_position);
+  if(vid_mapper)
+  {
+    std::string contig_name;
+    int64_t contig_position;
+    auto status = vid_mapper->get_contig_location(coords[1], contig_name, contig_position);
+    if(status)
+      fptr << indent_string << "\"genomic_interval\": { \"" << contig_name << "\" : [ "<<contig_position+1
+        << ", " << (contig_position+1+(end_position - coords[1])) << " ] },\n";
+  }
+  fptr << indent_string << "\"fields\": {\n";
+  indent_string += g_json_indent_unit;
+  auto first_valid_field = true;
+  //First field is always END - ignore
+  for(auto i=1u;i<query_config->get_num_queried_attributes();++i)
+  {
+    if(is_valid(i))
+    {
+      if(!first_valid_field)
+        fptr << ",\n";
+      fptr << indent_string << "\"" << (query_config->get_query_attribute_name(i)) << "\": ";
+      if(i == ALT_query_idx)
+        m_iterator->print_ALT(i, fptr);
+      else
+        m_iterator->print(i, fptr);
+      first_valid_field = false;
+    }
+  }
+  indent_string = indent_prefix+g_json_indent_unit;
+  fptr << "\n" << indent_string << "}\n"<< indent_prefix << "}";
+}
+
+void GenomicsDBColumnarCell::print_csv(std::ostream& fptr, const VariantQueryConfig* query_config) const
+{
+  assert(query_config && query_config->is_bookkeeping_done());
+  auto coords = get_coordinates();
+  fptr << coords[0u] << "," << coords[1u];
+  assert(query_config->is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
+  auto end_query_idx = query_config->get_query_idx_for_known_field_enum(GVCF_END_IDX);
+  auto ALT_query_idx = query_config->is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX)
+    ? query_config->get_query_idx_for_known_field_enum(GVCF_ALT_IDX) : UINT64_MAX;
+  auto end_position = *(reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(end_query_idx)));
+  fptr << "," << end_position;
+  assert(coords[1] <= end_position);
+  //First field is always END - ignore
+  for(auto i=1ull;i<query_config->get_num_queried_attributes();++i)
+  {
+    fptr << ",";
+    m_iterator->print_csv(i, fptr); //even if invalid, must print nulls
+  }
+  fptr << "\n";
 }

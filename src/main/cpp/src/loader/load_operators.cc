@@ -140,7 +140,7 @@ LoaderArrayWriter::LoaderArrayWriter(
   if(m_loader_json_config.delete_and_create_tiledb_array())
     m_storage_manager->delete_array(array_name);
   //Open array in write mode
-  m_array_descriptor = m_storage_manager->open_array(array_name, "w");
+  m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w");
   //Check if array already exists
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
@@ -148,7 +148,7 @@ LoaderArrayWriter::LoaderArrayWriter(
     VERIFY_OR_THROW(m_storage_manager->define_array(m_schema, m_loader_json_config.get_num_cells_per_tile()) == TILEDB_OK
         && "Could not define TileDB array");
     //Open array in write mode
-    m_array_descriptor = m_storage_manager->open_array(array_name, "w");
+    m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w");
   }
   else
     if(m_loader_json_config.fail_if_updating())

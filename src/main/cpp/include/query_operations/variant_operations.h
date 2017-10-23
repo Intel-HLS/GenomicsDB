@@ -25,6 +25,8 @@
 
 #include "variant.h"
 #include "lut.h"
+#include "variant_cell.h"
+#include "json_config.h"
 
 class VariantOperationException : public std::exception {
   public:
@@ -287,6 +289,26 @@ class SingleVariantOperatorBase
     bool m_is_reference_block_only;
 };
 
+/*
+ *  Prints interesting positions in the array
+ *  A position with column = X is interesting iff
+ *  a. a new variant call begins at X OR
+ *  b. a variant call ends at X-1
+ */
+class InterestingLocationsPrinter : public SingleVariantOperatorBase
+{
+  public:
+    InterestingLocationsPrinter(std::ostream& fptr)
+      : SingleVariantOperatorBase()
+    {
+      m_fptr = &fptr;
+    }
+    virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
+  protected:
+    //Output stream
+    std::ostream* m_fptr;
+};
+
 class MaxAllelesCountOperator : public SingleVariantOperatorBase
 {
   public:
@@ -504,6 +526,12 @@ class SingleCellOperatorBase
   public:
     SingleCellOperatorBase() { ; }
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)  { ; }
+    virtual void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema)
+    {
+      throw VariantOperationException("Sub-classes should override operate_on_columnar_cell()");
+    }
+    virtual void finalize() { ; } //do nothing
 };
 
 class ColumnHistogramOperator : public SingleCellOperatorBase
@@ -511,6 +539,8 @@ class ColumnHistogramOperator : public SingleCellOperatorBase
   public:
     ColumnHistogramOperator(uint64_t begin, uint64_t end, uint64_t bin_size);
     virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
     bool equi_partition_and_print_bins(uint64_t num_bins, std::ostream& fptr=std::cout) const; 
   private:
     std::vector<uint64_t> m_bin_counts_vector;
@@ -526,18 +556,21 @@ class VariantCallPrintOperator : public SingleCellOperatorBase
       : SingleCellOperatorBase(), m_fptr(&fptr), m_indent_prefix(indent_prefix)
       {
         m_num_calls_printed = 0ull;
+        m_num_query_intervals_printed = 0ull;
         m_vid_mapper = (vid_mapper && vid_mapper->is_initialized()) ? vid_mapper : 0;
+        m_indent_prefix_plus_one = m_indent_prefix + g_json_indent_unit;
+        m_indent_prefix_plus_two = m_indent_prefix_plus_one + g_json_indent_unit;
       }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema)
-    {
-      if(m_num_calls_printed > 0ull)
-        (*m_fptr) << ",\n";
-      call.print(*m_fptr, &query_config, m_indent_prefix, m_vid_mapper);
-      ++m_num_calls_printed;
-    }
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
+    void finalize();
   private:
     uint64_t m_num_calls_printed;
+    uint64_t m_num_query_intervals_printed;
     std::string m_indent_prefix;
+    std::string m_indent_prefix_plus_one;
+    std::string m_indent_prefix_plus_two;
     std::ostream* m_fptr;
     const VidMapper* m_vid_mapper;
 };
@@ -550,11 +583,38 @@ class VariantCallPrintCSVOperator : public SingleCellOperatorBase
       : SingleCellOperatorBase(), m_fptr(&fptr)
       {
       }
-    virtual void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
   private:
     std::ostream* m_fptr;
 };
 
+class AlleleCountOperator : public SingleCellOperatorBase
+{
+  public:
+    AlleleCountOperator(const VidMapper& vid_mapper, const VariantQueryConfig& query_config);
+    void operate(VariantCall& call, const VariantQueryConfig& query_config, const VariantArraySchema& schema);
+    void operate_on_columnar_cell(const GenomicsDBColumnarCell& cell, const VariantQueryConfig& query_config,
+        const VariantArraySchema& schema);
+    void print_allele_counts(std::ostream& fptr=std::cout) const;
+    void normalize_REF_ALT_pair(std::pair<std::string, std::string>& REF_ALT_pair);
+    std::map<std::pair<std::string, std::string>, uint64_t>& get_REF_ALT_to_count_map(
+        const int64_t curr_column);
+  private:
+    unsigned m_GT_query_idx;
+    unsigned m_REF_query_idx;
+    unsigned m_ALT_query_idx;
+    unsigned m_GT_step_value;
+    //Outer vec - 1 per query column position
+    //map - 1 per cell begin position
+    //map: REF,ALT -> count
+    std::vector<std::map<int64_t, std::map<std::pair<std::string, std::string>, uint64_t>>>
+      m_column_to_REF_ALT_to_count_vec;
+    const VidMapper* m_vid_mapper;
+    //Avoid memory allocation
+    std::vector<size_t> m_cell_ALT_offsets;
+};
 /*
  * If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
  */

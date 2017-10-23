@@ -9,8 +9,8 @@
                     "genomic_interval": { "1" : [ 8029500, 8029502 ] },
                     "fields": {
                         "REF": "TGG",
-                        "ALT": [ "T","<NON_REF>" ],
-                        "MLEAC": [ 1,0 ]
+                        "ALT": [ "T", "<NON_REF>" ],
+                        "MLEAC": [ 1, 0 ]
                     }
                 },
                 {
@@ -19,8 +19,8 @@
                     "genomic_interval": { "1" : [ 8029500, 8029502 ] },
                     "fields": {
                         "REF": "TGG",
-                        "ALT": [ "T","TG","<NON_REF>" ],
-                        "MLEAC": [ 0,1,0 ]
+                        "ALT": [ "T", "TG", "<NON_REF>" ],
+                        "MLEAC": [ 0, 1, 0 ]
                     }
                 },
                 {
@@ -29,8 +29,8 @@
                     "genomic_interval": { "1" : [ 8029500, 8029501 ] },
                     "fields": {
                         "REF": "TG",
-                        "ALT": [ "T","<NON_REF>" ],
-                        "MLEAC": [ 1,0 ]
+                        "ALT": [ "T", "<NON_REF>" ],
+                        "MLEAC": [ 1, 0 ]
                     }
                 }
             ]

@@ -118,6 +118,8 @@ void VariantQueryProcessor::initialize_static_members()
 {
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
+  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(bool))] =
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int8_t))] =
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int8_t, int>>());
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint8_t))] =
@@ -232,7 +234,7 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
     VariantQueryProcessor::initialize_static_members();
   clear();
   m_storage_manager = storage_manager;
-  m_ad = storage_manager->open_array(array_name, "r");
+  m_ad = storage_manager->open_array(array_name, &vid_mapper, "r");
   if(m_ad < 0)
     throw VariantQueryProcessorException("Could not open array "+array_name+" at workspace: "+storage_manager->get_workspace());
   m_array_schema = new VariantArraySchema();
@@ -545,67 +547,22 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
 void VariantQueryProcessor::iterate_over_cells(
     const int ad,
     const VariantQueryConfig& query_config, 
-    SingleCellOperatorBase& variant_operator, unsigned column_interval_idx) const
+    SingleCellOperatorBase& variant_operator,
+    const bool use_common_array_object) const
 {
-  GTProfileStats stats;
-  GTProfileStats* stats_ptr = 0;
-#ifdef DO_PROFILING
-  stats_ptr = &stats;
-#endif
   assert(query_config.is_bookkeeping_done());
-  //Rank of tile from which scan should start
-  int64_t start_column = 0;
-  //Scan only queried interval, not whole array
-  if(query_config.get_num_column_intervals() > 0u)
-    start_column = query_config.get_column_begin(column_interval_idx);
-  //Find calls that intersect with begin query position
-  if(start_column > 0)
-  {
-    Variant interval_begin_variant(&query_config);
-    interval_begin_variant.resize_based_on_query();
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
-#ifdef DUPLICATE_CELL_AT_END
-        0
-#else
-        &query_row_idx_in_order
-#endif
-        );
-#ifdef DUPLICATE_CELL_AT_END
-    std::vector<uint64_t> query_row_idx_in_order(interval_begin_variant.get_num_calls());
-    interval_begin_variant.get_column_sorted_call_idx_vec(query_row_idx_in_order);
-    for(auto i=0ull;i<query_row_idx_in_order.size();++i)
-    {
-      assert(interval_begin_variant.get_call(query_row_idx_in_order[i]).is_valid());
-      variant_operator.operate(interval_begin_variant.get_call(query_row_idx_in_order[i]), query_config, get_array_schema());
-    }
-#endif
-    //Now deal with calls that begin AFTER begin position
-    ++start_column;
-  }
   //Initialize forward scan iterators
-  VariantArrayCellIterator* forward_iter = 0;
-  gt_initialize_forward_iter(ad, query_config, start_column, forward_iter);
-  //Variant object
-  Variant variant(&query_config);
-  variant.resize_based_on_query();
-  for(;!(forward_iter->end());++(*forward_iter))
+  SingleCellTileDBIterator* columnar_forward_iter = get_storage_manager()->begin_columnar_iterator(ad, query_config,
+      use_common_array_object);
+  for(;!(columnar_forward_iter->end());++(*columnar_forward_iter))
   {
-    auto& cell = **forward_iter;
-    //If only interval requested and end of interval crossed, exit loop
-    if(query_config.get_num_column_intervals() > 0 &&
-        cell.get_begin_column() > static_cast<int64_t>(query_config.get_column_end(column_interval_idx)))
-      break;
-    if(query_config.is_queried_array_row_idx(cell.get_row()))       //If row is part of query, process cell
-    {
-      auto& curr_call = variant.get_call(query_config.get_query_row_idx_for_array_row_idx(cell.get_row()));
-      curr_call.reset_for_new_interval();
-      gt_fill_row(variant, cell.get_row(), cell.get_begin_column(), query_config, cell, stats_ptr);
-      //When cells are duplicated at the END, then the VariantCall object need not be valid
-      if(curr_call.is_valid())
-        variant_operator.operate(curr_call, query_config, get_array_schema());
-    }
+    auto& cell = **columnar_forward_iter;
+    auto coords = cell.get_coordinates();
+    if(query_config.is_queried_array_row_idx(coords[0]))       //If row is part of query, process cell
+      variant_operator.operate_on_columnar_cell(cell, query_config, get_array_schema());
   }
-  delete forward_iter;
+  variant_operator.finalize();
+  delete columnar_forward_iter;
 }
 
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
@@ -641,13 +598,15 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
+    auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     auto length_descriptor = BCF_VL_FIXED;
     if(vid_field_info)
     {
       length_descriptor = vid_field_info->m_length_descriptor;
-      query_config.set_query_attribute_info_parameters(i, length_descriptor, vid_field_info->m_num_elements,
+      query_config.set_query_attribute_info_parameters(i,
+          array_schema.type(schema_idx), length_descriptor, vid_field_info->m_num_elements,
           vid_field_info->m_VCF_field_combine_operation);
     }
     else //No information in vid file, see if something can be gleaned from known fields
@@ -656,7 +615,8 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       if(KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum))
       {
         length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-        query_config.set_query_attribute_info_parameters(i, length_descriptor,
+        query_config.set_query_attribute_info_parameters(i,
+            array_schema.type(schema_idx), length_descriptor,
             KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u),
             KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum)
             );
@@ -978,7 +938,7 @@ void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& f
 {
   auto schema_idx = query_config.get_schema_idx_for_query_idx(query_idx);
   if(field_ptr.get() == nullptr)       //Allocate only if null
-    field_ptr = std::move(m_field_factory.Create(schema_idx));
+    field_ptr = std::move(m_field_factory.Create(schema_idx, m_array_schema->is_variable_length_field(schema_idx)));
   length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_idx);
   num_elements = query_config.get_num_elements_for_query_attribute_idx(query_idx);
   field_ptr->set_valid(true);  //mark as valid
@@ -1021,7 +981,8 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
         unsigned length_descriptor = BCF_VL_FIXED;
         unsigned num_elements = 1u;
         fill_field_prep(field_ptr, query_config, j, length_descriptor, num_elements);
-        field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+        field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
+            length_descriptor != BCF_VL_FIXED, num_elements);
       }
     }
   }
@@ -1041,7 +1002,8 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       unsigned length_descriptor = BCF_VL_FIXED;
       unsigned num_elements = 1u;
       fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
-      field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset, length_descriptor, num_elements);
+      field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
+          length_descriptor != BCF_VL_FIXED, num_elements);
     }
   }
 }
