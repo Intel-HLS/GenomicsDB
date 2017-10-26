@@ -67,7 +67,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
 
     ArrayList<InputSplit> inputSplits = new ArrayList<>(hosts.size());
     for (int i = 0; i < hosts.size(); ++i) {
-      GenomicsDBInputSplit split = new GenomicsDBInputSplit();
+      GenomicsDBInputSplit split = new GenomicsDBInputSplit(hosts.get(i));
       inputSplits.add(split);
     }
 

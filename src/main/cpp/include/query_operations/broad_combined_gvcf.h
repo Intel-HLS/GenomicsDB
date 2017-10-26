@@ -109,10 +109,20 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //avoids re-allocation overhead
     std::vector<std::unique_ptr<VariantFieldBase>> m_spanning_deletions_remapped_fields;
     std::vector<int> m_spanning_deletion_remapped_GT;
+    //Stores current genotype when dealing with spanning deletions - avoid dynamic allocations/deallocations
+    std::vector<int> m_spanning_deletion_current_genotype;
+    //Maps global field idx in vid_mapper to field idx in the generated VCF header
+    //-1 if no mapping exists
+    std::vector<int> m_global_field_idx_to_hdr_idx;
+    //Used to list the FILTER idxs for each VCF record - avoid dynamic allocations/deallocations
+    std::vector<int> m_FILTER_idx_vec;
     //Allowed bases
     static const std::unordered_set<char> m_legal_bases;
     //For profiling
     Timer m_bcf_t_creation_timer;
+    //To avoid doing complex if-else statements for encoding the GT vector
+    void (*m_encode_GT_vector_function_ptr)(int* inout_vec, const uint64_t input_offset,
+        const unsigned num_elements_per_sample, uint64_t& output_idx);
 };
 
 #endif //ifdef HTSDIR

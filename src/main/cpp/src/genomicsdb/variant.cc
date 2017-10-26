@@ -21,8 +21,7 @@
 */
 
 #include "variant.h"
-
-auto json_indent_unit = "    ";
+#include "json_config.h"
 
 //GA4GHCallInfoToVariantIdx functions
 bool GA4GHCallInfoToVariantIdx::find_or_insert(uint64_t begin, uint64_t end, const std::string& REF, 
@@ -227,7 +226,7 @@ void copy_fields(std::vector<std::unique_ptr<VariantFieldBase>>& dst, const std:
 void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_config,
     const std::string& indent_prefix, const VidMapper* vid_mapper) const
 {
-  auto indent_string = indent_prefix+json_indent_unit;
+  auto indent_string = indent_prefix+g_json_indent_unit;
   if(m_is_initialized && m_is_valid)
   {
     fptr << indent_prefix << "{\n";
@@ -243,7 +242,7 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
           << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
     }
     fptr << indent_string << "\"fields\": {\n";
-    indent_string += json_indent_unit;
+    indent_string += g_json_indent_unit;
     unsigned idx = 0u;
     auto first_valid_field = true;
     for(const auto& field : m_fields)
@@ -261,7 +260,7 @@ void VariantCall::print(std::ostream& fptr, const VariantQueryConfig* query_conf
       }
       ++idx;
     }
-    indent_string = indent_prefix+json_indent_unit;
+    indent_string = indent_prefix+g_json_indent_unit;
     fptr << "\n" << indent_string << "}\n"<< indent_prefix << "}";
   }
 }
@@ -430,7 +429,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
     , const VidMapper* vid_mapper) const
 {
   fptr << indent_prefix << "{\n";
-  std::string indent_string = indent_prefix+json_indent_unit;
+  std::string indent_string = indent_prefix+g_json_indent_unit;
   fptr << indent_string << "\"interval\": [ "<<m_col_begin <<", "<<m_col_end<<" ],\n";
   if(vid_mapper)
   {
@@ -442,7 +441,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
         << ", " << (contig_position+1+(m_col_end-m_col_begin)) << " ] },\n";
   }
   fptr << indent_string << " \"common_fields\" : {\n";
-  indent_string += json_indent_unit;
+  indent_string += g_json_indent_unit;
   auto idx = 0u;
   auto first_valid_field = true;
   for(const auto& field : m_fields)
@@ -461,10 +460,10 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
     }
     ++idx;
   }
-  indent_string = indent_prefix + json_indent_unit;
+  indent_string = indent_prefix + g_json_indent_unit;
   fptr << "\n" << indent_string <<"},\n";
   fptr << indent_string << "\"variant_calls\": [\n";
-  indent_string += json_indent_unit;
+  indent_string += g_json_indent_unit;
   auto call_idx = 0ull;
   for(auto iter=begin();iter!=end();++iter)
   {
@@ -473,7 +472,7 @@ void Variant::print(std::ostream& fptr, const VariantQueryConfig* query_config, 
     (*iter).print(fptr, query_config ? query_config : m_query_config, indent_string, vid_mapper);
     ++call_idx;
   }
-  indent_string = indent_prefix + json_indent_unit;
+  indent_string = indent_prefix + g_json_indent_unit;
   fptr << "\n" << indent_string << "]\n";
   fptr << indent_prefix << "}";
 }
@@ -536,7 +535,7 @@ void print_fields(std::ostream& fptr,
                   const std::vector<uint64_t>& ends,
                   const ContigInfo* contig_info) 
 {
-  std::string indent = json_indent_unit;
+  std::string indent = g_json_indent_unit;
   fptr << indent + "\"indices\" : [ ";
   print_field(fptr, variants, starts, ends, contig_info, VariantPrintTypesEnum::VARIANT_PRINT_INDICES_IDX);
   fptr << " ],\n";
@@ -983,9 +982,9 @@ void print_variants(const std::vector<Variant>& variants,
     case DEFAULT_OUTPUT_FORMAT_IDX:
     default:
       {
-        optr << "{\n" << json_indent_unit << "\"variants\": [\n";
+        optr << "{\n" << g_json_indent_unit << "\"variants\": [\n";
         auto variant_idx = 0ull;
-        auto indent_prefix = std::string(json_indent_unit)+json_indent_unit;
+        auto indent_prefix = std::string(g_json_indent_unit)+g_json_indent_unit;
         for(const auto& variant : variants)
         {
           if(variant_idx > 0ull)
@@ -993,7 +992,7 @@ void print_variants(const std::vector<Variant>& variants,
           variant.print(optr, &query_config, indent_prefix, id_mapper);
           ++variant_idx;
         }
-        optr << "\n"<< json_indent_unit << "]\n";
+        optr << "\n"<< g_json_indent_unit << "]\n";
         optr << "}\n";
         break;
       }

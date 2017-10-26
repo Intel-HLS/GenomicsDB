@@ -130,6 +130,15 @@ inline bool is_bcf_missing_value(const T val) { return val == get_bcf_missing_va
 template<class T>
 inline bool is_bcf_vector_end_value(const T val) { return val == get_bcf_vector_end_value<T>(); }
 
+//GT missing value - purely for compilation to proceed with std::string
+template<class T>
+inline T get_bcf_gt_missing_value() { return static_cast<T>(bcf_gt_missing); }
+
+//string specialization
+template<>
+inline std::string get_bcf_gt_missing_value<std::string>() { return ""; }
+
+
 //for float, equality is not an adequate check
 template<>
 inline bool is_bcf_missing_value(const float val) { return bcf_float_is_missing(val); }

@@ -58,7 +58,7 @@ class VariantQueryConfig
     {
       public:
         VariantQueryFieldInfo(const std::string& name, const int schema_idx)
-          : m_name(name), m_schema_idx(schema_idx)
+          : m_name(name), m_schema_idx(schema_idx), m_element_type(typeid(void))
         {
           m_length_descriptor = BCF_VL_FIXED;
           m_num_elements = 1u;
@@ -69,6 +69,7 @@ class VariantQueryConfig
         int m_num_elements;
         int m_VCF_field_combine_operation;
         std::string m_name;
+        std::type_index m_element_type;
     };
   public:
     VariantQueryConfig()
@@ -157,11 +158,13 @@ class VariantQueryConfig
     /*
      * Attributes info parameters
      */
-    void set_query_attribute_info_parameters(const unsigned query_field_idx, int length_descriptor, int num_elements,
+    void set_query_attribute_info_parameters(const unsigned query_field_idx,
+        const std::type_index element_type, int length_descriptor, int num_elements,
         int VCF_field_combine_operation)
     {
       assert(query_field_idx < m_query_attributes_info_vec.size());
       auto& attribute_info = m_query_attributes_info_vec[query_field_idx];
+      attribute_info.m_element_type = element_type;
       attribute_info.m_length_descriptor = length_descriptor;
       attribute_info.m_num_elements = num_elements;
       attribute_info.m_VCF_field_combine_operation = VCF_field_combine_operation;
@@ -180,6 +183,11 @@ class VariantQueryConfig
     {
       assert(query_idx < m_query_attributes_info_vec.size());
       return m_query_attributes_info_vec[query_idx].m_VCF_field_combine_operation;
+    }
+    std::type_index get_element_type(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      return m_query_attributes_info_vec[query_idx].m_element_type;
     }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first

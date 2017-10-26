@@ -8,7 +8,7 @@ if(TILEDB_SOURCE_DIR)
     find_package(ZLIB REQUIRED)
     set(TileDB_Debug_BUILD_FLAGS "DEBUG=1")
     #Build type
-    if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Coverage")
         set(TileDB_BUILD_TYPE "debug")
     else()
         set(TileDB_BUILD_TYPE "release")

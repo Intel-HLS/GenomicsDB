@@ -201,6 +201,7 @@ VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffe
   m_output_fptr = 0;
   m_is_bcf = true;
   m_produce_GT_field = false;
+  m_produce_FILTER_field = false;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -243,7 +244,8 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     std::string output_filename, std::string output_format,
     const size_t combined_vcf_records_buffer_size_limit,
     const bool produce_GT_field,
-    const bool index_output_VCF)
+    const bool index_output_VCF,
+    const bool produce_FILTER_field)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -273,7 +275,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
       std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
       exit(-1);
     }
-    if(index_output_VCF && !output_filename.empty())
+    if(index_output_VCF && !output_filename.empty() && !(output_filename.length() == 1u && output_filename[0] == '-'))
     {
       if(output_format == "z")
         m_index_output_VCF = VCFIndexType::VCF_INDEX_TBI;
@@ -288,6 +290,7 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   m_reference_genome_info.initialize(reference_genome);
   m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
   m_produce_GT_field = produce_GT_field;
+  m_produce_FILTER_field = produce_FILTER_field;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()

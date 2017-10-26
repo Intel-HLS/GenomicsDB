@@ -216,6 +216,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_noupdates = noupdates;
   m_close_file = close_file;
   m_get_data_from_file = (buffer_stream_idx < 0) ? true : false;
+  m_no_mandatory_VCF_fields = false;
   //Callset mapping
   vid_mapper.get_local_tiledb_row_idx_vec(filename, m_local_callset_idx_to_tiledb_row_idx);
   m_local_callset_idx_to_enabled_idx.resize(m_local_callset_idx_to_tiledb_row_idx.size(), -1ll);
@@ -226,8 +227,12 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
       m_local_callset_idx_to_enabled_idx[i] = m_enabled_local_callset_idx_vec.size();
       m_enabled_local_callset_idx_vec.push_back(i);
     }
+  std::sort(m_enabled_local_callset_idx_vec.begin(), m_enabled_local_callset_idx_vec.end(),
+      LocalCallSetIdxCompareByTileDBRowIdx(m_local_callset_idx_to_tiledb_row_idx));
   m_base_reader_ptr = 0;
   m_histogram = 0;
+  auto* GT_field_info_ptr = vid_mapper.get_field_info("GT");
+  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor == BCF_VL_Phased_Ploidy);
 }
 
 void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds)
@@ -257,6 +262,8 @@ void File2TileDBBinaryBase::copy_simple_members(const File2TileDBBinaryBase& oth
   m_close_file = other.m_close_file;
   m_treat_deletions_as_intervals = other.m_treat_deletions_as_intervals;
   m_get_data_from_file = other.m_get_data_from_file;
+  m_no_mandatory_VCF_fields = other.m_no_mandatory_VCF_fields;
+  m_store_phase_information_for_GT = other.m_store_phase_information_for_GT;
   m_file_idx = other.m_file_idx;
   m_buffer_stream_idx = other.m_buffer_stream_idx;
   m_max_size_per_callset = other.m_max_size_per_callset;
@@ -358,7 +365,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
   if(m_parallel_partitions && m_close_file)
     partition_info.m_base_reader_ptr->add_reader();
   //Setup buffer offsets first
-  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+  for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
   {
     auto curr_offset = partition_file_batch.get_offset_for_local_callset_idx(i, m_max_size_per_callset);
     partition_info.m_begin_buffer_offset_for_local_callset[i] = curr_offset;
@@ -381,7 +388,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
     if(!buffer_full)
     {
       //Store buffer offsets at the beginning of the line
-      for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+      for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
         partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i] = partition_info.m_buffer_offset_for_local_callset[i];
       read_one_line_fully = true;
       //For buffered readers, if the read buffer is empty return control to caller
@@ -397,7 +404,7 @@ void File2TileDBBinaryBase::read_next_batch(std::vector<uint8_t>& buffer,
       VERIFY_OR_THROW(read_one_line_fully && "Buffer did not have space to hold a line fully - increase buffer size")
   }
   //put Tiledb NULL for row_idx as end-of-batch marker
-  for(auto i=0ull;i<m_enabled_local_callset_idx_vec.size();++i)
+  for(auto i=0ull;i<static_cast<size_t>(partition_file_batch.get_num_orders());++i)
   {
 #ifdef PRODUCE_BINARY_CELLS
     tiledb_buffer_print_null<int64_t>(buffer, partition_info.m_last_full_line_end_buffer_offset_for_local_callset[i],

@@ -133,10 +133,31 @@ class KnownFieldInfo
       return (length_descriptor == BCF_VL_A || length_descriptor == BCF_VL_R || length_descriptor == BCF_VL_G);
     }
     /*
+     * Return ploidy given length descriptor and the number of elements in the cell for the GT field
+     */
+    static inline unsigned get_ploidy(const unsigned length_descriptor, const unsigned num_elements)
+    {
+      switch(length_descriptor)
+      {
+        case BCF_VL_P:
+          return num_elements;
+        case BCF_VL_Phased_Ploidy:
+          return ((num_elements+1u) >> 1u); //Eg. 0/1 becomes [0,0,1], 0|2/1 becomes [0,1,2,0,1]
+        default:
+          throw KnownFieldInfoException(std::string("Unknown length descriptor for GT field ")
+              + std::to_string(length_descriptor));
+          return 0u;
+      }
+    }
+    /*
      * Given a length descriptor, get #elements
      */
     static unsigned get_num_elements_given_length_descriptor(unsigned length_descriptor,
         unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements);
+    /*
+     * Get #possible genotypes given #ALT alleles and ploidy
+     */
+    static unsigned get_number_of_genotypes(const unsigned num_ALT_alleles, const unsigned ploidy);
     /*
      * Function that determines whether length of the field is dependent on the #genotypes
      */

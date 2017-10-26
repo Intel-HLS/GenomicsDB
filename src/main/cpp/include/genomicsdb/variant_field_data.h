@@ -88,31 +88,37 @@ bool is_tiledb_missing_value(const T value);
 #define RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size) \
       if(offset + add_size > buffer.size()) \
         buffer.resize(offset + add_size + 1024u);
+
 /*
  * Base class for variant field data - not sure whether I will add any functionality here
  */
 class VariantFieldBase
 {
   public:
-    VariantFieldBase() 
+    VariantFieldBase(const bool is_variable_length_field) 
     {
       m_subclass_type = VARIANT_FIELD_BASE;
       m_valid = false;
+      m_is_variable_length_field = is_variable_length_field;
     }
     virtual ~VariantFieldBase() = default;
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter) = 0;
-    virtual void clear() { ; }
+    void copy_data_from_tile(const BufferVariantCell::FieldsIter& attr_iter)
+    {
+      auto base_ptr = attr_iter.operator*<char>(); //const char*
+      uint64_t offset = 0ull;
+      //buffer does not have length serialized
+      binary_deserialize(base_ptr, offset, false, attr_iter.get_field_length());
+    }
     virtual void print(std::ostream& fptr) const  = 0;
     virtual void print_csv(std::ostream& fptr) const  = 0;
     virtual void print_Cotton_JSON(std::ostream& fptr) const { ; }
-    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const = 0;
-    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements) = 0;
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const = 0; 
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset,
+        const bool is_length_in_buffer, unsigned num_elements) = 0;
     /* Get pointer(s) to data with number of elements */
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated) = 0;
     /* Get raw pointer(s) to data */
     virtual const void* get_raw_pointer() const = 0;
-    /* Return type of data */
-    virtual std::type_index get_element_type() const = 0;
     /* Return #elements */
     virtual size_t length() const = 0;
     /* Create copy and return pointer - avoid using as much as possible*/
@@ -121,7 +127,9 @@ class VariantFieldBase
     virtual void copy_from(const VariantFieldBase* base_src)
     {
       m_valid = base_src->m_valid;
+      m_is_variable_length_field = base_src->m_is_variable_length_field;
       m_subclass_type = base_src->m_subclass_type;
+      m_cell_idx = base_src->m_cell_idx;
     }
     //Resize this field - default do nothing
     virtual void resize(unsigned new_size) { ; }
@@ -130,6 +138,13 @@ class VariantFieldBase
     /* Validity of field */
     void set_valid(bool value) { m_valid = value; }
     bool is_valid() const { return m_valid; }
+    /*
+     * Columnar field info
+     */
+    void set_columnar_field_object(GenomicsDBColumnarField* columnar_field, const uint64_t cell_idx)
+    {
+      m_cell_idx = cell_idx;
+    }
   protected:
     enum VariantFieldClassTypeEnum
     {
@@ -140,7 +155,9 @@ class VariantFieldBase
       VARIANT_FIELD_ALT,
       NUM_VARIANT_FIELD_TYPES
     };
+    bool m_is_variable_length_field;
     unsigned m_subclass_type;   //enum from above
+    uint64_t m_cell_idx;
   private:
     bool m_valid;
 };
@@ -151,23 +168,16 @@ template<class DataType>
 class VariantFieldData : public VariantFieldBase
 {
   public:
-    VariantFieldData()
-      : VariantFieldBase()
+    VariantFieldData(const bool is_variable_length_field=false)
+      : VariantFieldBase(false)
     { m_subclass_type = VARIANT_FIELD_DATA; }
     virtual ~VariantFieldData() = default;
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
-    {
-      auto base_ptr = attr_iter.operator*<char>(); //const char*
-      uint64_t offset = 0ull;
-      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
-      //attr_iter will have consumed the length field internally
-      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
-    }
-    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset,
+        const bool is_length_in_buffer, unsigned num_elements)
     {
       auto base_ptr = buffer + offset; //const char*
       auto ptr = reinterpret_cast<const DataType*>(base_ptr); //const DataType* ptr
-      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      if(is_length_in_buffer)     //length specified in buffer
       {
         ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
         offset += sizeof(int);
@@ -182,8 +192,8 @@ class VariantFieldData : public VariantFieldBase
       *(reinterpret_cast<DataType*>(&(buffer[offset]))) = m_data;
       offset += sizeof(DataType);
     }
-    virtual DataType& get() { return m_data; }
-    virtual const DataType& get() const { return m_data; }
+    DataType& get() { return m_data; }
+    const DataType& get() const { return m_data; }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = 1u;
@@ -192,7 +202,7 @@ class VariantFieldData : public VariantFieldBase
       return get_element_type();
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<void*>(&m_data); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
+    std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
     virtual size_t length() const { return 1u; };
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<DataType>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -216,24 +226,16 @@ template<>
 class VariantFieldData<std::string> : public VariantFieldBase
 {
   public:
-    VariantFieldData()
-      : VariantFieldBase()
+    VariantFieldData(const bool is_variable_length_field=true)
+      : VariantFieldBase(true)
     { m_subclass_type = VARIANT_FIELD_STRING; }
     virtual ~VariantFieldData() = default;
-    virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
-    {
-      auto base_ptr = attr_iter.operator*<char>(); //const char*
-      uint64_t offset = 0ull;
-      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
-      //attr_iter will have consumed the length field internally
-      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
-    }
-    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset,
+        const bool is_length_in_buffer, unsigned num_elements)
     {
       auto base_ptr = buffer + offset; //const char* pointer
       auto ptr = base_ptr;      //const char* pointer
-      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      if(is_length_in_buffer)     //length specified in buffer
       {
         auto num_elements_ptr = reinterpret_cast<const int*>(ptr);
         num_elements = *num_elements_ptr;
@@ -258,8 +260,6 @@ class VariantFieldData<std::string> : public VariantFieldBase
       }
       offset += num_elements*sizeof(char);
     }
-    virtual std::string& get()  { return m_data; }
-    virtual const std::string& get() const { return m_data; }
     virtual void print(std::ostream& fptr) const { fptr << "\"" << m_data << "\""; }
     virtual void print_csv(std::ostream& fptr) const { fptr << m_data; }
     virtual void print_Cotton_JSON(std::ostream& fptr) const { fptr << "\"" << m_data << "\"" ; }
@@ -276,6 +276,8 @@ class VariantFieldData<std::string> : public VariantFieldBase
       memcpy(&(buffer[offset]), &(m_data[0]), str_length);
       offset += str_length;
     }
+    std::string& get() { return m_data; }
+    const std::string& get() const { return m_data; }
     virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = 1u;
@@ -286,7 +288,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       return get_element_type();
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.c_str()); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(char)); }
+    std::type_index get_element_type() const { return std::type_index(typeid(char)); }
     virtual size_t length() const { return m_data.length(); };
     virtual VariantFieldBase* create_copy() const { return new VariantFieldData<std::string>(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -305,45 +307,72 @@ class VariantFieldData<std::string> : public VariantFieldBase
 };
 //Assigned name for string type
 typedef VariantFieldData<std::string> VariantFieldString;
+
+//For some common functions
+class VariantFieldPrimitiveVectorDataBase : public VariantFieldBase
+{
+  public:
+    VariantFieldPrimitiveVectorDataBase(const bool is_variable_length_field)
+      : VariantFieldBase(is_variable_length_field)
+    { 
+      m_subclass_type = VARIANT_FIELD_PRIMITIVE_VECTOR;
+    }
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset,
+        const bool is_length_in_buffer, unsigned num_elements)
+    {
+      auto base_ptr = buffer + offset; //const char*
+      auto ptr = base_ptr;
+      if(is_length_in_buffer)     //length specified in buffer
+      {
+        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
+        num_elements = *num_elements_ptr;
+        ptr = base_ptr + sizeof(int);
+        offset += sizeof(int);
+      }
+      copy_data_into_vector(ptr, num_elements);
+      offset += num_elements*element_size();
+    }
+    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
+    {
+      //Data contents
+      unsigned data_length = length()*element_size();
+      //Add length field, if var sized field
+      uint64_t add_size = (m_is_variable_length_field ? sizeof(int) : 0u) + data_length;
+      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
+      //Num elements
+      if(m_is_variable_length_field)
+      {
+        *(reinterpret_cast<int*>(&(buffer[offset]))) = length();
+        offset += sizeof(int);
+      }
+      //data contents
+      memcpy(&(buffer[offset]), get_raw_pointer(), data_length);
+      offset += data_length;
+    }
+    virtual void copy_data_into_vector(const char* ptr, const size_t num_bytes) = 0;
+    virtual size_t element_size() const = 0;
+};
+
 /*
  * Sub-class that holds vector data of basic types - int,float etc
  */
 template<class DataType, class PrintType=DataType>
-class VariantFieldPrimitiveVectorData : public VariantFieldBase
+class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBase
 {
   public:
-    VariantFieldPrimitiveVectorData()
-      : VariantFieldBase()
+    VariantFieldPrimitiveVectorData(const bool is_variable_length_field)
+      : VariantFieldPrimitiveVectorDataBase(is_variable_length_field)
     { 
-      m_subclass_type = VARIANT_FIELD_PRIMITIVE_VECTOR;
-      clear(); 
     }
     virtual ~VariantFieldPrimitiveVectorData() = default;
-    virtual void clear() { m_data.clear(); }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
+    std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
+    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, PrintType>(*this); }
+    size_t element_size() const { return sizeof(DataType); }
+    void copy_data_into_vector(const char* buffer, const size_t num_elements)
     {
-      auto base_ptr = attr_iter.operator*<char>(); //const char*
-      uint64_t offset = 0ull;
-      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
-      //attr_iter will have consumed the length field internally
-      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
-      m_length_descriptor = attr_iter.is_variable_length_field() ? BCF_VL_VAR : BCF_VL_FIXED;
-    }
-    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
-    {
-      auto base_ptr = buffer + offset; //const char*
-      auto ptr = reinterpret_cast<const DataType*>(base_ptr); //const DataType* ptr
-      m_length_descriptor = length_descriptor;
-      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
-      {
-        auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
-        num_elements = *num_elements_ptr;
-        ptr = reinterpret_cast<const DataType*>(base_ptr + sizeof(int));
-        offset += sizeof(int);
-      }
       m_data.resize(num_elements);
       unsigned data_size = num_elements*sizeof(DataType);
-      memcpy(&(m_data[0]), ptr, data_size);
+      memcpy(&(m_data[0]), buffer, data_size);
       bool is_missing_flag = true;
       for(auto val : m_data)
         if(!is_tiledb_missing_value<DataType>(val))
@@ -358,11 +387,10 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
         set_valid(false);
         m_data.clear();
       }
-      offset += data_size; 
     }
-    virtual std::vector<DataType>& get()  { return m_data; }
-    virtual const std::vector<DataType>& get() const { return m_data; }
-    virtual void print(std::ostream& fptr) const
+    std::vector<DataType>& get()  { return m_data; }
+    const std::vector<DataType>& get() const { return m_data; }
+    void print(std::ostream& fptr) const
     {
       fptr << "[ ";
       auto first_elem = true;
@@ -378,9 +406,39 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
       }
       fptr << " ]";
     }
-    virtual void print_csv(std::ostream& fptr) const
+    void print_phased_GT_field(std::ostream& fptr)
     {
-      if(m_length_descriptor != BCF_VL_FIXED)
+      fptr << "[ ";
+      auto first_elem = true;
+      auto is_phase_element = false;
+      for(auto val : m_data)
+      {
+        if(first_elem)
+        {
+          fptr << static_cast<PrintType>(val);
+          first_elem = false;
+        }
+        else
+        {
+          fptr << ",";
+          if(is_phase_element)
+          {
+            if(val)
+              fptr << "|";
+            else
+              fptr << "\\";
+          }
+          else
+            fptr << static_cast<PrintType>(val);
+        }
+        is_phase_element = !is_phase_element; //flip
+      }
+      fptr << " ]";
+    }
+
+    void print_csv(std::ostream& fptr) const
+    {
+      if(m_is_variable_length_field)
         fptr << m_data.size() << ",";
       //Print blanks for invalid cells
       auto first_elem = true;
@@ -395,98 +453,73 @@ class VariantFieldPrimitiveVectorData : public VariantFieldBase
           fptr << "," << static_cast<PrintType>(val);
       }
     }
-    virtual void print_Cotton_JSON(std::ostream& fptr) const
+    void print_Cotton_JSON(std::ostream& fptr) const
     {
       //Variable length field or #elements > 1, print JSON list
-      if(m_length_descriptor != BCF_VL_FIXED || m_data.size() > 1u)
+      if(m_is_variable_length_field || m_data.size() > 1u)
         print(fptr);
       else      //single element field
         if(m_data.size() > 0u)
           fptr << m_data[0];
         else
           fptr << "null";
-    }
-    virtual void binary_serialize(std::vector<uint8_t>& buffer, uint64_t& offset) const
-    {
-      //Data contents
-      unsigned data_length = m_data.size()*sizeof(DataType);
-      //Add length field, if var sized field
-      uint64_t add_size = ((m_length_descriptor == BCF_VL_FIXED) ? 0u : sizeof(int)) + data_length;
-      RESIZE_BINARY_SERIALIZATION_BUFFER_IF_NEEDED(buffer, offset, add_size);
-      //Num elements
-      if(m_length_descriptor != BCF_VL_FIXED)
-      {
-        *(reinterpret_cast<int*>(&(buffer[offset]))) = m_data.size();
-        offset += sizeof(int);
-      }
-      //data contents
-      memcpy(&(buffer[offset]), &(m_data[0]), data_length);
-      offset += data_length;
-    }
-    virtual std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
+    } 
+    std::type_index get_C_pointers(unsigned& size, void** ptr, bool& allocated)
     {
       size = m_data.size();
       *(reinterpret_cast<DataType**>(ptr)) = (size > 0) ? &(m_data[0]) : nullptr;
       allocated = false;
       return get_element_type();
     }
-    virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(DataType)); }
-    virtual size_t length() const { return m_data.size(); }
-    virtual VariantFieldBase* create_copy() const { return new VariantFieldPrimitiveVectorData<DataType, PrintType>(*this); }
-    virtual void copy_from(const VariantFieldBase* base_src)
+    const void* get_raw_pointer() const
+    {
+      return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0);
+    }
+    size_t length() const
+    {
+      return m_data.size();
+    }
+    void copy_from(const VariantFieldBase* base_src)
     {
       VariantFieldBase::copy_from(base_src);
       auto src = dynamic_cast<const VariantFieldPrimitiveVectorData<DataType, PrintType>*>(base_src);
       assert(src);
-      m_length_descriptor = src->m_length_descriptor;
       m_data.resize(src->m_data.size());
       if(m_data.size())
         memcpy(&(m_data[0]), &(src->m_data[0]), m_data.size()*sizeof(DataType));
     }
-    virtual void resize(unsigned new_size) { m_data.resize(new_size); }
-    /* Return address of the offset-th element */
-    virtual void* get_address(unsigned offset)
+    void resize(unsigned new_size)
+    {
+      m_data.resize(new_size);
+    }
+    /*Return address of the offset-th element*/
+    void* get_address(unsigned offset)
     {
       assert(offset < m_data.size());
       return reinterpret_cast<void*>(&(m_data[offset]));
     }
   private:
     std::vector<DataType> m_data;
-    unsigned m_length_descriptor;
 };
+
 /*
  * Special class for ALT field. ALT field is parsed in a weird way, hence treated in a special manner
  */
 class VariantFieldALTData : public VariantFieldBase
 {
   public:
-    VariantFieldALTData()
-      : VariantFieldBase()
+    VariantFieldALTData(const bool is_variable_length_field=true)
+      : VariantFieldBase(true)
     { 
       m_subclass_type = VARIANT_FIELD_ALT;
-      clear();
     }
     virtual ~VariantFieldALTData() = default;
-    virtual void clear()
-    {
-      for(auto& s : m_data)
-        s.clear();
-      m_data.clear();
-    }
-    virtual void copy_data_from_tile(const BufferVariantCell::FieldsIter&  attr_iter)
-    {
-      auto base_ptr = attr_iter.operator*<char>(); //const char*
-      uint64_t offset = 0ull;
-      //Set length descriptor to BCF_VL_FIXED as attr_iter will return pointer to data directly
-      //attr_iter will have consumed the length field internally
-      binary_deserialize(base_ptr, offset, BCF_VL_FIXED, attr_iter.get_field_length());
-    }
-    virtual void binary_deserialize(const char* buffer, uint64_t& offset, unsigned length_descriptor, unsigned num_elements)
+    virtual void binary_deserialize(const char* buffer, uint64_t& offset,
+        const bool is_length_in_buffer, unsigned num_elements)
     {
       auto base_ptr = buffer + offset; //const char*
       auto ptr = base_ptr; //const char* pointer
-      if(length_descriptor != BCF_VL_FIXED)     //variable length field, first 4 bytes are the length
+      if(is_length_in_buffer)     //length specified in buffer
       {
         auto num_elements_ptr = reinterpret_cast<const int*>(base_ptr);
         num_elements = *num_elements_ptr;
@@ -586,7 +619,7 @@ class VariantFieldALTData : public VariantFieldBase
       return std::type_index(typeid(char));
     }
     virtual const void* get_raw_pointer() const  { return reinterpret_cast<const void*>(m_data.size() ? &(m_data[0]) : 0); }
-    virtual std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
+    std::type_index get_element_type() const { return std::type_index(typeid(std::string)); }   //each element is a string
     virtual size_t length() const { return m_data.size(); }
     virtual VariantFieldBase* create_copy() const { return new VariantFieldALTData(*this); }
     virtual void copy_from(const VariantFieldBase* base_src)
@@ -619,7 +652,7 @@ class VariantFieldALTData : public VariantFieldBase
  */
 class VariantFieldCreatorBase {
   public:
-    virtual std::unique_ptr<VariantFieldBase> Create() const = 0;
+    virtual std::unique_ptr<VariantFieldBase> Create(const bool is_variable_length_field) const = 0;
 };
 
 /*
@@ -629,7 +662,10 @@ template< class VariantFieldTy >
 class VariantFieldCreator : public VariantFieldCreatorBase {
   public:
     VariantFieldCreator() {}
-    virtual std::unique_ptr<VariantFieldBase> Create() const { return std::unique_ptr<VariantFieldBase>(new VariantFieldTy()); }
+    virtual std::unique_ptr<VariantFieldBase> Create(const bool is_variable_length_field) const
+    {
+      return std::unique_ptr<VariantFieldBase>(new VariantFieldTy(is_variable_length_field));
+    }
 };
 
 /**
@@ -642,16 +678,16 @@ class VariantFieldFactory
     void clear() { m_schema_idx_to_creator.clear(); }
     void resize(unsigned num_fields_in_schema)
     {  m_schema_idx_to_creator.resize(num_fields_in_schema); }
-    void Register(unsigned schema_idx, const std::shared_ptr<VariantFieldCreatorBase>& creator)
+    void Register(const unsigned schema_idx, const std::shared_ptr<VariantFieldCreatorBase>& creator)
     {
       assert(schema_idx < m_schema_idx_to_creator.size());
       m_schema_idx_to_creator[schema_idx] = creator;
     }
-    std::unique_ptr<VariantFieldBase> Create(unsigned schema_idx) const
+    std::unique_ptr<VariantFieldBase> Create(unsigned schema_idx, const bool is_variable_length_field) const
     {
       assert(schema_idx < m_schema_idx_to_creator.size());
       assert(m_schema_idx_to_creator[schema_idx].get() != 0);
-      return m_schema_idx_to_creator[schema_idx]->Create();
+      return m_schema_idx_to_creator[schema_idx]->Create(is_variable_length_field);
     }
   private:
     std::vector<std::shared_ptr<VariantFieldCreatorBase>> m_schema_idx_to_creator;

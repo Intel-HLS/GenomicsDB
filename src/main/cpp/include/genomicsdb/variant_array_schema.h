@@ -124,6 +124,7 @@ class VariantArraySchema
     inline const std::vector<std::pair<int64_t,int64_t>>& dim_domains() const { return m_dim_domains; }
     inline const std::vector<std::string>& dim_names() const { return m_dim_names; }
     inline const std::type_index& dim_type() const { return m_dim_type; }
+    inline size_t dim_length() const { return m_dim_names.size(); }
     inline const int dim_compression_type() const { return m_dim_compression_type; }
     inline const size_t dim_size_in_bytes() const { return m_dim_size_in_bytes; }
   private:

@@ -15,12 +15,13 @@ env:
         - GENOMICSDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
         - GENOMICSDB_INSTALL_DIR=$GENOMICSDB_BUILD_DIR/install
         - PATH=$GENOMICSDB_INSTALL_DIR/bin:$TRAVIS_BUILD_DIR/bin:$PATH
-        - GENOMICSDB_RELEASE_VERSION=0.6.4
+        - GENOMICSDB_RELEASE_VERSION=0.7.0
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 install:
     #Install dependencies
     - pip install -r requirements.txt
+    - sudo pip2 install jsondiff
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake
     - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
     - sudo add-apt-repository -y ppa:openjdk-r/ppa

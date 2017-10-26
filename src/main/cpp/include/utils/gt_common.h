@@ -55,6 +55,7 @@ inline bool IS_NON_REF_ALLELE(const char allele_char)
 enum VariantFieldTypeEnum
 {
   VARIANT_FIELD_VOID=0,
+  VARIANT_FIELD_BOOL,
   VARIANT_FIELD_INT,
   VARIANT_FIELD_INT64_T,
   VARIANT_FIELD_UNSIGNED,

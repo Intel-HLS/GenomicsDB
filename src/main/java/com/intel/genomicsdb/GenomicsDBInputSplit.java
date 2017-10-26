@@ -47,6 +47,11 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   public GenomicsDBInputSplit() {
   }
 
+  public GenomicsDBInputSplit(String loc) {
+    hosts = new String[1];
+    hosts[0] = loc;
+  }
+
   public GenomicsDBInputSplit(long length) {
     this.length = length;
   }
@@ -56,7 +61,6 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   }
 
   public void readFields(DataInput dataInput) throws IOException {
-    hosts = null;
     length = dataInput.readLong();
   }
 
@@ -71,8 +75,6 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
    *                   in GenomicsDBConfiguration or hadoopConfiguration in SparkContext
    */
   public String[] getLocations() throws IOException, InterruptedException {
-    hosts = new String[1];
-    hosts[0] = InetAddress.getLocalHost().getHostName();
     return hosts;
   }
 }

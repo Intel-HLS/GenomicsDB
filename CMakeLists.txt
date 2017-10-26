@@ -11,7 +11,7 @@ execute_process(
     )
 
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.6.4" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_RELEASE_VERSION "0.7.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
 set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
@@ -28,6 +28,9 @@ set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
+set(COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW False CACHE BOOL "Counting #cells traversed in columnar iterator")
+set(PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL False CACHE BOOL "Counting #cells traversed in columnar iterator in sliding window")
+set(USE_GPERFTOOLS False CACHE BOOL "Collect profiling information using gperftools")
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of the combine gVCF program - high overhead")
 set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to maven build directory")
 set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
@@ -148,6 +151,26 @@ endif()
 if(DO_PROFILING)
     message(STATUS "Enabling stats collection")
     add_definitions(-DDO_PROFILING=1)
+    #Collect some more stats
+    if(COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW)
+        message(STATUS "Enabling COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW")
+        add_definitions(-DCOUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW=1)
+    endif()
+    if(PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL)
+        message(STATUS "Enabling PROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL")
+        add_definitions(-DPROFILE_NUM_CELLS_TO_TRAVERSE_AT_EVERY_QUERY_INTERVAL=1)
+    endif()
+endif()
+
+if(USE_GPERFTOOLS)
+    find_package(GPerftools)
+    if(GPERFTOOLS_FOUND)
+        message(STATUS "Enabling profiling using GPerftools")
+	add_definitions(-DUSE_GPERFTOOLS)
+        include_directories(${GPERFTOOLS_INCLUDE_DIR})
+    else()
+        message(WARNING "GPerftools headers/library not found")
+    endif()
 endif()
 
 #Collect memory consumption stats while producing combined VCF records
@@ -204,6 +227,9 @@ function(build_GenomicsDB_executable_common target)
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
     endif()
+    if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
+        target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
+    endif()
     target_link_libraries(${target} ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
     install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
@@ -239,6 +265,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
+	./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala

@@ -22,6 +22,7 @@
 
 #include "known_field_info.h"
 #include "vid_mapper.h"
+#include "variant_operations.h"
 
 std::string g_vcf_SPANNING_DELETION="*";
 //Global vector storing info of all known fields
@@ -115,6 +116,21 @@ unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned known_fi
   return g_known_field_enum_to_info[known_field_enum].get_num_elements_for_known_field_enum(num_ALT_alleles, ploidy);
 }
 
+unsigned KnownFieldInfo::get_number_of_genotypes(const unsigned num_ALT_alleles, const unsigned ploidy)
+{
+  switch(ploidy)
+  {
+    case 1u:
+      return num_ALT_alleles+1u;
+    case 2u:
+      return ((num_ALT_alleles+1u)*(num_ALT_alleles+2u)) >> 1u;
+    //From http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
+    default:
+      //C(ploidy+num_ALT_alleles, num_ALT_alleles)
+      return VariantOperations::nCr(ploidy+num_ALT_alleles, num_ALT_alleles);
+  }
+}
+
 unsigned KnownFieldInfo::get_num_elements_given_length_descriptor(unsigned length_descriptor,
     unsigned num_ALT_alleles, unsigned ploidy, unsigned num_elements)
 {
@@ -125,8 +141,9 @@ unsigned KnownFieldInfo::get_num_elements_given_length_descriptor(unsigned lengt
     case BCF_VL_R:
       return num_ALT_alleles+1u;
     case BCF_VL_G:
-      return ((num_ALT_alleles+1u)*(num_ALT_alleles+2u))/2;
+      return KnownFieldInfo::get_number_of_genotypes(num_ALT_alleles, ploidy);
     case BCF_VL_P:
+    case BCF_VL_Phased_Ploidy:
       return ploidy;
     default:
       return num_elements;
@@ -183,6 +200,7 @@ unsigned KnownFieldInfo::get_num_elements_for_known_field_enum(unsigned num_ALT_
       length = (num_alleles*(num_alleles+1))/2;
       break;
     case BCF_VL_P:
+    case BCF_VL_Phased_Ploidy:
       length = ploidy;
       break;
     default:
@@ -232,7 +250,7 @@ void KnownFieldInitializer::initialize_length_descriptor(unsigned idx) const
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_G;
       break;
     case GVCF_GT_IDX:
-      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_P;
+      g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_Phased_Ploidy;
       break;
     case GVCF_SB_IDX:
       g_known_field_enum_to_info[idx].m_length_descriptor = BCF_VL_FIXED;
