@@ -2,6 +2,9 @@
 # Once done this will define
 # TILEDB_FOUND - TileDB found
 
+#Disable Master Catalog in TileDB
+list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
+
 #Zlib
 find_package(ZLIB REQUIRED)
 if(ZLIB_ROOT)
