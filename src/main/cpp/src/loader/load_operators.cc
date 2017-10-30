@@ -130,17 +130,14 @@ LoaderArrayWriter::LoaderArrayWriter(
   //Schema
   id_mapper->build_tiledb_array_schema(m_schema, array_name, m_loader_json_config.is_partitioned_by_row(), m_row_partition,
       m_loader_json_config.compress_tiledb_array(), m_loader_json_config.no_mandatory_VCF_fields());
-  //Disable synced writes
-  g_TileDB_enable_SYNC_write = m_loader_json_config.disable_synced_writes() ? 0 : 1;
-  //TileDB compression level
-  g_TileDB_compression_level = m_loader_json_config.get_tiledb_compression_level();
   //Storage manager
   size_t segment_size = m_loader_json_config.get_segment_size();
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
   if(m_loader_json_config.delete_and_create_tiledb_array())
     m_storage_manager->delete_array(array_name);
   //Open array in write mode
-  m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w");
+  m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w",
+      m_loader_json_config.get_tiledb_compression_level());
   //Check if array already exists
   //Array does not exist - define it first
   if(m_array_descriptor < 0)

@@ -106,9 +106,8 @@ find_package(htslib REQUIRED)
 include_directories(${HTSLIB_INCLUDE_DIR})
 
 #TileDB
-#find_package(TileDB REQUIRED)
-include(TileDB)
-include_directories(${TileDB_INCLUDE_DIRS})
+find_package(TileDB REQUIRED)
+include_directories(${TILEDB_INCLUDE_DIR})
 
 #librt
 find_library(LIBRT_LIBRARY rt)
@@ -209,6 +208,9 @@ include_directories (
     src/test/cpp/include
 )
 
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
+    ${LIBUUID_LIBRARY})
+
 function(build_GenomicsDB_executable_common target)
     #add_executable(${target} src/${target}.cc)
     if(TILEDB_SOURCE_DIR)
@@ -230,7 +232,7 @@ function(build_GenomicsDB_executable_common target)
     if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
         target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
     endif()
-    target_link_libraries(${target} ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
+    target_link_libraries(${target} ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES})
     install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
 
