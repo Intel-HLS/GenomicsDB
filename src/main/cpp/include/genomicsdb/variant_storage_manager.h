@@ -121,7 +121,8 @@ class VariantArrayCellIterator
 class VariantArrayInfo
 {
   public:
-    VariantArrayInfo(int idx, int mode, const std::string& name,
+    VariantArrayInfo(int idx, int mode,
+        const std::string& workspace, const std::string& name,
         const VidMapper* vid_mapper,
         const VariantArraySchema& schema,
         TileDB_CTX* tiledb_ctx,
@@ -161,6 +162,7 @@ class VariantArrayInfo
   private:
     int m_idx;
     int m_mode;
+    std::string m_workspace;
     std::string m_name;
     VariantArraySchema m_schema;
     BufferVariantCell m_cell;

@@ -128,13 +128,15 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
 }
 
 //VariantArrayInfo functions
-VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name,
+VariantArrayInfo::VariantArrayInfo(int idx, int mode,
+    const std::string& workspace, const std::string& name,
     const VidMapper* vid_mapper,
     const VariantArraySchema& schema,
     TileDB_CTX* tiledb_ctx,
     TileDB_Array* tiledb_array, const std::string& metadata_filename,
     const size_t buffer_size)
-: m_idx(idx), m_mode(mode), m_name(name),
+: m_idx(idx), m_mode(mode),
+  m_workspace(workspace), m_name(name),
   m_vid_mapper(vid_mapper), m_schema(schema),m_tiledb_ctx(tiledb_ctx), m_cell(m_schema), m_tiledb_array(tiledb_array),
   m_metadata_filename(metadata_filename)
 {
@@ -172,6 +174,7 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
 {
   m_idx = other.m_idx;
   m_mode = other.m_mode;
+  m_workspace = std::move(other.m_workspace);
   m_name = std::move(other.m_name);
   m_metadata_filename = std::move(other.m_metadata_filename);
   //Pointer handling
@@ -335,15 +338,15 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
   }
   if(m_tiledb_array)
   {
-    if(consolidate_tiledb_array)
-    {
-      auto status = tiledb_array_consolidate(m_tiledb_ctx, m_name.c_str());
-      if(status != TILEDB_OK)
-        throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
-    }
     auto status = tiledb_array_finalize(m_tiledb_array);
     if(status != TILEDB_OK)
       throw VariantStorageManagerException("Error while finalizing TileDB array "+m_name);
+    if(consolidate_tiledb_array)
+    {
+      auto status = tiledb_array_consolidate(m_tiledb_ctx, (m_workspace + '/' + m_name).c_str());
+      if(status != TILEDB_OK)
+        throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
+    }
   }
   m_tiledb_array = 0;
   m_name.clear();
@@ -435,7 +438,8 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
         define_metadata_schema(&tmp_schema);
       else
         fclose(fptr);
-      m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name,
+      m_open_arrays_info_vector.emplace_back(idx, mode_int,
+          m_workspace, array_name,
           vid_mapper, tmp_schema,
           m_tiledb_ctx, tiledb_array,
           GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
