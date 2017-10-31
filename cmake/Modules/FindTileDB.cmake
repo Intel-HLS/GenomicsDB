@@ -56,6 +56,8 @@ if(TILEDB_SOURCE_DIR)
     #since the headers and libraries are available only after make completes in the TileDB dir
     set(TILEDB_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
     set(TILEDB_LIBRARY "${CMAKE_INSTALL_PREFIX}/lib/libtiledb.a")
+    ExternalProject_Get_Property(TileDB BINARY_DIR)
+    set(TILEDB_DIR_IN_BUILD_DIR "${BINARY_DIR}")
     #find_path(TILEDB_INCLUDE_DIR NAMES tiledb.h HINTS "${CMAKE_INSTALL_PREFIX}/include")
     #add_custom_target(${TILEDB_LIBRARY} ${CMAKE_MAKE_COMMAND} TileDB)
     #find_package_handle_standard_args(TileDB "Could not find TileDB headers ${DEFAULT_MSG}" TILEDB_INCLUDE_DIR)
