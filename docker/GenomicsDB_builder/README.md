@@ -1,16 +1,5 @@
 ### GenomicsDB Building Docker
-# License and Copyright
-# GenomicsDB Builder Docker was created while Ming Rutar worked at Intel. The code is not
-# part of assignment. GenomicsDB is an open source project, see https://github.com/Intel-HLS/GenomicsDB
-# The project is stored under Ming's Intel email account and subject to Intel copyright.
-# Included GenomicsDB Intel copyright below.
-
-#!/bin/bash
-# License and Copyright
-# GenomicsDB Builder Docker was created while Ming Rutar worked at Intel. The code is not
-# part of assignment. GenomicsDB is an open source project, see https://github.com/Intel-HLS/GenomicsDB
-# The project is stored under Ming's Intel account and subject to Intel copyright, see Intel copyright below.
-# 
+<code>
 # The MIT License (MIT)
 # Copyright (c) 2016-2017 Intel Corporation
 #
@@ -30,7 +19,7 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+</code>
 Building GenomicsDB could be time-consuming. This project create a docker image that 
 builds environment for building Intel GenomicsDB. Running the docker image builds GenomicsDB 
 utilities. The details about building GenomicsDB can be found at [GenomicsDB Wiki]( https://github.com/Intel-HLS/GenomicsDB/wiki/Compiling-GenomicsDB#building.)
