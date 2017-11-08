@@ -14,6 +14,729 @@ public final class GenomicsDBVidMapProto {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
+  public interface FieldLengthDescriptorComponentPBOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:FieldLengthDescriptorComponentPB)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    boolean hasVariableLengthDescriptor();
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    java.lang.String getVariableLengthDescriptor();
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getVariableLengthDescriptorBytes();
+
+    /**
+     * <code>optional int32 fixed_length = 2;</code>
+     */
+    boolean hasFixedLength();
+    /**
+     * <code>optional int32 fixed_length = 2;</code>
+     */
+    int getFixedLength();
+
+    public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.LengthDescriptorCase getLengthDescriptorCase();
+  }
+  /**
+   * Protobuf type {@code FieldLengthDescriptorComponentPB}
+   */
+  public  static final class FieldLengthDescriptorComponentPB extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:FieldLengthDescriptorComponentPB)
+      FieldLengthDescriptorComponentPBOrBuilder {
+    // Use FieldLengthDescriptorComponentPB.newBuilder() to construct.
+    private FieldLengthDescriptorComponentPB(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private FieldLengthDescriptorComponentPB() {
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private FieldLengthDescriptorComponentPB(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              lengthDescriptorCase_ = 1;
+              lengthDescriptor_ = bs;
+              break;
+            }
+            case 16: {
+              lengthDescriptorCase_ = 2;
+              lengthDescriptor_ = input.readInt32();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_FieldLengthDescriptorComponentPB_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_FieldLengthDescriptorComponentPB_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.class, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder.class);
+    }
+
+    private int bitField0_;
+    private int lengthDescriptorCase_ = 0;
+    private java.lang.Object lengthDescriptor_;
+    public enum LengthDescriptorCase
+        implements com.google.protobuf.Internal.EnumLite {
+      VARIABLE_LENGTH_DESCRIPTOR(1),
+      FIXED_LENGTH(2),
+      LENGTHDESCRIPTOR_NOT_SET(0);
+      private final int value;
+      private LengthDescriptorCase(int value) {
+        this.value = value;
+      }
+      /**
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
+      public static LengthDescriptorCase valueOf(int value) {
+        return forNumber(value);
+      }
+
+      public static LengthDescriptorCase forNumber(int value) {
+        switch (value) {
+          case 1: return VARIABLE_LENGTH_DESCRIPTOR;
+          case 2: return FIXED_LENGTH;
+          case 0: return LENGTHDESCRIPTOR_NOT_SET;
+          default: return null;
+        }
+      }
+      public int getNumber() {
+        return this.value;
+      }
+    };
+
+    public LengthDescriptorCase
+    getLengthDescriptorCase() {
+      return LengthDescriptorCase.forNumber(
+          lengthDescriptorCase_);
+    }
+
+    public static final int VARIABLE_LENGTH_DESCRIPTOR_FIELD_NUMBER = 1;
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    public boolean hasVariableLengthDescriptor() {
+      return lengthDescriptorCase_ == 1;
+    }
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    public java.lang.String getVariableLengthDescriptor() {
+      java.lang.Object ref = "";
+      if (lengthDescriptorCase_ == 1) {
+        ref = lengthDescriptor_;
+      }
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8() && (lengthDescriptorCase_ == 1)) {
+          lengthDescriptor_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string variable_length_descriptor = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getVariableLengthDescriptorBytes() {
+      java.lang.Object ref = "";
+      if (lengthDescriptorCase_ == 1) {
+        ref = lengthDescriptor_;
+      }
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        if (lengthDescriptorCase_ == 1) {
+          lengthDescriptor_ = b;
+        }
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int FIXED_LENGTH_FIELD_NUMBER = 2;
+    /**
+     * <code>optional int32 fixed_length = 2;</code>
+     */
+    public boolean hasFixedLength() {
+      return lengthDescriptorCase_ == 2;
+    }
+    /**
+     * <code>optional int32 fixed_length = 2;</code>
+     */
+    public int getFixedLength() {
+      if (lengthDescriptorCase_ == 2) {
+        return (java.lang.Integer) lengthDescriptor_;
+      }
+      return 0;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (lengthDescriptorCase_ == 1) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, lengthDescriptor_);
+      }
+      if (lengthDescriptorCase_ == 2) {
+        output.writeInt32(
+            2, (int)((java.lang.Integer) lengthDescriptor_));
+      }
+      unknownFields.writeTo(output);
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (lengthDescriptorCase_ == 1) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, lengthDescriptor_);
+      }
+      if (lengthDescriptorCase_ == 2) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(
+              2, (int)((java.lang.Integer) lengthDescriptor_));
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB)) {
+        return super.equals(obj);
+      }
+      com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB other = (com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB) obj;
+
+      boolean result = true;
+      result = result && getLengthDescriptorCase().equals(
+          other.getLengthDescriptorCase());
+      if (!result) return false;
+      switch (lengthDescriptorCase_) {
+        case 1:
+          result = result && getVariableLengthDescriptor()
+              .equals(other.getVariableLengthDescriptor());
+          break;
+        case 2:
+          result = result && (getFixedLength()
+              == other.getFixedLength());
+          break;
+        case 0:
+        default:
+      }
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      switch (lengthDescriptorCase_) {
+        case 1:
+          hash = (37 * hash) + VARIABLE_LENGTH_DESCRIPTOR_FIELD_NUMBER;
+          hash = (53 * hash) + getVariableLengthDescriptor().hashCode();
+          break;
+        case 2:
+          hash = (37 * hash) + FIXED_LENGTH_FIELD_NUMBER;
+          hash = (53 * hash) + getFixedLength();
+          break;
+        case 0:
+        default:
+      }
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code FieldLengthDescriptorComponentPB}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:FieldLengthDescriptorComponentPB)
+        com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_FieldLengthDescriptorComponentPB_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_FieldLengthDescriptorComponentPB_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.class, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder.class);
+      }
+
+      // Construct using com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        lengthDescriptorCase_ = 0;
+        lengthDescriptor_ = null;
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.internal_static_FieldLengthDescriptorComponentPB_descriptor;
+      }
+
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getDefaultInstanceForType() {
+        return com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.getDefaultInstance();
+      }
+
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB build() {
+        com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB buildPartial() {
+        com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB result = new com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (lengthDescriptorCase_ == 1) {
+          result.lengthDescriptor_ = lengthDescriptor_;
+        }
+        if (lengthDescriptorCase_ == 2) {
+          result.lengthDescriptor_ = lengthDescriptor_;
+        }
+        result.bitField0_ = to_bitField0_;
+        result.lengthDescriptorCase_ = lengthDescriptorCase_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB) {
+          return mergeFrom((com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB other) {
+        if (other == com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.getDefaultInstance()) return this;
+        switch (other.getLengthDescriptorCase()) {
+          case VARIABLE_LENGTH_DESCRIPTOR: {
+            lengthDescriptorCase_ = 1;
+            lengthDescriptor_ = other.lengthDescriptor_;
+            onChanged();
+            break;
+          }
+          case FIXED_LENGTH: {
+            setFixedLength(other.getFixedLength());
+            break;
+          }
+          case LENGTHDESCRIPTOR_NOT_SET: {
+            break;
+          }
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int lengthDescriptorCase_ = 0;
+      private java.lang.Object lengthDescriptor_;
+      public LengthDescriptorCase
+          getLengthDescriptorCase() {
+        return LengthDescriptorCase.forNumber(
+            lengthDescriptorCase_);
+      }
+
+      public Builder clearLengthDescriptor() {
+        lengthDescriptorCase_ = 0;
+        lengthDescriptor_ = null;
+        onChanged();
+        return this;
+      }
+
+      private int bitField0_;
+
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public boolean hasVariableLengthDescriptor() {
+        return lengthDescriptorCase_ == 1;
+      }
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public java.lang.String getVariableLengthDescriptor() {
+        java.lang.Object ref = "";
+        if (lengthDescriptorCase_ == 1) {
+          ref = lengthDescriptor_;
+        }
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (lengthDescriptorCase_ == 1) {
+            if (bs.isValidUtf8()) {
+              lengthDescriptor_ = s;
+            }
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getVariableLengthDescriptorBytes() {
+        java.lang.Object ref = "";
+        if (lengthDescriptorCase_ == 1) {
+          ref = lengthDescriptor_;
+        }
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          if (lengthDescriptorCase_ == 1) {
+            lengthDescriptor_ = b;
+          }
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public Builder setVariableLengthDescriptor(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  lengthDescriptorCase_ = 1;
+        lengthDescriptor_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public Builder clearVariableLengthDescriptor() {
+        if (lengthDescriptorCase_ == 1) {
+          lengthDescriptorCase_ = 0;
+          lengthDescriptor_ = null;
+          onChanged();
+        }
+        return this;
+      }
+      /**
+       * <code>optional string variable_length_descriptor = 1;</code>
+       */
+      public Builder setVariableLengthDescriptorBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  lengthDescriptorCase_ = 1;
+        lengthDescriptor_ = value;
+        onChanged();
+        return this;
+      }
+
+      /**
+       * <code>optional int32 fixed_length = 2;</code>
+       */
+      public boolean hasFixedLength() {
+        return lengthDescriptorCase_ == 2;
+      }
+      /**
+       * <code>optional int32 fixed_length = 2;</code>
+       */
+      public int getFixedLength() {
+        if (lengthDescriptorCase_ == 2) {
+          return (java.lang.Integer) lengthDescriptor_;
+        }
+        return 0;
+      }
+      /**
+       * <code>optional int32 fixed_length = 2;</code>
+       */
+      public Builder setFixedLength(int value) {
+        lengthDescriptorCase_ = 2;
+        lengthDescriptor_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 fixed_length = 2;</code>
+       */
+      public Builder clearFixedLength() {
+        if (lengthDescriptorCase_ == 2) {
+          lengthDescriptorCase_ = 0;
+          lengthDescriptor_ = null;
+          onChanged();
+        }
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:FieldLengthDescriptorComponentPB)
+    }
+
+    // @@protoc_insertion_point(class_scope:FieldLengthDescriptorComponentPB)
+    private static final com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB();
+    }
+
+    public static com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    @java.lang.Deprecated public static final com.google.protobuf.Parser<FieldLengthDescriptorComponentPB>
+        PARSER = new com.google.protobuf.AbstractParser<FieldLengthDescriptorComponentPB>() {
+      public FieldLengthDescriptorComponentPB parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+          return new FieldLengthDescriptorComponentPB(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<FieldLengthDescriptorComponentPB> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<FieldLengthDescriptorComponentPB> getParserForType() {
+      return PARSER;
+    }
+
+    public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   public interface InfoFieldOrBuilder extends
       // @@protoc_insertion_point(interface_extends:InfoField)
       com.google.protobuf.MessageOrBuilder {
@@ -66,18 +789,28 @@ public final class GenomicsDBVidMapProto {
         getVcfFieldClassBytes(int index);
 
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    boolean hasLength();
+    java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> 
+        getLengthList();
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    java.lang.String getLength();
+    com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getLength(int index);
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    com.google.protobuf.ByteString
-        getLengthBytes();
+    int getLengthCount();
+    /**
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+     */
+    java.util.List<? extends com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder> 
+        getLengthOrBuilderList();
+    /**
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+     */
+    com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder getLengthOrBuilder(
+        int index);
   }
   /**
    * Protobuf type {@code InfoField}
@@ -94,7 +827,7 @@ public final class GenomicsDBVidMapProto {
       name_ = "";
       type_ = "";
       vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      length_ = "1";
+      length_ = java.util.Collections.emptyList();
     }
 
     @java.lang.Override
@@ -147,9 +880,12 @@ public final class GenomicsDBVidMapProto {
               break;
             }
             case 34: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000004;
-              length_ = bs;
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+                length_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB>();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              length_.add(
+                  input.readMessage(com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.PARSER, extensionRegistry));
               break;
             }
           }
@@ -162,6 +898,9 @@ public final class GenomicsDBVidMapProto {
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
           vcfFieldClass_ = vcfFieldClass_.getUnmodifiableView();
+        }
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          length_ = java.util.Collections.unmodifiableList(length_);
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -294,45 +1033,38 @@ public final class GenomicsDBVidMapProto {
     }
 
     public static final int LENGTH_FIELD_NUMBER = 4;
-    private volatile java.lang.Object length_;
+    private java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> length_;
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    public boolean hasLength() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+    public java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> getLengthList() {
+      return length_;
     }
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    public java.lang.String getLength() {
-      java.lang.Object ref = length_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          length_ = s;
-        }
-        return s;
-      }
+    public java.util.List<? extends com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder> 
+        getLengthOrBuilderList() {
+      return length_;
     }
     /**
-     * <code>optional string length = 4 [default = "1"];</code>
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
      */
-    public com.google.protobuf.ByteString
-        getLengthBytes() {
-      java.lang.Object ref = length_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        length_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public int getLengthCount() {
+      return length_.size();
+    }
+    /**
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getLength(int index) {
+      return length_.get(index);
+    }
+    /**
+     * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+     */
+    public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder getLengthOrBuilder(
+        int index) {
+      return length_.get(index);
     }
 
     private byte memoizedIsInitialized = -1;
@@ -364,8 +1096,8 @@ public final class GenomicsDBVidMapProto {
       for (int i = 0; i < vcfFieldClass_.size(); i++) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 3, vcfFieldClass_.getRaw(i));
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, length_);
+      for (int i = 0; i < length_.size(); i++) {
+        output.writeMessage(4, length_.get(i));
       }
       unknownFields.writeTo(output);
     }
@@ -389,8 +1121,9 @@ public final class GenomicsDBVidMapProto {
         size += dataSize;
         size += 1 * getVcfFieldClassList().size();
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, length_);
+      for (int i = 0; i < length_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, length_.get(i));
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -421,11 +1154,8 @@ public final class GenomicsDBVidMapProto {
       }
       result = result && getVcfFieldClassList()
           .equals(other.getVcfFieldClassList());
-      result = result && (hasLength() == other.hasLength());
-      if (hasLength()) {
-        result = result && getLength()
-            .equals(other.getLength());
-      }
+      result = result && getLengthList()
+          .equals(other.getLengthList());
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -449,9 +1179,9 @@ public final class GenomicsDBVidMapProto {
         hash = (37 * hash) + VCF_FIELD_CLASS_FIELD_NUMBER;
         hash = (53 * hash) + getVcfFieldClassList().hashCode();
       }
-      if (hasLength()) {
+      if (getLengthCount() > 0) {
         hash = (37 * hash) + LENGTH_FIELD_NUMBER;
-        hash = (53 * hash) + getLength().hashCode();
+        hash = (53 * hash) + getLengthList().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -567,6 +1297,7 @@ public final class GenomicsDBVidMapProto {
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessageV3
                 .alwaysUseFieldBuilders) {
+          getLengthFieldBuilder();
         }
       }
       public Builder clear() {
@@ -577,8 +1308,12 @@ public final class GenomicsDBVidMapProto {
         bitField0_ = (bitField0_ & ~0x00000002);
         vcfFieldClass_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
-        length_ = "1";
-        bitField0_ = (bitField0_ & ~0x00000008);
+        if (lengthBuilder_ == null) {
+          length_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+        } else {
+          lengthBuilder_.clear();
+        }
         return this;
       }
 
@@ -616,10 +1351,15 @@ public final class GenomicsDBVidMapProto {
           bitField0_ = (bitField0_ & ~0x00000004);
         }
         result.vcfFieldClass_ = vcfFieldClass_;
-        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
-          to_bitField0_ |= 0x00000004;
+        if (lengthBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
+            length_ = java.util.Collections.unmodifiableList(length_);
+            bitField0_ = (bitField0_ & ~0x00000008);
+          }
+          result.length_ = length_;
+        } else {
+          result.length_ = lengthBuilder_.build();
         }
-        result.length_ = length_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -682,10 +1422,31 @@ public final class GenomicsDBVidMapProto {
           }
           onChanged();
         }
-        if (other.hasLength()) {
-          bitField0_ |= 0x00000008;
-          length_ = other.length_;
-          onChanged();
+        if (lengthBuilder_ == null) {
+          if (!other.length_.isEmpty()) {
+            if (length_.isEmpty()) {
+              length_ = other.length_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+            } else {
+              ensureLengthIsMutable();
+              length_.addAll(other.length_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.length_.isEmpty()) {
+            if (lengthBuilder_.isEmpty()) {
+              lengthBuilder_.dispose();
+              lengthBuilder_ = null;
+              length_ = other.length_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+              lengthBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getLengthFieldBuilder() : null;
+            } else {
+              lengthBuilder_.addAllMessages(other.length_);
+            }
+          }
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -966,80 +1727,244 @@ public final class GenomicsDBVidMapProto {
         return this;
       }
 
-      private java.lang.Object length_ = "1";
-      /**
-       * <code>optional string length = 4 [default = "1"];</code>
-       */
-      public boolean hasLength() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+      private java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> length_ =
+        java.util.Collections.emptyList();
+      private void ensureLengthIsMutable() {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
+          length_ = new java.util.ArrayList<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB>(length_);
+          bitField0_ |= 0x00000008;
+         }
       }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder> lengthBuilder_;
+
       /**
-       * <code>optional string length = 4 [default = "1"];</code>
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
        */
-      public java.lang.String getLength() {
-        java.lang.Object ref = length_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            length_ = s;
-          }
-          return s;
+      public java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> getLengthList() {
+        if (lengthBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(length_);
         } else {
-          return (java.lang.String) ref;
+          return lengthBuilder_.getMessageList();
         }
       }
       /**
-       * <code>optional string length = 4 [default = "1"];</code>
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
        */
-      public com.google.protobuf.ByteString
-          getLengthBytes() {
-        java.lang.Object ref = length_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          length_ = b;
-          return b;
+      public int getLengthCount() {
+        if (lengthBuilder_ == null) {
+          return length_.size();
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return lengthBuilder_.getCount();
         }
       }
       /**
-       * <code>optional string length = 4 [default = "1"];</code>
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB getLength(int index) {
+        if (lengthBuilder_ == null) {
+          return length_.get(index);
+        } else {
+          return lengthBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
        */
       public Builder setLength(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000008;
-        length_ = value;
-        onChanged();
+          int index, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB value) {
+        if (lengthBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureLengthIsMutable();
+          length_.set(index, value);
+          onChanged();
+        } else {
+          lengthBuilder_.setMessage(index, value);
+        }
         return this;
       }
       /**
-       * <code>optional string length = 4 [default = "1"];</code>
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder setLength(
+          int index, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder builderForValue) {
+        if (lengthBuilder_ == null) {
+          ensureLengthIsMutable();
+          length_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          lengthBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder addLength(com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB value) {
+        if (lengthBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureLengthIsMutable();
+          length_.add(value);
+          onChanged();
+        } else {
+          lengthBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder addLength(
+          int index, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB value) {
+        if (lengthBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureLengthIsMutable();
+          length_.add(index, value);
+          onChanged();
+        } else {
+          lengthBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder addLength(
+          com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder builderForValue) {
+        if (lengthBuilder_ == null) {
+          ensureLengthIsMutable();
+          length_.add(builderForValue.build());
+          onChanged();
+        } else {
+          lengthBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder addLength(
+          int index, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder builderForValue) {
+        if (lengthBuilder_ == null) {
+          ensureLengthIsMutable();
+          length_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          lengthBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public Builder addAllLength(
+          java.lang.Iterable<? extends com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB> values) {
+        if (lengthBuilder_ == null) {
+          ensureLengthIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, length_);
+          onChanged();
+        } else {
+          lengthBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
        */
       public Builder clearLength() {
-        bitField0_ = (bitField0_ & ~0x00000008);
-        length_ = getDefaultInstance().getLength();
-        onChanged();
+        if (lengthBuilder_ == null) {
+          length_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+          onChanged();
+        } else {
+          lengthBuilder_.clear();
+        }
         return this;
       }
       /**
-       * <code>optional string length = 4 [default = "1"];</code>
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
        */
-      public Builder setLengthBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000008;
-        length_ = value;
-        onChanged();
+      public Builder removeLength(int index) {
+        if (lengthBuilder_ == null) {
+          ensureLengthIsMutable();
+          length_.remove(index);
+          onChanged();
+        } else {
+          lengthBuilder_.remove(index);
+        }
         return this;
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder getLengthBuilder(
+          int index) {
+        return getLengthFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder getLengthOrBuilder(
+          int index) {
+        if (lengthBuilder_ == null) {
+          return length_.get(index);  } else {
+          return lengthBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public java.util.List<? extends com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder> 
+           getLengthOrBuilderList() {
+        if (lengthBuilder_ != null) {
+          return lengthBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(length_);
+        }
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder addLengthBuilder() {
+        return getLengthFieldBuilder().addBuilder(
+            com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder addLengthBuilder(
+          int index) {
+        return getLengthFieldBuilder().addBuilder(
+            index, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .FieldLengthDescriptorComponentPB length = 4;</code>
+       */
+      public java.util.List<com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder> 
+           getLengthBuilderList() {
+        return getLengthFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder> 
+          getLengthFieldBuilder() {
+        if (lengthBuilder_ == null) {
+          lengthBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder, com.intel.genomicsdb.GenomicsDBVidMapProto.FieldLengthDescriptorComponentPBOrBuilder>(
+                  length_,
+                  ((bitField0_ & 0x00000008) == 0x00000008),
+                  getParentForChildren(),
+                  isClean());
+          length_ = null;
+        }
+        return lengthBuilder_;
       }
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -2964,6 +3889,11 @@ public final class GenomicsDBVidMapProto {
   }
 
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_FieldLengthDescriptorComponentPB_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_FieldLengthDescriptorComponentPB_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_InfoField_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -2987,14 +3917,18 @@ public final class GenomicsDBVidMapProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\034genomicsdb_vid_mapping.proto\"S\n\tInfoFi" +
-      "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f" +
-      "ield_class\030\003 \003(\t\022\021\n\006length\030\004 \001(\t:\0011\"H\n\nC" +
-      "hromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022" +
-      "\034\n\024tiledb_column_offset\030\003 \002(\003\"H\n\014VidMapp" +
-      "ingPB\022\032\n\006fields\030\001 \003(\0132\n.InfoField\022\034\n\007con" +
-      "tigs\030\002 \003(\0132\013.ChromosomeB-\n\024com.intel.gen" +
-      "omicsdbB\025GenomicsDBVidMapProto"
+      "\n\034genomicsdb_vid_mapping.proto\"u\n FieldL" +
+      "engthDescriptorComponentPB\022$\n\032variable_l" +
+      "ength_descriptor\030\001 \001(\tH\000\022\026\n\014fixed_length" +
+      "\030\002 \001(\005H\000B\023\n\021length_descriptor\"s\n\tInfoFie" +
+      "ld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_fi" +
+      "eld_class\030\003 \003(\t\0221\n\006length\030\004 \003(\0132!.FieldL" +
+      "engthDescriptorComponentPB\"H\n\nChromosome" +
+      "\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024tiledb" +
+      "_column_offset\030\003 \002(\003\"H\n\014VidMappingPB\022\032\n\006" +
+      "fields\030\001 \003(\0132\n.InfoField\022\034\n\007contigs\030\002 \003(",
+      "\0132\013.ChromosomeB-\n\024com.intel.genomicsdbB\025" +
+      "GenomicsDBVidMapProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -3008,20 +3942,26 @@ public final class GenomicsDBVidMapProto {
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
-    internal_static_InfoField_descriptor =
+    internal_static_FieldLengthDescriptorComponentPB_descriptor =
       getDescriptor().getMessageTypes().get(0);
+    internal_static_FieldLengthDescriptorComponentPB_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_FieldLengthDescriptorComponentPB_descriptor,
+        new java.lang.String[] { "VariableLengthDescriptor", "FixedLength", "LengthDescriptor", });
+    internal_static_InfoField_descriptor =
+      getDescriptor().getMessageTypes().get(1);
     internal_static_InfoField_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_InfoField_descriptor,
         new java.lang.String[] { "Name", "Type", "VcfFieldClass", "Length", });
     internal_static_Chromosome_descriptor =
-      getDescriptor().getMessageTypes().get(1);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_Chromosome_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Chromosome_descriptor,
         new java.lang.String[] { "Name", "Length", "TiledbColumnOffset", });
     internal_static_VidMappingPB_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_VidMappingPB_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_VidMappingPB_descriptor,

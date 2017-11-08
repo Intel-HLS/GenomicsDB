@@ -26,6 +26,8 @@
 #include "headers.h"
 #include "vcf.h"
 #include "variant_array_schema.h"
+#include "known_field_info.h"
+#include "rapidjson/document.h"
 
 typedef std::tuple<std::string, int64_t, int64_t> ContigIntervalTuple;
 
@@ -157,19 +159,108 @@ enum VCFFieldCombineOperationEnum
   VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION
 };
 
-class FieldInfo
+class FieldLengthDescriptorComponent
 {
   public:
+    FieldLengthDescriptorComponent()
+    {
+      m_num_elements = 1;
+      m_length_descriptor = BCF_VL_FIXED;
+    }
+    int m_num_elements;
+    int m_length_descriptor;
+};
+
+class FieldLengthDescriptor
+{
+  public:
+    FieldLengthDescriptor()
+    {
+      m_length_descriptor_vec.emplace_back();
+      m_num_elements = 1u;
+      m_is_fixed_length_field = true;
+      m_is_length_allele_dependent = false;
+      m_is_length_all_alleles_dependent = false;
+      m_is_length_genotype_dependent = false;
+      m_is_length_ploidy_dependent = false;
+    }
+    //MultiD vectors
+    void resize(const size_t n) { m_length_descriptor_vec.resize(n); }
+    size_t get_num_dimensions() const { return m_length_descriptor_vec.size(); }
+    //Fixed length components
+    void set_num_elements(const int length_dim_idx, const size_t n)
+    {
+      assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
+      m_length_descriptor_vec[length_dim_idx].m_num_elements = n;
+      m_num_elements *= n;
+    }
+    size_t get_num_elements() const
+    {
+      assert(is_fixed_length_field());
+      return m_num_elements;
+    }
+    //length descriptor
+    void set_length_descriptor(const int length_dim_idx, const int length_descriptor);
+    unsigned get_length_descriptor(const int length_dim_idx) const
+    {
+      assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
+      return m_length_descriptor_vec[length_dim_idx].m_length_descriptor;
+    }
+    //is fixed length field
+    bool is_fixed_length_field() const { return m_is_fixed_length_field; }
+    //Allele dependency
+    bool is_length_allele_dependent() const { return m_is_length_allele_dependent; }
+    bool is_length_only_ALT_alleles_dependent() const
+    { return m_is_length_allele_dependent && !m_is_length_all_alleles_dependent; }
+    bool is_length_genotype_dependent() const { return m_is_length_genotype_dependent; }
+    //Ploidy
+    bool is_length_ploidy_dependent() const { return m_is_length_ploidy_dependent; }
+    unsigned get_ploidy_step_value() const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return (get_length_descriptor(0u) == BCF_VL_Phased_Ploidy) ? 2u : 1u;
+    }
+    unsigned get_ploidy(const unsigned n) const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return KnownFieldInfo::get_ploidy(get_length_descriptor(0u), n);
+    }
+    bool contains_phase_information() const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return (get_length_descriptor(0u) == BCF_VL_Phased_Ploidy);
+    }
+    size_t get_num_elements(const unsigned num_ALT_alleles, const unsigned ploidy, const unsigned num_elements);
+  private:
+    //Length descriptors - could be multi-dimensional array: example [ "R", 4 ] 2D vector
+    std::vector<FieldLengthDescriptorComponent> m_length_descriptor_vec;
+    //Useful only for fixed length fields
+    size_t m_num_elements;
+    //Flags for fast querying - summarize information in length desc components
+    //Is fixed length field
+    bool m_is_fixed_length_field;
+    //Allele, genotype, ploidy dependency
+    bool m_is_length_allele_dependent;
+    bool m_is_length_all_alleles_dependent;
+    bool m_is_length_genotype_dependent;
+    bool m_is_length_ploidy_dependent;
+};
+
+class FieldInfo
+{
+  friend class VidMapper;
+  public:
     FieldInfo()
-      : m_type_index(typeid(void))
+      : m_type_index(typeid(void)), m_length_descriptor()
     {
       m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
       m_bcf_ht_type = BCF_HT_VOID;
-      m_length_descriptor = BCF_VL_FIXED;
-      m_num_elements = 1;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
     }
     void set_info(const std::string& name, int idx)
@@ -178,6 +269,7 @@ class FieldInfo
       m_vcf_name = name;
       m_field_idx = idx;
     }
+    //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
     bool m_is_vcf_FILTER_field;
@@ -187,9 +279,9 @@ class FieldInfo
     //Type info
     std::type_index m_type_index;
     int m_bcf_ht_type;
-    //Length descriptors
-    int m_length_descriptor;
-    int m_num_elements;
+    //Length descriptor
+    FieldLengthDescriptor m_length_descriptor;
+    //Combine operation for VCF INFO fields
     int m_VCF_field_combine_operation;
 };
 
@@ -460,6 +552,13 @@ class VidMapper
       }
     }
     /*
+     * Parse a string length descriptor and fill up the structure
+     */
+    void parse_string_length_descriptor(const char* field_name,
+        const char* length_value_str,
+        const size_t length_value_str_length,
+        FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
+    /*
      * Get #fields in VidMapper
      */
     inline unsigned get_num_fields() const
@@ -677,6 +776,9 @@ class FileBasedVidMapper : public VidMapper
         const std::string& filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
         const bool is_file);
+    void parse_length_descriptor(const char* field_name,
+        const rapidjson::Value& length_json_value,
+        FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
 
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;

@@ -92,26 +92,31 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
         if(field_info.m_bcf_ht_type != BCF_HT_FLAG)
         {
           header_line += ",Number=";
-          switch(field_info.m_length_descriptor)
+          auto& length_descriptor = field_info.m_length_descriptor;
+          if(length_descriptor.get_num_dimensions() == 1u)
           {
-            case BCF_VL_FIXED:
-              header_line += std::to_string(field_info.m_num_elements);
-              break;
-            case BCF_VL_VAR:
-              header_line += ".";
-              break;
-            case BCF_VL_A:
-              header_line += "A";
-              break;
-            case BCF_VL_R:
-              header_line += "R";
-              break;
-            case BCF_VL_G:
-              header_line += "G";
-              break;
-            default:
-              throw VCFAdapterException("Unhandled field length descriptor "+std::to_string(field_info.m_length_descriptor));
-              break;
+            switch(length_descriptor.get_length_descriptor(0u))
+            {
+              case BCF_VL_FIXED:
+                header_line += std::to_string(length_descriptor.get_num_elements());
+                break;
+              case BCF_VL_VAR:
+                header_line += ".";
+                break;
+              case BCF_VL_A:
+                header_line += "A";
+                break;
+              case BCF_VL_R:
+                header_line += "R";
+                break;
+              case BCF_VL_G:
+                header_line += "G";
+                break;
+              default:
+                throw VCFAdapterException("Unhandled field length descriptor "
+                    +std::to_string(length_descriptor.get_length_descriptor(0u)));
+                break;
+            }
           }
         }
         header_line += ",Type=";
@@ -156,17 +161,18 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
       //The field is fixed length and agree on the length OR
       //The field is variable length OR
       //field type is BCF_HT_FLAG and VCF header says length is 0 (VCF spec), vid JSON says that length is 1
-      if(!((field_info_ptr->m_length_descriptor == BCF_VL_FIXED
+      if(!((field_info_ptr->m_length_descriptor.is_fixed_length_field()
               && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
-              && field_info_ptr->m_num_elements == static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
+              && field_info_ptr->m_length_descriptor.get_num_elements()
+              == static_cast<size_t>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
             ||
-            (field_info_ptr->m_length_descriptor != BCF_VL_FIXED
+            (!field_info_ptr->m_length_descriptor.is_fixed_length_field()
              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) != BCF_VL_FIXED
             )
             ||
             (field_ht_type == BCF_HT_FLAG
-             && field_info_ptr->m_length_descriptor == BCF_VL_FIXED
-             && field_info_ptr->m_num_elements == 1
+             && field_info_ptr->m_length_descriptor.is_fixed_length_field()
+             && field_info_ptr->m_length_descriptor.get_num_elements() == 1
              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
              && static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)) == 0
             )

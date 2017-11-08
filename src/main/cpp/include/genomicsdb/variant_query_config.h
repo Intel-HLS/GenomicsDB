@@ -58,15 +58,12 @@ class VariantQueryConfig
     {
       public:
         VariantQueryFieldInfo(const std::string& name, const int schema_idx)
-          : m_name(name), m_schema_idx(schema_idx), m_element_type(typeid(void))
+          : m_name(name), m_schema_idx(schema_idx), m_element_type(typeid(void)), m_length_descriptor()
         {
-          m_length_descriptor = BCF_VL_FIXED;
-          m_num_elements = 1u;
           m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION; 
         }
         int m_schema_idx;
-        int m_length_descriptor;
-        int m_num_elements;
+        FieldLengthDescriptor m_length_descriptor;
         int m_VCF_field_combine_operation;
         std::string m_name;
         std::type_index m_element_type;
@@ -159,17 +156,16 @@ class VariantQueryConfig
      * Attributes info parameters
      */
     void set_query_attribute_info_parameters(const unsigned query_field_idx,
-        const std::type_index element_type, int length_descriptor, int num_elements,
+        const std::type_index element_type, const FieldLengthDescriptor& length_descriptor,
         int VCF_field_combine_operation)
     {
       assert(query_field_idx < m_query_attributes_info_vec.size());
       auto& attribute_info = m_query_attributes_info_vec[query_field_idx];
       attribute_info.m_element_type = element_type;
       attribute_info.m_length_descriptor = length_descriptor;
-      attribute_info.m_num_elements = num_elements;
       attribute_info.m_VCF_field_combine_operation = VCF_field_combine_operation;
     }
-    int get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
+    const FieldLengthDescriptor& get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
       return m_query_attributes_info_vec[query_idx].m_length_descriptor;
@@ -177,7 +173,7 @@ class VariantQueryConfig
     int get_num_elements_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_num_elements;
+      return m_query_attributes_info_vec[query_idx].m_length_descriptor.get_num_elements();
     }
     int get_VCF_field_combine_operation_for_query_attribute_idx(const unsigned query_idx) const
     {

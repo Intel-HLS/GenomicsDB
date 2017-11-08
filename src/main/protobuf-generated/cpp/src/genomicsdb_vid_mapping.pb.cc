@@ -19,6 +19,13 @@
 
 namespace {
 
+const ::google::protobuf::Descriptor* FieldLengthDescriptorComponentPB_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  FieldLengthDescriptorComponentPB_reflection_ = NULL;
+struct FieldLengthDescriptorComponentPBOneofInstance {
+  ::google::protobuf::internal::ArenaStringPtr variable_length_descriptor_;
+  ::google::protobuf::int32 fixed_length_;
+}* FieldLengthDescriptorComponentPB_default_oneof_instance_ = NULL;
 const ::google::protobuf::Descriptor* InfoField_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   InfoField_reflection_ = NULL;
@@ -39,7 +46,26 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
     ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
       "genomicsdb_vid_mapping.proto");
   GOOGLE_CHECK(file != NULL);
-  InfoField_descriptor_ = file->message_type(0);
+  FieldLengthDescriptorComponentPB_descriptor_ = file->message_type(0);
+  static const int FieldLengthDescriptorComponentPB_offsets_[3] = {
+    PROTO2_GENERATED_DEFAULT_ONEOF_FIELD_OFFSET(FieldLengthDescriptorComponentPB_default_oneof_instance_, variable_length_descriptor_),
+    PROTO2_GENERATED_DEFAULT_ONEOF_FIELD_OFFSET(FieldLengthDescriptorComponentPB_default_oneof_instance_, fixed_length_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FieldLengthDescriptorComponentPB, length_descriptor_),
+  };
+  FieldLengthDescriptorComponentPB_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      FieldLengthDescriptorComponentPB_descriptor_,
+      FieldLengthDescriptorComponentPB::default_instance_,
+      FieldLengthDescriptorComponentPB_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FieldLengthDescriptorComponentPB, _has_bits_[0]),
+      -1,
+      -1,
+      FieldLengthDescriptorComponentPB_default_oneof_instance_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FieldLengthDescriptorComponentPB, _oneof_case_[0]),
+      sizeof(FieldLengthDescriptorComponentPB),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(FieldLengthDescriptorComponentPB, _internal_metadata_),
+      -1);
+  InfoField_descriptor_ = file->message_type(1);
   static const int InfoField_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, type_),
@@ -57,7 +83,7 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
       sizeof(InfoField),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(InfoField, _internal_metadata_),
       -1);
-  Chromosome_descriptor_ = file->message_type(1);
+  Chromosome_descriptor_ = file->message_type(2);
   static const int Chromosome_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, length_),
@@ -74,7 +100,7 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto() {
       sizeof(Chromosome),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Chromosome, _internal_metadata_),
       -1);
-  VidMappingPB_descriptor_ = file->message_type(2);
+  VidMappingPB_descriptor_ = file->message_type(3);
   static const int VidMappingPB_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VidMappingPB, fields_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VidMappingPB, contigs_),
@@ -104,6 +130,8 @@ void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      FieldLengthDescriptorComponentPB_descriptor_, &FieldLengthDescriptorComponentPB::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       InfoField_descriptor_, &InfoField::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Chromosome_descriptor_, &Chromosome::default_instance());
@@ -114,9 +142,11 @@ void protobuf_RegisterTypes(const ::std::string&) {
 }  // namespace
 
 void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto() {
+  delete FieldLengthDescriptorComponentPB::default_instance_;
+  delete FieldLengthDescriptorComponentPB_default_oneof_instance_;
+  delete FieldLengthDescriptorComponentPB_reflection_;
   delete InfoField::default_instance_;
   delete InfoField_reflection_;
-  delete InfoField::_default_length_;
   delete Chromosome::default_instance_;
   delete Chromosome_reflection_;
   delete VidMappingPB::default_instance_;
@@ -131,21 +161,26 @@ void protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\034genomicsdb_vid_mapping.proto\"S\n\tInfoFi"
-    "eld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_f"
-    "ield_class\030\003 \003(\t\022\021\n\006length\030\004 \001(\t:\0011\"H\n\nC"
-    "hromosome\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022"
-    "\034\n\024tiledb_column_offset\030\003 \002(\003\"H\n\014VidMapp"
-    "ingPB\022\032\n\006fields\030\001 \003(\0132\n.InfoField\022\034\n\007con"
-    "tigs\030\002 \003(\0132\013.ChromosomeB-\n\024com.intel.gen"
-    "omicsdbB\025GenomicsDBVidMapProto", 310);
+    "\n\034genomicsdb_vid_mapping.proto\"u\n FieldL"
+    "engthDescriptorComponentPB\022$\n\032variable_l"
+    "ength_descriptor\030\001 \001(\tH\000\022\026\n\014fixed_length"
+    "\030\002 \001(\005H\000B\023\n\021length_descriptor\"s\n\tInfoFie"
+    "ld\022\014\n\004name\030\001 \002(\t\022\014\n\004type\030\002 \002(\t\022\027\n\017vcf_fi"
+    "eld_class\030\003 \003(\t\0221\n\006length\030\004 \003(\0132!.FieldL"
+    "engthDescriptorComponentPB\"H\n\nChromosome"
+    "\022\014\n\004name\030\001 \002(\t\022\016\n\006length\030\002 \002(\003\022\034\n\024tiledb"
+    "_column_offset\030\003 \002(\003\"H\n\014VidMappingPB\022\032\n\006"
+    "fields\030\001 \003(\0132\n.InfoField\022\034\n\007contigs\030\002 \003("
+    "\0132\013.ChromosomeB-\n\024com.intel.genomicsdbB\025"
+    "GenomicsDBVidMapProto", 461);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "genomicsdb_vid_mapping.proto", &protobuf_RegisterTypes);
-  InfoField::_default_length_ =
-      new ::std::string("1", 1);
+  FieldLengthDescriptorComponentPB::default_instance_ = new FieldLengthDescriptorComponentPB();
+  FieldLengthDescriptorComponentPB_default_oneof_instance_ = new FieldLengthDescriptorComponentPBOneofInstance();
   InfoField::default_instance_ = new InfoField();
   Chromosome::default_instance_ = new Chromosome();
   VidMappingPB::default_instance_ = new VidMappingPB();
+  FieldLengthDescriptorComponentPB::default_instance_->InitAsDefaultInstance();
   InfoField::default_instance_->InitAsDefaultInstance();
   Chromosome::default_instance_->InitAsDefaultInstance();
   VidMappingPB::default_instance_->InitAsDefaultInstance();
@@ -161,7 +196,458 @@ struct StaticDescriptorInitializer_genomicsdb_5fvid_5fmapping_2eproto {
 
 // ===================================================================
 
-::std::string* InfoField::_default_length_ = NULL;
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int FieldLengthDescriptorComponentPB::kVariableLengthDescriptorFieldNumber;
+const int FieldLengthDescriptorComponentPB::kFixedLengthFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+FieldLengthDescriptorComponentPB::FieldLengthDescriptorComponentPB()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:FieldLengthDescriptorComponentPB)
+}
+
+void FieldLengthDescriptorComponentPB::InitAsDefaultInstance() {
+  FieldLengthDescriptorComponentPB_default_oneof_instance_->variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  FieldLengthDescriptorComponentPB_default_oneof_instance_->fixed_length_ = 0;
+}
+
+FieldLengthDescriptorComponentPB::FieldLengthDescriptorComponentPB(const FieldLengthDescriptorComponentPB& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:FieldLengthDescriptorComponentPB)
+}
+
+void FieldLengthDescriptorComponentPB::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  clear_has_length_descriptor();
+}
+
+FieldLengthDescriptorComponentPB::~FieldLengthDescriptorComponentPB() {
+  // @@protoc_insertion_point(destructor:FieldLengthDescriptorComponentPB)
+  SharedDtor();
+}
+
+void FieldLengthDescriptorComponentPB::SharedDtor() {
+  if (has_length_descriptor()) {
+    clear_length_descriptor();
+  }
+  if (this != default_instance_) {
+  }
+}
+
+void FieldLengthDescriptorComponentPB::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* FieldLengthDescriptorComponentPB::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return FieldLengthDescriptorComponentPB_descriptor_;
+}
+
+const FieldLengthDescriptorComponentPB& FieldLengthDescriptorComponentPB::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
+  return *default_instance_;
+}
+
+FieldLengthDescriptorComponentPB* FieldLengthDescriptorComponentPB::default_instance_ = NULL;
+
+FieldLengthDescriptorComponentPB* FieldLengthDescriptorComponentPB::New(::google::protobuf::Arena* arena) const {
+  FieldLengthDescriptorComponentPB* n = new FieldLengthDescriptorComponentPB;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void FieldLengthDescriptorComponentPB::clear_length_descriptor() {
+// @@protoc_insertion_point(one_of_clear_start:FieldLengthDescriptorComponentPB)
+  switch(length_descriptor_case()) {
+    case kVariableLengthDescriptor: {
+      length_descriptor_.variable_length_descriptor_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+      break;
+    }
+    case kFixedLength: {
+      // No need to clear
+      break;
+    }
+    case LENGTH_DESCRIPTOR_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = LENGTH_DESCRIPTOR_NOT_SET;
+}
+
+
+void FieldLengthDescriptorComponentPB::Clear() {
+// @@protoc_insertion_point(message_clear_start:FieldLengthDescriptorComponentPB)
+  clear_length_descriptor();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  if (_internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->Clear();
+  }
+}
+
+bool FieldLengthDescriptorComponentPB::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:FieldLengthDescriptorComponentPB)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional string variable_length_descriptor = 1;
+      case 1: {
+        if (tag == 10) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_variable_length_descriptor()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+            this->variable_length_descriptor().data(), this->variable_length_descriptor().length(),
+            ::google::protobuf::internal::WireFormat::PARSE,
+            "FieldLengthDescriptorComponentPB.variable_length_descriptor");
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_fixed_length;
+        break;
+      }
+
+      // optional int32 fixed_length = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_fixed_length:
+          clear_length_descriptor();
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &length_descriptor_.fixed_length_)));
+          set_has_fixed_length();
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:FieldLengthDescriptorComponentPB)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:FieldLengthDescriptorComponentPB)
+  return false;
+#undef DO_
+}
+
+void FieldLengthDescriptorComponentPB::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:FieldLengthDescriptorComponentPB)
+  // optional string variable_length_descriptor = 1;
+  if (has_variable_length_descriptor()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->variable_length_descriptor().data(), this->variable_length_descriptor().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "FieldLengthDescriptorComponentPB.variable_length_descriptor");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      1, this->variable_length_descriptor(), output);
+  }
+
+  // optional int32 fixed_length = 2;
+  if (has_fixed_length()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->fixed_length(), output);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+  // @@protoc_insertion_point(serialize_end:FieldLengthDescriptorComponentPB)
+}
+
+::google::protobuf::uint8* FieldLengthDescriptorComponentPB::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:FieldLengthDescriptorComponentPB)
+  // optional string variable_length_descriptor = 1;
+  if (has_variable_length_descriptor()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
+      this->variable_length_descriptor().data(), this->variable_length_descriptor().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE,
+      "FieldLengthDescriptorComponentPB.variable_length_descriptor");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        1, this->variable_length_descriptor(), target);
+  }
+
+  // optional int32 fixed_length = 2;
+  if (has_fixed_length()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->fixed_length(), target);
+  }
+
+  if (_internal_metadata_.have_unknown_fields()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:FieldLengthDescriptorComponentPB)
+  return target;
+}
+
+int FieldLengthDescriptorComponentPB::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:FieldLengthDescriptorComponentPB)
+  int total_size = 0;
+
+  switch (length_descriptor_case()) {
+    // optional string variable_length_descriptor = 1;
+    case kVariableLengthDescriptor: {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->variable_length_descriptor());
+      break;
+    }
+    // optional int32 fixed_length = 2;
+    case kFixedLength: {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->fixed_length());
+      break;
+    }
+    case LENGTH_DESCRIPTOR_NOT_SET: {
+      break;
+    }
+  }
+  if (_internal_metadata_.have_unknown_fields()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void FieldLengthDescriptorComponentPB::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:FieldLengthDescriptorComponentPB)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const FieldLengthDescriptorComponentPB* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const FieldLengthDescriptorComponentPB>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:FieldLengthDescriptorComponentPB)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:FieldLengthDescriptorComponentPB)
+    MergeFrom(*source);
+  }
+}
+
+void FieldLengthDescriptorComponentPB::MergeFrom(const FieldLengthDescriptorComponentPB& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:FieldLengthDescriptorComponentPB)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  switch (from.length_descriptor_case()) {
+    case kVariableLengthDescriptor: {
+      set_variable_length_descriptor(from.variable_length_descriptor());
+      break;
+    }
+    case kFixedLength: {
+      set_fixed_length(from.fixed_length());
+      break;
+    }
+    case LENGTH_DESCRIPTOR_NOT_SET: {
+      break;
+    }
+  }
+  if (from._internal_metadata_.have_unknown_fields()) {
+    mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+  }
+}
+
+void FieldLengthDescriptorComponentPB::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:FieldLengthDescriptorComponentPB)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void FieldLengthDescriptorComponentPB::CopyFrom(const FieldLengthDescriptorComponentPB& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:FieldLengthDescriptorComponentPB)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool FieldLengthDescriptorComponentPB::IsInitialized() const {
+
+  return true;
+}
+
+void FieldLengthDescriptorComponentPB::Swap(FieldLengthDescriptorComponentPB* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void FieldLengthDescriptorComponentPB::InternalSwap(FieldLengthDescriptorComponentPB* other) {
+  std::swap(length_descriptor_, other->length_descriptor_);
+  std::swap(_oneof_case_[0], other->_oneof_case_[0]);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata FieldLengthDescriptorComponentPB::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = FieldLengthDescriptorComponentPB_descriptor_;
+  metadata.reflection = FieldLengthDescriptorComponentPB_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// FieldLengthDescriptorComponentPB
+
+// optional string variable_length_descriptor = 1;
+bool FieldLengthDescriptorComponentPB::has_variable_length_descriptor() const {
+  return length_descriptor_case() == kVariableLengthDescriptor;
+}
+void FieldLengthDescriptorComponentPB::set_has_variable_length_descriptor() {
+  _oneof_case_[0] = kVariableLengthDescriptor;
+}
+void FieldLengthDescriptorComponentPB::clear_variable_length_descriptor() {
+  if (has_variable_length_descriptor()) {
+    length_descriptor_.variable_length_descriptor_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    clear_has_length_descriptor();
+  }
+}
+ const ::std::string& FieldLengthDescriptorComponentPB::variable_length_descriptor() const {
+  // @@protoc_insertion_point(field_get:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (has_variable_length_descriptor()) {
+    return length_descriptor_.variable_length_descriptor_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  return *&::google::protobuf::internal::GetEmptyStringAlreadyInited();
+}
+ void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+ void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const char* value) {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+ void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const char* value, size_t size) {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+ ::std::string* FieldLengthDescriptorComponentPB::mutable_variable_length_descriptor() {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_mutable:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  return length_descriptor_.variable_length_descriptor_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* FieldLengthDescriptorComponentPB::release_variable_length_descriptor() {
+  // @@protoc_insertion_point(field_release:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (has_variable_length_descriptor()) {
+    clear_has_length_descriptor();
+    return length_descriptor_.variable_length_descriptor_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  } else {
+    return NULL;
+  }
+}
+ void FieldLengthDescriptorComponentPB::set_allocated_variable_length_descriptor(::std::string* variable_length_descriptor) {
+  if (!has_variable_length_descriptor()) {
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  clear_length_descriptor();
+  if (variable_length_descriptor != NULL) {
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+        variable_length_descriptor);
+  }
+  // @@protoc_insertion_point(field_set_allocated:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+
+// optional int32 fixed_length = 2;
+bool FieldLengthDescriptorComponentPB::has_fixed_length() const {
+  return length_descriptor_case() == kFixedLength;
+}
+void FieldLengthDescriptorComponentPB::set_has_fixed_length() {
+  _oneof_case_[0] = kFixedLength;
+}
+void FieldLengthDescriptorComponentPB::clear_fixed_length() {
+  if (has_fixed_length()) {
+    length_descriptor_.fixed_length_ = 0;
+    clear_has_length_descriptor();
+  }
+}
+ ::google::protobuf::int32 FieldLengthDescriptorComponentPB::fixed_length() const {
+  // @@protoc_insertion_point(field_get:FieldLengthDescriptorComponentPB.fixed_length)
+  if (has_fixed_length()) {
+    return length_descriptor_.fixed_length_;
+  }
+  return 0;
+}
+ void FieldLengthDescriptorComponentPB::set_fixed_length(::google::protobuf::int32 value) {
+  if (!has_fixed_length()) {
+    clear_length_descriptor();
+    set_has_fixed_length();
+  }
+  length_descriptor_.fixed_length_ = value;
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.fixed_length)
+}
+
+bool FieldLengthDescriptorComponentPB::has_length_descriptor() const {
+  return length_descriptor_case() != LENGTH_DESCRIPTOR_NOT_SET;
+}
+void FieldLengthDescriptorComponentPB::clear_has_length_descriptor() {
+  _oneof_case_[0] = LENGTH_DESCRIPTOR_NOT_SET;
+}
+FieldLengthDescriptorComponentPB::LengthDescriptorCase FieldLengthDescriptorComponentPB::length_descriptor_case() const {
+  return FieldLengthDescriptorComponentPB::LengthDescriptorCase(_oneof_case_[0]);
+}
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int InfoField::kNameFieldNumber;
 const int InfoField::kTypeFieldNumber;
@@ -191,7 +677,6 @@ void InfoField::SharedCtor() {
   _cached_size_ = 0;
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  length_.UnsafeSetDefault(_default_length_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -203,7 +688,6 @@ InfoField::~InfoField() {
 void InfoField::SharedDtor() {
   name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  length_.DestroyNoArena(_default_length_);
   if (this != default_instance_) {
   }
 }
@@ -235,18 +719,16 @@ InfoField* InfoField::New(::google::protobuf::Arena* arena) const {
 
 void InfoField::Clear() {
 // @@protoc_insertion_point(message_clear_start:InfoField)
-  if (_has_bits_[0 / 32] & 11u) {
+  if (_has_bits_[0 / 32] & 3u) {
     if (has_name()) {
       name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
     if (has_type()) {
       type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
-    if (has_length()) {
-      length_.ClearToDefaultNoArena(_default_length_);
-    }
   }
   vcf_field_class_.Clear();
+  length_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   if (_internal_metadata_.have_unknown_fields()) {
     mutable_unknown_fields()->Clear();
@@ -315,19 +797,19 @@ bool InfoField::MergePartialFromCodedStream(
         break;
       }
 
-      // optional string length = 4 [default = "1"];
+      // repeated .FieldLengthDescriptorComponentPB length = 4;
       case 4: {
         if (tag == 34) {
          parse_length:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_length()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->length().data(), this->length().length(),
-            ::google::protobuf::internal::WireFormat::PARSE,
-            "InfoField.length");
+          DO_(input->IncrementRecursionDepth());
+         parse_loop_length:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_length()));
         } else {
           goto handle_unusual;
         }
+        if (input->ExpectTag(34)) goto parse_loop_length;
+        input->UnsafeDecrementRecursionDepth();
         if (input->ExpectAtEnd()) goto success;
         break;
       }
@@ -387,14 +869,10 @@ void InfoField::SerializeWithCachedSizes(
       3, this->vcf_field_class(i), output);
   }
 
-  // optional string length = 4 [default = "1"];
-  if (has_length()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->length().data(), this->length().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "InfoField.length");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      4, this->length(), output);
+  // repeated .FieldLengthDescriptorComponentPB length = 4;
+  for (unsigned int i = 0, n = this->length_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      4, this->length(i), output);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -439,15 +917,11 @@ void InfoField::SerializeWithCachedSizes(
       WriteStringToArray(3, this->vcf_field_class(i), target);
   }
 
-  // optional string length = 4 [default = "1"];
-  if (has_length()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->length().data(), this->length().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "InfoField.length");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        4, this->length(), target);
+  // repeated .FieldLengthDescriptorComponentPB length = 4;
+  for (unsigned int i = 0, n = this->length_size(); i < n; i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        4, this->length(i), false, target);
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -496,18 +970,19 @@ int InfoField::ByteSize() const {
   } else {
     total_size += RequiredFieldsByteSizeFallback();
   }
-  // optional string length = 4 [default = "1"];
-  if (has_length()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->length());
-  }
-
   // repeated string vcf_field_class = 3;
   total_size += 1 * this->vcf_field_class_size();
   for (int i = 0; i < this->vcf_field_class_size(); i++) {
     total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
       this->vcf_field_class(i));
+  }
+
+  // repeated .FieldLengthDescriptorComponentPB length = 4;
+  total_size += 1 * this->length_size();
+  for (int i = 0; i < this->length_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->length(i));
   }
 
   if (_internal_metadata_.have_unknown_fields()) {
@@ -544,6 +1019,7 @@ void InfoField::MergeFrom(const InfoField& from) {
     ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
   }
   vcf_field_class_.MergeFrom(from.vcf_field_class_);
+  length_.MergeFrom(from.length_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_name()) {
       set_has_name();
@@ -552,10 +1028,6 @@ void InfoField::MergeFrom(const InfoField& from) {
     if (from.has_type()) {
       set_has_type();
       type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.type_);
-    }
-    if (from.has_length()) {
-      set_has_length();
-      length_.AssignWithDefault(_default_length_, from.length_);
     }
   }
   if (from._internal_metadata_.have_unknown_fields()) {
@@ -591,7 +1063,7 @@ void InfoField::InternalSwap(InfoField* other) {
   name_.Swap(&other->name_);
   type_.Swap(&other->type_);
   vcf_field_class_.UnsafeArenaSwap(&other->vcf_field_class_);
-  length_.Swap(&other->length_);
+  length_.UnsafeArenaSwap(&other->length_);
   std::swap(_has_bits_[0], other->_has_bits_[0]);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   std::swap(_cached_size_, other->_cached_size_);
@@ -771,58 +1243,34 @@ InfoField::mutable_vcf_field_class() {
   return &vcf_field_class_;
 }
 
-// optional string length = 4 [default = "1"];
-bool InfoField::has_length() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
-}
-void InfoField::set_has_length() {
-  _has_bits_[0] |= 0x00000008u;
-}
-void InfoField::clear_has_length() {
-  _has_bits_[0] &= ~0x00000008u;
+// repeated .FieldLengthDescriptorComponentPB length = 4;
+int InfoField::length_size() const {
+  return length_.size();
 }
 void InfoField::clear_length() {
-  length_.ClearToDefaultNoArena(_default_length_);
-  clear_has_length();
+  length_.Clear();
 }
- const ::std::string& InfoField::length() const {
+const ::FieldLengthDescriptorComponentPB& InfoField::length(int index) const {
   // @@protoc_insertion_point(field_get:InfoField.length)
-  return length_.GetNoArena(_default_length_);
+  return length_.Get(index);
 }
- void InfoField::set_length(const ::std::string& value) {
-  set_has_length();
-  length_.SetNoArena(_default_length_, value);
-  // @@protoc_insertion_point(field_set:InfoField.length)
-}
- void InfoField::set_length(const char* value) {
-  set_has_length();
-  length_.SetNoArena(_default_length_, ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:InfoField.length)
-}
- void InfoField::set_length(const char* value, size_t size) {
-  set_has_length();
-  length_.SetNoArena(_default_length_,
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:InfoField.length)
-}
- ::std::string* InfoField::mutable_length() {
-  set_has_length();
+::FieldLengthDescriptorComponentPB* InfoField::mutable_length(int index) {
   // @@protoc_insertion_point(field_mutable:InfoField.length)
-  return length_.MutableNoArena(_default_length_);
+  return length_.Mutable(index);
 }
- ::std::string* InfoField::release_length() {
-  // @@protoc_insertion_point(field_release:InfoField.length)
-  clear_has_length();
-  return length_.ReleaseNoArena(_default_length_);
+::FieldLengthDescriptorComponentPB* InfoField::add_length() {
+  // @@protoc_insertion_point(field_add:InfoField.length)
+  return length_.Add();
 }
- void InfoField::set_allocated_length(::std::string* length) {
-  if (length != NULL) {
-    set_has_length();
-  } else {
-    clear_has_length();
-  }
-  length_.SetAllocatedNoArena(_default_length_, length);
-  // @@protoc_insertion_point(field_set_allocated:InfoField.length)
+::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >*
+InfoField::mutable_length() {
+  // @@protoc_insertion_point(field_mutable_list:InfoField.length)
+  return &length_;
+}
+const ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >&
+InfoField::length() const {
+  // @@protoc_insertion_point(field_list:InfoField.length)
+  return length_;
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS

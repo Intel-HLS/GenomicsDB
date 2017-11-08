@@ -24,7 +24,7 @@
 #define KNOWN_FIELD_INFO_H
 
 #include "gt_common.h"
-#include "variant_field_data.h"
+#include <memory>
 
 //Should be identical to the vector m_known_variant_field_names, see file known_field_info.cc
 enum KnownVariantFieldsEnum
@@ -77,6 +77,7 @@ class KnownFieldInfoException : public std::exception {
     std::string msg_;
 };
 
+class VariantFieldCreatorBase;
 /*
  * Class that stores info about some of the known fields
  */
@@ -106,6 +107,9 @@ class KnownFieldInfo
      */
     inline static bool is_length_descriptor_genotype_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_G; }
     inline static bool is_length_descriptor_only_ALT_alleles_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_A; }
+    inline static bool is_length_descriptor_all_alleles_dependent(unsigned length_descriptor) { return length_descriptor == BCF_VL_R; }
+    inline static bool is_length_descriptor_ploidy_dependent(unsigned length_descriptor)
+    { return ((length_descriptor == BCF_VL_P) || (length_descriptor == BCF_VL_Phased_Ploidy)); }
     /*
      * Given a field name, checks for m_known_variant_field_name_to_enum to see if valid entry exists.
      * If yes, fills known_field_enum and returns true

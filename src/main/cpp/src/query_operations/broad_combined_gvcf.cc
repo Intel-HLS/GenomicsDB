@@ -288,10 +288,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   //Individual pointers will be allocated later
   m_spanning_deletions_remapped_fields.resize(m_remapped_fields_query_idxs.size());
   //Initialize GT encoding function pointer
-  auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
-  auto phase_information_in_TileDB = (GT_length_descriptor == BCF_VL_Phased_Ploidy);
-  if(phase_information_in_TileDB)
+  const auto& GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+  if(GT_length_descriptor.contains_phase_information())
   {
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     if(m_vcf_adapter->produce_GT_field())
@@ -332,12 +330,12 @@ bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant
   auto query_field_idx = BCF_INFO_GET_QUERY_FIELD_IDX(curr_tuple);
   auto length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(query_field_idx);
   //Fields such as PL are skipped if the #alleles is above a certain threshold
-  if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor)
+  if(length_descriptor.is_length_genotype_dependent()
       && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
     return false;
   //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
   //else we should use field objects from the original variant
-  auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor)
+  auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
         || query_field_idx == m_GT_query_idx))
     ? m_remapped_variant : variant;
   auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
@@ -419,7 +417,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto query_field_idx = BCF_FORMAT_GET_QUERY_FIELD_IDX(curr_tuple);
     auto length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(query_field_idx);
     //Fields such as PL are skipped if the #alleles is above a certain threshold
-    if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor)
+    if(length_descriptor.is_length_genotype_dependent()
         && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
       continue;
     auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(curr_tuple);
@@ -429,7 +427,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
     //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
     //else we should use field objects from the original variant
-    auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor) || query_field_idx == m_GT_query_idx))
+    auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
+          || query_field_idx == m_GT_query_idx))
         ? m_remapped_variant : variant;
     auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements,
@@ -447,9 +446,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
             auto num_elements_per_sample = num_elements/variant.get_num_calls();
             //GT of type 0/2 is stored as [0,0,2] in GenomicsDB if phased ploidy is used, else [0, 2]
             //GT of type 0|2 is stored as [0,1,2] in GenomicsDB if phased ploidy is used, else [0, 2]
-            auto max_ploidy = KnownFieldInfo::get_ploidy(
-                m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx),
-                num_elements_per_sample);
+            auto max_ploidy = length_descriptor.get_ploidy(num_elements_per_sample);
             uint64_t output_idx = 0ull;
             for(j=0ull;j<num_elements;j+=num_elements_per_sample)
               (*m_encode_GT_vector_function_ptr)(int_vec, j, num_elements_per_sample, output_idx);
@@ -713,7 +710,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       auto* original_GT_field_ptr = (m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
           ? curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx) : 0;
       if(original_GT_field_ptr && original_GT_field_ptr->is_valid())
-        ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, original_GT_field_ptr->get().size());
+        ploidy = GT_length_descriptor.get_ploidy(original_GT_field_ptr->get().size());
       else
         original_GT_field_ptr = 0;
       auto lowest_deletion_allele_idx = -1;
@@ -782,9 +779,9 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto query_field_idx = m_remapped_fields_query_idxs[i];
         auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
         //field whose length is dependent on #alleles
-        assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
+        assert(length_descriptor.is_length_allele_dependent());
         unsigned num_reduced_elements =
-          KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
+          length_descriptor.get_num_elements(num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
         //Remapper for variant
         RemappedVariant remapper_variant(variant, query_field_idx); 
         auto& curr_field = curr_call.get_field(query_field_idx);

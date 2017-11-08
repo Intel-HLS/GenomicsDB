@@ -135,6 +135,29 @@ size_t FileInfo::get_num_orders() const
   return num_orders;
 }
 
+void FieldLengthDescriptor::set_length_descriptor(const int length_dim_idx, const int length_descriptor)
+{
+  assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
+  auto& curr_length_descriptor_component = m_length_descriptor_vec[length_dim_idx];
+  curr_length_descriptor_component.m_length_descriptor = length_descriptor;
+  m_is_fixed_length_field = m_is_fixed_length_field && (length_descriptor == BCF_VL_FIXED);
+  m_is_length_genotype_dependent = m_is_length_genotype_dependent
+    || KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor);
+  m_is_length_allele_dependent = m_is_length_allele_dependent
+    || KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor);
+  m_is_length_all_alleles_dependent = m_is_length_all_alleles_dependent
+    || KnownFieldInfo::is_length_descriptor_all_alleles_dependent(length_descriptor);
+  m_is_length_ploidy_dependent = m_is_length_ploidy_dependent
+    || KnownFieldInfo::is_length_descriptor_ploidy_dependent(length_descriptor);
+}
+
+size_t FieldLengthDescriptor::get_num_elements(const unsigned num_ALT_alleles, const unsigned ploidy, const unsigned num_elements)
+{
+  assert(get_num_dimensions() == 1u);
+  return KnownFieldInfo::get_num_elements_given_length_descriptor(get_length_descriptor(0u),
+      num_ALT_alleles, ploidy, num_elements);
+}
+
 void VidMapper::clear()
 {
   m_callset_name_to_row_idx.clear();
@@ -312,7 +335,9 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
     {
       attribute_names.push_back(field_info.m_name);
       types.push_back(field_info.m_type_index);
-      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : TILEDB_VAR_NUM);
+      num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
+          ? field_info.m_length_descriptor.get_num_elements()
+          : TILEDB_VAR_NUM);
     }
   }
   //FORMAT fields
@@ -327,7 +352,9 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
       else
         attribute_names.push_back(field_info.m_name);
       types.push_back(field_info.m_type_index);
-      num_vals.push_back(field_info.m_length_descriptor == BCF_VL_FIXED ? field_info.m_num_elements : TILEDB_VAR_NUM);
+      num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
+          ? field_info.m_length_descriptor.get_num_elements()
+          : TILEDB_VAR_NUM);
     }
   }
   //COORDS
@@ -752,46 +779,17 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
           }
         }
         if(field_info_dict.HasMember("length"))
-        {
-          const auto& length_json_value = field_info_dict["length"];
-          if(length_json_value.IsInt64())
-            m_field_idx_to_info[field_idx].m_num_elements = length_json_value.GetInt64();
-          else
-          {
-            VERIFY_OR_THROW(length_json_value.IsString());
-            auto length_value_str = length_json_value.GetString();
-            auto length_value_upper_case_str = std::move(std::string(length_value_str));
-            for(auto i=0u;i<length_value_upper_case_str.length();++i)
-              length_value_upper_case_str[i] = toupper(length_value_upper_case_str[i]);
-            auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_upper_case_str);
-            if(iter == VidMapper::m_length_descriptor_string_to_int.end())
-            {
-              //JSON produced by Protobuf specifies fixed length field lengths as strings - e.g. "1"
-              char* endptr = 0;
-              auto length_value_int = strtoull(length_value_str, &endptr, 0);
-              auto num_chars_traversed = endptr-length_value_str;
-              if(length_json_value.GetStringLength() > 0u
-                  && num_chars_traversed == length_json_value.GetStringLength()) //whole string is an integer
-                m_field_idx_to_info[field_idx].m_num_elements = length_value_int;
-              else
-              {
-                std::cerr << "WARNING: unknown length descriptor " << length_value_str
-                  << " for field " << field_name  << " ; setting to 'VAR'\n";
-                m_field_idx_to_info[field_idx].m_length_descriptor = BCF_VL_VAR;
-              }
-            }
-            else
-              m_field_idx_to_info[field_idx].m_length_descriptor = (*iter).second;
-          }
-        }
+          parse_length_descriptor(field_name.c_str(),
+              field_info_dict["length"], m_field_idx_to_info[field_idx].m_length_descriptor, 0u);
         else
         {
           if(is_known_field)
           {
-            auto length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-            m_field_idx_to_info[field_idx].m_length_descriptor = length_descriptor;
-            if(length_descriptor == BCF_VL_FIXED)
-              m_field_idx_to_info[field_idx].m_num_elements = KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u);  //don't care about ploidy
+            auto length_descriptor_code = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
+            m_field_idx_to_info[field_idx].m_length_descriptor.set_length_descriptor(0u, length_descriptor_code);
+            if(length_descriptor_code == BCF_VL_FIXED)
+              m_field_idx_to_info[field_idx].m_length_descriptor.set_num_elements(0u,
+                  KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u));  //don't care about ploidy
           }
         }
         if(field_info_dict.HasMember("VCF_field_combine_operation"))
@@ -804,7 +802,7 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
           m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
           //Concatenate can only be used for VAR length fields
           if(m_field_idx_to_info[field_idx].m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
-              && m_field_idx_to_info[field_idx].m_length_descriptor != BCF_VL_VAR)
+              && m_field_idx_to_info[field_idx].m_length_descriptor.get_length_descriptor(0u) != BCF_VL_VAR)
             throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
                 +" field "+field_name+" does not have 'VAR' as its length descriptor");
         }
@@ -854,8 +852,84 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
     }
     if(duplicate_fields_exist)
       throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
-  } 
+  }
   m_is_initialized = true;
+}
+
+void FileBasedVidMapper::parse_length_descriptor(const char* field_name,
+    const rapidjson::Value& length_json_value,
+    FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx)
+{
+  if(length_json_value.IsInt64())
+    length_descriptor.set_num_elements(length_dim_idx, length_json_value.GetInt64());
+  else
+    if(length_json_value.IsString())
+      parse_string_length_descriptor(field_name,
+          length_json_value.GetString(),
+          length_json_value.GetStringLength(),
+          length_descriptor, length_dim_idx);
+    else
+    {
+      //Protobuf produces a JSON which looks like this:
+      //"length" : [ { "variable_length_descriptor": "R" },  { "fixed_length" : 2 } ]
+      if(length_json_value.IsObject())
+      {
+        if(length_json_value.HasMember("variable_length_descriptor"))
+        {
+          auto& str_value = length_json_value["variable_length_descriptor"];
+          VERIFY_OR_THROW(str_value.IsString());
+          parse_string_length_descriptor(field_name,
+              str_value.GetString(),
+              str_value.GetStringLength(),
+              length_descriptor, length_dim_idx);
+        }
+        else
+        {
+          VERIFY_OR_THROW(length_json_value.HasMember("fixed_length"));
+          auto& int_value = length_json_value["fixed_length"];
+          VERIFY_OR_THROW(int_value.IsInt64());
+          length_descriptor.set_num_elements(length_dim_idx, int_value.GetInt64());
+        }
+      }
+      else
+      {
+        //MultiD array of form [ "R", "var", { "variable_length_descriptor": "A" } ] ..
+        VERIFY_OR_THROW(length_json_value.IsArray());
+        length_descriptor.resize(length_json_value.Size());
+        for(rapidjson::SizeType idx=0u;idx<length_json_value.Size();++idx)
+          parse_length_descriptor(field_name, length_json_value[idx], length_descriptor, idx);
+      }
+    }
+}
+
+void VidMapper::parse_string_length_descriptor(
+    const char* field_name,
+    const char* length_value_str,
+    const size_t length_value_str_length,
+    FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx)
+{
+  auto length_value_upper_case_str = std::move(std::string(length_value_str));
+  for(auto i=0u;i<length_value_upper_case_str.length();++i)
+    length_value_upper_case_str[i] = toupper(length_value_upper_case_str[i]);
+  auto iter = VidMapper::m_length_descriptor_string_to_int.find(length_value_upper_case_str);
+  if(iter == VidMapper::m_length_descriptor_string_to_int.end())
+  {
+    //JSON produced by Protobuf specifies fixed length field lengths as strings - e.g. "1"
+    char* endptr = 0;
+    auto length_value_int = strtoull(length_value_str, &endptr, 0);
+    auto num_chars_traversed = endptr-length_value_str;
+    if(length_value_str_length > 0u
+        && static_cast<size_t>(num_chars_traversed) == length_value_str_length) //whole string is an integer
+      length_descriptor.set_num_elements(length_dim_idx, length_value_int);
+    else
+    {
+      std::cerr << "WARNING: unknown length descriptor " << length_value_str
+        << " for field " << field_name  << " ; setting to 'VAR'\n";
+      length_descriptor.set_length_descriptor(length_dim_idx, BCF_VL_VAR);
+    }
+  }
+  else
+    length_descriptor.set_length_descriptor(length_dim_idx, (*iter).second);
 }
 
 void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std::vector<BufferStreamInfo>& buffer_stream_info_vec,

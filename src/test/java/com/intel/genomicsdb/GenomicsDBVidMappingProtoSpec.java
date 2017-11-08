@@ -50,29 +50,34 @@ public class GenomicsDBVidMappingProtoSpec {
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField2 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
+        GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("VAR");
     GenomicsDBVidMapProto.InfoField pgt =
       infoField2
         .setName("PGT")
         .setType("char")
-        .setLength("VAR")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField3 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("P");
     GenomicsDBVidMapProto.InfoField gt =
       infoField3
         .setName("PASS")
         .setType("int")
-        .setLength("P")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoFormatField =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("R");
     GenomicsDBVidMapProto.InfoField dp =
       infoFormatField
         .setName("DP")
         .setType("int")
-        .setLength("R")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .addVcfFieldClass("INFO")
         .build();

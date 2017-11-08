@@ -122,7 +122,7 @@ class VariantOperations
      */
     static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
         const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx,
-        const unsigned num_merged_alleles, const bool has_NON_REF, const unsigned length_descriptor);
+        const unsigned num_merged_alleles, const bool has_NON_REF, const FieldLengthDescriptor& length_descriptor);
     /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
@@ -396,7 +396,7 @@ class VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
-        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+        const FieldLengthDescriptor& length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
@@ -437,7 +437,7 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
-        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
+        const FieldLengthDescriptor& length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
     /*
      * Computes median for a given field over all Calls (only considers calls with valid field)
      */

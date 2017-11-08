@@ -853,7 +853,10 @@ public class GenomicsDBImporter
     //ID field
     GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder =
         GenomicsDBVidMapProto.InfoField.newBuilder();
-    IDFieldBuilder.setName("ID").setType("char").setLength("var");
+    GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
+        GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var");
+    IDFieldBuilder.setName("ID").setType("char").addLength(lengthDescriptorComponentBuilder.build());
     infoFields.add(IDFieldBuilder.build());
 
     int dpIndex = -1;
@@ -869,10 +872,12 @@ public class GenomicsDBImporter
         String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
         String genomicsDBLength = isGT ? "PP" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
             ? "VAR" : getLength(formatHeaderLine);
+        lengthDescriptorComponentBuilder.setVariableLengthDescriptor(genomicsDBLength);
+
         infoBuilder
           .setName(formatHeaderLine.getID())
           .setType(genomicsDBType)
-          .setLength(genomicsDBLength);
+          .addLength(lengthDescriptorComponentBuilder.build());
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
@@ -893,10 +898,12 @@ public class GenomicsDBImporter
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
 
+        lengthDescriptorComponentBuilder.setVariableLengthDescriptor(
+                infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
         infoBuilder
           .setName(infoHeaderLine.getID())
           .setType(infoHeaderLine.getType().toString())
-          .setLength(infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
+          .addLength(lengthDescriptorComponentBuilder.build());
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);

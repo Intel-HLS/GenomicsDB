@@ -346,12 +346,11 @@ class VariantQueryProcessor {
         ) const;
     /*
      * Prep work for filling out a field_ptr
-     * Allocates field_ptr using the Factory
+     * Allocates field_ptr using the Factory (if null)
      * Marks field_ptr as valid
-     * Gets length_descriptor, num_elements for known fields
      */
-    void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, const VariantQueryConfig& query_config, const unsigned query_idx,
-        unsigned& length_descriptor, unsigned& num_elements) const;
+    void fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr, const VariantQueryConfig& query_config,
+        const unsigned query_idx) const;
     /*
      * VariantStorage manager
      */

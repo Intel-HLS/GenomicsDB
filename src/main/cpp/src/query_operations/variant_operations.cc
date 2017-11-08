@@ -231,10 +231,10 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
  */
 void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
     const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx, const unsigned num_merged_alleles, const bool NON_REF_exists,
-    const unsigned length_descriptor)
+    const FieldLengthDescriptor& length_descriptor)
 {
   assert(input_GT.size() == output_GT.size());
-  auto should_store_phase_information = (length_descriptor == BCF_VL_Phased_Ploidy);
+  auto should_store_phase_information = length_descriptor.contains_phase_information();
   auto step = should_store_phase_information ? 2u : 1u;
   for(auto i=0u;i<input_GT.size();i+=step)
   {
@@ -304,7 +304,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
         query_config.get_query_idx_for_known_field_enum(GVCF_GT_IDX)
         );
     auto ploidy = (GT_field_ptr && GT_field_ptr->is_valid())
-      ? KnownFieldInfo::get_ploidy(length_descriptor, GT_field_ptr->get().size()) : 2u;
+      ? length_descriptor.get_ploidy(GT_field_ptr->get().size()) : 2u;
     if(PL_field_ptr && PL_field_ptr->is_valid())
     {
       std::vector<int> tmp_allele_idx_vec;
@@ -415,7 +415,7 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
     //Does the length dependent on number of alleles
-    if(KnownFieldInfo::is_length_descriptor_allele_dependent(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx)))
+    if(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx).is_length_allele_dependent())
       m_remapped_fields_query_idxs.push_back(query_field_idx);
     //GT field
     if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
@@ -505,8 +505,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
             remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
           VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant,
               num_merged_alleles, m_NON_REF_exists, GT_length_descriptor);
-          m_ploidy[curr_call_idx_in_variant] = KnownFieldInfo::get_ploidy(GT_length_descriptor,
-            input_GT.size());
+          m_ploidy[curr_call_idx_in_variant] = GT_length_descriptor.get_ploidy(input_GT.size());
         }
       }
     }
@@ -514,9 +513,10 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     {
       auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
       //field length depends on #alleles
-      assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
+      assert(length_descriptor.is_length_allele_dependent());
       //Fields such as PL should be skipped, if the #alleles is above a threshold
-      if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor) && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
+      if(length_descriptor.is_length_genotype_dependent()
+        && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
       {
         std::cerr << "Column "<<variant.get_column_begin() <<" has too many alleles in the combined VCF record : "<<num_merged_alleles-1
           << " : current limit : "<<m_max_diploid_alt_alleles_that_can_be_genotyped
@@ -537,8 +537,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
         {
           auto curr_ploidy = m_ploidy[curr_call_idx_in_variant];
           unsigned num_merged_elements =
-            KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_merged_alleles-1u,
-                curr_ploidy, 0u);  //#alt alleles, current ploidy
+            length_descriptor.get_num_elements(num_merged_alleles-1u, curr_ploidy, 0u);  //#alt alleles, current ploidy
           remapped_field->resize(num_merged_elements);
           //Get handler for current type
           auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
@@ -799,8 +798,8 @@ AlleleCountOperator::AlleleCountOperator(const VidMapper& vid_mapper, const Vari
   if(m_ALT_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
     throw VariantOperationException("ALT field must be queried for AlleleCountOperator");
   auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
-  m_GT_step_value = (GT_length_descriptor == BCF_VL_Phased_Ploidy) ? 2u : 1u;
+  assert(GT_length_descriptor.is_length_ploidy_dependent());
+  m_GT_step_value = GT_length_descriptor.get_ploidy_step_value();
 }
 
 //Unoptimized iterator only traverses single query position/interval

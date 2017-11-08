@@ -232,7 +232,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_base_reader_ptr = 0;
   m_histogram = 0;
   auto* GT_field_info_ptr = vid_mapper.get_field_info("GT");
-  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor == BCF_VL_Phased_Ploidy);
+  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor.contains_phase_information());
 }
 
 void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds)

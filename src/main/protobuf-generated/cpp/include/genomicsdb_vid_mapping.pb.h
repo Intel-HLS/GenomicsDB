@@ -35,10 +35,133 @@ void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
 void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
 
 class Chromosome;
+class FieldLengthDescriptorComponentPB;
 class InfoField;
 class VidMappingPB;
 
 // ===================================================================
+
+class FieldLengthDescriptorComponentPB : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:FieldLengthDescriptorComponentPB) */ {
+ public:
+  FieldLengthDescriptorComponentPB();
+  virtual ~FieldLengthDescriptorComponentPB();
+
+  FieldLengthDescriptorComponentPB(const FieldLengthDescriptorComponentPB& from);
+
+  inline FieldLengthDescriptorComponentPB& operator=(const FieldLengthDescriptorComponentPB& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const FieldLengthDescriptorComponentPB& default_instance();
+
+  enum LengthDescriptorCase {
+    kVariableLengthDescriptor = 1,
+    kFixedLength = 2,
+    LENGTH_DESCRIPTOR_NOT_SET = 0,
+  };
+
+  void Swap(FieldLengthDescriptorComponentPB* other);
+
+  // implements Message ----------------------------------------------
+
+  inline FieldLengthDescriptorComponentPB* New() const { return New(NULL); }
+
+  FieldLengthDescriptorComponentPB* New(::google::protobuf::Arena* arena) const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const FieldLengthDescriptorComponentPB& from);
+  void MergeFrom(const FieldLengthDescriptorComponentPB& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const {
+    return InternalSerializeWithCachedSizesToArray(false, output);
+  }
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(FieldLengthDescriptorComponentPB* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string variable_length_descriptor = 1;
+  bool has_variable_length_descriptor() const;
+  void clear_variable_length_descriptor();
+  static const int kVariableLengthDescriptorFieldNumber = 1;
+  const ::std::string& variable_length_descriptor() const;
+  void set_variable_length_descriptor(const ::std::string& value);
+  void set_variable_length_descriptor(const char* value);
+  void set_variable_length_descriptor(const char* value, size_t size);
+  ::std::string* mutable_variable_length_descriptor();
+  ::std::string* release_variable_length_descriptor();
+  void set_allocated_variable_length_descriptor(::std::string* variable_length_descriptor);
+
+  // optional int32 fixed_length = 2;
+  bool has_fixed_length() const;
+  void clear_fixed_length();
+  static const int kFixedLengthFieldNumber = 2;
+  ::google::protobuf::int32 fixed_length() const;
+  void set_fixed_length(::google::protobuf::int32 value);
+
+  LengthDescriptorCase length_descriptor_case() const;
+  // @@protoc_insertion_point(class_scope:FieldLengthDescriptorComponentPB)
+ private:
+  inline void set_has_variable_length_descriptor();
+  inline void set_has_fixed_length();
+
+  inline bool has_length_descriptor() const;
+  void clear_length_descriptor();
+  inline void clear_has_length_descriptor();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  union LengthDescriptorUnion {
+    LengthDescriptorUnion() {}
+    ::google::protobuf::internal::ArenaStringPtr variable_length_descriptor_;
+    ::google::protobuf::int32 fixed_length_;
+  } length_descriptor_;
+  ::google::protobuf::uint32 _oneof_case_[1];
+
+  friend void  protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
+  friend void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
+  friend void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
+
+  void InitAsDefaultInstance();
+  static FieldLengthDescriptorComponentPB* default_instance_;
+};
+// -------------------------------------------------------------------
 
 class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:InfoField) */ {
  public:
@@ -148,17 +271,17 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
   const ::google::protobuf::RepeatedPtrField< ::std::string>& vcf_field_class() const;
   ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_vcf_field_class();
 
-  // optional string length = 4 [default = "1"];
-  bool has_length() const;
+  // repeated .FieldLengthDescriptorComponentPB length = 4;
+  int length_size() const;
   void clear_length();
   static const int kLengthFieldNumber = 4;
-  const ::std::string& length() const;
-  void set_length(const ::std::string& value);
-  void set_length(const char* value);
-  void set_length(const char* value, size_t size);
-  ::std::string* mutable_length();
-  ::std::string* release_length();
-  void set_allocated_length(::std::string* length);
+  const ::FieldLengthDescriptorComponentPB& length(int index) const;
+  ::FieldLengthDescriptorComponentPB* mutable_length(int index);
+  ::FieldLengthDescriptorComponentPB* add_length();
+  ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >*
+      mutable_length();
+  const ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >&
+      length() const;
 
   // @@protoc_insertion_point(class_scope:InfoField)
  private:
@@ -166,8 +289,6 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
   inline void clear_has_name();
   inline void set_has_type();
   inline void clear_has_type();
-  inline void set_has_length();
-  inline void clear_has_length();
 
   // helper for ByteSize()
   int RequiredFieldsByteSizeFallback() const;
@@ -178,8 +299,7 @@ class InfoField : public ::google::protobuf::Message /* @@protoc_insertion_point
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr type_;
   ::google::protobuf::RepeatedPtrField< ::std::string> vcf_field_class_;
-  static ::std::string* _default_length_;
-  ::google::protobuf::internal::ArenaStringPtr length_;
+  ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB > length_;
   friend void  protobuf_AddDesc_genomicsdb_5fvid_5fmapping_2eproto();
   friend void protobuf_AssignDesc_genomicsdb_5fvid_5fmapping_2eproto();
   friend void protobuf_ShutdownFile_genomicsdb_5fvid_5fmapping_2eproto();
@@ -423,6 +543,129 @@ class VidMappingPB : public ::google::protobuf::Message /* @@protoc_insertion_po
 // ===================================================================
 
 #if !PROTOBUF_INLINE_NOT_IN_HEADERS
+// FieldLengthDescriptorComponentPB
+
+// optional string variable_length_descriptor = 1;
+inline bool FieldLengthDescriptorComponentPB::has_variable_length_descriptor() const {
+  return length_descriptor_case() == kVariableLengthDescriptor;
+}
+inline void FieldLengthDescriptorComponentPB::set_has_variable_length_descriptor() {
+  _oneof_case_[0] = kVariableLengthDescriptor;
+}
+inline void FieldLengthDescriptorComponentPB::clear_variable_length_descriptor() {
+  if (has_variable_length_descriptor()) {
+    length_descriptor_.variable_length_descriptor_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    clear_has_length_descriptor();
+  }
+}
+inline const ::std::string& FieldLengthDescriptorComponentPB::variable_length_descriptor() const {
+  // @@protoc_insertion_point(field_get:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (has_variable_length_descriptor()) {
+    return length_descriptor_.variable_length_descriptor_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  return *&::google::protobuf::internal::GetEmptyStringAlreadyInited();
+}
+inline void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+inline void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const char* value) {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+inline void FieldLengthDescriptorComponentPB::set_variable_length_descriptor(const char* value, size_t size) {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  length_descriptor_.variable_length_descriptor_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+inline ::std::string* FieldLengthDescriptorComponentPB::mutable_variable_length_descriptor() {
+  if (!has_variable_length_descriptor()) {
+    clear_length_descriptor();
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_mutable:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  return length_descriptor_.variable_length_descriptor_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* FieldLengthDescriptorComponentPB::release_variable_length_descriptor() {
+  // @@protoc_insertion_point(field_release:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+  if (has_variable_length_descriptor()) {
+    clear_has_length_descriptor();
+    return length_descriptor_.variable_length_descriptor_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  } else {
+    return NULL;
+  }
+}
+inline void FieldLengthDescriptorComponentPB::set_allocated_variable_length_descriptor(::std::string* variable_length_descriptor) {
+  if (!has_variable_length_descriptor()) {
+    length_descriptor_.variable_length_descriptor_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  clear_length_descriptor();
+  if (variable_length_descriptor != NULL) {
+    set_has_variable_length_descriptor();
+    length_descriptor_.variable_length_descriptor_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+        variable_length_descriptor);
+  }
+  // @@protoc_insertion_point(field_set_allocated:FieldLengthDescriptorComponentPB.variable_length_descriptor)
+}
+
+// optional int32 fixed_length = 2;
+inline bool FieldLengthDescriptorComponentPB::has_fixed_length() const {
+  return length_descriptor_case() == kFixedLength;
+}
+inline void FieldLengthDescriptorComponentPB::set_has_fixed_length() {
+  _oneof_case_[0] = kFixedLength;
+}
+inline void FieldLengthDescriptorComponentPB::clear_fixed_length() {
+  if (has_fixed_length()) {
+    length_descriptor_.fixed_length_ = 0;
+    clear_has_length_descriptor();
+  }
+}
+inline ::google::protobuf::int32 FieldLengthDescriptorComponentPB::fixed_length() const {
+  // @@protoc_insertion_point(field_get:FieldLengthDescriptorComponentPB.fixed_length)
+  if (has_fixed_length()) {
+    return length_descriptor_.fixed_length_;
+  }
+  return 0;
+}
+inline void FieldLengthDescriptorComponentPB::set_fixed_length(::google::protobuf::int32 value) {
+  if (!has_fixed_length()) {
+    clear_length_descriptor();
+    set_has_fixed_length();
+  }
+  length_descriptor_.fixed_length_ = value;
+  // @@protoc_insertion_point(field_set:FieldLengthDescriptorComponentPB.fixed_length)
+}
+
+inline bool FieldLengthDescriptorComponentPB::has_length_descriptor() const {
+  return length_descriptor_case() != LENGTH_DESCRIPTOR_NOT_SET;
+}
+inline void FieldLengthDescriptorComponentPB::clear_has_length_descriptor() {
+  _oneof_case_[0] = LENGTH_DESCRIPTOR_NOT_SET;
+}
+inline FieldLengthDescriptorComponentPB::LengthDescriptorCase FieldLengthDescriptorComponentPB::length_descriptor_case() const {
+  return FieldLengthDescriptorComponentPB::LengthDescriptorCase(_oneof_case_[0]);
+}
+// -------------------------------------------------------------------
+
 // InfoField
 
 // required string name = 1;
@@ -588,58 +831,34 @@ InfoField::mutable_vcf_field_class() {
   return &vcf_field_class_;
 }
 
-// optional string length = 4 [default = "1"];
-inline bool InfoField::has_length() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
-}
-inline void InfoField::set_has_length() {
-  _has_bits_[0] |= 0x00000008u;
-}
-inline void InfoField::clear_has_length() {
-  _has_bits_[0] &= ~0x00000008u;
+// repeated .FieldLengthDescriptorComponentPB length = 4;
+inline int InfoField::length_size() const {
+  return length_.size();
 }
 inline void InfoField::clear_length() {
-  length_.ClearToDefaultNoArena(_default_length_);
-  clear_has_length();
+  length_.Clear();
 }
-inline const ::std::string& InfoField::length() const {
+inline const ::FieldLengthDescriptorComponentPB& InfoField::length(int index) const {
   // @@protoc_insertion_point(field_get:InfoField.length)
-  return length_.GetNoArena(_default_length_);
+  return length_.Get(index);
 }
-inline void InfoField::set_length(const ::std::string& value) {
-  set_has_length();
-  length_.SetNoArena(_default_length_, value);
-  // @@protoc_insertion_point(field_set:InfoField.length)
-}
-inline void InfoField::set_length(const char* value) {
-  set_has_length();
-  length_.SetNoArena(_default_length_, ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:InfoField.length)
-}
-inline void InfoField::set_length(const char* value, size_t size) {
-  set_has_length();
-  length_.SetNoArena(_default_length_,
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:InfoField.length)
-}
-inline ::std::string* InfoField::mutable_length() {
-  set_has_length();
+inline ::FieldLengthDescriptorComponentPB* InfoField::mutable_length(int index) {
   // @@protoc_insertion_point(field_mutable:InfoField.length)
-  return length_.MutableNoArena(_default_length_);
+  return length_.Mutable(index);
 }
-inline ::std::string* InfoField::release_length() {
-  // @@protoc_insertion_point(field_release:InfoField.length)
-  clear_has_length();
-  return length_.ReleaseNoArena(_default_length_);
+inline ::FieldLengthDescriptorComponentPB* InfoField::add_length() {
+  // @@protoc_insertion_point(field_add:InfoField.length)
+  return length_.Add();
 }
-inline void InfoField::set_allocated_length(::std::string* length) {
-  if (length != NULL) {
-    set_has_length();
-  } else {
-    clear_has_length();
-  }
-  length_.SetAllocatedNoArena(_default_length_, length);
-  // @@protoc_insertion_point(field_set_allocated:InfoField.length)
+inline ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >*
+InfoField::mutable_length() {
+  // @@protoc_insertion_point(field_mutable_list:InfoField.length)
+  return &length_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::FieldLengthDescriptorComponentPB >&
+InfoField::length() const {
+  // @@protoc_insertion_point(field_list:InfoField.length)
+  return length_;
 }
 
 // -------------------------------------------------------------------
@@ -813,6 +1032,8 @@ VidMappingPB::contigs() const {
 }
 
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

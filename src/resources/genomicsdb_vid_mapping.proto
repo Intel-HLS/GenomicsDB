@@ -33,12 +33,18 @@ syntax = "proto2";
 option java_package = "com.intel.genomicsdb";
 option java_outer_classname = "GenomicsDBVidMapProto";
 
+message FieldLengthDescriptorComponentPB {
+  oneof length_descriptor {
+    string variable_length_descriptor = 1;
+    int32 fixed_length = 2;
+  }
+}
 
 message InfoField {
   required string name = 1;
   required string type = 2;
   repeated string vcf_field_class = 3;
-  optional string length = 4 [default = "1"];
+  repeated FieldLengthDescriptorComponentPB length = 4;
 }
 
 message Chromosome {

@@ -367,34 +367,34 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
             ref.m_is_vcf_FILTER_field = true;
       }
     }
-    if (vid_map_protobuf->fields(pb_field_idx).has_length()) {
-      std::string length = vid_map_protobuf->fields(pb_field_idx).length();
-      if (isdigit(length.c_str()[0])) {
-        ref.m_num_elements =
-            strtol(length.c_str(), NULL, 10);
-      } else {
-        auto iter = VidMapper::m_length_descriptor_string_to_int.find(length);
-        if (iter == VidMapper::m_length_descriptor_string_to_int.end()) {
-          ref.m_length_descriptor = BCF_VL_VAR;
-        } else {
-          ref.m_length_descriptor = (*iter).second;
+    if (vid_map_protobuf->fields(pb_field_idx).length_size() > 0) {
+      for(auto i=0;i<vid_map_protobuf->fields(pb_field_idx).length_size();++i)
+      {
+        auto& pb_length_descriptor_component = vid_map_protobuf->fields(pb_field_idx).length(i);
+        if(pb_length_descriptor_component.has_fixed_length())
+          ref.m_length_descriptor.set_num_elements(i, pb_length_descriptor_component.fixed_length());
+        else
+        {
+          assert(pb_length_descriptor_component.has_variable_length_descriptor());
+          parse_string_length_descriptor(field_name.c_str(),
+              pb_length_descriptor_component.variable_length_descriptor().c_str(),
+              pb_length_descriptor_component.variable_length_descriptor().size(),
+              ref.m_length_descriptor, i);
         }
       }
     } else {
       if(is_known_field) {
-        auto length_descriptor =
+        auto length_descriptor_code =
             KnownFieldInfo::get_length_descriptor_for_known_field_enum(
                 known_field_enum);
-        ref.m_length_descriptor = length_descriptor;
-        if(length_descriptor == BCF_VL_FIXED)
-          ref.m_num_elements =
+        ref.m_length_descriptor.set_length_descriptor(0u, length_descriptor_code);
+        if(length_descriptor_code == BCF_VL_FIXED)
+          ref.m_length_descriptor.set_num_elements(0u,
               KnownFieldInfo::get_num_elements_for_known_field_enum(
                   known_field_enum,
                   0u,
-                  0u);  //don't care about ploidy
-      } else {
-        ref.m_num_elements = 1;
-        ref.m_length_descriptor = BCF_VL_FIXED;
+                  0u)
+              );  //don't care about ploidy
       }
     }
 
