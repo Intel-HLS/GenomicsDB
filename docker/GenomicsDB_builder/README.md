@@ -37,7 +37,7 @@ The centos:7 is the base image of GenomicsDB building environment Docker image.
 * GDB-builder_centos/other files are part of RedHat template.
 
 ##### Usage:
-<code>
+
 1. set an environment variable MY_DOCKER_ROOT that point to your_GenomicsDB_root/docker/GenomicsDB_builder
 2. run <b>'dp_builder.bash'</b> this script creates a docker image name 'genomicsdb_builder'. The docker image sets up environment for building GenomicsDB.
 3. set an environment variable GENOME_VOLUME=genome-shared. Docker 'genomicsdb_builder' uses docker volume $GENOME_VOLUME, where it stores the outputs.   
@@ -45,4 +45,3 @@ The centos:7 is the base image of GenomicsDB building environment Docker image.
     where the 'branch name' is a GenommicsDB github branch. The default branch name is 'master'
     this script pulls the latest version of the selected branch from github, then builds the images.
 5. Once the image is built, just run "dp_run_builder.bash [branch name]" to build GenomicsDB. The instances are named for easy backtracking.
-</code>    
