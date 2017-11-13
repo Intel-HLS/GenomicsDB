@@ -28,15 +28,21 @@ utilities. The details about building GenomicsDB can be found at [GenomicsDB Wik
 
 The centos:7 is the base image of GenomicsDB building environment Docker image.
 
-The 2 bash scripts are used for creating docker image and running instance respectively. The scripts are suitable for our environment. You may need adapt the scripts to your environment, especially the network part.
+##### Files:
+* dp_builder.bash - shell script for building the docker image
+* dp_run_builder - shell script for running the built docker image
+* cont-gdb_builder.bash - shell script for building GenomicsDB
+* enabledevtoolset-4.sh - shell script for enable centos dev tools.
+* GDB-builder_centos/Dockerfile - docker script
+* GDB-builder_centos/other files are part of RedHat template.
 
-Usage:
-
-1. <code>run 'dp_builder.bash'</code>   
-    this script creates a docker image name 'genomicsdb_builder'
-2. <code>run 'dp_run_builder.bash [branch name]', 
-    where the 'branch name' is a GenommicsDB github branch. The default branch name is 'master'</code>
-     this script runs the docker image 'genomicsdb_builder' that builds GenomicdDB software. The docker instance is name as "GDB-{branch_name}_{timestamp}", example "GDB-branch1_171030_1230"
-3. the rest code are part of docker building.
-
-The docker instance normally are named with generated UUID. User named instances make identify the instances easy, which is useful for backtracking.
+##### Usage:
+<code>
+1. set an environment variable MY_DOCKER_ROOT that point to your_GenomicsDB_root/docker/GenomicsDB_builder
+2. run <b>'dp_builder.bash'</b> this script creates a docker image name 'genomicsdb_builder'. The docker image sets up environment for building GenomicsDB.
+3. set an environment variable GENOME_VOLUME=genome-shared. Docker 'genomicsdb_builder' uses docker volume $GENOME_VOLUME, where it stores the outputs.   
+4. run <b>'dp_run_builder.bash [branch name]'</b>, 
+    where the 'branch name' is a GenommicsDB github branch. The default branch name is 'master'
+    this script pulls the latest version of the selected branch from github, then builds the images.
+5. Once the image is built, just run "dp_run_builder.bash [branch name]" to build GenomicsDB. The instances are named for easy backtracking.
+</code>    
