@@ -334,7 +334,7 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
     if(field_info.m_is_vcf_INFO_field)
     {
       attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.m_type_index);
+      types.push_back(field_info.get_tiledb_type_index());
       num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
           ? field_info.m_length_descriptor.get_num_elements()
           : TILEDB_VAR_NUM);
@@ -351,7 +351,7 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
         attribute_names.push_back(field_info.m_name+"_FORMAT");
       else
         attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.m_type_index);
+      types.push_back(field_info.get_tiledb_type_index());
       num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
           ? field_info.m_length_descriptor.get_num_elements()
           : TILEDB_VAR_NUM);
@@ -751,14 +751,8 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         //Field type - int, char etc
         VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
         {
-          auto iter = VidMapper::m_typename_string_to_type_index.find(field_info_dict["type"].GetString());
-          VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end() && "Unhandled field type");
-          m_field_idx_to_info[field_idx].m_type_index = (*iter).second;
-        }
-        {
-          auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_info_dict["type"].GetString());
-          VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end() && "Unhandled field type");
-          m_field_idx_to_info[field_idx].m_bcf_ht_type = (*iter).second;
+          auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_info_dict["type"].GetString());
+          m_field_idx_to_info[field_idx].set_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
         }
         if(field_info_dict.HasMember("vcf_field_class"))
         {
@@ -811,6 +805,14 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
           if(is_known_field)
             m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
         }
+        //Sometimes the VCF type can be different from the real datatype of the field
+        //For example, for multi-D vectors, the VCF type is string: @$@#@#!#$%$%
+        if(field_info_dict.HasMember("vcf_type"))
+        {
+          VERIFY_OR_THROW(field_info_dict["vcf_type"].IsString());
+          auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_info_dict["vcf_type"].GetString());
+          m_field_idx_to_info[field_idx].set_vcf_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
+        }
         //Both INFO and FORMAT, throw another entry <field>_FORMAT
         if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
         {
@@ -847,8 +849,7 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
       auto& field_info = m_field_idx_to_info[end_idx];
       field_info.set_info("END", end_idx);
       field_info.m_is_vcf_INFO_field = true;
-      field_info.m_type_index = std::move(std::type_index(typeid(int)));
-      field_info.m_bcf_ht_type = BCF_HT_INT;
+      field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
     }
     if(duplicate_fields_exist)
       throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
@@ -930,6 +931,15 @@ void VidMapper::parse_string_length_descriptor(
   }
   else
     length_descriptor.set_length_descriptor(length_dim_idx, (*iter).second);
+}
+
+std::pair<std::type_index, int> VidMapper::get_type_index_and_bcf_ht_type(const char* type_string)
+{
+  auto type_index_iter = VidMapper::m_typename_string_to_type_index.find(type_string);
+  VERIFY_OR_THROW(type_index_iter != VidMapper::m_typename_string_to_type_index.end() && "Unhandled field type");
+  auto ht_type_iter = VidMapper::m_typename_string_to_bcf_ht_type.find(type_string);
+  VERIFY_OR_THROW(ht_type_iter != VidMapper::m_typename_string_to_bcf_ht_type.end() && "Unhandled field type");
+  return std::pair<std::type_index, int>((*type_index_iter).second, (*ht_type_iter).second);
 }
 
 void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std::vector<BufferStreamInfo>& buffer_stream_info_vec,

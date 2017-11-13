@@ -181,8 +181,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
         else
         {
           m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i,
-                VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
-                VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
+                VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
+                VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
                 field_info->m_vcf_name,
                 VCF_field_combine_operation));
           VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
@@ -191,8 +191,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       if(add_to_FORMAT_vector)
       {
         auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i,
-            VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
-            VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
+            VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
+            VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
             field_info->m_vcf_name);
         if((field_info->m_is_vcf_FORMAT_field)
             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)

@@ -338,16 +338,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     field_type = vid_map_protobuf->fields(pb_field_idx).type();
 
     {
-      auto iter = VidMapper::m_typename_string_to_type_index.find(field_type);
-      VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_type_index.end()
-          && "Field type not handled");
-      ref.m_type_index = (*iter).second;
-    }
-    {
-      auto iter = VidMapper::m_typename_string_to_bcf_ht_type.find(field_type);
-      VERIFY_OR_THROW(iter != VidMapper::m_typename_string_to_bcf_ht_type.end()
-          && "Field type not handled");
-      ref.m_bcf_ht_type = (*iter).second;
+      auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_type.c_str());
+      ref.set_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
     }
 
     // VCF class type can be an array of values: INFO, FORMAT and FILTER
@@ -430,8 +422,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     auto& field_info = m_field_idx_to_info[end_idx];
     field_info.set_info("END", end_idx);
     field_info.m_is_vcf_INFO_field = true;
-    field_info.m_type_index = std::move(std::type_index(typeid(int)));
-    field_info.m_bcf_ht_type = BCF_HT_INT;
+    field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
   }
   if(duplicate_fields_exist) {
     throw ProtoBufBasedVidMapperException(

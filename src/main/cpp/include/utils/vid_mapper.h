@@ -254,13 +254,16 @@ class FieldInfo
   friend class VidMapper;
   public:
     FieldInfo()
-      : m_type_index(typeid(void)), m_length_descriptor()
+      : m_tiledb_type_index(typeid(void)),
+        m_vcf_type_index(typeid(void)),
+        m_length_descriptor()
     {
       m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
-      m_bcf_ht_type = BCF_HT_VOID;
+      m_tiledb_bcf_ht_type = BCF_HT_VOID;
+      m_vcf_bcf_ht_type = BCF_HT_VOID;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
     }
     void set_info(const std::string& name, int idx)
@@ -269,6 +272,24 @@ class FieldInfo
       m_vcf_name = name;
       m_field_idx = idx;
     }
+    /*
+     * By default, both TileDB and VCF types are the same
+     */
+    void set_type(const std::type_index& curr_type, const int ht_type)
+    {
+      m_tiledb_type_index = curr_type;
+      m_vcf_type_index = curr_type;
+      m_tiledb_bcf_ht_type = ht_type;
+      m_vcf_bcf_ht_type = ht_type;
+    }
+    /*
+     * Set VCF type
+     */
+    void set_vcf_type(const std::type_index& curr_type, const int ht_type)
+    {
+      m_vcf_type_index = curr_type;
+      m_vcf_bcf_ht_type = ht_type;
+    }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -276,13 +297,20 @@ class FieldInfo
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;
-    //Type info
-    std::type_index m_type_index;
-    int m_bcf_ht_type;
     //Length descriptor
     FieldLengthDescriptor m_length_descriptor;
     //Combine operation for VCF INFO fields
     int m_VCF_field_combine_operation;
+    //Type information
+    const std::type_index& get_tiledb_type_index() const { return m_tiledb_type_index; }
+    int get_vcf_bcf_ht_type() const { return m_vcf_bcf_ht_type; }
+  private:
+    //Type info
+    std::type_index m_tiledb_type_index;
+    int m_tiledb_bcf_ht_type;
+    //VCF type info - could be different from TileDB type
+    std::type_index m_vcf_type_index;
+    int m_vcf_bcf_ht_type;
 };
 
 /*
@@ -558,6 +586,10 @@ class VidMapper
         const char* length_value_str,
         const size_t length_value_str_length,
         FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
+    /*
+     * Return std::type_index and BCF_HT_* value given a type_string
+     */
+    std::pair<std::type_index, int> get_type_index_and_bcf_ht_type(const char* type_string);
     /*
      * Get #fields in VidMapper
      */

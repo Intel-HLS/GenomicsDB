@@ -89,7 +89,7 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
       {
         assert(id_mapper->get_field_info(field_name));
         auto field_info = *(id_mapper->get_field_info(field_name)); 
-        if(field_info.m_bcf_ht_type != BCF_HT_FLAG)
+        if(field_info.get_vcf_bcf_ht_type() != BCF_HT_FLAG)
         {
           header_line += ",Number=";
           auto& length_descriptor = field_info.m_length_descriptor;
@@ -120,7 +120,7 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
           }
         }
         header_line += ",Type=";
-        switch(field_info.m_bcf_ht_type)
+        switch(field_info.get_vcf_bcf_ht_type())
         {
           case BCF_HT_FLAG:
             header_line += "Flag";
@@ -136,7 +136,7 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
             header_line += "String";
             break;
           default:
-            throw VCFAdapterException("Field type "+std::to_string(field_info.m_bcf_ht_type)+" not handled");
+            throw VCFAdapterException("Field type "+std::to_string(field_info.get_vcf_bcf_ht_type())+" not handled");
             break;
         }
       }
@@ -190,7 +190,7 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
            { BCF_HT_STR, { BCF_HT_CHAR, BCF_HT_STR } }
       };
       if(compatible_types.find(field_ht_type) != compatible_types.end()
-          && compatible_types[field_ht_type].find(field_info_ptr->m_bcf_ht_type) == compatible_types[field_ht_type].end())
+          && compatible_types[field_ht_type].find(field_info_ptr->get_vcf_bcf_ht_type()) == compatible_types[field_ht_type].end())
         throw VCFAdapterException(std::string("Conflicting data types in the vid JSON and VCF header for field ")+field_name);
     }
   }
