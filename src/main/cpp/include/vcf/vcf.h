@@ -28,7 +28,7 @@
 #ifndef HTSLIB_VCF_LITE_H
 #define HTSLIB_VCF_LITE_H
 
-#include "c_api.h"
+#include "tiledb.h"
 
 #ifdef HTSDIR   //Use htslib's headers
 

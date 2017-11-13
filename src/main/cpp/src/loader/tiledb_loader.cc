@@ -1076,7 +1076,8 @@ int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
     {
       TileDB_CTX* tiledb_ctx = 0;
       /*Initialize context with default params*/
-      tiledb_ctx_init(&tiledb_ctx, NULL);
+      auto status = tiledb_ctx_init(&tiledb_ctx, NULL);
+      VERIFY_OR_THROW(status == TILEDB_OK);
       if(tiledb_workspace_create(tiledb_ctx, workspace) != TILEDB_OK)
       {
         std::cerr << "Failed to create workspace "<<workspace<<"\n";
@@ -1085,7 +1086,6 @@ int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
       else
         std::cerr << "Created workspace "<<workspace<<"\n";
       tiledb_ctx_finalize(tiledb_ctx);
-      free(tiledb_ctx);
     }
   }
   return returnval;

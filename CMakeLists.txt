@@ -25,7 +25,6 @@ set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
 set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
-set(TILEDB_INSTALL_DIR "" CACHE PATH "Path to TileDB install directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")
 set(DO_PROFILING False CACHE BOOL "Collect some stats during execution - doesn't add much overhead")
@@ -192,11 +191,11 @@ set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
 #Clean all
 add_custom_target(clean-all ${CMAKE_MAKE_PROGRAM} clean)
 if(TILEDB_SOURCE_DIR)
-    add_custom_target(clean-TileDB ${CMAKE_MAKE_PROGRAM} clean -C ${TILEDB_SOURCE_DIR})
+    add_custom_target(clean-TileDB ${CMAKE_COMMAND} -E remove_directory ${TILEDB_DIR_IN_BUILD_DIR})
     add_dependencies(clean-all clean-TileDB)
 endif()
 if(HTSLIB_SOURCE_DIR)
-    add_custom_target(clean-htslib ${CMAKE_MAKE_PROGRAM} clean -C ${HTSLIB_SOURCE_DIR})
+    add_custom_target(clean-htslib ${CMAKE_COMMAND} -E remove_directory ${HTSLIB_DIR_IN_BUILD_DIR})
     add_dependencies(clean-all clean-htslib)
 endif()
 
@@ -208,6 +207,9 @@ include_directories (
     src/main/cpp/include/vcf
     src/test/cpp/include
 )
+
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
+    ${LIBUUID_LIBRARY})
 
 function(build_GenomicsDB_executable_common target)
     #add_executable(${target} src/${target}.cc)
@@ -230,7 +232,7 @@ function(build_GenomicsDB_executable_common target)
     if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
         target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
     endif()
-    target_link_libraries(${target} ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES})
+    target_link_libraries(${target} ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES})
     install(TARGETS ${target} RUNTIME DESTINATION bin)
 endfunction()
 

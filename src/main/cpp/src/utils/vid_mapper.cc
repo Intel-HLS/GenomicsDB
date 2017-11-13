@@ -22,7 +22,7 @@
 
 #include <libgen.h>
 #include "vid_mapper.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "json_config.h"
 #include "known_field_info.h"
 #include "vcf.h"
