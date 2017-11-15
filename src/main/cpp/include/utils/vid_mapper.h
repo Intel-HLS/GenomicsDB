@@ -290,6 +290,11 @@ class FieldInfo
       m_vcf_type_index = curr_type;
       m_vcf_bcf_ht_type = ht_type;
     }
+    void add_vcf_delimiter(const char* vcf_delim)
+    {
+      assert(vcf_delim);
+      m_vcf_delimiter_vec.push_back(vcf_delim[0]);
+    }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -311,6 +316,8 @@ class FieldInfo
     //VCF type info - could be different from TileDB type
     std::type_index m_vcf_type_index;
     int m_vcf_bcf_ht_type;
+    //VCF delimiter
+    std::vector<char> m_vcf_delimiter_vec;
 };
 
 /*

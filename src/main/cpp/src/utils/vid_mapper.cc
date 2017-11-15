@@ -813,6 +813,26 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
           auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_info_dict["vcf_type"].GetString());
           m_field_idx_to_info[field_idx].set_vcf_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
         }
+
+        //Generally used when multi-D vectors are represented as delimited strings in the VCF
+        //Used mostly in conjunction with the vcf_type attribute
+        if(field_info_dict.HasMember("vcf_delimiter"))
+        {
+          const auto& vcf_delimiter_json_value = field_info_dict["vcf_delimiter"];
+          if(vcf_delimiter_json_value.IsString())
+            m_field_idx_to_info[field_idx].add_vcf_delimiter(vcf_delimiter_json_value.GetString());
+          else
+          {
+            //Example: [ "|", "," ]
+            VERIFY_OR_THROW(vcf_delimiter_json_value.IsArray());
+            for(rapidjson::SizeType i=0u;i<vcf_delimiter_json_value.Size();++i)
+            {
+              VERIFY_OR_THROW(vcf_delimiter_json_value[i].IsString());
+              m_field_idx_to_info[field_idx].add_vcf_delimiter(vcf_delimiter_json_value[i].GetString());
+            }
+          }
+        }
+
         //Both INFO and FORMAT, throw another entry <field>_FORMAT
         if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
         {

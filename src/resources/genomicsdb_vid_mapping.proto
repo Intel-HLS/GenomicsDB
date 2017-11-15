@@ -44,7 +44,9 @@ message InfoField {
   required string name = 1;
   required string type = 2;
   repeated string vcf_field_class = 3;
-  repeated FieldLengthDescriptorComponentPB length = 4;
+  optional string vcf_type = 4;
+  repeated FieldLengthDescriptorComponentPB length = 5;
+  repeated string vcf_delimiter = 6;
 }
 
 message Chromosome {

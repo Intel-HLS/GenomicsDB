@@ -390,6 +390,22 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
       }
     }
 
+    //Sometimes the VCF type can be different from the real datatype of the field
+    //For example, for multi-D vectors, the VCF type is string: @$@#@#!#$%$%
+    if(vid_map_protobuf->fields(pb_field_idx).has_vcf_type())
+    {
+      auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(vid_map_protobuf->fields(pb_field_idx).vcf_type().c_str());
+      ref.set_vcf_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
+    }
+
+    //Generally used when multi-D vectors are represented as delimited strings in the VCF
+    //Used mostly in conjunction with the vcf_type attribute
+    if(vid_map_protobuf->fields(pb_field_idx).vcf_delimiter_size() > 0)
+    {
+      for(auto i=0;i<vid_map_protobuf->fields(pb_field_idx).vcf_delimiter_size();++i)
+        ref.add_vcf_delimiter(vid_map_protobuf->fields(pb_field_idx).vcf_delimiter(i).c_str());
+    }
+
     // Both INFO and FORMAT, throw another entry <field>_FORMAT
     if (ref.m_is_vcf_INFO_field &&
         ref.m_is_vcf_FORMAT_field) {
