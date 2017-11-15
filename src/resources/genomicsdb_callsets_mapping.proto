@@ -37,7 +37,7 @@ option java_outer_classname = "GenomicsDBCallsetsMapProto";
 message SampleIDToTileDBIDMap {
   required string sample_name = 1;
   required int64 row_idx = 2;
-  required int32 idx_in_file = 3;
+  required int64 idx_in_file = 3;
   optional string stream_name = 4;
 }
 

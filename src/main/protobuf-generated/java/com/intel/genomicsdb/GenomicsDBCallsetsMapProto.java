@@ -42,13 +42,13 @@ public final class GenomicsDBCallsetsMapProto {
     long getRowIdx();
 
     /**
-     * <code>required int32 idx_in_file = 3;</code>
+     * <code>required int64 idx_in_file = 3;</code>
      */
     boolean hasIdxInFile();
     /**
-     * <code>required int32 idx_in_file = 3;</code>
+     * <code>required int64 idx_in_file = 3;</code>
      */
-    int getIdxInFile();
+    long getIdxInFile();
 
     /**
      * <code>optional string stream_name = 4;</code>
@@ -78,7 +78,7 @@ public final class GenomicsDBCallsetsMapProto {
     private SampleIDToTileDBIDMap() {
       sampleName_ = "";
       rowIdx_ = 0L;
-      idxInFile_ = 0;
+      idxInFile_ = 0L;
       streamName_ = "";
     }
 
@@ -123,7 +123,7 @@ public final class GenomicsDBCallsetsMapProto {
             }
             case 24: {
               bitField0_ |= 0x00000004;
-              idxInFile_ = input.readInt32();
+              idxInFile_ = input.readInt64();
               break;
             }
             case 34: {
@@ -215,17 +215,17 @@ public final class GenomicsDBCallsetsMapProto {
     }
 
     public static final int IDX_IN_FILE_FIELD_NUMBER = 3;
-    private int idxInFile_;
+    private long idxInFile_;
     /**
-     * <code>required int32 idx_in_file = 3;</code>
+     * <code>required int64 idx_in_file = 3;</code>
      */
     public boolean hasIdxInFile() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required int32 idx_in_file = 3;</code>
+     * <code>required int64 idx_in_file = 3;</code>
      */
-    public int getIdxInFile() {
+    public long getIdxInFile() {
       return idxInFile_;
     }
 
@@ -302,7 +302,7 @@ public final class GenomicsDBCallsetsMapProto {
         output.writeInt64(2, rowIdx_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt32(3, idxInFile_);
+        output.writeInt64(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 4, streamName_);
@@ -324,7 +324,7 @@ public final class GenomicsDBCallsetsMapProto {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(3, idxInFile_);
+          .computeInt64Size(3, idxInFile_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, streamName_);
@@ -388,7 +388,8 @@ public final class GenomicsDBCallsetsMapProto {
       }
       if (hasIdxInFile()) {
         hash = (37 * hash) + IDX_IN_FILE_FIELD_NUMBER;
-        hash = (53 * hash) + getIdxInFile();
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getIdxInFile());
       }
       if (hasStreamName()) {
         hash = (37 * hash) + STREAM_NAME_FIELD_NUMBER;
@@ -516,7 +517,7 @@ public final class GenomicsDBCallsetsMapProto {
         bitField0_ = (bitField0_ & ~0x00000001);
         rowIdx_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
-        idxInFile_ = 0;
+        idxInFile_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000004);
         streamName_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -763,34 +764,34 @@ public final class GenomicsDBCallsetsMapProto {
         return this;
       }
 
-      private int idxInFile_ ;
+      private long idxInFile_ ;
       /**
-       * <code>required int32 idx_in_file = 3;</code>
+       * <code>required int64 idx_in_file = 3;</code>
        */
       public boolean hasIdxInFile() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
-       * <code>required int32 idx_in_file = 3;</code>
+       * <code>required int64 idx_in_file = 3;</code>
        */
-      public int getIdxInFile() {
+      public long getIdxInFile() {
         return idxInFile_;
       }
       /**
-       * <code>required int32 idx_in_file = 3;</code>
+       * <code>required int64 idx_in_file = 3;</code>
        */
-      public Builder setIdxInFile(int value) {
+      public Builder setIdxInFile(long value) {
         bitField0_ |= 0x00000004;
         idxInFile_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int32 idx_in_file = 3;</code>
+       * <code>required int64 idx_in_file = 3;</code>
        */
       public Builder clearIdxInFile() {
         bitField0_ = (bitField0_ & ~0x00000004);
-        idxInFile_ = 0;
+        idxInFile_ = 0L;
         onChanged();
         return this;
       }
@@ -1694,7 +1695,7 @@ public final class GenomicsDBCallsetsMapProto {
     java.lang.String[] descriptorData = {
       "\n!genomicsdb_callsets_mapping.proto\"g\n\025S" +
       "ampleIDToTileDBIDMap\022\023\n\013sample_name\030\001 \002(" +
-      "\t\022\017\n\007row_idx\030\002 \002(\003\022\023\n\013idx_in_file\030\003 \002(\005\022" +
+      "\t\022\017\n\007row_idx\030\002 \002(\003\022\023\n\013idx_in_file\030\003 \002(\003\022" +
       "\023\n\013stream_name\030\004 \001(\t\"<\n\020CallsetMappingPB" +
       "\022(\n\010callsets\030\001 \003(\0132\026.SampleIDToTileDBIDM" +
       "apB2\n\024com.intel.genomicsdbB\032GenomicsDBCa" +
