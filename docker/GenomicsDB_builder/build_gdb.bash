@@ -1,10 +1,4 @@
 #! /bin/bash
-# License and Copyright
-# GenomicsDB Builder Docker was created while Ming Rutar worked at Intel. The code is not
-# part of assignment. GenomicsDB is an open source project, see https://github.com/Intel-HLS/GenomicsDB
-# The project is stored under Ming's Intel email account and subject to Intel copyright.
-# Included GenomicsDB Intel copyright below.
-
 # The MIT License (MIT)
 # Copyright (c) 2016-2017 Intel Corporation
 #
@@ -45,7 +39,7 @@ build_proto_buf() {
   cd protobuf
   git checkout 3.0.x
   ./autogen.sh
-  ./configure --prefix=/usr --with-pic
+  ./configure --prefix=$protobuf_to_dir --with-pic
   if [ -f ./Makefile ]; then
      make && make install
      basename $(ls $protobuf_to_dir/bin/protoc)
@@ -111,7 +105,7 @@ if [ $retst -eq 0 ]; then
     mkdir -p $BUILD_ROOT/$gdb_version
     rsync -a -r $genomicsdb_to_dir $BUILD_ROOT/$gdb_version
   else
-    echo "EOOR: build release version failed. status=$retst"
+    echo "ERROR: build release version failed. status=$retst"
   fi
 fi
 [[ $retst -eq 0 ]] && echo "DONE: built GenomicsDB" || echo "FAIL: cannot build GenomicsDB"
