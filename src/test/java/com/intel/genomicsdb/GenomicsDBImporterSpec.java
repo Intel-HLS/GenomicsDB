@@ -51,6 +51,7 @@ public final class GenomicsDBImporterSpec {
   private static final String TEST_CHROMOSOME_NAME = "1";
   private static final File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
   private static final File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
+  private static final File TEMP_VCF_HEADER_FILE = new File("vcfheader.vcf");
 
   @Test(testName = "genomicsdb importer with an interval and multiple GVCFs",
       dataProvider = "vcfFiles",
@@ -108,6 +109,7 @@ public final class GenomicsDBImporterSpec {
       10000000L);
 
     GenomicsDBImporter.writeVidMapJSONFile(TEMP_VID_JSON_FILE.getAbsolutePath(), mergedHeaderLines);
+    GenomicsDBImporter.writeVcfHeaderFile(TEMP_VCF_HEADER_FILE.getAbsolutePath(), mergedHeaderLines);
     GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
         callsetMappingPB_A);
 
@@ -115,6 +117,7 @@ public final class GenomicsDBImporterSpec {
     Assert.assertEquals(importer.isDone(), true);
     Assert.assertEquals(TEMP_VID_JSON_FILE.isFile(), true);
     Assert.assertEquals(TEMP_CALLSET_JSON_FILE.isFile(), true);
+    Assert.assertEquals(TEMP_VCF_HEADER_FILE.isFile(), true);
 
     JSONParser parser = new JSONParser();
 
