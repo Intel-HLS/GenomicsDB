@@ -30,13 +30,14 @@ FROM centos:7
 
 LABEL vendor="Intel Inc." name="GenomicsDB Builder" version="1.0" description="Build GenomicsDB"
 
+RUN yum-config-manager --disable updates
 RUN yum install -y --setopt=tsflags=nodocs centos-release-scl && \
     yum-config-manager --enable rhel-server-rhscl-7-rpms && \
-    yum install -y devtoolset-4 && \
-    yum install -y --setopt=tsflags=nodocs epel-release &&  \
-    yum repolist && \
-    yum install -y --setopt=tsflags=nodocs cmake git.x86_64 libcsv libcsv-devel mpich-devel openssl-devel zlib-devel unzip.x86_64 && \
-    yum install -y python34.x86_64 && \
+    yum install -y --setopt=tsflags=nodocs devtoolset-4 && \
+    yum install -y --setopt=tsflags=nodocs  epel-release &&  \
+    yum install -y --setopt=tsflags=nodocs --skip-broken python2-pip-8.1.2-5.el7.noarch && \
+    yum install -y --setopt=tsflags=nodocs cmake git.x86_64 libcsv libcsv-devel mpich-devel openssl-devel zlib-devel unzip.x86_64 libuuid-devel.x86_64 && \
+    yum install -y --setopt=tsflags=nodocs python34.x86_64 && \
     yum clean all
 
     ENV BASH_ENV=/etc/profile.d/cont-env.sh PATH=$PATH:/usr/lib64/mpich/bin HOME=/home/default

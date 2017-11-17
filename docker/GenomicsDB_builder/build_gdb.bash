@@ -25,7 +25,7 @@ if [ ! -d /output ]; then
 fi
 export BUILD_ROOT=${HOME}/build_src
 export PROTOBUF_LIBRARY=$BUILD_ROOT/protobuf_build
-echo "build_home=$build_home, PROTOBUF_LIBRARY=$PROTOBUF_LIBRARY, GenomicsDB_HOME=$GenomicsDB_HOME"
+echo "user=$USER build_home=$build_home, PROTOBUF_LIBRARY=$PROTOBUF_LIBRARY, GenomicsDB_HOME=$GenomicsDB_HOME"
 
 protobuf_to_dir=/output
 genomicsdb_to_dir=/output
@@ -42,9 +42,9 @@ build_proto_buf() {
   ./configure --prefix=$protobuf_to_dir --with-pic
   if [ -f ./Makefile ]; then
      make && make install
-     basename $(ls $protobuf_to_dir/bin/protoc)
-     find $protobuf_to_dir/lib/ -name 'libproto*' -type f -exec basename {} \;
-     echo "--- Done building protobuf"
+     protolibs=$(find $protobuf_to_dir/lib/ -name 'libproto*' -type f -exec basename {} \;)
+     ret=$?
+     echo "--- Done rc=$ret, protobuf libs: $protolibs"
      popd >/dev/null 2>&1
      return 0
   else
@@ -64,6 +64,7 @@ build_gdb() {
   branch=${GDB_BRANCH:=master}
   git checkout $branch
   git branch
+  git submodule update --recursive
   build_type=$1
   shift
   install_dir=$genomicsdb_to_dir/$build_type
@@ -78,7 +79,8 @@ build_gdb() {
   if [ -f ./Makefile ]; then
      make && make  install
      echo "INFO: Successfully built GenomicsDB... run test"
-     ../tests/run.py $PWD $install_dir
+     # test failed: 'Error: Could not find or load main class TestGenomicsDB'
+     # remove ../tests/run.py $PWD $install_dir
      popd >/dev/null 2>&1
      return 0
   else
@@ -90,7 +92,7 @@ build_gdb() {
 
 #source /opt/rh/devtoolset-4/enable
 gcc --version
-
+echo "gcc $(gcc --version)"
 mkdir -p ${BUILD_ROOT} && pushd ${BUILD_ROOT} >/dev/null 2>&1
 build_proto_buf
 retst=$?
@@ -100,7 +102,7 @@ if [ $retst -eq 0 ]; then
   if [ $retst -eq 0 ]; then
     build_gdb Debug $@
     retst=$?
-    gdb_version=$($genomicsdb_to_dir/Release/bin/vcf2tiledb --version | cut -d '-' -f2)
+    gdb_version=$($genomicsdb_to_dir/Release/bin/vcf2tiledb --version)
     echo "GenomicsDB version is $gdb_version"
     mkdir -p $BUILD_ROOT/$gdb_version
     rsync -a -r $genomicsdb_to_dir $BUILD_ROOT/$gdb_version

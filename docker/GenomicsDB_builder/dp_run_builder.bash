@@ -34,25 +34,25 @@ if [ $# -lt 1 ]; then
 else
     my_branch="$1"
 fi
-# ${BUILD_DEST_PATH} root path of build output
-host_dest_dir="${BUILD_DEST_PATH}/${my_branch}"
+host_dest_dir="${HOME}/docker-geno_${my_branch}_$(date +'%y%m%d')"
 
 # ${GENOME_VOLUME} name of docker volume
 volume_dir=$(docker volume inspect -f "{{json .Mountpoint}}" ${GENOME_VOLUME} | sed "s/^\"\(.*\)\"$/\1/")
-if [ -x ${volume_dir} ]; then
+if sudo test -d ${volume_dir}; then
   output=${GENOME_VOLUME}
 else
   output="$HOME/docker_build"
-  [[ -d $output ]] && rm -rf $output
+  if sudo test -d $output; then
+    sudo rm -rf $output
+  fi
   mkdir -p $output
 fi
 cntr_name="GDB-${my_branch}_$(date +'%y%m%d_%H%M')"
-echo "RUN my_branch is ${my_branch}, cntr_name is ${cntr_name}"
-docker run -it --name ${cntr_name} -v $output:/output/ -e http_proxy=$http_proxy -e https_proxy=$http_proxy -e GDB_BRANCH=${my_branch} -e HOST_USER_ID=$(id -u)   genomicsdb_builder build_genomicsdb
+echo "RUN my_branch is ${my_branch}, volume_dir is ${volume_dir}, host_dest_dir is ${host_dest_dir}, output is ${output} cntr_name is ${cntr_name}"
+docker run -it --name ${cntr_name} -v $output:/output/ -e http_proxy=$http_proxy -e https_proxy=$http_proxy -e HTTP_PROXY=$http_proxy -e HTTPS_PROXY=$http_proxy -e GDB_BRANCH=${my_branch} genomicsdb_builder build_genomicsdb
 echo "DONE building GenomicsDB, output at $output.... start copy "
 
-old_host_dest_dir="${host_dest_dir}-old"
-[[ -d ${old_host_dest_dir} ]] && rm -rf ${old_host_dest_dir}
-[[ -d ${host_dest_dir} ]] && mv ${host_dest_dir} ${old_host_dest_dir}
-rsync -av ${volume_dir}/* ${host_dest_dir}
+sudo rsync -av ${volume_dir}/ ${host_dest_dir}
+sudo chown -R $(whoami): ${host_dest_dir}
+ln -s ${host_dest_dir}/Release $(dirname ${host_dest_dir})/docker-geno/Release
 echo "DONE copy GenomicsDB executables to ${host_dest_dir} .... container name is ${cntr_name}"

@@ -27,8 +27,11 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # $MY_DOCKER_ROOT directory of the project
-DOCKER_ROOT=${MY_DOCKER_ROOT}
-
+if [ -z ${MY_DOCKER_ROOT} ] ; then
+    DOCKER_ROOT=${PWD}
+else
+    DOCKER_ROOT=${MY_DOCKER_ROOT}
+fi
 echo "START building GenomicsDB builder docker...."
 pushd $DOCKER_ROOT/GDB-builder_centos >/dev/null 2>&1
 $(docker volume inspect -f "{{json .Mountpoint}}" $GENOME_VOLUME) >/dev/null 2>&1
@@ -37,13 +40,14 @@ if [ $? -ne 0 ]; then
     echo "created volume $GENOME_VOLUME, rc=$?"
 fi
 cp -f $DOCKER_ROOT/build_gdb.bash ./usr/bin/build_genomicsdb
-chmod +x ./usr/bin/build_genomicsdb
+for f in $(ls -1 ./usr/bin/); do chmod +x ./usr/bin/$f; done
 [[ -d ./usr/share/cont-layer/common/env ]] || mkdir -p ./usr/share/cont-layer/common/env/
 cp -f $DOCKER_ROOT/enabledevtoolset-4.sh ./usr/share/cont-layer/common/env/enabledevtoolset-4.sh
 chmod +x ./usr/share/cont-layer/common/env/enabledevtoolset-4.sh
+find GDB-builder_centos/usr/share/ -name '*.sh' -exec chmod +x {} \;
 
 # if you do not use proxy, remove the build args 
-docker build -t genomicsdb_builder --no-cache --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy . 
+docker build -t genomicsdb_builder --no-cache --build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$http_proxy . 
 echo "DONE building docker....rc=$?"
 # run
 popd >/dev/null 2>&1
