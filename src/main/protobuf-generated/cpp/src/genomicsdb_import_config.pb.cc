@@ -467,7 +467,6 @@ void Partition::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Partition::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:Partition)
   // required int64 begin = 1;
   if (has_begin()) {
@@ -1168,7 +1167,6 @@ void GATK4Integration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* GATK4Integration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:GATK4Integration)
   // optional string output_vidmap_json_file = 1;
   if (has_output_vidmap_json_file()) {
@@ -2247,7 +2245,6 @@ void ImportConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ImportConfiguration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ImportConfiguration)
   // optional bool row_based_partitioning = 1 [default = false];
   if (has_row_based_partitioning()) {

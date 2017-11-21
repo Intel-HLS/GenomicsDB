@@ -406,7 +406,6 @@ void InfoField::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* InfoField::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:InfoField)
   // required string name = 1;
   if (has_name()) {
@@ -1042,7 +1041,6 @@ void Chromosome::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Chromosome::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:Chromosome)
   // required string name = 1;
   if (has_name()) {
@@ -1483,7 +1481,6 @@ void VidMappingPB::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* VidMappingPB::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:VidMappingPB)
   // repeated .InfoField fields = 1;
   for (unsigned int i = 0, n = this->fields_size(); i < n; i++) {

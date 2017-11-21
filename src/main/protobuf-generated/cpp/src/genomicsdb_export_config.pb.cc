@@ -403,7 +403,6 @@ void ColumnRange::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ColumnRange::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRange)
   // required int64 low = 1;
   if (has_low()) {
@@ -738,7 +737,6 @@ void ColumnRangeList::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ColumnRangeList::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ColumnRangeList)
   // repeated .ColumnRange range_list = 1;
   for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
@@ -1058,7 +1056,6 @@ void RowRange::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* RowRange::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:RowRange)
   // required int64 low = 1;
   if (has_low()) {
@@ -1393,7 +1390,6 @@ void RowRangeList::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* RowRangeList::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:RowRangeList)
   // repeated .RowRange range_list = 1;
   for (unsigned int i = 0, n = this->range_list_size(); i < n; i++) {
@@ -2106,7 +2102,6 @@ void ExportConfiguration::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* ExportConfiguration::InternalSerializeWithCachedSizesToArray(
     bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
   // @@protoc_insertion_point(serialize_to_array_start:ExportConfiguration)
   // required string workspace = 1;
   if (has_workspace()) {
