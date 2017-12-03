@@ -26,6 +26,7 @@
 #include "json_config.h"
 #include "known_field_info.h"
 #include "vcf.h"
+#include "variant_field_data.h"
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -156,6 +157,16 @@ size_t FieldLengthDescriptor::get_num_elements(const unsigned num_ALT_alleles, c
   assert(get_num_dimensions() == 1u);
   return KnownFieldInfo::get_num_elements_given_length_descriptor(get_length_descriptor(0u),
       num_ALT_alleles, ploidy, num_elements);
+}
+
+void FieldInfo::set_type(const std::type_index& curr_type, const int ht_type)
+{
+  m_tiledb_type_index = curr_type;
+  m_genomicsdb_type_index = curr_type;
+  m_vcf_type_index = curr_type;
+  m_tiledb_bcf_ht_type = ht_type;
+  m_vcf_bcf_ht_type = ht_type;
+  m_element_size = VariantFieldTypeUtil::size(curr_type);
 }
 
 void VidMapper::clear()
@@ -820,7 +831,8 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         {
           const auto& vcf_delimiter_json_value = field_info_dict["vcf_delimiter"];
           if(vcf_delimiter_json_value.IsString())
-            m_field_idx_to_info[field_idx].add_vcf_delimiter(vcf_delimiter_json_value.GetString());
+            m_field_idx_to_info[field_idx].m_length_descriptor.set_vcf_delimiter(0u,
+                vcf_delimiter_json_value.GetString());
           else
           {
             //Example: [ "|", "," ]
@@ -828,7 +840,8 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
             for(rapidjson::SizeType i=0u;i<vcf_delimiter_json_value.Size();++i)
             {
               VERIFY_OR_THROW(vcf_delimiter_json_value[i].IsString());
-              m_field_idx_to_info[field_idx].add_vcf_delimiter(vcf_delimiter_json_value[i].GetString());
+              m_field_idx_to_info[field_idx].m_length_descriptor.set_vcf_delimiter(i,
+                  vcf_delimiter_json_value[i].GetString());
             }
           }
         }

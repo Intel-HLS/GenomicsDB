@@ -138,6 +138,30 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   return tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, static_cast<const std::string&>(val), print_sep);
 }
 
+template<class FieldType>
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print_null(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset)
+{
+  auto original_offset = buffer_offset;
+  while(tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer.size()))
+  {
+    buffer.resize(2u*buffer.size()+1u);
+    buffer_offset = original_offset;
+  }
+}
+
+template<class FieldType>
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const FieldType val, bool print_sep)
+{
+  auto original_offset = buffer_offset;
+  while(tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer.size(), val))
+  {
+    buffer.resize(2u*buffer.size()+1u);
+    buffer_offset = original_offset;
+  }
+}
+
 //Template instantiations
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
@@ -151,10 +175,25 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const int64_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const char val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const int val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const unsigned val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const int64_t val, bool print_sep);
 #ifdef __MACH__
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const size_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const size_t val, bool print_sep);
 #endif
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
@@ -171,6 +210,21 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const std::string& val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const uint64_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const float val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const double val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const char* val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const std::string& val, bool print_sep);
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<char>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);

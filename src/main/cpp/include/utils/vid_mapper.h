@@ -185,7 +185,11 @@ class FieldLengthDescriptor
       m_is_length_ploidy_dependent = false;
     }
     //MultiD vectors
-    void resize(const size_t n) { m_length_descriptor_vec.resize(n); }
+    void resize(const size_t n)
+    {
+      m_length_descriptor_vec.resize(n);
+      m_vcf_delimiter_vec.resize(n);
+    }
     size_t get_num_dimensions() const { return m_length_descriptor_vec.size(); }
     //Fixed length components
     void set_num_elements(const int length_dim_idx, const size_t n)
@@ -205,6 +209,16 @@ class FieldLengthDescriptor
     {
       assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
       return m_length_descriptor_vec[length_dim_idx].m_length_descriptor;
+    }
+    bool is_fixed_size_dimension(const size_t idx) const
+    {
+      assert(idx < m_length_descriptor_vec.size());
+      return (m_length_descriptor_vec[idx].m_length_descriptor == BCF_VL_FIXED);
+    }
+    size_t get_num_elements_in_dimension(const size_t idx)
+    {
+      assert(is_fixed_size_dimension(idx));
+      return m_length_descriptor_vec[idx].m_num_elements;
     }
     //is fixed length field
     bool is_fixed_length_field() const { return m_is_fixed_length_field; }
@@ -234,6 +248,17 @@ class FieldLengthDescriptor
       return (get_length_descriptor(0u) == BCF_VL_Phased_Ploidy);
     }
     size_t get_num_elements(const unsigned num_ALT_alleles, const unsigned ploidy, const unsigned num_elements);
+    void set_vcf_delimiter(const size_t dim_idx, const char* vcf_delim)
+    {
+      assert(vcf_delim);
+      assert(dim_idx < m_vcf_delimiter_vec.size());
+      m_vcf_delimiter_vec[dim_idx] = vcf_delim[0];
+    }
+    char get_vcf_delimiter(const size_t dim_idx) const
+    {
+      assert(dim_idx < m_vcf_delimiter_vec.size());
+      return m_vcf_delimiter_vec[dim_idx];
+    }
   private:
     //Length descriptors - could be multi-dimensional array: example [ "R", 4 ] 2D vector
     std::vector<FieldLengthDescriptorComponent> m_length_descriptor_vec;
@@ -247,6 +272,8 @@ class FieldLengthDescriptor
     bool m_is_length_all_alleles_dependent;
     bool m_is_length_genotype_dependent;
     bool m_is_length_ploidy_dependent;
+    //VCF delimiter
+    std::vector<char> m_vcf_delimiter_vec;
 };
 
 class FieldInfo
@@ -255,6 +282,7 @@ class FieldInfo
   public:
     FieldInfo()
       : m_tiledb_type_index(typeid(void)),
+        m_genomicsdb_type_index(typeid(void)),
         m_vcf_type_index(typeid(void)),
         m_length_descriptor()
     {
@@ -265,6 +293,7 @@ class FieldInfo
       m_tiledb_bcf_ht_type = BCF_HT_VOID;
       m_vcf_bcf_ht_type = BCF_HT_VOID;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+      m_element_size = 0u;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -275,13 +304,7 @@ class FieldInfo
     /*
      * By default, both TileDB and VCF types are the same
      */
-    void set_type(const std::type_index& curr_type, const int ht_type)
-    {
-      m_tiledb_type_index = curr_type;
-      m_vcf_type_index = curr_type;
-      m_tiledb_bcf_ht_type = ht_type;
-      m_vcf_bcf_ht_type = ht_type;
-    }
+    void set_type(const std::type_index& curr_type, const int ht_type);
     /*
      * Set VCF type
      */
@@ -289,11 +312,6 @@ class FieldInfo
     {
       m_vcf_type_index = curr_type;
       m_vcf_bcf_ht_type = ht_type;
-    }
-    void add_vcf_delimiter(const char* vcf_delim)
-    {
-      assert(vcf_delim);
-      m_vcf_delimiter_vec.push_back(vcf_delim[0]);
     }
     //Public members
     std::string m_name;     //Unique per array schema
@@ -308,16 +326,21 @@ class FieldInfo
     int m_VCF_field_combine_operation;
     //Type information
     const std::type_index& get_tiledb_type_index() const { return m_tiledb_type_index; }
+    const std::type_index& get_genomicsdb_type_index() const { return m_genomicsdb_type_index; }
     int get_vcf_bcf_ht_type() const { return m_vcf_bcf_ht_type; }
+    size_t get_element_size() const { return m_element_size; }
   private:
     //Type info
+    //TileDB type
     std::type_index m_tiledb_type_index;
     int m_tiledb_bcf_ht_type;
+    //GenomicsDB type index - could be different from TileDB and VCF
+    std::type_index m_genomicsdb_type_index;
     //VCF type info - could be different from TileDB type
     std::type_index m_vcf_type_index;
-    int m_vcf_bcf_ht_type;
-    //VCF delimiter
-    std::vector<char> m_vcf_delimiter_vec;
+    int m_vcf_bcf_ht_type; 
+    //Element size
+    size_t m_element_size;
 };
 
 /*

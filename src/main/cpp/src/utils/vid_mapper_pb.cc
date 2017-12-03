@@ -403,7 +403,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     if(vid_map_protobuf->fields(pb_field_idx).vcf_delimiter_size() > 0)
     {
       for(auto i=0;i<vid_map_protobuf->fields(pb_field_idx).vcf_delimiter_size();++i)
-        ref.add_vcf_delimiter(vid_map_protobuf->fields(pb_field_idx).vcf_delimiter(i).c_str());
+        ref.m_length_descriptor.set_vcf_delimiter(i,
+            vid_map_protobuf->fields(pb_field_idx).vcf_delimiter(i).c_str());
     }
 
     // Both INFO and FORMAT, throw another entry <field>_FORMAT

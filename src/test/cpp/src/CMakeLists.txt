@@ -3,6 +3,7 @@ if(GTEST_FOUND)
     set(CPP_TEST_SOURCES
         main_testall.cc
         test_non_diploid_mapper.cc
+        test_multid_vector.cc
         )
     if(LIBDBI_FOUND)
         set(CPP_TEST_SOURCES

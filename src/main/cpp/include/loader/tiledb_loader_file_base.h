@@ -280,12 +280,20 @@ class File2TileDBBinaryBase
      * Printer
      */
     template<class FieldType>
-    bool tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit, const FieldType val, bool print_sep=true);
+    static bool tiledb_buffer_print(std::vector<uint8_t>& buffer,
+        int64_t& buffer_offset, const int64_t buffer_offset_limit, const FieldType val, bool print_sep=true);
+    template<class FieldType>
+    static void tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+        int64_t& buffer_offset, const FieldType val, bool print_sep=true);
+
     /*
      * Null value printer
      */
     template<class FieldType>
-    bool tiledb_buffer_print_null(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit);
+    static bool tiledb_buffer_print_null(std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit);
+    template<class FieldType>
+    static void tiledb_buffer_resize_if_needed_and_print_null(std::vector<uint8_t>& buffer,
+        int64_t& buffer_offset);
     /*
      * Create histogram
      */
