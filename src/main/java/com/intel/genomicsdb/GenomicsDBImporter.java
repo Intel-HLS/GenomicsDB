@@ -29,6 +29,7 @@ import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
@@ -592,6 +593,29 @@ public class GenomicsDBImporter
   }
 
   /**
+   * Writes a VCF Header file from a set of VCF header lines. This
+   * method is not called implicitly by GenomicsDB constructor.
+   * It needs to be called explicitly if the user wants these objects
+   * to be written. Called explicitly from GATK-4 GenomicsDBImport tool
+   *
+   * @param outputVcfHeaderFilePath  Full path of file to be written
+   * @param headerLines  Set of header lines
+   * @throws FileNotFoundException  PrintWriter throws this exception when file not found
+   */
+  public static void writeVcfHeaderFile(String outputVcfHeaderFilePath, Set<VCFHeaderLine> headerLines) throws FileNotFoundException {
+    File vcfHeaderFile = new File(outputVcfHeaderFilePath);
+    final VCFHeader vcfHeader = new VCFHeader(headerLines); 
+    VariantContextWriter vcfWriter = new VariantContextWriterBuilder()
+	    				.clearOptions()
+					.setOutputFile(vcfHeaderFile)
+					.setOutputFileType(VariantContextWriterBuilder.OutputType.VCF)
+					.build();
+    vcfWriter.writeHeader(vcfHeader);
+    vcfWriter.close();
+  }
+
+
+  /**
    * Writes a JSON file from a vidmap protobuf object. This
    * method is not called implicitly by GenomicsDB constructor.
    * It needs to be called explicitly if the user wants these objects
@@ -920,7 +944,7 @@ public class GenomicsDBImporter
         GenomicsDBVidMapProto.Chromosome chromosome = contigBuilder.build();
 
         contigs.add(chromosome);
-      }
+      } 
     }
 
     GenomicsDBVidMapProto.VidMappingPB.Builder vidMapBuilder =
