@@ -22,7 +22,7 @@
 
 #include <libgen.h>
 #include "vid_mapper.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "json_config.h"
 #include "known_field_info.h"
 #include "vcf.h"
@@ -96,6 +96,26 @@ std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_e
       });
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
+
+bool FileInfo::add_local_tiledb_row_idx_pair(const int64_t local, const int64_t global,
+    int64_t& other_row_idx)
+{
+  auto iter = m_local_idx_to_tiledb_row_idx.find(local);
+  //Already exists
+  if(iter != m_local_idx_to_tiledb_row_idx.end())
+  {
+    other_row_idx = (*iter).second;
+    //Given sample has been assigned two different row idxs - error
+    if(other_row_idx != global)
+      return false;
+  }
+  else
+  {
+    m_local_idx_to_tiledb_row_idx[local] = global;
+    m_local_tiledb_row_idx_pairs.push_back(std::make_pair(local, global));
+  }
+  return true;
+}
 
 size_t FileInfo::get_num_orders() const
 {
@@ -946,7 +966,14 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
           else
           {
             assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-            m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file, row_idx);
+            int64_t other_row_idx = 0ll;
+            auto added_successfully = m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file,
+                row_idx, other_row_idx);
+            if(!added_successfully)
+              throw FileBasedVidMapperException(std::string("Attempting to import a sample from file/stream ")+filename
+                  +" multiple times under aliases '"+m_row_idx_to_info[other_row_idx].m_name
+                  +"' and '"+callset_name+"' with row indexes "+std::to_string(other_row_idx)
+                  +" and "+std::to_string(row_idx)+" respectively");
           }
         }
         m_callset_name_to_row_idx[callset_name] = row_idx;

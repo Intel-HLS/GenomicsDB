@@ -325,6 +325,40 @@ public class GenomicsDBImporter
   }
 
   /**
+   * Constructor with an GenomicsDB import configuration protocol buffer
+   * structure. Avoids passing long list of parameters. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
+   * @param mergedHeader  Set of VCFHeaderLine from the merged header across all input files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param importConfiguration  Protobuf configuration object containing related input
+   *                             parameters, filenames, etc.
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
+   * @throws IOException  Throws file IO exception.
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            boolean validateSampleToReaderMap,
+                            GenomicsDBImportConfiguration.ImportConfiguration importConfiguration)
+      throws IOException {
+    this(sampleToVCMap,
+        mergedHeader,
+        chromosomeInterval,
+        importConfiguration.getColumnPartitions(0).getWorkspace(),
+        importConfiguration.getColumnPartitions(0).getArray(),
+        importConfiguration.getSizePerColumnPartition(),
+        importConfiguration.getSegmentSize(),
+        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
+        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
+        false,  //useSamplesInOrderProvided
+        importConfiguration.getFailIfUpdating(),
+        validateSampleToReaderMap
+        );
+  }
+
+  /**
    * Constructor to create required data structures from a list
    * of GVCF files and a chromosome interval. This constructor
    * is developed specifically for GATK4 GenomicsDBImport tool.
@@ -354,37 +388,6 @@ public class GenomicsDBImporter
     this(sampleToReaderMap, mergedHeader, chromosomeInterval,
          workspace, arrayname, sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx,
         false, validateSampleToReaderMap);
-  }
-
-  /**
-   * Constructor with an GenomicsDB import configuration protocol buffer
-   * structure. Avoids passing long list of parameters. This constructor
-   * is developed specifically for GATK4 GenomicsDBImport tool.
-   *
-   * @param sampleToVCMap  Variant Readers objects of the input GVCF files
-   * @param mergedHeader  Set of VCFHeaderLine from the merged header across all input files
-   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
-   * @param importConfiguration  Protobuf configuration object containing related input
-   *                             parameters, filenames, etc.
-   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
-   * @throws IOException  Throws file IO exception.
-   */
-  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
-                            Set<VCFHeaderLine> mergedHeader,
-                            ChromosomeInterval chromosomeInterval,
-                            boolean validateSampleToReaderMap,
-                            GenomicsDBImportConfiguration.ImportConfiguration importConfiguration)
-      throws IOException {
-    this(sampleToVCMap,
-        mergedHeader,
-        chromosomeInterval,
-        importConfiguration.getColumnPartitions(0).getWorkspace(),
-        importConfiguration.getColumnPartitions(0).getArray(),
-        importConfiguration.getSizePerColumnPartition(),
-        importConfiguration.getSegmentSize(),
-        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
-        validateSampleToReaderMap);
   }
 
   /**

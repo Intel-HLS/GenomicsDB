@@ -129,9 +129,16 @@ int ProtoBufBasedVidMapper::parse_callset_protobuf(
           + std::to_string(idx_in_file));
     } else {
       assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-      m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(
+      int64_t other_row_idx = 0ll;
+      auto added_successfully = m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(
           idx_in_file,
-          row_idx);
+          row_idx,
+          other_row_idx);
+      if(!added_successfully)
+        throw ProtoBufBasedVidMapperException(std::string("Attempting to import a sample from file/stream ")+stream_name
+            +" multiple times under aliases '"+m_row_idx_to_info[other_row_idx].m_name
+            +"' and '"+callset_name+"' with row indexes "+std::to_string(other_row_idx)
+                  +" and "+std::to_string(row_idx)+" respectively");
     }
 
     m_callset_name_to_row_idx[callset_name] = row_idx;

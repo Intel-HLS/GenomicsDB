@@ -27,7 +27,7 @@
 #include "variant_array_schema.h"
 #include "genomicsdb_columnar_field.h"
 #include "vid_mapper.h"
-#include "c_api.h"
+#include "tiledb.h"
 #include "timer.h"
 
 //Exceptions thrown

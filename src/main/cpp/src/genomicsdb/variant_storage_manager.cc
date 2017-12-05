@@ -82,6 +82,7 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
       tiledb_ctx, 
       &m_tiledb_array_iterator,
       array_path.c_str(),
+      TILEDB_ARRAY_READ,
       reinterpret_cast<const void*>(range), // range, 
       &(attribute_names[0]),           
       attribute_names.size(),
@@ -127,12 +128,16 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
 }
 
 //VariantArrayInfo functions
-VariantArrayInfo::VariantArrayInfo(int idx, int mode, const std::string& name,
+VariantArrayInfo::VariantArrayInfo(int idx, int mode,
+    const std::string& workspace, const std::string& name,
     const VidMapper* vid_mapper,
-    const VariantArraySchema& schema, TileDB_Array* tiledb_array, const std::string& metadata_filename,
+    const VariantArraySchema& schema,
+    TileDB_CTX* tiledb_ctx,
+    TileDB_Array* tiledb_array, const std::string& metadata_filename,
     const size_t buffer_size)
-: m_idx(idx), m_mode(mode), m_name(name),
-  m_vid_mapper(vid_mapper), m_schema(schema), m_cell(m_schema), m_tiledb_array(tiledb_array),
+: m_idx(idx), m_mode(mode),
+  m_workspace(workspace), m_name(name),
+  m_vid_mapper(vid_mapper), m_schema(schema),m_tiledb_ctx(tiledb_ctx), m_cell(m_schema), m_tiledb_array(tiledb_array),
   m_metadata_filename(metadata_filename)
 {
   //If writing, allocate buffers
@@ -169,6 +174,7 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
 {
   m_idx = other.m_idx;
   m_mode = other.m_mode;
+  m_workspace = std::move(other.m_workspace);
   m_name = std::move(other.m_name);
   m_metadata_filename = std::move(other.m_metadata_filename);
   //Pointer handling
@@ -313,6 +319,40 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
   }
 }
 
+void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
+{
+  auto coords_buffer_idx = m_buffers.size()-1u;
+  if((m_mode == TILEDB_ARRAY_WRITE || m_mode == TILEDB_ARRAY_WRITE_UNSORTED))
+  {
+    //Flush cells in buffer
+    if(m_buffer_offsets[coords_buffer_idx] > 0ull)
+    {
+      auto status = tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
+      if(status != TILEDB_OK)
+        throw VariantStorageManagerException("Error while writing to array "+m_name);
+      memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
+    }
+    auto sync_status = tiledb_array_sync(m_tiledb_array);
+    if(sync_status != TILEDB_OK)
+      throw VariantStorageManagerException("Error while syncing array "+m_name+" to disk");
+  }
+  if(m_tiledb_array)
+  {
+    auto status = tiledb_array_finalize(m_tiledb_array);
+    if(status != TILEDB_OK)
+      throw VariantStorageManagerException("Error while finalizing TileDB array "+m_name);
+    if(consolidate_tiledb_array)
+    {
+      auto status = tiledb_array_consolidate(m_tiledb_ctx, (m_workspace + '/' + m_name).c_str());
+      if(status != TILEDB_OK)
+        throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
+    }
+  }
+  m_tiledb_array = 0;
+  m_name.clear();
+  m_mode = -1;
+}
+
 //VariantStorageManager functions
 VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size)
 {
@@ -369,7 +409,8 @@ bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& arra
   return array_exists;
 }
 
-int VariantStorageManager::open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode)
+int VariantStorageManager::open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
+    const int tiledb_zlib_compression_level)
 {
   auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
   VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
@@ -383,8 +424,8 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
         m_tiledb_ctx, 
         &tiledb_array,
         (m_workspace+'/'+array_name).c_str(),
-        mode_int,
-        0, 0, 0);
+        mode_int, NULL,
+        0, 0);
     if(status == TILEDB_OK)
     {
       auto idx = m_open_arrays_info_vector.size();
@@ -397,9 +438,12 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
         define_metadata_schema(&tmp_schema);
       else
         fclose(fptr);
-      m_open_arrays_info_vector.emplace_back(idx, mode_int, array_name,
-          vid_mapper, tmp_schema, tiledb_array,
+      m_open_arrays_info_vector.emplace_back(idx, mode_int,
+          m_workspace, array_name,
+          vid_mapper, tmp_schema,
+          m_tiledb_ctx, tiledb_array,
           GET_METADATA_PATH(m_workspace, array_name), m_segment_size);
+      tiledb_array_set_zlib_compression_level(tiledb_array, tiledb_zlib_compression_level);
       return idx;
     }
   }
@@ -530,6 +574,7 @@ int VariantStorageManager::get_array_schema(const std::string& array_name, Varia
 {
   // Get array schema
   TileDB_ArraySchema tiledb_array_schema;
+  memset(&tiledb_array_schema, 0, sizeof(TileDB_ArraySchema));
   auto status = tiledb_array_load_schema(m_tiledb_ctx, (m_workspace+'/'+array_name).c_str(),
     &tiledb_array_schema);
   if(status != TILEDB_OK)

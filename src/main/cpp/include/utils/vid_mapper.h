@@ -118,10 +118,7 @@ class FileInfo
       m_local_file_idx = file_idx;
       m_name = name;
     }
-    void add_local_tiledb_row_idx_pair(int local, int64_t global)
-    {
-      m_local_tiledb_row_idx_pairs.push_back(std::make_pair(local, global));
-    }
+    bool add_local_tiledb_row_idx_pair(const int64_t local, const int64_t global, int64_t& other_row_idx);
     size_t get_num_callsets() const { return m_local_tiledb_row_idx_pairs.size(); }
     size_t get_num_orders() const;
     std::string m_name;
@@ -133,6 +130,7 @@ class FileInfo
     //A VCF can contain multiple callsets - each entry in this map contains a vector of pair<local_idx,row_idx>,
     //corresponding to each callset in the VCF
     std::vector<std::pair<int64_t, int64_t>> m_local_tiledb_row_idx_pairs;
+    std::unordered_map<int64_t, int64_t> m_local_idx_to_tiledb_row_idx;
     //File/stream type enum
     VidFileTypeEnum m_type;
     //Buffer stream details

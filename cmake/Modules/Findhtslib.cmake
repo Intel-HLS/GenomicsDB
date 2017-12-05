@@ -21,14 +21,18 @@ if(HTSLIB_SOURCE_DIR)
         SOURCE_DIR "${HTSLIB_SOURCE_DIR}"
         UPDATE_COMMAND "autoreconf"
         PATCH_COMMAND ""
-        CONFIGURE_COMMAND ./configure CFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} LDFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_LDFLAGS}
+        CONFIGURE_COMMAND ${HTSLIB_SOURCE_DIR}/configure CFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} LDFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_LDFLAGS}
                 --disable-lzma --disable-bz2 --disable-libcurl
-        BUILD_COMMAND $(MAKE)
-        BUILD_IN_SOURCE 1
+        BUILD_COMMAND ${CMAKE_COMMAND} -E make_directory cram
+            COMMAND ${CMAKE_COMMAND} -E make_directory test
+            COMMAND $(MAKE) -f ${HTSLIB_SOURCE_DIR}/Makefile VPATH=${HTSLIB_SOURCE_DIR} SOURCE_DIR=${HTSLIB_SOURCE_DIR}
+        #BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
         )
     find_path(HTSLIB_INCLUDE_DIR NAMES htslib/vcf.h HINTS "${HTSLIB_SOURCE_DIR}")
-    set(HTSLIB_LIBRARY "${HTSLIB_SOURCE_DIR}/libhts.a")
+    ExternalProject_Get_Property(htslib BINARY_DIR)
+    set(HTSLIB_DIR_IN_BUILD_DIR "${BINARY_DIR}")
+    set(HTSLIB_LIBRARY "${BINARY_DIR}/libhts.a")
     find_package_handle_standard_args(htslib "Could not find htslib headers ${DEFAULT_MSG}" HTSLIB_INCLUDE_DIR)
 else()
     find_path(HTSLIB_INCLUDE_DIR NAMES htslib/vcf.h HINTS "${HTSLIB_INSTALL_DIR}")
