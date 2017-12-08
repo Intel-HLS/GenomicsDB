@@ -1,0 +1,16 @@
+{ "db_path" : "",
+  "gen_config" :  [{ "name" : "geno10k", 
+            "from_dir" : "/scratch/1000genome/vcfs/",
+            "gen_num" : 10000,
+            "gen_dir" : "/scratch/generated10k/",
+            "output_dir" : "/home/mingrutar/GenomicsDBPerfTest/templates",
+            "clean_first" : false,
+            "save_callsets" : true},
+
+        { "name" : "geno100", 
+            "from_dir" : "/scratch/1000genome/vcfs/",
+            "gen_num" : 50,
+            "gen_dir" : "/scratch/generated100/",
+            "clean_first" : false,
+            "save_callsets" : true}]
+}
