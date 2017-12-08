@@ -55,42 +55,19 @@ template<>
 int str_to_element(const char* str, const size_t element_begin_idx,
     const size_t current_element_length)
 {
-  return str_to_element<int64_t>(str, element_begin_idx, current_element_length);
-}
-
-template<>
-uint64_t str_to_element(const char* str, const size_t element_begin_idx,
-    const size_t current_element_length)
-{
-  char* endptr = 0;
-  //Why copy? No strntol function :(
-  //Optimization - no heap operations if small enough
-  const size_t array_size = 32u;
-  char array[array_size];
-  if(current_element_length+1u < array_size) //+1 for NULL char
-  {
-    memcpy(array, str+element_begin_idx, current_element_length);
-    array[current_element_length] = '\0';
-    return strtoull(array, &endptr, 0);
-  }
-  else
-  {
-    std::string copy(str+element_begin_idx, current_element_length);
-    return strtoull(copy.c_str(), &endptr, 0);
-  }
-}
-
-template<>
-unsigned str_to_element(const char* str, const size_t element_begin_idx,
-    const size_t current_element_length)
-{
-  return str_to_element<uint64_t>(str, element_begin_idx, current_element_length);
+  return (current_element_length > 0u
+      && !(current_element_length == 3u && strncasecmp(str+element_begin_idx, "NaN", 3u) == 0))
+    ? str_to_element<int64_t>(str, element_begin_idx, current_element_length)
+    : get_bcf_missing_value<int>();
 }
 
 template<>
 float str_to_element(const char* str, const size_t element_begin_idx,
     const size_t current_element_length)
 {
+  if(current_element_length == 0u
+      || (current_element_length == 3u && strncasecmp(str+element_begin_idx, "NaN", 3u) == 0))
+    return get_bcf_missing_value<float>();
   char* endptr = 0;
   //Why copy? No strntol function :(
   //Optimization - no heap operations if small enough
@@ -109,37 +86,22 @@ float str_to_element(const char* str, const size_t element_begin_idx,
   }
 }
 
-template<>
-double str_to_element(const char* str, const size_t element_begin_idx,
-    const size_t current_element_length)
-{
-  char* endptr = 0;
-  //Why copy? No strntol function :(
-  //Optimization - no heap operations if small enough
-  const size_t array_size = 32u;
-  char array[array_size];
-  if(current_element_length+1u < array_size) //+1 for NULL char
-  {
-    memcpy(array, str+element_begin_idx, current_element_length);
-    array[current_element_length] = '\0';
-    return strtod(array, &endptr);
-  }
-  else
-  {
-    std::string copy(str+element_begin_idx, current_element_length);
-    return strtod(copy.c_str(), &endptr);
-  }
-}
-
 template<class T>
 void cast_join_and_print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements, const char sep)
 {
   if(num_elements)
   {
     auto data_ptr = reinterpret_cast<const int*>(ptr);
-    fptr << data_ptr[0];
+    auto val = data_ptr[0];
+    if(!is_bcf_missing_value<T>(val))
+      fptr << val;
     for(auto i=1ull;i<num_elements;++i)
-      fptr << sep << data_ptr[i];
+    {
+      fptr << sep;
+      auto val = data_ptr[i];
+      if(!is_bcf_missing_value<T>(val))
+        fptr << val;
+    }
   }
 }
 
@@ -261,6 +223,10 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
       //Delimiter not of the innermost dimension
       if(sep_dim_idx+1u < length_descriptor.get_num_dimensions())
       {
+        //Single element - but actually empty string
+        if(num_elements_in_innermost_dim_read == 1u
+            && current_element_length == 0u)
+          num_elements_in_innermost_dim_read = 0u;
         //Example: 1,2,3,4|5,6|7,8$9,10|11|12
         //Length of innermost dimension is the number of elements read
         auto last_dim_size =
@@ -342,13 +308,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(const char* str, 
 template
 void GenomicsDBMultiDVectorField::parse_and_store_numeric<int64_t>(const char* str, const size_t str_length);
 template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<unsigned>(const char* str, const size_t str_length);
-template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<uint64_t>(const char* str, const size_t str_length);
-template
 void GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(const char* str, const size_t str_length);
-template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<double>(const char* str, const size_t str_length);
 
 //Iterating over all dimensions and all index values can be a recursive process
 //We can model this as a stack

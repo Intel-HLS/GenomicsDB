@@ -208,3 +208,47 @@ TEST(multid_vector, 3D_test)
   three_d_vector.run_operation(print_op, &(three_d_vector.get_rw_data()[0]));
   EXPECT_EQ(fptr.str(), value);
 }
+
+TEST(multid_vector, 2D_test_with_missing_values)
+{
+  FieldInfo field_info;
+  field_info.set_info("test", 0);
+  field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
+  field_info.set_vcf_type(std::type_index(typeid(int)), BCF_HT_INT);
+  auto& length_descriptor = field_info.m_length_descriptor;
+  length_descriptor.resize(2u);
+  //Length descriptors for each dimension
+  length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  length_descriptor.set_length_descriptor(1u, BCF_VL_VAR);
+  //Delimiters
+  length_descriptor.set_vcf_delimiter(0u, "|");
+  length_descriptor.set_vcf_delimiter(1u, ",");
+  GenomicsDBMultiDVectorField two_d_vector(field_info);
+  std::string value = "|3,,NaN";
+  two_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  //Index
+  GenomicsDBMultiDVectorIdx dim_0_idx(&(two_d_vector.get_rw_data()[0]), &field_info);
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
+  //A[0]
+  dim_0_idx.advance_to_index_in_next_dimension(0u);
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 0u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 2u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), 0u);
+  //A[1]
+  dim_0_idx.advance_index_in_current_dimension();
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 1u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 2u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), 3*sizeof(int));
+  auto data_ptr = dim_0_idx.get_ptr<int>();
+  EXPECT_EQ(data_ptr[0u], 3);
+  EXPECT_EQ(data_ptr[1u], get_bcf_missing_value<int>());
+  EXPECT_EQ(data_ptr[2u], get_bcf_missing_value<int>());
+  //VCF printer
+  std::ostringstream fptr;
+  GenomicsDBMultiDVectorFieldVCFPrinter print_op(fptr, field_info);
+  two_d_vector.run_operation(print_op, &(two_d_vector.get_rw_data()[0]));
+  std::string serialization_return_value = "|3,,"; //NaN gets replaced with missing
+  EXPECT_EQ(fptr.str(), serialization_return_value);
+}
