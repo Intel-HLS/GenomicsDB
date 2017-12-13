@@ -15,6 +15,10 @@ if(HTSLIB_SOURCE_DIR)
     if(APPLE AND BUILD_DISTRIBUTABLE_LIBRARY)
         set(HTSLIB_EXTRA_CFLAGS -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
     endif()
+    #Cross compiling for MacOSX
+    if((NOT (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)) AND APPLE)
+        set(HTSLIB_OSXCROSS_COMPILE_FLAGS LIBS=${OSXCROSS_LIBS} CPPFLAGS=${OSXCROSS_CPPFLAGS} --host=${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM})
+    endif()
     ExternalProject_Add(
         htslib
         DOWNLOAD_COMMAND ""
@@ -22,14 +26,17 @@ if(HTSLIB_SOURCE_DIR)
         UPDATE_COMMAND "autoreconf"
         PATCH_COMMAND ""
         CONFIGURE_COMMAND ${HTSLIB_SOURCE_DIR}/configure CFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} LDFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_LDFLAGS}
-                --disable-lzma --disable-bz2 --disable-libcurl
+            CC=${CMAKE_C_COMPILER} AR=${CMAKE_AR} RANLIB=${CMAKE_RANLIB}
+            ${HTSLIB_OSXCROSS_COMPILE_FLAGS}
+            --disable-lzma --disable-bz2 --disable-libcurl
         BUILD_COMMAND ${CMAKE_COMMAND} -E make_directory cram
             COMMAND ${CMAKE_COMMAND} -E make_directory test
             COMMAND $(MAKE) -f ${HTSLIB_SOURCE_DIR}/Makefile VPATH=${HTSLIB_SOURCE_DIR} SOURCE_DIR=${HTSLIB_SOURCE_DIR}
+            AR=${CMAKE_AR}
         #BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
         )
-    find_path(HTSLIB_INCLUDE_DIR NAMES htslib/vcf.h HINTS "${HTSLIB_SOURCE_DIR}")
+    find_path(HTSLIB_INCLUDE_DIR NAMES htslib/vcf.h HINTS "${HTSLIB_SOURCE_DIR}" CMAKE_FIND_ROOT_PATH_BOTH)
     ExternalProject_Get_Property(htslib BINARY_DIR)
     set(HTSLIB_DIR_IN_BUILD_DIR "${BINARY_DIR}")
     set(HTSLIB_LIBRARY "${BINARY_DIR}/libhts.a")
