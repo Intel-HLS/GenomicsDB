@@ -55,7 +55,6 @@ class GenomicsDBMultiDVectorField
       m_field_info_ptr = &field_info;
       m_ro_field_ptr = ro_data;
       m_ro_data_size = ro_size;
-      m_rw_data_size = 0ull;
     }
     //Destructor
     ~GenomicsDBMultiDVectorField()
@@ -68,8 +67,16 @@ class GenomicsDBMultiDVectorField
 
     const uint8_t* get_ro_data_ptr() const { return m_ro_field_ptr; }
     const FieldInfo* get_field_info() const { return m_field_info_ptr; }
+    /*
+     * Parse a delimited string representation of the multi-D vector
+     * and store into m_rw_field_data
+     */
     template<class ElementType>
-    void parse_and_store_numeric(const char* str, const size_t str_length);
+    uint64_t parse_and_store_numeric(const char* str, const size_t str_length);
+    template<class ElementType>
+    static uint64_t parse_and_store_numeric(std::vector<uint8_t>& buffer,
+        const FieldInfo& field_info,
+        const char* str, const size_t str_length);
     /*
      * Traverses the multi-d vector and invokes the operator for innermost vector
      * Arguments to the operator include uint8_t* ptr, size of vector, index vector
@@ -81,7 +88,6 @@ class GenomicsDBMultiDVectorField
     std::vector<uint8_t> m_rw_field_data; //useful when constructing a new object - example: deserializing a VCF field encoded as string 
     const FieldInfo* m_field_info_ptr;
     size_t m_ro_data_size;
-    size_t m_rw_data_size;
 };
 
 //How do you access a multi-D vector?

@@ -181,6 +181,10 @@ class File2TileDBBinaryColumnPartitionBase
       assert(m_buffer_ptr);
       return *m_buffer_ptr;
     }
+    std::vector<uint8_t>& get_multi_d_vector_buffer()
+    {
+      return m_multi_d_vector_buffer;
+    }
     /*
      * abstract virtual functions
      */
@@ -202,6 +206,8 @@ class File2TileDBBinaryColumnPartitionBase
     GenomicsDBImportReaderBase* m_base_reader_ptr;
     //Split file name for this partition
     std::string m_split_filename;
+    //Holder for multi-D fields - avoid too many dynamic reallocations
+    std::vector<uint8_t> m_multi_d_vector_buffer;
 };
 
 //Buffer stream idx, partition idx

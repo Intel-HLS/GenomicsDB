@@ -91,7 +91,7 @@ void cast_join_and_print(std::ostream& fptr, const uint8_t* ptr, const size_t nu
 {
   if(num_elements)
   {
-    auto data_ptr = reinterpret_cast<const int*>(ptr);
+    auto data_ptr = reinterpret_cast<const T*>(ptr);
     auto val = data_ptr[0];
     if(!is_bcf_missing_value<T>(val))
       fptr << val;
@@ -163,10 +163,12 @@ void GenomicsDBMultiDVectorIdx::advance_index_in_current_dimension()
    1,2,3,4|5,6|7,8$9,10|11|12
 */
 template<class ElementType>
-void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const size_t str_length)
+uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(std::vector<uint8_t>& buffer,
+        const FieldInfo& field_info,
+        const char* str, const size_t str_length)
 {
-  auto& length_descriptor = m_field_info_ptr->m_length_descriptor;
-  m_rw_field_data.resize(4096u); //4KiB
+  auto& length_descriptor = field_info.m_length_descriptor;
+  buffer.resize(4096u); //4KiB
   auto w_idx = 0ull; //write idx
   auto r_idx = 0ull; //read idx
   //#bytes for curr data in dim i
@@ -176,7 +178,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
   std::vector<std::vector<uint64_t>> dim_offsets;
   //Each dimension begins with offset 0
   dim_offsets.resize(length_descriptor.get_num_dimensions(), std::vector<uint64_t>(1u, 0ull));
-  //Specifies the current offset in m_rw_field_data at which the data for dim i should be written
+  //Specifies the current offset in buffer at which the data for dim i should be written
   //the last 2 dimensions don't get any sizes
   std::vector<uint64_t> dim_write_begin_offsets;
   dim_write_begin_offsets.resize(length_descriptor.get_num_dimensions());
@@ -188,6 +190,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
   auto current_element_begin_read_idx = 0ull; //r stands for read
   auto current_element_length = 0ull;
   auto num_elements_in_innermost_dim_read = 0ull;
+  auto total_size_of_multi_d_data = 0ull;
   //TODO: can be vectorized, probably not worth it since only used in loading
   while(r_idx <= str_length)
   {
@@ -217,7 +220,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
       auto value = str_to_element<ElementType>(str, current_element_begin_read_idx, current_element_length);
       int64_t write_offset = dim_write_begin_offsets.back();
       File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<ElementType>(
-          m_rw_field_data, write_offset, value);
+          buffer, write_offset, value);
       dim_write_begin_offsets.back() = write_offset;
       ++num_elements_in_innermost_dim_read;
       //Delimiter not of the innermost dimension
@@ -246,7 +249,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
             int64_t write_offset = dim_write_begin_offsets[i];
             //write the dim size at dim_write_begin_offsets
             File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
-                m_rw_field_data,
+                buffer,
                 write_offset,
                 dim_sizes[i]);
             write_offset = dim_write_begin_offsets[i]
@@ -254,7 +257,7 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
               +dim_sizes[i];     //data bytes
             //write #entries in dim i
             File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
-                m_rw_field_data,
+                buffer,
                 write_offset,
                 dim_offsets[i].size()-1u); //why -1? If there are N entries, there are N+1 offsets
             //write offsets
@@ -263,9 +266,9 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
               +dim_sizes[i]      //data bytes
               +sizeof(uint64_t); //#elements
             auto offsets_size = dim_offsets[i].size()*sizeof(uint64_t);
-            if(offsets_start_offset+offsets_size >= m_rw_field_data.size())
-              m_rw_field_data.resize(2*(offsets_start_offset+offsets_size+1u));
-            memcpy(&(m_rw_field_data[offsets_start_offset]), &(dim_offsets[i][0u]), offsets_size);
+            if(offsets_start_offset+offsets_size >= buffer.size())
+              buffer.resize(2*(offsets_start_offset+offsets_size+1u));
+            memcpy(&(buffer[offsets_start_offset]), &(dim_offsets[i][0u]), offsets_size);
             //Update last_dim_size
             last_dim_size = (dim_sizes[i]
                 + sizeof(uint64_t)    //for storing size of data at dim i
@@ -274,6 +277,8 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
                 );
           }
         }
+        if(sep_dim_idx == -1)
+          total_size_of_multi_d_data = last_dim_size;
         //sep_dim_idx can be -1
         //The outermost dimension whose delimiter was hit
         auto outermost_delim_dim_idx = static_cast<size_t>(std::max<int>(sep_dim_idx, 0));
@@ -300,15 +305,26 @@ void GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const
       ++current_element_length;
     ++r_idx;
   }
+  return total_size_of_multi_d_data;
 }
+
+template<class ElementType>
+uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const size_t str_length)
+{
+  auto total_size_of_multi_d_data = GenomicsDBMultiDVectorField::parse_and_store_numeric<ElementType>(m_rw_field_data, *m_field_info_ptr,
+      str, str_length);
+  m_rw_field_data.resize(total_size_of_multi_d_data);
+  return total_size_of_multi_d_data;
+}
+
 
 //Template instantiations
 template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(const char* str, const size_t str_length);
+uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(const char* str, const size_t str_length);
 template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<int64_t>(const char* str, const size_t str_length);
+uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<int64_t>(const char* str, const size_t str_length);
 template
-void GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(const char* str, const size_t str_length);
+uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(const char* str, const size_t str_length);
 
 //Iterating over all dimensions and all index values can be a recursive process
 //We can model this as a stack
@@ -402,8 +418,11 @@ void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const si
     case VariantFieldTypeEnum::VARIANT_FIELD_INT:
       cast_join_and_print<int>(*m_fptr, ptr, num_elements, sep);
       break;
+    case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+      cast_join_and_print<float>(*m_fptr, ptr, num_elements, sep);
+      break;
     default:
-      throw GenomicsDBMultiDVectorFieldOperatorException(std::string("Unhandled type ")
+      throw GenomicsDBMultiDVectorFieldOperatorException(std::string("Unhandled type in GenomicsDBMultiDVectorFieldVCFPrinter ")
           +m_field_info_ptr->get_genomicsdb_type_index().name());
       break;
   }

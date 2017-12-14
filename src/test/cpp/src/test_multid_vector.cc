@@ -38,9 +38,16 @@ TEST(multid_vector, 2D_test)
   //Delimiters
   length_descriptor.set_vcf_delimiter(0u, "|");
   length_descriptor.set_vcf_delimiter(1u, ",");
+  field_info.modify_field_type_if_multi_dim_field();
   GenomicsDBMultiDVectorField two_d_vector(field_info);
   std::string value = "1,2|3,4,5";
-  two_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  auto total_size = two_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  //Size of dim 0 in first 8 bytes
+  auto dim_0_data_size = *(reinterpret_cast<const uint64_t*>(&(two_d_vector.get_rw_data()[0u])));
+  EXPECT_EQ(total_size, dim_0_data_size
+      +sizeof(uint64_t) //size - 8 bytes
+      +sizeof(uint64_t) //#entries - 8 bytes
+      +3*sizeof(uint64_t)); //3 offsets
   //Index
   GenomicsDBMultiDVectorIdx dim_0_idx(&(two_d_vector.get_rw_data()[0]), &field_info);
   EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
@@ -104,9 +111,16 @@ TEST(multid_vector, 3D_test)
   length_descriptor.set_vcf_delimiter(0u, "$");
   length_descriptor.set_vcf_delimiter(1u, "|");
   length_descriptor.set_vcf_delimiter(2u, ",");
+  field_info.modify_field_type_if_multi_dim_field();
   GenomicsDBMultiDVectorField three_d_vector(field_info);
   std::string value = "1,2|3,4,5$6,7,8,9|10,11|12";
-  three_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  auto total_size = three_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  //Size of dim 0 data in first 8 bytes
+  auto dim_0_data_size = *(reinterpret_cast<const uint64_t*>(&(three_d_vector.get_rw_data()[0u])));
+  EXPECT_EQ(total_size, dim_0_data_size
+      +sizeof(uint64_t) //size - 8 bytes
+      +sizeof(uint64_t) //#entries - 8 bytes
+      +3*sizeof(uint64_t)); //3 offsets
   //Index
   GenomicsDBMultiDVectorIdx dim_0_idx(&(three_d_vector.get_rw_data()[0]), &field_info);
   EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
@@ -223,9 +237,16 @@ TEST(multid_vector, 2D_test_with_missing_values)
   //Delimiters
   length_descriptor.set_vcf_delimiter(0u, "|");
   length_descriptor.set_vcf_delimiter(1u, ",");
+  field_info.modify_field_type_if_multi_dim_field();
   GenomicsDBMultiDVectorField two_d_vector(field_info);
   std::string value = "|3,,NaN";
-  two_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  auto total_size = two_d_vector.parse_and_store_numeric<int>(value.c_str(), value.length());
+  //Size of dim 0 data in first 8 bytes
+  auto dim_0_data_size = *(reinterpret_cast<const uint64_t*>(&(two_d_vector.get_rw_data()[0u])));
+  EXPECT_EQ(total_size, dim_0_data_size
+      +sizeof(uint64_t) //size - 8 bytes
+      +sizeof(uint64_t) //#entries - 8 bytes
+      +3*sizeof(uint64_t)); //3 offsets
   //Index
   GenomicsDBMultiDVectorIdx dim_0_idx(&(two_d_vector.get_rw_data()[0]), &field_info);
   EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
@@ -251,4 +272,81 @@ TEST(multid_vector, 2D_test_with_missing_values)
   two_d_vector.run_operation(print_op, &(two_d_vector.get_rw_data()[0]));
   std::string serialization_return_value = "|3,,"; //NaN gets replaced with missing
   EXPECT_EQ(fptr.str(), serialization_return_value);
+}
+
+TEST(multid_vector, 2D_float_test)
+{
+  FieldInfo field_info;
+  field_info.set_info("test", 0);
+  field_info.set_type(std::type_index(typeid(float)), BCF_HT_REAL);
+  auto& length_descriptor = field_info.m_length_descriptor;
+  length_descriptor.resize(2u);
+  //Length descriptors for each dimension
+  length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  length_descriptor.set_length_descriptor(1u, BCF_VL_VAR);
+  //Delimiters
+  length_descriptor.set_vcf_delimiter(0u, "|");
+  length_descriptor.set_vcf_delimiter(1u, ",");
+  field_info.modify_field_type_if_multi_dim_field();
+  GenomicsDBMultiDVectorField two_d_vector(field_info);
+  std::string value = "29659.00|1.00|2.00|3.00";
+  auto total_size = two_d_vector.parse_and_store_numeric<float>(value.c_str(), value.length());
+  //Size of dim 0 in first 8 bytes
+  auto dim_0_data_size = *(reinterpret_cast<const uint64_t*>(&(two_d_vector.get_rw_data()[0u])));
+  EXPECT_EQ(total_size, dim_0_data_size
+      +sizeof(uint64_t) //size - 8 bytes
+      +sizeof(uint64_t) //#entries - 8 bytes
+      +5*sizeof(uint64_t)); //5 offsets
+  //Index
+  GenomicsDBMultiDVectorIdx dim_0_idx(&(two_d_vector.get_rw_data()[0]), &field_info);
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
+  //A[0]
+  dim_0_idx.advance_to_index_in_next_dimension(0u);
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 0u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 4u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), sizeof(float));
+  auto data_ptr = dim_0_idx.get_ptr<float>();
+  EXPECT_NEAR(data_ptr[0u], 29659.0f, 1e-5f);
+  {
+    //A[0][i]
+    auto dim_1_idx = dim_0_idx;
+    //A[0][0]
+    dim_1_idx.advance_to_index_in_next_dimension(0u);
+    EXPECT_EQ(dim_1_idx.get_current_dim_index(), 1);
+    EXPECT_EQ(dim_1_idx.get_current_index_in_current_dimension(), 0u);
+    EXPECT_EQ(dim_1_idx.get_num_entries_in_current_dimension(), 1u);
+    EXPECT_EQ(dim_1_idx.get_size_of_current_index(), sizeof(float));
+    EXPECT_EQ(dim_1_idx.get_element<float>(), 29659.0);
+  }
+  //A[1]
+  dim_0_idx.advance_index_in_current_dimension();
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 1u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 4u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), sizeof(float));
+  data_ptr = dim_0_idx.get_ptr<float>();
+  EXPECT_EQ(data_ptr[0u], 1.0);
+  //A[2]
+  dim_0_idx.advance_index_in_current_dimension();
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 2u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 4u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), sizeof(float));
+  data_ptr = dim_0_idx.get_ptr<float>();
+  EXPECT_EQ(data_ptr[0u], 2.0);
+  //A[3]
+  dim_0_idx.advance_index_in_current_dimension();
+  EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+  EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 3u);
+  EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 4u);
+  EXPECT_EQ(dim_0_idx.get_size_of_current_index(), sizeof(float));
+  data_ptr = dim_0_idx.get_ptr<float>();
+  EXPECT_EQ(data_ptr[0u], 3.0);
+  //VCF printer
+  std::ostringstream fptr;
+  GenomicsDBMultiDVectorFieldVCFPrinter print_op(fptr, field_info);
+  two_d_vector.run_operation(print_op, &(two_d_vector.get_rw_data()[0]));
+  //EXPECT_THAT(fptr.str(), MatchesRegex("29659\\.?.*|\\s*1\\.?.*|\\s*2\\.?.*|\\s*3\\.?.*"));
+  //EXPECT_EQ(fptr.str(), "29659|1|2|3");
 }

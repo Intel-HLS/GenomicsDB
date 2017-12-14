@@ -313,6 +313,14 @@ class FieldInfo
       m_vcf_type_index = curr_type;
       m_vcf_bcf_ht_type = ht_type;
     }
+    /*
+     * Set TileDB type
+     */
+    void set_tiledb_type(const std::type_index& curr_type, const int ht_type)
+    {
+      m_tiledb_type_index = curr_type;
+      m_tiledb_bcf_ht_type = ht_type;
+    }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -327,8 +335,11 @@ class FieldInfo
     //Type information
     const std::type_index& get_tiledb_type_index() const { return m_tiledb_type_index; }
     const std::type_index& get_genomicsdb_type_index() const { return m_genomicsdb_type_index; }
+    int get_genomicsdb_bcf_ht_type() const { return m_genomicsdb_bcf_ht_type; }
     int get_vcf_bcf_ht_type() const { return m_vcf_bcf_ht_type; }
     size_t get_element_size() const { return m_element_size; }
+    //Multi-d vector fields - different types in TileDB/VCF/GenomicsDB
+    void modify_field_type_if_multi_dim_field();
   private:
     //Type info
     //TileDB type
@@ -336,6 +347,7 @@ class FieldInfo
     int m_tiledb_bcf_ht_type;
     //GenomicsDB type index - could be different from TileDB and VCF
     std::type_index m_genomicsdb_type_index;
+    int m_genomicsdb_bcf_ht_type;
     //VCF type info - could be different from TileDB type
     std::type_index m_vcf_type_index;
     int m_vcf_bcf_ht_type; 

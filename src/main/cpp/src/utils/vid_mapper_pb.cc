@@ -407,6 +407,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
             vid_map_protobuf->fields(pb_field_idx).vcf_delimiter(i).c_str());
     }
 
+    ref.modify_field_type_if_multi_dim_field();
+
     // Both INFO and FORMAT, throw another entry <field>_FORMAT
     if (ref.m_is_vcf_INFO_field &&
         ref.m_is_vcf_FORMAT_field) {

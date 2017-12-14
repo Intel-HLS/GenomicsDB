@@ -25,6 +25,7 @@
 #include "vcf2binary.h"
 #include "htslib/bgzf.h"
 #include "vcf_adapter.h"
+#include "genomicsdb_multid_vector_field.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
@@ -760,54 +761,100 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     if(is_vcf_str_type)
       num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
     auto field_length_offset = buffer_offset;
-    //variable length field, print #elements  first
-    if(length_descriptor != BCF_VL_FIXED)
+    //Check if multi-D vector field represented as string
+    assert(static_cast<size_t>(field_idx) < m_local_field_idx_to_global_field_idx.size());
+    assert(static_cast<size_t>(m_local_field_idx_to_global_field_idx[field_idx])
+        < m_vid_mapper->get_num_fields());
+    auto& vid_field_info = m_vid_mapper->get_field_info(m_local_field_idx_to_global_field_idx[field_idx]);
+    auto size_of_multi_d_field = 0ull;
+    if(vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
     {
-#ifdef PRODUCE_CSV_CELLS
-      if(!is_vcf_str_type)
-#endif
+      switch(vid_field_info.get_genomicsdb_bcf_ht_type())
       {
-        if(is_GT_field && m_store_phase_information_for_GT && num_values > 0)
-          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
-              ((num_values << 1)-1)); //phasing information is stored as elements
-        else
-          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_values);
-        if(buffer_full) return true;
+        case BCF_HT_INT:
+          size_of_multi_d_field = GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(
+              vcf_partition.get_multi_d_vector_buffer(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values);
+          break;
+        case BCF_HT_REAL:
+          size_of_multi_d_field = GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(
+              vcf_partition.get_multi_d_vector_buffer(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values);
+          break;
+        default:
+          throw VCF2BinaryException(std::string("Unhandled element type for multi-D fields: ")
+              +vid_field_info.get_genomicsdb_type_index().name());
+      }
+//#define DEBUG_MULTID_VECTOR_FIELD_LOAD
+#ifdef DEBUG_MULTID_VECTOR_FIELD_LOAD
+      GenomicsDBMultiDVectorField debug_field(vid_field_info, &(vcf_partition.get_multi_d_vector_buffer()[0u]),
+          size_of_multi_d_field);
+      GenomicsDBMultiDVectorIdx debug_field_idx(&(vcf_partition.get_multi_d_vector_buffer()[0u]), &vid_field_info, 0u);
+#endif
+      //4-byte int for #elements, followed by size
+      if(static_cast<uint64_t>(buffer_offset) + sizeof(int) + size_of_multi_d_field
+          > static_cast<uint64_t>(buffer_offset_limit))
+        buffer_full = true;
+      else
+      {
+        buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, size_of_multi_d_field);
+        assert(!buffer_full);
+        memcpy(&(buffer[buffer_offset]), &(vcf_partition.get_multi_d_vector_buffer()[0u]),
+            size_of_multi_d_field);
+        buffer_offset += size_of_multi_d_field;
       }
     }
-    auto print_sep = true;
-    for(auto k=0;k<num_values;++k)
+    else //normal field
     {
-      auto val = (bcf_ht_type == BCF_HT_FLAG) ? static_cast<char>(1) : ptr[k];
-      //For variable length fields, terminate loop if vector_end seen
-      if(is_bcf_vector_end_value<FieldType>(val) && length_descriptor != BCF_VL_FIXED)
+      //variable length field, print #elements  first
+      if(length_descriptor != BCF_VL_FIXED)
       {
-        //Update field length
 #ifdef PRODUCE_CSV_CELLS
         if(!is_vcf_str_type)
 #endif
         {
-          buffer_full = tiledb_buffer_print<int>(buffer, field_length_offset, buffer_offset_limit, k);
-          assert(!buffer_full);
-        }
-        break;
-      }
-      if(is_GT_field)
-      {
-        auto gt_element = static_cast<int>(val);
-        if(m_store_phase_information_for_GT && k>0)
-        {
-          if(is_bcf_valid_value<int>(gt_element) && bcf_gt_is_phased(gt_element))
-            buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 1, print_sep);
+          if(is_GT_field && m_store_phase_information_for_GT && num_values > 0)
+            buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
+                ((num_values << 1)-1)); //phasing information is stored as elements
           else
-            buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0, print_sep);
+            buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, num_values);
           if(buffer_full) return true;
         }
-        val = bcf_gt_allele(gt_element);
       }
-      buffer_full = buffer_full || tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
-      if(buffer_full) return true;
-      print_sep  = !is_vcf_str_type;
+      auto print_sep = true;
+      for(auto k=0;k<num_values;++k)
+      {
+        auto val = (bcf_ht_type == BCF_HT_FLAG) ? static_cast<char>(1) : ptr[k];
+        //For variable length fields, terminate loop if vector_end seen
+        if(is_bcf_vector_end_value<FieldType>(val) && length_descriptor != BCF_VL_FIXED)
+        {
+          //Update field length
+#ifdef PRODUCE_CSV_CELLS
+          if(!is_vcf_str_type)
+#endif
+          {
+            buffer_full = tiledb_buffer_print<int>(buffer, field_length_offset, buffer_offset_limit, k);
+            assert(!buffer_full);
+          }
+          break;
+        }
+        if(is_GT_field)
+        {
+          auto gt_element = static_cast<int>(val);
+          if(m_store_phase_information_for_GT && k>0)
+          {
+            if(is_bcf_valid_value<int>(gt_element) && bcf_gt_is_phased(gt_element))
+              buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 1, print_sep);
+            else
+              buffer_full = buffer_full || tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0, print_sep);
+            if(buffer_full) return true;
+          }
+          val = bcf_gt_allele(gt_element);
+        }
+        buffer_full = buffer_full || tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
+        if(buffer_full) return true;
+        print_sep  = !is_vcf_str_type;
+      }
     }
   }
   //For discarding records if missing GT fields

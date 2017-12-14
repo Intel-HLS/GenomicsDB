@@ -165,8 +165,25 @@ void FieldInfo::set_type(const std::type_index& curr_type, const int ht_type)
   m_genomicsdb_type_index = curr_type;
   m_vcf_type_index = curr_type;
   m_tiledb_bcf_ht_type = ht_type;
+  m_genomicsdb_bcf_ht_type = ht_type;
   m_vcf_bcf_ht_type = ht_type;
   m_element_size = VariantFieldTypeUtil::size(curr_type);
+}
+
+//Multi-d vector fields - different types in TileDB/VCF/GenomicsDB
+void FieldInfo::modify_field_type_if_multi_dim_field()
+{
+  if(m_length_descriptor.get_num_dimensions() > 1u)
+  {
+    set_vcf_type(std::type_index(typeid(char)), BCF_HT_STR);    //string
+    set_tiledb_type(std::type_index(typeid(char)), BCF_HT_CHAR); //bytes
+    //genomicsdb element type specified in "type" attribute
+    auto genomicsdb_bcf_ht_type = get_genomicsdb_bcf_ht_type();
+    if(genomicsdb_bcf_ht_type != BCF_HT_INT && genomicsdb_bcf_ht_type != BCF_HT_REAL)
+      throw VidMapperException(std::string("Unhandled element type for multi-D field ")
+          +m_name+" element type "+m_genomicsdb_type_index.name()
+          +"; only float and int multi-d fields supported");
+  }
 }
 
 void VidMapper::clear()
@@ -845,6 +862,8 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
             }
           }
         }
+
+        m_field_idx_to_info[field_idx].modify_field_type_if_multi_dim_field();
 
         //Both INFO and FORMAT, throw another entry <field>_FORMAT
         if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
