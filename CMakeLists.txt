@@ -305,8 +305,7 @@ if(BUILD_JAVA)
         OUTPUT ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/pom.xml ${CMAKE_BINARY_DIR}/pom.xml
         COMMAND mvn versions:set ${MAVEN_QUIET_ARGS} -DnewVersion=${GENOMICSDB_RELEASE_VERSION} ${MAVEN_PROFILE}
-        COMMAND mvn package -DskipTests
-          ${MAVEN_ARGS}
+        COMMAND mvn package -DskipTests ${MAVEN_ARGS}
         DEPENDS tiledbgenomicsdb ${JAVA_SCALA_SOURCES} pom.xml
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     install(FILES ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}.jar ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar DESTINATION bin)
@@ -325,6 +324,18 @@ if(BUILD_JAVA)
         SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}
         INCLUDE_JARS ${GENOMICSDB_MAVEN_BUILD_DIR}/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar
         OUTPUT_DIR ${GENOMICSDB_MAVEN_BUILD_DIR})
+
+    #Deploy to Maven central
+    #Cannot specify the jars in the DEPENDS clause. CMake manual specifies, quoting:
+    #"Do not list the output in more than one independent target that may build in parallel or
+    #the two instances of the rule may conflict"
+    #Jars are already listed as dependencies in the add_jar command (-examples)
+    #So, use the examples target as a dependency for this target
+    add_custom_target(mvn_central_deploy
+        COMMAND mvn ${MAVEN_ARGS} deploy
+        COMMENT "Deploy to Maven central"
+    )
+    add_dependencies(mvn_central_deploy genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples)
 
     add_test(NAME CI_tests
         COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
