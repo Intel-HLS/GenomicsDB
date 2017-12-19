@@ -42,11 +42,11 @@ class UnknownAttributeTypeException : public std::exception {
 class VariantFieldTypeUtil
 {
   public:
-    static size_t size(VariantFieldTypeEnum enum_val);
+    static size_t size(const int bcf_ht_type);
     static size_t size(const std::type_index& type_index)
     {
-      auto iter = g_variant_field_type_index_to_enum.find(type_index);
-      if(iter == g_variant_field_type_index_to_enum.end())
+      auto iter = g_variant_field_type_index_to_bcf_ht_type.find(type_index);
+      if(iter == g_variant_field_type_index_to_bcf_ht_type.end())
         throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
       return size((*iter).second);
     }
@@ -65,18 +65,11 @@ class VariantFieldTypeUtil
           && g_variant_field_type_index_to_tiledb_type[type_idx] == tiledb_type);
       return type_idx;
     }
-    static VariantFieldTypeEnum get_variant_field_type_enum_for_variant_field_type(const std::type_index& type_index)
-    {
-      auto iter = g_variant_field_type_index_to_enum.find(type_index);
-      if(iter == g_variant_field_type_index_to_enum.end())
-        throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
-      return (*iter).second;
-    }
    
-    static int get_vcf_field_type_enum_for_variant_field_type(const std::type_index& type_index)
+    static int get_bcf_ht_type_for_variant_field_type(const std::type_index& type_index)
     {
-      auto iter = g_variant_field_type_index_to_vcf_enum.find(type_index);
-      if(iter == g_variant_field_type_index_to_vcf_enum.end())
+      auto iter = g_variant_field_type_index_to_bcf_ht_type.find(type_index);
+      if(iter == g_variant_field_type_index_to_bcf_ht_type.end())
         throw UnknownAttributeTypeException(std::string("Unhandled attribute type ")+type_index.name());
       return (*iter).second;
     }

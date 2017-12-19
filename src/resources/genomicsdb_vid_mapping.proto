@@ -42,7 +42,7 @@ message FieldLengthDescriptorComponentPB {
 
 message InfoField {
   required string name = 1;
-  required string type = 2;
+  repeated string type = 2;
   repeated string vcf_field_class = 3;
   optional string vcf_type = 4;
   repeated FieldLengthDescriptorComponentPB length = 5;

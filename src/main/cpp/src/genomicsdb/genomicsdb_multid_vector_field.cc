@@ -393,7 +393,7 @@ void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOpera
 GenomicsDBMultiDVectorFieldVCFPrinter::GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info)
 {
   m_first_call = true;
-  m_type_enum = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info.get_genomicsdb_type_index());
+  m_bcf_ht_type = field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u);
   m_fptr = &fptr;
   m_field_info_ptr = &field_info;
 }
@@ -413,17 +413,29 @@ void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const si
         < length_descriptor.get_num_dimensions());
     (*m_fptr) << length_descriptor.get_vcf_delimiter(outermost_dim_idx_changed_since_last_call_to_operate);
   }
-  switch(m_type_enum)
+  switch(m_bcf_ht_type)
   {
-    case VariantFieldTypeEnum::VARIANT_FIELD_INT:
+    case BCF_HT_INT:
       cast_join_and_print<int>(*m_fptr, ptr, num_elements, sep);
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+    case BCF_HT_UINT:
+      cast_join_and_print<unsigned>(*m_fptr, ptr, num_elements, sep);
+      break;
+    case BCF_HT_INT64:
+      cast_join_and_print<int64_t>(*m_fptr, ptr, num_elements, sep);
+      break;
+    case BCF_HT_UINT64:
+      cast_join_and_print<uint64_t>(*m_fptr, ptr, num_elements, sep);
+      break;
+    case BCF_HT_REAL:
       cast_join_and_print<float>(*m_fptr, ptr, num_elements, sep);
+      break;
+    case BCF_HT_DOUBLE:
+      cast_join_and_print<double>(*m_fptr, ptr, num_elements, sep);
       break;
     default:
       throw GenomicsDBMultiDVectorFieldOperatorException(std::string("Unhandled type in GenomicsDBMultiDVectorFieldVCFPrinter ")
-          +m_field_info_ptr->get_genomicsdb_type_index().name());
+          +m_field_info_ptr->get_genomicsdb_type().get_tuple_element_type_index(0u).name());
       break;
   }
   m_first_call = false;

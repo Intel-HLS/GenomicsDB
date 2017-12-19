@@ -28,8 +28,8 @@ TEST(multid_vector, 2D_test)
 {
   FieldInfo field_info;
   field_info.set_info("test", 0);
-  field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
-  field_info.set_vcf_type(std::type_index(typeid(int)), BCF_HT_INT);
+  field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+  field_info.set_vcf_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
   auto& length_descriptor = field_info.m_length_descriptor;
   length_descriptor.resize(2u);
   //Length descriptors for each dimension
@@ -99,8 +99,8 @@ TEST(multid_vector, 3D_test)
 {
   FieldInfo field_info;
   field_info.set_info("test", 0);
-  field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
-  field_info.set_vcf_type(std::type_index(typeid(int)), BCF_HT_INT);
+  field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+  field_info.set_vcf_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
   auto& length_descriptor = field_info.m_length_descriptor;
   length_descriptor.resize(3u);
   //Length descriptors for each dimension
@@ -227,8 +227,8 @@ TEST(multid_vector, 2D_test_with_missing_values)
 {
   FieldInfo field_info;
   field_info.set_info("test", 0);
-  field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
-  field_info.set_vcf_type(std::type_index(typeid(int)), BCF_HT_INT);
+  field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+  field_info.set_vcf_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
   auto& length_descriptor = field_info.m_length_descriptor;
   length_descriptor.resize(2u);
   //Length descriptors for each dimension
@@ -278,7 +278,7 @@ TEST(multid_vector, 2D_float_test)
 {
   FieldInfo field_info;
   field_info.set_info("test", 0);
-  field_info.set_type(std::type_index(typeid(float)), BCF_HT_REAL);
+  field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(float)), BCF_HT_REAL));
   auto& length_descriptor = field_info.m_length_descriptor;
   length_descriptor.resize(2u);
   //Length descriptors for each dimension

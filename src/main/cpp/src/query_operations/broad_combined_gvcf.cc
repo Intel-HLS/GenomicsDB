@@ -25,22 +25,21 @@
 #include "broad_combined_gvcf.h"
 
 //INFO fields
-#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation) \
-  INFO_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation)
+#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, field_info) \
+  INFO_tuple_type(enum_idx, query_idx, field_info)
 #define BCF_INFO_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
 #define BCF_INFO_GET_QUERY_FIELD_IDX(X) (std::get<1>(X))
-#define BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<2>(X))
-#define BCF_INFO_GET_BCF_HT_TYPE(X) (std::get<3>(X))
-#define BCF_INFO_GET_VCF_FIELD_NAME(X) (std::get<4>(X))
-#define BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(X) (std::get<5>(X))
+#define BCF_INFO_GET_FIELD_INFO_PTR(X) (std::get<2>(X))
+#define BCF_INFO_GET_BCF_HT_TYPE(X) (std::get<2>(X)->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+#define BCF_INFO_GET_VCF_FIELD_NAME(X) (std::get<2>(X)->m_vcf_name)
+#define BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(X) (std::get<2>(X)->m_VCF_field_combine_operation)
 //FORMAT fields
-#define MAKE_BCF_FORMAT_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name) \
-  FORMAT_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name)
+#define MAKE_BCF_FORMAT_TUPLE(enum_idx, query_idx, field_info) \
+  FORMAT_tuple_type(enum_idx, query_idx, field_info)
 #define BCF_FORMAT_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
 #define BCF_FORMAT_GET_QUERY_FIELD_IDX(X) (std::get<1>(X))
-#define BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<2>(X))
-#define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<3>(X))
-#define BCF_FORMAT_GET_VCF_FIELD_NAME(X) (std::get<4>(X))
+#define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<2>(X)->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+#define BCF_FORMAT_GET_VCF_FIELD_NAME(X) (std::get<2>(X)->m_vcf_name)
 
 //Static member
 const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
@@ -180,20 +179,13 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           std::cerr << "WARNING: No valid combination operation found for INFO field "<<field_info->m_vcf_name<<" - the field will NOT be part of INFO fields in the generated VCF records\n";
         else
         {
-          m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i,
-                VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
-                VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
-                field_info->m_vcf_name,
-                VCF_field_combine_operation));
+          m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i, field_info));
           VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
         }
       }
       if(add_to_FORMAT_vector)
       {
-        auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i,
-            VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
-            VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->get_tiledb_type_index()),
-            field_info->m_vcf_name);
+        auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i, field_info);
         if((field_info->m_is_vcf_FORMAT_field)
             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
           )
@@ -230,17 +222,10 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           +g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u])]);
   }
   //Qual combine operation
-  m_vcf_qual_tuple = MAKE_BCF_INFO_TUPLE(KnownVariantFieldsEnum::GVCF_QUAL_IDX, UNDEFINED_ATTRIBUTE_IDX_VALUE,
-                VariantFieldTypeEnum::VARIANT_FIELD_FLOAT,
-                BCF_HT_REAL,
-                g_known_variant_field_names[KnownVariantFieldsEnum::GVCF_QUAL_IDX],
-                VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION);
-  if(query_config.is_defined_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX))
-  {
-    auto query_field_idx = query_config.get_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX);
-    std::get<1>(m_vcf_qual_tuple) = query_field_idx;
-    std::get<5>(m_vcf_qual_tuple) = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(query_field_idx);
-  }
+  auto* field_info = m_vid_mapper->get_field_info("QUAL");
+  m_vcf_qual_tuple = MAKE_BCF_INFO_TUPLE(KnownVariantFieldsEnum::GVCF_QUAL_IDX,
+      query_config.get_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX),
+      field_info);
   //Add missing contig names to template header
   for(auto i=0u;i<m_vid_mapper->get_num_contigs();++i)
   {
@@ -338,30 +323,31 @@ bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant
   auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
         || query_field_idx == m_GT_query_idx))
     ? m_remapped_variant : variant;
-  auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
+  auto bcf_ht_type = BCF_INFO_GET_BCF_HT_TYPE(curr_tuple);
   //valid field handler
-  assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+  assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size()
+      && m_field_handlers[bcf_ht_type].get());
   auto num_valid_input_elements = 0u;
   switch(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(curr_tuple))
   {
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_sum(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_sum(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEAN:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_mean(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_mean(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_median(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_median(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM:
-      valid_result_found = m_field_handlers[variant_type_enum]->compute_valid_element_wise_sum(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->compute_valid_element_wise_sum(src_variant, *m_query_config,
           query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE:
-      valid_result_found = m_field_handlers[variant_type_enum]->concatenate_field(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->concatenate_field(src_variant, *m_query_config,
           query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
       break;
     default:
@@ -392,8 +378,10 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     auto valid_result_found = handle_VCF_field_combine_operation(variant, curr_tuple, result_ptr, num_result_elements);
     if(valid_result_found)
     {
-      bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), result_ptr, num_result_elements, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
-      m_bcf_record_size += num_result_elements*VariantFieldTypeUtil::size(BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple));
+      auto bcf_ht_type = BCF_INFO_GET_BCF_HT_TYPE(curr_tuple);
+      bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), result_ptr, num_result_elements,
+          bcf_ht_type);
+      m_bcf_record_size += num_result_elements*VariantFieldTypeUtil::size(bcf_ht_type);
     }
   }
 }
@@ -421,16 +409,17 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
         && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
       continue;
     auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(curr_tuple);
-    auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
-    auto is_char_type = (variant_type_enum == VARIANT_FIELD_CHAR);
+    auto bcf_ht_type = BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple);
+    auto is_char_type = (bcf_ht_type == BCF_HT_CHAR || bcf_ht_type == BCF_HT_STR);
     //valid field handler
-    assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+    assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size()
+        && m_field_handlers[bcf_ht_type].get());
     //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
     //else we should use field objects from the original variant
     auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
           || query_field_idx == m_GT_query_idx))
         ? m_remapped_variant : variant;
-    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
+    auto valid_field_found = m_field_handlers[bcf_ht_type]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements,
         m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type,
         known_field_enum == GVCF_GT_IDX);
@@ -476,8 +465,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       if(do_insert)
       {
         bcf_update_format(m_vcf_hdr, m_bcf_out, BCF_FORMAT_GET_VCF_FIELD_NAME(curr_tuple).c_str(), ptr, num_elements,
-            BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
-        m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(static_cast<VariantFieldTypeEnum>(variant_type_enum));
+            bcf_ht_type);
+        m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(bcf_ht_type);
       }
     }
   }
@@ -523,7 +512,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
 //FIXME: totally naive implementation - too many reallocations etc
 void BroadCombinedGVCFOperator::merge_ID_field(const Variant& variant, const unsigned query_idx)
 {
+#ifdef DEBUG
+  //Produces ID fields in sorted order - consistency useful in CI testing
+  //I'm sorry :(
+  std::set<std::string> id_set;
+#else
   std::unordered_set<std::string> id_set;
+#endif
   for(const auto& curr_call : variant)
   {
     auto& field_ptr = curr_call.get_field(query_idx);
@@ -596,7 +591,9 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   m_bcf_record_size += m_ID_value.length();
   //GATK combined GVCF does not care about QUAL value
   m_bcf_out->qual = get_bcf_missing_value<float>();
-  if(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(m_vcf_qual_tuple) != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
+  if(BCF_INFO_GET_FIELD_INFO_PTR(m_vcf_qual_tuple)
+      && (BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(m_vcf_qual_tuple)
+        != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION))
   {
     unsigned num_result_elements = 1u;
     auto qual_result = 1.0f;

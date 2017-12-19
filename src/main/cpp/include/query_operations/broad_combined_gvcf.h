@@ -30,10 +30,10 @@
 #include "vid_mapper.h"
 #include "timer.h"
 
-//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
-typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string, int> INFO_tuple_type;
-//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name
-typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string> FORMAT_tuple_type;
+//known_field_enum, query_idx, const FieldInfo*
+typedef std::tuple<unsigned, unsigned, const FieldInfo*> INFO_tuple_type;
+//known_field_enum, query_idx, const FieldInfo*
+typedef std::tuple<unsigned, unsigned, const FieldInfo*> FORMAT_tuple_type;
 
 //Exceptions thrown 
 class BroadCombinedGVCFException : public std::exception {

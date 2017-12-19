@@ -217,7 +217,7 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
     const auto& field_name = schema.attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     if(vid_field_info)
-      if(vid_field_info->get_vcf_bcf_ht_type() == BCF_HT_FLAG)
+      if(vid_field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_FLAG)
       {
         auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(int8_t)));
         assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());

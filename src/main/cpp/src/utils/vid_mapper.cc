@@ -53,7 +53,7 @@ std::unordered_map<std::string, std::type_index> VidMapper::m_typename_string_to
       {"integer", std::type_index(typeid(int))},
       {"Integer", std::type_index(typeid(int))},
       {"float", std::type_index(typeid(float))},
-      {"Float", std::type_index(typeid(float))}, 
+      {"Float", std::type_index(typeid(float))},
       {"bool", std::type_index(typeid(char))},
       {"Bool", std::type_index(typeid(char))},
       {"boolean", std::type_index(typeid(char))},
@@ -159,31 +159,59 @@ size_t FieldLengthDescriptor::get_num_elements(const unsigned num_ALT_alleles, c
       num_ALT_alleles, ploidy, num_elements);
 }
 
-void FieldInfo::set_type(const std::type_index& curr_type, const int ht_type)
+//Field element type descriptor
+FieldElementTypeDescriptor::FieldElementTypeDescriptor(const unsigned num_entries_in_tuple)
 {
-  m_tiledb_type_index = curr_type;
-  m_genomicsdb_type_index = curr_type;
-  m_vcf_type_index = curr_type;
-  m_tiledb_bcf_ht_type = ht_type;
-  m_genomicsdb_bcf_ht_type = ht_type;
-  m_vcf_bcf_ht_type = ht_type;
-  m_element_size = VariantFieldTypeUtil::size(curr_type);
+  resize_num_elements_in_tuple(num_entries_in_tuple);
 }
+
+FieldElementTypeDescriptor::FieldElementTypeDescriptor(const std::type_index& curr_type, const int ht_type)
+  : FieldElementTypeDescriptor(1u)
+{
+  set_tuple_element_type(0u, curr_type, ht_type);
+}
+
+void FieldElementTypeDescriptor::resize_num_elements_in_tuple(const unsigned num_entries_in_tuple)
+{
+  m_tuple_element_type_vec.resize(num_entries_in_tuple, std::type_index(typeid(void)));
+  m_tuple_element_bcf_ht_type_vec.resize(num_entries_in_tuple, BCF_HT_VOID);
+  m_tuple_element_size_vec.resize(num_entries_in_tuple, 0u);
+}
+
+void FieldElementTypeDescriptor::set_tuple_element_type(const unsigned idx, const std::type_index& curr_type, const int ht_type)
+{
+  assert(idx < m_tuple_element_type_vec.size());
+  assert(idx < m_tuple_element_bcf_ht_type_vec.size());
+  m_tuple_element_type_vec[idx] = curr_type;
+  m_tuple_element_bcf_ht_type_vec[idx] = ht_type;
+  m_tuple_element_size_vec[idx] = VariantFieldTypeUtil::size(curr_type);
+}
+
+//FieldInfo
 
 //Multi-d vector fields - different types in TileDB/VCF/GenomicsDB
 void FieldInfo::modify_field_type_if_multi_dim_field()
 {
   if(m_length_descriptor.get_num_dimensions() > 1u)
   {
-    set_vcf_type(std::type_index(typeid(char)), BCF_HT_STR);    //string
-    set_tiledb_type(std::type_index(typeid(char)), BCF_HT_CHAR); //bytes
-    //genomicsdb element type specified in "type" attribute
-    auto genomicsdb_bcf_ht_type = get_genomicsdb_bcf_ht_type();
-    if(genomicsdb_bcf_ht_type != BCF_HT_INT && genomicsdb_bcf_ht_type != BCF_HT_REAL)
-      throw VidMapperException(std::string("Unhandled element type for multi-D field ")
-          +m_name+" element type "+m_genomicsdb_type_index.name()
-          +"; only float and int multi-d fields supported");
+    m_vcf_type = std::move(FieldElementTypeDescriptor (std::type_index(typeid(char)), BCF_HT_STR));    //string
+    m_tiledb_type = std::move(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_CHAR)); //bytes
+    for(auto i=0ull;i<m_genomicsdb_type.get_num_elements_in_tuple();++i)
+    {
+      auto genomicsdb_bcf_ht_type = m_genomicsdb_type.get_tuple_element_bcf_ht_type(i);
+      if(genomicsdb_bcf_ht_type != BCF_HT_INT && genomicsdb_bcf_ht_type != BCF_HT_REAL)
+        throw VidMapperException(std::string("Unhandled element type for multi-D field ")
+            +m_name+" element type "+m_genomicsdb_type.get_tuple_element_type_index(i).name()
+            +"; only float and int multi-d fields supported");
+    }
   }
+}
+
+void FieldInfo::compute_element_size()
+{
+  m_element_size = 0ull;
+  for(auto i=0u;i<m_genomicsdb_type.get_num_elements_in_tuple();++i)
+    m_element_size += m_genomicsdb_type.get_tuple_element_size(i);
 }
 
 void VidMapper::clear()
@@ -222,7 +250,7 @@ bool VidMapper::get_contig_location(int64_t query_position, std::string& contig_
     else                                //query_position < contig_offset at iter, get idx at previous element
     {
       //if iter == begin(), query position is less than 1st contig offset, return invalid
-      if(iter == m_contig_begin_2_idx.begin()) 
+      if(iter == m_contig_begin_2_idx.begin())
         return false;
       auto vector_idx = iter - m_contig_begin_2_idx.begin();
       idx = m_contig_begin_2_idx[vector_idx-1].second;
@@ -280,7 +308,7 @@ bool VidMapper::get_tiledb_position(int64_t& position, const std::string& contig
   position = m_contig_idx_to_info[idx].m_tiledb_column_offset + contig_position;
   return true;
 }
-    
+
 bool VidMapper::get_callset_name(const int64_t row_idx, std::string& callset_name) const
 {
   if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
@@ -288,7 +316,7 @@ bool VidMapper::get_callset_name(const int64_t row_idx, std::string& callset_nam
   callset_name = m_row_idx_to_info[row_idx].m_name;
   return true;
 }
-    
+
 bool VidMapper::get_tiledb_row_idx(int64_t& row_idx, const std::string& callset_name) const
 {
   auto iter = m_callset_name_to_row_idx.find(callset_name);
@@ -362,7 +390,7 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
     if(field_info.m_is_vcf_INFO_field)
     {
       attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.get_tiledb_type_index());
+      types.push_back(field_info.get_tiledb_type().get_tuple_element_type_index(0u));
       num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
           ? field_info.m_length_descriptor.get_num_elements()
           : TILEDB_VAR_NUM);
@@ -379,7 +407,7 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
         attribute_names.push_back(field_info.m_name+"_FORMAT");
       else
         attribute_names.push_back(field_info.m_name);
-      types.push_back(field_info.get_tiledb_type_index());
+      types.push_back(field_info.m_tiledb_type.get_tuple_element_type_index(0u));
       num_vals.push_back(field_info.m_length_descriptor.is_fixed_length_field()
           ? field_info.m_length_descriptor.get_num_elements()
           : TILEDB_VAR_NUM);
@@ -582,6 +610,22 @@ std::vector<ContigIntervalTuple> VidMapper::get_contig_intervals_for_column_part
   }
 }
 
+void VidMapper::add_mandatory_fields()
+{
+  //END
+  auto iter = m_field_name_to_idx.find("END");
+  if(iter == m_field_name_to_idx.end())
+  {
+    auto end_idx = m_field_idx_to_info.size();
+    m_field_idx_to_info.emplace_back();
+    m_field_name_to_idx["END"] = end_idx;
+    auto& field_info = m_field_idx_to_info[end_idx];
+    field_info.set_info("END", end_idx);
+    field_info.m_is_vcf_INFO_field = true;
+    field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+  }
+}
+
 //FileBasedVidMapper code
 #ifdef VERIFY_OR_THROW
 #undef VERIFY_OR_THROW
@@ -776,12 +820,6 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         //Map
         m_field_name_to_idx[field_name] = field_idx;
         m_field_idx_to_info[field_idx].set_info(field_name, field_idx);
-        //Field type - int, char etc
-        VERIFY_OR_THROW(field_info_dict.HasMember("type") && field_info_dict["type"].IsString());
-        {
-          auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_info_dict["type"].GetString());
-          m_field_idx_to_info[field_idx].set_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
-        }
         if(field_info_dict.HasMember("vcf_field_class"))
         {
           //Array which specifies whether field if INFO, FORMAT, FILTER etc
@@ -814,6 +852,9 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
                   KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u));  //don't care about ploidy
           }
         }
+        //Field type - int, char etc
+        parse_type_descriptor(m_field_idx_to_info[field_idx], field_info_dict);
+        //combine operation for VCF INFO fields - useful
         if(field_info_dict.HasMember("VCF_field_combine_operation"))
         {
           VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
@@ -832,14 +873,6 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         {
           if(is_known_field)
             m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum);
-        }
-        //Sometimes the VCF type can be different from the real datatype of the field
-        //For example, for multi-D vectors, the VCF type is string: @$@#@#!#$%$%
-        if(field_info_dict.HasMember("vcf_type"))
-        {
-          VERIFY_OR_THROW(field_info_dict["vcf_type"].IsString());
-          auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_info_dict["vcf_type"].GetString());
-          m_field_idx_to_info[field_idx].set_vcf_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
         }
 
         //Generally used when multi-D vectors are represented as delimited strings in the VCF
@@ -862,8 +895,6 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
             }
           }
         }
-
-        m_field_idx_to_info[field_idx].modify_field_type_if_multi_dim_field();
 
         //Both INFO and FORMAT, throw another entry <field>_FORMAT
         if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
@@ -891,22 +922,57 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         ++dict_iter;
       next_field_exists = is_array ? (json_field_idx < fields_container.Size()) : (dict_iter != dict_end_position);
     }
-    //Force add END as a field
-    auto iter = m_field_name_to_idx.find("END");
-    if(iter == m_field_name_to_idx.end())
-    {
-      auto end_idx = m_field_idx_to_info.size();
-      m_field_idx_to_info.emplace_back();
-      m_field_name_to_idx["END"] = end_idx;
-      auto& field_info = m_field_idx_to_info[end_idx];
-      field_info.set_info("END", end_idx);
-      field_info.m_is_vcf_INFO_field = true;
-      field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
-    }
+    add_mandatory_fields();
     if(duplicate_fields_exist)
       throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
   }
   m_is_initialized = true;
+}
+
+void FileBasedVidMapper::parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict)
+{
+  //Sometimes the VCF type can be different from the real datatype of the field
+  //For example, for multi-D vectors, the VCF type is string: @$@#@#!#$%$%
+  //So, the JSON must specify the data type used in the VCF in addition to the real type
+  const char* type_descriptor_json_attribute_names[] = { "type", "vcf_type" };
+  VERIFY_OR_THROW(field_info_json_dict.HasMember("type"));
+  auto has_vcf_type_attribute = false;
+  for(auto i=0u;i<2u;++i)
+  {
+    const auto curr_attribute_name = type_descriptor_json_attribute_names[i];
+    if(field_info_json_dict.HasMember(curr_attribute_name))
+    {
+      has_vcf_type_attribute = (i == 1u);
+      auto& type_json_value = field_info_json_dict[curr_attribute_name];
+      if(!(type_json_value.IsString() || type_json_value.IsArray()))
+        throw FileBasedVidMapperException(std::string("Attribute '")+curr_attribute_name
+            +"' of field "+field_info.m_name +" must be a string or an array");
+      FieldElementTypeDescriptor type_descriptor(0u);
+      if(type_json_value.IsString())
+      {
+        auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(type_json_value.GetString());
+        type_descriptor.resize_num_elements_in_tuple(1u);
+        type_descriptor.set_tuple_element_type(0u, type_index_ht_type_pair.first,
+            type_index_ht_type_pair.second);
+      }
+      else
+      {
+        type_descriptor.resize_num_elements_in_tuple(type_json_value.Size());
+        for(rapidjson::SizeType j=0u;j<type_json_value.Size();++j)
+        {
+          VERIFY_OR_THROW(type_json_value[j].IsString());
+          auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(type_json_value[j].GetString());
+          type_descriptor.set_tuple_element_type(j, type_index_ht_type_pair.first,
+              type_index_ht_type_pair.second);
+        }
+      }
+      if(i == 0u)
+        field_info.set_type(type_descriptor);
+      else
+        field_info.set_vcf_type(type_descriptor);
+    }
+  }
+  field_info.modify_field_type_if_multi_dim_field();
 }
 
 void FileBasedVidMapper::parse_length_descriptor(const char* field_name,

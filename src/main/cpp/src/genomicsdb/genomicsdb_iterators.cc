@@ -84,7 +84,8 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
     //Hence, a series of possibly messy checks here
     assert(vid_mapper);
     const auto* vid_field_info = vid_mapper->get_field_info(attribute_names[i]);
-    auto curr_type_index = (vid_field_info && vid_field_info->get_vcf_bcf_ht_type() == BCF_HT_FLAG)
+    auto curr_type_index = (vid_field_info
+        && vid_field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_FLAG)
       ? std::type_index(typeid(bool))
       : variant_array_schema.type(schema_idx);
     //GenomicsDBColumnarField

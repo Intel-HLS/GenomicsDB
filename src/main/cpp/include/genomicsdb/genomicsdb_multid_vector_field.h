@@ -217,7 +217,7 @@ class GenomicsDBMultiDVectorFieldVCFPrinter : public GenomicsDBMultiDVectorField
         int outermost_dim_idx_changed_since_last_call_to_operate);
   private:
     bool m_first_call;
-    VariantFieldTypeEnum m_type_enum;
+    int m_bcf_ht_type;
     std::ostream* m_fptr;
     const FieldInfo* m_field_info_ptr;
 };

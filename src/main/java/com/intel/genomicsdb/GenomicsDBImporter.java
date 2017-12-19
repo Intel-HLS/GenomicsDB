@@ -856,7 +856,7 @@ public class GenomicsDBImporter
     GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
         GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
     lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var");
-    IDFieldBuilder.setName("ID").setType("char").addLength(lengthDescriptorComponentBuilder.build());
+    IDFieldBuilder.setName("ID").addType("char").addLength(lengthDescriptorComponentBuilder.build());
     infoFields.add(IDFieldBuilder.build());
 
     int dpIndex = -1;
@@ -876,7 +876,7 @@ public class GenomicsDBImporter
 
         infoBuilder
           .setName(formatHeaderLine.getID())
-          .setType(genomicsDBType)
+          .addType(genomicsDBType)
           .addLength(lengthDescriptorComponentBuilder.build());
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
@@ -902,7 +902,7 @@ public class GenomicsDBImporter
                 infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
         infoBuilder
           .setName(infoHeaderLine.getID())
-          .setType(infoHeaderLine.getType().toString())
+          .addType(infoHeaderLine.getType().toString())
           .addLength(lengthDescriptorComponentBuilder.build());
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
@@ -927,9 +927,9 @@ public class GenomicsDBImporter
         infoBuilder.setName(filterHeaderLine.getID());
 
         if (!filterHeaderLine.getValue().isEmpty()) {
-          infoBuilder.setType(filterHeaderLine.getValue());
+          infoBuilder.addType(filterHeaderLine.getValue());
         } else {
-          infoBuilder.setType("int");
+          infoBuilder.addType("int");
         }
         infoBuilder.addVcfFieldClass("FILTER");
         GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();

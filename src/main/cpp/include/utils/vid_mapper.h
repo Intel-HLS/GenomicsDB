@@ -276,24 +276,56 @@ class FieldLengthDescriptor
     std::vector<char> m_vcf_delimiter_vec;
 };
 
+/*
+ * To take into account tuples
+ * Element type
+ */
+class FieldElementTypeDescriptor
+{
+  public:
+    //Constructors
+    FieldElementTypeDescriptor(const unsigned num_entries_in_tuple);
+    FieldElementTypeDescriptor(const std::type_index& curr_type, const int ht_type);
+    //#elements in tuple
+    void resize_num_elements_in_tuple(const unsigned num_entries_in_tuple);
+    size_t get_num_elements_in_tuple() const { return m_tuple_element_type_vec.size(); }
+    int get_tuple_element_bcf_ht_type(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_bcf_ht_type_vec.size());
+      return m_tuple_element_bcf_ht_type_vec[idx];
+    }
+    const std::type_index& get_tuple_element_type_index(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_type_vec.size());
+      return m_tuple_element_type_vec[idx];
+    }
+    size_t get_tuple_element_size(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_size_vec.size());
+      return m_tuple_element_size_vec[idx];
+    }
+    void set_tuple_element_type(const unsigned idx, const std::type_index& curr_type, const int ht_type);
+  private:
+    std::vector<std::type_index> m_tuple_element_type_vec;
+    std::vector<int> m_tuple_element_bcf_ht_type_vec;
+    std::vector<size_t> m_tuple_element_size_vec;
+};
+
 class FieldInfo
 {
   friend class VidMapper;
   public:
     FieldInfo()
-      : m_tiledb_type_index(typeid(void)),
-        m_genomicsdb_type_index(typeid(void)),
-        m_vcf_type_index(typeid(void)),
+      : m_tiledb_type(1u),
+        m_genomicsdb_type(1u),
+        m_vcf_type(1u),
         m_length_descriptor()
     {
       m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
       m_field_idx = -1;
-      m_tiledb_bcf_ht_type = BCF_HT_VOID;
-      m_vcf_bcf_ht_type = BCF_HT_VOID;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
-      m_element_size = 0u;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -301,26 +333,35 @@ class FieldInfo
       m_vcf_name = name;
       m_field_idx = idx;
     }
+    //Type information
     /*
-     * By default, both TileDB and VCF types are the same
+     * By default, TileDB, GenomicsDB and VCF types are the same
      */
-    void set_type(const std::type_index& curr_type, const int ht_type);
+    void set_type(const FieldElementTypeDescriptor& type)
+    {
+      m_tiledb_type = type;
+      m_genomicsdb_type = type;
+      m_vcf_type = type;
+      compute_element_size();
+    }
     /*
      * Set VCF type
      */
-    void set_vcf_type(const std::type_index& curr_type, const int ht_type)
+    void set_vcf_type(const FieldElementTypeDescriptor& type)
     {
-      m_vcf_type_index = curr_type;
-      m_vcf_bcf_ht_type = ht_type;
+      m_vcf_type = type;
     }
     /*
      * Set TileDB type
      */
-    void set_tiledb_type(const std::type_index& curr_type, const int ht_type)
+    void set_tiledb_type(const FieldElementTypeDescriptor& type)
     {
-      m_tiledb_type_index = curr_type;
-      m_tiledb_bcf_ht_type = ht_type;
+      m_tiledb_type = type;
     }
+    const FieldElementTypeDescriptor& get_tiledb_type() const { return m_tiledb_type; }
+    const FieldElementTypeDescriptor& get_vcf_type() const { return m_vcf_type; }
+    const FieldElementTypeDescriptor& get_genomicsdb_type() const { return m_genomicsdb_type; }
+    size_t get_element_size() const { return m_element_size; }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -332,26 +373,18 @@ class FieldInfo
     FieldLengthDescriptor m_length_descriptor;
     //Combine operation for VCF INFO fields
     int m_VCF_field_combine_operation;
-    //Type information
-    const std::type_index& get_tiledb_type_index() const { return m_tiledb_type_index; }
-    const std::type_index& get_genomicsdb_type_index() const { return m_genomicsdb_type_index; }
-    int get_genomicsdb_bcf_ht_type() const { return m_genomicsdb_bcf_ht_type; }
-    int get_vcf_bcf_ht_type() const { return m_vcf_bcf_ht_type; }
-    size_t get_element_size() const { return m_element_size; }
     //Multi-d vector fields - different types in TileDB/VCF/GenomicsDB
     void modify_field_type_if_multi_dim_field();
+    void compute_element_size();
   private:
     //Type info
     //TileDB type
-    std::type_index m_tiledb_type_index;
-    int m_tiledb_bcf_ht_type;
+    FieldElementTypeDescriptor m_tiledb_type;
     //GenomicsDB type index - could be different from TileDB and VCF
-    std::type_index m_genomicsdb_type_index;
-    int m_genomicsdb_bcf_ht_type;
+    FieldElementTypeDescriptor m_genomicsdb_type;
     //VCF type info - could be different from TileDB type
-    std::type_index m_vcf_type_index;
-    int m_vcf_bcf_ht_type; 
-    //Element size
+    FieldElementTypeDescriptor m_vcf_type;
+    //Element size - computed from components of tuple
     size_t m_element_size;
 };
 
@@ -718,6 +751,8 @@ class VidMapper
     std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
         const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const;
   protected:
+    void add_mandatory_fields();
+  protected:
     //Is initialized
     bool m_is_initialized;
     //are callsets initialized
@@ -853,6 +888,8 @@ class FileBasedVidMapper : public VidMapper
     void parse_length_descriptor(const char* field_name,
         const rapidjson::Value& length_json_value,
         FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
+
+    void parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict);
 
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;

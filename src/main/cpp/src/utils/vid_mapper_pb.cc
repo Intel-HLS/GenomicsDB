@@ -335,12 +335,17 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     auto& ref = m_field_idx_to_info[field_idx];
 
     //Field type - int, char etc
-    field_type = vid_map_protobuf->fields(pb_field_idx).type();
-
+    if(vid_map_protobuf->fields(pb_field_idx).type_size() == 0u)
+      throw VidMapperException(std::string("Attribute 'type' is mandatory for all fields in GenomicsDB ")
+          +" field "+field_name+" missing 'type' in Protobuf structure");
+    FieldElementTypeDescriptor type_descriptor(vid_map_protobuf->fields(pb_field_idx).type_size());
+    for(auto i=0u;i<static_cast<unsigned>(vid_map_protobuf->fields(pb_field_idx).type_size());++i)
     {
+      field_type = vid_map_protobuf->fields(pb_field_idx).type(i);
       auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(field_type.c_str());
-      ref.set_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
+      type_descriptor.set_tuple_element_type(i, type_index_ht_type_pair.first, type_index_ht_type_pair.second);
     }
+    ref.set_type(type_descriptor);
 
     // VCF class type can be an array of values: INFO, FORMAT and FILTER
     auto class_type_size =
@@ -395,7 +400,9 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     if(vid_map_protobuf->fields(pb_field_idx).has_vcf_type())
     {
       auto type_index_ht_type_pair = get_type_index_and_bcf_ht_type(vid_map_protobuf->fields(pb_field_idx).vcf_type().c_str());
-      ref.set_vcf_type(type_index_ht_type_pair.first, type_index_ht_type_pair.second);
+      type_descriptor.resize_num_elements_in_tuple(1u);
+      type_descriptor.set_tuple_element_type(0u, type_index_ht_type_pair.first, type_index_ht_type_pair.second);
+      ref.set_vcf_type(type_descriptor);
     }
 
     //Generally used when multi-D vectors are represented as delimited strings in the VCF
@@ -408,6 +415,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     }
 
     ref.modify_field_type_if_multi_dim_field();
+    ref.compute_element_size();
 
     // Both INFO and FORMAT, throw another entry <field>_FORMAT
     if (ref.m_is_vcf_INFO_field &&
@@ -432,17 +440,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     }
   } // for (auto field_idx = 0; field_idx < num_fields; ++field_idx)
 
-  //Force add END as a field
-  auto iter = m_field_name_to_idx.find("END");
-  if(iter == m_field_name_to_idx.end()) {
-    auto end_idx = m_field_idx_to_info.size();
-    m_field_idx_to_info.emplace_back();
-    m_field_name_to_idx["END"] = end_idx;
-    auto& field_info = m_field_idx_to_info[end_idx];
-    field_info.set_info("END", end_idx);
-    field_info.m_is_vcf_INFO_field = true;
-    field_info.set_type(std::type_index(typeid(int)), BCF_HT_INT);
-  }
+  add_mandatory_fields();
+
   if(duplicate_fields_exist) {
     throw ProtoBufBasedVidMapperException(
       std::string("Duplicate fields exist in vid map"));

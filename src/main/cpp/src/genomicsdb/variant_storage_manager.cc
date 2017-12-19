@@ -400,7 +400,9 @@ bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& arra
   auto array_exists = false;
   for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
   {
-    if(ws_entry_types[i] == TILEDB_ARRAY && strncmp(array_name.c_str(), ws_entries[i], string_length) == 0)
+    if(ws_entry_types[i] == TILEDB_ARRAY
+        && strnlen(ws_entries[i], TILEDB_NAME_MAX_LEN+1u) == string_length
+        && strncmp(array_name.c_str(), ws_entries[i], string_length) == 0)
       array_exists = true;
     delete[] ws_entries[i];
   }

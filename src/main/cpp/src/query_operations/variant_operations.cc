@@ -69,7 +69,7 @@ void* RemappedVariant::put_address(uint64_t input_call_idx, unsigned allele_or_g
  * @param reference_vector - vector of REF strings
  * @param merged_reference_allele - string to store the merged reference
  */
-void VariantOperations::merge_reference_allele(const Variant& variant, const VariantQueryConfig& query_config, 
+void VariantOperations::merge_reference_allele(const Variant& variant, const VariantQueryConfig& query_config,
     std::string& merged_reference_allele)
 {
   auto* longer_ref = &merged_reference_allele;
@@ -157,7 +157,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
     const auto& curr_reference =
       get_known_field<VariantFieldString, true>(curr_valid_call, query_config, GVCF_REF_IDX)->get();
     const auto& curr_reference_length = curr_reference.length();
-    const auto& curr_allele_vector = 
+    const auto& curr_allele_vector =
       get_known_field<VariantFieldALTData, true>(curr_valid_call, query_config, GVCF_ALT_IDX)->get();
     auto is_suffix_needed = false;
     auto suffix_length = 0u;
@@ -192,7 +192,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
           seen_alleles[*allele_ptr] = merged_allele_idx;
           //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
           //Most of the time this function will return quickly (just an if condition check)
-          alleles_LUT.resize_luts_if_needed(merged_allele_idx + 1); 
+          alleles_LUT.resize_luts_if_needed(merged_allele_idx + 1);
           alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, input_allele_idx, merged_allele_idx);
           if(is_suffix_needed)
             merged_alt_alleles.push_back(std::move(*allele_ptr)); //allele_ptr points to a copy - use move
@@ -212,7 +212,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
     merged_alt_alleles.push_back(g_vcf_NON_REF);
     auto non_reference_allele_idx = merged_alt_alleles.size(); //why not -1, include reference allele also
     //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
-    alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1); 
+    alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1);
     //Add mappings for non_ref allele
     //Iterate over valid calls
     for (auto valid_calls_iter=variant.begin();valid_calls_iter != variant.end();++valid_calls_iter)
@@ -269,7 +269,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
 
   for(VariantCall& valid_call : variant)
     modify_reference_if_in_middle(valid_call, query_config, variant.get_column_begin());
-  
+
   std::string merged_reference_allele;
   merged_reference_allele.reserve(10);
   merge_reference_allele(variant, query_config, merged_reference_allele);
@@ -295,7 +295,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
     //Not always in sequence, as invalid calls are skipped
     auto curr_call_idx_in_variant = valid_calls_iter.get_call_idx_in_variant();
     auto* PL_field_ptr =
-      get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()), 
+      get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()),
           GVCF_PL_IDX);
     auto* GT_field_ptr =
       get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()),
@@ -421,39 +421,42 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
     if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
       m_GT_query_idx = query_field_idx;
   }
-  m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
+  m_field_handlers.resize(BCF_NUM_HT_TYPES);
   m_ploidy.resize(query_config.get_num_rows_in_array());
-  for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
+  for(const auto& ti_bcf_ht_pair : g_variant_field_type_index_to_bcf_ht_type)
   {
-    unsigned variant_field_type_idx = ti_enum_pair.second;
-    assert(variant_field_type_idx < m_field_handlers.size());
+    auto bcf_ht_type = ti_bcf_ht_pair.second;
+    assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size());
     //uninitialized
-    assert(m_field_handlers[variant_field_type_idx].get() == 0);
-    switch(variant_field_type_idx)
+    assert(m_field_handlers[bcf_ht_type].get() == 0);
+    switch(bcf_ht_type)
     {
-      case VARIANT_FIELD_INT:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>())); 
+      case BCF_HT_INT:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>()));
         break;
-      case VARIANT_FIELD_UNSIGNED:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>())); 
+      case BCF_HT_UINT:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>()));
         break;
-      case VARIANT_FIELD_INT64_T:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>())); 
+      case BCF_HT_INT64:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>()));
         break;
-      case VARIANT_FIELD_UINT64_T:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>())); 
+      case BCF_HT_UINT64:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>()));
         break;
-      case VARIANT_FIELD_FLOAT:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>())); 
-        break;                                                                          
-      case VARIANT_FIELD_DOUBLE:                                                        
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>())); 
-        break;                                                                          
-      case VARIANT_FIELD_STRING:                                                        
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<std::string>())); 
-        break;                                                                          
-      case VARIANT_FIELD_CHAR:                                                          
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>())); 
+      case BCF_HT_REAL:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>()));
+        break;
+      case BCF_HT_DOUBLE:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>()));
+        break;
+      case BCF_HT_STR:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
+        break;
+      case BCF_HT_CHAR:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
+        break;
+      default:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
         break;
     }
   }
@@ -465,12 +468,12 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
 
 std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
 {
-  //Get Enum Idx from VariantFieldTypeEnum
-  assert(g_variant_field_type_index_to_enum.find(ty) != g_variant_field_type_index_to_enum.end());
-  unsigned variant_field_type_enum = g_variant_field_type_index_to_enum[ty];
+  //Get BCF_HT_* idx
+  assert(g_variant_field_type_index_to_bcf_ht_type.find(ty) != g_variant_field_type_index_to_bcf_ht_type.end());
+  unsigned bcf_ht_type = g_variant_field_type_index_to_bcf_ht_type[ty];
   //Check that valid handler exists
-  assert(variant_field_type_enum < m_field_handlers.size());
-  return m_field_handlers[variant_field_type_enum];
+  assert(bcf_ht_type < m_field_handlers.size());
+  return m_field_handlers[bcf_ht_type];
 }
 
 void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
@@ -524,7 +527,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
         continue;
       }
       //Remapper for m_remapped_variant
-      RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
+      RemappedVariant remapper_variant(m_remapped_variant, query_field_idx);
       //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
       for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
       {
@@ -565,7 +568,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   auto& ALT = m_remapped_variant.get_common_field(1u);
   if(ALT.get() == 0)
     ALT = std::move(std::unique_ptr<VariantFieldALTData>(new VariantFieldALTData()));
-  auto ALT_ptr =  dynamic_cast<VariantFieldALTData*>(ALT.get()); 
+  auto ALT_ptr =  dynamic_cast<VariantFieldALTData*>(ALT.get());
   assert(ALT_ptr);
   ALT_ptr->set_valid(true);
   auto& ALT_vec = ALT_ptr->get();
@@ -631,7 +634,7 @@ void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfi
 {
   auto call_begin = call.get_column_begin();
   auto bin_idx = call_begin <= m_begin_column ? 0ull
-    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1 
+    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1
     : (call_begin - m_begin_column)/m_bin_size;
   assert(bin_idx < m_bin_counts_vector.size());
   ++(m_bin_counts_vector[bin_idx]);
@@ -676,7 +679,7 @@ bool ColumnHistogramOperator::equi_partition_and_print_bins(uint64_t num_bins, s
 void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
 {
   //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
-  if(curr_call.get_column_begin() < current_start_position) 
+  if(curr_call.get_column_begin() < current_start_position)
   {
     auto* REF_ptr = get_known_field<VariantFieldString,true>
       (curr_call, query_config, GVCF_REF_IDX);
@@ -763,9 +766,8 @@ void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryC
       auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
       if(schema.is_variable_length_field(schema_idx))
       {
-        auto variant_field_type_enum_idx = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema.type(schema_idx));
-        if(variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_STRING &&
-            variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_CHAR)
+        auto bcf_ht_type = VariantFieldTypeUtil::get_bcf_ht_type_for_variant_field_type(schema.type(schema_idx));
+        if(bcf_ht_type != BCF_HT_STR && bcf_ht_type != BCF_HT_CHAR)
           fptr << "0";
       }
       else

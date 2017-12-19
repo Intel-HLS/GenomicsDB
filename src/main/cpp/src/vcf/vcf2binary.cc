@@ -769,7 +769,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     auto size_of_multi_d_field = 0ull;
     if(vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
     {
-      switch(vid_field_info.get_genomicsdb_bcf_ht_type())
+      switch(vid_field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u))
       {
         case BCF_HT_INT:
           size_of_multi_d_field = GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(
@@ -783,7 +783,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
           break;
         default:
           throw VCF2BinaryException(std::string("Unhandled element type for multi-D fields: ")
-              +vid_field_info.get_genomicsdb_type_index().name());
+              +vid_field_info.get_genomicsdb_type().get_tuple_element_type_index(0u).name());
       }
 //#define DEBUG_MULTID_VECTOR_FIELD_LOAD
 #ifdef DEBUG_MULTID_VECTOR_FIELD_LOAD
