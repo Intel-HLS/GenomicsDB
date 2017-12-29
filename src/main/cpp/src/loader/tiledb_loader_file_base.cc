@@ -13,7 +13,8 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
   m_buffer_offset_for_local_callset = std::move(other.m_buffer_offset_for_local_callset);
   m_buffer_full_for_local_callset = std::move(other.m_buffer_full_for_local_callset);
   m_split_filename = std::move(other.m_split_filename);
-  m_multi_d_vector_buffer = std::move(other.m_multi_d_vector_buffer);
+  m_multi_d_vector_buffer_vec = std::move(other.m_multi_d_vector_buffer_vec);
+  m_multi_d_vector_size_vec = std::move(other.m_multi_d_vector_size_vec);
   //Move and nullify other
   m_base_reader_ptr = other.m_base_reader_ptr;
   other.m_base_reader_ptr = 0;

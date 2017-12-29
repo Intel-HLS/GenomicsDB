@@ -324,8 +324,10 @@ class FieldInfo
       m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
+      m_is_flattened_field = false;
       m_field_idx = -1;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+      m_element_index_in_tuple = 0u;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -342,6 +344,14 @@ class FieldInfo
       m_tiledb_type = type;
       m_genomicsdb_type = type;
       m_vcf_type = type;
+      compute_element_size();
+    }
+    /*
+     * Set GenomicsDB type
+     */
+    void set_genomicsdb_type(const FieldElementTypeDescriptor& type)
+    {
+      m_genomicsdb_type = type;
       compute_element_size();
     }
     /*
@@ -362,6 +372,18 @@ class FieldInfo
     const FieldElementTypeDescriptor& get_vcf_type() const { return m_vcf_type; }
     const FieldElementTypeDescriptor& get_genomicsdb_type() const { return m_genomicsdb_type; }
     size_t get_element_size() const { return m_element_size; }
+    //Composite fields get flattened - in the FieldInfo objects for the
+    //flattened field, this contains the index in the composite tuple
+    void set_element_index_in_tuple(const unsigned idx)
+    {
+      m_element_index_in_tuple = idx;
+    }
+    unsigned get_element_index_in_tuple() const { return m_element_index_in_tuple; }
+    void set_is_flattened_field(const bool val)
+    {
+      m_is_flattened_field = val;
+    }
+    bool is_flattened_field() const { return m_is_flattened_field; }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -386,6 +408,10 @@ class FieldInfo
     FieldElementTypeDescriptor m_vcf_type;
     //Element size - computed from components of tuple
     size_t m_element_size;
+    //Composite fields get flattened - in the FieldInfo objects for the
+    //flattened field, this contains the index in the composite tuple
+    unsigned m_element_index_in_tuple;
+    bool m_is_flattened_field;
 };
 
 /*
@@ -752,6 +778,7 @@ class VidMapper
         const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const;
   protected:
     void add_mandatory_fields();
+    void flatten_field(int& field_idx, const int original_field_idx);
   protected:
     //Is initialized
     bool m_is_initialized;

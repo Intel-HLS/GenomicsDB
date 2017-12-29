@@ -157,40 +157,77 @@ void GenomicsDBMultiDVectorIdx::advance_index_in_current_dimension()
   ++m_current_index_in_current_dimension;
 }
 
+template<class ElementType>
+bool parse_and_store_tuple_element(std::vector<uint8_t>& buffer,
+    uint64_t& write_offset,
+    const char* str, const uint64_t begin, const uint64_t length)
+{
+  auto value = str_to_element<ElementType>(str, begin, length);
+  File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<ElementType>(
+      buffer, reinterpret_cast<int64_t&>(write_offset), value);
+  return is_bcf_valid_value<ElementType>(value);
+}
+
+template<class ElementType>
+void fill_with_bcf_missing_values(std::vector<uint8_t>& buffer,
+    uint64_t& write_offset,
+    const uint64_t curr_num, const uint64_t n)
+{
+  for(auto i=curr_num;i<n;++i)
+    File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<ElementType>(
+        buffer, reinterpret_cast<int64_t&>(write_offset), get_bcf_missing_value<ElementType>());
+}
+
 /*
    Given a delimited string, parse and store the data in a binary buffer as described in
    the header.
    1,2,3,4|5,6|7,8$9,10|11|12
 */
-template<class ElementType>
-uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(std::vector<uint8_t>& buffer,
-        const FieldInfo& field_info,
-        const char* str, const size_t str_length)
+std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(
+    std::vector<std::vector<uint8_t>>& buffer_vec, //outer vector - one for each element of tuple
+    const FieldInfo& field_info,
+    const char* str, const size_t str_length)
 {
   auto& length_descriptor = field_info.m_length_descriptor;
-  buffer.resize(4096u); //4KiB
+  auto num_elements_in_tuple = field_info.get_genomicsdb_type().get_num_elements_in_tuple();
+  if(num_elements_in_tuple > buffer_vec.size())
+    buffer_vec.resize(num_elements_in_tuple);
+  for(auto& buffer : buffer_vec)
+    buffer.resize(4096u); //4KiB
   auto w_idx = 0ull; //write idx
   auto r_idx = 0ull; //read idx
   //#bytes for curr data in dim i
-  std::vector<uint64_t> dim_sizes;
-  dim_sizes.resize(length_descriptor.get_num_dimensions(), 0ull);
+  std::vector<std::vector<uint64_t>> dim_sizes_vec(num_elements_in_tuple,
+      std::vector<uint64_t>(length_descriptor.get_num_dimensions(), 0ull));
   //Offsets for the data in each dim F[0] offset, F[1] offset etc
-  std::vector<std::vector<uint64_t>> dim_offsets;
   //Each dimension begins with offset 0
-  dim_offsets.resize(length_descriptor.get_num_dimensions(), std::vector<uint64_t>(1u, 0ull));
+  std::vector<std::vector<std::vector<uint64_t>>> dim_offsets_vec(
+      num_elements_in_tuple,
+      std::vector<std::vector<uint64_t>>(length_descriptor.get_num_dimensions(),
+        std::vector<uint64_t>(1u, 0ull))
+      );
   //Specifies the current offset in buffer at which the data for dim i should be written
   //the last 2 dimensions don't get any sizes
-  std::vector<uint64_t> dim_write_begin_offsets;
-  dim_write_begin_offsets.resize(length_descriptor.get_num_dimensions());
+  std::vector<std::vector<uint64_t>> dim_write_begin_offsets_vec(
+      num_elements_in_tuple,
+      std::vector<uint64_t>(length_descriptor.get_num_dimensions())
+      );
   //The first dimension begins writing at offset 0
   //A 64-bit uint64_t is allocated for each dimension's size
-  for(auto i=0ull;i<dim_write_begin_offsets.size();++i)
-    dim_write_begin_offsets[i] = i*sizeof(uint64_t);
+  for(auto tuple_element_idx=0u;tuple_element_idx<num_elements_in_tuple;++tuple_element_idx)
+    for(auto i=0ull;i<dim_write_begin_offsets_vec[tuple_element_idx].size();++i)
+      dim_write_begin_offsets_vec[tuple_element_idx][i] = i*sizeof(uint64_t);
   //Points to the begin of the current element - length
   auto current_element_begin_read_idx = 0ull; //r stands for read
   auto current_element_length = 0ull;
-  auto num_elements_in_innermost_dim_read = 0ull;
-  auto total_size_of_multi_d_data = 0ull;
+  std::vector<uint64_t> num_elements_in_innermost_dim_read_vec(
+      num_elements_in_tuple, 0ull);
+  auto max_num_elements_in_innermost_dim = 0ull;
+  std::vector<uint64_t> total_size_of_multi_d_data_vec(num_elements_in_tuple, 0ull);
+  //Idx of entry inside a tuple
+  auto curr_element_idx_in_tuple_parsed = 0ull;
+  //Whether there is at least one valid element in the tuple
+  auto curr_tuple_contains_one_valid_element = false;
   //TODO: can be vectorized, probably not worth it since only used in loading
   while(r_idx <= str_length)
   {
@@ -217,87 +254,137 @@ uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(std::vector<uint8_
     if(found_delim)
     {
       //Write out element
-      auto value = str_to_element<ElementType>(str, current_element_begin_read_idx, current_element_length);
-      int64_t write_offset = dim_write_begin_offsets.back();
-      File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<ElementType>(
-          buffer, write_offset, value);
-      dim_write_begin_offsets.back() = write_offset;
-      ++num_elements_in_innermost_dim_read;
+      auto is_valid_element = false;
+      switch(field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(curr_element_idx_in_tuple_parsed))
+      {
+        case BCF_HT_INT:
+            is_valid_element = parse_and_store_tuple_element<int>(buffer_vec[curr_element_idx_in_tuple_parsed],
+                dim_write_begin_offsets_vec[curr_element_idx_in_tuple_parsed].back(),
+                str, current_element_begin_read_idx, current_element_length);
+          break;
+        case BCF_HT_REAL:
+            is_valid_element = parse_and_store_tuple_element<float>(buffer_vec[curr_element_idx_in_tuple_parsed],
+                dim_write_begin_offsets_vec[curr_element_idx_in_tuple_parsed].back(),
+                str, current_element_begin_read_idx, current_element_length);
+          break;
+        default:
+          throw GenomicsDBMultiDVectorFieldOperatorException(
+              "Cannot parse multi-D fields whose elements are neither int nor float");
+      }
+      ++num_elements_in_innermost_dim_read_vec[curr_element_idx_in_tuple_parsed];
+      max_num_elements_in_innermost_dim = std::max<uint64_t>(
+          max_num_elements_in_innermost_dim,
+          num_elements_in_innermost_dim_read_vec[curr_element_idx_in_tuple_parsed]);
+      //Can this info be used somehow? unclear
+      curr_tuple_contains_one_valid_element = curr_tuple_contains_one_valid_element
+        || is_valid_element;
       //Delimiter not of the innermost dimension
       if(sep_dim_idx+1u < length_descriptor.get_num_dimensions())
       {
-        //Single element - but actually empty string
-        if(num_elements_in_innermost_dim_read == 1u
-            && current_element_length == 0u)
-          num_elements_in_innermost_dim_read = 0u;
-        //Example: 1,2,3,4|5,6|7,8$9,10|11|12
-        //Length of innermost dimension is the number of elements read
-        auto last_dim_size =
-          (num_elements_in_innermost_dim_read*sizeof(ElementType));
-        //Reset number of elements in innermost dim to 0
-        num_elements_in_innermost_dim_read = 0u;
-        //Ignore innermost dimension - hence -2u instead of -1u
-        for(auto i=static_cast<int>(length_descriptor.get_num_dimensions()-2u);
-            i>=std::max<int>(sep_dim_idx,0);--i)  //sep_dim_idx can be -1, used to flush out offsets at string (str) end
-        { 
-          dim_sizes[i] += last_dim_size;
-          dim_offsets[i].push_back(dim_offsets[i].back()+last_dim_size);
-          //Outer dim delimiter found - write out curr dim size and offsets
-          //If sep_dim_idx == -1, flushes out the outermost dim
-          if(i > sep_dim_idx)
+        //For each element of the tuple
+        for(auto tuple_element_idx=0u;tuple_element_idx<num_elements_in_tuple;++tuple_element_idx)
+        {
+          //Fill out other tuple elements with bcf_missing_values to make equi-length
+          auto tuple_element_size = 0ull;
+          switch(field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(tuple_element_idx))
           {
-            int64_t write_offset = dim_write_begin_offsets[i];
-            //write the dim size at dim_write_begin_offsets
-            File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
-                buffer,
-                write_offset,
-                dim_sizes[i]);
-            write_offset = dim_write_begin_offsets[i]
-              +sizeof(uint64_t)  //64-bit size - previous statement
-              +dim_sizes[i];     //data bytes
-            //write #entries in dim i
-            File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
-                buffer,
-                write_offset,
-                dim_offsets[i].size()-1u); //why -1? If there are N entries, there are N+1 offsets
-            //write offsets
-            auto offsets_start_offset = dim_write_begin_offsets[i]
-              +sizeof(uint64_t)  //64-bit size
-              +dim_sizes[i]      //data bytes
-              +sizeof(uint64_t); //#elements
-            auto offsets_size = dim_offsets[i].size()*sizeof(uint64_t);
-            if(offsets_start_offset+offsets_size >= buffer.size())
-              buffer.resize(2*(offsets_start_offset+offsets_size+1u));
-            memcpy(&(buffer[offsets_start_offset]), &(dim_offsets[i][0u]), offsets_size);
-            //Update last_dim_size
-            last_dim_size = (dim_sizes[i]
-                + sizeof(uint64_t)    //for storing size of data at dim i
-                + sizeof(uint64_t)    //for storing #entries at dim i
-                + offsets_size        //for storing offsets at dim i
-                );
+            case BCF_HT_INT:
+              fill_with_bcf_missing_values<int>(buffer_vec[tuple_element_idx],
+                  dim_write_begin_offsets_vec[tuple_element_idx].back(),
+                  num_elements_in_innermost_dim_read_vec[tuple_element_idx],
+                  max_num_elements_in_innermost_dim);
+              tuple_element_size = sizeof(int);
+              break;
+            case BCF_HT_REAL:
+              fill_with_bcf_missing_values<float>(buffer_vec[tuple_element_idx],
+                  dim_write_begin_offsets_vec[tuple_element_idx].back(),
+                  num_elements_in_innermost_dim_read_vec[tuple_element_idx],
+                  max_num_elements_in_innermost_dim);
+              tuple_element_size = sizeof(float);
+              break;
+            default:
+              throw GenomicsDBMultiDVectorFieldOperatorException(
+                  "Cannot parse multi-D fields whose elements are neither int nor float");
+          }
+          //Example: 1,2,3,4|5,6|7,8$9,10|11|12
+          //Length of innermost dimension is the number of elements read
+          auto last_dim_size =
+            (max_num_elements_in_innermost_dim*tuple_element_size);
+          //Convenience variables
+          auto& buffer = buffer_vec[tuple_element_idx];
+          auto& dim_sizes = dim_sizes_vec[tuple_element_idx];
+          auto& dim_offsets = dim_offsets_vec[tuple_element_idx];
+          auto& dim_write_begin_offsets = dim_write_begin_offsets_vec[tuple_element_idx];
+          //Ignore innermost dimension - hence -2u instead of -1u
+          for(auto i=static_cast<int>(length_descriptor.get_num_dimensions()-2u);
+              i>=std::max<int>(sep_dim_idx,0);--i)  //sep_dim_idx can be -1, used to flush out offsets at string (str) end
+          {
+            dim_sizes[i] += last_dim_size;
+            dim_offsets[i].push_back(dim_offsets[i].back()+last_dim_size);
+            //Outer dim delimiter found - write out curr dim size and offsets
+            //If sep_dim_idx == -1, flushes out the outermost dim
+            if(i > sep_dim_idx)
+            {
+              int64_t write_offset = dim_write_begin_offsets[i];
+              //write the dim size at dim_write_begin_offsets
+              File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
+                  buffer,
+                  write_offset,
+                  dim_sizes[i]);
+              write_offset = dim_write_begin_offsets[i]
+                +sizeof(uint64_t)  //64-bit size - previous statement
+                +dim_sizes[i];     //data bytes
+              //write #entries in dim i
+              File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print<uint64_t>(
+                  buffer,
+                  write_offset,
+                  dim_offsets[i].size()-1u); //why -1? If there are N entries, there are N+1 offsets
+              //write offsets
+              auto offsets_start_offset = dim_write_begin_offsets[i]
+                +sizeof(uint64_t)  //64-bit size
+                +dim_sizes[i]      //data bytes
+                +sizeof(uint64_t); //#elements
+              auto offsets_size = dim_offsets[i].size()*sizeof(uint64_t);
+              if(offsets_start_offset+offsets_size >= buffer.size())
+                buffer.resize(2*(offsets_start_offset+offsets_size+1u));
+              memcpy(&(buffer[offsets_start_offset]), &(dim_offsets[i][0u]), offsets_size);
+              //Update last_dim_size
+              last_dim_size = (dim_sizes[i]
+                  + sizeof(uint64_t)    //for storing size of data at dim i
+                  + sizeof(uint64_t)    //for storing #entries at dim i
+                  + offsets_size        //for storing offsets at dim i
+                  );
+            }
+          }
+          if(sep_dim_idx == -1)
+            total_size_of_multi_d_data_vec[tuple_element_idx] = last_dim_size;
+          //sep_dim_idx can be -1
+          //The outermost dimension whose delimiter was hit
+          auto outermost_delim_dim_idx = static_cast<size_t>(std::max<int>(sep_dim_idx, 0));
+          auto new_write_begin_offset =
+            dim_write_begin_offsets[outermost_delim_dim_idx]
+            + sizeof(uint64_t)                          //64-bit for storing size of outermost_delim_dim_idx
+            + dim_sizes[outermost_delim_dim_idx];       //current size of outermost_delim_dim_idx
+          //Update dim_write_begin_offsets for dimensions which 'completed' i.e. wrote out all the data
+          //for one idx value for the dimension
+          for(unsigned i=outermost_delim_dim_idx+1u,j=0ul;i<length_descriptor.get_num_dimensions();++i,++j)
+          {
+            dim_write_begin_offsets[i] = new_write_begin_offset + j*sizeof(uint64_t); //64-bit uint64_t for sizes
+            //Reset dim sizes
+            dim_sizes[i] = 0u;
+            //Reset offsets vector - single element with value 0
+            dim_offsets[i].resize(1u);
+            dim_offsets[i][0u] = 0u;
           }
         }
-        if(sep_dim_idx == -1)
-          total_size_of_multi_d_data = last_dim_size;
-        //sep_dim_idx can be -1
-        //The outermost dimension whose delimiter was hit
-        auto outermost_delim_dim_idx = static_cast<size_t>(std::max<int>(sep_dim_idx, 0));
-        auto new_write_begin_offset =
-          dim_write_begin_offsets[outermost_delim_dim_idx]
-          + sizeof(uint64_t)                          //64-bit for storing size of outermost_delim_dim_idx
-          + dim_sizes[outermost_delim_dim_idx];       //current size of outermost_delim_dim_idx
-        //Update dim_write_begin_offsets for dimensions which 'completed' i.e. wrote out all the data
-        //for one idx value for the dimension
-        for(unsigned i=outermost_delim_dim_idx+1u,j=0ul;i<length_descriptor.get_num_dimensions();++i,++j)
-        {
-          dim_write_begin_offsets[i] = new_write_begin_offset + j*sizeof(uint64_t); //64-bit uint64_t for sizes
-          //Reset dim sizes
-          dim_sizes[i] = 0u;
-          //Reset offsets vector - single element with value 0
-          dim_offsets[i].resize(1u);
-          dim_offsets[i][0u] = 0u;
-        }
+        curr_element_idx_in_tuple_parsed = 0u; //reset index in tuple
+        //Reset number of elements in innermost dim to 0
+        num_elements_in_innermost_dim_read_vec.assign(num_elements_in_tuple, 0u);
+        max_num_elements_in_innermost_dim = 0u;
       }
+      else
+        curr_element_idx_in_tuple_parsed = (curr_element_idx_in_tuple_parsed+1u)
+          %num_elements_in_tuple; //move to next element in tuple
       current_element_begin_read_idx = r_idx+1u;
       current_element_length = 0u;
     }
@@ -305,26 +392,20 @@ uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(std::vector<uint8_
       ++current_element_length;
     ++r_idx;
   }
-  return total_size_of_multi_d_data;
+  return total_size_of_multi_d_data_vec;
 }
 
-template<class ElementType>
-uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const size_t str_length)
+std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(const char* str, const size_t str_length)
 {
-  auto total_size_of_multi_d_data = GenomicsDBMultiDVectorField::parse_and_store_numeric<ElementType>(m_rw_field_data, *m_field_info_ptr,
-      str, str_length);
-  m_rw_field_data.resize(total_size_of_multi_d_data);
-  return total_size_of_multi_d_data;
+  auto total_size_of_multi_d_data_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+      m_rw_field_data, *m_field_info_ptr,
+      str, str_length));
+  for(auto tuple_element_idx=0u;tuple_element_idx<total_size_of_multi_d_data_vec.size();
+      ++tuple_element_idx)
+    m_rw_field_data[tuple_element_idx].resize(total_size_of_multi_d_data_vec[tuple_element_idx]);
+  return total_size_of_multi_d_data_vec;
 }
 
-
-//Template instantiations
-template
-uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(const char* str, const size_t str_length);
-template
-uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<int64_t>(const char* str, const size_t str_length);
-template
-uint64_t GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(const char* str, const size_t str_length);
 
 //Iterating over all dimensions and all index values can be a recursive process
 //We can model this as a stack
@@ -390,12 +471,13 @@ void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOpera
 
 //GenomicsDBMultiDVectorFieldOperator functions
 
-GenomicsDBMultiDVectorFieldVCFPrinter::GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info)
+GenomicsDBMultiDVectorFieldVCFPrinter::GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr,
+    const FieldInfo& field_info, const unsigned tuple_element_idx)
 {
   m_first_call = true;
-  m_bcf_ht_type = field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u);
   m_fptr = &fptr;
   m_field_info_ptr = &field_info;
+  m_tuple_element_idx = tuple_element_idx;
 }
 
 void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const size_t size_of_data,
@@ -404,7 +486,8 @@ void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const si
   auto& length_descriptor = m_field_info_ptr->m_length_descriptor;
   //Should be called for a pointer to contiguous segment - next to last dimension
   assert(idx_vector.size() == length_descriptor.get_num_dimensions()-1u);
-  auto num_elements = size_of_data/m_field_info_ptr->get_element_size();
+  auto num_elements = size_of_data
+    /(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_size(m_tuple_element_idx));
   auto sep = length_descriptor.get_vcf_delimiter(length_descriptor.get_num_dimensions()-1u);
   //Print outer dimension separator
   if(!m_first_call)
@@ -413,7 +496,7 @@ void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const si
         < length_descriptor.get_num_dimensions());
     (*m_fptr) << length_descriptor.get_vcf_delimiter(outermost_dim_idx_changed_since_last_call_to_operate);
   }
-  switch(m_bcf_ht_type)
+  switch(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_bcf_ht_type(m_tuple_element_idx))
   {
     case BCF_HT_INT:
       cast_join_and_print<int>(*m_fptr, ptr, num_elements, sep);

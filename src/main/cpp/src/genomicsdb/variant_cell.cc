@@ -92,7 +92,7 @@ void BufferVariantCell::set_cell(const void* ptr)
   {
     auto schema_idx = m_schema_idxs[i];
     auto length = m_field_lengths[i];
-//#define DEBUG_VARIANT_CELL_OFFSETS
+    //#define DEBUG_VARIANT_CELL_OFFSETS
 #ifdef DEBUG_VARIANT_CELL_OFFSETS
     //For variable length fields, data_offset == length_offset+sizeof(int)
     //For fixed size fields, data_offset == length_offset

@@ -334,9 +334,12 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
   {
     if(field_info.m_is_vcf_FILTER_field)
       vcf_fields[BCF_HL_FLT].push_back(field_info.m_vcf_name);
-    if(field_info.m_is_vcf_INFO_field)
+    //Flattened fields are expanded internally by the loaders
+    if(field_info.m_is_vcf_INFO_field
+        && !field_info.is_flattened_field())
       vcf_fields[BCF_HL_INFO].push_back(field_info.m_vcf_name);
-    if(field_info.m_is_vcf_FORMAT_field)
+    if(field_info.m_is_vcf_FORMAT_field
+        && !field_info.is_flattened_field())
       vcf_fields[BCF_HL_FMT].push_back(field_info.m_vcf_name);
   }
 }
@@ -385,7 +388,9 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   //INFO fields
   for(const auto& field_info : m_field_idx_to_info)
   {
-    if(field_info.m_name == "END")      //skip END field
+    if(field_info.m_name == "END" //skip END field
+        || (field_info.get_genomicsdb_type().get_num_elements_in_tuple() > 1u) //tuple has multiple elements
+        )
       continue;
     if(field_info.m_is_vcf_INFO_field)
     {
@@ -399,7 +404,9 @@ void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, con
   //FORMAT fields
   for(const auto& field_info : m_field_idx_to_info)
   {
-    if(field_info.m_name == "END")      //skip END field
+    if(field_info.m_name == "END" //skip END field
+        || (field_info.get_genomicsdb_type().get_num_elements_in_tuple() > 1u) //tuple has multiple elements
+        )
       continue;
     if(field_info.m_is_vcf_FORMAT_field)
     {
@@ -623,6 +630,65 @@ void VidMapper::add_mandatory_fields()
     field_info.set_info("END", end_idx);
     field_info.m_is_vcf_INFO_field = true;
     field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+  }
+  //REF
+  iter = m_field_name_to_idx.find("REF");
+  if(iter == m_field_name_to_idx.end())
+  {
+    auto REF_idx = m_field_idx_to_info.size();
+    m_field_idx_to_info.emplace_back();
+    m_field_name_to_idx["REF"] = REF_idx;
+    auto& field_info = m_field_idx_to_info[REF_idx];
+    field_info.set_info("REF", REF_idx);
+    field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
+    field_info.m_length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  }
+  //ALT
+  iter = m_field_name_to_idx.find("ALT");
+  if(iter == m_field_name_to_idx.end())
+  {
+    auto ALT_idx = m_field_idx_to_info.size();
+    m_field_idx_to_info.emplace_back();
+    m_field_name_to_idx["ALT"] = ALT_idx;
+    auto& field_info = m_field_idx_to_info[ALT_idx];
+    field_info.set_info("ALT", ALT_idx);
+    field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
+    field_info.m_length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  }
+  ////ID
+  //iter = m_field_name_to_idx.find("ID");
+  //if(iter == m_field_name_to_idx.end())
+  //{
+    //auto ID_idx = m_field_idx_to_info.size();
+    //m_field_idx_to_info.emplace_back();
+    //m_field_name_to_idx["ID"] = ID_idx;
+    //auto& field_info = m_field_idx_to_info[ID_idx];
+    //field_info.set_info("ID", ID_idx);
+    //field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(char)), BCF_HT_STR));
+    //field_info.m_length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  //}
+  //QUAL
+  iter = m_field_name_to_idx.find("QUAL");
+  if(iter == m_field_name_to_idx.end())
+  {
+    auto QUAL_idx = m_field_idx_to_info.size();
+    m_field_idx_to_info.emplace_back();
+    m_field_name_to_idx["QUAL"] = QUAL_idx;
+    auto& field_info = m_field_idx_to_info[QUAL_idx];
+    field_info.set_info("QUAL", QUAL_idx);
+    field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(float)), BCF_HT_REAL));
+  }
+  //FILTER
+  iter = m_field_name_to_idx.find("FILTER");
+  if(iter == m_field_name_to_idx.end())
+  {
+    auto FILTER_idx = m_field_idx_to_info.size();
+    m_field_idx_to_info.emplace_back();
+    m_field_name_to_idx["FILTER"] = FILTER_idx;
+    auto& field_info = m_field_idx_to_info[FILTER_idx];
+    field_info.set_info("FILTER", FILTER_idx);
+    field_info.set_type(FieldElementTypeDescriptor(std::type_index(typeid(int)), BCF_HT_INT));
+    field_info.m_length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
   }
 }
 
@@ -895,28 +961,9 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
             }
           }
         }
-
-        //Both INFO and FORMAT, throw another entry <field>_FORMAT
-        if(m_field_idx_to_info[field_idx].m_is_vcf_INFO_field && m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field)
-        {
-          auto new_field_idx = field_idx+1u;
-          m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
-          //Copy field information
-          m_field_idx_to_info[new_field_idx] = m_field_idx_to_info[field_idx];
-          auto& new_field_info =  m_field_idx_to_info[new_field_idx];
-          //Update name and index - keep the same VCF name
-          new_field_info.m_name = field_name+"_FORMAT";
-          new_field_info.m_is_vcf_INFO_field = false;
-          new_field_info.m_field_idx = new_field_idx;
-          new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
-          //Update map
-          m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
-          //Set FORMAT to false for original field
-          m_field_idx_to_info[field_idx].m_is_vcf_FORMAT_field = false;
-          ++field_idx;
-        }
+        ++field_idx;
+        flatten_field(field_idx, field_idx-1);
       }
-      ++field_idx;
       ++json_field_idx;
       if(!is_array)
         ++dict_iter;
@@ -927,6 +974,69 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
       throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
   }
   m_is_initialized = true;
+}
+
+void VidMapper::flatten_field(int& field_idx, const int original_field_idx)
+{
+  //WARNING: don't maintain any references/pointers to elements inside m_field_idx_to_info
+  //There are multiple vector resize operations in the code - invalidates all references
+  auto FORMAT_suffix = "_FORMAT";
+  auto tuple_element_suffix = "_tuple_element_";
+  //Both INFO and FORMAT, throw another entry <field>_FORMAT
+  auto both_INFO_and_FORMAT = m_field_idx_to_info[original_field_idx].m_is_vcf_INFO_field
+      && m_field_idx_to_info[original_field_idx].m_is_vcf_FORMAT_field;
+  auto format_field_idx = original_field_idx;
+  if(both_INFO_and_FORMAT)
+  {
+    m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
+    //Copy field information
+    m_field_idx_to_info[field_idx] = m_field_idx_to_info[original_field_idx];
+    auto& new_field_info =  m_field_idx_to_info[field_idx];
+    //Update name and index - keep the same VCF name
+    new_field_info.m_name += FORMAT_suffix;
+    new_field_info.m_is_vcf_INFO_field = false;
+    new_field_info.m_field_idx = field_idx;
+    new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+    //Update map
+    m_field_name_to_idx[new_field_info.m_name] = field_idx;
+    //Set FORMAT to false for original field
+    m_field_idx_to_info[original_field_idx].m_is_vcf_FORMAT_field = false;
+    format_field_idx = field_idx;
+    ++field_idx;
+  }
+  //Each element is a multi-element tuple
+  //Split up each tuple element into fields
+  if(m_field_idx_to_info[original_field_idx].m_genomicsdb_type.get_num_elements_in_tuple() > 1u)
+  {
+    //if the field is both INFO and FORMAT, flatten both sets of fields
+    for(auto j=0u;j<(both_INFO_and_FORMAT ? 2u : 1u);++j)
+    {
+      m_field_idx_to_info.resize(m_field_idx_to_info.size()
+          +m_field_idx_to_info[original_field_idx].m_genomicsdb_type.get_num_elements_in_tuple());
+      for(auto i=0u;i<m_field_idx_to_info[original_field_idx].m_genomicsdb_type.get_num_elements_in_tuple();++i)
+      {
+        //Copy field information
+        m_field_idx_to_info[field_idx] = ((j == 0u) ? m_field_idx_to_info[original_field_idx]
+            : m_field_idx_to_info[format_field_idx]);
+        auto& new_field_info =  m_field_idx_to_info[field_idx];
+        //Update name and index - keep the same VCF name
+        new_field_info.m_name += tuple_element_suffix + std::to_string(i);
+        new_field_info.m_field_idx = field_idx;
+        //Update map
+        m_field_name_to_idx[new_field_info.m_name] = field_idx;
+        //Update genomicsdb type - type of tuple element
+        new_field_info.set_genomicsdb_type(FieldElementTypeDescriptor(
+              m_field_idx_to_info[original_field_idx].m_genomicsdb_type.get_tuple_element_type_index(i),
+              m_field_idx_to_info[original_field_idx].m_genomicsdb_type.get_tuple_element_bcf_ht_type(i)));
+        //Not multi-D field - set TileDB type to be the same as genomicsdb type
+        if(new_field_info.m_length_descriptor.get_num_dimensions() == 1u)
+          new_field_info.set_tiledb_type(new_field_info.get_genomicsdb_type());
+        new_field_info.set_element_index_in_tuple(i);
+        new_field_info.set_is_flattened_field(true);
+        ++field_idx;
+      }
+    }
+  }
 }
 
 void FileBasedVidMapper::parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict)

@@ -71,10 +71,8 @@ class GenomicsDBMultiDVectorField
      * Parse a delimited string representation of the multi-D vector
      * and store into m_rw_field_data
      */
-    template<class ElementType>
-    uint64_t parse_and_store_numeric(const char* str, const size_t str_length);
-    template<class ElementType>
-    static uint64_t parse_and_store_numeric(std::vector<uint8_t>& buffer,
+    std::vector<uint64_t> parse_and_store_numeric(const char* str, const size_t str_length);
+    static std::vector<uint64_t> parse_and_store_numeric(std::vector<std::vector<uint8_t>>& buffer_vec,
         const FieldInfo& field_info,
         const char* str, const size_t str_length);
     /*
@@ -82,10 +80,14 @@ class GenomicsDBMultiDVectorField
      * Arguments to the operator include uint8_t* ptr, size of vector, index vector
      */
     void run_operation(GenomicsDBMultiDVectorFieldOperator& multid_vector_field_operator, const uint8_t* data_ptr) const;
-    const std::vector<uint8_t>& get_rw_data() const { return m_rw_field_data; }
+    const std::vector<uint8_t>& get_rw_data(const unsigned tuple_element_idx) const
+    {
+      assert(tuple_element_idx < m_rw_field_data.size());
+      return m_rw_field_data[tuple_element_idx];
+    }
   private:
     const uint8_t* m_ro_field_ptr; //pointer to the data buffer - read-only used mostly in querying
-    std::vector<uint8_t> m_rw_field_data; //useful when constructing a new object - example: deserializing a VCF field encoded as string 
+    std::vector<std::vector<uint8_t>> m_rw_field_data; //useful when constructing a new object - example: deserializing a VCF field encoded as string 
     const FieldInfo* m_field_info_ptr;
     size_t m_ro_data_size;
 };
@@ -211,13 +213,14 @@ class GenomicsDBMultiDVectorFieldOperatorException : public std::exception {
 class GenomicsDBMultiDVectorFieldVCFPrinter : public GenomicsDBMultiDVectorFieldOperator
 {
   public:
-    GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info);
+    GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info,
+        const unsigned tuple_element_idx);
     void operate(const uint8_t* ptr, const size_t size_of_data,
         const std::vector<uint64_t>& idx_vector,
         int outermost_dim_idx_changed_since_last_call_to_operate);
   private:
     bool m_first_call;
-    int m_bcf_ht_type;
+    unsigned m_tuple_element_idx;
     std::ostream* m_fptr;
     const FieldInfo* m_field_info_ptr;
 };

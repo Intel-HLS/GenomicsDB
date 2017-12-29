@@ -602,26 +602,9 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     auto length_descriptor = FieldLengthDescriptor();
-    if(vid_field_info)
-    {
-      length_descriptor = vid_field_info->m_length_descriptor;
-      query_config.set_query_attribute_info_parameters(i,
-          array_schema.type(schema_idx), length_descriptor,
-          vid_field_info->m_VCF_field_combine_operation);
-    }
-    else //No information in vid file, see if something can be gleaned from known fields
-    {
-      auto known_field_enum = 0u;
-      if(KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum))
-      {
-        length_descriptor.set_length_descriptor(0,
-            KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum));
-        query_config.set_query_attribute_info_parameters(i,
-            array_schema.type(schema_idx), length_descriptor,
-            KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum)
-            );
-      }
-    }
+    assert(vid_field_info); //mandatory now
+    length_descriptor = vid_field_info->m_length_descriptor;
+    query_config.set_query_attribute_info(i, *vid_field_info);
     //Does the length of the field depend on the number of alleles? If yes, add ALT and REF as query fields
     if(!added_ALT_REF && length_descriptor.is_length_allele_dependent())
     {

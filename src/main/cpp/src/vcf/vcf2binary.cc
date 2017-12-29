@@ -718,6 +718,12 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   auto buffer_full = false;
   auto num_values = static_cast<int>(curr_vcf_get_buffer_wrapper.m_num_values);
   auto* ptr = reinterpret_cast<const FieldType*>(curr_vcf_get_buffer_wrapper.m_buffer);
+  //Get vid_field_info object for this VCF field
+  assert(static_cast<size_t>(field_idx) < m_local_field_idx_to_global_field_idx.size());
+  assert(static_cast<size_t>(m_local_field_idx_to_global_field_idx[field_idx])
+      < m_vid_mapper->get_num_fields());
+  auto& vid_field_info = m_vid_mapper->get_field_info(m_local_field_idx_to_global_field_idx[field_idx]);
+  auto num_elements_in_tuple = vid_field_info.get_genomicsdb_type().get_num_elements_in_tuple();
   //Curr line does not have this field or field is missing
   //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
   //Example GT:PL   0/0:.  0/1:0,0,0
@@ -728,25 +734,33 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     //variable length field, print #elements = 0
     if(length_descriptor != BCF_VL_FIXED)
     {
-#ifdef PRODUCE_CSV_CELLS
-      if(!is_vcf_str_type)
-#endif
+      for(auto tuple_element_idx=0u;tuple_element_idx<num_elements_in_tuple;
+          ++tuple_element_idx)
       {
-        buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0);
-      }
 #ifdef PRODUCE_CSV_CELLS
-      else
-      {
-        buffer_full = tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer_offset_limit);
-      }
+        if(!is_vcf_str_type)
 #endif
+        {
+          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, 0);
+        }
+#ifdef PRODUCE_CSV_CELLS
+        else
+        {
+          buffer_full = tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer_offset_limit);
+        }
+#endif
+      }
     }
     else        //fixed length field - fill with NULL values
-      for(auto i=0u;i<field_length;++i)
-      {
-        buffer_full = buffer_full || tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer_offset_limit);
-        if(buffer_full) return true;
-      }
+    {
+      for(auto tuple_element_idx=0u;tuple_element_idx<num_elements_in_tuple;
+          ++tuple_element_idx)
+        for(auto i=0u;i<field_length;++i)
+        {
+          buffer_full = buffer_full || tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer_offset_limit);
+          if(buffer_full) return true;
+        }
+    }
   }
   else
   {
@@ -762,46 +776,36 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
     auto field_length_offset = buffer_offset;
     //Check if multi-D vector field represented as string
-    assert(static_cast<size_t>(field_idx) < m_local_field_idx_to_global_field_idx.size());
-    assert(static_cast<size_t>(m_local_field_idx_to_global_field_idx[field_idx])
-        < m_vid_mapper->get_num_fields());
-    auto& vid_field_info = m_vid_mapper->get_field_info(m_local_field_idx_to_global_field_idx[field_idx]);
-    auto size_of_multi_d_field = 0ull;
-    if(vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
+    if(is_vcf_str_type && vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
     {
-      switch(vid_field_info.get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u))
-      {
-        case BCF_HT_INT:
-          size_of_multi_d_field = GenomicsDBMultiDVectorField::parse_and_store_numeric<int>(
-              vcf_partition.get_multi_d_vector_buffer(),
-              vid_field_info, reinterpret_cast<const char*>(ptr), num_values);
-          break;
-        case BCF_HT_REAL:
-          size_of_multi_d_field = GenomicsDBMultiDVectorField::parse_and_store_numeric<float>(
-              vcf_partition.get_multi_d_vector_buffer(),
-              vid_field_info, reinterpret_cast<const char*>(ptr), num_values);
-          break;
-        default:
-          throw VCF2BinaryException(std::string("Unhandled element type for multi-D fields: ")
-              +vid_field_info.get_genomicsdb_type().get_tuple_element_type_index(0u).name());
-      }
-//#define DEBUG_MULTID_VECTOR_FIELD_LOAD
+      auto& multi_d_vector_size_vec = vcf_partition.get_multi_d_vector_size_vec();
+      multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+            vcf_partition.get_multi_d_vector_buffer_vec(),
+            vid_field_info, reinterpret_cast<const char*>(ptr), num_values));
+      //#define DEBUG_MULTID_VECTOR_FIELD_LOAD
 #ifdef DEBUG_MULTID_VECTOR_FIELD_LOAD
-      GenomicsDBMultiDVectorField debug_field(vid_field_info, &(vcf_partition.get_multi_d_vector_buffer()[0u]),
-          size_of_multi_d_field);
-      GenomicsDBMultiDVectorIdx debug_field_idx(&(vcf_partition.get_multi_d_vector_buffer()[0u]), &vid_field_info, 0u);
+      GenomicsDBMultiDVectorField debug_field(vid_field_info, &(vcf_partition.get_multi_d_vector_buffer_vec()[0u][0u]),
+          multi_d_vector_size_vec[0u]);
+      GenomicsDBMultiDVectorIdx debug_field_idx(&(vcf_partition.get_multi_d_vector_buffer_vec()[0u][0u]),
+          &vid_field_info, 0u);
 #endif
-      //4-byte int for #elements, followed by size
-      if(static_cast<uint64_t>(buffer_offset) + sizeof(int) + size_of_multi_d_field
-          > static_cast<uint64_t>(buffer_offset_limit))
-        buffer_full = true;
-      else
+      for(auto tuple_element_idx=0u;tuple_element_idx < num_elements_in_tuple;
+          ++tuple_element_idx)
       {
-        buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit, size_of_multi_d_field);
-        assert(!buffer_full);
-        memcpy(&(buffer[buffer_offset]), &(vcf_partition.get_multi_d_vector_buffer()[0u]),
-            size_of_multi_d_field);
-        buffer_offset += size_of_multi_d_field;
+        //4-byte int for #elements, followed by size
+        if(static_cast<uint64_t>(buffer_offset) + sizeof(int) + multi_d_vector_size_vec[tuple_element_idx]
+            > static_cast<uint64_t>(buffer_offset_limit))
+          buffer_full = true;
+        else
+        {
+          buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
+              multi_d_vector_size_vec[tuple_element_idx]);
+          assert(!buffer_full);
+          memcpy(&(buffer[buffer_offset]),
+              &(vcf_partition.get_multi_d_vector_buffer_vec()[tuple_element_idx][0u]),
+              multi_d_vector_size_vec[tuple_element_idx]);
+          buffer_offset += multi_d_vector_size_vec[tuple_element_idx];
+        }
       }
     }
     else //normal field

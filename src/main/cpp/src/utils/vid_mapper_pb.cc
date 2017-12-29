@@ -313,7 +313,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
   auto duplicate_fields_exist = false;
 
   for (auto pb_field_idx = 0, field_idx = 0; pb_field_idx < num_fields;
-      ++pb_field_idx, field_idx++) {
+      ++pb_field_idx) {
     field_name = vid_map_protobuf->fields(pb_field_idx).name();
     if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end()) {
       std::cerr << "Duplicate field name "
@@ -417,27 +417,8 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
     ref.modify_field_type_if_multi_dim_field();
     ref.compute_element_size();
 
-    // Both INFO and FORMAT, throw another entry <field>_FORMAT
-    if (ref.m_is_vcf_INFO_field &&
-        ref.m_is_vcf_FORMAT_field) {
-      auto new_field_idx = field_idx+1u;
-      m_field_idx_to_info.resize(m_field_idx_to_info.size()+1u);
-      auto& ref = m_field_idx_to_info[field_idx];
-      //Copy field information
-      m_field_idx_to_info[new_field_idx] = ref;
-      auto& new_field_info =  m_field_idx_to_info[new_field_idx];
-      //Update name and index - keep the same VCF name
-      new_field_info.m_name = field_name+"_FORMAT";
-      new_field_info.m_is_vcf_INFO_field = false;
-      new_field_info.m_field_idx = new_field_idx;
-      new_field_info.m_VCF_field_combine_operation =
-          VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
-      //Update map
-      m_field_name_to_idx[new_field_info.m_name] = new_field_idx;
-      //Set FORMAT to false for original field
-      ref.m_is_vcf_FORMAT_field = false;
-      field_idx++;
-    }
+    ++field_idx;
+    flatten_field(field_idx, field_idx-1);
   } // for (auto field_idx = 0; field_idx < num_fields; ++field_idx)
 
   add_mandatory_fields();
