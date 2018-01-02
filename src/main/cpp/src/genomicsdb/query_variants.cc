@@ -568,6 +568,9 @@ void VariantQueryProcessor::iterate_over_cells(
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
     VariantQueryConfig& query_config, const VidMapper& vid_mapper, const bool alleles_required) const
 {
+  //Flatten composite fields - fields whose elements are tuples
+  //Must do this before call to obtain_TileDB_attribute_idxs
+  query_config.flatten_composite_fields(vid_mapper);
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
   unsigned END_schema_idx = 

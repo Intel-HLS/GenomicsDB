@@ -87,15 +87,16 @@ float str_to_element(const char* str, const size_t element_begin_idx,
 }
 
 template<class T>
-void cast_join_and_print(std::ostream& fptr, const uint8_t* ptr, const size_t num_elements, const char sep)
+void cast_join_and_print(std::ostream& fptr, const uint8_t* ptr, const size_t idx,
+    const size_t num_elements, const char sep)
 {
   if(num_elements)
   {
     auto data_ptr = reinterpret_cast<const T*>(ptr);
-    auto val = data_ptr[0];
+    auto val = data_ptr[idx];
     if(!is_bcf_missing_value<T>(val))
       fptr << val;
-    for(auto i=1ull;i<num_elements;++i)
+    for(auto i=idx+1ull;i<num_elements;++i)
     {
       fptr << sep;
       auto val = data_ptr[i];
@@ -410,12 +411,16 @@ std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(const
 //Iterating over all dimensions and all index values can be a recursive process
 //We can model this as a stack
 void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOperator& multid_vector_field_operator,
-    const uint8_t* data_ptr) const
+    const std::vector<const uint8_t*>& data_ptr_vec) const
 {
+  if(m_field_info_ptr->get_genomicsdb_type().get_num_elements_in_tuple() != data_ptr_vec.size())
+    throw GenomicsDBMultiDVectorFieldOperatorException("Data ptr vec and genomicsdb_type do not have the same number of elements");
   auto& length_descriptor = m_field_info_ptr->m_length_descriptor;
   //Stack replacing the recursive function
-  std::vector<GenomicsDBMultiDVectorIdx> idx_stack;
-  idx_stack.emplace_back(data_ptr, m_field_info_ptr, 0u);
+  std::vector<std::vector<GenomicsDBMultiDVectorIdx>> idx_stack_vec;
+  for(auto i=0u;i<data_ptr_vec.size();++i)
+    idx_stack_vec.emplace_back(std::vector<GenomicsDBMultiDVectorIdx>(
+          1u, GenomicsDBMultiDVectorIdx(data_ptr_vec[i], m_field_info_ptr, 0u)));
   //current index vector e.g. A[5][0][3] will have 5,0,3
   //changes as stack is traversed
   //Don't bother with the last dimension
@@ -423,9 +428,12 @@ void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOpera
   //Optimization - tracks the outermost dimension index which changed since the
   //last call to operate(). Initialized to N-2
   auto outermost_dim_idx_changed_since_last_call_to_operate = length_descriptor.get_num_dimensions()-2u;
-  while(!idx_stack.empty())
+  //Vector to hold pointers and sizes for calling the operator
+  std::vector<const uint8_t*> op_ptr_vec(data_ptr_vec.size(), 0);
+  std::vector<size_t> op_size_vec(data_ptr_vec.size(), 0u);
+  while(!idx_stack_vec[0].empty())
   {
-    auto& top_idx = idx_stack.back();
+    auto& top_idx = idx_stack_vec[0].back();
     auto curr_dim_idx_in_curr_index_vector = top_idx.get_current_dim_index();
     assert(static_cast<size_t>(curr_dim_idx_in_curr_index_vector) < curr_index_vector.size());
     curr_index_vector[curr_dim_idx_in_curr_index_vector++] = top_idx.get_current_index_in_current_dimension();
@@ -441,29 +449,47 @@ void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOpera
       //Why +2u? dimension N-2 corresponds to a pointer to a contiguous segment of values
       if(top_idx.get_current_dim_index()+2u < length_descriptor.get_num_dimensions())
       {
-        auto copy_idx = top_idx; //copy
-        //index 0 in the next dimension
-        copy_idx.advance_to_index_in_next_dimension(0u);
-        //Cannot move this to outside the if-else block because idx_stack memory can be reallocated
-        //by the emplace_back() statement
-        top_idx.advance_index_in_current_dimension();
-        idx_stack.emplace_back(copy_idx);
+        for(auto i=0u;i<data_ptr_vec.size();++i)
+        {
+          auto& curr_tuple_element_top_idx = idx_stack_vec[i].back();
+          auto copy_idx = curr_tuple_element_top_idx; //copy
+          assert(copy_idx.get_current_index_in_current_dimension()
+              < copy_idx.get_num_entries_in_current_dimension()
+              && copy_idx.get_current_dim_index()+2u
+              < length_descriptor.get_num_dimensions());
+          //index 0 in the next dimension
+          copy_idx.advance_to_index_in_next_dimension(0u);
+          //Cannot move this to outside the if-else block because idx_stack memory can be reallocated
+          //by the emplace_back() statement
+          curr_tuple_element_top_idx.advance_index_in_current_dimension();
+          idx_stack_vec[i].emplace_back(copy_idx);
+        }
       }
       else
       {
-        multid_vector_field_operator.operate(top_idx.get_ptr<uint8_t>(),
-            top_idx.get_size_of_current_index(), curr_index_vector,
+        for(auto i=0u;i<data_ptr_vec.size();++i)
+        {
+          auto& curr_tuple_element_top_idx = idx_stack_vec[i].back();
+          assert(curr_tuple_element_top_idx.get_current_dim_index()+2u
+              >= length_descriptor.get_num_dimensions());
+          op_ptr_vec[i] = curr_tuple_element_top_idx.get_ptr<uint8_t>();
+          op_size_vec[i] = curr_tuple_element_top_idx.get_size_of_current_index();
+        }
+        multid_vector_field_operator.operate(op_ptr_vec,
+            op_size_vec, curr_index_vector,
             outermost_dim_idx_changed_since_last_call_to_operate);
         //reset outermost_dim_idx_changed_since_last_call_to_operate 
         outermost_dim_idx_changed_since_last_call_to_operate = length_descriptor.get_num_dimensions()-2u; 
         //Cannot move this to outside the if-else block because idx_stack memory can be reallocated (if block)
-        top_idx.advance_index_in_current_dimension();
+        for(auto i=0u;i<data_ptr_vec.size();++i)
+          idx_stack_vec[i].back().advance_index_in_current_dimension();
       }
       //DO NOT USE top_idx in this if block after this - emplace_back() might have reallocated the vector
     }
     else
     {
-      idx_stack.pop_back();
+      for(auto i=0u;i<idx_stack_vec.size();++i)
+        idx_stack_vec[i].pop_back();
       --outermost_dim_idx_changed_since_last_call_to_operate;
     }
   }
@@ -472,22 +498,20 @@ void GenomicsDBMultiDVectorField::run_operation(GenomicsDBMultiDVectorFieldOpera
 //GenomicsDBMultiDVectorFieldOperator functions
 
 GenomicsDBMultiDVectorFieldVCFPrinter::GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr,
-    const FieldInfo& field_info, const unsigned tuple_element_idx)
+    const FieldInfo& field_info)
 {
   m_first_call = true;
   m_fptr = &fptr;
   m_field_info_ptr = &field_info;
-  m_tuple_element_idx = tuple_element_idx;
 }
 
-void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const size_t size_of_data,
-        const std::vector<uint64_t>& idx_vector, int outermost_dim_idx_changed_since_last_call_to_operate)
+void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const std::vector<const uint8_t*>& ptr_vec,
+    const std::vector<size_t>& size_of_data_vec,
+    const std::vector<uint64_t>& idx_vector, int outermost_dim_idx_changed_since_last_call_to_operate)
 {
   auto& length_descriptor = m_field_info_ptr->m_length_descriptor;
   //Should be called for a pointer to contiguous segment - next to last dimension
   assert(idx_vector.size() == length_descriptor.get_num_dimensions()-1u);
-  auto num_elements = size_of_data
-    /(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_size(m_tuple_element_idx));
   auto sep = length_descriptor.get_vcf_delimiter(length_descriptor.get_num_dimensions()-1u);
   //Print outer dimension separator
   if(!m_first_call)
@@ -496,30 +520,47 @@ void GenomicsDBMultiDVectorFieldVCFPrinter::operate(const uint8_t* ptr, const si
         < length_descriptor.get_num_dimensions());
     (*m_fptr) << length_descriptor.get_vcf_delimiter(outermost_dim_idx_changed_since_last_call_to_operate);
   }
-  switch(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_bcf_ht_type(m_tuple_element_idx))
+  auto num_elements = size_of_data_vec[0]
+    /(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_size(0u));
+#ifdef DEBUG
+  for(auto i=0u;i<m_field_info_ptr->get_genomicsdb_type().get_num_elements_in_tuple();++i)
+    assert(num_elements == (size_of_data_vec[i]
+          /(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_size(i))));
+#endif
+  auto first_element = true;
+  for(auto j=0ull;j<num_elements;++j)
   {
-    case BCF_HT_INT:
-      cast_join_and_print<int>(*m_fptr, ptr, num_elements, sep);
-      break;
-    case BCF_HT_UINT:
-      cast_join_and_print<unsigned>(*m_fptr, ptr, num_elements, sep);
-      break;
-    case BCF_HT_INT64:
-      cast_join_and_print<int64_t>(*m_fptr, ptr, num_elements, sep);
-      break;
-    case BCF_HT_UINT64:
-      cast_join_and_print<uint64_t>(*m_fptr, ptr, num_elements, sep);
-      break;
-    case BCF_HT_REAL:
-      cast_join_and_print<float>(*m_fptr, ptr, num_elements, sep);
-      break;
-    case BCF_HT_DOUBLE:
-      cast_join_and_print<double>(*m_fptr, ptr, num_elements, sep);
-      break;
-    default:
-      throw GenomicsDBMultiDVectorFieldOperatorException(std::string("Unhandled type in GenomicsDBMultiDVectorFieldVCFPrinter ")
-          +m_field_info_ptr->get_genomicsdb_type().get_tuple_element_type_index(0u).name());
-      break;
+    for(auto i=0u;i<m_field_info_ptr->get_genomicsdb_type().get_num_elements_in_tuple();++i)
+    {
+      if(!first_element)
+        (*m_fptr) << sep;
+      switch(m_field_info_ptr->get_genomicsdb_type().get_tuple_element_bcf_ht_type(i))
+      {
+#define CASE_STATEMENTS(T) \
+        { \
+          cast_join_and_print<T>(*m_fptr, ptr_vec[i], j, 1u, sep); \
+          break; \
+        }
+        case BCF_HT_INT:
+          CASE_STATEMENTS(int);
+        case BCF_HT_UINT:
+          CASE_STATEMENTS(unsigned);
+        case BCF_HT_INT64:
+          CASE_STATEMENTS(int64_t);
+        case BCF_HT_UINT64:
+          CASE_STATEMENTS(uint64_t);
+        case BCF_HT_REAL:
+          CASE_STATEMENTS(float);
+        case BCF_HT_DOUBLE:
+          CASE_STATEMENTS(double);
+        default:
+          throw GenomicsDBMultiDVectorFieldOperatorException(std::string("Unhandled type in GenomicsDBMultiDVectorFieldVCFPrinter ")
+              +m_field_info_ptr->get_genomicsdb_type().get_tuple_element_type_index(0u).name());
+          break;
+#undef CASE_STATEMENTS
+      }
+      first_element = false;
+    }
   }
   m_first_call = false;
 }

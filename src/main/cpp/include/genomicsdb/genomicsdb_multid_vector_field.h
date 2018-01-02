@@ -79,7 +79,8 @@ class GenomicsDBMultiDVectorField
      * Traverses the multi-d vector and invokes the operator for innermost vector
      * Arguments to the operator include uint8_t* ptr, size of vector, index vector
      */
-    void run_operation(GenomicsDBMultiDVectorFieldOperator& multid_vector_field_operator, const uint8_t* data_ptr) const;
+    void run_operation(GenomicsDBMultiDVectorFieldOperator& multid_vector_field_operator,
+        const std::vector<const uint8_t*>& data_ptr) const;
     const std::vector<uint8_t>& get_rw_data(const unsigned tuple_element_idx) const
     {
       assert(tuple_element_idx < m_rw_field_data.size());
@@ -193,7 +194,7 @@ class GenomicsDBMultiDVectorIdx
 class GenomicsDBMultiDVectorFieldOperator
 {
   public:
-    virtual void operate(const uint8_t* ptr, const size_t size_of_data,
+    virtual void operate(const std::vector<const uint8_t*>& ptr, const std::vector<size_t>& size_of_data,
         const std::vector<uint64_t>& idx_vector,
         int outermost_dim_idx_changed_since_last_call_to_operate) = 0;
 };
@@ -213,14 +214,12 @@ class GenomicsDBMultiDVectorFieldOperatorException : public std::exception {
 class GenomicsDBMultiDVectorFieldVCFPrinter : public GenomicsDBMultiDVectorFieldOperator
 {
   public:
-    GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info,
-        const unsigned tuple_element_idx);
-    void operate(const uint8_t* ptr, const size_t size_of_data,
+    GenomicsDBMultiDVectorFieldVCFPrinter(std::ostream& fptr, const FieldInfo& field_info);
+    void operate(const std::vector<const uint8_t*>& ptr, const std::vector<size_t>& size_of_data,
         const std::vector<uint64_t>& idx_vector,
         int outermost_dim_idx_changed_since_last_call_to_operate);
   private:
     bool m_first_call;
-    unsigned m_tuple_element_idx;
     std::ostream* m_fptr;
     const FieldInfo* m_field_info_ptr;
 };

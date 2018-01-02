@@ -174,3 +174,48 @@ void VariantQueryConfig::reorder_query_fields()
   }
 }
 
+void VariantQueryConfig::flatten_composite_fields(const VidMapper& vid_mapper)
+{
+  auto has_composite_fields = false;
+  for(auto i=0u;i<get_num_queried_attributes();++i)
+  {
+    auto field_info = vid_mapper.get_field_info(m_query_attributes_info_vec[i].m_name);
+    if(field_info == 0)
+      throw UnknownQueryAttributeException(std::string("Field ")
+          +m_query_attributes_info_vec[i].m_name+" not found in vid mapping");
+    auto num_elements_in_tuple = field_info->get_genomicsdb_type().get_num_elements_in_tuple();
+    //Multi-element tuple - composite field
+    if(num_elements_in_tuple > 1u)
+    {
+      has_composite_fields = true;
+      for(auto j=0u;j<num_elements_in_tuple;++j)
+      {
+        auto flattened_field_info = vid_mapper.get_flattened_field_info(field_info, j);
+        add_attribute_to_query(flattened_field_info->m_name, UNDEFINED_ATTRIBUTE_IDX_VALUE);
+      }
+    }
+  }
+  if(has_composite_fields)
+  {
+    auto num_composite_fields_seen = 0u;
+    //Remove composite fields, shift up m_query_attributes_info_vec and re-assign ids
+    for(auto i=0u;i<get_num_queried_attributes();++i)
+    {
+      auto& field_name = m_query_attributes_info_vec[i].m_name;
+      //Multi-element tuple - composite field
+      if(vid_mapper.get_field_info(field_name)->get_genomicsdb_type().get_num_elements_in_tuple()
+          > 1u)
+        ++num_composite_fields_seen;
+      else
+        if(num_composite_fields_seen > 0u) //shift-up elements in m_query_attributes_info_vec
+        {
+          assert(m_query_attribute_name_to_query_idx[field_name] == i);
+          m_query_attribute_name_to_query_idx[field_name] -= num_composite_fields_seen;
+          m_query_attributes_info_vec[i-num_composite_fields_seen] =
+            std::move(m_query_attributes_info_vec[i]);
+        }
+    }
+    m_query_attributes_info_vec.resize(m_query_attributes_info_vec.size()-num_composite_fields_seen,
+        VariantQueryFieldInfo("", UNDEFINED_ATTRIBUTE_IDX_VALUE));
+  }
+}

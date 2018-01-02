@@ -384,6 +384,18 @@ class FieldInfo
       m_is_flattened_field = val;
     }
     bool is_flattened_field() const { return m_is_flattened_field; }
+    /*
+     * For flattened fields, sets the index of the parent composite field
+     */
+    void set_parent_composite_field_idx(const unsigned idx)
+    {
+      m_parent_composite_field_idx = idx;
+    }
+    unsigned get_parent_composite_field_idx() const
+    {
+      assert(is_flattened_field());
+      return m_parent_composite_field_idx;
+    }
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
@@ -412,6 +424,7 @@ class FieldInfo
     //flattened field, this contains the index in the composite tuple
     unsigned m_element_index_in_tuple;
     bool m_is_flattened_field;
+    unsigned m_parent_composite_field_idx;
 };
 
 /*
@@ -735,6 +748,8 @@ class VidMapper
         return 0;
       return &(get_field_info(field_idx));
     }
+    const FieldInfo* get_flattened_field_info(const FieldInfo* field_info,
+        const unsigned tuple_element_index) const;
     /*
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */

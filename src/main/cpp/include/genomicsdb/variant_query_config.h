@@ -40,13 +40,13 @@ class OutOfBoundsQueryException : public std::exception {
     std::string msg_;
 };
 
-class UnknownQueryAttributeException {
+class UnknownQueryAttributeException : public std::exception {
   public:
     UnknownQueryAttributeException(const std::string m="Invalid queried attribute") : msg_(m) { ; }
     ~UnknownQueryAttributeException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };
@@ -162,6 +162,11 @@ class VariantQueryConfig
       assert(query_field_idx < m_query_attributes_info_vec.size());
       m_query_attributes_info_vec[query_field_idx].m_vid_field_info = &vid_field_info;
     }
+    /*
+     * Flattens composite fields into multiple fields, rearranges
+     * m_query_attributes_info_vec and sets m_query_attribute_name_to_query_idx
+     */
+    void flatten_composite_fields(const VidMapper& vid_mapper);
     const FieldLengthDescriptor& get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());

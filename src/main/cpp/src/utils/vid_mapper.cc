@@ -96,6 +96,9 @@ std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_e
       {"concatenate", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE}
       });
 
+auto g_FORMAT_suffix = "_FORMAT";
+auto g_tuple_element_suffix = "_tuple_element_";
+
 #define VERIFY_OR_THROW(X) if(!(X)) throw VidMapperException(#X);
 
 bool FileInfo::add_local_tiledb_row_idx_pair(const int64_t local, const int64_t global,
@@ -980,8 +983,6 @@ void VidMapper::flatten_field(int& field_idx, const int original_field_idx)
 {
   //WARNING: don't maintain any references/pointers to elements inside m_field_idx_to_info
   //There are multiple vector resize operations in the code - invalidates all references
-  auto FORMAT_suffix = "_FORMAT";
-  auto tuple_element_suffix = "_tuple_element_";
   //Both INFO and FORMAT, throw another entry <field>_FORMAT
   auto both_INFO_and_FORMAT = m_field_idx_to_info[original_field_idx].m_is_vcf_INFO_field
       && m_field_idx_to_info[original_field_idx].m_is_vcf_FORMAT_field;
@@ -993,7 +994,7 @@ void VidMapper::flatten_field(int& field_idx, const int original_field_idx)
     m_field_idx_to_info[field_idx] = m_field_idx_to_info[original_field_idx];
     auto& new_field_info =  m_field_idx_to_info[field_idx];
     //Update name and index - keep the same VCF name
-    new_field_info.m_name += FORMAT_suffix;
+    new_field_info.m_name += g_FORMAT_suffix;
     new_field_info.m_is_vcf_INFO_field = false;
     new_field_info.m_field_idx = field_idx;
     new_field_info.m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
@@ -1020,7 +1021,7 @@ void VidMapper::flatten_field(int& field_idx, const int original_field_idx)
             : m_field_idx_to_info[format_field_idx]);
         auto& new_field_info =  m_field_idx_to_info[field_idx];
         //Update name and index - keep the same VCF name
-        new_field_info.m_name += tuple_element_suffix + std::to_string(i);
+        new_field_info.m_name += g_tuple_element_suffix + std::to_string(i);
         new_field_info.m_field_idx = field_idx;
         //Update map
         m_field_name_to_idx[new_field_info.m_name] = field_idx;
@@ -1033,10 +1034,24 @@ void VidMapper::flatten_field(int& field_idx, const int original_field_idx)
           new_field_info.set_tiledb_type(new_field_info.get_genomicsdb_type());
         new_field_info.set_element_index_in_tuple(i);
         new_field_info.set_is_flattened_field(true);
+        new_field_info.set_parent_composite_field_idx((j == 0u)
+              ? original_field_idx : format_field_idx);
         ++field_idx;
       }
     }
   }
+}
+
+const FieldInfo* VidMapper::get_flattened_field_info(const FieldInfo* field_info,
+    const unsigned tuple_element_index) const
+{
+  assert(field_info->get_genomicsdb_type().get_num_elements_in_tuple() > 1u
+      && tuple_element_index < field_info->get_genomicsdb_type().get_num_elements_in_tuple());
+  auto flattened_field_name = field_info->m_name + g_tuple_element_suffix
+    + std::to_string(tuple_element_index);
+  auto flattened_field_info = get_field_info(flattened_field_name);
+  assert(flattened_field_info);
+  return flattened_field_info;
 }
 
 void FileBasedVidMapper::parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict)
