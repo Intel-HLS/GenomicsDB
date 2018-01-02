@@ -190,6 +190,12 @@ class VariantQueryConfig
       assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
       return m_query_attributes_info_vec[query_idx].m_vid_field_info->get_genomicsdb_type().get_tuple_element_type_index(0u);
     }
+    const FieldInfo* get_field_info_for_query_attribute_idx(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
+      return (m_query_attributes_info_vec[query_idx].m_vid_field_info);
+    }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
      */

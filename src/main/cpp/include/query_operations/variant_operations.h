@@ -253,12 +253,13 @@ class VariantOperations
 class SingleVariantOperatorBase
 {
   public:
-    SingleVariantOperatorBase()
+    SingleVariantOperatorBase(const VidMapper* vid_mapper)
     {
       clear();
       m_NON_REF_exists = false;
       m_remapping_needed = true;
       m_is_reference_block_only = false;
+      m_vid_mapper = vid_mapper->is_initialized() ? vid_mapper : 0;
     }
     virtual ~SingleVariantOperatorBase() { }
     void clear();
@@ -287,6 +288,7 @@ class SingleVariantOperatorBase
     bool m_remapping_needed;
     //is pure reference block if REF is 1 char, and ALT contains only <NON_REF>
     bool m_is_reference_block_only;
+    const VidMapper* m_vid_mapper;
 };
 
 /*
@@ -299,7 +301,7 @@ class InterestingLocationsPrinter : public SingleVariantOperatorBase
 {
   public:
     InterestingLocationsPrinter(std::ostream& fptr)
-      : SingleVariantOperatorBase()
+      : SingleVariantOperatorBase(0)
     {
       m_fptr = &fptr;
     }
@@ -336,7 +338,7 @@ class MaxAllelesCountOperator : public SingleVariantOperatorBase
     };
   public:
     MaxAllelesCountOperator(const unsigned top_count=25u)
-      : SingleVariantOperatorBase()
+      : SingleVariantOperatorBase(0)
     {
       m_top_count = top_count;
       m_curr_count = 0u;
@@ -379,7 +381,7 @@ class MaxAllelesCountOperator : public SingleVariantOperatorBase
 class DummyGenotypingOperator : public SingleVariantOperatorBase
 {
   public:
-    DummyGenotypingOperator() : SingleVariantOperatorBase() { m_output_stream = &(std::cout); }
+    DummyGenotypingOperator() : SingleVariantOperatorBase(0) { m_output_stream = &(std::cout); }
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     std::ostream* m_output_stream;
 };
@@ -493,13 +495,23 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<std::pair<int, int> > m_ploidy_index_alleles_index_stack;
 };
 
+void remap_allele_specific_annotations(
+    const std::vector<uint8_t>& orig_field_data,
+    std::vector<uint8_t>& remapped_field_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const FieldInfo& vid_field_info);
+
 /*
  * Copies info in Variant object into its result vector
  */
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    GA4GHOperator(const VariantQueryConfig& query_config, const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
+    GA4GHOperator(const VariantQueryConfig& query_config,
+        const VidMapper& vid_mapper,
+        const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }

@@ -217,12 +217,20 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
     const auto& field_name = schema.attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     if(vid_field_info)
+    {
       if(vid_field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_FLAG)
       {
         auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(int8_t)));
         assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());
         m_field_factory.Register(i, (*iter).second);
       }
+      if(vid_field_info->m_length_descriptor.get_num_dimensions() > 1u)
+      {
+        auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(uint8_t)));
+        assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());
+        m_field_factory.Register(i, (*iter).second);
+      }
+    }
   }
 }
 
@@ -807,7 +815,7 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
   std::cerr << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
 #endif
-  GA4GHOperator variant_operator(query_config);
+  GA4GHOperator variant_operator(query_config, *m_vid_mapper);
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
     {

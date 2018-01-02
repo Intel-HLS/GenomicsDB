@@ -142,20 +142,46 @@ void GenomicsDBMultiDVectorIdx::advance_to_index_in_next_dimension(const size_t 
 
 void GenomicsDBMultiDVectorIdx::advance_index_in_current_dimension()
 {
+  //assert(static_cast<size_t>(m_current_dim_idx) < m_field_info_ptr->m_length_descriptor.get_num_dimensions());
+  //assert(m_current_index_in_current_dimension < m_num_entries_in_current_dim);
+  ////the innermost dimension is simply a vector of elements - the size, #elements and offsets are NOT stored on disk,
+  ////Since the innermost dimension is simply a raw vector, hence the +2u check for dimensions which store
+  ////size, #elements, offsets on disk
+  //if(m_current_dim_idx+1u < m_field_info_ptr->m_length_descriptor.get_num_dimensions())
+  //{
+    //auto update_offset = m_offsets_ptr[m_current_index_in_current_dimension+1u]
+      //- m_offsets_ptr[m_current_index_in_current_dimension];
+    //m_ro_field_ptr = m_ro_field_ptr + update_offset;
+  //}
+  //else
+    //m_ro_field_ptr = m_ro_field_ptr + (m_field_info_ptr->get_element_size());
+  //++m_current_index_in_current_dimension;
+  set_index_in_current_dimension(m_current_index_in_current_dimension+1u);
+}
+
+void GenomicsDBMultiDVectorIdx::set_index_in_current_dimension(const uint64_t idx)
+{
   assert(static_cast<size_t>(m_current_dim_idx) < m_field_info_ptr->m_length_descriptor.get_num_dimensions());
-  assert(m_current_index_in_current_dimension < m_num_entries_in_current_dim);
+  assert(idx <= m_num_entries_in_current_dim);
+  auto add_to_ptr = (idx >= m_current_index_in_current_dimension);
   //the innermost dimension is simply a vector of elements - the size, #elements and offsets are NOT stored on disk,
   //Since the innermost dimension is simply a raw vector, hence the +2u check for dimensions which store 
   //size, #elements, offsets on disk
+  auto update_offset = 0ull;
   if(m_current_dim_idx+1u < m_field_info_ptr->m_length_descriptor.get_num_dimensions())
-  {
-    auto update_offset = m_offsets_ptr[m_current_index_in_current_dimension+1u]
-      - m_offsets_ptr[m_current_index_in_current_dimension]; 
-    m_ro_field_ptr = m_ro_field_ptr + update_offset;
-  }
+    update_offset = add_to_ptr
+      ?  (m_offsets_ptr[idx] - m_offsets_ptr[m_current_index_in_current_dimension])
+      :  (m_offsets_ptr[m_current_index_in_current_dimension] - m_offsets_ptr[idx]);
   else
-    m_ro_field_ptr = m_ro_field_ptr + (m_field_info_ptr->get_element_size());
-  ++m_current_index_in_current_dimension;
+    update_offset = (
+        add_to_ptr
+        ? (idx-m_current_index_in_current_dimension)
+        : (m_current_index_in_current_dimension-idx)
+        )
+      *(m_field_info_ptr->get_element_size());
+  m_ro_field_ptr = add_to_ptr ? (m_ro_field_ptr + update_offset)
+      : (m_ro_field_ptr - update_offset);
+  m_current_index_in_current_dimension = idx;
 }
 
 template<class ElementType>

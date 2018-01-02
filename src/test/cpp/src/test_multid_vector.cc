@@ -23,6 +23,9 @@
 #include <gtest/gtest.h>
 #include "vid_mapper.h"
 #include "genomicsdb_multid_vector_field.h"
+#include "variant_operations.h"
+
+void initialize_LUT_reordered(CombineAllelesLUT& lut);
 
 TEST(multid_vector, 2D_test)
 {
@@ -33,7 +36,7 @@ TEST(multid_vector, 2D_test)
   auto& length_descriptor = field_info.m_length_descriptor;
   length_descriptor.resize(2u);
   //Length descriptors for each dimension
-  length_descriptor.set_length_descriptor(0u, BCF_VL_VAR);
+  length_descriptor.set_length_descriptor(0u, BCF_VL_A);
   length_descriptor.set_length_descriptor(1u, BCF_VL_VAR);
   //Delimiters
   length_descriptor.set_vcf_delimiter(0u, "|");
@@ -93,6 +96,63 @@ TEST(multid_vector, 2D_test)
   GenomicsDBMultiDVectorFieldVCFPrinter print_op(fptr, field_info);
   two_d_vector.run_operation(print_op, std::vector<const uint8_t*>(1u, &(two_d_vector.get_rw_data(0u)[0])));
   EXPECT_EQ(fptr.str(), value);
+  {
+    //Test re-ordering
+    CombineAllelesLUT tmp_lut;
+    ////A_inp mapped to A_merged
+    ////B_inp mapped to C_merged
+    ////C_inp [NON_REF] mapped to D_merged
+    ////Implies that any allele corresponding to B_merged will get mapped to NON_REF allele
+    ///[ 1, 2 ] corresponds to B_inp, [3, 4, 5] corresponds to C_inp (NON_REF)
+    ///B_merged = C_inp = [3,4,5] (NON_REF)
+    ///C_merged = B_inp = [1,2]
+    ///D_merged = C_inp = [3,4,5] (NON_REF)
+    ///A is ignored since length descriptor is BCF_VL_A (ALT alleles only)
+    initialize_LUT_reordered(tmp_lut);
+    std::vector<uint8_t> reordered_data;
+    remap_allele_specific_annotations(two_d_vector.get_rw_data(0u), reordered_data,
+        0u, tmp_lut, 4u, true, 2u,
+        field_info);
+    //Size of dim 0 in first 8 bytes
+    auto dim_0_data_size = *(reinterpret_cast<const uint64_t*>(&(reordered_data[0u])));
+    EXPECT_EQ(total_size[0u]
+        +3*sizeof(int) //the extra 3 integers because B_merged gets mapped to C_inp (NON_REF) and the [3, 4, 5] is duplicated
+        +sizeof(uint64_t), //one extra entry so one more offset value
+        dim_0_data_size
+        +sizeof(uint64_t) //size - 8 bytes
+        +sizeof(uint64_t) //#entries - 8 bytes
+        +4*sizeof(uint64_t)); //4 offsets
+    //Index
+    GenomicsDBMultiDVectorIdx dim_0_idx(&(reordered_data[0]), &field_info);
+    EXPECT_EQ(dim_0_idx.get_current_dim_index(), -1);
+    //A[0] - B_merged == C_inp (NON_REF)
+    dim_0_idx.advance_to_index_in_next_dimension(0u);
+    EXPECT_EQ(dim_0_idx.get_current_dim_index(), 0);
+    EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 0u);
+    EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 3u);
+    EXPECT_EQ(dim_0_idx.get_size_of_current_index(), 3*sizeof(int)); //[3, 4, 5]
+    auto data_ptr = dim_0_idx.get_ptr<int>();
+    EXPECT_EQ(data_ptr[0u], 3);
+    EXPECT_EQ(data_ptr[1u], 4);
+    EXPECT_EQ(data_ptr[2u], 5);
+    //A[1] - C_merged == B_inp
+    dim_0_idx.advance_index_in_current_dimension();
+    EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 1u);
+    EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 3u);
+    EXPECT_EQ(dim_0_idx.get_size_of_current_index(), 2*sizeof(int)); //[1, 2]
+    data_ptr = dim_0_idx.get_ptr<int>();
+    EXPECT_EQ(data_ptr[0u], 1);
+    EXPECT_EQ(data_ptr[1u], 2);
+    //A[2] - D_merged == C_inp (NON_REF)
+    dim_0_idx.advance_index_in_current_dimension();
+    EXPECT_EQ(dim_0_idx.get_current_index_in_current_dimension(), 2u);
+    EXPECT_EQ(dim_0_idx.get_num_entries_in_current_dimension(), 3u);
+    EXPECT_EQ(dim_0_idx.get_size_of_current_index(), 3*sizeof(int)); //[3, 4, 5]
+    data_ptr = dim_0_idx.get_ptr<int>();
+    EXPECT_EQ(data_ptr[0u], 3);
+    EXPECT_EQ(data_ptr[1u], 4);
+    EXPECT_EQ(data_ptr[2u], 5);
+  }
 }
 
 TEST(multid_vector, 3D_test)

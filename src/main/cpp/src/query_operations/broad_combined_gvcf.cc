@@ -134,7 +134,7 @@ inline void encode_GT_vector<false, false>(int* inout_vec, const uint64_t input_
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     const VariantQueryConfig& query_config,
     const unsigned max_diploid_alt_alleles_that_can_be_genotyped, const bool use_missing_values_only_not_vector_end)
-: GA4GHOperator(query_config, max_diploid_alt_alleles_that_can_be_genotyped)
+: GA4GHOperator(query_config, id_mapper, max_diploid_alt_alleles_that_can_be_genotyped)
 {
   clear();
   if(!id_mapper.is_initialized())

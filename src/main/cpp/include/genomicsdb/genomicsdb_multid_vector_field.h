@@ -131,7 +131,10 @@ class GenomicsDBMultiDVectorIdx
      * Advances index in same dimension
      */
     void advance_index_in_current_dimension();
-
+    /*
+     * Sets index in same dimension
+     */
+    void set_index_in_current_dimension(const uint64_t idx);
     /*
      * Should be invoked for the next to last dimension or the last dimension
      * Will provide a pointer to a sequence of elements of type T
