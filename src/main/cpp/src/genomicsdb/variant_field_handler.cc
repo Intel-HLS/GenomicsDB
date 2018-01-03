@@ -21,6 +21,7 @@
 */
 
 #include "variant_operations.h"
+#include "genomicsdb_multid_vector_field.h"
 
 template<>
 std::string get_zero_value() { return ""; }
@@ -564,6 +565,82 @@ bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum(const Variant
   (*output_ptr) = &(m_element_wise_operations_result[0]);
   num_elements = num_valid_elements;
   return (num_valid_elements > 0u);
+}
+
+template<class DataType>
+bool VariantFieldHandler<DataType>::compute_valid_element_wise_sum_2D_vector(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx)
+{
+  auto num_valid_elements = 0ull;
+  assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx).get_num_dimensions() == 2u);
+  auto vid_field_info = query_config.get_field_info_for_query_attribute_idx(query_idx);
+  assert(vid_field_info->get_genomicsdb_type().get_tuple_element_type_index(0u) == std::type_index(typeid(DataType)));
+  m_2D_element_wise_operations_result.clear();
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto& field_ptr = curr_call.get_field(query_idx);
+    //Valid field
+    if(field_ptr.get() && field_ptr->is_valid())
+    {
+      //Must always be vector<uint8_t>
+      auto* ptr = dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(field_ptr.get());
+      assert(ptr);
+      auto& vec = ptr->get();
+      GenomicsDBMultiDVectorIdx curr_field_index(&(vec[0u]), vid_field_info, 0u);
+      if(curr_field_index.get_num_entries_in_current_dimension() > m_2D_element_wise_operations_result.size())
+        m_2D_element_wise_operations_result.resize(curr_field_index.get_num_entries_in_current_dimension());
+      for(auto dim0_idx=0ull;dim0_idx<curr_field_index.get_num_entries_in_current_dimension();
+          ++dim0_idx)
+      {
+        auto num_elements = curr_field_index.get_size_of_current_index()/sizeof(DataType);
+        if(num_elements > m_2D_element_wise_operations_result[dim0_idx].size())
+          m_2D_element_wise_operations_result[dim0_idx].resize(num_elements, get_bcf_missing_value<DataType>());
+        auto data_ptr = curr_field_index.get_ptr<DataType>();
+        for(auto i=0ull;i<num_elements;++i)
+        {
+          auto val = data_ptr[i];
+          if(is_bcf_valid_value<DataType>(val))
+          {
+            if(is_bcf_valid_value<DataType>(m_2D_element_wise_operations_result[dim0_idx][i]))
+              m_2D_element_wise_operations_result[dim0_idx][i] += val;
+            else
+              m_2D_element_wise_operations_result[dim0_idx][i] = val;
+            ++num_valid_elements;
+          }
+        }
+        curr_field_index.advance_index_in_current_dimension();
+      }
+    }
+  }
+  return (num_valid_elements > 0u);
+}
+
+template<class DataType>
+std::string VariantFieldHandler<DataType>::stringify_2D_vector(const FieldInfo& field_info)
+{
+  auto& length_descriptor = field_info.m_length_descriptor;
+  assert(length_descriptor.get_num_dimensions() == 2u);
+  auto first_outer_index = true;
+  std::stringstream s;
+  for(auto i=0ull;i<m_2D_element_wise_operations_result.size();++i)
+  {
+    if(!first_outer_index)
+      s << length_descriptor.get_vcf_delimiter(0u);
+    auto first_inner_index = true;
+    for(auto j=0ull;j<m_2D_element_wise_operations_result[i].size();++j)
+    {
+      if(!first_inner_index)
+        s << length_descriptor.get_vcf_delimiter(1u);
+      auto val = m_2D_element_wise_operations_result[i][j];
+      if(is_bcf_valid_value<DataType>(val))
+        s << std::scientific << val;
+      first_inner_index = false;
+    }
+    first_outer_index = false;
+  }
+  return s.str();
 }
 
 template<class DataType>

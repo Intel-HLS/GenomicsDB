@@ -409,10 +409,16 @@ class VariantFieldHandlerBase
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
     virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
+    /*
+     * Computes element-wise sum for 2D fields over all Calls (only considers calls with valid field data)
+     */
+    virtual bool compute_valid_element_wise_sum_2D_vector(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
         const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
         const bool is_GT_field = false) = 0;
+    virtual std::string stringify_2D_vector(const FieldInfo& field_info) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -467,6 +473,15 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements);
     /*
+     * Computes element-wise sum for 2D fields over all Calls (only considers calls with valid field data)
+     */
+    virtual bool compute_valid_element_wise_sum_2D_vector(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx);
+    /*
+     * Convert 2D vector to string - for exporting as VCF record
+     */
+    virtual std::string stringify_2D_vector(const FieldInfo& field_info);
+    /*
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
@@ -482,6 +497,9 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<DataType> m_extended_field_vector;
     //Vector to hold data for element wise operations
     std::vector<DataType> m_element_wise_operations_result;
+    //For 2D data - avoid dynamic reallocations
+    std::vector<std::vector<DataType>> m_2D_element_wise_operations_result;
+    std::string m_vcf_string_for_2D_vector;
     //Data structures for iterating over genotypes in the non-diploid and non-haploid
     //ploidy. Avoids dynamic memory re-allocation
     //Vector storing allele indexes for current genotype

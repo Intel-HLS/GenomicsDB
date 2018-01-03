@@ -118,6 +118,11 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
                 break;
             }
           }
+          else
+          {
+            assert(field_info.get_vcf_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_STR);
+            header_line += "1";
+          }
         }
         header_line += ",Type=";
         switch(field_info.get_vcf_type().get_tuple_element_bcf_ht_type(0u))
