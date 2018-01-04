@@ -248,6 +248,13 @@ void VariantArrayInfo::write_cell(const void* ptr)
     if(m_schema.is_variable_length_field(i))
     {
       assert(buffer_idx+1u < m_buffer_offsets.size());
+      //This could happen if segment_size in the loader JSON is so small that the data for a single cell
+      //does not fit into the buffer
+      if(overflow && m_buffer_offsets[buffer_idx]+sizeof(size_t) > m_buffers[buffer_idx].size())
+      {
+        m_buffers[buffer_idx].resize(m_buffer_offsets[buffer_idx]+sizeof(size_t));
+        m_buffer_pointers[buffer_idx] = reinterpret_cast<void*>(&(m_buffers[buffer_idx][0u]));
+      }
       assert(m_buffer_offsets[buffer_idx]+sizeof(size_t) <= m_buffers[buffer_idx].size());
       //Offset buffer - new entry starts after last entry
       *(reinterpret_cast<size_t*>(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]))) = m_buffer_offsets[buffer_idx+1u];
@@ -255,6 +262,13 @@ void VariantArrayInfo::write_cell(const void* ptr)
       ++buffer_idx;
     }
     auto field_size = m_cell.get_field_size_in_bytes(i);
+    //This could happen if segment_size in the loader JSON is so small that the data for a single cell
+    //does not fit into the buffer
+    if(overflow && m_buffer_offsets[buffer_idx]+field_size > m_buffers[buffer_idx].size())
+    {
+      m_buffers[buffer_idx].resize(m_buffer_offsets[buffer_idx]+field_size);
+      m_buffer_pointers[buffer_idx] = reinterpret_cast<void*>(&(m_buffers[buffer_idx][0u]));
+    }
     assert(m_buffer_offsets[buffer_idx]+field_size <= m_buffers[buffer_idx].size());
     memcpy(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]), m_cell.get_field_ptr_for_query_idx<void>(i), field_size);
     m_buffer_offsets[buffer_idx] += field_size;
