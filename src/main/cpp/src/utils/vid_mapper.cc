@@ -93,6 +93,7 @@ std::unordered_map<std::string, int> VidMapper::m_INFO_field_operation_name_to_e
       {"median", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN},
       {"move_to_FORMAT", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT},
       {"element_wise_sum", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM},
+      {"elementwise_sum", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM},
       {"concatenate", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE},
       {"histogram_sum", VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM}
       });
@@ -928,16 +929,7 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         if(field_info_dict.HasMember("VCF_field_combine_operation"))
         {
           VERIFY_OR_THROW(field_info_dict["VCF_field_combine_operation"].IsString());
-          auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(field_info_dict["VCF_field_combine_operation"].GetString());
-          if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
-            throw VidMapperException(std::string("Unknown VCF field combine operation ")+field_info_dict["VCF_field_combine_operation"].GetString()
-                +" specified for field "+field_name);
-          m_field_idx_to_info[field_idx].m_VCF_field_combine_operation = (*iter).second;
-          //Concatenate can only be used for VAR length fields
-          if(m_field_idx_to_info[field_idx].m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
-              && m_field_idx_to_info[field_idx].m_length_descriptor.get_length_descriptor(0u) != BCF_VL_VAR)
-            throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
-                +" field "+field_name+" does not have 'VAR' as its length descriptor");
+          set_VCF_field_combine_operation(m_field_idx_to_info[field_idx], field_info_dict["VCF_field_combine_operation"].GetString());
         }
         else
         {
@@ -978,6 +970,20 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
       throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
   }
   m_is_initialized = true;
+}
+
+void VidMapper::set_VCF_field_combine_operation(FieldInfo& field_info, const char* vcf_field_combine_operation)
+{
+  auto iter  = VidMapper::m_INFO_field_operation_name_to_enum.find(vcf_field_combine_operation);
+  if(iter == VidMapper::m_INFO_field_operation_name_to_enum.end())
+    throw VidMapperException(std::string("Unknown VCF field combine operation ")+vcf_field_combine_operation
+        +" specified for field "+field_info.m_name);
+  field_info.m_VCF_field_combine_operation = (*iter).second;
+  //Concatenate can only be used for VAR length fields
+  if(field_info.m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE
+      && field_info.m_length_descriptor.get_length_descriptor(0u) != BCF_VL_VAR)
+    throw VidMapperException(std::string("VCF field combined operation 'concatenate' can only be used with fields whose length descriptors are 'VAR'; ")
+        +" field "+field_info.m_name+" does not have 'VAR' as its length descriptor");
 }
 
 void VidMapper::flatten_field(int& field_idx, const int original_field_idx)

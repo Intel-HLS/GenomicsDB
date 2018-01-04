@@ -365,6 +365,7 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
       }
     }
     if (vid_map_protobuf->fields(pb_field_idx).length_size() > 0) {
+      ref.m_length_descriptor.resize(vid_map_protobuf->fields(pb_field_idx).length_size());
       for(auto i=0;i<vid_map_protobuf->fields(pb_field_idx).length_size();++i)
       {
         auto& pb_length_descriptor_component = vid_map_protobuf->fields(pb_field_idx).length(i);
@@ -413,6 +414,10 @@ int ProtoBufBasedVidMapper::parse_infofields_from_vidmap(
         ref.m_length_descriptor.set_vcf_delimiter(i,
             vid_map_protobuf->fields(pb_field_idx).vcf_delimiter(i).c_str());
     }
+
+    if(vid_map_protobuf->fields(pb_field_idx).has_vcf_field_combine_operation())
+      set_VCF_field_combine_operation(ref,
+          vid_map_protobuf->fields(pb_field_idx).vcf_field_combine_operation().c_str());
 
     ref.modify_field_type_if_multi_dim_field();
     ref.compute_element_size();

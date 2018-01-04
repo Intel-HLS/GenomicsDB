@@ -795,6 +795,7 @@ class VidMapper
   protected:
     void add_mandatory_fields();
     void flatten_field(int& field_idx, const int original_field_idx);
+    void set_VCF_field_combine_operation(FieldInfo& field_info, const char* vcf_field_combine_operation);
   protected:
     //Is initialized
     bool m_is_initialized;
