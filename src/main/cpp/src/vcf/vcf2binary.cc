@@ -147,6 +147,10 @@ void VCFReader::add_reader()
   assert(m_fptr == 0);  //normal file handle should be NULL
   if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
     throw VCF2BinaryException(std::string("Could not open file ")+m_name+" : " + bcf_sr_strerror(m_indexed_reader->errnum) + " (VCF/BCF files must be block compressed and indexed)");
+  assert(m_hdr);
+  auto tmp_hdr_ptr = bcf_sr_get_header(m_indexed_reader, 0);
+  bcf_sr_get_header(m_indexed_reader, 0) = m_hdr;
+  bcf_hdr_destroy(tmp_hdr_ptr);
 }
 
 void VCFReader::remove_reader()
@@ -158,7 +162,10 @@ void VCFReader::remove_reader()
     m_fptr = 0;
   }
   else
+  {
+    bcf_sr_get_header(m_indexed_reader, 0) = 0;
     bcf_sr_remove_reader(m_indexed_reader, 0);
+  }
 }
 
 void VCFReader::seek_read_advance(const char* contig, const int pos, bool discard_index)
@@ -170,8 +177,7 @@ void VCFReader::seek_read_advance(const char* contig, const int pos, bool discar
     m_fptr = 0;
   }
   if(m_indexed_reader->nreaders == 0)        //index not loaded
-    if(bcf_sr_add_reader(m_indexed_reader, m_name.c_str()) != 1)
-      throw VCF2BinaryException(std::string("Could not open file ")+m_name+" or its index doesn't exist - VCF/BCF files must be block compressed and indexed");
+    add_reader();
   assert(m_indexed_reader->nreaders == 1);
   bcf_sr_seek(m_indexed_reader, contig, pos);
   //Only read 1 record at a time
@@ -182,6 +188,7 @@ void VCFReader::seek_read_advance(const char* contig, const int pos, bool discar
   {
     std::swap<htsFile*>(m_fptr, m_indexed_reader->readers[0].file);
     assert(m_indexed_reader->readers[0].file == 0);
+    bcf_sr_get_header(m_indexed_reader, 0) = 0;
     bcf_sr_remove_reader(m_indexed_reader, 0);
   }
 }
