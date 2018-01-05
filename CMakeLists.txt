@@ -209,7 +209,7 @@ include_directories (
 )
 
 set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    ${LIBUUID_LIBRARY})
+    ${LIBUUID_LIBRARY} ${HDFS_LIBRARY} ${JAVA_JVM_LIBRARY})
 
 function(build_GenomicsDB_executable_common target)
     #add_executable(${target} src/${target}.cc)
@@ -269,6 +269,7 @@ if(BUILD_JAVA)
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
 	./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
+	./src/test/java/com/intel/genomicsdb/GenomicsDBInputFormatTest.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
@@ -318,7 +319,8 @@ if(BUILD_JAVA)
     set(GENOMICSDB_EXAMPLE_SOURCES
         ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
         ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
-        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBSparkHDFS.java)
 
     add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
         SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}

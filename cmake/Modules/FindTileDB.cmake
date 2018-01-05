@@ -30,6 +30,8 @@ if(LIBUUID_DIR)
 endif()
 find_package(libuuid REQUIRED)
 
+find_package(HDFS REQUIRED)
+
 include(FindPackageHandleStandardArgs)
 
 #Build if TileDB source directory specified
