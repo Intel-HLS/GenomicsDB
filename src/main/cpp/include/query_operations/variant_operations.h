@@ -520,6 +520,13 @@ void remap_allele_specific_annotations(
     const CombineAllelesLUT& alleles_LUT,
     const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
     const FieldInfo& vid_field_info);
+void remap_allele_specific_annotations(
+    const std::unique_ptr<VariantFieldBase>& orig_field,
+    std::unique_ptr<VariantFieldBase>& remapped_field,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const VariantQueryConfig& query_config, const unsigned query_field_idx);
 
 /*
  * Copies info in Variant object into its result vector

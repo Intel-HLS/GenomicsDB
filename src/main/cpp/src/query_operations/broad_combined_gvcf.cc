@@ -956,25 +956,39 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
         //field whose length is dependent on #alleles
         assert(length_descriptor.is_length_allele_dependent());
-        unsigned num_reduced_elements =
-          length_descriptor.get_num_elements(num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
-        //Remapper for variant
-        RemappedVariant remapper_variant(variant, query_field_idx); 
         auto& curr_field = curr_call.get_field(query_field_idx);
         if(curr_field.get() && curr_field->is_valid())      //Not null
         {
-          //Copy field to pass to remap function 
-          assert(i < m_spanning_deletions_remapped_fields.size());
-          copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
-          curr_field->resize(num_reduced_elements);
-          //Get handler for current type
-          auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
-          assert(handler.get());
-          //Call remap function
-          handler->remap_vector_data(
-              m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
-              m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
-              length_descriptor, num_reduced_elements, remapper_variant);
+          if(length_descriptor.get_num_dimensions() > 1u)
+          {
+            auto& remapped_field =
+              m_remapped_variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx);
+            remap_allele_specific_annotations(curr_field,
+                remapped_field,
+                curr_call_idx_in_variant,
+                m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
+                query_config, query_field_idx);
+            std::swap(curr_field, remapped_field);
+          }
+          else
+          {
+            unsigned num_reduced_elements =
+              length_descriptor.get_num_elements(num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
+            //Remapper for variant
+            RemappedVariant remapper_variant(variant, query_field_idx);
+            //Copy field to pass to remap function
+            assert(i < m_spanning_deletions_remapped_fields.size());
+            copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
+            curr_field->resize(num_reduced_elements);
+            //Get handler for current type
+            auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
+            assert(handler.get());
+            //Call remap function
+            handler->remap_vector_data(
+                m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
+                m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
+                length_descriptor, num_reduced_elements, remapper_variant);
+          }
         }
       }
       //Invalidate INFO fields

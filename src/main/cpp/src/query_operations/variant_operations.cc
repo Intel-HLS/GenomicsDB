@@ -517,16 +517,20 @@ void remap_allele_specific_annotations(
     }
     assert(!alt_alleles_only || input_j_allele > 0u);   //if only ALT alleles are used, then input_j_allele must be non-0
     auto input_j = alt_alleles_only ? input_j_allele-1u : input_j_allele;
-    assert(static_cast<size_t>(input_j) < orig_field_index.get_num_entries_in_current_dimension());
-    orig_field_index.set_index_in_current_dimension(input_j);
-    auto num_bytes_to_copy = orig_field_index.get_size_of_current_index();
-    if(remapped_field_data.size() < (
-          sizeof(uint64_t) //8 byte size at the beginning
-          +offsets_vec[j]+num_bytes_to_copy))
-      remapped_field_data.resize(2*(sizeof(uint64_t)+offsets_vec[j]+num_bytes_to_copy)+1u);
-    memcpy(&(remapped_field_data[sizeof(uint64_t)
-          +offsets_vec[j]]), orig_field_index.get_ptr<uint8_t>(), num_bytes_to_copy);
-    offsets_vec[j+1u] = offsets_vec[j] + num_bytes_to_copy;
+    if(static_cast<size_t>(input_j) < orig_field_index.get_num_entries_in_current_dimension())
+    {
+      orig_field_index.set_index_in_current_dimension(input_j);
+      auto num_bytes_to_copy = orig_field_index.get_size_of_current_index();
+      if(remapped_field_data.size() < (
+            sizeof(uint64_t) //8 byte size at the beginning
+            +offsets_vec[j]+num_bytes_to_copy))
+        remapped_field_data.resize(2*(sizeof(uint64_t)+offsets_vec[j]+num_bytes_to_copy)+1u);
+      memcpy(&(remapped_field_data[sizeof(uint64_t)
+            +offsets_vec[j]]), orig_field_index.get_ptr<uint8_t>(), num_bytes_to_copy);
+      offsets_vec[j+1u] = offsets_vec[j] + num_bytes_to_copy;
+    }
+    else
+      offsets_vec[j+1u] = offsets_vec[j]; //0 bytes
   }
   //Put size in the first 8 bytes
   *(reinterpret_cast<uint64_t*>(&(remapped_field_data[0u]))) = offsets_vec.back();
