@@ -78,6 +78,20 @@ public class GenomicsDBImporter
   private static final String DEFAULT_ARRAYNAME = "genomicsdb_array";
   private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 
+  //Allele specific annotation fields
+  public static final HashSet<String> mRLengthHistogramFieldsWithFloatBins = new HashSet<>(Arrays.asList(
+              "AS_RAW_BaseQRankSum",
+              "AS_RAW_MQRankSum",
+              "AS_RAW_ReadPosRankSum"
+              ));
+
+  public static final HashSet<String> mRLengthTwoDFloatVectorFields = new HashSet<>(Arrays.asList(
+              "AS_RAW_MQ"
+              ));
+
+  public static final HashSet<String> mRLengthTwoDIntVectorFields = new HashSet<>(Arrays.asList(
+              "AS_SB_TABLE"
+              ));
 
   /*
    * JNI functions
@@ -494,7 +508,60 @@ public class GenomicsDBImporter
                             boolean useSamplesInOrderProvided,
                             boolean failIfUpdating,
                             int rank,
-                            boolean validateSampleToReaderMap) throws IOException, IllegalArgumentException {
+                            boolean validateSampleToReaderMap) throws IOException, IllegalArgumentException
+  {
+      this(sampleToReaderMap,
+              mergedHeader,
+              chromosomeInterval,
+              workspace,
+              arrayname,
+              vcfBufferSizePerColumnPartition,
+              segmentSize,
+              lbRowIdx,
+              ubRowIdx,
+              useSamplesInOrderProvided,
+              failIfUpdating,
+              rank,
+              validateSampleToReaderMap,
+              true);
+  }
+
+  /**
+   * Constructor to create required data structures from a list
+   * of GVCF files and a chromosome interval. This constructor
+   * is developed specifically for GATK4 GenomicsDBImport tool.
+   *
+   * @param sampleToReaderMap  Feature Readers objects corresponding to input GVCF files
+   * @param mergedHeader Set of VCFHeaderLine from the merged header across all input files
+   * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+   * @param workspace TileDB workspace
+   * @param arrayname TileDB array name
+   * @param vcfBufferSizePerColumnPartition vcfBufferSizePerColumnPartition in bytes
+   * @param segmentSize segmentSize in bytes
+   * @param lbRowIdx Smallest row idx which should be imported by this object
+   * @param ubRowIdx Largest row idx which should be imported by this object
+   * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order
+   *                                  provided
+   * @param failIfUpdating if true, fail if updating an existing array
+   * @param rank Rank of object - corresponds to the partition index in the loader
+   * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
+   * @param passAsVcf Use the VCF format to pass data from Java to C++
+   * @throws IOException when load into TileDB array fails
+   */
+  public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+                            Set<VCFHeaderLine> mergedHeader,
+                            ChromosomeInterval chromosomeInterval,
+                            String workspace,
+                            String arrayname,
+                            Long vcfBufferSizePerColumnPartition,
+                            Long segmentSize,
+                            Long lbRowIdx,
+                            Long ubRowIdx,
+                            boolean useSamplesInOrderProvided,
+                            boolean failIfUpdating,
+                            int rank,
+                            boolean validateSampleToReaderMap,
+                            boolean passAsVcf) throws IOException, IllegalArgumentException {
     // Mark this flag so that protocol buffer based vid
     // and callset map are propagated to C++ GenomicsDBImporter
     mUsingVidMappingProtoBuf = true;
@@ -533,7 +600,8 @@ public class GenomicsDBImporter
         (VCFHeader) featureReader.getHeader(),
         iterator,
         importConfiguration.getSizePerColumnPartition(),
-        VariantContextWriterBuilder.OutputType.BCF_STREAM,
+        passAsVcf ? VariantContextWriterBuilder.OutputType.VCF_STREAM
+        : VariantContextWriterBuilder.OutputType.BCF_STREAM,
         null);
     }
   }
@@ -853,7 +921,10 @@ public class GenomicsDBImporter
     //ID field
     GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder =
         GenomicsDBVidMapProto.InfoField.newBuilder();
-    IDFieldBuilder.setName("ID").setType("char").setLength("var");
+    GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
+        GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var");
+    IDFieldBuilder.setName("ID").addType("char").addLength(lengthDescriptorComponentBuilder.build());
     infoFields.add(IDFieldBuilder.build());
 
     int dpIndex = -1;
@@ -869,10 +940,12 @@ public class GenomicsDBImporter
         String genomicsDBType = isGT ? "int" : formatHeaderLine.getType().toString();
         String genomicsDBLength = isGT ? "PP" : (formatHeaderLine.getType() == VCFHeaderLineType.String)
             ? "VAR" : getLength(formatHeaderLine);
+        lengthDescriptorComponentBuilder.setVariableLengthDescriptor(genomicsDBLength);
+
         infoBuilder
           .setName(formatHeaderLine.getID())
-          .setType(genomicsDBType)
-          .setLength(genomicsDBLength);
+          .addType(genomicsDBType)
+          .addLength(lengthDescriptorComponentBuilder.build());
 
         if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPField = remove(infoFields, dpIndex);
@@ -892,11 +965,45 @@ public class GenomicsDBImporter
         }
       } else if (headerLine instanceof VCFInfoHeaderLine) {
         VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
-
+        final String infoFieldName = infoHeaderLine.getID();
         infoBuilder
-          .setName(infoHeaderLine.getID())
-          .setType(infoHeaderLine.getType().toString())
-          .setLength(infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
+          .setName(infoFieldName);
+        //allele specific annotations
+        if(mRLengthHistogramFieldsWithFloatBins.contains(infoFieldName)
+            || mRLengthTwoDFloatVectorFields.contains(infoFieldName)
+            || mRLengthTwoDIntVectorFields.contains(infoFieldName)
+            ) {
+          lengthDescriptorComponentBuilder.setVariableLengthDescriptor("R");
+          infoBuilder.addLength(lengthDescriptorComponentBuilder.build());
+          lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var"); //ignored - can set anything here
+          infoBuilder.addLength(lengthDescriptorComponentBuilder.build());
+          infoBuilder.addVcfDelimiter("|");
+          infoBuilder.addVcfDelimiter(",");
+          if(mRLengthHistogramFieldsWithFloatBins.contains(infoFieldName)) {
+            //Each element of the vector is a tuple <float, int>
+            infoBuilder.addType("float");
+            infoBuilder.addType("int");
+            infoBuilder.setVCFFieldCombineOperation("histogram_sum");
+          }
+          else
+          {
+            infoBuilder.setVCFFieldCombineOperation("element_wise_sum");
+            if(mRLengthTwoDFloatVectorFields.contains(infoFieldName)) {
+              infoBuilder.addType("float");
+            }
+            else
+              if(mRLengthTwoDIntVectorFields.contains(infoFieldName)) {
+                infoBuilder.addType("int");
+              }
+          }
+        }
+        else {
+          lengthDescriptorComponentBuilder.setVariableLengthDescriptor(
+            infoHeaderLine.getType() == VCFHeaderLineType.String ? "var" : getLength(infoHeaderLine));
+
+          infoBuilder.addType(infoHeaderLine.getType().toString())
+            .addLength(lengthDescriptorComponentBuilder.build());
+        }
 
         if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
           GenomicsDBVidMapProto.InfoField prevDPield = remove(infoFields, dpIndex);
@@ -920,9 +1027,9 @@ public class GenomicsDBImporter
         infoBuilder.setName(filterHeaderLine.getID());
 
         if (!filterHeaderLine.getValue().isEmpty()) {
-          infoBuilder.setType(filterHeaderLine.getValue());
+          infoBuilder.addType(filterHeaderLine.getValue());
         } else {
-          infoBuilder.setType("int");
+          infoBuilder.addType("int");
         }
         infoBuilder.addVcfFieldClass("FILTER");
         GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();

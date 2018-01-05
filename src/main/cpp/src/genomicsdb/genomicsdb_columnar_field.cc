@@ -196,43 +196,43 @@ class GenomicsDBColumnarFieldPrintOperator<char*, true>
 };
 
 template<bool print_as_list>
-void GenomicsDBColumnarField::assign_print_function_pointers(VariantFieldTypeEnum variant_enum_type)
+void GenomicsDBColumnarField::assign_print_function_pointers(const int bcf_ht_type)
 {
-  switch(variant_enum_type)
+  switch(bcf_ht_type)
   {
-    case VariantFieldTypeEnum::VARIANT_FIELD_BOOL:
+    case BCF_HT_FLAG:
       m_print = GenomicsDBColumnarFieldPrintOperator<bool, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<bool, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_INT:
+    case BCF_HT_INT:
       m_print = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<int, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
+    case BCF_HT_UINT:
       m_print = GenomicsDBColumnarFieldPrintOperator<unsigned, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<unsigned, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
+    case BCF_HT_INT64:
       m_print = GenomicsDBColumnarFieldPrintOperator<int64_t, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<int64_t, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
+    case BCF_HT_UINT64:
       m_print = GenomicsDBColumnarFieldPrintOperator<uint64_t, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<uint64_t, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+    case BCF_HT_REAL:
       m_print = GenomicsDBColumnarFieldPrintOperator<float, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<float, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
+    case BCF_HT_DOUBLE:
       m_print = GenomicsDBColumnarFieldPrintOperator<double, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<double, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
+    case BCF_HT_CHAR:
       m_print = GenomicsDBColumnarFieldPrintOperator<char, print_as_list>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<char, print_as_list>::print_csv;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
+    case BCF_HT_STR:
       m_print = GenomicsDBColumnarFieldPrintOperator<char*, false>::print;
       m_print_csv = GenomicsDBColumnarFieldPrintOperator<char*, print_as_list>::print_csv;
       break;
@@ -243,27 +243,27 @@ void GenomicsDBColumnarField::assign_print_function_pointers(VariantFieldTypeEnu
 
 void GenomicsDBColumnarField::assign_function_pointers()
 {
-  auto variant_enum_type = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(m_element_type);
+  auto bcf_ht_type = VariantFieldTypeUtil::get_bcf_ht_type_for_variant_field_type(m_element_type);
   //Validity function
-  switch(variant_enum_type)
+  switch(bcf_ht_type)
   {
-    case VariantFieldTypeEnum::VARIANT_FIELD_INT:
-    case VariantFieldTypeEnum::VARIANT_FIELD_UNSIGNED:
+    case BCF_HT_INT:
+    case BCF_HT_UINT:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<int>;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_INT64_T:
-    case VariantFieldTypeEnum::VARIANT_FIELD_UINT64_T:
+    case BCF_HT_INT64:
+    case BCF_HT_UINT64:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<int64_t>;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+    case BCF_HT_REAL:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<float>;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_DOUBLE:
+    case BCF_HT_DOUBLE:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<double>;
       break;
-    case VariantFieldTypeEnum::VARIANT_FIELD_BOOL:
-    case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
-    case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
+    case BCF_HT_FLAG:
+    case BCF_HT_CHAR:
+    case BCF_HT_STR:
       m_check_tiledb_valid_element = GenomicsDBColumnarField::check_tiledb_valid_element<char>;
       break;
     default:
@@ -271,12 +271,12 @@ void GenomicsDBColumnarField::assign_function_pointers()
   }
   //Singleton field
   if(m_length_descriptor == BCF_VL_FIXED && m_fixed_length_field_num_elements == 1u)
-    assign_print_function_pointers<false>(variant_enum_type);
+    assign_print_function_pointers<false>(bcf_ht_type);
   else
-    if(variant_enum_type == VariantFieldTypeEnum::VARIANT_FIELD_CHAR) //multi char field == string
-      assign_print_function_pointers<true>(VariantFieldTypeEnum::VARIANT_FIELD_STRING);
+    if(bcf_ht_type == BCF_HT_CHAR) //multi char field == string
+      assign_print_function_pointers<true>(BCF_HT_STR);
     else
-      assign_print_function_pointers<true>(variant_enum_type);
+      assign_print_function_pointers<true>(bcf_ht_type);
 }
 
 void GenomicsDBColumnarField::move_buffer_to_live_list(GenomicsDBBuffer* buffer)

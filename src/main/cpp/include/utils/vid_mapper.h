@@ -26,6 +26,8 @@
 #include "headers.h"
 #include "vcf.h"
 #include "variant_array_schema.h"
+#include "known_field_info.h"
+#include "rapidjson/document.h"
 
 typedef std::tuple<std::string, int64_t, int64_t> ContigIntervalTuple;
 
@@ -154,23 +156,179 @@ enum VCFFieldCombineOperationEnum
   VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT,
   VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM,
   VCF_FIELD_COMBINE_OPERATION_CONCATENATE,
+  VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM,
   VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION
+};
+
+class FieldLengthDescriptorComponent
+{
+  public:
+    FieldLengthDescriptorComponent()
+    {
+      m_num_elements = 1;
+      m_length_descriptor = BCF_VL_FIXED;
+    }
+    int m_num_elements;
+    int m_length_descriptor;
+};
+
+class FieldLengthDescriptor
+{
+  public:
+    FieldLengthDescriptor()
+    {
+      m_length_descriptor_vec.emplace_back();
+      m_num_elements = 1u;
+      m_is_fixed_length_field = true;
+      m_is_length_allele_dependent = false;
+      m_is_length_all_alleles_dependent = false;
+      m_is_length_genotype_dependent = false;
+      m_is_length_ploidy_dependent = false;
+    }
+    //MultiD vectors
+    void resize(const size_t n)
+    {
+      m_length_descriptor_vec.resize(n);
+      m_vcf_delimiter_vec.resize(n);
+    }
+    size_t get_num_dimensions() const { return m_length_descriptor_vec.size(); }
+    //Fixed length components
+    void set_num_elements(const int length_dim_idx, const size_t n)
+    {
+      assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
+      m_length_descriptor_vec[length_dim_idx].m_num_elements = n;
+      m_num_elements *= n;
+    }
+    size_t get_num_elements() const
+    {
+      assert(is_fixed_length_field());
+      return m_num_elements;
+    }
+    //length descriptor
+    void set_length_descriptor(const int length_dim_idx, const int length_descriptor);
+    unsigned get_length_descriptor(const int length_dim_idx) const
+    {
+      assert(static_cast<size_t>(length_dim_idx) < m_length_descriptor_vec.size());
+      return m_length_descriptor_vec[length_dim_idx].m_length_descriptor;
+    }
+    bool is_fixed_size_dimension(const size_t idx) const
+    {
+      assert(idx < m_length_descriptor_vec.size());
+      return (m_length_descriptor_vec[idx].m_length_descriptor == BCF_VL_FIXED);
+    }
+    size_t get_num_elements_in_dimension(const size_t idx)
+    {
+      assert(is_fixed_size_dimension(idx));
+      return m_length_descriptor_vec[idx].m_num_elements;
+    }
+    //is fixed length field
+    bool is_fixed_length_field() const { return m_is_fixed_length_field; }
+    //Allele dependency
+    bool is_length_allele_dependent() const { return m_is_length_allele_dependent; }
+    bool is_length_only_ALT_alleles_dependent() const
+    { return m_is_length_allele_dependent && !m_is_length_all_alleles_dependent; }
+    bool is_length_genotype_dependent() const { return m_is_length_genotype_dependent; }
+    //Ploidy
+    bool is_length_ploidy_dependent() const { return m_is_length_ploidy_dependent; }
+    unsigned get_ploidy_step_value() const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return (get_length_descriptor(0u) == BCF_VL_Phased_Ploidy) ? 2u : 1u;
+    }
+    unsigned get_ploidy(const unsigned n) const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return KnownFieldInfo::get_ploidy(get_length_descriptor(0u), n);
+    }
+    bool contains_phase_information() const
+    {
+      assert(m_length_descriptor_vec.size() == 1u);
+      assert(m_is_length_ploidy_dependent);
+      return (get_length_descriptor(0u) == BCF_VL_Phased_Ploidy);
+    }
+    size_t get_num_elements(const unsigned num_ALT_alleles, const unsigned ploidy, const unsigned num_elements);
+    void set_vcf_delimiter(const size_t dim_idx, const char* vcf_delim)
+    {
+      assert(vcf_delim);
+      assert(dim_idx < m_vcf_delimiter_vec.size());
+      m_vcf_delimiter_vec[dim_idx] = vcf_delim[0];
+    }
+    char get_vcf_delimiter(const size_t dim_idx) const
+    {
+      assert(dim_idx < m_vcf_delimiter_vec.size());
+      return m_vcf_delimiter_vec[dim_idx];
+    }
+  private:
+    //Length descriptors - could be multi-dimensional array: example [ "R", 4 ] 2D vector
+    std::vector<FieldLengthDescriptorComponent> m_length_descriptor_vec;
+    //Useful only for fixed length fields
+    size_t m_num_elements;
+    //Flags for fast querying - summarize information in length desc components
+    //Is fixed length field
+    bool m_is_fixed_length_field;
+    //Allele, genotype, ploidy dependency
+    bool m_is_length_allele_dependent;
+    bool m_is_length_all_alleles_dependent;
+    bool m_is_length_genotype_dependent;
+    bool m_is_length_ploidy_dependent;
+    //VCF delimiter
+    std::vector<char> m_vcf_delimiter_vec;
+};
+
+/*
+ * To take into account tuples
+ * Element type
+ */
+class FieldElementTypeDescriptor
+{
+  public:
+    //Constructors
+    FieldElementTypeDescriptor(const unsigned num_entries_in_tuple);
+    FieldElementTypeDescriptor(const std::type_index& curr_type, const int ht_type);
+    //#elements in tuple
+    void resize_num_elements_in_tuple(const unsigned num_entries_in_tuple);
+    size_t get_num_elements_in_tuple() const { return m_tuple_element_type_vec.size(); }
+    int get_tuple_element_bcf_ht_type(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_bcf_ht_type_vec.size());
+      return m_tuple_element_bcf_ht_type_vec[idx];
+    }
+    const std::type_index& get_tuple_element_type_index(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_type_vec.size());
+      return m_tuple_element_type_vec[idx];
+    }
+    size_t get_tuple_element_size(const unsigned idx) const
+    {
+      assert(idx < m_tuple_element_size_vec.size());
+      return m_tuple_element_size_vec[idx];
+    }
+    void set_tuple_element_type(const unsigned idx, const std::type_index& curr_type, const int ht_type);
+  private:
+    std::vector<std::type_index> m_tuple_element_type_vec;
+    std::vector<int> m_tuple_element_bcf_ht_type_vec;
+    std::vector<size_t> m_tuple_element_size_vec;
 };
 
 class FieldInfo
 {
+  friend class VidMapper;
   public:
     FieldInfo()
-      : m_type_index(typeid(void))
+      : m_tiledb_type(1u),
+        m_genomicsdb_type(1u),
+        m_vcf_type(1u),
+        m_length_descriptor()
     {
       m_is_vcf_FILTER_field = false;
       m_is_vcf_INFO_field = false;
       m_is_vcf_FORMAT_field = false;
+      m_is_flattened_field = false;
       m_field_idx = -1;
-      m_bcf_ht_type = BCF_HT_VOID;
-      m_length_descriptor = BCF_VL_FIXED;
-      m_num_elements = 1;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
+      m_element_index_in_tuple = 0u;
     }
     void set_info(const std::string& name, int idx)
     {
@@ -178,19 +336,96 @@ class FieldInfo
       m_vcf_name = name;
       m_field_idx = idx;
     }
+    //Type information
+    /*
+     * By default, TileDB, GenomicsDB and VCF types are the same
+     */
+    void set_type(const FieldElementTypeDescriptor& type)
+    {
+      m_tiledb_type = type;
+      m_genomicsdb_type = type;
+      m_vcf_type = type;
+      compute_element_size();
+    }
+    /*
+     * Set GenomicsDB type
+     */
+    void set_genomicsdb_type(const FieldElementTypeDescriptor& type)
+    {
+      m_genomicsdb_type = type;
+      compute_element_size();
+    }
+    /*
+     * Set VCF type
+     */
+    void set_vcf_type(const FieldElementTypeDescriptor& type)
+    {
+      m_vcf_type = type;
+    }
+    /*
+     * Set TileDB type
+     */
+    void set_tiledb_type(const FieldElementTypeDescriptor& type)
+    {
+      m_tiledb_type = type;
+    }
+    const FieldElementTypeDescriptor& get_tiledb_type() const { return m_tiledb_type; }
+    const FieldElementTypeDescriptor& get_vcf_type() const { return m_vcf_type; }
+    const FieldElementTypeDescriptor& get_genomicsdb_type() const { return m_genomicsdb_type; }
+    size_t get_element_size() const { return m_element_size; }
+    //Composite fields get flattened - in the FieldInfo objects for the
+    //flattened field, this contains the index in the composite tuple
+    void set_element_index_in_tuple(const unsigned idx)
+    {
+      m_element_index_in_tuple = idx;
+    }
+    unsigned get_element_index_in_tuple() const { return m_element_index_in_tuple; }
+    void set_is_flattened_field(const bool val)
+    {
+      m_is_flattened_field = val;
+    }
+    bool is_flattened_field() const { return m_is_flattened_field; }
+    /*
+     * For flattened fields, sets the index of the parent composite field
+     */
+    void set_parent_composite_field_idx(const unsigned idx)
+    {
+      m_parent_composite_field_idx = idx;
+    }
+    unsigned get_parent_composite_field_idx() const
+    {
+      assert(is_flattened_field());
+      return m_parent_composite_field_idx;
+    }
+    //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
     bool m_is_vcf_FILTER_field;
     bool m_is_vcf_INFO_field;
     bool m_is_vcf_FORMAT_field;
     int m_field_idx;
-    //Type info
-    std::type_index m_type_index;
-    int m_bcf_ht_type;
-    //Length descriptors
-    int m_length_descriptor;
-    int m_num_elements;
+    //Length descriptor
+    FieldLengthDescriptor m_length_descriptor;
+    //Combine operation for VCF INFO fields
     int m_VCF_field_combine_operation;
+    //Multi-d vector fields - different types in TileDB/VCF/GenomicsDB
+    void modify_field_type_if_multi_dim_field();
+    void compute_element_size();
+  private:
+    //Type info
+    //TileDB type
+    FieldElementTypeDescriptor m_tiledb_type;
+    //GenomicsDB type index - could be different from TileDB and VCF
+    FieldElementTypeDescriptor m_genomicsdb_type;
+    //VCF type info - could be different from TileDB type
+    FieldElementTypeDescriptor m_vcf_type;
+    //Element size - computed from components of tuple
+    size_t m_element_size;
+    //Composite fields get flattened - in the FieldInfo objects for the
+    //flattened field, this contains the index in the composite tuple
+    unsigned m_element_index_in_tuple;
+    bool m_is_flattened_field;
+    unsigned m_parent_composite_field_idx;
 };
 
 /*
@@ -460,6 +695,17 @@ class VidMapper
       }
     }
     /*
+     * Parse a string length descriptor and fill up the structure
+     */
+    void parse_string_length_descriptor(const char* field_name,
+        const char* length_value_str,
+        const size_t length_value_str_length,
+        FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
+    /*
+     * Return std::type_index and BCF_HT_* value given a type_string
+     */
+    std::pair<std::type_index, int> get_type_index_and_bcf_ht_type(const char* type_string);
+    /*
      * Get #fields in VidMapper
      */
     inline unsigned get_num_fields() const
@@ -503,6 +749,8 @@ class VidMapper
         return 0;
       return &(get_field_info(field_idx));
     }
+    const FieldInfo* get_flattened_field_info(const FieldInfo* field_info,
+        const unsigned tuple_element_index) const;
     /*
      * Stores the fields, classifying them as FILTER, INFO, FORMAT etc
      */
@@ -544,6 +792,10 @@ class VidMapper
         const int rank, const bool is_zero_based);
     std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
         const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const;
+  protected:
+    void add_mandatory_fields();
+    void flatten_field(int& field_idx, const int original_field_idx);
+    void set_VCF_field_combine_operation(FieldInfo& field_info, const char* vcf_field_combine_operation);
   protected:
     //Is initialized
     bool m_is_initialized;
@@ -677,6 +929,11 @@ class FileBasedVidMapper : public VidMapper
         const std::string& filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
         const bool is_file);
+    void parse_length_descriptor(const char* field_name,
+        const rapidjson::Value& length_json_value,
+        FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
+
+    void parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict);
 
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;

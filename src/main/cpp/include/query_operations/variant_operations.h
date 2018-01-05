@@ -122,7 +122,7 @@ class VariantOperations
      */
     static void remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
         const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx,
-        const unsigned num_merged_alleles, const bool has_NON_REF, const unsigned length_descriptor);
+        const unsigned num_merged_alleles, const bool has_NON_REF, const FieldLengthDescriptor& length_descriptor);
     /*
      * Reorders fields whose length and order depend on the number of alleles (BCF_VL_R or BCF_VL_A)
      */
@@ -253,12 +253,13 @@ class VariantOperations
 class SingleVariantOperatorBase
 {
   public:
-    SingleVariantOperatorBase()
+    SingleVariantOperatorBase(const VidMapper* vid_mapper)
     {
       clear();
       m_NON_REF_exists = false;
       m_remapping_needed = true;
       m_is_reference_block_only = false;
+      m_vid_mapper = vid_mapper->is_initialized() ? vid_mapper : 0;
     }
     virtual ~SingleVariantOperatorBase() { }
     void clear();
@@ -287,6 +288,7 @@ class SingleVariantOperatorBase
     bool m_remapping_needed;
     //is pure reference block if REF is 1 char, and ALT contains only <NON_REF>
     bool m_is_reference_block_only;
+    const VidMapper* m_vid_mapper;
 };
 
 /*
@@ -299,7 +301,7 @@ class InterestingLocationsPrinter : public SingleVariantOperatorBase
 {
   public:
     InterestingLocationsPrinter(std::ostream& fptr)
-      : SingleVariantOperatorBase()
+      : SingleVariantOperatorBase(0)
     {
       m_fptr = &fptr;
     }
@@ -336,7 +338,7 @@ class MaxAllelesCountOperator : public SingleVariantOperatorBase
     };
   public:
     MaxAllelesCountOperator(const unsigned top_count=25u)
-      : SingleVariantOperatorBase()
+      : SingleVariantOperatorBase(0)
     {
       m_top_count = top_count;
       m_curr_count = 0u;
@@ -379,7 +381,7 @@ class MaxAllelesCountOperator : public SingleVariantOperatorBase
 class DummyGenotypingOperator : public SingleVariantOperatorBase
 {
   public:
-    DummyGenotypingOperator() : SingleVariantOperatorBase() { m_output_stream = &(std::cout); }
+    DummyGenotypingOperator() : SingleVariantOperatorBase(0) { m_output_stream = &(std::cout); }
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     std::ostream* m_output_stream;
 };
@@ -396,7 +398,7 @@ class VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
-        unsigned length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+        const FieldLengthDescriptor& length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
@@ -407,10 +409,16 @@ class VariantFieldHandlerBase
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
     virtual bool concatenate_field(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements) = 0;
+    /*
+     * Computes element-wise sum for 2D fields over all Calls (only considers calls with valid field data)
+     */
+    virtual bool compute_valid_element_wise_sum_2D_vector(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx) = 0;
     virtual bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, const void ** output_ptr, uint64_t& num_elements,
         const bool use_missing_values_only_not_vector_end=false, const bool use_vector_end_only=false,
         const bool is_GT_field = false) = 0;
+    virtual std::string stringify_2D_vector(const FieldInfo& field_info) = 0;
 };
 
 //Big bag handler functions useful for handling different types of fields (int, char etc)
@@ -437,7 +445,7 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     virtual void remap_vector_data(std::unique_ptr<VariantFieldBase>& orig_field_ptr, uint64_t curr_call_idx_in_variant, 
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
-        unsigned length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
+        const FieldLengthDescriptor& length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
     /*
      * Computes median for a given field over all Calls (only considers calls with valid field)
      */
@@ -465,6 +473,15 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     virtual bool compute_valid_element_wise_sum(const Variant& variant, const VariantQueryConfig& query_config,
         unsigned query_idx, const void** output_ptr, unsigned& num_elements);
     /*
+     * Computes element-wise sum for 2D fields over all Calls (only considers calls with valid field data)
+     */
+    virtual bool compute_valid_element_wise_sum_2D_vector(const Variant& variant, const VariantQueryConfig& query_config,
+        unsigned query_idx);
+    /*
+     * Convert 2D vector to string - for exporting as VCF record
+     */
+    virtual std::string stringify_2D_vector(const FieldInfo& field_info);
+    /*
      * Create an extended vector for use in BCF format fields, return result in output_ptr and num_elements
      */
     bool collect_and_extend_fields(const Variant& variant, const VariantQueryConfig& query_config, 
@@ -480,6 +497,9 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<DataType> m_extended_field_vector;
     //Vector to hold data for element wise operations
     std::vector<DataType> m_element_wise_operations_result;
+    //For 2D data - avoid dynamic reallocations
+    std::vector<std::vector<DataType>> m_2D_element_wise_operations_result;
+    std::string m_vcf_string_for_2D_vector;
     //Data structures for iterating over genotypes in the non-diploid and non-haploid
     //ploidy. Avoids dynamic memory re-allocation
     //Vector storing allele indexes for current genotype
@@ -493,13 +513,30 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     std::vector<std::pair<int, int> > m_ploidy_index_alleles_index_stack;
 };
 
+void remap_allele_specific_annotations(
+    const std::vector<uint8_t>& orig_field_data,
+    std::vector<uint8_t>& remapped_field_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const FieldInfo& vid_field_info);
+void remap_allele_specific_annotations(
+    const std::unique_ptr<VariantFieldBase>& orig_field,
+    std::unique_ptr<VariantFieldBase>& remapped_field,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const VariantQueryConfig& query_config, const unsigned query_field_idx);
+
 /*
  * Copies info in Variant object into its result vector
  */
 class GA4GHOperator : public SingleVariantOperatorBase
 {
   public:
-    GA4GHOperator(const VariantQueryConfig& query_config, const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
+    GA4GHOperator(const VariantQueryConfig& query_config,
+        const VidMapper& vid_mapper,
+        const unsigned max_diploid_alt_alleles_that_can_be_genotyped=MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
     virtual void operate(Variant& variant, const VariantQueryConfig& query_config);
     const Variant& get_remapped_variant() const { return m_remapped_variant; }
     Variant& get_remapped_variant() { return m_remapped_variant; }

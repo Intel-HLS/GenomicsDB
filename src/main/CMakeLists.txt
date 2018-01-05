@@ -11,6 +11,7 @@ set(GenomicsDB_library_sources
     cpp/src/genomicsdb/query_variants.cc
     cpp/src/genomicsdb/genomicsdb_columnar_field.cc
     cpp/src/genomicsdb/genomicsdb_iterators.cc
+    cpp/src/genomicsdb/genomicsdb_multid_vector_field.cc
     cpp/src/loader/tiledb_loader_text_file.cc
     cpp/src/loader/load_operators.cc
     cpp/src/loader/genomicsdb_importer.cc

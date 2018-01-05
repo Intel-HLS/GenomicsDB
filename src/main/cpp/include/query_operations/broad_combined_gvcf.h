@@ -30,10 +30,12 @@
 #include "vid_mapper.h"
 #include "timer.h"
 
-//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name, INFO_field_combine_operation
-typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string, int> INFO_tuple_type;
-//known_field_enum, query_idx, VariantFieldTypeEnum, bcf_ht_type, vcf field name
-typedef std::tuple<unsigned, unsigned, VariantFieldTypeEnum, unsigned, std::string> FORMAT_tuple_type;
+//known_field_enum, query_idx, const FieldInfo*
+typedef std::tuple<unsigned, unsigned, const FieldInfo*> INFO_tuple_type;
+//known_field_enum, query_idx, const FieldInfo*
+typedef std::tuple<unsigned, unsigned, const FieldInfo*> FORMAT_tuple_type;
+//query field idxs corresponding to flattened fields
+typedef std::tuple<unsigned, unsigned> INFO_histogram_field_tuple_type;
 
 //Exceptions thrown 
 class BroadCombinedGVCFException : public std::exception {
@@ -75,6 +77,12 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
     void merge_ID_field(const Variant& variant, const unsigned query_idx);
+    //For combining allele specific annotations such as AS_BaseQRankSum
+    //these are vectors of histograms
+    template<class T1, class T2>
+    static bool compute_valid_histogram_sum_2D_vector_and_stringify(const Variant& variant,
+        const VariantQueryConfig& query_config,
+        const unsigned query_idx_bin, const unsigned query_idx_count, std::string& result_str);
   private:
     bool m_use_missing_values_not_vector_end;
     const VariantQueryConfig* m_query_config;
@@ -99,6 +107,8 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //INFO fields enum vector
     std::vector<INFO_tuple_type> m_INFO_fields_vec;
     std::vector<FORMAT_tuple_type> m_FORMAT_fields_vec;
+    //map from parent field vid idx to a tuple containing flattened fields query idx
+    std::unordered_map<unsigned, INFO_histogram_field_tuple_type> m_INFO_histogram_field_map;
     //MIN_DP values
     std::vector<int> m_MIN_DP_vector;
     //DP_FORMAT values

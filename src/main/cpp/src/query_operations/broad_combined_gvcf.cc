@@ -23,24 +23,24 @@
 #ifdef HTSDIR
 
 #include "broad_combined_gvcf.h"
+#include "genomicsdb_multid_vector_field.h"
 
 //INFO fields
-#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation) \
-  INFO_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name, VCF_field_combine_operation)
+#define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, field_info) \
+  INFO_tuple_type(enum_idx, query_idx, field_info)
 #define BCF_INFO_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
 #define BCF_INFO_GET_QUERY_FIELD_IDX(X) (std::get<1>(X))
-#define BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<2>(X))
-#define BCF_INFO_GET_BCF_HT_TYPE(X) (std::get<3>(X))
-#define BCF_INFO_GET_VCF_FIELD_NAME(X) (std::get<4>(X))
-#define BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(X) (std::get<5>(X))
+#define BCF_INFO_GET_FIELD_INFO_PTR(X) (std::get<2>(X))
+#define BCF_INFO_GET_BCF_HT_TYPE(X) (std::get<2>(X)->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u))
+#define BCF_INFO_GET_VCF_FIELD_NAME(X) (std::get<2>(X)->m_vcf_name)
+#define BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(X) (std::get<2>(X)->m_VCF_field_combine_operation)
 //FORMAT fields
-#define MAKE_BCF_FORMAT_TUPLE(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name) \
-  FORMAT_tuple_type(enum_idx, query_idx, variant_type_enum, bcf_type, vcf_field_name)
+#define MAKE_BCF_FORMAT_TUPLE(enum_idx, query_idx, field_info) \
+  FORMAT_tuple_type(enum_idx, query_idx, field_info)
 #define BCF_FORMAT_GET_KNOWN_FIELD_ENUM(X) (std::get<0>(X))
 #define BCF_FORMAT_GET_QUERY_FIELD_IDX(X) (std::get<1>(X))
-#define BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(X) (std::get<2>(X))
-#define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<3>(X))
-#define BCF_FORMAT_GET_VCF_FIELD_NAME(X) (std::get<4>(X))
+#define BCF_FORMAT_GET_BCF_HT_TYPE(X) (std::get<2>(X)->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+#define BCF_FORMAT_GET_VCF_FIELD_NAME(X) (std::get<2>(X)->m_vcf_name)
 
 //Static member
 const std::unordered_set<char> BroadCombinedGVCFOperator::m_legal_bases({'A', 'T', 'G', 'C'});
@@ -135,7 +135,7 @@ inline void encode_GT_vector<false, false>(int* inout_vec, const uint64_t input_
 BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     const VariantQueryConfig& query_config,
     const unsigned max_diploid_alt_alleles_that_can_be_genotyped, const bool use_missing_values_only_not_vector_end)
-: GA4GHOperator(query_config, max_diploid_alt_alleles_that_can_be_genotyped)
+: GA4GHOperator(query_config, id_mapper, max_diploid_alt_alleles_that_can_be_genotyped)
 {
   clear();
   if(!id_mapper.is_initialized())
@@ -176,24 +176,46 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           );
       if(add_to_INFO_vector)
       {
-        if(VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
-          std::cerr << "WARNING: No valid combination operation found for INFO field "<<field_info->m_vcf_name<<" - the field will NOT be part of INFO fields in the generated VCF records\n";
-        else
+        switch(VCF_field_combine_operation)
         {
-          m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i,
-                VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
-                VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
-                field_info->m_vcf_name,
-                VCF_field_combine_operation));
-          VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
+          case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION:
+            std::cerr << "WARNING: No valid combination operation found for INFO field "<<field_info->m_vcf_name<<" - the field will NOT be part of INFO fields in the generated VCF records\n";
+            break;
+          case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM:
+            {
+              m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i, field_info));
+              VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
+              assert(field_info->is_flattened_field());
+              auto parent_field_vid_idx = field_info->get_parent_composite_field_idx();
+              auto& parent_field_vid_info = m_vid_mapper->get_field_info(parent_field_vid_idx);
+              if(parent_field_vid_info.get_genomicsdb_type().get_num_elements_in_tuple() != 2u)
+                throw BroadCombinedGVCFException(std::string(
+                      "Operation histogram_sum is only supported for fields whose elements are tuple with 2 constituent elements; field ")
+                    +parent_field_vid_info.m_name+" does not satisfy this requirement");
+              if(field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) != BCF_HT_INT
+                  && field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) != BCF_HT_REAL)
+                throw BroadCombinedGVCFException(std::string(
+                      "Operation histogram_sum is only supported for fields whose elements are tuple with 2 constituent elements")
+                      +" that are int or float; field "
+                      +parent_field_vid_info.m_name+" does not satisfy this requirement");
+              auto iter_flag_pair = m_INFO_histogram_field_map.insert(std::pair<unsigned, INFO_histogram_field_tuple_type>(
+                    parent_field_vid_idx, INFO_histogram_field_tuple_type(0u, 0u)));
+              auto& curr_INFO_histogram_tuple = (*(iter_flag_pair.first)).second;
+              if(field_info->get_element_index_in_tuple() == 0u)
+                std::get<0>(curr_INFO_histogram_tuple) = i;
+              else
+                std::get<1>(curr_INFO_histogram_tuple) = i;
+              break;
+            }
+          default:
+            m_INFO_fields_vec.emplace_back(MAKE_BCF_INFO_TUPLE(known_field_enum, i, field_info));
+            VCFAdapter::add_field_to_hdr_if_missing(m_vcf_hdr, &id_mapper, field_info->m_vcf_name, BCF_HL_INFO);
+            break;
         }
       }
       if(add_to_FORMAT_vector)
       {
-        auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i,
-            VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(field_info->m_type_index),
-            VariantFieldTypeUtil::get_vcf_field_type_enum_for_variant_field_type(field_info->m_type_index),
-            field_info->m_vcf_name);
+        auto format_tuple = MAKE_BCF_FORMAT_TUPLE(known_field_enum, i, field_info);
         if((field_info->m_is_vcf_FORMAT_field)
             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
           )
@@ -230,17 +252,10 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           +g_known_variant_field_names[BCF_FORMAT_GET_KNOWN_FIELD_ENUM(m_FORMAT_fields_vec[m_FORMAT_fields_vec.size()-1u])]);
   }
   //Qual combine operation
-  m_vcf_qual_tuple = MAKE_BCF_INFO_TUPLE(KnownVariantFieldsEnum::GVCF_QUAL_IDX, UNDEFINED_ATTRIBUTE_IDX_VALUE,
-                VariantFieldTypeEnum::VARIANT_FIELD_FLOAT,
-                BCF_HT_REAL,
-                g_known_variant_field_names[KnownVariantFieldsEnum::GVCF_QUAL_IDX],
-                VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION);
-  if(query_config.is_defined_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX))
-  {
-    auto query_field_idx = query_config.get_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX);
-    std::get<1>(m_vcf_qual_tuple) = query_field_idx;
-    std::get<5>(m_vcf_qual_tuple) = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(query_field_idx);
-  }
+  auto* field_info = m_vid_mapper->get_field_info("QUAL");
+  m_vcf_qual_tuple = MAKE_BCF_INFO_TUPLE(KnownVariantFieldsEnum::GVCF_QUAL_IDX,
+      query_config.get_query_idx_for_known_field_enum(KnownVariantFieldsEnum::GVCF_QUAL_IDX),
+      field_info);
   //Add missing contig names to template header
   for(auto i=0u;i<m_vid_mapper->get_num_contigs();++i)
   {
@@ -288,10 +303,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   //Individual pointers will be allocated later
   m_spanning_deletions_remapped_fields.resize(m_remapped_fields_query_idxs.size());
   //Initialize GT encoding function pointer
-  auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
-  auto phase_information_in_TileDB = (GT_length_descriptor == BCF_VL_Phased_Ploidy);
-  if(phase_information_in_TileDB)
+  const auto& GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+  if(GT_length_descriptor.contains_phase_information())
   {
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     if(m_vcf_adapter->produce_GT_field())
@@ -332,39 +345,47 @@ bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant
   auto query_field_idx = BCF_INFO_GET_QUERY_FIELD_IDX(curr_tuple);
   auto length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(query_field_idx);
   //Fields such as PL are skipped if the #alleles is above a certain threshold
-  if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor)
+  if(length_descriptor.is_length_genotype_dependent()
       && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
     return false;
   //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
   //else we should use field objects from the original variant
-  auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor)
+  auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
         || query_field_idx == m_GT_query_idx))
     ? m_remapped_variant : variant;
-  auto variant_type_enum = BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
+  auto bcf_ht_type = BCF_INFO_GET_BCF_HT_TYPE(curr_tuple);
   //valid field handler
-  assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+  assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size()
+      && m_field_handlers[bcf_ht_type].get());
   auto num_valid_input_elements = 0u;
   switch(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(curr_tuple))
   {
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_sum(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_sum(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEAN:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_mean(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_mean(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MEDIAN:
-      valid_result_found = m_field_handlers[variant_type_enum]->get_valid_median(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->get_valid_median(src_variant, *m_query_config,
           query_field_idx, result_ptr, num_valid_input_elements);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM:
-      valid_result_found = m_field_handlers[variant_type_enum]->compute_valid_element_wise_sum(src_variant, *m_query_config,
-          query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
+      if(BCF_INFO_GET_FIELD_INFO_PTR(curr_tuple)->m_length_descriptor.get_num_dimensions() == 1u)
+        valid_result_found = m_field_handlers[bcf_ht_type]->compute_valid_element_wise_sum(src_variant, *m_query_config,
+            query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
+      else
+        valid_result_found = m_field_handlers[bcf_ht_type]->compute_valid_element_wise_sum_2D_vector(src_variant, *m_query_config,
+            query_field_idx);
       break;
     case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_CONCATENATE:
-      valid_result_found = m_field_handlers[variant_type_enum]->concatenate_field(src_variant, *m_query_config,
+      valid_result_found = m_field_handlers[bcf_ht_type]->concatenate_field(src_variant, *m_query_config,
           query_field_idx, const_cast<const void**>(&result_ptr), num_result_elements);
+      break;
+    case VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM:
+      //do nothing, will be handled separately
       break;
     default:
       throw BroadCombinedGVCFException(std::string("Unknown VCF field combine operation ")
@@ -372,6 +393,96 @@ bool BroadCombinedGVCFOperator::handle_VCF_field_combine_operation(const Variant
       break;
   }
   return valid_result_found;
+}
+
+template<class T1, class T2>
+bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_stringify(const Variant& variant,
+    const VariantQueryConfig& query_config,
+    const unsigned query_idx_bin, const unsigned query_idx_count, std::string& result_str)
+{
+  auto num_valid_elements = 0ull;
+  assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_bin).get_num_dimensions() == 2u);
+  assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_count).get_num_dimensions() == 2u);
+  auto vid_field_info_bin = query_config.get_field_info_for_query_attribute_idx(query_idx_bin);
+  auto vid_field_info_count = query_config.get_field_info_for_query_attribute_idx(query_idx_count);
+  assert(vid_field_info_bin->get_genomicsdb_type().get_tuple_element_type_index(0u) == std::type_index(typeid(T1)));
+  assert(vid_field_info_count->get_genomicsdb_type().get_tuple_element_type_index(0u) == std::type_index(typeid(T2)));
+  std::vector<std::map<T1, T2>> histogram_map_vec;
+  //Iterate over valid calls
+  for(auto iter=variant.begin(), end_iter = variant.end();iter != end_iter;++iter)
+  {
+    auto& curr_call = *iter;
+    auto& field_ptr_bin = curr_call.get_field(query_idx_bin);
+    auto& field_ptr_count = curr_call.get_field(query_idx_count);
+    //Either both valid or both invalid
+    assert((field_ptr_bin.get() && field_ptr_bin->is_valid()
+        && field_ptr_count.get() && field_ptr_count->is_valid())
+        || (!(field_ptr_bin.get() && field_ptr_bin->is_valid())
+          && !(field_ptr_count.get() && field_ptr_count->is_valid())
+          )
+        );
+    //Valid field
+    if(field_ptr_bin.get() && field_ptr_bin->is_valid())
+    {
+      //Must always be vector<uint8_t>
+      auto* cast_ptr_bin = dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(field_ptr_bin.get());
+      assert(cast_ptr_bin);
+      auto* cast_ptr_count = dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(field_ptr_count.get());
+      assert(cast_ptr_count);
+      GenomicsDBMultiDVectorIdx index_bin(&(cast_ptr_bin->get()[0u]), vid_field_info_bin, 0u);
+      GenomicsDBMultiDVectorIdx index_count(&(cast_ptr_count->get()[0u]), vid_field_info_count, 0u);
+      assert(index_bin.get_num_entries_in_current_dimension() == index_count.get_num_entries_in_current_dimension());
+      if(index_bin.get_num_entries_in_current_dimension() > histogram_map_vec.size())
+        histogram_map_vec.resize(index_bin.get_num_entries_in_current_dimension());
+      for(auto dim0_idx=0ull;dim0_idx<index_bin.get_num_entries_in_current_dimension();
+          ++dim0_idx)
+      {
+        auto num_elements = index_bin.get_size_of_current_index()/sizeof(T1);
+        assert(num_elements == index_count.get_size_of_current_index()/sizeof(T2));
+        auto data_ptr_bin = index_bin.get_ptr<T1>();
+        auto data_ptr_count = index_count.get_ptr<T2>();
+        auto& histogram_map = histogram_map_vec[dim0_idx];
+        for(auto i=0ull;i<num_elements;++i)
+        {
+          auto val_bin = data_ptr_bin[i];
+          auto val_count = data_ptr_count[i];
+          if(is_bcf_valid_value<T1>(val_bin) && is_bcf_valid_value<T2>(val_count))
+          {
+            auto iter_flag_pair = histogram_map.insert(std::pair<T1, T2>(val_bin, val_count));
+            //Existing key
+            if(!(iter_flag_pair.second))
+              (*(iter_flag_pair.first)).second += val_count;
+            ++num_valid_elements;
+          }
+        }
+        index_bin.advance_index_in_current_dimension();
+        index_count.advance_index_in_current_dimension();
+      }
+    }
+  }
+  if(num_valid_elements == 0u)
+    return false;
+  auto& length_descriptor = vid_field_info_bin->m_length_descriptor;
+  assert(length_descriptor.get_num_dimensions() == 2u);
+  auto first_outer_index = true;
+  std::stringstream s;
+  for(auto i=0ull;i<histogram_map_vec.size();++i)
+  {
+    if(!first_outer_index)
+      s << length_descriptor.get_vcf_delimiter(0u);
+    auto& histogram_map = histogram_map_vec[i];
+    auto first_inner_index = true;
+    for(auto& pair : histogram_map)
+    {
+      if(!first_inner_index)
+        s << length_descriptor.get_vcf_delimiter(1u);
+      s << std::scientific<< pair.first << length_descriptor.get_vcf_delimiter(1u) << pair.second;
+      first_inner_index = false;
+    }
+    first_outer_index = false;
+  }
+  result_str = std::move(s.str());
+  return true;
 }
 
 void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
@@ -394,8 +505,62 @@ void BroadCombinedGVCFOperator::handle_INFO_fields(const Variant& variant)
     auto valid_result_found = handle_VCF_field_combine_operation(variant, curr_tuple, result_ptr, num_result_elements);
     if(valid_result_found)
     {
-      bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), result_ptr, num_result_elements, BCF_INFO_GET_BCF_HT_TYPE(curr_tuple));
-      m_bcf_record_size += num_result_elements*VariantFieldTypeUtil::size(BCF_INFO_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple));
+      auto bcf_ht_type = BCF_INFO_GET_BCF_HT_TYPE(curr_tuple);
+      if(BCF_INFO_GET_FIELD_INFO_PTR(curr_tuple)->m_length_descriptor.get_num_dimensions() == 1u)
+      {
+        bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), result_ptr, num_result_elements,
+            bcf_ht_type);
+        m_bcf_record_size += num_result_elements*VariantFieldTypeUtil::size(bcf_ht_type);
+      }
+      else
+      {
+        auto stringified = std::move(m_field_handlers[bcf_ht_type]->stringify_2D_vector(*(BCF_INFO_GET_FIELD_INFO_PTR(curr_tuple))));
+        bcf_update_info(m_vcf_hdr, m_bcf_out, BCF_INFO_GET_VCF_FIELD_NAME(curr_tuple).c_str(), stringified.c_str(), stringified.length(),
+            BCF_HT_STR);
+        m_bcf_record_size += stringified.length();
+      }
+    }
+  }
+  for(auto& composite_vid_field_idx_INFO_histogram_tuple_pair : m_INFO_histogram_field_map)
+  {
+    auto& curr_INFO_histogram_tuple = composite_vid_field_idx_INFO_histogram_tuple_pair.second;
+    auto query_idx_bin = std::get<0>(curr_INFO_histogram_tuple);
+    auto query_idx_count = std::get<1>(curr_INFO_histogram_tuple);
+    auto field_info_bin = m_query_config->get_field_info_for_query_attribute_idx(query_idx_bin);
+    auto field_info_count = m_query_config->get_field_info_for_query_attribute_idx(query_idx_count);
+    auto switch_mask = 0u;
+    if(field_info_bin->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_REAL)
+      switch_mask += 10u;
+    if(field_info_count->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_REAL)
+      switch_mask += 1u;
+    std::string result_str;
+    auto valid_result_found = false;
+    auto& src_variant = (m_remapping_needed && field_info_count->m_length_descriptor.is_length_allele_dependent())
+      ? m_remapped_variant : variant;
+    switch(switch_mask)
+    {
+      case 0u: //both int
+        valid_result_found = BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_stringify<int, int>(src_variant,
+            *m_query_config, query_idx_bin, query_idx_count, result_str);
+        break;
+      case 11u: //both float
+        valid_result_found = BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_stringify<float, float>(src_variant,
+            *m_query_config, query_idx_bin, query_idx_count, result_str);
+        break;
+      case 10u: //float, int
+        valid_result_found = BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_stringify<float, int>(src_variant,
+            *m_query_config, query_idx_bin, query_idx_count, result_str);
+        break;
+      case 1u: //int, float
+        valid_result_found = BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_stringify<int, float>(src_variant,
+            *m_query_config, query_idx_bin, query_idx_count, result_str);
+        break;
+    }
+    if(valid_result_found)
+    {
+      bcf_update_info(m_vcf_hdr, m_bcf_out, m_query_config->get_field_info_for_query_attribute_idx(query_idx_bin)->m_vcf_name.c_str(),
+          result_str.c_str(), result_str.length(), BCF_HT_STR);
+      m_bcf_record_size += result_str.length();
     }
   }
 }
@@ -419,19 +584,21 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     auto query_field_idx = BCF_FORMAT_GET_QUERY_FIELD_IDX(curr_tuple);
     auto length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(query_field_idx);
     //Fields such as PL are skipped if the #alleles is above a certain threshold
-    if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor)
+    if(length_descriptor.is_length_genotype_dependent()
         && too_many_alt_alleles_for_genotype_length_fields(m_merged_alt_alleles.size()))
       continue;
     auto known_field_enum = BCF_FORMAT_GET_KNOWN_FIELD_ENUM(curr_tuple);
-    auto variant_type_enum = BCF_FORMAT_GET_VARIANT_FIELD_TYPE_ENUM(curr_tuple);
-    auto is_char_type = (variant_type_enum == VARIANT_FIELD_CHAR);
+    auto bcf_ht_type = BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple);
+    auto is_char_type = (bcf_ht_type == BCF_HT_CHAR || bcf_ht_type == BCF_HT_STR);
     //valid field handler
-    assert(variant_type_enum < m_field_handlers.size() && m_field_handlers[variant_type_enum].get());
+    assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size()
+        && m_field_handlers[bcf_ht_type].get());
     //Check if this is a field that was remapped - for remapped fields, we must use field objects from m_remapped_variant
     //else we should use field objects from the original variant
-    auto& src_variant = (m_remapping_needed && (KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor) || query_field_idx == m_GT_query_idx))
+    auto& src_variant = (m_remapping_needed && (length_descriptor.is_length_allele_dependent()
+          || query_field_idx == m_GT_query_idx))
         ? m_remapped_variant : variant;
-    auto valid_field_found = m_field_handlers[variant_type_enum]->collect_and_extend_fields(src_variant, *m_query_config,
+    auto valid_field_found = m_field_handlers[bcf_ht_type]->collect_and_extend_fields(src_variant, *m_query_config,
         query_field_idx, &ptr, num_elements,
         m_use_missing_values_not_vector_end && !is_char_type, m_use_missing_values_not_vector_end && is_char_type,
         known_field_enum == GVCF_GT_IDX);
@@ -447,9 +614,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
             auto num_elements_per_sample = num_elements/variant.get_num_calls();
             //GT of type 0/2 is stored as [0,0,2] in GenomicsDB if phased ploidy is used, else [0, 2]
             //GT of type 0|2 is stored as [0,1,2] in GenomicsDB if phased ploidy is used, else [0, 2]
-            auto max_ploidy = KnownFieldInfo::get_ploidy(
-                m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx),
-                num_elements_per_sample);
+            auto max_ploidy = length_descriptor.get_ploidy(num_elements_per_sample);
             uint64_t output_idx = 0ull;
             for(j=0ull;j<num_elements;j+=num_elements_per_sample)
               (*m_encode_GT_vector_function_ptr)(int_vec, j, num_elements_per_sample, output_idx);
@@ -479,8 +644,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       if(do_insert)
       {
         bcf_update_format(m_vcf_hdr, m_bcf_out, BCF_FORMAT_GET_VCF_FIELD_NAME(curr_tuple).c_str(), ptr, num_elements,
-            BCF_FORMAT_GET_BCF_HT_TYPE(curr_tuple));
-        m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(static_cast<VariantFieldTypeEnum>(variant_type_enum));
+            bcf_ht_type);
+        m_bcf_record_size += num_elements*VariantFieldTypeUtil::size(bcf_ht_type);
       }
     }
   }
@@ -526,7 +691,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
 //FIXME: totally naive implementation - too many reallocations etc
 void BroadCombinedGVCFOperator::merge_ID_field(const Variant& variant, const unsigned query_idx)
 {
+#ifdef DEBUG
+  //Produces ID fields in sorted order - consistency useful in CI testing
+  //I'm sorry :(
+  std::set<std::string> id_set;
+#else
   std::unordered_set<std::string> id_set;
+#endif
   for(const auto& curr_call : variant)
   {
     auto& field_ptr = curr_call.get_field(query_idx);
@@ -599,7 +770,9 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   m_bcf_record_size += m_ID_value.length();
   //GATK combined GVCF does not care about QUAL value
   m_bcf_out->qual = get_bcf_missing_value<float>();
-  if(BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(m_vcf_qual_tuple) != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION)
+  if(BCF_INFO_GET_FIELD_INFO_PTR(m_vcf_qual_tuple)
+      && (BCF_INFO_GET_VCF_FIELD_COMBINE_OPERATION(m_vcf_qual_tuple)
+        != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION))
   {
     unsigned num_result_elements = 1u;
     auto qual_result = 1.0f;
@@ -713,7 +886,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       auto* original_GT_field_ptr = (m_GT_query_idx != UNDEFINED_ATTRIBUTE_IDX_VALUE)
           ? curr_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx) : 0;
       if(original_GT_field_ptr && original_GT_field_ptr->is_valid())
-        ploidy = KnownFieldInfo::get_ploidy(GT_length_descriptor, original_GT_field_ptr->get().size());
+        ploidy = GT_length_descriptor.get_ploidy(original_GT_field_ptr->get().size());
       else
         original_GT_field_ptr = 0;
       auto lowest_deletion_allele_idx = -1;
@@ -782,26 +955,40 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto query_field_idx = m_remapped_fields_query_idxs[i];
         auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
         //field whose length is dependent on #alleles
-        assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
-        unsigned num_reduced_elements =
-          KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
-        //Remapper for variant
-        RemappedVariant remapper_variant(variant, query_field_idx); 
+        assert(length_descriptor.is_length_allele_dependent());
         auto& curr_field = curr_call.get_field(query_field_idx);
         if(curr_field.get() && curr_field->is_valid())      //Not null
         {
-          //Copy field to pass to remap function 
-          assert(i < m_spanning_deletions_remapped_fields.size());
-          copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
-          curr_field->resize(num_reduced_elements);
-          //Get handler for current type
-          auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
-          assert(handler.get());
-          //Call remap function
-          handler->remap_vector_data(
-              m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
-              m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
-              length_descriptor, num_reduced_elements, remapper_variant);
+          if(length_descriptor.get_num_dimensions() > 1u)
+          {
+            auto& remapped_field =
+              m_remapped_variant.get_call(curr_call_idx_in_variant).get_field(query_field_idx);
+            remap_allele_specific_annotations(curr_field,
+                remapped_field,
+                curr_call_idx_in_variant,
+                m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
+                query_config, query_field_idx);
+            std::swap(curr_field, remapped_field);
+          }
+          else
+          {
+            unsigned num_reduced_elements =
+              length_descriptor.get_num_elements(num_reduced_alleles-1u, ploidy, 0u);     //#alt alleles
+            //Remapper for variant
+            RemappedVariant remapper_variant(variant, query_field_idx);
+            //Copy field to pass to remap function
+            assert(i < m_spanning_deletions_remapped_fields.size());
+            copy_field(m_spanning_deletions_remapped_fields[i], curr_field);
+            curr_field->resize(num_reduced_elements);
+            //Get handler for current type
+            auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
+            assert(handler.get());
+            //Call remap function
+            handler->remap_vector_data(
+                m_spanning_deletions_remapped_fields[i], curr_call_idx_in_variant,
+                m_reduced_alleles_LUT, num_reduced_alleles, has_NON_REF, ploidy,
+                length_descriptor, num_reduced_elements, remapper_variant);
+          }
         }
       }
       //Invalidate INFO fields

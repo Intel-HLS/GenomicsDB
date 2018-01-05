@@ -22,6 +22,7 @@
 
 #include "variant_operations.h"
 #include "query_variants.h"
+#include "genomicsdb_multid_vector_field.h"
 
 #ifndef HTSDIR
 uint32_t bcf_float_missing    = 0x7F800001;
@@ -69,7 +70,7 @@ void* RemappedVariant::put_address(uint64_t input_call_idx, unsigned allele_or_g
  * @param reference_vector - vector of REF strings
  * @param merged_reference_allele - string to store the merged reference
  */
-void VariantOperations::merge_reference_allele(const Variant& variant, const VariantQueryConfig& query_config, 
+void VariantOperations::merge_reference_allele(const Variant& variant, const VariantQueryConfig& query_config,
     std::string& merged_reference_allele)
 {
   auto* longer_ref = &merged_reference_allele;
@@ -157,7 +158,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
     const auto& curr_reference =
       get_known_field<VariantFieldString, true>(curr_valid_call, query_config, GVCF_REF_IDX)->get();
     const auto& curr_reference_length = curr_reference.length();
-    const auto& curr_allele_vector = 
+    const auto& curr_allele_vector =
       get_known_field<VariantFieldALTData, true>(curr_valid_call, query_config, GVCF_ALT_IDX)->get();
     auto is_suffix_needed = false;
     auto suffix_length = 0u;
@@ -192,7 +193,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
           seen_alleles[*allele_ptr] = merged_allele_idx;
           //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
           //Most of the time this function will return quickly (just an if condition check)
-          alleles_LUT.resize_luts_if_needed(merged_allele_idx + 1); 
+          alleles_LUT.resize_luts_if_needed(merged_allele_idx + 1);
           alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, input_allele_idx, merged_allele_idx);
           if(is_suffix_needed)
             merged_alt_alleles.push_back(std::move(*allele_ptr)); //allele_ptr points to a copy - use move
@@ -212,7 +213,7 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
     merged_alt_alleles.push_back(g_vcf_NON_REF);
     auto non_reference_allele_idx = merged_alt_alleles.size(); //why not -1, include reference allele also
     //always check whether LUT is big enough for alleles_LUT (since the #alleles in the merged variant is unknown)
-    alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1); 
+    alleles_LUT.resize_luts_if_needed(non_reference_allele_idx + 1);
     //Add mappings for non_ref allele
     //Iterate over valid calls
     for (auto valid_calls_iter=variant.begin();valid_calls_iter != variant.end();++valid_calls_iter)
@@ -231,10 +232,10 @@ void VariantOperations::merge_alt_alleles(const Variant& variant,
  */
 void VariantOperations::remap_GT_field(const std::vector<int>& input_GT, std::vector<int>& output_GT,
     const CombineAllelesLUT& alleles_LUT, const uint64_t input_call_idx, const unsigned num_merged_alleles, const bool NON_REF_exists,
-    const unsigned length_descriptor)
+    const FieldLengthDescriptor& length_descriptor)
 {
   assert(input_GT.size() == output_GT.size());
-  auto should_store_phase_information = (length_descriptor == BCF_VL_Phased_Ploidy);
+  auto should_store_phase_information = length_descriptor.contains_phase_information();
   auto step = should_store_phase_information ? 2u : 1u;
   for(auto i=0u;i<input_GT.size();i+=step)
   {
@@ -269,7 +270,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
 
   for(VariantCall& valid_call : variant)
     modify_reference_if_in_middle(valid_call, query_config, variant.get_column_begin());
-  
+
   std::string merged_reference_allele;
   merged_reference_allele.reserve(10);
   merge_reference_allele(variant, query_config, merged_reference_allele);
@@ -295,7 +296,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
     //Not always in sequence, as invalid calls are skipped
     auto curr_call_idx_in_variant = valid_calls_iter.get_call_idx_in_variant();
     auto* PL_field_ptr =
-      get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()), 
+      get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()),
           GVCF_PL_IDX);
     auto* GT_field_ptr =
       get_known_field<VariantFieldPrimitiveVectorData<int>, true>(*valid_calls_iter, *(variant.get_query_config()),
@@ -304,7 +305,7 @@ void  VariantOperations::do_dummy_genotyping(Variant& variant, std::ostream& out
         query_config.get_query_idx_for_known_field_enum(GVCF_GT_IDX)
         );
     auto ploidy = (GT_field_ptr && GT_field_ptr->is_valid())
-      ? KnownFieldInfo::get_ploidy(length_descriptor, GT_field_ptr->get().size()) : 2u;
+      ? length_descriptor.get_ploidy(GT_field_ptr->get().size()) : 2u;
     if(PL_field_ptr && PL_field_ptr->is_valid())
     {
       std::vector<int> tmp_allele_idx_vec;
@@ -406,8 +407,10 @@ void DummyGenotypingOperator::operate(Variant& variant, const VariantQueryConfig
 }
 
 //GA4GHOperator functions
-GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsigned max_diploid_alt_alleles_that_can_be_genotyped)
-  : SingleVariantOperatorBase()
+GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config,
+    const VidMapper& vid_mapper,
+    const unsigned max_diploid_alt_alleles_that_can_be_genotyped)
+  : SingleVariantOperatorBase(&vid_mapper)
 {
   m_GT_query_idx = UNDEFINED_ATTRIBUTE_IDX_VALUE;
   m_max_diploid_alt_alleles_that_can_be_genotyped = max_diploid_alt_alleles_that_can_be_genotyped;
@@ -415,45 +418,48 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
   for(auto query_field_idx=0u;query_field_idx<query_config.get_num_queried_attributes();++query_field_idx)
   {
     //Does the length dependent on number of alleles
-    if(KnownFieldInfo::is_length_descriptor_allele_dependent(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx)))
+    if(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx).is_length_allele_dependent())
       m_remapped_fields_query_idxs.push_back(query_field_idx);
     //GT field
     if(query_config.get_known_field_enum_for_query_idx(query_field_idx) == GVCF_GT_IDX)
       m_GT_query_idx = query_field_idx;
   }
-  m_field_handlers.resize(VARIANT_FIELD_NUM_TYPES);
+  m_field_handlers.resize(BCF_NUM_HT_TYPES);
   m_ploidy.resize(query_config.get_num_rows_in_array());
-  for(const auto& ti_enum_pair : g_variant_field_type_index_to_enum)
+  for(const auto& ti_bcf_ht_pair : g_variant_field_type_index_to_bcf_ht_type)
   {
-    unsigned variant_field_type_idx = ti_enum_pair.second;
-    assert(variant_field_type_idx < m_field_handlers.size());
+    auto bcf_ht_type = ti_bcf_ht_pair.second;
+    assert(static_cast<size_t>(bcf_ht_type) < m_field_handlers.size());
     //uninitialized
-    assert(m_field_handlers[variant_field_type_idx].get() == 0);
-    switch(variant_field_type_idx)
+    assert(m_field_handlers[bcf_ht_type].get() == 0);
+    switch(bcf_ht_type)
     {
-      case VARIANT_FIELD_INT:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>())); 
+      case BCF_HT_INT:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int>()));
         break;
-      case VARIANT_FIELD_UNSIGNED:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>())); 
+      case BCF_HT_UINT:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<unsigned>()));
         break;
-      case VARIANT_FIELD_INT64_T:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>())); 
+      case BCF_HT_INT64:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<int64_t>()));
         break;
-      case VARIANT_FIELD_UINT64_T:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>())); 
+      case BCF_HT_UINT64:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<uint64_t>()));
         break;
-      case VARIANT_FIELD_FLOAT:
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>())); 
-        break;                                                                          
-      case VARIANT_FIELD_DOUBLE:                                                        
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>())); 
-        break;                                                                          
-      case VARIANT_FIELD_STRING:                                                        
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<std::string>())); 
-        break;                                                                          
-      case VARIANT_FIELD_CHAR:                                                          
-        m_field_handlers[variant_field_type_idx] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>())); 
+      case BCF_HT_REAL:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<float>()));
+        break;
+      case BCF_HT_DOUBLE:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<double>()));
+        break;
+      case BCF_HT_STR:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
+        break;
+      case BCF_HT_CHAR:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
+        break;
+      default:
+        m_field_handlers[bcf_ht_type] = std::move(std::unique_ptr<VariantFieldHandlerBase>(new VariantFieldHandler<char>()));
         break;
     }
   }
@@ -465,12 +471,101 @@ GA4GHOperator::GA4GHOperator(const VariantQueryConfig& query_config, const unsig
 
 std::unique_ptr<VariantFieldHandlerBase>& GA4GHOperator::get_handler_for_type(std::type_index ty)
 {
-  //Get Enum Idx from VariantFieldTypeEnum
-  assert(g_variant_field_type_index_to_enum.find(ty) != g_variant_field_type_index_to_enum.end());
-  unsigned variant_field_type_enum = g_variant_field_type_index_to_enum[ty];
+  //Get BCF_HT_* idx
+  assert(g_variant_field_type_index_to_bcf_ht_type.find(ty) != g_variant_field_type_index_to_bcf_ht_type.end());
+  unsigned bcf_ht_type = g_variant_field_type_index_to_bcf_ht_type[ty];
   //Check that valid handler exists
-  assert(variant_field_type_enum < m_field_handlers.size());
-  return m_field_handlers[variant_field_type_enum];
+  assert(bcf_ht_type < m_field_handlers.size());
+  return m_field_handlers[bcf_ht_type];
+}
+
+void remap_allele_specific_annotations(
+    const std::vector<uint8_t>& orig_field_data,
+    std::vector<uint8_t>& remapped_field_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const FieldInfo& vid_field_info)
+{
+  auto& length_descriptor = vid_field_info.m_length_descriptor;
+  GenomicsDBMultiDVectorIdx orig_field_index(&(orig_field_data[0u]),
+      &vid_field_info, 0u);
+  auto dim_0_length_descriptor_code = length_descriptor.get_length_descriptor(0u);
+  assert(dim_0_length_descriptor_code == BCF_VL_A || dim_0_length_descriptor_code == BCF_VL_R);
+  auto alt_alleles_only = (dim_0_length_descriptor_code == BCF_VL_A);
+  //index of NON_REF in merged variant
+  const auto merged_non_reference_allele_idx = NON_REF_exists ?
+    static_cast<int64_t>(static_cast<int>(num_merged_alleles-1)) : lut_missing_value;
+  //index of NON_REF in input sample
+  const auto input_non_reference_allele_idx = NON_REF_exists ?
+    alleles_LUT.get_input_idx_for_merged(input_call_idx, merged_non_reference_allele_idx) : lut_missing_value;
+  //Loop over alleles - only ALT or all alleles (BCF_VL_A or BCF_VL_R)
+  unsigned length = alt_alleles_only ? num_merged_alleles-1u: num_merged_alleles;
+  std::vector<uint64_t> offsets_vec(length+1u); //+1 since #offsets == #entries +1
+  for (auto j=0u;j<length;++j) {
+    auto allele_j = alt_alleles_only ?  j+1u : j;
+    auto input_j_allele = alleles_LUT.get_input_idx_for_merged(input_call_idx, allele_j);
+    if (CombineAllelesLUT::is_missing_value(input_j_allele))	//no mapping found for current allele in input gvcf
+    {
+      if(CombineAllelesLUT::is_missing_value(input_non_reference_allele_idx))	//input did not have NON_REF allele
+      {
+        offsets_vec[j+1u] = offsets_vec[j];
+        continue;
+      }
+      else //input contains NON_REF allele, use its idx
+        input_j_allele = input_non_reference_allele_idx;
+    }
+    assert(!alt_alleles_only || input_j_allele > 0u);   //if only ALT alleles are used, then input_j_allele must be non-0
+    auto input_j = alt_alleles_only ? input_j_allele-1u : input_j_allele;
+    if(static_cast<size_t>(input_j) < orig_field_index.get_num_entries_in_current_dimension())
+    {
+      orig_field_index.set_index_in_current_dimension(input_j);
+      auto num_bytes_to_copy = orig_field_index.get_size_of_current_index();
+      if(remapped_field_data.size() < (
+            sizeof(uint64_t) //8 byte size at the beginning
+            +offsets_vec[j]+num_bytes_to_copy))
+        remapped_field_data.resize(2*(sizeof(uint64_t)+offsets_vec[j]+num_bytes_to_copy)+1u);
+      memcpy(&(remapped_field_data[sizeof(uint64_t)
+            +offsets_vec[j]]), orig_field_index.get_ptr<uint8_t>(), num_bytes_to_copy);
+      offsets_vec[j+1u] = offsets_vec[j] + num_bytes_to_copy;
+    }
+    else
+      offsets_vec[j+1u] = offsets_vec[j]; //0 bytes
+  }
+  //Put size in the first 8 bytes
+  *(reinterpret_cast<uint64_t*>(&(remapped_field_data[0u]))) = offsets_vec.back();
+  //Write out #entries and offsets
+  remapped_field_data.resize(
+      sizeof(uint64_t) //8-byte size
+      + offsets_vec.back() //size of data
+      + sizeof(uint64_t) //#entries
+      + offsets_vec.size()*sizeof(uint64_t)); //offsets
+  //Write #entries
+  *(reinterpret_cast<uint64_t*>(&(remapped_field_data[sizeof(uint64_t)+offsets_vec.back()]))) = length;
+  //Write offsets
+  memcpy(&(remapped_field_data[sizeof(uint64_t)+offsets_vec.back()+sizeof(uint64_t)]),
+      &(offsets_vec[0u]), offsets_vec.size()*sizeof(uint64_t));
+}
+
+void remap_allele_specific_annotations(
+    const std::unique_ptr<VariantFieldBase>& orig_field,
+    std::unique_ptr<VariantFieldBase>& remapped_field,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, const bool NON_REF_exists, const unsigned ploidy,
+    const VariantQueryConfig& query_config, const unsigned query_field_idx)
+{
+  auto& length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
+  assert(length_descriptor.get_num_dimensions() == 2u);
+  assert((dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(orig_field.get())));
+  assert((dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(remapped_field.get())));
+  auto& orig_field_data = dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(orig_field.get())->get();
+  auto& remapped_field_data = dynamic_cast<VariantFieldPrimitiveVectorData<uint8_t, unsigned>*>(remapped_field.get())->get();
+  remap_allele_specific_annotations(orig_field_data, remapped_field_data,
+      input_call_idx,
+      alleles_LUT,
+      num_merged_alleles, NON_REF_exists, ploidy,
+      *(query_config.get_field_info_for_query_attribute_idx(query_field_idx)));
 }
 
 void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_config)
@@ -505,8 +600,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
             remapped_call.get_field<VariantFieldPrimitiveVectorData<int>>(m_GT_query_idx)->get();
           VariantOperations::remap_GT_field(input_GT, output_GT, m_alleles_LUT, curr_call_idx_in_variant,
               num_merged_alleles, m_NON_REF_exists, GT_length_descriptor);
-          m_ploidy[curr_call_idx_in_variant] = KnownFieldInfo::get_ploidy(GT_length_descriptor,
-            input_GT.size());
+          m_ploidy[curr_call_idx_in_variant] = GT_length_descriptor.get_ploidy(input_GT.size());
         }
       }
     }
@@ -514,9 +608,10 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     {
       auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx);
       //field length depends on #alleles
-      assert(KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor));
+      assert(length_descriptor.is_length_allele_dependent());
       //Fields such as PL should be skipped, if the #alleles is above a threshold
-      if(KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor) && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
+      if(length_descriptor.is_length_genotype_dependent()
+        && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
       {
         std::cerr << "Column "<<variant.get_column_begin() <<" has too many alleles in the combined VCF record : "<<num_merged_alleles-1
           << " : current limit : "<<m_max_diploid_alt_alleles_that_can_be_genotyped
@@ -524,7 +619,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
         continue;
       }
       //Remapper for m_remapped_variant
-      RemappedVariant remapper_variant(m_remapped_variant, query_field_idx); 
+      RemappedVariant remapper_variant(m_remapped_variant, query_field_idx);
       //Iterate over valid calls - m_remapped_variant and variant have same list of valid calls
       for(auto iter=m_remapped_variant.begin();iter!=m_remapped_variant.end();++iter)
       {
@@ -536,18 +631,26 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
         if(remapped_field.get() && remapped_field->is_valid())      //Not null
         {
           auto curr_ploidy = m_ploidy[curr_call_idx_in_variant];
-          unsigned num_merged_elements =
-            KnownFieldInfo::get_num_elements_given_length_descriptor(length_descriptor, num_merged_alleles-1u,
-                curr_ploidy, 0u);  //#alt alleles, current ploidy
-          remapped_field->resize(num_merged_elements);
-          //Get handler for current type
-          auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
-          assert(handler.get());
-          //Call remap function
-          handler->remap_vector_data(
-              orig_field, curr_call_idx_in_variant,
-              m_alleles_LUT, num_merged_alleles, m_NON_REF_exists, curr_ploidy,
-              query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx), num_merged_elements, remapper_variant);
+          //Multi-D field
+          if(query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx).get_num_dimensions() > 1u)
+            remap_allele_specific_annotations(orig_field, remapped_field,
+                curr_call_idx_in_variant,
+                m_alleles_LUT, num_merged_alleles, m_NON_REF_exists, curr_ploidy,
+                query_config, query_field_idx);
+          else
+          {
+            unsigned num_merged_elements =
+              length_descriptor.get_num_elements(num_merged_alleles-1u, curr_ploidy, 0u);  //#alt alleles, current ploidy
+            remapped_field->resize(num_merged_elements);
+            //Get handler for current type
+            auto& handler = get_handler_for_type(query_config.get_element_type(query_field_idx));
+            assert(handler.get());
+            //Call remap function
+            handler->remap_vector_data(
+                orig_field, curr_call_idx_in_variant,
+                m_alleles_LUT, num_merged_alleles, m_NON_REF_exists, curr_ploidy,
+                query_config.get_length_descriptor_for_query_attribute_idx(query_field_idx), num_merged_elements, remapper_variant);
+          }
         }
       }
     }
@@ -566,7 +669,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
   auto& ALT = m_remapped_variant.get_common_field(1u);
   if(ALT.get() == 0)
     ALT = std::move(std::unique_ptr<VariantFieldALTData>(new VariantFieldALTData()));
-  auto ALT_ptr =  dynamic_cast<VariantFieldALTData*>(ALT.get()); 
+  auto ALT_ptr =  dynamic_cast<VariantFieldALTData*>(ALT.get());
   assert(ALT_ptr);
   ALT_ptr->set_valid(true);
   auto& ALT_vec = ALT_ptr->get();
@@ -632,7 +735,7 @@ void ColumnHistogramOperator::operate(VariantCall& call, const VariantQueryConfi
 {
   auto call_begin = call.get_column_begin();
   auto bin_idx = call_begin <= m_begin_column ? 0ull
-    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1 
+    : call_begin >= m_end_column ? m_bin_counts_vector.size()-1
     : (call_begin - m_begin_column)/m_bin_size;
   assert(bin_idx < m_bin_counts_vector.size());
   ++(m_bin_counts_vector[bin_idx]);
@@ -677,7 +780,7 @@ bool ColumnHistogramOperator::equi_partition_and_print_bins(uint64_t num_bins, s
 void modify_reference_if_in_middle(VariantCall& curr_call, const VariantQueryConfig& query_config, uint64_t current_start_position)
 {
   //If the call's column is before the current_start_position, then REF is not valid, set it to "N" (unknown/don't care)
-  if(curr_call.get_column_begin() < current_start_position) 
+  if(curr_call.get_column_begin() < current_start_position)
   {
     auto* REF_ptr = get_known_field<VariantFieldString,true>
       (curr_call, query_config, GVCF_REF_IDX);
@@ -764,9 +867,8 @@ void VariantCallPrintCSVOperator::operate(VariantCall& call, const VariantQueryC
       auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
       if(schema.is_variable_length_field(schema_idx))
       {
-        auto variant_field_type_enum_idx = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(schema.type(schema_idx));
-        if(variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_STRING &&
-            variant_field_type_enum_idx != VariantFieldTypeEnum::VARIANT_FIELD_CHAR)
+        auto bcf_ht_type = VariantFieldTypeUtil::get_bcf_ht_type_for_variant_field_type(schema.type(schema_idx));
+        if(bcf_ht_type != BCF_HT_STR && bcf_ht_type != BCF_HT_CHAR)
           fptr << "0";
       }
       else
@@ -799,8 +901,8 @@ AlleleCountOperator::AlleleCountOperator(const VidMapper& vid_mapper, const Vari
   if(m_ALT_query_idx == UNDEFINED_ATTRIBUTE_IDX_VALUE)
     throw VariantOperationException("ALT field must be queried for AlleleCountOperator");
   auto GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-  assert(GT_length_descriptor == BCF_VL_Phased_Ploidy || GT_length_descriptor == BCF_VL_P);
-  m_GT_step_value = (GT_length_descriptor == BCF_VL_Phased_Ploidy) ? 2u : 1u;
+  assert(GT_length_descriptor.is_length_ploidy_dependent());
+  m_GT_step_value = GT_length_descriptor.get_ploidy_step_value();
 }
 
 //Unoptimized iterator only traverses single query position/interval

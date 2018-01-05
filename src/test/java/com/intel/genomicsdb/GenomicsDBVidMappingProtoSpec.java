@@ -39,40 +39,45 @@ public class GenomicsDBVidMappingProtoSpec {
     GenomicsDBVidMapProto.InfoField pass =
       infoField0
         .setName("PASS")
-        .setType("int")
+        .addType("int")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField1 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
     GenomicsDBVidMapProto.InfoField lowQual =
       infoField1
         .setName("LowQual")
-        .setType("int")
+        .addType("int")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField2 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
+        GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("VAR");
     GenomicsDBVidMapProto.InfoField pgt =
       infoField2
         .setName("PGT")
-        .setType("char")
-        .setLength("VAR")
+        .addType("char")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoField3 =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("P");
     GenomicsDBVidMapProto.InfoField gt =
       infoField3
         .setName("PASS")
-        .setType("int")
-        .setLength("P")
+        .addType("int")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
     GenomicsDBVidMapProto.InfoField.Builder infoFormatField =
       GenomicsDBVidMapProto.InfoField.newBuilder();
+    lengthDescriptorComponentBuilder.setVariableLengthDescriptor("R");
     GenomicsDBVidMapProto.InfoField dp =
       infoFormatField
         .setName("DP")
-        .setType("int")
-        .setLength("R")
+        .addType("int")
+        .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .addVcfFieldClass("INFO")
         .build();

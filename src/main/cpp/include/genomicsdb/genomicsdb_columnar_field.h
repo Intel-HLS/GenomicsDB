@@ -420,7 +420,7 @@ class GenomicsDBColumnarField
     void copy_simple_members(const GenomicsDBColumnarField& other);
     void assign_function_pointers();
     template<bool print_as_list>
-    void assign_print_function_pointers(VariantFieldTypeEnum variant_enum_type);
+    void assign_print_function_pointers(const int bcf_ht_type);
     void add_new_buffer()
     {
       auto buffer_ptr = create_new_buffer();

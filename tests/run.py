@@ -42,6 +42,7 @@ query_json_template_string="""
 }"""
 
 vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER" ];
+asa_vcf_query_attributes = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER", "AS_RAW_MQ", "AS_RAW_MQRankSum" ];
 query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
 query_attributes_with_PL_only = [ "PL" ]
 query_attributes_with_MLEAC_only = [ "MLEAC" ]
@@ -449,6 +450,35 @@ def main():
                         } }
                 ]
             },
+            { "name" : "t0_1_2_all_asa", 'golden_output' : 'golden_outputs/t0_1_2_all_asa_loading',
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_all_asa.json',
+                'vid_mapping_file': 'inputs/vid_all_asa.json',
+                'size_per_column_partition': 3000,
+                "query_params": [
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                      "force_override": True,
+                      'segment_size': 100,
+                      "query_attributes": asa_vcf_query_attributes,
+                        "golden_output": {
+                        "vcf"      : "golden_outputs/t0_1_2_all_asa_loading",
+                        } },
+                    ]
+            },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_all_asa",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2_all_asa.json',
+                'vid_mapping_file': 'inputs/vid_all_asa.json',
+                'chromosome_interval': '1:1-100000000',
+                "query_params": [
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                        "force_override": True,
+                        'segment_size': 100,
+                        "query_attributes": asa_vcf_query_attributes,
+                        "golden_output": {
+                        "vcf"      : "golden_outputs/t0_1_2_all_asa_loading",
+                        "java_vcf"   : "golden_outputs/t0_1_2_all_asa_java_query_vcf",
+                        } },
+                    ]
+            },
     ];
     for test_params_dict in loader_tests:
         test_name = test_params_dict['name']
@@ -508,7 +538,8 @@ def main():
                         ]
                 for query_type,cmd_line_param in query_types_list:
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
-                        if(query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1):
+                        if((query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1)
+                                and 'force_override' not in query_param_dict):
                             test_query_dict['query_attributes'] = vcf_query_attributes_order;
                         query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                         with open(query_json_filename, 'wb') as fptr:

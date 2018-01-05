@@ -13,6 +13,8 @@ File2TileDBBinaryColumnPartitionBase::File2TileDBBinaryColumnPartitionBase(File2
   m_buffer_offset_for_local_callset = std::move(other.m_buffer_offset_for_local_callset);
   m_buffer_full_for_local_callset = std::move(other.m_buffer_full_for_local_callset);
   m_split_filename = std::move(other.m_split_filename);
+  m_multi_d_vector_buffer_vec = std::move(other.m_multi_d_vector_buffer_vec);
+  m_multi_d_vector_size_vec = std::move(other.m_multi_d_vector_size_vec);
   //Move and nullify other
   m_base_reader_ptr = other.m_base_reader_ptr;
   other.m_base_reader_ptr = 0;
@@ -138,6 +140,30 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   return tiledb_buffer_print<const std::string&>(buffer, buffer_offset, buffer_offset_limit, static_cast<const std::string&>(val), print_sep);
 }
 
+template<class FieldType>
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print_null(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset)
+{
+  auto original_offset = buffer_offset;
+  while(tiledb_buffer_print_null<FieldType>(buffer, buffer_offset, buffer.size()))
+  {
+    buffer.resize(2u*buffer.size()+1u);
+    buffer_offset = original_offset;
+  }
+}
+
+template<class FieldType>
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const FieldType val, bool print_sep)
+{
+  auto original_offset = buffer_offset;
+  while(tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer.size(), val))
+  {
+    buffer.resize(2u*buffer.size()+1u);
+    buffer_offset = original_offset;
+  }
+}
+
 //Template instantiations
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
@@ -151,10 +177,25 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const int64_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const char val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const int val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const unsigned val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const int64_t val, bool print_sep);
 #ifdef __MACH__
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const size_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const size_t val, bool print_sep);
 #endif
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
@@ -171,6 +212,21 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit, const std::string& val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const uint64_t val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const float val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const double val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const char* val, bool print_sep);
+template
+void File2TileDBBinaryBase::tiledb_buffer_resize_if_needed_and_print(std::vector<uint8_t>& buffer,
+    int64_t& buffer_offset, const std::string& val, bool print_sep);
 template
 bool File2TileDBBinaryBase::tiledb_buffer_print_null<char>(std::vector<uint8_t>& buffer, int64_t& buffer_offset,
     const int64_t buffer_offset_limit);
@@ -232,7 +288,7 @@ File2TileDBBinaryBase::File2TileDBBinaryBase(const std::string& filename,
   m_base_reader_ptr = 0;
   m_histogram = 0;
   auto* GT_field_info_ptr = vid_mapper.get_field_info("GT");
-  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor == BCF_VL_Phased_Ploidy);
+  m_store_phase_information_for_GT = (GT_field_info_ptr && GT_field_info_ptr->m_length_descriptor.contains_phase_information());
 }
 
 void File2TileDBBinaryBase::initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds)

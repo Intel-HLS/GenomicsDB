@@ -263,7 +263,7 @@ template<class FieldType>
 void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
     CSVLineParseStruct* csv_line_parse_ptr, CSV2TileDBBinaryColumnPartition& csv_partition_info,
     std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
-    VariantFieldTypeEnum variant_field_type_enum)
+    const int bcf_ht_type)
 {
   auto field_idx = csv_line_parse_ptr->get_field_idx(); 
   auto num_elements = csv_line_parse_ptr->get_num_elements();
@@ -280,8 +280,7 @@ void CSV2TileDBBinary::handle_field_token(const char* token_ptr,
   if(!(csv_line_parse_ptr->read_num_elements()) && m_array_schema->is_variable_length_field(field_idx))
   {
     //string fields need to be handled weirdly
-    if(variant_field_type_enum == VariantFieldTypeEnum::VARIANT_FIELD_STRING ||
-        variant_field_type_enum == VariantFieldTypeEnum::VARIANT_FIELD_CHAR)
+    if(bcf_ht_type == BCF_HT_STR || bcf_ht_type == BCF_HT_CHAR)
     {
 #ifdef PRODUCE_BINARY_CELLS
       //Copy length into buffer
@@ -418,38 +417,38 @@ void CSV2TileDBBinary::handle_token(CSVLineParseStruct* csv_line_parse_ptr, cons
                 handle_field_token<int>(token_ptr,
                     csv_line_parse_ptr, csv_partition_info,
                     buffer, buffer_offset, buffer_offset_limit,
-                    VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(std::type_index(typeid(int))));
+                    BCF_HT_INT);
                 break;
               }
             default:    //other optional fields
               {
-                auto variant_field_type_enum = VariantFieldTypeUtil::get_variant_field_type_enum_for_variant_field_type(
+                auto bcf_ht_type = VariantFieldTypeUtil::get_bcf_ht_type_for_variant_field_type(
                     m_array_schema->type(field_idx));
-                switch(variant_field_type_enum)
+                switch(bcf_ht_type)
                 {
-                  case VariantFieldTypeEnum::VARIANT_FIELD_INT:
+                  case BCF_HT_INT:
                     {
                       handle_field_token<int>(token_ptr,
                           csv_line_parse_ptr, csv_partition_info,
                           buffer, buffer_offset, buffer_offset_limit,
-                          variant_field_type_enum);
+                          bcf_ht_type);
                       break;
                     }
-                  case VariantFieldTypeEnum::VARIANT_FIELD_FLOAT:
+                  case BCF_HT_REAL:
                     {
                       handle_field_token<float>(token_ptr,
                           csv_line_parse_ptr, csv_partition_info,
                           buffer, buffer_offset, buffer_offset_limit,
-                          variant_field_type_enum);
+                          bcf_ht_type);
                       break;
                     }
-                  case VariantFieldTypeEnum::VARIANT_FIELD_CHAR:
-                  case VariantFieldTypeEnum::VARIANT_FIELD_STRING:
+                  case BCF_HT_CHAR:
+                  case BCF_HT_STR:
                     {
                       handle_field_token<std::string>(token_ptr,
                           csv_line_parse_ptr, csv_partition_info,
                           buffer, buffer_offset, buffer_offset_limit,
-                          variant_field_type_enum);
+                          bcf_ht_type);
                       break;
                     }
                   default:

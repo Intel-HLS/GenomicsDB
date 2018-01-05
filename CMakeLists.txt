@@ -11,7 +11,7 @@ execute_process(
     )
 
 #Build parameters
-set(GENOMICSDB_RELEASE_VERSION "0.8.1" CACHE STRING "GenomicsDB release version") #used in Maven builds
+set(GENOMICSDB_RELEASE_VERSION "0.9.0" CACHE STRING "GenomicsDB release version") #used in Maven builds
 set(GENOMICSDB_VERSION "${GENOMICSDB_RELEASE_VERSION}-${GIT_COMMIT_HASH}" CACHE STRING "GenomicsDB full version string")
 set(DISABLE_MPI False CACHE BOOL "Disable use of any MPI compiler/libraries")
 set(DISABLE_OPENMP False CACHE BOOL "Disable OpenMP")
@@ -23,7 +23,7 @@ set(OPENSSL_PREFIX_DIR "" CACHE PATH "OpenSSL installation prefix")
 set(GENOMICSDB_PROTOBUF_VERSION "3.0.2" CACHE STRING "Version of Google Protocol Buffer library")
 set(PROTOBUF_LIBRARY "" CACHE PATH "Path to protobuf headers and library")
 set(PROTOBUF_STATIC_LINKING True CACHE BOOL "Statically link Protobuf libraries")
-set(PROTOBUF_REGENERATE False CACHE BOOL "Regenerate protocol buffers C++ files")
+set(PROTOBUF_REGENERATE True CACHE BOOL "Regenerate protocol buffers C++ files")
 set(TILEDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/TileDB" CACHE PATH "Path to TileDB source directory")
 set(USE_LIBCSV False CACHE BOOL "Disable library components that import data from csv files")
 set(LIBCSV_DIR "" CACHE PATH "Path to libcsv header and library")

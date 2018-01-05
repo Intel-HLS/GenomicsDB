@@ -90,6 +90,9 @@ inline std::string get_bcf_missing_value<std::string>() { return ""; }
 template<>
 inline char get_bcf_missing_value<char>() { return bcf_str_missing; }
 
+template<>
+inline unsigned char get_bcf_missing_value<unsigned char>() { return bcf_str_missing; }
+
 //Template function that return bcf vector_end value
 template<class T>
 inline T get_bcf_vector_end_value();

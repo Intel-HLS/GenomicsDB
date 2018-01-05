@@ -290,7 +290,7 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
     void handle_field_token(const char* token_ptr,
         CSVLineParseStruct* csv_line_parse_ptr, CSV2TileDBBinaryColumnPartition& csv_partition_info,
         std::vector<uint8_t>& buffer, int64_t& buffer_offset, const int64_t buffer_offset_limit,
-        VariantFieldTypeEnum variant_field_type_enum);
+        const int bcf_ht_type);
     void handle_end_of_line(CSVLineParseStruct* csv_line_parse_ptr);
   private:
     bool m_cleanup_file;

@@ -217,12 +217,20 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
     const auto& field_name = schema.attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     if(vid_field_info)
-      if(vid_field_info->m_bcf_ht_type == BCF_HT_FLAG)
+    {
+      if(vid_field_info->get_genomicsdb_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_FLAG)
       {
         auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(int8_t)));
         assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());
         m_field_factory.Register(i, (*iter).second);
       }
+      if(vid_field_info->m_length_descriptor.get_num_dimensions() > 1u)
+      {
+        auto iter = VariantQueryProcessor::m_type_index_to_creator.find(std::type_index(typeid(uint8_t)));
+        assert(iter != VariantQueryProcessor::m_type_index_to_creator.end());
+        m_field_factory.Register(i, (*iter).second);
+      }
+    }
   }
 }
 
@@ -568,6 +576,9 @@ void VariantQueryProcessor::iterate_over_cells(
 void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array_schema,
     VariantQueryConfig& query_config, const VidMapper& vid_mapper, const bool alleles_required) const
 {
+  //Flatten composite fields - fields whose elements are tuples
+  //Must do this before call to obtain_TileDB_attribute_idxs
+  query_config.flatten_composite_fields(vid_mapper);
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
   unsigned END_schema_idx = 
@@ -601,36 +612,19 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
-    auto length_descriptor = BCF_VL_FIXED;
-    if(vid_field_info)
-    {
-      length_descriptor = vid_field_info->m_length_descriptor;
-      query_config.set_query_attribute_info_parameters(i,
-          array_schema.type(schema_idx), length_descriptor, vid_field_info->m_num_elements,
-          vid_field_info->m_VCF_field_combine_operation);
-    }
-    else //No information in vid file, see if something can be gleaned from known fields
-    {
-      auto known_field_enum = 0u;
-      if(KnownFieldInfo::get_known_field_enum_for_name(field_name, known_field_enum))
-      {
-        length_descriptor = KnownFieldInfo::get_length_descriptor_for_known_field_enum(known_field_enum);
-        query_config.set_query_attribute_info_parameters(i,
-            array_schema.type(schema_idx), length_descriptor,
-            KnownFieldInfo::get_num_elements_for_known_field_enum(known_field_enum, 0u, 0u),
-            KnownFieldInfo::get_VCF_field_combine_operation_for_known_field_enum(known_field_enum)
-            );
-      }
-    }
+    auto length_descriptor = FieldLengthDescriptor();
+    assert(vid_field_info); //mandatory now
+    length_descriptor = vid_field_info->m_length_descriptor;
+    query_config.set_query_attribute_info(i, *vid_field_info);
     //Does the length of the field depend on the number of alleles? If yes, add ALT and REF as query fields
-    if(!added_ALT_REF && KnownFieldInfo::is_length_descriptor_allele_dependent(length_descriptor))
+    if(!added_ALT_REF && length_descriptor.is_length_allele_dependent())
     {
       query_config.add_attribute_to_query("ALT", ALT_schema_idx);
       query_config.add_attribute_to_query("REF", REF_schema_idx);
       added_ALT_REF = true;
     }
     //Does the length of the field depend on the ploidy? If yes, add GT field
-    if(!added_GT && KnownFieldInfo::is_length_descriptor_genotype_dependent(length_descriptor))
+    if(!added_GT && length_descriptor.is_length_genotype_dependent())
     {
       query_config.add_attribute_to_query("GT", GT_schema_idx);
       added_GT = true;
@@ -821,7 +815,7 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
   std::cerr << "[query_variants:gt_get_column_interval] re-arrangement of variants " << std::endl;
 #endif
-  GA4GHOperator variant_operator(query_config);
+  GA4GHOperator variant_operator(query_config, *m_vid_mapper);
   for(auto i=start_variant_idx;i<variants.size();++i)
     if(variants[i].get_num_calls() > 1u) //possible re-arrangement of PL/AD/GT fields needed
     {
@@ -933,14 +927,11 @@ void VariantQueryProcessor::gt_get_column(
 }
 
 void VariantQueryProcessor::fill_field_prep(std::unique_ptr<VariantFieldBase>& field_ptr,
-    const VariantQueryConfig& query_config, const unsigned query_idx,
-    unsigned& length_descriptor, unsigned& num_elements) const
+    const VariantQueryConfig& query_config, const unsigned query_idx) const
 {
   auto schema_idx = query_config.get_schema_idx_for_query_idx(query_idx);
   if(field_ptr.get() == nullptr)       //Allocate only if null
     field_ptr = std::move(m_field_factory.Create(schema_idx, m_array_schema->is_variable_length_field(schema_idx)));
-  length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_idx);
-  num_elements = query_config.get_num_elements_for_query_attribute_idx(query_idx);
   field_ptr->set_valid(true);  //mark as valid
 }
 
@@ -949,9 +940,7 @@ void VariantQueryProcessor::fill_field(std::unique_ptr<VariantFieldBase>& field_
     const VariantQueryConfig& query_config, const unsigned query_idx
     ) const
 {
-  unsigned length_descriptor = BCF_VL_FIXED;
-  unsigned num_elements = 1u;
-  fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
+  fill_field_prep(field_ptr, query_config, query_idx);
   //This function might mark the field as invalid - some fields are  determined to be invalid only
   //after accessing the data and comparing to NULL_* values
   field_ptr->copy_data_from_tile(attr_iter);
@@ -978,11 +967,11 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
       if(is_valid_field)
       {
         auto& field_ptr = curr_call.get_field(j); 
-        unsigned length_descriptor = BCF_VL_FIXED;
-        unsigned num_elements = 1u;
-        fill_field_prep(field_ptr, query_config, j, length_descriptor, num_elements);
+        fill_field_prep(field_ptr, query_config, j);
+        auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(j);
         field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
-            length_descriptor != BCF_VL_FIXED, num_elements);
+            !length_descriptor.is_fixed_length_field(),
+            length_descriptor.is_fixed_length_field() ? length_descriptor.get_num_elements() : 0u);
       }
     }
   }
@@ -999,11 +988,11 @@ void VariantQueryProcessor::binary_deserialize(Variant& variant, const VariantQu
     if(is_valid_field)
     {
       std::unique_ptr<VariantFieldBase>& field_ptr = variant.get_common_field(i); 
-      unsigned length_descriptor = BCF_VL_FIXED;
-      unsigned num_elements = 1u;
-      fill_field_prep(field_ptr, query_config, query_idx, length_descriptor, num_elements);
+      fill_field_prep(field_ptr, query_config, query_idx);
+      auto length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(query_idx);
       field_ptr->binary_deserialize(reinterpret_cast<const char*>(&(buffer[0])), offset,
-          length_descriptor != BCF_VL_FIXED, num_elements);
+          !length_descriptor.is_fixed_length_field(),
+          length_descriptor.is_fixed_length_field() ? length_descriptor.get_num_elements() : 0u);
     }
   }
 }

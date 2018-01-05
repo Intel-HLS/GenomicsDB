@@ -57,11 +57,42 @@ char ReferenceGenomeInfo::get_reference_base_at_position(const char* contig, int
 //VCFAdapter functions
 bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id_mapper, const std::string& field_name, int field_type_idx)
 {
+  auto field_info_ptr = id_mapper->get_field_info(field_name);
+  auto is_multid_vector_or_tuple_element_field = (
+      (field_info_ptr != 0)
+      && ((field_info_ptr->get_genomicsdb_type().get_num_elements_in_tuple() > 1u)
+      || (field_info_ptr->m_length_descriptor.get_num_dimensions() > 1u)));
+  //VCF header structure in htslib is a mess
   auto field_idx = bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str());
-  //bcf_hdr_idinfo_exists handles negative field idx
-  auto idinfo_exists = bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx);
+  //field name might exist in the hdr hash, but hrec might be null
+  auto field_exists_in_vcf_hdr = (field_idx >= 0)
+    && (bcf_hdr_idinfo_exists(hdr, field_type_idx, field_idx))
+    && ((bcf_hdr_id2hrec(hdr, BCF_DT_ID, field_type_idx, field_idx)) != 0);
+  //For multi-d vector fields and fields whose elements are tuples, sometimes the header
+  //information is completely wrong. It should be of type String.
+  //Do this by removing and adding the field again
+#ifdef DEBUG
+  //Correctness depends on the newly added hrec getting the exact same idx as
+  //the deleted one. In debug mode, verify this
+  auto old_field_idx_before_deletion = -1;
+#endif
+  if(is_multid_vector_or_tuple_element_field && field_exists_in_vcf_hdr)
+  {
+    //(hdr->id[BCF_DT_ID][field_idx].val->info[field_type_idx])
+      //= field_type_idx      //BCF_HL_*
+      //| (BCF_HT_STR << 4)   //String
+      //| (BCF_VL_FIXED << 8) //Fixed (since Number=1)
+      //| (1 << 12)
+      //;
+    bcf_hdr_remove(hdr, field_type_idx, field_name.c_str());
+    bcf_hdr_sync(hdr);
+    field_exists_in_vcf_hdr = false;
+#ifdef DEBUG
+    old_field_idx_before_deletion = field_idx;
+#endif
+  }
   //Field not found
-  if(idinfo_exists == 0)
+  if(!field_exists_in_vcf_hdr)
   {
     std::string header_line = "##";
     switch(field_type_idx)
@@ -87,52 +118,69 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
         header_line += ",Number=1,Type=String,Description=\"Genotype\"";
       else
       {
-        assert(id_mapper->get_field_info(field_name));
-        auto field_info = *(id_mapper->get_field_info(field_name)); 
-        if(field_info.m_bcf_ht_type != BCF_HT_FLAG)
+        assert(field_info_ptr);
+        if(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u) != BCF_HT_FLAG)
         {
           header_line += ",Number=";
-          switch(field_info.m_length_descriptor)
+          //Must be string with Number=1 in the hdr
+          if(is_multid_vector_or_tuple_element_field)
           {
-            case BCF_VL_FIXED:
-              header_line += std::to_string(field_info.m_num_elements);
-              break;
-            case BCF_VL_VAR:
-              header_line += ".";
-              break;
-            case BCF_VL_A:
-              header_line += "A";
-              break;
-            case BCF_VL_R:
-              header_line += "R";
-              break;
-            case BCF_VL_G:
-              header_line += "G";
-              break;
-            default:
-              throw VCFAdapterException("Unhandled field length descriptor "+std::to_string(field_info.m_length_descriptor));
-              break;
+            assert(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_STR);
+            header_line += "1";
+          }
+          else
+          {
+            auto& length_descriptor = field_info_ptr->m_length_descriptor;
+            switch(length_descriptor.get_length_descriptor(0u))
+            {
+              case BCF_VL_FIXED:
+                header_line += std::to_string(length_descriptor.get_num_elements());
+                break;
+              case BCF_VL_VAR:
+                header_line += ".";
+                break;
+              case BCF_VL_A:
+                header_line += "A";
+                break;
+              case BCF_VL_R:
+                header_line += "R";
+                break;
+              case BCF_VL_G:
+                header_line += "G";
+                break;
+              default:
+                throw VCFAdapterException("Unhandled field length descriptor "
+                    +std::to_string(length_descriptor.get_length_descriptor(0u)));
+                break;
+            }
           }
         }
         header_line += ",Type=";
-        switch(field_info.m_bcf_ht_type)
+        if(is_multid_vector_or_tuple_element_field)
+          header_line+="String";
+        else
         {
-          case BCF_HT_FLAG:
-            header_line += "Flag";
-            break;
-          case BCF_HT_INT:
-            header_line += "Integer";
-            break;
-          case BCF_HT_REAL:
-            header_line += "Float";
-            break;
-          case BCF_HT_CHAR:
-          case BCF_HT_STR:
-            header_line += "String";
-            break;
-          default:
-            throw VCFAdapterException("Field type "+std::to_string(field_info.m_bcf_ht_type)+" not handled");
-            break;
+          switch(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+          {
+            case BCF_HT_FLAG:
+              header_line += "Flag";
+              break;
+            case BCF_HT_INT:
+              header_line += "Integer";
+              break;
+            case BCF_HT_REAL:
+              header_line += "Float";
+              break;
+            case BCF_HT_CHAR:
+            case BCF_HT_STR:
+              header_line += "String";
+              break;
+            default:
+              throw VCFAdapterException("Field type "
+                  +std::to_string(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+                  +" not handled");
+              break;
+          }
         }
       }
     }
@@ -142,6 +190,10 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
     auto hrec = bcf_hdr_parse_line(hdr, header_line.c_str(), &line_length);
     bcf_hdr_add_hrec(hdr, hrec);
     bcf_hdr_sync(hdr);
+#ifdef DEBUG
+    if(old_field_idx_before_deletion >= 0)
+      assert(bcf_hdr_id2int(hdr, BCF_DT_ID, field_name.c_str()) == old_field_idx_before_deletion);
+#endif
     return true;
   }
   else
@@ -155,21 +207,29 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
       //Allowed configurations - both the JSON and the header specify that:
       //The field is fixed length and agree on the length OR
       //The field is variable length OR
-      //field type is BCF_HT_FLAG and VCF header says length is 0 (VCF spec), vid JSON says that length is 1
-      if(!((field_info_ptr->m_length_descriptor == BCF_VL_FIXED
+      //field type is BCF_HT_FLAG and VCF header says length is 0 (VCF spec), vid JSON says that length is 1 OR
+      //field is a string and VCF header says length is 0
+      if(!((field_info_ptr->m_length_descriptor.is_fixed_length_field()
               && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
-              && field_info_ptr->m_num_elements == static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
+              && field_info_ptr->m_length_descriptor.get_num_elements()
+              == static_cast<size_t>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)))
             ||
-            (field_info_ptr->m_length_descriptor != BCF_VL_FIXED
+            (!field_info_ptr->m_length_descriptor.is_fixed_length_field()
              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) != BCF_VL_FIXED
             )
             ||
             (field_ht_type == BCF_HT_FLAG
-             && field_info_ptr->m_length_descriptor == BCF_VL_FIXED
-             && field_info_ptr->m_num_elements == 1
+             && field_info_ptr->m_length_descriptor.is_fixed_length_field()
+             && field_info_ptr->m_length_descriptor.get_num_elements() == 1
              && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
              && static_cast<int>(bcf_hdr_id2number(hdr, field_type_idx, field_idx)) == 0
             )
+            ||
+            ((field_ht_type == BCF_HT_CHAR || field_ht_type == BCF_HT_STR)
+             && !(field_info_ptr->m_length_descriptor.is_fixed_length_field())
+             && field_ht_type == BCF_HT_STR
+             && bcf_hdr_id2length(hdr, field_type_idx, field_idx) == BCF_VL_FIXED
+             && bcf_hdr_id2number(hdr, field_type_idx, field_idx) == 1)
           )
         )
         throw VCFAdapterException(std::string("Conflicting field length descriptors and/or field lengths in the vid JSON and VCF header for field ")+field_name);
@@ -183,8 +243,11 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
            { BCF_HT_CHAR, { BCF_HT_CHAR, BCF_HT_STR } },
            { BCF_HT_STR, { BCF_HT_CHAR, BCF_HT_STR } }
       };
-      if(compatible_types.find(field_ht_type) != compatible_types.end()
-          && compatible_types[field_ht_type].find(field_info_ptr->m_bcf_ht_type) == compatible_types[field_ht_type].end())
+      if(
+          compatible_types.find(field_ht_type) != compatible_types.end()
+          && compatible_types[field_ht_type].find(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u))
+            == compatible_types[field_ht_type].end()
+          )
         throw VCFAdapterException(std::string("Conflicting data types in the vid JSON and VCF header for field ")+field_name);
     }
   }

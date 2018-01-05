@@ -40,13 +40,13 @@ class OutOfBoundsQueryException : public std::exception {
     std::string msg_;
 };
 
-class UnknownQueryAttributeException {
+class UnknownQueryAttributeException : public std::exception {
   public:
     UnknownQueryAttributeException(const std::string m="Invalid queried attribute") : msg_(m) { ; }
     ~UnknownQueryAttributeException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
-    const std::string& what() const { return msg_; }
+    const char* what() const noexcept { return msg_.c_str(); }
   private:
     std::string msg_;
 };
@@ -58,18 +58,16 @@ class VariantQueryConfig
     {
       public:
         VariantQueryFieldInfo(const std::string& name, const int schema_idx)
-          : m_name(name), m_schema_idx(schema_idx), m_element_type(typeid(void))
+          : m_name(name), m_schema_idx(schema_idx), m_vid_field_info(0)
         {
-          m_length_descriptor = BCF_VL_FIXED;
-          m_num_elements = 1u;
-          m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION; 
         }
-        int m_schema_idx;
-        int m_length_descriptor;
-        int m_num_elements;
-        int m_VCF_field_combine_operation;
+        VariantQueryFieldInfo(const FieldInfo& vid_field_info, const int schema_idx)
+          : m_schema_idx(schema_idx), m_vid_field_info(&vid_field_info)
+        {
+        }
         std::string m_name;
-        std::type_index m_element_type;
+        int m_schema_idx;
+        const FieldInfo* m_vid_field_info;
     };
   public:
     VariantQueryConfig()
@@ -158,36 +156,45 @@ class VariantQueryConfig
     /*
      * Attributes info parameters
      */
-    void set_query_attribute_info_parameters(const unsigned query_field_idx,
-        const std::type_index element_type, int length_descriptor, int num_elements,
-        int VCF_field_combine_operation)
+    void set_query_attribute_info(const unsigned query_field_idx,
+        const FieldInfo& vid_field_info)
     {
       assert(query_field_idx < m_query_attributes_info_vec.size());
-      auto& attribute_info = m_query_attributes_info_vec[query_field_idx];
-      attribute_info.m_element_type = element_type;
-      attribute_info.m_length_descriptor = length_descriptor;
-      attribute_info.m_num_elements = num_elements;
-      attribute_info.m_VCF_field_combine_operation = VCF_field_combine_operation;
+      m_query_attributes_info_vec[query_field_idx].m_vid_field_info = &vid_field_info;
     }
-    int get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
+    /*
+     * Flattens composite fields into multiple fields, rearranges
+     * m_query_attributes_info_vec and sets m_query_attribute_name_to_query_idx
+     */
+    void flatten_composite_fields(const VidMapper& vid_mapper);
+    const FieldLengthDescriptor& get_length_descriptor_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_length_descriptor;
+      assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
+      return m_query_attributes_info_vec[query_idx].m_vid_field_info->m_length_descriptor;
     }
     int get_num_elements_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_num_elements;
+      return get_length_descriptor_for_query_attribute_idx(query_idx).get_num_elements();
     }
     int get_VCF_field_combine_operation_for_query_attribute_idx(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_VCF_field_combine_operation;
+      assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
+      return m_query_attributes_info_vec[query_idx].m_vid_field_info->m_VCF_field_combine_operation;
     }
     std::type_index get_element_type(const unsigned query_idx) const
     {
       assert(query_idx < m_query_attributes_info_vec.size());
-      return m_query_attributes_info_vec[query_idx].m_element_type;
+      assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
+      return m_query_attributes_info_vec[query_idx].m_vid_field_info->get_genomicsdb_type().get_tuple_element_type_index(0u);
+    }
+    const FieldInfo* get_field_info_for_query_attribute_idx(const unsigned query_idx) const
+    {
+      assert(query_idx < m_query_attributes_info_vec.size());
+      assert(m_query_attributes_info_vec[query_idx].m_vid_field_info);
+      return (m_query_attributes_info_vec[query_idx].m_vid_field_info);
     }
     /*
      * Re-order query fields so that special fields like COORDS,END,NULL,OFFSET,ALT are first
