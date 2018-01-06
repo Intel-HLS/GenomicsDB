@@ -38,12 +38,12 @@ import java.io.Serializable;
  */
 class GenomicsDBPartitionInfo implements Serializable {
 
-  private Integer beginPosition;
+  private long beginPosition;
   private String tileDBWorkspace;
   private String tileDBArrayName;
   private String VCFOutputFileName;
 
-  public GenomicsDBPartitionInfo(Integer pos,
+  public GenomicsDBPartitionInfo(long pos,
                                  String workspace, String arrayName, String vcfOutput) {
     beginPosition = pos;
     tileDBWorkspace = workspace;
@@ -51,9 +51,14 @@ class GenomicsDBPartitionInfo implements Serializable {
     VCFOutputFileName = vcfOutput;
   }
 
+  public GenomicsDBPartitionInfo(GenomicsDBPartitionInfo copy) {
+    this(copy.getBeginPosition(), copy.getWorkspace(), copy.getArrayName(),
+           copy.getVcfOutputFileName());
+  }
+
   @Override
   public String toString() {
-    String out = beginPosition.toString() + " ";
+    String out = String.valueOf(beginPosition) + " ";
     out += tileDBWorkspace + " ";
     out += tileDBArrayName + " ";
     out += VCFOutputFileName;
@@ -70,5 +75,40 @@ class GenomicsDBPartitionInfo implements Serializable {
     ObjectMapper mapper = new ObjectMapper();
     mapper.writeValueAsString(toString());
     return mapper.toString();
+  }
+
+  public long getBeginPosition() {
+    return beginPosition;
+  }
+
+  public String getWorkspace() {
+    return tileDBWorkspace;
+  }
+
+  public String getArrayName() {
+    return tileDBArrayName;
+  }
+
+  public String getVcfOutputFileName() {
+    return VCFOutputFileName;
+  }
+
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (obj instanceof GenomicsDBPartitionInfo) {
+      GenomicsDBPartitionInfo p = (GenomicsDBPartitionInfo) obj;
+      return p.getBeginPosition()==getBeginPosition() &&
+              p.getArrayName().equals(getArrayName()) && 
+              p.getWorkspace().equals(getWorkspace()) && 
+              p.getVcfOutputFileName().equals(getVcfOutputFileName());
+    }
+    else {
+      return false;
+    } 
   }
 }

@@ -23,14 +23,20 @@
 package com.intel.genomicsdb;
 
 import org.apache.hadoop.conf.Configuration;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Iterator;
 
 /**
  * The configuration class enables users to use Java/Scala
@@ -52,7 +58,10 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
   private Integer segmentSize = 1000;
   private Integer nCellsPerTile = 1000;
 
-  private LinkedList<GenomicsDBPartitionInfo> partitionInfoList = null;
+  private ArrayList<GenomicsDBPartitionInfo> partitionInfoList = null;
+  private ArrayList<GenomicsDBQueryInfo> queryInfoList = null;
+  private long QueryBlockSize = 10000;
+  private long QueryBlockSizeMargin = 500;
 
   public GenomicsDBConfiguration(Configuration configuration) throws FileNotFoundException {
     super(configuration);
@@ -140,9 +149,118 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
 
   private void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {
     if (partitionInfoList==null) {
-      partitionInfoList = new LinkedList<>();
+      partitionInfoList = new ArrayList<>();
     }
-    partitionInfoList.push(genomicsDBPartitionInfo);
+    partitionInfoList.add(genomicsDBPartitionInfo);
+  }
+
+  /**
+   * Return partition list; used when creating input splits.
+   * @return Returns ArrayList of PartitionInfo objects
+   */
+  ArrayList<GenomicsDBPartitionInfo> getPartitions() {
+    return partitionInfoList;
+  }
+
+  /**
+   * Return query range list; used when creating input splits.
+   * @return Returns ArrayList of QueryRange objects
+   */
+  ArrayList<GenomicsDBQueryInfo> getQueryRanges() {
+    return queryInfoList;
+  }
+
+  /**
+   * Return value used to determine optimal query size when creating InputSplits
+   * @return Returns QueryBlockSize
+   */
+  long getQueryBlockSize() {
+    return QueryBlockSize;
+  }
+
+  /**
+   * Return value used to determine "slop" for optimal query size when creating InputSplits
+   * @return Returns QueryBlockSizeMargin
+   */
+  long getQueryBlockSizeMargin() {
+    return QueryBlockSizeMargin;
+  }
+
+  private void readColumnPartitions(JSONObject obj) throws ParseException {
+    if (partitionInfoList==null) {
+      partitionInfoList = new ArrayList<>();
+    }
+    JSONArray colPar = (JSONArray)obj.get("column_partitions");
+    Iterator<JSONObject> it = colPar.iterator();
+    while (it.hasNext()) {
+      JSONObject obj0 = (JSONObject)it.next();
+      long begin = 0;
+      String workspace = null, array = null, vcf_output_filename = null;
+
+      begin = (long)obj0.get("begin");
+      workspace = (String)obj0.get("workspace");
+      array = (String)obj0.get("array");
+      vcf_output_filename = (String)obj0.get("vcf_output_filename");
+      partitionInfoList.add(new GenomicsDBPartitionInfo(begin, workspace, array, vcf_output_filename));
+    }
+  }
+
+  private void readQueryRanges(JSONObject obj) throws ParseException {
+    if (queryInfoList==null) {
+      queryInfoList = new ArrayList<>();
+    }
+    // query_column_ranges is a list of lists; we'll only grab first one
+    // Assuming here that query file to Spark interface doesn't have a notion
+    // of trying to assign certain queries to certain processes or ranks
+    assert obj.containsKey("query_column_ranges");
+    JSONArray array = (JSONArray)obj.get("query_column_ranges");
+    JSONArray firstList = (JSONArray)array.get(0);
+    for (Object currElement : firstList) {
+      long start = 0, end = 0;
+      if (currElement instanceof JSONArray) {
+        JSONArray val = (JSONArray)currElement;
+	assert val.size() == 2;
+        start = (long)val.get(0);
+        end = (long)val.get(1);
+      }
+      else if (currElement instanceof JSONObject) {
+        JSONObject val = (JSONObject)currElement;
+	assert val.size() == 1;
+        start = end = (long)val.get(0);
+      }
+      else {
+        start = end = (long)currElement;
+      }
+      queryInfoList.add(new GenomicsDBQueryInfo(start, end));
+    }
+
+    if(obj.containsKey("query_block_size")) {
+      QueryBlockSize = (long)obj.get("query_block_size");
+    }
+    if(obj.containsKey("query_block_size_margin")) {
+      QueryBlockSizeMargin = (long)obj.get("query_block_size_margin");
+    }
+  }
+
+  /**
+   * parse json file to populate ArrayList
+   * Assuming here that using the Spark interface implies column partitions
+   * @param jsonType json file to use while loading - either LOADERJSON or QUERYJSON
+   * @throws FileNotFoundException  Thrown if queryJson file isn't found
+   * @throws IOException  Thrown if other IO exception while handling file operations
+   * @throws ParseException  Thrown if JSON parsing fails
+   */
+  void populateListFromJson(String jsonType) 
+		  throws FileNotFoundException, IOException, ParseException {
+    JSONParser parser = new JSONParser();
+    JSONObject obj = (JSONObject)parser.parse(new FileReader(get(jsonType)));
+
+    if (jsonType.equals(LOADERJSON)) {
+      readColumnPartitions(obj);
+    }
+    else if (jsonType.equals(QUERYJSON)) {
+      readQueryRanges(obj);
+    }
   }
 }
 
