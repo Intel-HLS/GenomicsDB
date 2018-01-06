@@ -298,6 +298,16 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     //Could be -1
     m_global_field_idx_to_hdr_idx[i] = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_ID, field_info.m_vcf_name.c_str());
   }
+  //Since the header might have been modified and might be streamed into Java and BCF2Codec doesn't
+  //deal with BCF IDX attributes, clean up the header completely by serializing and deserializing
+  std::vector<uint8_t> tmp_buffer(10000u);
+  while(bcf_hdr_serialize(m_vcf_hdr, &(tmp_buffer[0u]), 0u, tmp_buffer.size()-1u, 0, 0) == 0u)
+    tmp_buffer.resize(2*tmp_buffer.size());
+  bcf_hdr_destroy(m_vcf_hdr);
+  m_vcf_hdr = bcf_hdr_init("r");
+  auto hdr_offset = bcf_hdr_deserialize(m_vcf_hdr, &(tmp_buffer[0u]), 0u, tmp_buffer.size(), 0);
+  assert(hdr_offset > 0u);
+  m_vcf_adapter->set_vcf_header(m_vcf_hdr);
   m_vcf_adapter->print_header();
   //vector of field pointers used for handling remapped fields when dealing with spanning deletions
   //Individual pointers will be allocated later

@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     }
   }
   std::vector<uint8_t> buffer(page_size > 0u ? page_size : 100u); 
-  assert(json_config_file.length() > 0u && loader_json_config_file.length() > 0u);
+  //assert(json_config_file.length() > 0u && loader_json_config_file.length() > 0u);
   GenomicsDBBCFGenerator bcf_reader(loader_json_config_file, json_config_file, my_world_mpi_rank, page_size, std::max<size_t>(page_size, 1024u),
       output_format.c_str());
   while(!(bcf_reader.end()))

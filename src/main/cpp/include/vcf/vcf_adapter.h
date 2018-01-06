@@ -103,6 +103,7 @@ class VCFAdapter
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
+    void set_vcf_header(bcf_hdr_t* hdr) {  m_template_vcf_hdr = hdr; }
     /*
      * The line is ready for output
      * Child classes might actually just swap out the pointer so that the actual output is performed by
