@@ -51,7 +51,8 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     ARGS_IDX_VIDMAP_OUTPUT(1003),
     ARGS_IDX_CALLSET_OUTPUT(1004),
     ARGS_IDX_PASS_AS_BCF(1005),
-    ARGS_IDX_AFTER_LAST_ARG_IDX(1006);
+    ARGS_IDX_VCF_HEADER_OUTPUT(1006),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1007);
 
     private final int mArgsIdx;
     ArgsIdxEnum(final int idx)
@@ -68,7 +69,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     throws IOException, GenomicsDBException, ParseException
   {
     final int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx();
-    LongOpt[] longopts = new LongOpt[9];
+    LongOpt[] longopts = new LongOpt[10];
     longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
     longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
     longopts[2] = new LongOpt("interval", LongOpt.REQUIRED_ARGUMENT, null, 'L');
@@ -78,6 +79,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     longopts[6] = new LongOpt("vidmap-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_VIDMAP_OUTPUT.idx());
     longopts[7] = new LongOpt("callset-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CALLSET_OUTPUT.idx());
     longopts[8] = new LongOpt("pass-as-bcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_BCF.idx());
+    longopts[9] = new LongOpt("vcf-header-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_VCF_HEADER_OUTPUT.idx());
     //Arg parsing
     Getopt g = new Getopt("TestGenomicsDBImporterWithMergedVCFHeader", args, "w:A:L:", longopts);
     int c = -1;
@@ -92,6 +94,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     int batchSize = 1000000;
     String vidmapOutputFilepath = null;
     String callsetOutputFilepath = null;
+    String vcfHeaderOutputFilepath = null;
     boolean passAsVcf = true;
     while ((c = g.getopt()) != -1)
     {
@@ -128,6 +131,9 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
                   break;
                 case ARGS_IDX_CALLSET_OUTPUT:
                   callsetOutputFilepath = new String(g.getOptarg());
+                  break;
+                case ARGS_IDX_VCF_HEADER_OUTPUT:
+                  vcfHeaderOutputFilepath = new String(g.getOptarg());
                   break;
                 case ARGS_IDX_PASS_AS_BCF:
                   passAsVcf = false;
@@ -191,6 +197,10 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
     //Write out callset map if needed
     if(callsetOutputFilepath != null)
         GenomicsDBImporter.writeCallsetMapJSONFile(callsetOutputFilepath, callsetMappingPB);
+
+    //write out merged header if needed
+    if(vcfHeaderOutputFilepath != null)
+        GenomicsDBImporter.writeVcfHeaderFile(vcfHeaderOutputFilepath, mergedHeader);
 
     //Iterate over sorted sample list in batches
     for(int i=0;i<sampleNames.size();i+=batchSize)

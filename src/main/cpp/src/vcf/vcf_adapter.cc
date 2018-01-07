@@ -71,11 +71,10 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
   //For multi-d vector fields and fields whose elements are tuples, sometimes the header
   //information is completely wrong. It should be of type String.
   //Do this by removing and adding the field again
-#ifdef DEBUG
   //Correctness depends on the newly added hrec getting the exact same idx as
   //the deleted one. In debug mode, verify this
   auto old_field_idx_before_deletion = -1;
-#endif
+  std::string description_value;
   if(is_multid_vector_or_tuple_element_field && field_exists_in_vcf_hdr)
   {
     //(hdr->id[BCF_DT_ID][field_idx].val->info[field_type_idx])
@@ -84,12 +83,14 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
       //| (BCF_VL_FIXED << 8) //Fixed (since Number=1)
       //| (1 << 12)
       //;
+    auto hrec = (bcf_hdr_id2hrec(hdr, BCF_DT_ID, field_type_idx, field_idx));
+    auto description_idx = bcf_hrec_find_key(hrec, "Description");
+    if(description_idx >= 0)
+      description_value = hrec->vals[description_idx];
     bcf_hdr_remove(hdr, field_type_idx, field_name.c_str());
     bcf_hdr_sync(hdr);
     field_exists_in_vcf_hdr = false;
-#ifdef DEBUG
     old_field_idx_before_deletion = field_idx;
-#endif
   }
   //Field not found
   if(!field_exists_in_vcf_hdr)
@@ -184,7 +185,10 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
         }
       }
     }
-    header_line += ",Description=\""+field_name+"\"";
+    if(old_field_idx_before_deletion >=0 && !description_value.empty())
+      header_line += ",Description="+description_value; //looks like description_value has " internally
+    else
+      header_line += ",Description=\""+field_name+"\"";
     header_line += ">";
     int line_length = 0;
     auto hrec = bcf_hdr_parse_line(hdr, header_line.c_str(), &line_length);
