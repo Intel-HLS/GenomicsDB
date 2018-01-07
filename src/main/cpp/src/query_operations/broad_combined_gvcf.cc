@@ -411,6 +411,7 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
     const unsigned query_idx_bin, const unsigned query_idx_count, std::string& result_str)
 {
   auto num_valid_elements = 0ull;
+  auto num_calls_with_field = 0ull;
   assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_bin).get_num_dimensions() == 2u);
   assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_count).get_num_dimensions() == 2u);
   auto vid_field_info_bin = query_config.get_field_info_for_query_attribute_idx(query_idx_bin);
@@ -468,9 +469,10 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
         index_bin.advance_index_in_current_dimension();
         index_count.advance_index_in_current_dimension();
       }
+      ++num_calls_with_field;
     }
   }
-  if(num_valid_elements == 0u)
+  if(num_calls_with_field == 0u)
     return false;
   auto& length_descriptor = vid_field_info_bin->m_length_descriptor;
   assert(length_descriptor.get_num_dimensions() == 2u);
