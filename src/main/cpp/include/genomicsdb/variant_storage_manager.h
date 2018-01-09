@@ -208,7 +208,7 @@ class VariantStorageManager
     /*
      * Wrapper functions around the C-API
      */
-    bool check_if_TileDB_array_exists(const std::string& array_name);
+    static bool check_if_TileDB_object_exists(TileDB_CTX* tiledb_ctx, const std::string& path, const std::string& obj_name, const int obj_type);
     int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
         const int tiledb_zlib_compression_level=TILEDB_COMPRESSION_LEVEL_GZIP);
     void close_array(const int ad, const bool consolidate_tiledb_array=false);

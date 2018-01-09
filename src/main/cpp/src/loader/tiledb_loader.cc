@@ -1048,46 +1048,80 @@ void VCF2TileDBLoader::clear()
 int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
 {
   assert(workspace);
-  //Create workspace if it does not exist
-  struct stat st;
-  auto status = stat(workspace, &st);
   int returnval = 0;
-  //Exists and is not a directory
-  if(status >= 0 && !S_ISDIR(st.st_mode))
+  //Create workspace if it does not exist
+  TileDB_CTX* tiledb_ctx = 0;
+  std::string _workspace = workspace;
+  size_t found = _workspace.find("://");
+  if(found != std::string::npos)
   {
-    std::cerr << "Workspace path " << workspace << " exists and is not a directory\n";
-    returnval = -1;
+    size_t find_namenode = _workspace.find("/", found+3);
+    std::string tiledb_home = _workspace.substr(0, find_namenode)+"/home/hadoop/.tiledb";
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = tiledb_home.c_str();
+    tiledb_config.read_method_ = TILEDB_IO_READ;
+    tiledb_config.write_method_ = TILEDB_IO_WRITE;
+    if(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) != TILEDB_OK)
+    {
+      std::cerr << "Failed into init TileDB CTX\n";
+      returnval = -1;
+    }
+    std::cerr<<"Using tiledb home "<<tiledb_home<<"\n";
   }
   else
   {
-    if(status >= 0)
+    if(tiledb_ctx_init(&tiledb_ctx, NULL) != TILEDB_OK)
     {
-      auto workspace_file = std::string(workspace)+ "/__tiledb_workspace.tdb";
-      status = stat(workspace_file.c_str(), &st);
-      //__tiledb_workspace.tdb not found or is not a file
-      if(status != 0 || !S_ISREG(st.st_mode))
-      {
-        std::cerr << "Directory " << workspace
-          << " exists, but is not a TileDB workspace (doesn't contain regular file __tiledb_workspace.tdb)\n";
-        returnval = -1;
-      }
+      std::cerr << "Failed into init TileDB CTX\n";
+      returnval = -1;
     }
-    else  //Doesn't exist, create workspace
+    std::cerr<<"Using default tiledb home\n";
+  }
+
+  //Create workspace if it does not exist
+  //Using tiledb_workspace_ls here instead of stat to avoid POSIX dependency
+  char** ws_entries = new char*[1024];
+  int num_workspaces = 1024;
+  for(auto i=0ull;i<1024;++i)
+    ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+  if(tiledb_ls_workspaces(tiledb_ctx, ws_entries, &num_workspaces) != TILEDB_OK)
+  {
+    std::cerr << "Could not list TileDB workspaces when looking for workspaces\n";
+    returnval = -1;
+  }
+  auto status = 1;
+  // for comparing against workspaces with URL, remove that prefix. Or should the underlying
+  // FS support return workspaces with that prefix?
+  found = _workspace.find(":80");
+  std::string trimmed_workspace = workspace;
+  if(found!=std::string::npos)
+  {
+    trimmed_workspace = _workspace.substr(found+5, std::string::npos);
+  }
+  for(auto i=0;i<num_workspaces;++i)
+  {
+    status = strcmp(ws_entries[i], trimmed_workspace.c_str());
+    if (status == 0)
+      break;
+  }
+  //assume that tiledb_workspace_create will error out if workspace path exists but not as a directory
+  //Doesn't exist, create workspace
+  if(status != 0)
+  {
+    if(tiledb_workspace_create(tiledb_ctx, _workspace.c_str()) != TILEDB_OK)
     {
-      TileDB_CTX* tiledb_ctx = 0;
-      /*Initialize context with default params*/
-      auto status = tiledb_ctx_init(&tiledb_ctx, NULL);
-      VERIFY_OR_THROW(status == TILEDB_OK);
-      if(tiledb_workspace_create(tiledb_ctx, workspace) != TILEDB_OK)
-      {
-        std::cerr << "Failed to create workspace "<<workspace<<"\n";
-        returnval = -2;
-      }
-      else
-        std::cerr << "Created workspace "<<workspace<<"\n";
-      tiledb_ctx_finalize(tiledb_ctx);
+      std::cerr << "Could not create workspace "<<_workspace<<"\n";
+      returnval = -2;
+    }
+    else
+    {
+      std::cerr << "Created workspace "<<_workspace<<"\n";
     }
   }
+	
+  for(auto i=0ull;i<1024;++i)
+    delete[] ws_entries[i];
+  tiledb_ctx_finalize(tiledb_ctx);
   return returnval;
 }
 

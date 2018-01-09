@@ -274,7 +274,8 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
   const auto& dim_domains = m_schema.dim_domains();
   m_max_valid_row_idx_in_array = dim_domains[0].second;
   //Try reading from metadata
-  if(m_metadata_filename.length())
+  //If no :// in workspace, we're using json file for metadata
+  if(!m_workspace.contains("://") && m_metadata_filename.length())
   {
     std::ifstream ifs(m_metadata_filename.c_str());
     if(ifs.is_open())
@@ -291,6 +292,28 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
       }
     }
   }
+  //If :// in workspace, we're using TileDB metadata for metadata storage
+  else if(m_workspace.contains("://") && 
+		  VariantStorageManager::check_if_TileDB_object_exists(m_workspace+"/"+m_name, "genomicsdb_meta.json", TILEDB_METADATA))
+  {
+    const char* attributes[] = {"max_valid_row_idx_in_array"};
+
+    TileDB_Metadata* tiledb_metadata;
+    tiledb_metadata_init(m_tiledb_ctx, &tiledb_metadata, GET_METADATA_PATH(m_workspace, m_name).c_str(),
+		    TILEDB_METADATA_READ, attributes, 1);
+
+    int64_t buffer_max_valid_row_idx_in_array[1];
+    void *buffers[] = {buffer_max_valid_row_idx_in_array};
+    size_t buffer_sizes[] = {sizeof(buffer_max_valid_row_idx_in_array)};
+
+    auto status = tiledb_metadata_read(tiledb_metadata, "row", buffers, buffer_sizes);
+    VERIFY_OR_THROW(status==TILEDB_OK && "Error reading from genomicsdb metadata");
+    if(buffer_sizes[0]!=0 || tiledb_metadata_overflow(tiledb_metadata, 0))
+    {
+      m_max_valid_row_idx_in_array = static_cast<int64_t*>(buffers[0])[0];
+      m_metadata_contains_max_valid_row_idx_in_array = true;
+    }
+  }
 }
 
 void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
@@ -305,17 +328,52 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
       || (max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
   {
     m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
-    rapidjson::Document json_doc;
-    json_doc.SetObject();
-    json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
-    json_doc.AddMember("max_valid_row_idx_in_array", max_valid_row_idx_in_array, json_doc.GetAllocator());
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-    json_doc.Accept(writer);
-    auto* fptr = fopen(metadata_filename.c_str(), "w");
-    VERIFY_OR_THROW(fptr);
-    fwrite(reinterpret_cast<const void*>(buffer.GetString()), 1u, strlen(buffer.GetString()), fptr);
-    fclose(fptr);
+
+    //If :// in workspace, we're using TileDB metadata for metadata storage
+    if(m_workspace.contains("://"))
+    {
+      TileDB_Metadata* tiledb_metadata;
+      tiledb_metadata_init(m_tiledb_ctx, &tiledb_metadata, GET_METADATA_PATH(m_workspace, m_name).c_str(),
+  		    TILEDB_METADATA_WRITE, NULL, 0);
+      int64_t buffer_lb_row_idx[] = {lb_row_idx};
+      int64_t buffer_max_valid_row_idx_in_array[] = {max_valid_row_idx_in_array};
+      char buffer_var_keys[] = "row";
+      size_t buffer_keys[] = {0};
+      const void* buffers[] = { buffer_lb_row_idx, buffer_max_valid_row_idx_in_array, buffer_keys, buffer_var_keys };
+      size_t buffer_sizes[] = { sizeof(buffer_lb_row_idx), sizeof(buffer_max_valid_row_idx_in_array),
+  	    sizeof(buffer_keys), sizeof(buffer_var_keys) };
+      size_t keys_size = sizeof(buffer_var_keys);
+  
+      auto status = tiledb_metadata_write(
+          // Metadata object
+  	tiledb_metadata,
+  	//Keys
+  	buffer_var_keys,
+  	// Keys sizes
+  	keys_size,
+  	// Attribute buffers
+  	buffers,
+  	// Attribute buffer sizes
+  	buffer_sizes);
+  
+      VERIFY_OR_THROW(status==TILEDB_OK && "Error writing genomicsdb metadata");
+      tiledb_metadata_finalize(tiledb_metadata);
+    }
+    //If no :// in workspace, we're using json file for metadata
+    else
+    {
+      rapidjson::Document json_doc;
+      json_doc.SetObject();
+      json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
+      json_doc.AddMember("max_valid_row_idx_in_array", max_valid_row_idx_in_array, json_doc.GetAllocator());
+      rapidjson::StringBuffer buffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+      json_doc.Accept(writer);
+      auto* fptr = fopen(metadata_filename.c_str(), "w");
+      VERIFY_OR_THROW(fptr);
+      fwrite(reinterpret_cast<const void*>(buffer.GetString()), 1u, strlen(buffer.GetString()), fptr);
+      fclose(fptr);
+    }
   }
 }
 
@@ -359,54 +417,81 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
   m_workspace = workspace;
   m_segment_size = segment_size;
   /*Initialize context with default params*/
-  tiledb_ctx_init(&m_tiledb_ctx, NULL);
+  size_t found = workspace.find("://");
+  if(found != std::string::npos)
+  {
+    size_t find_namenode = workspace.find("/", found+3);
+    std::string tiledb_home = workspace.substr(0, find_namenode)+"/home/hadoop/.tiledb";
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = tiledb_home.c_str();
+    tiledb_config.read_method_ = TILEDB_IO_READ;
+    tiledb_config.write_method_ = TILEDB_IO_WRITE;
+    tiledb_ctx_init(&m_tiledb_ctx, &tiledb_config);
+    std::cerr<<"Using tiledb home "<<tiledb_home<<"\n";
+  }
+  else
+  {
+    tiledb_ctx_init(&m_tiledb_ctx, NULL);
+  }
+
   //Create workspace if it does not exist
-  struct stat st;
-  auto status = stat(workspace.c_str(), &st);
-  //Exists and is not a directory
-  if(status >= 0 && !S_ISDIR(st.st_mode))
-    throw VariantStorageManagerException(std::string("Workspace path ")+workspace+" exists and is not a directory");
+  //Using tiledb_workspace_ls here instead of stat to avoid POSIX dependency
+  char** ws_entries = new char*[1024];
+  int num_workspaces = 1024;
+  for(auto i=0ull;i<1024;++i)
+    ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+  VERIFY_OR_THROW(tiledb_ls_workspaces(m_tiledb_ctx, ws_entries, &num_workspaces) == TILEDB_OK);
+  auto status = 1;
+  for(auto i=0;i<num_workspaces;++i)
+  {
+    status = strcmp(ws_entries[i], workspace.c_str());
+    if (status == 0)
+      break;
+  }
+  //assume that tiledb_workspace_create will error out if workspace path exists but not as a directory
   //Doesn't exist, create workspace
-  if(status < 0)
+  if(status != 0)
     VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
+  for(auto i=0ull;i<1024;++i)
+    delete[] ws_entries[i];
 }
 
-bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& array_name)
+static bool VariantStorageManager::check_if_TileDB_object_exists(TileDB_CTX* tiledb_ctx, const std::string& path, const std::string& obj_name, const int obj_type)
 {
   //Use tiledb_ls call to avoid non-faulty error message while trying to init array during loading
-  std::vector<char*> ws_entries(1024u);
-  std::vector<int> ws_entry_types;
-  for(auto i=0ull;i<ws_entries.size();++i)
-    ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+  std::vector<char*> path_entries(1024u);
+  std::vector<int> path_entry_types;
+  for(auto i=0ull;i<path_entries.size();++i)
+    path_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
   auto num_entries = 0;
   auto ls_status = TILEDB_ERR;
-  while(ls_status == TILEDB_ERR && ws_entries.size() < 100000ll) //cutoff if too many entries in workspace
+  while(ls_status == TILEDB_ERR && path_entries.size() < 100000ll) //cutoff if too many entries in workspace
   {
-    num_entries = ws_entries.size();
-    ws_entry_types.resize(ws_entries.size());
-    ls_status = tiledb_ls(m_tiledb_ctx, m_workspace.c_str(), &(ws_entries[0]), &(ws_entry_types[0]), &num_entries);
+    num_entries = path_entries.size();
+    path_entry_types.resize(path_entries.size());
+    ls_status = tiledb_ls(tiledb_ctx, path.c_str(), &(path_entries[0]), &(path_entry_types[0]), &num_entries);
     if(ls_status == TILEDB_ERR)
     {
       std::cerr << "[GenomicsDB::VariantStorageManager] INFO: ignore message \"[TileDB::StorageManager] Error: Cannot list TileDB directory; Directory buffer overflow.\" in the previous line\n";
-      auto old_size = ws_entries.size();
-      ws_entries.resize(2u*ws_entries.size()+1u);
-      for(auto i=old_size;i<ws_entries.size();++i)
-        ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+      auto old_size = path_entries.size();
+      path_entries.resize(2u*path_entries.size()+1u);
+      for(auto i=old_size;i<path_entries.size();++i)
+        path_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
     }
   }
   if(ls_status == TILEDB_ERR)
     throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 100K entries");
-  auto string_length = std::min<size_t>(array_name.length(), TILEDB_NAME_MAX_LEN);
-  auto array_exists = false;
+  auto string_length = std::min<size_t>(obj_name.length(), TILEDB_NAME_MAX_LEN);
+  auto obj_exists = false;
   for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
   {
-    if(ws_entry_types[i] == TILEDB_ARRAY && strncmp(array_name.c_str(), ws_entries[i], string_length) == 0)
-      array_exists = true;
-    delete[] ws_entries[i];
+    if(path_entry_types[i] == obj_type && strncmp(obj_name.c_str(), path_entries[i], string_length) == 0)
+      obj_exists = true;
+    delete[] path_entries[i];
   }
-  for(auto i=static_cast<size_t>(num_entries);i<ws_entries.size();++i)
-    delete[] ws_entries[i];
-  return array_exists;
+  for(auto i=static_cast<size_t>(num_entries);i<path_entries.size();++i)
+    delete[] path_entries[i];
+  return obj_exists;
 }
 
 int VariantStorageManager::open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
@@ -415,7 +500,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
   auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
   VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
   auto mode_int = (*mode_iter).second;
-  auto array_exists = check_if_TileDB_array_exists(array_name);
+  auto array_exists = VariantStorageManager::check_if_TileDB_object_exists(m_tiledb_ctx, m_workspace, array_name, TILEDB_ARRAY);
   if(array_exists)
   {
     //Try to open the array
@@ -433,11 +518,21 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
       VariantArraySchema tmp_schema;
       get_array_schema(array_name, &tmp_schema);
       //Check for metadata JSON file
-      auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
-      if(fptr == 0) //file doesn't exist
+      //If :// in workspace, we're using TileDB metadata for metadata storage
+      if(m_workspace.contains("://") && 
+  	    !VariantStorageManager::check_if_TileDB_object_exists(m_workspace+"/"+array_name, "genomicsdb_meta.json", TILEDB_METADATA))
+      {
         define_metadata_schema(&tmp_schema);
-      else
-        fclose(fptr);
+      }
+      //If no :// in workspace, we're using json file for metadata storage
+      else if(!m_workspace.contains("://"))
+      {
+        auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
+        if(fptr == 0) //file doesn't exist
+          define_metadata_schema(&tmp_schema);
+        else
+          fclose(fptr);
+      }
       m_open_arrays_info_vector.emplace_back(idx, mode_int,
           m_workspace, array_name,
           vid_mapper, tmp_schema,
@@ -535,11 +630,21 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
 
 void VariantStorageManager::delete_array(const std::string& array_name)
 {
-  auto array_exists = check_if_TileDB_array_exists(array_name);
+  auto array_exists = VariantStorageManager::check_if_TileDB_object_exists(m_tiledb_ctx, m_workspace, array_name, TILEDB_ARRAY);
   if(array_exists)
   {
     remove(GET_METADATA_PATH(m_workspace, array_name).c_str());
-    auto status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
+    auto status = TILEDB_ERR;
+    if(m_workspace.contains("://"))
+    {
+      status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name+"/genomicsdb_meta.json").c_str());
+      VERIFY_OR_THROW(status == TILEDB_OK);
+      status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
+    }
+    else 
+    {
+      status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
+    }
     VERIFY_OR_THROW(status == TILEDB_OK);
   }
 }
@@ -547,16 +652,51 @@ void VariantStorageManager::delete_array(const std::string& array_name)
 //Define metadata
 int VariantStorageManager::define_metadata_schema(const VariantArraySchema* variant_array_schema)
 {
-  auto* fptr = fopen(GET_METADATA_PATH(m_workspace, variant_array_schema->array_name()).c_str(), "w");
-  VERIFY_OR_THROW(fptr);
-  //Create empty JSON
-  rapidjson::Document d;
-  d.SetObject();
-  rapidjson::StringBuffer buffer;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-  d.Accept(writer);
-  fwrite(buffer.GetString(), 1, strlen(buffer.GetString()), fptr);
-  fclose(fptr);
+  if(m_workspace.contains("://"))
+  {
+    const char* attributes[] = {"lb_row_index", "max_valid_row_idx_in_array"};
+    // no compression for TILEDB_KEY
+    const int compression[] = {TILEDB_GZIP, TILEDB_GZIP, TILEDB_NO_COMPRESSION};
+    const int types[] = {TILEDB_INT64, TILEDB_INT64};
+  
+    TileDB_MetadataSchema metadata_schema;
+    memset(&metadata_schema, 0, sizeof(TileDB_MetadataSchema));
+    tiledb_metadata_set_schema(
+        // The metadata schema struct
+        &metadata_schema,
+        // Metadata name
+        GET_METADATA_PATH(m_workspace, variant_array_schema->array_name()).c_str(),
+        // Attributes
+        attributes,
+        // Number of attributes
+        2,
+        // Capacity
+        0,
+        // Number of cell values per attribute (NULL means 1 everywhere)
+        NULL,
+        // Compression
+        compression,
+        // Types
+        types
+    );
+  
+    auto status = tiledb_metadata_create(m_tiledb_ctx, &metadata_schema);
+    VERIFY_OR_THROW(status==TILEDB_OK && "Error creating genomicsdb metadata");
+    tiledb_metadata_free_schema(&metadata_schema);
+  }
+  else
+  {
+    auto* fptr = fopen(GET_METADATA_PATH(m_workspace, variant_array_schema->array_name()).c_str(), "w");
+    VERIFY_OR_THROW(fptr);
+    //Create empty JSON
+    rapidjson::Document d;
+    d.SetObject();
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    d.Accept(writer);
+    fwrite(buffer.GetString(), 1, strlen(buffer.GetString()), fptr);
+    fclose(fptr);
+  }
   return TILEDB_OK;
 }
 
