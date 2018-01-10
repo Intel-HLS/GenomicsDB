@@ -275,7 +275,7 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
   m_max_valid_row_idx_in_array = dim_domains[0].second;
   //Try reading from metadata
   //If no :// in workspace, we're using json file for metadata
-  if(!m_workspace.contains("://") && m_metadata_filename.length())
+  if(m_workspace.find("://") == std::string::npos && m_metadata_filename.length())
   {
     std::ifstream ifs(m_metadata_filename.c_str());
     if(ifs.is_open())
@@ -293,8 +293,8 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
     }
   }
   //If :// in workspace, we're using TileDB metadata for metadata storage
-  else if(m_workspace.contains("://") && 
-		  VariantStorageManager::check_if_TileDB_object_exists(m_workspace+"/"+m_name, "genomicsdb_meta.json", TILEDB_METADATA))
+  else if(m_workspace.find("://") != std::string::npos && 
+		  VariantStorageManager::check_if_TileDB_object_exists(m_tiledb_ctx, m_workspace+"/"+m_name, "genomicsdb_meta.json", TILEDB_METADATA))
   {
     const char* attributes[] = {"max_valid_row_idx_in_array"};
 
@@ -330,7 +330,7 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
     m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
 
     //If :// in workspace, we're using TileDB metadata for metadata storage
-    if(m_workspace.contains("://"))
+    if(m_workspace.find("://") != std::string::npos)
     {
       TileDB_Metadata* tiledb_metadata;
       tiledb_metadata_init(m_tiledb_ctx, &tiledb_metadata, GET_METADATA_PATH(m_workspace, m_name).c_str(),
@@ -420,9 +420,11 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
   size_t found = workspace.find("://");
   if(found != std::string::npos)
   {
-    size_t find_namenode = workspace.find("/", found+3);
-    std::string tiledb_home = workspace.substr(0, find_namenode)+"/home/hadoop/.tiledb";
     TileDB_Config tiledb_config;
+    size_t find_namenode = workspace.find("/", found+3);
+    std::string tiledb_home = workspace.substr(0, find_namenode)+"/home/.tiledb";
+    // for hdfs compliant stores set tiledb home to /home/.tiledb on the hdfs store
+    // similar to default behavior where we use /home/.tiledb on local disk
     tiledb_config.home_ = tiledb_home.c_str();
     tiledb_config.read_method_ = TILEDB_IO_READ;
     tiledb_config.write_method_ = TILEDB_IO_WRITE;
@@ -434,29 +436,41 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
     tiledb_ctx_init(&m_tiledb_ctx, NULL);
   }
 
+  auto status = 1;
   //Create workspace if it does not exist
+  // The section below uses tiledb_ls_workspaces to find out if workspace
+  // exists. This results in a dependency on master catalog in TileDB.
+  // For now, we're ifdef-ing this dependency so that older GenomicsDB
+  // versions don't have to bring in this dependency
+#ifdef USE_HDFS
   //Using tiledb_workspace_ls here instead of stat to avoid POSIX dependency
   char** ws_entries = new char*[1024];
   int num_workspaces = 1024;
   for(auto i=0ull;i<1024;++i)
     ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
   VERIFY_OR_THROW(tiledb_ls_workspaces(m_tiledb_ctx, ws_entries, &num_workspaces) == TILEDB_OK);
-  auto status = 1;
   for(auto i=0;i<num_workspaces;++i)
   {
     status = strcmp(ws_entries[i], workspace.c_str());
     if (status == 0)
       break;
   }
+  for(auto i=0ull;i<1024;++i)
+    delete[] ws_entries[i];
   //assume that tiledb_workspace_create will error out if workspace path exists but not as a directory
+#else
+  struct stat st;
+  status = stat(workspace.c_str(), &st);
+  //Exists and is not a directory
+  if(status >= 0 && !S_ISDIR(st.st_mode))
+    throw VariantStorageManagerException(std::string("Workspace path ")+workspace+" exists and is not a directory");
+#endif
   //Doesn't exist, create workspace
   if(status != 0)
     VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
-  for(auto i=0ull;i<1024;++i)
-    delete[] ws_entries[i];
 }
 
-static bool VariantStorageManager::check_if_TileDB_object_exists(TileDB_CTX* tiledb_ctx, const std::string& path, const std::string& obj_name, const int obj_type)
+bool VariantStorageManager::check_if_TileDB_object_exists(TileDB_CTX* tiledb_ctx, const std::string& path, const std::string& obj_name, const int obj_type)
 {
   //Use tiledb_ls call to avoid non-faulty error message while trying to init array during loading
   std::vector<char*> path_entries(1024u);
@@ -480,7 +494,7 @@ static bool VariantStorageManager::check_if_TileDB_object_exists(TileDB_CTX* til
     }
   }
   if(ls_status == TILEDB_ERR)
-    throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 100K entries");
+    throw VariantStorageManagerException(std::string("Too many entries in the path ")+path+" - cannot handle more than 100K entries");
   auto string_length = std::min<size_t>(obj_name.length(), TILEDB_NAME_MAX_LEN);
   auto obj_exists = false;
   for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
@@ -519,13 +533,13 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
       get_array_schema(array_name, &tmp_schema);
       //Check for metadata JSON file
       //If :// in workspace, we're using TileDB metadata for metadata storage
-      if(m_workspace.contains("://") && 
-  	    !VariantStorageManager::check_if_TileDB_object_exists(m_workspace+"/"+array_name, "genomicsdb_meta.json", TILEDB_METADATA))
+      if(m_workspace.find("://") != std::string::npos && 
+  	    !VariantStorageManager::check_if_TileDB_object_exists(m_tiledb_ctx, m_workspace+"/"+array_name, "genomicsdb_meta.json", TILEDB_METADATA))
       {
         define_metadata_schema(&tmp_schema);
       }
       //If no :// in workspace, we're using json file for metadata storage
-      else if(!m_workspace.contains("://"))
+      else if(m_workspace.find("://") == std::string::npos)
       {
         auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
         if(fptr == 0) //file doesn't exist
@@ -635,7 +649,7 @@ void VariantStorageManager::delete_array(const std::string& array_name)
   {
     remove(GET_METADATA_PATH(m_workspace, array_name).c_str());
     auto status = TILEDB_ERR;
-    if(m_workspace.contains("://"))
+    if(m_workspace.find("://") != std::string::npos)
     {
       status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name+"/genomicsdb_meta.json").c_str());
       VERIFY_OR_THROW(status == TILEDB_OK);
@@ -652,7 +666,7 @@ void VariantStorageManager::delete_array(const std::string& array_name)
 //Define metadata
 int VariantStorageManager::define_metadata_schema(const VariantArraySchema* variant_array_schema)
 {
-  if(m_workspace.contains("://"))
+  if(m_workspace.find("://") != std::string::npos)
   {
     const char* attributes[] = {"lb_row_index", "max_valid_row_idx_in_array"};
     // no compression for TILEDB_KEY

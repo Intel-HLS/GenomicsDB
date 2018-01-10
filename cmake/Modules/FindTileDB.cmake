@@ -2,8 +2,14 @@
 # Once done this will define
 # TILEDB_FOUND - TileDB found
 
-#Disable Master Catalog in TileDB
-list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
+#Disable Master Catalog in TileDB, unless enabling HDFS
+if(USE_HDFS)
+    list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=True")
+    list(APPEND TILEDB_CMAKE_ARGS "-DUSE_HDFS:BOOL=True")
+    find_package(HDFS REQUIRED)
+else()
+    list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
+endif()
 
 #Zlib
 find_package(ZLIB REQUIRED)
@@ -29,8 +35,6 @@ if(LIBUUID_DIR)
     list(APPEND TILEDB_CMAKE_ARGS "-DLIBUUID_DIR:PATH=${LIBUUID_DIR}")
 endif()
 find_package(libuuid REQUIRED)
-
-find_package(HDFS REQUIRED)
 
 include(FindPackageHandleStandardArgs)
 

@@ -36,6 +36,7 @@ set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to ma
 set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
+set(USE_HDFS False CACHE BOOL "Enable storing data on HDFS compliant stores")
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -144,6 +145,11 @@ if(LIBCSV_FOUND)
     include_directories(${LIBCSV_INCLUDE_DIR})
     set(USE_LIBCSV True)
     add_definitions(-DUSE_LIBCSV)
+endif()
+
+#HDFS
+if(USE_HDFS)
+    add_definitions(-DUSE_HDFS)
 endif()
 
 #Collect stats
