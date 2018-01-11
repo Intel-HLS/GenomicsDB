@@ -69,7 +69,7 @@ public class GenomicsDBImporter
     }
     catch(UnsatisfiedLinkError ule)
     {
-      throw new GenomicsDBException("Could not load genomicsdb native library");
+      throw new GenomicsDBException("Could not load genomicsdb native library", ule);
     }
   }
 
