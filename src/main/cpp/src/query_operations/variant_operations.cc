@@ -613,7 +613,16 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
       if(length_descriptor.is_length_genotype_dependent()
         && too_many_alt_alleles_for_genotype_length_fields(num_merged_alleles-1u))        //#alt = merged-1
       {
-        std::cerr << "Column "<<variant.get_column_begin() <<" has too many alleles in the combined VCF record : "<<num_merged_alleles-1
+        assert(m_vid_mapper);
+        std::string contig_name;
+        int64_t  contig_position = -1;
+        auto contig_status = m_vid_mapper->get_contig_location(variant.get_column_begin(), contig_name, contig_position);
+        if(contig_status)
+          std::cerr << "Chromosome "<<contig_name<<" position "<<contig_position+1<<" ("; //VCF contig coords are 1 based
+        std::cerr << "TileDB column "<<variant.get_column_begin();
+        if(contig_status)
+          std::cerr << ")";
+        std::cerr << " has too many alleles in the combined VCF record : "<<num_merged_alleles-1
           << " : current limit : "<<m_max_diploid_alt_alleles_that_can_be_genotyped
           << ". Fields, such as  PL, with length equal to the number of genotypes will NOT be added for this location.\n";
         continue;
