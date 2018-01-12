@@ -635,7 +635,7 @@ std::string VariantFieldHandler<DataType>::stringify_2D_vector(const FieldInfo& 
         s << length_descriptor.get_vcf_delimiter(1u);
       auto val = m_2D_element_wise_operations_result[i][j];
       if(is_bcf_valid_value<DataType>(val))
-        s << std::scientific << val;
+        s << std::fixed << std::setprecision(3) << val;
       first_inner_index = false;
     }
     first_outer_index = false;

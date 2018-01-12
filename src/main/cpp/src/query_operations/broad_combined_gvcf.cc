@@ -488,7 +488,7 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
     {
       if(!first_inner_index)
         s << length_descriptor.get_vcf_delimiter(1u);
-      s << std::scientific<< pair.first << length_descriptor.get_vcf_delimiter(1u) << pair.second;
+      s << std::fixed << std::setprecision(3) << pair.first << length_descriptor.get_vcf_delimiter(1u) << pair.second;
       first_inner_index = false;
     }
     first_outer_index = false;
