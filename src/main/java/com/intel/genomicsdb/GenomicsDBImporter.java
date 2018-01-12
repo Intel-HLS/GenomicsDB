@@ -74,7 +74,6 @@ public class GenomicsDBImporter
   }
 
   static long mDefaultBufferCapacity = 20480; //20KB
-  private static final String mTempLoaderJSONFileName = ".tmp_loader.json";
   private static final String DEFAULT_ARRAYNAME = "genomicsdb_array";
   private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 
@@ -713,12 +712,15 @@ public class GenomicsDBImporter
    */
   static File dumpTemporaryLoaderJSONFile(
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-    String filename) throws FileNotFoundException {
+    String filename) throws FileNotFoundException, IOException {
     String loaderJSONString = JsonFormat.printToString(importConfiguration);
 
     File tempLoaderJSONFile = (filename.isEmpty()) ?
-      new File(mTempLoaderJSONFileName) :
+      File.createTempFile("loader_", ".json") :
       new File(filename);
+
+    if(filename.isEmpty())
+      tempLoaderJSONFile.deleteOnExit();
 
     PrintWriter out = new PrintWriter(tempLoaderJSONFile);
     out.println(loaderJSONString);
@@ -1448,7 +1450,6 @@ public class GenomicsDBImporter
       }
     }
 
-    FileUtils.deleteQuietly(new File(mTempLoaderJSONFileName));
     return mDone;
   }
 
