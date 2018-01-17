@@ -49,7 +49,7 @@ query_attributes_with_PL_only = [ "PL" ]
 query_attributes_with_MLEAC_only = [ "MLEAC" ]
 default_segment_size = 40
 
-def create_query_json(ws_dir, test_name, query_param_dict):
+def create_query_json(ws_dir, test_name, query_param_dict, test_dir):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array"] = test_name
@@ -73,14 +73,14 @@ def create_query_json(ws_dir, test_name, query_param_dict):
     if('query_block_size_margin' in query_param_dict):
         test_dict['query_block_size_margin'] = query_param_dict['query_block_size_margin'];
     if('vid_mapping_file' in test_dict):
-        test_dict['vid_mapping_file'] = "/home/hadoop/tiledb-feasibility/GenomicsDB/tests/"+test_dict['vid_mapping_file'];
+        test_dict['vid_mapping_file'] = test_dir+os.path.sep+test_dict['vid_mapping_file'];
     if('callset_mapping_file' in test_dict):
-        test_dict['callset_mapping_file'] = "/home/hadoop/tiledb-feasibility/GenomicsDB/tests/"+test_dict['callset_mapping_file'];
+        test_dict['callset_mapping_file'] = test_dir+os.path.sep+test_dict['callset_mapping_file'];
     if('vcf_header_filename' in test_dict):
         for i,val in enumerate(test_dict['vcf_header_filename']):
-            test_dict['vcf_header_filename'][i] = "/home/hadoop/tiledb-feasibility/GenomicsDB/tests/"+val;
+            test_dict['vcf_header_filename'][i] = test_dir+os.path.sep+val;
     if('reference_genome' in test_dict):
-        test_dict['reference_genome'] = "/home/hadoop/tiledb-feasibility/GenomicsDB/tests/"+test_dict['reference_genome'];
+        test_dict['reference_genome'] = test_dir+os.path.sep+test_dict['reference_genome'];
     return test_dict;
 
 
@@ -173,16 +173,16 @@ def cleanup_and_exit(namenode, tmpdir, exit_code):
     sys.exit(exit_code);
 
 def main():
-    if(len(sys.argv) < 7):
-        sys.stderr.write('Needs 6 arguments <install_dir> <spark_master> <hdfs_namenode> <spark_deploy> <genomicsdb_version> <test_dir>\n');
+    if(len(sys.argv) < 8):
+        sys.stderr.write('Needs 7 arguments <build_dir> <install_dir> <spark_master> <hdfs_namenode> <spark_deploy> <genomicsdb_version> <test_dir>\n');
         sys.exit(-1);
-    exe_path = sys.argv[1]+os.path.sep+'bin';
-    spark_master = sys.argv[2];
-    namenode = sys.argv[3];
+    exe_path = sys.argv[2]+os.path.sep+'bin';
+    spark_master = sys.argv[3];
+    namenode = sys.argv[4];
     jar_dir = sys.argv[1]+os.path.sep+'target';
-    spark_deploy = sys.argv[4];
-    genomicsdb_version = sys.argv[5];
-    test_dir = sys.argv[6];
+    spark_deploy = sys.argv[5];
+    genomicsdb_version = sys.argv[6];
+    test_dir = sys.argv[7];
     #Switch to tests directory
     parent_dir=os.path.dirname(os.path.realpath(__file__))
     os.chdir(parent_dir)
@@ -363,9 +363,9 @@ def main():
                 fptr.close();
             for query_param_dict in test_params_dict['query_params']:
                 if("://" in namenode):
-                    test_query_dict = create_query_json(namenode+ws_dir, test_name, query_param_dict)
+                    test_query_dict = create_query_json(namenode+ws_dir, test_name, query_param_dict, test_dir)
                 else:
-                    test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
+                    test_query_dict = create_query_json(ws_dir, test_name, query_param_dict, test_dir)
                 test_query_dict['query_attributes'] = vcf_query_attributes_order;
                 query_json_filename = tmpdir+os.path.sep+test_name+'-query.json'
                 with open(query_json_filename, 'wb') as fptr:
