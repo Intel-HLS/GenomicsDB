@@ -120,9 +120,11 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
       else
       {
         assert(field_info_ptr);
-        if(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u) != BCF_HT_FLAG)
+        header_line += ",Number=";
+        if(field_info_ptr->get_vcf_type().get_tuple_element_bcf_ht_type(0u) == BCF_HT_FLAG)
+          header_line += '0';
+        else
         {
-          header_line += ",Number=";
           //Must be string with Number=1 in the hdr
           if(is_multid_vector_or_tuple_element_field)
           {

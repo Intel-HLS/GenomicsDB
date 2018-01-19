@@ -868,6 +868,7 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       }
     }
   }
+  //std::cerr << "VCF "<<field_name<<" #elements "<<num_values<<"\n";
   //For discarding records if missing GT fields
   if(!buffer_full)
   {
