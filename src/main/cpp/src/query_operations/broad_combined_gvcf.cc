@@ -298,6 +298,16 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     //Could be -1
     m_global_field_idx_to_hdr_idx[i] = bcf_hdr_id2int(m_vcf_hdr, BCF_DT_ID, field_info.m_vcf_name.c_str());
   }
+  //Since the header might have been modified and might be streamed into Java and BCF2Codec doesn't
+  //deal with BCF IDX attributes, clean up the header completely by serializing and deserializing
+  std::vector<uint8_t> tmp_buffer(10000u);
+  while(bcf_hdr_serialize(m_vcf_hdr, &(tmp_buffer[0u]), 0u, tmp_buffer.size()-1u, 0, 0) == 0u)
+    tmp_buffer.resize(2*tmp_buffer.size());
+  bcf_hdr_destroy(m_vcf_hdr);
+  m_vcf_hdr = bcf_hdr_init("r");
+  auto hdr_offset = bcf_hdr_deserialize(m_vcf_hdr, &(tmp_buffer[0u]), 0u, tmp_buffer.size(), 0);
+  assert(hdr_offset > 0u);
+  m_vcf_adapter->set_vcf_header(m_vcf_hdr);
   m_vcf_adapter->print_header();
   //vector of field pointers used for handling remapped fields when dealing with spanning deletions
   //Individual pointers will be allocated later
@@ -401,6 +411,7 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
     const unsigned query_idx_bin, const unsigned query_idx_count, std::string& result_str)
 {
   auto num_valid_elements = 0ull;
+  auto num_calls_with_field = 0ull;
   assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_bin).get_num_dimensions() == 2u);
   assert(query_config.get_length_descriptor_for_query_attribute_idx(query_idx_count).get_num_dimensions() == 2u);
   auto vid_field_info_bin = query_config.get_field_info_for_query_attribute_idx(query_idx_bin);
@@ -458,9 +469,10 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
         index_bin.advance_index_in_current_dimension();
         index_count.advance_index_in_current_dimension();
       }
+      ++num_calls_with_field;
     }
   }
-  if(num_valid_elements == 0u)
+  if(num_calls_with_field == 0u)
     return false;
   auto& length_descriptor = vid_field_info_bin->m_length_descriptor;
   assert(length_descriptor.get_num_dimensions() == 2u);
@@ -476,7 +488,7 @@ bool BroadCombinedGVCFOperator::compute_valid_histogram_sum_2D_vector_and_string
     {
       if(!first_inner_index)
         s << length_descriptor.get_vcf_delimiter(1u);
-      s << std::scientific<< pair.first << length_descriptor.get_vcf_delimiter(1u) << pair.second;
+      s << std::fixed << std::setprecision(3) << pair.first << length_descriptor.get_vcf_delimiter(1u) << pair.second;
       first_inner_index = false;
     }
     first_outer_index = false;

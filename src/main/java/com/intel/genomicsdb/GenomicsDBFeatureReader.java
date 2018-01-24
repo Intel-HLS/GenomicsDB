@@ -127,6 +127,35 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             final String referenceGenome, final String templateVCFHeaderFilename,
             final FeatureCodec<T, SOURCE> codec) throws IOException
     {
+        this(vidMappingFile,
+                callsetMappingFile,
+                tiledbWorkspace, arrayName,
+                referenceGenome, templateVCFHeaderFilename,
+                codec, false);
+    }
+
+    /**
+     * Constructor
+     * @param vidMappingFile GenomicsDB vid mapping JSON configuration file
+     * @param callsetMappingFile GenomicsDB callset mapping JSON configuration file
+     * @param tiledbWorkspace TileDB workspace path
+     * @param arrayName TileDB array name
+     * @param referenceGenome Path to reference genome (fasta file)
+     * @param templateVCFHeaderFilename Template VCF header to be used for
+     *                                  the combined gVCF records
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param produceGT By default, GenomicsDB ignores the GT field to match the output of GATK
+     *              CombineGVCFs. Enabling this flag will produce the GT fields
+     * @throws IOException when data cannot be read from the stream
+     */
+    public GenomicsDBFeatureReader(final String vidMappingFile,
+            final String callsetMappingFile,
+            final String tiledbWorkspace, final String arrayName,
+            final String referenceGenome, final String templateVCFHeaderFilename,
+            final FeatureCodec<T, SOURCE> codec,
+            final boolean produceGT) throws IOException
+    {
         //Produce temporary JSON query config file
         String indentString = "    ";
         String queryJSON = "{\n";
@@ -139,6 +168,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         if(templateVCFHeaderFilename != null)
             queryJSON += ",\n" + indentString + "\"vcf_header_filename\": \"" +
               templateVCFHeaderFilename+"\"";
+        if(produceGT)
+            queryJSON += ",\n" + indentString + "\"produce_GT_field\": true";
         queryJSON += "\n}\n";
         File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
         tmpQueryJSONFile.deleteOnExit();
