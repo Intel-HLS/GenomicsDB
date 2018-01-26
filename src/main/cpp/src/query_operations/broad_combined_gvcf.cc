@@ -870,7 +870,9 @@ void BroadCombinedGVCFOperator::switch_contig()
 //Modifies original Variant object
 void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const VariantQueryConfig& query_config)
 {
-  m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 10u);    //will not have more than 3 alleles anyway
+  //#merged alleles in spanning deletion can be at most 3 - REF,*,<NON_REF>; however, the #input alleles
+  //can be much larger. LUT gets resized later
+  m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 3u);
   m_reduced_alleles_LUT.reset_luts();
   auto GT_length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
   for(auto iter=variant.begin(), e=variant.end();iter != e;++iter)
@@ -888,6 +890,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       //Already handled as a spanning deletion, nothing to do
       if(alt_alleles[0u] == g_vcf_SPANNING_DELETION)
         continue;
+      m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), alt_alleles.size()+1u); //+1 for REF
       //Reduced allele list will be REF="N", ALT="*, <NON_REF>"
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, 0, 0);  //REF-REF mapping
       //For each deletion allele, find the PL value corresponding to the genotype in which all the elements
