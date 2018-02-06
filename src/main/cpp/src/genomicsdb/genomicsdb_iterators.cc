@@ -258,7 +258,9 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
             m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE];
 #endif
           handle_current_cell_in_find_intersecting_intervals_mode();
-          advance_to_next_useful_cell(1u);
+          if(!m_done_reading_from_TileDB
+            && (m_num_markers_initialized < m_query_config->get_num_rows_to_query()))
+            advance_to_next_useful_cell(1u);
         }
 #ifdef DO_PROFILING
         auto num_live_list_entries = 0ull;
