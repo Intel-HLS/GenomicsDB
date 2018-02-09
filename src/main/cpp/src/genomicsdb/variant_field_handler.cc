@@ -754,7 +754,7 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
         (use_vector_end_only || (is_GT_field && !use_missing_values_only_not_vector_end))
         ? get_bcf_vector_end_value<DataType>()
         : ((is_GT_field && use_missing_values_only_not_vector_end)
-            ? get_bcf_gt_missing_value<DataType>() //why? htsjdk does not handle a record where GT is missing in 1 sample, present in another
+            ? get_bcf_gt_no_call_allele_index<DataType>()  //why? htsjdk does not handle a record where GT is missing in 1 sample, present in another. So, set GT value to no-call
             : get_bcf_missing_value<DataType>());
       ++num_elements_inserted;
       ++extended_field_vector_idx;
