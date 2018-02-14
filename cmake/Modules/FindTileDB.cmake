@@ -5,6 +5,11 @@
 #Disable Master Catalog in TileDB
 list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
 
+#Support for compiling with MacOS Sierra and High Sierra
+if(DEFINED CMAKE_FIND_FRAMEWORK)
+    list(APPEND TILEDB_CMAKE_ARGS "-DCMAKE_FIND_FRAMEWORK:STRING=${CMAKE_FIND_FRAMEWORK}")
+endif()
+
 #Zlib
 find_package(ZLIB REQUIRED)
 if(ZLIB_ROOT)
