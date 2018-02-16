@@ -36,6 +36,7 @@ set(GENOMICSDB_MAVEN_BUILD_DIR ${CMAKE_BINARY_DIR}/target CACHE PATH "Path to ma
 set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
+set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -210,6 +211,12 @@ include_directories (
 
 set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
     ${LIBUUID_LIBRARY})
+
+if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  find_package(IPP REQUIRED)
+  set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES}
+    ${LIBIPPDC_LIBRARY} ${LIBIPPS_LIBRARY} ${LIBIPPCORE_LIBRARY})
+endif()
 
 function(build_GenomicsDB_executable_common target)
     #add_executable(${target} src/${target}.cc)

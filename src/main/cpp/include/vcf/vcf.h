@@ -141,6 +141,13 @@ inline T get_bcf_gt_missing_value() { return static_cast<T>(bcf_gt_missing); }
 template<>
 inline std::string get_bcf_gt_missing_value<std::string>() { return ""; }
 
+//GT missing value - purely for compilation to proceed with std::string
+template<class T>
+inline T get_bcf_gt_no_call_allele_index() { return static_cast<T>(-1); }
+
+//string specialization
+template<>
+inline std::string get_bcf_gt_no_call_allele_index<std::string>() { return ""; }
 
 //for float, equality is not an adequate check
 template<>
