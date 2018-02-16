@@ -48,8 +48,7 @@ install:
     - sudo mv libgtest* /usr/lib
     #Install libcsv
     - cd $TRAVIS_BUILD_DIR
-    - wget -O dependencies/libcsv.tar.gz http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.3/libcsv-3.0.3.tar.gz
-    - mkdir -p dependencies/libcsv && tar xzf dependencies/libcsv.tar.gz  -C dependencies/libcsv --strip-components=1 && cd dependencies/libcsv && ./configure && make
+    - cd dependencies && git clone https://github.com/rgamble/libcsv && cd libcsv && ./configure && make
     - cd $TRAVIS_BUILD_DIR
     # install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
