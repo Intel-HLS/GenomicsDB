@@ -544,7 +544,7 @@ def main():
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir + ' -A '+test_name \
+            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir \
                     +' --use_samples_in_order ' + ' --batchsize=2 ';
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
@@ -569,6 +569,8 @@ def main():
                 cleanup_and_exit(tmpdir, -1);
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
+                if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
+                    test_name = "1"
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
                 query_types_list = [
                         ('calls','--print-calls'),
@@ -587,7 +589,6 @@ def main():
                         with open(query_json_filename, 'wb') as fptr:
                             json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                             fptr.close();
-                        query_command = ''
                         if(query_type == 'java_vcf'):
                             loader_argument = loader_json_filename;
                             if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
@@ -635,6 +636,7 @@ def main():
                                 if(json_diff_result):
                                     print(json.dumps(json_diff_result, indent=4, separators=(',', ': ')));
                                 cleanup_and_exit(tmpdir, -1);
+        shutil.rmtree(ws_dir, ignore_errors=True)
     coverage_file='coverage.info'
     subprocess.call('lcov --directory '+gcda_prefix_dir+' --capture --output-file '+coverage_file, shell=True);
     #Remove protocol buffer generated files from the coverage information
