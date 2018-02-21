@@ -64,4 +64,5 @@ message ExportConfiguration {
   optional bool index_output_VCF = 13; 
   optional bool produce_GT_field = 14;
   optional bool produce_FILTER_field = 15;
+  optional bool sites_only_query = 16;
 }

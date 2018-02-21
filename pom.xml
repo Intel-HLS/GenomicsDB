@@ -340,6 +340,7 @@
                 </goals>
                 <configuration>
                   <sources>
+		    <source>${protobuf.output.directory}</source>
                     <source>${genomicsdb_source_directory}/src/main/java</source>
                     <source>${genomicsdb_source_directory}/src/main/scala</source>
                   </sources>

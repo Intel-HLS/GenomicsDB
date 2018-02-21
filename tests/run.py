@@ -67,6 +67,8 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict['produce_GT_field'] = query_param_dict['produce_GT_field'];
     if('produce_FILTER_field' in query_param_dict):
         test_dict['produce_FILTER_field'] = query_param_dict['produce_FILTER_field'];
+    if('sites_only_query' in query_param_dict):
+        test_dict['sites_only_query'] = query_param_dict['sites_only_query']
     return test_dict;
 
 
@@ -148,13 +150,19 @@ def main():
     loader_tests = [
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                "query_params": [
+                "query_params": [ 
                     { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                      "sites_only_query": True,
+                      "golden_output": {
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_sites_only_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_sites_only_at_0",
                         } },
                     { "query_column_ranges" : [ 12100 ], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100",
@@ -241,6 +249,11 @@ def main():
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
+		    { "query_column_ranges" : [ [0, 1000000000] ],
+		      "sites_only_query": True, "golden_output": {
+                        "vcf"        : "golden_outputs/t6_7_8_vcf_sites_only_at_0",
+                        } },
+
                     { "query_column_ranges" : [ [8029500, 1000000000] ], "golden_output": {
                         "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
                         "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",

@@ -99,7 +99,8 @@ class VCFAdapter
         const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE,
         const bool produce_GT_field=false,
         const bool index_output_VCF=false,
-        const bool produce_FILTER_field=false);
+        const bool produce_FILTER_field=false,
+        const bool sites_only_query=false);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -119,6 +120,7 @@ class VCFAdapter
     { return m_reference_genome_info.get_reference_base_at_position(contig, pos); }
     const bool produce_GT_field() const { return m_produce_GT_field; }
     const bool produce_FILTER_field() const { return m_produce_FILTER_field; }
+    const bool sites_only_query() const { return m_sites_only_query; }
   protected:
     bool m_open_output;
     //Output file
@@ -139,6 +141,8 @@ class VCFAdapter
     bool m_produce_FILTER_field;
     //Index output VCF
     unsigned m_index_output_VCF;
+    //Sites-only query - don't produce any FORMAT fields
+    bool m_sites_only_query;
 #ifdef DO_PROFILING
     //Timer
     Timer m_vcf_serialization_timer;

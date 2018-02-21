@@ -861,8 +861,11 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   auto produce_FILTER_field = (m_json.HasMember("produce_FILTER_field") && m_json["produce_FILTER_field"].GetBool());
   //index output VCF file
   auto index_output_VCF = (m_json.HasMember("index_output_VCF") && m_json["index_output_VCF"].GetBool());
+  //sites-only query - doesn't produce any of the FORMAT fields
+  auto sites_only_query = (m_json.HasMember("sites_only_query") && m_json["sites_only_query"].GetBool());
   vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit,
-      produce_GT_field, index_output_VCF, produce_FILTER_field);
+      produce_GT_field, index_output_VCF, produce_FILTER_field,
+      sites_only_query);
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,

@@ -163,14 +163,17 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       auto known_field_enum = query_config.is_defined_known_field_enum_for_query_idx(i) ? query_config.get_known_field_enum_for_query_idx(i)
         : UNDEFINED_ATTRIBUTE_IDX_VALUE;
       auto VCF_field_combine_operation = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(i);
+      auto sites_only_query = m_vcf_adapter->sites_only_query();
       auto add_to_INFO_vector = (field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_END_IDX
           && (known_field_enum != GVCF_DP_IDX || VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
           && VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
           );
-      auto add_to_FORMAT_vector = (field_info->m_is_vcf_FORMAT_field ||
+      auto add_to_FORMAT_vector = (
+	  (field_info->m_is_vcf_FORMAT_field && (!sites_only_query || known_field_enum == GVCF_DP_FORMAT_IDX)) //FORMAT field when !sites_only_query or FORMAT field specifically GVCF_DP_FORMAT_IDX
+	   ||
           (field_info->m_is_vcf_INFO_field
            && ((known_field_enum == GVCF_DP_IDX && VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP)
-             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT && !sites_only_query)
            )
            )
           );
@@ -275,19 +278,22 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
   assert(curr_contig_flag);
   switch_contig();
-  //Add samples to template header
-  std::string callset_name;
-  for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
+  //Add samples to template header if this is not a sites only query
+  if(!(m_vcf_adapter->sites_only_query()))
   {
-    auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
-    auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
-    if(!status || callset_name.empty())
-      throw BroadCombinedGVCFException(std::string("No sample/CallSet name specified in JSON file/Protobuf object for TileDB row ")
-          + std::to_string(row_idx));
-    auto add_sample_status = bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
-    if(add_sample_status < 0)
-      throw BroadCombinedGVCFException(std::string("Could not add sample ")
-          +callset_name+" to the combined VCF/gVCF header");
+    std::string callset_name;
+    for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
+    {
+      auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
+      auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
+      if(!status || callset_name.empty())
+	throw BroadCombinedGVCFException(std::string("No sample/CallSet name specified in JSON file/Protobuf object for TileDB row ")
+	    + std::to_string(row_idx));
+      auto add_sample_status = bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
+      if(add_sample_status < 0)
+	throw BroadCombinedGVCFException(std::string("Could not add sample ")
+	    +callset_name+" to the combined VCF/gVCF header");
+    }
   }
   bcf_hdr_sync(m_vcf_hdr);
   //Map from vid mapper field idx to hdr field idx
@@ -686,7 +692,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       found_one_valid_DP_FORMAT = is_bcf_valid_value<int>(dp_format_val) || found_one_valid_DP_FORMAT;
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
-    if(found_one_valid_DP_FORMAT)
+    //Add DP to FORMAT if one valid DP FORMAT value found and this is not a sites only query
+    if(found_one_valid_DP_FORMAT && !(m_vcf_adapter->sites_only_query()))
     {
       bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
       m_bcf_record_size += m_DP_FORMAT_vector.size()*sizeof(int);
