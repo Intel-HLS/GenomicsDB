@@ -64,6 +64,7 @@ public class GenomicsDBImporter {
     private static final HashSet<String> mRLengthTwoDIntVectorFields = new HashSet<>(Collections.singletonList(
             "AS_SB_TABLE"
     ));
+    static final String CHROMOSOME_INTERVAL_FOLDER = "%s_%d_%d";
     static long mDefaultBufferCapacity = 20480; //20KB
 
     static {
@@ -363,20 +364,20 @@ public class GenomicsDBImporter {
      * @param passAsVcf                       Use the VCF format to pass data from Java to C++
      * @throws IOException when load into TileDB array fails
      */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long vcfBufferSizePerColumnPartition,
-                              Long segmentSize,
-                              Long lbRowIdx,
-                              Long ubRowIdx,
-                              boolean useSamplesInOrderProvided,
-                              boolean failIfUpdating,
-                              int rank,
-                              boolean validateSampleToReaderMap,
-                              boolean passAsVcf) throws IOException, IllegalArgumentException {
+    public GenomicsDBImporter(final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+                              final Set<VCFHeaderLine> mergedHeader,
+                              final ChromosomeInterval chromosomeInterval,
+                              final String workspace,
+                              final String arrayname,
+                              final Long vcfBufferSizePerColumnPartition,
+                              final Long segmentSize,
+                              final Long lbRowIdx,
+                              final Long ubRowIdx,
+                              final boolean useSamplesInOrderProvided,
+                              final boolean failIfUpdating,
+                              final int rank,
+                              final boolean validateSampleToReaderMap,
+                              final boolean passAsVcf) throws IOException, IllegalArgumentException {
         // Mark this flag so that protocol buffer based vid
         // and callset map are propagated to C++ GenomicsDBImporter
         mUsingVidMappingProtoBuf = true;
@@ -505,19 +506,25 @@ public class GenomicsDBImporter {
         if (baseImportConfig.getVidmapOutputFilepath() != null)
             GenomicsDBImporter.writeVidMapJSONFile(baseImportConfig.getVidmapOutputFilepath(), mergedHeader);
 
-        //write out merged header if needed
+        //Write out merged header if needed
         if (baseImportConfig.getVcfHeaderOutputFilepath() != null)
             GenomicsDBImporter.writeVcfHeaderFile(baseImportConfig.getVcfHeaderOutputFilepath(), mergedHeader);
 
+        //Create workspace folder to avoid issues with concurrency
+        if(!new File(baseImportConfig.getWorkspace()).exists()) {
+            int tileDBWorkspace = createTileDBWorkspace(baseImportConfig.getWorkspace());
+            if (tileDBWorkspace < 0) throw new IllegalStateException(String.format("Cannot create '%s' workspace.",
+                    baseImportConfig.getWorkspace()));
+        }
+
         //Iterate over sorted sample list in batches
-        //TODO: make sample list iteration in parallel
         for (int i = 0; i < vcfHeaderToFile.getSampleNames().size(); i += baseImportConfig.getBatchSize()) {
             final int index = i;
-            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                    createSampleToReaderMap(baseImportConfig, vcfHeaderToFile, index);
 
             List<Boolean> result = baseImportConfig.getChromosomeIntervalList().parallelStream().map(chromosomeInterval -> {
                 try {
+                    final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
+                            createSampleToReaderMap(baseImportConfig, vcfHeaderToFile, index);
                     GenomicsDBImporter importer = createImporter(
                             baseImportConfig, vcfHeaderToFile, mergedHeader, index, sampleToReaderMap, chromosomeInterval);
                     return importer.importBatch();
@@ -544,14 +551,15 @@ public class GenomicsDBImporter {
         return sampleToReaderMap;
     }
 
-    private static synchronized GenomicsDBImporter createImporter(final BaseImportConfig baseImportConfig, final VCFHeaderToFile vcfHeaderToFile,
-                                                                  final Set<VCFHeaderLine> mergedHeader, final int index,
-                                                                  final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                                                                  final ChromosomeInterval chromInterval) throws IOException {
+    private static GenomicsDBImporter createImporter(final BaseImportConfig baseImportConfig, final VCFHeaderToFile vcfHeaderToFile,
+                                                     final Set<VCFHeaderLine> mergedHeader, final int index,
+                                                     final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+                                                     final ChromosomeInterval chromInterval) throws IOException {
         return new GenomicsDBImporter(
                 sampleToReaderMap, mergedHeader,
                 new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
-                baseImportConfig.getWorkspace(), chromInterval.getContig(),
+                baseImportConfig.getWorkspace(), String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
+                chromInterval.getStart(), chromInterval.getEnd()),
                 baseImportConfig.getVcfBufferSizePerColumnPartition() * vcfHeaderToFile.getSampleNames().size(),
                 baseImportConfig.getSegmentSize(), (long) index, (long) (index + baseImportConfig.getBatchSize() - 1),
                 baseImportConfig.isUseSamplesInOrderProvided(), baseImportConfig.isFailIfUpdating(),

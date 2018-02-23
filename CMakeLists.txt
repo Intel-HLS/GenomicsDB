@@ -269,7 +269,9 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/SampleInfo.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBTimer.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBPartitionInfo.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/reader/model/QueryParams.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBInputSplit.java
         ./src/main/java/com/intel/genomicsdb/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBException.java
@@ -280,8 +282,10 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
-	./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
+	    ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
+        ./src/main/java/com/intel/genomicsdb/model/BaseImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/VCFHeaderToFile.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala

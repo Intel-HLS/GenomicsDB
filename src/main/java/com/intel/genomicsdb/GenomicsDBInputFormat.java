@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb;
 
+import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
@@ -98,8 +99,9 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
       queryJson = configuration.get(GenomicsDBConfiguration.QUERYJSON);
     }
 
+    // TODO: fix this once protobuf classes are created
     featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
-      loaderJson, queryJson, (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
+      loaderJson, "", "", (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
     recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(featureReader);
     return recordReader;
   }

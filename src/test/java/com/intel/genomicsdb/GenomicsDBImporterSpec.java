@@ -23,6 +23,7 @@
 package com.intel.genomicsdb;
 
 import com.intel.genomicsdb.model.BaseImportConfig;
+import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.bcf2.BCF2Codec;
@@ -36,23 +37,19 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.testng.Assert;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
 public final class GenomicsDBImporterSpec {
-
-    private static final File WORKSPACE = new File("__workspace");
     private static final String TEST_CHROMOSOME_NAME = "1";
-    private static final File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
-    private static final File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
-    private static final File TEMP_VCF_HEADER_FILE = new File("vcfheader.vcf");
-    private static final File TEMP_QUERY_JSON_FILE = new File("query.json");
+    private static final File WORKSPACE = new File("__workspace");
+    private File tempVidJsonFile;
+    private File tempCallsetJsonFile;
+    private File tempVcfHeaderFile;
 
     @Test(testName = "genomicsdb importer with an interval and multiple GVCFs",
             dataProvider = "vcfFiles",
@@ -79,10 +76,10 @@ public final class GenomicsDBImporterSpec {
 
         importer.importBatch();
 
-        GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
+        GenomicsDBImporter.writeCallsetMapJSONFile(tempCallsetJsonFile.getAbsolutePath(),
                 callsetMappingPB);
         Assert.assertEquals(importer.isDone(), true);
-        File callsetFile = new File(TEMP_CALLSET_JSON_FILE.getAbsolutePath());
+        File callsetFile = new File(tempCallsetJsonFile.getAbsolutePath());
         Assert.assertTrue(callsetFile.exists());
     }
 
@@ -109,21 +106,21 @@ public final class GenomicsDBImporterSpec {
                 1024L,
                 10000000L);
 
-        GenomicsDBImporter.writeVidMapJSONFile(TEMP_VID_JSON_FILE.getAbsolutePath(), mergedHeaderLines);
-        GenomicsDBImporter.writeVcfHeaderFile(TEMP_VCF_HEADER_FILE.getAbsolutePath(), mergedHeaderLines);
-        GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
+        GenomicsDBImporter.writeVidMapJSONFile(tempVidJsonFile.getAbsolutePath(), mergedHeaderLines);
+        GenomicsDBImporter.writeVcfHeaderFile(tempVcfHeaderFile.getAbsolutePath(), mergedHeaderLines);
+        GenomicsDBImporter.writeCallsetMapJSONFile(tempCallsetJsonFile.getAbsolutePath(),
                 callsetMappingPB_A);
 
         importer.importBatch();
         Assert.assertEquals(importer.isDone(), true);
-        Assert.assertEquals(TEMP_VID_JSON_FILE.isFile(), true);
-        Assert.assertEquals(TEMP_CALLSET_JSON_FILE.isFile(), true);
-        Assert.assertEquals(TEMP_VCF_HEADER_FILE.isFile(), true);
+        Assert.assertEquals(tempVidJsonFile.isFile(), true);
+        Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
+        Assert.assertEquals(tempVcfHeaderFile.isFile(), true);
 
         JSONParser parser = new JSONParser();
 
         try {
-            FileReader fileReader = new FileReader(TEMP_CALLSET_JSON_FILE.getAbsolutePath());
+            FileReader fileReader = new FileReader(tempCallsetJsonFile.getAbsolutePath());
             JSONObject jsonObject = (JSONObject) parser.parse(fileReader);
             JSONArray callsetArray = (JSONArray) jsonObject.get("callsets");
 
@@ -168,8 +165,8 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
-                "--vidmap-output " + TEMP_VID_JSON_FILE.getAbsolutePath() + " " +
-                "--callset-output " + TEMP_CALLSET_JSON_FILE.getAbsolutePath() + " " +
+                "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
+                "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
         BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
         config.setVcfBufferSizePerColumnPartition(10000L);
@@ -182,13 +179,14 @@ public final class GenomicsDBImporterSpec {
         System.out.printf("Processed %d chromosomes intervals in %d millis\n", config.getChromosomeIntervalList().size(), duration);
 
         //Then
-        Assert.assertEquals(TEMP_VID_JSON_FILE.isFile(), true);
-        Assert.assertEquals(TEMP_CALLSET_JSON_FILE.isFile(), true);
+        Assert.assertEquals(tempVidJsonFile.isFile(), true);
+        Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
 
-        createQueryJsonFile();
-        assert(TEMP_QUERY_JSON_FILE.exists());
-        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>("",
-                TEMP_QUERY_JSON_FILE.getAbsolutePath(), new BCF2Codec());
+        String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
+        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(tempVidJsonFile.getAbsolutePath(),
+                tempCallsetJsonFile.getAbsolutePath(), WORKSPACE.getAbsolutePath(), referenceGenome,
+                null, new BCF2Codec(), true);
+
         CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
         List<VariantContext> varCtxList = new ArrayList<>();
         while (gdbIterator.hasNext()) varCtxList.add(gdbIterator.next());
@@ -196,14 +194,58 @@ public final class GenomicsDBImporterSpec {
         assert(varCtxList.size() == 2);
         assert(varCtxList.get(0).getStart() == 12141);
         assert(varCtxList.get(1).getStart() == 17385);
+
     }
 
-    @AfterTest
-    public void deleteWorkspace() throws IOException {
-        if (TEMP_VID_JSON_FILE.exists()) FileUtils.deleteQuietly(TEMP_VID_JSON_FILE);
-        if (TEMP_CALLSET_JSON_FILE.exists()) FileUtils.deleteQuietly(TEMP_CALLSET_JSON_FILE);
-        if (TEMP_QUERY_JSON_FILE.exists()) FileUtils.deleteQuietly(TEMP_QUERY_JSON_FILE);
-        FileUtils.deleteDirectory(WORKSPACE);
+    @Test(testName = "should be able to query using specific chromosome interval")
+    public void testShouldBeAbleToQueryUsingSpecificChromosomeInterval() throws IOException {
+        long start = System.nanoTime();
+
+        //Given
+        String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
+                "-w " + WORKSPACE.getAbsolutePath() + " " +
+                "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
+                "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
+                "tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+        config.setVcfBufferSizePerColumnPartition(10000L);
+        config.setSegmentSize(1048576L);
+
+        GenomicsDBImporter.parallelImport(config);
+
+        long duration = (System.nanoTime() - start) / 1_000_000;
+        System.out.printf("Processed %d chromosomes intervals in %d millis\n", config.getChromosomeIntervalList().size(), duration);
+        Assert.assertEquals(tempVidJsonFile.isFile(), true);
+        Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
+
+        //When
+        String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
+        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(tempVidJsonFile.getAbsolutePath(),
+                tempCallsetJsonFile.getAbsolutePath(), WORKSPACE.getAbsolutePath(), referenceGenome,
+                null, new BCF2Codec(), true);
+
+        CloseableTribbleIterator<VariantContext> gdbIterator = reader.query("1", 17000, 18000);
+        List<VariantContext> varCtxList = new ArrayList<>();
+        while (gdbIterator.hasNext()) varCtxList.add(gdbIterator.next());
+
+        //Then
+        assert(varCtxList.size() == 1);
+        assert(varCtxList.get(0).getStart() == 17385);
+
+    }
+
+    @BeforeMethod
+    public void cleanUpBefore() throws IOException {
+        tempVidJsonFile = File.createTempFile("generated_vidmap", ".json"); //new File("generated_vidmap.json");
+        tempCallsetJsonFile = File.createTempFile("generated_callsetmap", ".json"); //new File("generated_callsetmap.json");
+        tempVcfHeaderFile = File.createTempFile("vcfheader", ".vcf"); //new File("vcfheader.vcf");
+    }
+
+    @AfterMethod
+    public void cleanUpAfter() throws IOException {
+        if (tempVidJsonFile.exists()) FileUtils.deleteQuietly(tempVidJsonFile);
+        if (tempCallsetJsonFile.exists()) FileUtils.deleteQuietly(tempCallsetJsonFile);
+        if (WORKSPACE.exists()) FileUtils.deleteDirectory(WORKSPACE);
     }
 
     private Set<VCFHeaderLine> createMergedHeader(
@@ -215,42 +257,5 @@ public final class GenomicsDBImporterSpec {
         }
 
         return VCFUtils.smartMergeHeaders(headers, true);
-    }
-
-    private String buildQueryJson(String workspace, String arrayName, String callsetMappingFile, String vidMappingFile) {
-        JSONObject obj = new JSONObject();
-        obj.put("workspace", workspace);
-        obj.put("array", arrayName);
-        obj.put("scan_full", Boolean.TRUE);
-        obj.put("callset_mapping_file", callsetMappingFile);
-        obj.put("vid_mapping_file", vidMappingFile);
-        JSONArray colrg = new JSONArray();
-        JSONArray colrgInn = new JSONArray();
-        JSONArray colrgInnInn = new JSONArray();
-        colrgInnInn.add(0);
-        colrgInnInn.add(10000);
-        colrgInn.add(colrgInnInn);
-        colrg.add(colrgInn);
-        obj.put("xxquery_column_ranges", colrg);
-        JSONArray rowrg = new JSONArray();
-        JSONArray rowrgInn = new JSONArray();
-        rowrgInn.add(0);
-        rowrgInn.add(1);
-        rowrgInn.add(2);
-        rowrg.add(rowrgInn);
-        obj.put("xxquery_row_ranges", rowrg);
-        obj.put("reference_genome", "tests/inputs/chr1_10MB.fasta.gz");
-        obj.put("index_output_VCF", Boolean.TRUE);
-        obj.put("produce_GT_field", Boolean.TRUE);
-        return obj.toJSONString();
-    }
-
-    private void createQueryJsonFile() throws IOException {
-        String queryJsonFileContent = buildQueryJson(WORKSPACE.getAbsolutePath(),
-                TEST_CHROMOSOME_NAME, TEMP_CALLSET_JSON_FILE.getAbsolutePath(), TEMP_VID_JSON_FILE.getAbsolutePath());
-        FileOutputStream outputStream = new FileOutputStream(TEMP_QUERY_JSON_FILE);
-        byte[] strToBytes = queryJsonFileContent.getBytes();
-        outputStream.write(strToBytes);
-        outputStream.close();
     }
 }

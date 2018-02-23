@@ -24,8 +24,6 @@ import java.io.IOException;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFCodec;
-import htsjdk.tribble.readers.PositionalBufferedStream;
-import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -34,7 +32,7 @@ import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import java.lang.Long;
 import java.lang.Integer;
-import com.intel.genomicsdb.GenomicsDBFeatureReader;
+import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import com.intel.genomicsdb.GenomicsDBImporter;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
@@ -43,22 +41,18 @@ public final class TestGenomicsDB
 {
   public static <SourceType, CodecType extends FeatureCodec<VariantContext, SourceType>> void runQuery(
       CodecType codec,
-      String[] args, int optind, int numPositionalArgs,
+      int numPositionalArgs,
       final String loaderJSONFile,
       final String workspace, final String array, final String referenceGenome, final String templateVCFHeader,
       final String chromosome, final int chrBegin, final int chrEnd,
       final boolean countOnly) throws IOException
   {
-    GenomicsDBFeatureReader<VariantContext, SourceType> reader = null;
+    GenomicsDBFeatureReader<VariantContext, SourceType> reader;
     if(numPositionalArgs == 1)
     {
-      //query with [-l <loader.json>] <query.json> - required positions may be
-      //specified in <query.json>
       //Vid and callset mapping file may be specified in the query JSON
       //If no positions are specified in <query.json>, the whole array will be scanned
-      String queryJSONFile = args[optind];
-      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
-        (loaderJSONFile, queryJSONFile, codec);
+      reader = new GenomicsDBFeatureReader<>(loaderJSONFile, workspace, referenceGenome, templateVCFHeader, codec);
     }
     else
     {
@@ -69,8 +63,7 @@ public final class TestGenomicsDB
       assert(!workspace.isEmpty());
       assert(!array.isEmpty());
       assert(!referenceGenome.isEmpty());
-      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
-        (loaderJSONFile, workspace, array, referenceGenome, templateVCFHeader, codec);
+      reader = new GenomicsDBFeatureReader<>(loaderJSONFile, workspace, array, referenceGenome, templateVCFHeader, codec);
     }
     final VariantContextWriter writer =
       new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(
@@ -173,8 +166,8 @@ public final class TestGenomicsDB
     longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_VCF.idx());
     if(args.length < 2)
     {
-      System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
-          +"--workspace=<workspace> --array=<array> --reference_genome=<reference_genome> [--template_vcf_header=<template_VCF_header>]"
+      System.err.println("Usage:\n\tFor querying: --query <loader.json> [--workspace=<workspace> " +
+              "--reference_genome=<reference_genome> [--template_vcf_header=<template_VCF_header>]"
           +" [--chromosome=<chr> --begin=<start> --end=<end>] ]\n"
           +"\tFor loading: --load <loader.json> [--rank=rank --lb_row_idx=lbRowIdx --ub_row_idx=ubRowIdx]");
       System.exit(-1);
@@ -182,7 +175,6 @@ public final class TestGenomicsDB
     boolean doQuery = false;
     boolean doLoad = false;
     String loaderJSONFile = "";
-    String queryJSONFile = "";
     int rank = 0;
     String workspace = "";
     String array = "";
@@ -197,8 +189,7 @@ public final class TestGenomicsDB
     boolean passAsVCF = false;
     //Arg parsing
     Getopt g = new Getopt("TestGenomicsDB", args, "w:A:r:l:", longopts);
-    int c = -1;
-    String optarg;
+    int c;
     //Array of enums
     final ArgsIdxEnum[] enumArray = ArgsIdxEnum.values();
     while ((c = g.getopt()) != -1)
@@ -278,17 +269,15 @@ public final class TestGenomicsDB
     if(doQuery)
     {
       if(passAsVCF)
-        TestGenomicsDB.<LineIterator, VCFCodec>runQuery(
-            new VCFCodec(),
-            args, g.getOptind(), numPositionalArgs,
+        TestGenomicsDB.runQuery(
+            new VCFCodec(), numPositionalArgs,
             loaderJSONFile,
             workspace, array, referenceGenome, templateVCFHeader,
             chromosome, chrBegin, chrEnd,
             countOnly);
       else
-        TestGenomicsDB.<PositionalBufferedStream, BCF2Codec>runQuery(
-            new BCF2Codec(),
-            args, g.getOptind(), numPositionalArgs,
+        TestGenomicsDB.runQuery(
+            new BCF2Codec(), numPositionalArgs,
             loaderJSONFile,
             workspace, array, referenceGenome, templateVCFHeader,
             chromosome, chrBegin, chrEnd,
