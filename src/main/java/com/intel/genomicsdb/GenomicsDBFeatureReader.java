@@ -190,6 +190,44 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             final boolean produceGT,
             final boolean sitesOnlyQuery) throws IOException
     {
+        this(vidMappingFile,
+                callsetMappingFile,
+                tiledbWorkspace, arrayName,
+                referenceGenome, templateVCFHeaderFilename,
+                codec,
+                produceGT,
+                sitesOnlyQuery,
+                false);
+    }
+
+    /**
+     * Constructor
+     * @param vidMappingFile GenomicsDB vid mapping JSON configuration file
+     * @param callsetMappingFile GenomicsDB callset mapping JSON configuration file
+     * @param tiledbWorkspace TileDB workspace path
+     * @param arrayName TileDB array name
+     * @param referenceGenome Path to reference genome (fasta file)
+     * @param templateVCFHeaderFilename Template VCF header to be used for
+     *                                  the combined gVCF records
+     * @param codec FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *              and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param produceGT By default, GenomicsDB ignores the GT field to match the output of GATK
+     *              CombineGVCFs. Enabling this flag will produce the GT fields
+     * @param sitesOnlyQuery Do not produce FORMAT fields (no samples) in the output
+     *              VariantContext objects
+     * @param produceGTWithMinPLVvalueForSpanningDeletions when producing the GT field for spanning deletions,
+     *              use the genotype corresponding to the min PL
+     * @throws IOException when data cannot be read from the stream
+     */
+    public GenomicsDBFeatureReader(final String vidMappingFile,
+            final String callsetMappingFile,
+            final String tiledbWorkspace, final String arrayName,
+            final String referenceGenome, final String templateVCFHeaderFilename,
+            final FeatureCodec<T, SOURCE> codec,
+            final boolean produceGT,
+            final boolean sitesOnlyQuery,
+            final boolean produceGTWithMinPLVvalueForSpanningDeletions) throws IOException
+    {
         //Produce temporary JSON query config file
         String indentString = "    ";
         String queryJSON = "{\n";
@@ -206,6 +244,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             queryJSON += ",\n" + indentString + "\"produce_GT_field\": true";
         if(sitesOnlyQuery)
             queryJSON += ",\n" + indentString + "\"sites_only_query\": true";
+        if(produceGTWithMinPLVvalueForSpanningDeletions)
+            queryJSON += ",\n" + indentString + "\"produce_GT_with_min_PL_value_for_spanning_deletions\": true";
         queryJSON += "\n}\n";
         File tmpQueryJSONFile = File.createTempFile("queryJSON", ".json");
         tmpQueryJSONFile.deleteOnExit();

@@ -69,6 +69,9 @@ def create_query_json(ws_dir, test_name, query_param_dict):
         test_dict['produce_FILTER_field'] = query_param_dict['produce_FILTER_field'];
     if('sites_only_query' in query_param_dict):
         test_dict['sites_only_query'] = query_param_dict['sites_only_query']
+    if('produce_GT_with_min_PL_value_for_spanning_deletions' in query_param_dict):
+        test_dict['produce_GT_with_min_PL_value_for_spanning_deletions'] = \
+                query_param_dict['produce_GT_with_min_PL_value_for_spanning_deletions']
     return test_dict;
 
 
@@ -448,7 +451,7 @@ def main():
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'segment_size': 100,
-                        "golden_output": {
+                      "golden_output": {
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf",
                         } },
@@ -457,10 +460,20 @@ def main():
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'produce_GT_field': True,
                       'segment_size': 100,
-                        "golden_output": {
+                      "golden_output": {
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT",
-                        } }
+                        } },
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                      'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                      "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'produce_GT_field': True,
+                      'produce_GT_with_min_PL_value_for_spanning_deletions': True,
+                      'segment_size': 100,
+                      "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT_for_min_value_PL",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT_for_min_PL",
+                        } },
                 ]
             },
             { "name" : "t0_1_2_all_asa", 'golden_output' : 'golden_outputs/t0_1_2_all_asa_loading',
@@ -490,6 +503,22 @@ def main():
                         "vcf"      : "golden_outputs/t0_1_2_all_asa_loading",
                         "java_vcf"   : "golden_outputs/t0_1_2_all_asa_java_query_vcf",
                         } },
+                    ]
+            },
+            { "name" : "min_PL_spanning_deletion", 'golden_output' : 'golden_outputs/min_PL_spanning_deletion_load_stdout',
+                'callset_mapping_file': 'inputs/callsets/min_PL_spanning_deletion.json',
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                "query_params": [
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                      'produce_GT_field': True, "golden_output": {
+                        "vcf"        : "golden_outputs/min_PL_spanning_deletion_vcf_no_min_PL",
+                        } },
+                    { "query_column_ranges" : [ [0, 1000000000] ],
+                      'produce_GT_field': True,
+                      'produce_GT_with_min_PL_value_for_spanning_deletions': True,
+                      "golden_output": {
+                        "vcf"        : "golden_outputs/min_PL_spanning_deletion_vcf",
+                        } }
                     ]
             },
     ];

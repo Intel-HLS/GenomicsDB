@@ -100,7 +100,8 @@ class VCFAdapter
         const bool produce_GT_field=false,
         const bool index_output_VCF=false,
         const bool produce_FILTER_field=false,
-        const bool sites_only_query=false);
+        const bool sites_only_query=false,
+        const bool produce_GT_with_min_PL_value_for_spanning_deletions=false);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -121,6 +122,8 @@ class VCFAdapter
     const bool produce_GT_field() const { return m_produce_GT_field; }
     const bool produce_FILTER_field() const { return m_produce_FILTER_field; }
     const bool sites_only_query() const { return m_sites_only_query; }
+    const bool produce_GT_with_min_PL_value_for_spanning_deletions() const
+    { return m_produce_GT_with_min_PL_value_for_spanning_deletions; }
   protected:
     bool m_open_output;
     //Output file
@@ -143,6 +146,8 @@ class VCFAdapter
     unsigned m_index_output_VCF;
     //Sites-only query - don't produce any FORMAT fields
     bool m_sites_only_query;
+    //when producing GT, use the min PL value GT for spanning deletions
+    bool m_produce_GT_with_min_PL_value_for_spanning_deletions;
 #ifdef DO_PROFILING
     //Timer
     Timer m_vcf_serialization_timer;

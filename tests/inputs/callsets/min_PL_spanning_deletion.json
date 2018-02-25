@@ -1,0 +1,9 @@
+{
+    "callsets" : {
+        "HG001958" : {
+            "row_idx" : 0,
+            "idx_in_file": 0,
+            "filename": "inputs/vcfs/min_PL_spanning_deletion.vcf.gz"
+        }
+    }
+}
