@@ -184,12 +184,19 @@ public final class GenomicsDBImporterSpec {
         Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
 
         String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
+        GenomicsDBExportConfiguration.ColumnRangeList.Builder columnRange = GenomicsDBExportConfiguration.ColumnRangeList.newBuilder()
+                .addRangeList(GenomicsDBExportConfiguration.ColumnRange.newBuilder().setHigh(50000).setLow(0));
+        GenomicsDBExportConfiguration.RowRangeList.Builder rowRange = GenomicsDBExportConfiguration.RowRangeList.newBuilder()
+                .addRangeList(GenomicsDBExportConfiguration.RowRange.newBuilder().setHigh(3).setLow(0));
 
         GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
                 .setWorkspace(WORKSPACE.getAbsolutePath()).setReferenceGenome(referenceGenome)
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
+                .addQueryColumnRanges(columnRange)
+                .addQueryRowRanges(rowRange)
+                .addAttributes("SOME_ATTR")
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
