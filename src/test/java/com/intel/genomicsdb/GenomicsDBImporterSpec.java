@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.Optional;
 
 public final class GenomicsDBImporterSpec {
     private static final String TEST_CHROMOSOME_NAME = "1";
@@ -158,8 +159,8 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true, false);
     }
 
-    @Test(testName = "genomicsdb command line config and parallel import with multiple chromosome intervals and one GVCFs")
-    public void testImportUsingCommandLineConfigAndParallelImport() throws IOException {
+    @Test(testName = "should run parallel import with multiple chromosome intervals and one GVCF")
+    public void testShouldRunParallelImportWithMultipleChromosomeIntervalsAndOneGvcf() throws IOException {
         long start = System.nanoTime();
 
         //Given
@@ -183,9 +184,15 @@ public final class GenomicsDBImporterSpec {
         Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
 
         String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
-        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(tempVidJsonFile.getAbsolutePath(),
-                tempCallsetJsonFile.getAbsolutePath(), WORKSPACE.getAbsolutePath(), referenceGenome,
-                null, new BCF2Codec(), true);
+
+        GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
+                .setWorkspace(WORKSPACE.getAbsolutePath()).setReferenceGenome(referenceGenome)
+                .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
+                .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
+                .setScanFull(true)
+                .build();
+
+        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
 
         CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
         List<VariantContext> varCtxList = new ArrayList<>();
@@ -194,7 +201,47 @@ public final class GenomicsDBImporterSpec {
         assert(varCtxList.size() == 2);
         assert(varCtxList.get(0).getStart() == 12141);
         assert(varCtxList.get(1).getStart() == 17385);
+    }
 
+    @Test(testName = "should be able to query using specific array name")
+    public void testShouldBeAbleToQueryUsingSpecificArrayName() throws IOException {
+        long start = System.nanoTime();
+
+        //Given
+        String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
+                "-w " + WORKSPACE.getAbsolutePath() + " " +
+                "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
+                "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
+                "tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+        config.setVcfBufferSizePerColumnPartition(10000L);
+        config.setSegmentSize(1048576L);
+        GenomicsDBImporter.parallelImport(config);
+        long duration = (System.nanoTime() - start) / 1_000_000;
+        System.out.printf("Processed %d chromosomes intervals in %d millis\n", config.getChromosomeIntervalList().size(), duration);
+        Assert.assertEquals(tempVidJsonFile.isFile(), true);
+        Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
+        String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
+
+        //When
+        GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
+                .setWorkspace(WORKSPACE.getAbsolutePath())
+                .setReferenceGenome(referenceGenome)
+                .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
+                .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
+                .setScanFull(true)
+                .setArray("1_17000_18000")
+                .build();
+
+        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
+
+        CloseableTribbleIterator<VariantContext> gdbIterator = reader.iterator();
+        List<VariantContext> varCtxList = new ArrayList<>();
+        while (gdbIterator.hasNext()) varCtxList.add(gdbIterator.next());
+
+        //Then
+        assert(varCtxList.size() == 1);
+        assert(varCtxList.get(0).getStart() == 17385);
     }
 
     @Test(testName = "should be able to query using specific chromosome interval")
@@ -220,9 +267,17 @@ public final class GenomicsDBImporterSpec {
 
         //When
         String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
-        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(tempVidJsonFile.getAbsolutePath(),
-                tempCallsetJsonFile.getAbsolutePath(), WORKSPACE.getAbsolutePath(), referenceGenome,
-                null, new BCF2Codec(), true);
+
+        GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
+                .setWorkspace(WORKSPACE.getAbsolutePath())
+                .setReferenceGenome(referenceGenome)
+                .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
+                .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath())
+                .setProduceGTField(true)
+                .setScanFull(true)
+                .build();
+
+        GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
 
         CloseableTribbleIterator<VariantContext> gdbIterator = reader.query("1", 17000, 18000);
         List<VariantContext> varCtxList = new ArrayList<>();
@@ -231,7 +286,6 @@ public final class GenomicsDBImporterSpec {
         //Then
         assert(varCtxList.size() == 1);
         assert(varCtxList.get(0).getStart() == 17385);
-
     }
 
     @BeforeMethod

@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb;
 
+import com.googlecode.protobuf.format.JsonFormat;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
@@ -30,11 +31,13 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.Op;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
   extends InputFormat<String, VCONTEXT> implements Configurable {
@@ -99,10 +102,14 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
       queryJson = configuration.get(GenomicsDBConfiguration.QUERYJSON);
     }
 
-    // TODO: fix this once protobuf classes are created
-    featureReader = new GenomicsDBFeatureReader<VCONTEXT, SOURCE>(
-      loaderJson, "", "", (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec());
-    recordReader = new GenomicsDBRecordReader<VCONTEXT, SOURCE>(featureReader);
+    GenomicsDBExportConfiguration.ExportConfiguration.Builder exportConfigurationBuilder = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
+    JsonFormat.merge(queryJson, exportConfigurationBuilder);
+    GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = exportConfigurationBuilder
+            .setWorkspace("").setReferenceGenome("").build();
+
+    featureReader = new GenomicsDBFeatureReader<>(exportConfiguration,
+            (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec(), Optional.of(loaderJson));
+    recordReader = new GenomicsDBRecordReader<>(featureReader);
     return recordReader;
   }
 

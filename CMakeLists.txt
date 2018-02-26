@@ -269,7 +269,6 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/SampleInfo.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBTimer.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBPartitionInfo.java
-        ./src/main/java/com/intel/genomicsdb/reader/model/QueryParams.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBInputSplit.java

@@ -70,6 +70,7 @@ public class BaseImportConfig {
                             final String vcfHeaderOutputFilepath,
                             final List<String> files) {
         this.validateChromosomeIntervals(chromosomeIntervalList);
+        this.validate(workspace, (value) -> value != null && !value.isEmpty(), "Workspace name cannot be empty.");
         this.setChromosomeIntervalList(chromosomeIntervalList);
         this.setWorkspace(workspace);
         this.setVcfBufferSizePerColumnPartition(vcfBufferSizePerColumnPartition);
@@ -86,6 +87,10 @@ public class BaseImportConfig {
         this.setCallsetOutputFilepath(callsetOutputFilepath);
         this.setVcfHeaderOutputFilepath(vcfHeaderOutputFilepath);
         this.setFiles(files);
+    }
+
+    private <T> void validate(T attribute, Function<T, Boolean> validation, String errorMessage) {
+        if(!validation.apply(attribute)) throw new IllegalArgumentException(errorMessage);
     }
 
     private void validateChromosomeIntervals(List<ChromosomeInterval> chromosomeIntervalList) {

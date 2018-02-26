@@ -22,8 +22,9 @@
 
 package com.intel.genomicsdb.reader;
 
+import com.googlecode.protobuf.format.JsonFormat;
+import com.intel.genomicsdb.GenomicsDBExportConfiguration;
 import com.intel.genomicsdb.GenomicsDBQueryStream;
-import com.intel.genomicsdb.reader.model.QueryParams;
 import htsjdk.tribble.*;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -45,7 +47,7 @@ import static java.util.stream.Collectors.toList;
  */
 public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements FeatureReader<T> {
     private String loaderJSONFile;
-    private QueryParams queryParams;
+    private GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
     private FeatureCodec<T, SOURCE> codec;
     private FeatureCodecHeader featureCodecHeader;
     private ArrayList<String> sequenceNames;
@@ -53,94 +55,22 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     /**
      * Constructor
      *
-     * @param loaderJSONFile  GenomicsDB loader JSON configuration file
-     * @param tiledbWorkspace TileDB workspace path
-     * @param referenceGenome Path to reference genome (fasta file)
-     * @param codec           FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                        and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param exportConfiguration query parameters
+     * @param codec               FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *                            and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param loaderJSONFile      GenomicsDB loader JSON configuration file
      * @throws IOException when data cannot be read from the stream
      */
-    public GenomicsDBFeatureReader(final String loaderJSONFile, final String tiledbWorkspace,
-                                   final String referenceGenome, final FeatureCodec<T, SOURCE> codec) throws IOException {
-        this(loaderJSONFile, tiledbWorkspace, referenceGenome, null, codec);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param loaderJSONFile            GenomicsDB loader JSON configuration file
-     * @param tiledbWorkspace           TileDB workspace path
-     * @param referenceGenome           Path to reference genome (fasta file)
-     * @param templateVCFHeaderFilename Template VCF header to be used for
-     *                                  the combined gVCF records
-     * @param codec                     FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                                  and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @throws IOException when data cannot be read from the stream
-     */
-    public GenomicsDBFeatureReader(final String loaderJSONFile, final String tiledbWorkspace,
-                                   final String referenceGenome, final String templateVCFHeaderFilename,
-                                   final FeatureCodec<T, SOURCE> codec) throws IOException {
-        initialize(loaderJSONFile, new QueryParams(tiledbWorkspace, referenceGenome, templateVCFHeaderFilename), codec);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param vidMappingFile            GenomicsDB vid mapping JSON configuration file
-     * @param callsetMappingFile        GenomicsDB callset mapping JSON configuration file
-     * @param tiledbWorkspace           TileDB workspace path
-     * @param referenceGenome           Path to reference genome (fasta file)
-     * @param templateVCFHeaderFilename Template VCF header to be used for
-     *                                  the combined gVCF records
-     * @param codec                     FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                                  and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @throws IOException when data cannot be read from the stream
-     */
-    public GenomicsDBFeatureReader(final String vidMappingFile, final String callsetMappingFile,
-                                   final String tiledbWorkspace, final String referenceGenome,
-                                   final String templateVCFHeaderFilename, final FeatureCodec<T, SOURCE> codec) throws IOException {
-        this(vidMappingFile, callsetMappingFile, tiledbWorkspace, referenceGenome, templateVCFHeaderFilename, codec, false);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param vidMappingFile            GenomicsDB vid mapping JSON configuration file
-     * @param callsetMappingFile        GenomicsDB callset mapping JSON configuration file
-     * @param tiledbWorkspace           TileDB workspace path
-     * @param referenceGenome           Path to reference genome (fasta file)
-     * @param templateVCFHeaderFilename Template VCF header to be used for
-     *                                  the combined gVCF records
-     * @param codec                     FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                                  and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @param produceGT                 By default, GenomicsDB ignores the GT field to match the output of GATK
-     *                                  CombineGVCFs. Enabling this flag will produce the GT fields
-     * @throws IOException when data cannot be read from the stream
-     */
-    public GenomicsDBFeatureReader(final String vidMappingFile, final String callsetMappingFile,
-                                   final String tiledbWorkspace, final String referenceGenome,
-                                   final String templateVCFHeaderFilename, final FeatureCodec<T, SOURCE> codec,
-                                   final boolean produceGT) throws IOException {
-        initialize("", new QueryParams(tiledbWorkspace, vidMappingFile, callsetMappingFile, referenceGenome,
-                templateVCFHeaderFilename, produceGT), codec);
-    }
-
-    /**
-     * Initialization function that's used by all constructors
-     *
-     * @param loaderJSONFile GenomicsDB loader JSON configuration file
-     * @param queryParams    GenomicsDB query parameters
-     * @param codec          FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                       and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @throws IOException when data cannot be read from the stream
-     */
-    public void initialize(final String loaderJSONFile, final QueryParams queryParams,
-                           final FeatureCodec<T, SOURCE> codec) throws IOException {
-        this.loaderJSONFile = loaderJSONFile;
-        this.queryParams = queryParams;
+    public GenomicsDBFeatureReader(final GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration,
+                                   final FeatureCodec<T, SOURCE> codec,
+                                   final Optional<String> loaderJSONFile) throws IOException {
+        this.exportConfiguration = exportConfiguration;
         this.codec = codec;
-        String[] chromosomeIntervalArrays = getArrayListFromWorkspace(new File(queryParams.getWorkspace()));
-        if (chromosomeIntervalArrays.length < 1)
+        this.loaderJSONFile = loaderJSONFile.orElse("");
+        String[] chromosomeIntervalArrays = this.exportConfiguration.hasArray() ? new String[]{
+                exportConfiguration.getArray()
+        } : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
+        if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.length < 1)
             throw new IllegalStateException("There is no genome data stored in the database");
         generateHeadersForQuery(chromosomeIntervalArrays[0]);
     }
@@ -173,7 +103,10 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> iterator() throws IOException {
-        List<String> chromosomeIntervalArraysPaths = resolveChromosomeArrayFolderList();
+        List<String> chromosomeIntervalArraysPaths = this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
+                new ArrayList<String>() {{
+                    add(exportConfiguration.getArray());
+                }}.stream()) : resolveChromosomeArrayFolderList();
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths,
                 this.featureCodecHeader, this.codec);
     }
@@ -188,18 +121,21 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> query(final String chr, final int start, final int end) throws IOException {
-        List<String> chromosomeIntervalArraysPaths = resolveChromosomeArrayFolderList(chr, start, end);
+        List<String> chromosomeIntervalArraysPaths = this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
+                new ArrayList<String>() {{
+                    add(exportConfiguration.getArray());
+                }}.stream()) : resolveChromosomeArrayFolderList(chr, start, end);
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths, this.featureCodecHeader,
                 this.codec, chr, start, end);
     }
 
     private List<String> resolveChromosomeArrayFolderList() {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(queryParams.getWorkspace()));
+        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
         return createArrayFolderListFromArrayStream(Arrays.stream(chromosomeIntervalArraysNames));
     }
 
     private List<String> resolveChromosomeArrayFolderList(final String chromosome, final int intervalStart, final int intervalEnd) {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(queryParams.getWorkspace()));
+        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
         Stream<String> stream = Arrays.stream(chromosomeIntervalArraysNames).filter(name -> {
             String[] ref = name.split("_");
             if (ref.length != 3) throw new RuntimeException("There is a wrong array folder name in the workspace. " +
@@ -212,10 +148,10 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
 
     private List<String> createArrayFolderListFromArrayStream(Stream<String> stream) {
         return stream.map(name -> {
-            QueryParams fullQueryParams = new QueryParams(this.queryParams);
-            fullQueryParams.setArrayName(name);
+            GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
+                    GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration).setArray(name).build();
             try {
-                return createTempQueryJsonFile(fullQueryParams.getArrayName(), fullQueryParams).getAbsolutePath();
+                return createTempQueryJsonFile(fullExportConfiguration.getArray(), fullExportConfiguration).getAbsolutePath();
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -223,9 +159,10 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     private void generateHeadersForQuery(final String randomExistingArrayName) throws IOException {
-        QueryParams fullQueryParams = new QueryParams(this.queryParams);
-        fullQueryParams.setArrayName(randomExistingArrayName);
-        File queryJSONFile = createTempQueryJsonFile(randomExistingArrayName, fullQueryParams);
+        GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
+                GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration)
+                        .setArray(randomExistingArrayName).build();
+        File queryJSONFile = createTempQueryJsonFile(randomExistingArrayName, fullExportConfiguration);
         GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(this.loaderJSONFile, queryJSONFile.getAbsolutePath(),
                 this.codec instanceof BCF2Codec, true);
         SOURCE source = this.codec.makeSourceFromStream(gdbStream);
@@ -240,11 +177,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     // TODO: remove this once protobuf classes are created
-    private File createTempQueryJsonFile(final String arrayName, final QueryParams fullQueryParams) throws IOException {
+    private File createTempQueryJsonFile(final String arrayName,
+                                         final GenomicsDBExportConfiguration.ExportConfiguration finalExportConfiguration) throws IOException {
         File tmpQueryJSONFile = File.createTempFile(String.format("queryJSON_%s", arrayName), ".json");
         tmpQueryJSONFile.deleteOnExit();
         FileWriter fptr = new FileWriter(tmpQueryJSONFile);
-        fptr.write(fullQueryParams.toJsonString());
+        String jsonString = JsonFormat.printToString(finalExportConfiguration);
+        fptr.write(jsonString);
         fptr.close();
         return tmpQueryJSONFile;
     }
