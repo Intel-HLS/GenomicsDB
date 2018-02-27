@@ -196,7 +196,7 @@ public final class GenomicsDBImporterSpec {
                 .setScanFull(true)
                 .addQueryColumnRanges(columnRange)
                 .addQueryRowRanges(rowRange)
-                .addAttributes("SOME_ATTR")
+                .addAttributes("GT")
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
@@ -309,14 +309,11 @@ public final class GenomicsDBImporterSpec {
         if (WORKSPACE.exists()) FileUtils.deleteDirectory(WORKSPACE);
     }
 
-    private Set<VCFHeaderLine> createMergedHeader(
-            Map<String, FeatureReader<VariantContext>> variantReaders) {
-
+    private Set<VCFHeaderLine> createMergedHeader(Map<String, FeatureReader<VariantContext>> variantReaders) {
         List<VCFHeader> headers = new ArrayList<>();
         for (Map.Entry<String, FeatureReader<VariantContext>> variant : variantReaders.entrySet()) {
             headers.add((VCFHeader) variant.getValue().getHeader());
         }
-
         return VCFUtils.smartMergeHeaders(headers, true);
     }
 }

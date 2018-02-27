@@ -36,39 +36,39 @@ query_json_template_string="""
         "array" : "",
         "vcf_header_filename" : ["inputs/template_vcf_header.vcf"],
         "query_column_ranges": [{
-		"range_list": [{
-			"low": 0,
-			"high": 10000000000
-		}]
-	}],
+            "range_list": [{
+                "low": 0,
+                "high": 10000000000
+            }]
+        }],
         "query_row_ranges": [{
-		"range_list": [{
-			"low": 0,
-			"high": 3
-		}]
-	}],
+            "range_list": [{
+                "low": 0,
+                "high": 3
+            }]
+        }],
         "reference_genome" : "inputs/chr1_10MB.fasta.gz",
-        "query_attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
+        "attributes" : [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT" ]
 }"""
 
-vcf_query_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER" ];
-asa_vcf_query_attributes = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER", "AS_RAW_MQ", "AS_RAW_MQRankSum" ];
-query_attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
-query_attributes_with_PL_only = [ "PL" ]
-query_attributes_with_MLEAC_only = [ "MLEAC" ]
+vcf_attributes_order = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER" ];
+asa_vcf_attributes = [ "END", "REF", "ALT", "BaseQRankSum", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "MQ", "RAW_MQ", "MQ0", "DP", "GT", "GQ", "SB", "AD", "PL", "PGT", "PID", "MIN_DP", "DP_FORMAT", "FILTER", "AS_RAW_MQ", "AS_RAW_MQRankSum" ];
+attributes_with_DS_ID = [ "REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT", "DS", "ID" ];
+attributes_with_PL_only = [ "PL" ]
+attributes_with_MLEAC_only = [ "MLEAC" ]
 default_segment_size = 40
 
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array"] = test_name
-    test_dict["query_column_ranges"] = [ query_param_dict["query_column_ranges"] ]
+    test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
     if("vid_mapping_file" in query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
         test_dict["callset_mapping_file"] = query_param_dict["callset_mapping_file"];
-    if("query_attributes" in query_param_dict):
-        test_dict["query_attributes"] = query_param_dict["query_attributes"];
+    if("attributes" in query_param_dict):
+        test_dict["attributes"] = query_param_dict["attributes"];
     if('segment_size' in query_param_dict):
         test_dict['segment_size'] = query_param_dict['segment_size'];
     else:
@@ -163,41 +163,111 @@ def main():
     loader_tests = [
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                "query_params": [ 
-                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
+                "query_params": [
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],
+                    { "query_column_ranges" : [{
+                        "range_list": [{
+                             "low": 0,
+                             "high": 1000000000
+                          }]
+                      }],
                       "sites_only_query": True,
                       "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_sites_only_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_sites_only_at_0",
                         } },
-                    { "query_column_ranges" : [ 12100 ], "golden_output": {   #
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12100,
+                            "high": 12100
+                        }]
+                    }], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100",
                         } },
-                    { "query_column_ranges" : [ 12100, 12141 ], "golden_output": {   #
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12100,
+                            "high": 12100
+                        },{
+                            "low": 12141,
+                            "high": 12141
+                        }]
+                    }], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141",
                         } },
-                    { "query_column_ranges" : [ 12100, 12141, 12150 ], "golden_output": {   #
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12100,
+                            "high": 12100
+                        },{
+                            "low": 12141,
+                            "high": 12141
+                        },{
+                            "low": 12150,
+                            "high": 12150
+                        }]
+                    }], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_12150",
                         } },
-                    { "query_column_ranges" : [ 12100, [ 12141, 12150] ], "golden_output": {   #
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12100,
+                            "high": 12100
+                        },
+                            {
+                                "low": 12141,
+                                "high": 12150
+                            }]
+                    }], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_to_12150",
                         } },
-                    { "query_column_ranges" : [ 12100, [ 12141, 12150], 12300, 17384 ], "golden_output": {   #
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12100,
+                            "high": 12100
+                        },
+                            {
+                                "low": 12141,
+                                "high": 12150
+                            },
+                            {
+                                "low": 12300,
+                                "high": 12300
+                            },
+                            {
+                                "low": 17384,
+                                "high": 17384
+                            }]
+                    }], "golden_output": {   #
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12100_12141_to_12150_12300_17384",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],
-                        "query_attributes": query_attributes_with_PL_only,
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }],
+                        "attributes": attributes_with_PL_only,
                         "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0_with_PL_only",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],#vid and callset jsons passed through query json
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }],#vid and callset jsons passed through query json
                         "query_without_loader": True,
                         "vid_mapping_file": "inputs/vid.json",
                         "callset_mapping_file": "inputs/callsets/t0_1_2.json",
@@ -208,14 +278,24 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12150,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_12150",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_12150",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }],
                         "produce_FILTER_field": True, "golden_output": {
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0_with_FILTER",
                         } },
@@ -224,14 +304,24 @@ def main():
             { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_csv.json',
                 "query_params": [
-                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
-                    { "query_column_ranges" : [ [12150, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12150,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_calls_at_12150",
                         "variants"   : "golden_outputs/t0_1_2_variants_at_12150",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_12150",
@@ -243,7 +333,12 @@ def main():
             { "name" : "t0_overlapping", 'golden_output': 'golden_outputs/t0_overlapping',
                 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
                 "query_params": [
-                    { "query_column_ranges" : [ [12202, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12202,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "vcf"        : "golden_outputs/t0_overlapping_at_12202",
                         }
                     }
@@ -256,24 +351,43 @@ def main():
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
                 "query_params": [
-                    { "query_column_ranges" : [ [0, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t6_7_8_calls_at_0",
                         "variants"   : "golden_outputs/t6_7_8_variants_at_0",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_0",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_0",
                         } },
-		    { "query_column_ranges" : [ [0, 1000000000] ],
+		    { "query_column_ranges" : [{
+                        "range_list": [{
+                          "low": 0,
+                          "high": 1000000000
+                        }]
+                       }]
 		      "sites_only_query": True, "golden_output": {
                         "vcf"        : "golden_outputs/t6_7_8_vcf_sites_only_at_0",
                         } },
-
-                    { "query_column_ranges" : [ [8029500, 1000000000] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 8029500,
+                            "high": 1000000000
+                        }]
+                    }], "golden_output": {
                         "calls"      : "golden_outputs/t6_7_8_calls_at_8029500",
                         "variants"   : "golden_outputs/t6_7_8_variants_at_8029500",
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500",
                         "batched_vcf": "golden_outputs/t6_7_8_vcf_at_8029500",
                         } },
-                    { "query_column_ranges" : [ [8029500, 8029500] ], "golden_output": {
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 8029500,
+                            "high": 8029500
+                        }]
+                    }], "golden_output": {
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
@@ -378,7 +492,7 @@ def main():
                             "high": 1000000000
                         }]
                     }],
-                      "query_attributes" : query_attributes_with_MLEAC_only, "golden_output": {
+                      "attributes" : attributes_with_MLEAC_only, "golden_output": {
                         "calls"        : "golden_outputs/test_new_fields_MLEAC_only.json",
                         } },
                     ]
@@ -483,7 +597,7 @@ def main():
                             "high": 1000000000
                         }]
                     }],
-                        "query_attributes": query_attributes_with_DS_ID, "golden_output": {
+                        "attributes": attributes_with_DS_ID, "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0",
                         "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0",
                         } },
@@ -502,7 +616,7 @@ def main():
                     }],
                         'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                         'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                        "query_attributes": query_attributes_with_DS_ID, "golden_output": {
+                        "attributes": attributes_with_DS_ID, "golden_output": {
                         "calls"      : "golden_outputs/t0_1_2_DS_ID_calls_at_0_phased_GT",
                         "variants"   : "golden_outputs/t0_1_2_DS_ID_variants_at_0_phased_GT",
                         } },
@@ -584,7 +698,7 @@ def main():
                     }],
                       "force_override": True,
                       'segment_size': 100,
-                      "query_attributes": asa_vcf_query_attributes,
+                      "attributes": asa_vcf_attributes,
                         "golden_output": {
                         "vcf"      : "golden_outputs/t0_1_2_all_asa_loading",
                         } },
@@ -603,7 +717,7 @@ def main():
                     }],
                         "force_override": True,
                         'segment_size': 100,
-                        "query_attributes": asa_vcf_query_attributes,
+                        "attributes": asa_vcf_attributes,
                         "golden_output": {
                         "vcf"      : "golden_outputs/t0_1_2_all_asa_loading",
                         "java_vcf"   : "golden_outputs/t0_1_2_all_asa_java_query_vcf",
@@ -675,7 +789,7 @@ def main():
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
                 if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-                    test_name = "1"
+                    test_name = "1_1_100000000"
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
                 query_types_list = [
                         ('calls','--print-calls'),
@@ -689,7 +803,7 @@ def main():
                     if('golden_output' in query_param_dict and query_type in query_param_dict['golden_output']):
                         if((query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1)
                                 and 'force_override' not in query_param_dict):
-                            test_query_dict['query_attributes'] = vcf_query_attributes_order;
+                            test_query_dict['attributes'] = vcf_attributes_order;
                         query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                         with open(query_json_filename, 'wb') as fptr:
                             json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));

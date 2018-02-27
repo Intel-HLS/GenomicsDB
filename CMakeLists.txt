@@ -172,7 +172,7 @@ if(USE_GPERFTOOLS)
     find_package(GPerftools)
     if(GPERFTOOLS_FOUND)
         message(STATUS "Enabling profiling using GPerftools")
-	add_definitions(-DUSE_GPERFTOOLS)
+    add_definitions(-DUSE_GPERFTOOLS)
         include_directories(${GPERFTOOLS_INCLUDE_DIR})
     else()
         message(WARNING "GPerftools headers/library not found")
@@ -281,7 +281,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
-	    ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
+        ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
         ./src/main/java/com/intel/genomicsdb/model/BaseImportConfig.java
         ./src/main/java/com/intel/genomicsdb/model/VCFHeaderToFile.java
