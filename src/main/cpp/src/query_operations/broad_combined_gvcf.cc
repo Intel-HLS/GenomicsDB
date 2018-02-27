@@ -1019,35 +1019,16 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto& input_GT =
           original_GT_field_ptr->get();
         m_spanning_deletion_remapped_GT.resize(input_GT.size());
-        auto remap_GT_based_on_input_GT = true;
-        if(PL_field_ptr && PL_field_ptr->is_valid()
-            && m_vcf_adapter->produce_GT_with_min_PL_value_for_spanning_deletions())
-        {
-          remap_GT_based_on_input_GT = false;
-          //Get handler for current type
-          auto& handler = get_handler_for_type(query_config.get_element_type(m_GT_query_idx));
-          assert(handler.get());
-          //Get the tuple containing data for min value of PL
-          auto min_value_tuple = handler->determine_allele_combination_and_genotype_index_for_min_value(
+        auto remap_GT_based_on_input_GT =
+          update_GT_to_correspond_to_min_PL_value(
+              query_config,
               curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX)),
-              num_reduced_alleles, has_NON_REF, ploidy);
-          //Found one valid PL value - use allele idx vec
-          if(GenotypeForMinValueTracker<int>::found_at_least_one_valid_value(min_value_tuple))
-          {
-            //if phased ploidy, allele idx and phase information alternate in input_GT vector
-            //So, step value will be 2, if no phase, then step == 1
-            auto step_value = GT_length_descriptor.get_ploidy_step_value();
-            auto& allele_idx_vec = GenotypeForMinValueTracker<int>::get_allele_idx_vec(min_value_tuple);
-            for(auto i=0u,j=0u;i<input_GT.size();i+=step_value,++j)
-            {
-              assert(j < allele_idx_vec.size());
-              input_GT[i] =  allele_idx_vec[j];
-            }
-          }
-          else
-            remap_GT_based_on_input_GT = true; //no valid PL values found, remap based on input GT
-        }
-        if(remap_GT_based_on_input_GT)
+              input_GT,
+              GT_length_descriptor,
+              num_reduced_alleles,
+              has_NON_REF
+              );
+        if(remap_GT_based_on_input_GT) //update_GT_to_correspond_to_min_PL_value didn't work, remap based on input_GT only
         {
           VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
               num_reduced_alleles, has_NON_REF, GT_length_descriptor);
@@ -1065,6 +1046,46 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       }
     }
   }
+}
+
+bool BroadCombinedGVCFOperator::update_GT_to_correspond_to_min_PL_value(
+    const VariantQueryConfig& query_config,
+    std::unique_ptr<VariantFieldBase>& PL_field,
+    std::vector<int>& input_GT,
+    const FieldLengthDescriptor& GT_length_descriptor,
+    const unsigned num_alleles,
+    const bool has_NON_REF)
+{
+  auto remap_GT_based_on_input_GT = true;
+  auto PL_field_ptr = PL_field.get();
+  if(PL_field_ptr && PL_field_ptr->is_valid()
+      && m_vcf_adapter->produce_GT_with_min_PL_value_for_spanning_deletions())
+  {
+    remap_GT_based_on_input_GT = false;
+    //Get handler for current type
+    auto& handler = get_handler_for_type(query_config.get_element_type(m_GT_query_idx));
+    assert(handler.get());
+    //Get the tuple containing data for min value of PL
+    auto min_value_tuple = handler->determine_allele_combination_and_genotype_index_for_min_value(
+        PL_field, num_alleles, has_NON_REF,
+        GT_length_descriptor.get_ploidy(input_GT.size()));
+    //Found one valid PL value - use allele idx vec
+    if(GenotypeForMinValueTracker<int>::found_at_least_one_valid_value(min_value_tuple))
+    {
+      //if phased ploidy, allele idx and phase information alternate in input_GT vector
+      //So, step value will be 2, if no phase, then step == 1
+      auto step_value = GT_length_descriptor.get_ploidy_step_value();
+      auto& allele_idx_vec = GenotypeForMinValueTracker<int>::get_allele_idx_vec(min_value_tuple);
+      for(auto i=0u,j=0u;i<input_GT.size();i+=step_value,++j)
+      {
+        assert(j < allele_idx_vec.size());
+        input_GT[i] =  allele_idx_vec[j];
+      }
+    }
+    else
+      remap_GT_based_on_input_GT = true; //no valid PL values found, remap based on input GT
+  }
+  return remap_GT_based_on_input_GT;
 }
 
 #endif //ifdef HTSDIR

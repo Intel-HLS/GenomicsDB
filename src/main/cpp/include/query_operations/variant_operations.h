@@ -88,8 +88,29 @@ class RemappedVariant : public RemappedDataWrapperBase
     unsigned m_queried_field_idx;
 };
 
+/*
+ * Tuple with elements
+ * 1. std::vector<int>*: allele index vector for the genotype corresponding to min value
+ * 2. uint64_t: index of the genotype corresponding to min value
+ * 3. bool: true if at least one valid value was available in the input data (PL vector)
+ */
 typedef std::tuple<const std::vector<int>*, uint64_t, bool> GenotypeForMinValueResultTuple;
 
+/*
+ * Use case - obtain the genotype corresponding to the min value in a PL vector
+ * Easy for diploid and haploid cases. Iterating over all possible genotypes becomes
+ * quite complex for the general ploidy case. Hence, we want to re-use remap_data_based_on_genotype_general
+ * (terrible name for a function that iterates over all possible genotypes). Each iteration calls
+ * track_minimum(PL_vector, GT_combination). The GenotypeForMinValueResultTuple object uses the GT_combination
+ * to find the GT idx (index in the PL_vector) and keeps tracks of the GT combination corresponding to the
+ * min PL value
+ *
+ * Templated to handle different datatypes - PL is int, but in the future this might be a different field which
+ * may be a float
+ *
+ * Why is this a child of RemappedDataWrapperBase? A. Bad design decision earlier - this will be fixed when the
+ * remap functions are refactored.
+ */
 template<class DataType>
 class GenotypeForMinValueTracker : public RemappedDataWrapperBase
 {
@@ -108,11 +129,16 @@ class GenotypeForMinValueTracker : public RemappedDataWrapperBase
       throw VariantOperationException("put_address() undefined for class GenotypeForMinValueTracker and shouldn't be called");
       return 0;
     }
+    /*
+     * Called by determine_allele_combination_and_genotype_index_for_min_value
+     * From the use case: arguments are PL_vector, allele_idx_vec
+     */
     void track_minimum(const std::vector<DataType>& input_data,
         std::vector<int>& allele_idx_vec_for_current_gt_combination);
     /*
      * Wrapper around GenotypeForMinValueTracker - just for compatibility with remap_data_based_on_genotype_general
      * remap_data_based_on_genotype_general should be fixed in general
+     * Arguments are necessary for remap_data_based_on_genotype_general
      */
     static void determine_allele_combination_and_genotype_index_for_min_value(const std::vector<DataType>& input_data,
         const uint64_t input_call_idx,
