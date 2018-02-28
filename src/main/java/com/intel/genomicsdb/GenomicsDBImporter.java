@@ -24,12 +24,10 @@ package com.intel.genomicsdb;
 
 import com.googlecode.protobuf.format.JsonFormat;
 import com.intel.genomicsdb.model.BaseImportConfig;
-import com.intel.genomicsdb.model.VCFHeaderToFile;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
-import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -41,6 +39,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.googlecode.protobuf.format.JsonFormat.printToString;
@@ -52,6 +51,7 @@ import static com.googlecode.protobuf.format.JsonFormat.printToString;
 public class GenomicsDBImporter {
     private static final String DEFAULT_ARRAY_NAME = "genomicsdb_array";
     private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
+    private static final int DEFAULT_ZERO_BATCH_SIZE = 0;
     //Allele specific annotation fields
     private static final HashSet<String> mRLengthHistogramFieldsWithFloatBins = new HashSet<>(Arrays.asList(
             "AS_RAW_BaseQRankSum",
@@ -122,6 +122,7 @@ public class GenomicsDBImporter {
     public GenomicsDBImporter(String loaderJSONFile, int rank) {
         initialize(loaderJSONFile, rank, 0, Long.MAX_VALUE - 1);
     }
+
     /**
      * Constructor
      *
@@ -133,6 +134,7 @@ public class GenomicsDBImporter {
     public GenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx) {
         initialize(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     }
+
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
@@ -158,6 +160,7 @@ public class GenomicsDBImporter {
                 workspace, arrayname, sizePerColumnPartition, segmentSize,
                 (long) 0, Long.MAX_VALUE - 1, true);
     }
+
     /**
      * Constructor with an GenomicsDB import configuration protocol buffer
      * structure. Avoids passing long list of parameters. This constructor
@@ -223,6 +226,7 @@ public class GenomicsDBImporter {
                 workspace, arrayname, sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx,
                 false, validateSampleToReaderMap);
     }
+
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
@@ -257,6 +261,7 @@ public class GenomicsDBImporter {
                 workspace, arrayname, sizePerColumnPartition, segmentSize,
                 lbRowIdx, ubRowIdx, useSamplesInOrderProvided, false, validateSampleToReaderMap);
     }
+
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
@@ -293,6 +298,7 @@ public class GenomicsDBImporter {
                 workspace, arrayname, sizePerColumnPartition, segmentSize,
                 lbRowIdx, ubRowIdx, useSamplesInOrderProvided, failIfUpdating, 0, validateSampleToReaderMap);
     }
+
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
@@ -342,6 +348,7 @@ public class GenomicsDBImporter {
                 validateSampleToReaderMap,
                 true);
     }
+
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
@@ -461,42 +468,32 @@ public class GenomicsDBImporter {
      */
     private static native void jniConsolidateTileDBArray(final String workspace, final String arrayName);
 
-    private static VCFHeaderToFile resolveVCFHeaderToFile(final BaseImportConfig baseImportConfig) {
-        List<VCFHeader> headers = new ArrayList<>();
-        ArrayList<String> sampleNames = new ArrayList<>();
-        Map<String, String> sampleNameToFileName = new LinkedHashMap<>();
 
-        //Get merged header first
-        for (String file : baseImportConfig.getFiles()) {
-            AbstractFeatureReader<VariantContext, LineIterator> reader =
-                    AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
-            headers.add((VCFHeader) reader.getHeader());
-            final String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
-            sampleNames.add(sampleName);
-            sampleNameToFileName.put(sampleName, file);
-            //Hopefully, GC kicks in and frees resources assigned to reader
-        }
-
-        return new VCFHeaderToFile(headers, sampleNames, sampleNameToFileName);
+    /**
+     * Import multiple chromosome interval
+     *
+     * @param baseImportConfig basic import configuration
+     * @throws IOException
+     */
+    public static void parallelImport(final BaseImportConfig baseImportConfig) throws IOException, InterruptedException {
+        parallelImport(baseImportConfig, 0);
     }
 
     /**
      * Import multiple chromosome interval
-     * @param baseImportConfig
+     *
+     * @param baseImportConfig basic import configuration
+     * @param numThreads       number of threads to use
      */
-    public static void parallelImport(final BaseImportConfig baseImportConfig) throws IOException {
-        VCFHeaderToFile vcfHeaderToFile = resolveVCFHeaderToFile(baseImportConfig);
-
-        //Merge headers
-        Set<VCFHeaderLine> mergedHeader = VCFUtils.smartMergeHeaders(vcfHeaderToFile.getHeaders(), true);
-
+    public static void parallelImport(final BaseImportConfig baseImportConfig, int numThreads) throws IOException, InterruptedException {
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
         //you must have consistent ordering of samples across partitions. If file order is different
         //in different processes, then set useSamplesInOrder to false and let the sort in
         //generateSortedCallSetMap ensure consistent ordering across samples
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
-                GenomicsDBImporter.generateSortedCallSetMap(vcfHeaderToFile.getSampleNames(), baseImportConfig.isUseSamplesInOrderProvided());
+                GenomicsDBImporter.generateSortedCallSetMap(new ArrayList<>(
+                        baseImportConfig.getSampleNameToVcfPath().keySet()), baseImportConfig.isUseSamplesInOrderProvided());
 
         //Write out callset map if needed
         if (baseImportConfig.getCallsetOutputFilepath() != null)
@@ -504,66 +501,68 @@ public class GenomicsDBImporter {
 
         //Write out vidmap if needed
         if (baseImportConfig.getVidmapOutputFilepath() != null)
-            GenomicsDBImporter.writeVidMapJSONFile(baseImportConfig.getVidmapOutputFilepath(), mergedHeader);
+            GenomicsDBImporter.writeVidMapJSONFile(baseImportConfig.getVidmapOutputFilepath(), baseImportConfig.getMergedHeader());
 
         //Write out merged header if needed
         if (baseImportConfig.getVcfHeaderOutputFilepath() != null)
-            GenomicsDBImporter.writeVcfHeaderFile(baseImportConfig.getVcfHeaderOutputFilepath(), mergedHeader);
+            GenomicsDBImporter.writeVcfHeaderFile(baseImportConfig.getVcfHeaderOutputFilepath(), baseImportConfig.getMergedHeader());
 
         //Create workspace folder to avoid issues with concurrency
-        if(!new File(baseImportConfig.getWorkspace()).exists()) {
+        if (!new File(baseImportConfig.getWorkspace()).exists()) {
             int tileDBWorkspace = createTileDBWorkspace(baseImportConfig.getWorkspace());
             if (tileDBWorkspace < 0) throw new IllegalStateException(String.format("Cannot create '%s' workspace.",
                     baseImportConfig.getWorkspace()));
         }
 
+        final int batchSize = baseImportConfig.getBatchSize();
+        final int sampleCount = baseImportConfig.getSampleNameToVcfPath().size();
+        final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
+
+        ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
+
         //Iterate over sorted sample list in batches
-        for (int i = 0; i < vcfHeaderToFile.getSampleNames().size(); i += baseImportConfig.getBatchSize()) {
+        for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
 
-            List<Boolean> result = baseImportConfig.getChromosomeIntervalList().parallelStream().map(chromosomeInterval -> {
-                try {
-                    final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                            createSampleToReaderMap(baseImportConfig, vcfHeaderToFile, index);
-                    GenomicsDBImporter importer = createImporter(
-                            baseImportConfig, vcfHeaderToFile, mergedHeader, index, sampleToReaderMap, chromosomeInterval);
-                    return importer.importBatch();
-                } catch (Exception ex) {
-                    throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
-                }
-            }).collect(Collectors.toList());
+            List<CompletableFuture<Boolean>> futures = baseImportConfig.getChromosomeIntervalList().stream().map(chromosomeInterval ->
+                    CompletableFuture.supplyAsync(() -> {
+                        try {
+                            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
+                                    baseImportConfig.getSampleToReaderMap().apply(
+                                            baseImportConfig.getSampleNameToVcfPath(), updatedBatchSize, index);
 
-            if(result.contains(false))
-               throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+                            GenomicsDBImporter importer = createImporter(
+                                    baseImportConfig, sampleCount, baseImportConfig.getMergedHeader(), index, sampleToReaderMap, chromosomeInterval);
+                            return importer.importBatch();
+                        } catch (Exception ex) {
+                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+                        }
+                    }, executor)
+            ).collect(Collectors.toList());
+
+            List<Boolean> result = futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
+
+            if (result.contains(false)) {
+                executor.shutdown();
+                throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+            }
+
+            executor.shutdown();
         }
     }
 
-    private static Map<String, FeatureReader<VariantContext>> createSampleToReaderMap(BaseImportConfig baseImportConfig, VCFHeaderToFile vcfHeaderToFile, int index) {
-        final Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new LinkedHashMap<>();
-        for (int j = index; j < vcfHeaderToFile.getSampleNames().size() && j < index + baseImportConfig.getBatchSize(); ++j) {
-            final String sampleName = vcfHeaderToFile.getSampleNames().get(j);
-            assert vcfHeaderToFile.getSampleNameToFileName().containsKey(sampleName);
-            AbstractFeatureReader<VariantContext, LineIterator> reader =
-                    AbstractFeatureReader.getFeatureReader(vcfHeaderToFile.getSampleNameToFileName().get(sampleName), new VCFCodec(), false);
-            assert sampleName.equals(((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0));
-            sampleToReaderMap.put(sampleName, reader);
-        }
-        return sampleToReaderMap;
-    }
-
-    private static GenomicsDBImporter createImporter(final BaseImportConfig baseImportConfig, final VCFHeaderToFile vcfHeaderToFile,
+    private static GenomicsDBImporter createImporter(final BaseImportConfig baseImportConfig, final int samplesSize,
                                                      final Set<VCFHeaderLine> mergedHeader, final int index,
                                                      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                                      final ChromosomeInterval chromInterval) throws IOException {
         return new GenomicsDBImporter(
-                sampleToReaderMap, mergedHeader,
-                new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
+                sampleToReaderMap, mergedHeader, new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
                 baseImportConfig.getWorkspace(), String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
                 chromInterval.getStart(), chromInterval.getEnd()),
-                baseImportConfig.getVcfBufferSizePerColumnPartition() * vcfHeaderToFile.getSampleNames().size(),
+                baseImportConfig.getVcfBufferSizePerColumnPartition() * samplesSize,
                 baseImportConfig.getSegmentSize(), (long) index, (long) (index + baseImportConfig.getBatchSize() - 1),
-                baseImportConfig.isUseSamplesInOrderProvided(), baseImportConfig.isFailIfUpdating(),
-                baseImportConfig.getRank(), baseImportConfig.isValidateSampleToReaderMap(), baseImportConfig.isPassAsVcf());
+                true, baseImportConfig.isFailIfUpdating(), baseImportConfig.getRank(),
+                baseImportConfig.isValidateSampleToReaderMap(), baseImportConfig.isPassAsVcf());
     }
 
     /**
@@ -642,7 +641,7 @@ public class GenomicsDBImporter {
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
     static void writeCallsetMapJSONFile(String outputCallsetMapJSONFilePath,
-                                               GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) throws FileNotFoundException {
+                                        GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) throws FileNotFoundException {
         String callsetMapJSONString = printToString(callsetMappingPB);
         File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
 

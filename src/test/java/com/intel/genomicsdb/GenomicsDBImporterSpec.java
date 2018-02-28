@@ -22,7 +22,7 @@
 
 package com.intel.genomicsdb;
 
-import com.intel.genomicsdb.model.BaseImportConfig;
+import com.intel.genomicsdb.model.CommandLineImportConfig;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
@@ -160,7 +160,7 @@ public final class GenomicsDBImporterSpec {
     }
 
     @Test(testName = "should run parallel import with multiple chromosome intervals and one GVCF")
-    public void testShouldRunParallelImportWithMultipleChromosomeIntervalsAndOneGvcf() throws IOException {
+    public void testShouldRunParallelImportWithMultipleChromosomeIntervalsAndOneGvcf() throws IOException, InterruptedException {
         long start = System.nanoTime();
 
         //Given
@@ -169,7 +169,7 @@ public final class GenomicsDBImporterSpec {
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
-        BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+        CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
         config.setVcfBufferSizePerColumnPartition(10000L);
         config.setSegmentSize(1048576L);
 
@@ -211,7 +211,7 @@ public final class GenomicsDBImporterSpec {
     }
 
     @Test(testName = "should be able to query using specific array name")
-    public void testShouldBeAbleToQueryUsingSpecificArrayName() throws IOException {
+    public void testShouldBeAbleToQueryUsingSpecificArrayName() throws IOException, InterruptedException {
         long start = System.nanoTime();
 
         //Given
@@ -220,7 +220,7 @@ public final class GenomicsDBImporterSpec {
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
-        BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+        CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
         config.setVcfBufferSizePerColumnPartition(10000L);
         config.setSegmentSize(1048576L);
         GenomicsDBImporter.parallelImport(config);
@@ -252,7 +252,7 @@ public final class GenomicsDBImporterSpec {
     }
 
     @Test(testName = "should be able to query using specific chromosome interval")
-    public void testShouldBeAbleToQueryUsingSpecificChromosomeInterval() throws IOException {
+    public void testShouldBeAbleToQueryUsingSpecificChromosomeInterval() throws IOException, InterruptedException {
         long start = System.nanoTime();
 
         //Given
@@ -261,7 +261,7 @@ public final class GenomicsDBImporterSpec {
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
-        BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+        CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
         config.setVcfBufferSizePerColumnPartition(10000L);
         config.setSegmentSize(1048576L);
 

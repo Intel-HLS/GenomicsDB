@@ -22,15 +22,15 @@
 
 import com.intel.genomicsdb.GenomicsDBException;
 import com.intel.genomicsdb.GenomicsDBImporter;
-import com.intel.genomicsdb.model.BaseImportConfig;
+import com.intel.genomicsdb.model.CommandLineImportConfig;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 
 public final class TestGenomicsDBImporterWithMergedVCFHeader {
 
-  public static void main(final String[] args) throws IOException, GenomicsDBException, ParseException {
-    BaseImportConfig config = new BaseImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+  public static void main(final String[] args) throws IOException, GenomicsDBException, ParseException, InterruptedException {
+    CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
     config.setVcfBufferSizePerColumnPartition(10000L);
     config.setSegmentSize(1048576L);
 
