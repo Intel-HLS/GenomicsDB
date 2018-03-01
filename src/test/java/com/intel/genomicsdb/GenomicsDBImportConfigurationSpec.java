@@ -61,18 +61,6 @@ public class GenomicsDBImportConfigurationSpec {
     partitions.add(p0);
     partitions.add(p1);
 
-    GenomicsDBImportConfiguration.GATK4Integration.Builder gBuilder =
-      GenomicsDBImportConfiguration.GATK4Integration.newBuilder();
-
-    GenomicsDBImportConfiguration.GATK4Integration integrationParameters =
-      gBuilder
-        .setBatchSize(100)
-        .setOutputVidmapJsonFile(TEST_VIDMAP_FILENAME)
-        .setOutputCallsetmapJsonFile(TEST_CALLSETMAP_FILENAME)
-        .setBatchSize(100)
-        .setUseSamplesInOrderProvided(true)
-        .build();
-
     GenomicsDBImportConfiguration.ImportConfiguration.Builder configBuilder =
       GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
     GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
@@ -85,15 +73,17 @@ public class GenomicsDBImportConfigurationSpec {
         .setRowBasedPartitioning(false)
         .addAllColumnPartitions(partitions)
         .setFailIfUpdating(false)
-        .setGatk4IntegrationParameters(integrationParameters)
         .setDisableSyncedWrites(true)
         .setIgnoreCellsNotInPartition(false)
+        .setVidMappingFile(TEST_VIDMAP_FILENAME)
+        .setCallsetMappingFile(TEST_CALLSETMAP_FILENAME)
+        .setBatchSize(100)
+        .setUseSamplesInOrderProvided(true)
         .build();
     
     Assert.assertEquals(importConfiguration.isInitialized(), true);
 
     // Assert has methods
-    Assert.assertEquals(importConfiguration.hasCallsetMappingFile(), false);
     Assert.assertEquals(importConfiguration.hasDoPingPongBuffering(), true);
     Assert.assertEquals(importConfiguration.hasDeleteAndCreateTiledbArray(), true);
     Assert.assertEquals(importConfiguration.hasDiscardVcfIndex(), false);
@@ -102,11 +92,10 @@ public class GenomicsDBImportConfigurationSpec {
     Assert.assertEquals(importConfiguration.hasProduceCombinedVcf(), false);
     Assert.assertEquals(importConfiguration.hasProduceTiledbArray(), true);
     Assert.assertEquals(importConfiguration.hasSizePerColumnPartition(), true);
-    Assert.assertEquals(importConfiguration.hasGatk4IntegrationParameters(), true);
-    Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasBatchSize(), true);
-    Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasOutputCallsetmapJsonFile(), true);
-    Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasOutputVidmapJsonFile(), true);
-    Assert.assertEquals(importConfiguration.getGatk4IntegrationParameters().hasUseSamplesInOrderProvided(), true);
+    Assert.assertEquals(importConfiguration.hasBatchSize(), true);
+    Assert.assertEquals(importConfiguration.hasCallsetMappingFile(), true);
+    Assert.assertEquals(importConfiguration.hasVidMappingFile(), true);
+    Assert.assertEquals(importConfiguration.hasUseSamplesInOrderProvided(), true);
     Assert.assertEquals(importConfiguration.hasDisableSyncedWrites(), true);
     Assert.assertEquals(importConfiguration.hasIgnoreCellsNotInPartition(), true);
 
@@ -122,6 +111,5 @@ public class GenomicsDBImportConfigurationSpec {
     Assert.assertEquals(importConfiguration.getDisableSyncedWrites(), true);
     Assert.assertEquals(importConfiguration.getIgnoreCellsNotInPartition(), false);
     Assert.assertSame(importConfiguration.getFailIfUpdating(), false);
-    Assert.assertSame(importConfiguration.getGatk4IntegrationParameters(), integrationParameters);
   }
 }

@@ -362,8 +362,8 @@ public class GenomicsDBImporter
         importConfiguration.getColumnPartitions(0).getArray(),
         importConfiguration.getSizePerColumnPartition(),
         importConfiguration.getSegmentSize(),
-        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
+        importConfiguration.getLowerSampleIndex(),
+        importConfiguration.getUpperSampleIndex(),
         false,  //useSamplesInOrderProvided
         importConfiguration.getFailIfUpdating(),
         validateSampleToReaderMap
@@ -523,6 +523,62 @@ public class GenomicsDBImporter
               rank,
               validateSampleToReaderMap,
               true);
+  }
+
+  /**
+  * Constructor with an GenomicsDB import configuration protocol buffer
+  * structure. Avoids passing long list of parameters. This constructor
+  * is developed specifically for GATK4 GenomicsDBImport tool.
+  *
+  * @param importConfigurationPB  Protobuf configuration object containing related input
+  *                               parameters, filenames, etc.
+  * @param vidMapPB  Protobuf configuration object for variant mapping 
+  * @param callSetMapPB  Protobuf configuration object for callset mapping 
+  * @param chromosomeInterval  Chromosome interval to traverse input VCFs
+  * @param rank Rank of object - corresponds to the partition index in the loader
+  * @param passAsVcf Use the VCF format to pass data from Java to C++
+  * @throws IOException  Throws file IO exception.
+  */
+  public GenomicsDBImporter(GenomicsDBImportConfiguration.ImportConfiguration importConfigurationPB,
+		            GenomicsDBVidMapProto.VidMappingPB vidMapPB,
+                            GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMapPB,
+                            Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+                            ChromosomeInterval chromosomeInterval,
+                            int rank,
+                            boolean passAsVcf) throws IOException, IllegalArgumentException {
+    // Mark this flag so that protocol buffer based vid
+    // and callset map are propagated to C++ GenomicsDBImporter
+    mUsingVidMappingProtoBuf = true;
+    
+    File importJSONFile = dumpTemporaryLoaderJSONFile(importConfigurationPB, "");
+
+    jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
+    jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMapPB.toByteArray());
+
+    initialize(importJSONFile.getAbsolutePath(), rank,  importConfigurationPB.getLowerSampleIndex(), importConfigurationPB.getUpperSampleIndex());
+
+    mGenomicsDBImporterObjectHandle =
+      jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank, importConfigurationPB.getLowerSampleIndex(), importConfigurationPB.getUpperSampleIndex());
+
+    for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleToIDMap :
+        callsetMapPB.getCallsetsList()) {
+
+      String sampleName = sampleToIDMap.getSampleName();
+
+      FeatureReader<VariantContext> featureReader = sampleToReaderMap.get(sampleName);
+
+      CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeInterval.getContig(),
+            chromosomeInterval.getStart(), chromosomeInterval.getEnd());
+
+      addSortedVariantContextIterator(
+          sampleToIDMap.getStreamName(),
+        (VCFHeader) featureReader.getHeader(),
+        iterator,
+        importConfiguration.getSizePerColumnPartition(),
+        passAsVcf ? VariantContextWriterBuilder.OutputType.VCF_STREAM
+        : VariantContextWriterBuilder.OutputType.BCF_STREAM,
+        null);
+    }
   }
 
   /**

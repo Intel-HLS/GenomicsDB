@@ -49,6 +49,7 @@ public final class GenomicsDBImporterSpec {
   private static final File WORKSPACE = new File("__workspace");
   private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
   private static final String TEST_CHROMOSOME_NAME = "1";
+  private static final long DEFAULT_SEGMENT_SIZE = 1048576L;
   private static final File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
   private static final File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
   private static final File TEMP_VCF_HEADER_FILE = new File("vcfheader.vcf");
@@ -85,6 +86,63 @@ public final class GenomicsDBImporterSpec {
     Assert.assertTrue(callsetFile.exists());
   }
 
+  @Test(testName = "genomicsdb protobuf importer",
+      dataProvider = "vcfFiles",
+      dataProviderClass = GenomicsDBTestUtils.class)
+  public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
+      throws IOException {
+
+    ChromosomeInterval chromosomeInterval =
+      new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
+
+    Set<VCFHeaderLine> mergedHeader = createMergedHeader(sampleToReaderMap);
+
+    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
+        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
+
+    GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
+
+    GenomicsDBImportConfiguration.Partition.Builder pB =
+      GenomicsDBImportConfiguration.Partition.newBuilder();
+    GenomicsDBImportConfiguration.Partition p0 =
+      pB
+        .setBegin(0)
+        .setWorkspace(WORKSPACE.getAbsolutePath())
+        .setArray(TILEDB_ARRAYNAME)
+        .build();
+
+    GenomicsDBImportConfiguration.ImportConfiguration.Builder importConfigurationPB =
+      GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
+
+    importBuilder
+      .setRowBasedPartitioning(false)
+      .setSizePerColumnPartition(16384)
+      .addColumnPartitions(p0)
+      .setProduceTiledbArray(true)
+      .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
+      .setCompressTiledbArray(true)
+      .setSegmentSize(DEFAULT_SEGMENT_SIZE)
+      .setTreatDeletionsAsIntervals(true)
+      .setFailIfUpdating(true)
+      .build();
+
+    GenomicsDBImporter importer = new GenomicsDBImporter(
+      importConfigurationPB,
+      vidMapPB,
+      callsetMappingPB,
+      sampleToReaderMap,
+      chromosomeInterval,
+      0, //rank
+      true); //passAsVcf
+
+    importer.importBatch();
+
+    GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
+        callsetMappingPB);
+    Assert.assertEquals(importer.isDone(), true);
+  }
+
+
   @Test(testName = "genomicsdb importer outputs merged headers as a JSON file",
         dataProvider = "vcfFiles",
         dataProviderClass = GenomicsDBTestUtils.class)
@@ -98,6 +156,8 @@ public final class GenomicsDBImporterSpec {
 
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A =
         GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
+
+    
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
       sampleToReaderMap,
