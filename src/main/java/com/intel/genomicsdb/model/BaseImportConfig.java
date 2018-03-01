@@ -95,11 +95,11 @@ public class BaseImportConfig {
     protected BaseImportConfig() {
     }
 
-    private <T> void validate(T attribute, Function<T, Boolean> validation, String errorMessage) {
+    private <T> void validate(final T attribute, final Function<T, Boolean> validation, final String errorMessage) {
         if(!validation.apply(attribute)) throw new IllegalArgumentException(errorMessage);
     }
 
-    private boolean isWithinChromosomeInterval(ChromosomeInterval current, ChromosomeInterval chromInterval) {
+    private boolean isWithinChromosomeInterval(final ChromosomeInterval current, final ChromosomeInterval chromInterval) {
         return (current.getStart() >= chromInterval.getStart() &&
                 current.getStart() <= chromInterval.getEnd() &&
                 current.getContig().equals(chromInterval.getContig())) ||
@@ -108,7 +108,7 @@ public class BaseImportConfig {
                         current.getContig().equals(chromInterval.getContig()));
     }
 
-    private boolean isThereChromosomeIntervalIntersection(List<ChromosomeInterval> chromIntervals, boolean isThereInter) {
+    private boolean isThereChromosomeIntervalIntersection(final List<ChromosomeInterval> chromIntervals, boolean isThereInter) {
         if (chromIntervals.isEmpty() || chromIntervals.size() < 2) return isThereInter;
         ChromosomeInterval head = chromIntervals.get(0);
         List<ChromosomeInterval> tail = chromIntervals.subList(1, chromIntervals.size());
@@ -121,11 +121,11 @@ public class BaseImportConfig {
         return isThereChromosomeIntervalIntersection(tail, isThereInter);
     }
 
-    private boolean isThereChromosomeIntervalIntersection(List<ChromosomeInterval> chromIntervals) {
+    private boolean isThereChromosomeIntervalIntersection(final List<ChromosomeInterval> chromIntervals) {
         return isThereChromosomeIntervalIntersection(chromIntervals, false);
     }
 
-    void validateChromosomeIntervals(List<ChromosomeInterval> chromosomeIntervalList) {
+    void validateChromosomeIntervals(final List<ChromosomeInterval> chromosomeIntervalList) {
         if (isThereChromosomeIntervalIntersection(chromosomeIntervalList))
             throw new IllegalArgumentException("There are multiple intervals sharing same value. This is not allowed. " +
                     "Intervals should be defined without intersections.");

@@ -51,7 +51,7 @@ public class CommandLineImportConfig extends BaseImportConfig {
         return longopts;
     }
 
-    private void resolveCommandArgs(Getopt commandArgs) {
+    private void resolveCommandArgs(final Getopt commandArgs) {
         int c;
         final int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx();
         final ArgsIdxEnum[] enumArray = ArgsIdxEnum.values();
@@ -105,7 +105,7 @@ public class CommandLineImportConfig extends BaseImportConfig {
         }
     }
 
-    private void resolveHeaders(List<String> files) {
+    private void resolveHeaders(final List<String> files) {
         List<VCFHeader> headers = new ArrayList<>();
         Map<String, Path> sampleNameToVcfPath = new LinkedHashMap<>();
 
@@ -123,7 +123,8 @@ public class CommandLineImportConfig extends BaseImportConfig {
         this.setSampleNameToVcfPath(sampleNameToVcfPath);
     }
 
-    private Map<String, FeatureReader<VariantContext>> createSampleToReaderMap(Map<String, Path> sampleNameToVcfPath, int batchSize, int index) {
+    private Map<String, FeatureReader<VariantContext>> createSampleToReaderMap(
+            final Map<String, Path> sampleNameToVcfPath, final int batchSize, final int index) {
         final Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new LinkedHashMap<>();
         for (int j = index; j < sampleNameToVcfPath.size() && j < index + batchSize; ++j) {
             final String sampleName = sampleNameToVcfPath.keySet().toArray()[j].toString(); //TODO: fix this.

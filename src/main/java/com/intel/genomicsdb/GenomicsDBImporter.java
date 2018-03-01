@@ -485,7 +485,7 @@ public class GenomicsDBImporter {
      * @param baseImportConfig basic import configuration
      * @param numThreads       number of threads to use
      */
-    public static void parallelImport(final BaseImportConfig baseImportConfig, int numThreads) throws IOException, InterruptedException {
+    public static void parallelImport(final BaseImportConfig baseImportConfig, final int numThreads) throws IOException, InterruptedException {
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
         //you must have consistent ordering of samples across partitions. If file order is different
