@@ -88,6 +88,102 @@ class RemappedVariant : public RemappedDataWrapperBase
     unsigned m_queried_field_idx;
 };
 
+/*
+ * Tuple with elements
+ * 1. std::vector<int>*: allele index vector for the genotype corresponding to min value
+ * 2. uint64_t: index of the genotype corresponding to min value
+ * 3. bool: true if at least one valid value was available in the input data (PL vector)
+ */
+typedef std::tuple<const std::vector<int>*, uint64_t, bool> GenotypeForMinValueResultTuple;
+
+/*
+ * Use case - obtain the genotype corresponding to the min value in a PL vector
+ * Easy for diploid and haploid cases. Iterating over all possible genotypes becomes
+ * quite complex for the general ploidy case. Hence, we want to re-use remap_data_based_on_genotype_general
+ * (terrible name for a function that iterates over all possible genotypes). Each iteration calls
+ * track_minimum(PL_vector, GT_combination). The GenotypeForMinValueResultTuple object uses the GT_combination
+ * to find the GT idx (index in the PL_vector) and keeps tracks of the GT combination corresponding to the
+ * min PL value
+ *
+ * Templated to handle different datatypes - PL is int, but in the future this might be a different field which
+ * may be a float
+ *
+ * Why is this a child of RemappedDataWrapperBase? A. Bad design decision earlier - this will be fixed when the
+ * remap functions are refactored.
+ */
+template<class DataType>
+class GenotypeForMinValueTracker : public RemappedDataWrapperBase
+{
+  public:
+    GenotypeForMinValueTracker()
+    {
+      reset();
+    }
+    void reset()
+    {
+      m_current_min_value = std::numeric_limits<DataType>::max();
+      m_found_one_valid_value = false;
+    }
+    void* put_address(uint64_t input_call_idx, unsigned allele_or_gt_idx)
+    {
+      throw VariantOperationException("put_address() undefined for class GenotypeForMinValueTracker and shouldn't be called");
+      return 0;
+    }
+    /*
+     * Called by determine_allele_combination_and_genotype_index_for_min_value
+     * From the use case: arguments are PL_vector, allele_idx_vec
+     */
+    void track_minimum(const std::vector<DataType>& input_data,
+        std::vector<int>& allele_idx_vec_for_current_gt_combination);
+    /*
+     * Wrapper around GenotypeForMinValueTracker - just for compatibility with remap_data_based_on_genotype_general
+     * remap_data_based_on_genotype_general should be fixed in general
+     * Arguments are necessary for remap_data_based_on_genotype_general
+     */
+    static void determine_allele_combination_and_genotype_index_for_min_value(const std::vector<DataType>& input_data,
+        const uint64_t input_call_idx,
+        const CombineAllelesLUT& alleles_LUT,
+        const unsigned num_merged_alleles, bool NON_REF_exists,
+        const bool curr_genotype_combination_contains_missing_allele_for_input,
+        const unsigned ploidy,
+        RemappedDataWrapperBase& remapped_data,
+        std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+        const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+        const uint64_t remapped_gt_idx,
+        std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+        );
+    //Return results
+    GenotypeForMinValueResultTuple get_tuple_for_min_value() const
+    {
+      return std::make_tuple(&m_allele_idx_vec_for_current_genotype,
+          m_genotype_index, m_found_one_valid_value);
+    }
+    const std::vector<int>& get_allele_idx_vec_for_min_value() const { return m_allele_idx_vec_for_current_genotype; }
+    uint64_t get_genotype_index_for_min_value() const { return m_genotype_index; }
+    bool found_at_least_one_valid_value() const { return m_found_one_valid_value; }
+    //Extract from tuple
+    static const std::vector<int>& get_allele_idx_vec(
+        const GenotypeForMinValueResultTuple& curr_tuple)
+    {
+      return *(std::get<0>(curr_tuple));
+    }
+    static uint64_t get_genotype_index(
+        const GenotypeForMinValueResultTuple& curr_tuple)
+    {
+      return std::get<1>(curr_tuple);
+    }
+    static bool found_at_least_one_valid_value(
+        const GenotypeForMinValueResultTuple& curr_tuple)
+    {
+      return std::get<2>(curr_tuple);
+    }
+  private:
+    bool m_found_one_valid_value;
+    DataType m_current_min_value;
+    uint64_t m_genotype_index;
+    std::vector<int> m_allele_idx_vec_for_current_genotype;
+};
+
 template<class DataType>
 using remap_operator_function_type = void(*)(const std::vector<DataType>& input_data,
     const uint64_t input_call_idx,
@@ -399,6 +495,9 @@ class VariantFieldHandlerBase
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         const FieldLengthDescriptor& length_descriptor, unsigned num_elements, RemappedVariant& remapper_variant) = 0;
+    virtual GenotypeForMinValueResultTuple determine_allele_combination_and_genotype_index_for_min_value(
+        std::unique_ptr<VariantFieldBase>& orig_field_ptr,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy) = 0;
     virtual bool get_valid_median(const Variant& variant, const VariantQueryConfig& query_config, 
         unsigned query_idx, void* output_ptr, unsigned& num_valid_elements) = 0;
     virtual bool get_valid_sum(const Variant& variant, const VariantQueryConfig& query_config, 
@@ -446,6 +545,16 @@ class VariantFieldHandler : public VariantFieldHandlerBase
         const CombineAllelesLUT& alleles_LUT,
         unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy,
         const FieldLengthDescriptor& length_descriptor, unsigned num_merged_elements, RemappedVariant& remapper_variant);
+    /*
+     * Computes the genotype index and the allele combination corresponding to the minimum value in orig_field_ptr
+     * This is useful for computing the GT value corresponding to the minimum value of PL
+     * Why is this function so complex? Dealing with arbitrary ploidy and #alleles is the problem. Also, the poor
+     * implementation of remap_data_based_on_genotype_general :(
+     * Returns: pair<allele combination corresponding to min, gt_index corresponding to min>
+     */
+    virtual GenotypeForMinValueResultTuple determine_allele_combination_and_genotype_index_for_min_value(
+        std::unique_ptr<VariantFieldBase>& orig_field_ptr,
+        unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy);
     /*
      * Computes median for a given field over all Calls (only considers calls with valid field)
      */
@@ -511,6 +620,11 @@ class VariantFieldHandler : public VariantFieldHandlerBase
     //as described in http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes,
     //keep stack of (ploidy index, allele_idx) - only when the stack is empty are all genotypes enumerated
     std::vector<std::pair<int, int> > m_ploidy_index_alleles_index_stack;
+    //identity LUT - basically stores lut[i] == i information
+    //used in determine_allele_combination_and_genotype_index_for_min_value, kept here to avoid memory reallocations
+    CombineAllelesLUT m_alleles_identity_LUT;
+    //used in determine_allele_combination_and_genotype_index_for_min_value, avoid memory reallocations
+    GenotypeForMinValueTracker<DataType> m_min_genotype_tracker;
 };
 
 void remap_allele_specific_annotations(
