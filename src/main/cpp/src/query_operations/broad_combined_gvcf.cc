@@ -163,14 +163,17 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       auto known_field_enum = query_config.is_defined_known_field_enum_for_query_idx(i) ? query_config.get_known_field_enum_for_query_idx(i)
         : UNDEFINED_ATTRIBUTE_IDX_VALUE;
       auto VCF_field_combine_operation = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(i);
+      auto sites_only_query = m_vcf_adapter->sites_only_query();
       auto add_to_INFO_vector = (field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_END_IDX
           && (known_field_enum != GVCF_DP_IDX || VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
           && VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
           );
-      auto add_to_FORMAT_vector = (field_info->m_is_vcf_FORMAT_field ||
+      auto add_to_FORMAT_vector = (
+	  (field_info->m_is_vcf_FORMAT_field && (!sites_only_query || known_field_enum == GVCF_DP_FORMAT_IDX)) //FORMAT field when !sites_only_query or FORMAT field specifically GVCF_DP_FORMAT_IDX
+	   ||
           (field_info->m_is_vcf_INFO_field
            && ((known_field_enum == GVCF_DP_IDX && VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP)
-             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT)
+             || (VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT && !sites_only_query)
            )
            )
           );
@@ -275,19 +278,22 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   auto curr_contig_flag = m_vid_mapper->get_next_contig_location(-1ll, m_next_contig_name, m_next_contig_begin_position);
   assert(curr_contig_flag);
   switch_contig();
-  //Add samples to template header
-  std::string callset_name;
-  for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
+  //Add samples to template header if this is not a sites only query
+  if(!(m_vcf_adapter->sites_only_query()))
   {
-    auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
-    auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
-    if(!status || callset_name.empty())
-      throw BroadCombinedGVCFException(std::string("No sample/CallSet name specified in JSON file/Protobuf object for TileDB row ")
-          + std::to_string(row_idx));
-    auto add_sample_status = bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
-    if(add_sample_status < 0)
-      throw BroadCombinedGVCFException(std::string("Could not add sample ")
-          +callset_name+" to the combined VCF/gVCF header");
+    std::string callset_name;
+    for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
+    {
+      auto row_idx = query_config.get_array_row_idx_for_query_row_idx(i);
+      auto status = m_vid_mapper->get_callset_name(row_idx, callset_name);
+      if(!status || callset_name.empty())
+	throw BroadCombinedGVCFException(std::string("No sample/CallSet name specified in JSON file/Protobuf object for TileDB row ")
+	    + std::to_string(row_idx));
+      auto add_sample_status = bcf_hdr_add_sample(m_vcf_hdr, callset_name.c_str());
+      if(add_sample_status < 0)
+	throw BroadCombinedGVCFException(std::string("Could not add sample ")
+	    +callset_name+" to the combined VCF/gVCF header");
+    }
   }
   bcf_hdr_sync(m_vcf_hdr);
   //Map from vid mapper field idx to hdr field idx
@@ -686,7 +692,8 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       found_one_valid_DP_FORMAT = is_bcf_valid_value<int>(dp_format_val) || found_one_valid_DP_FORMAT;
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
-    if(found_one_valid_DP_FORMAT)
+    //Add DP to FORMAT if one valid DP FORMAT value found and this is not a sites only query
+    if(found_one_valid_DP_FORMAT && !(m_vcf_adapter->sites_only_query()))
     {
       bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
       m_bcf_record_size += m_DP_FORMAT_vector.size()*sizeof(int);
@@ -938,8 +945,19 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
             }
         }
       }
-      else      //PL field is not queried, simply use the first ALT allele
+      else      //PL field is not queried/doesn't exist, simply use the first deletion allele
+      {
         lowest_deletion_allele_idx = 1;
+        for(auto i=0u;i<alt_alleles.size();++i)
+        {
+          auto allele_idx = i+1;  //+1 for REF
+          if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+          {
+            lowest_deletion_allele_idx = allele_idx;
+            break;
+          }
+        }
+      }
       assert(lowest_deletion_allele_idx >= 1);    //should be an ALT allele
       //first ALT allele in reduced list is *
       m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, lowest_deletion_allele_idx, 1); 
@@ -953,17 +971,6 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       ref_allele = "N"; //set to unknown REF for now
       alt_alleles[0u] = g_vcf_SPANNING_DELETION;
       unsigned num_reduced_alleles = alt_alleles.size() + 1u;   //+1 for REF
-      //GT field
-      if(original_GT_field_ptr)
-      {
-        auto& input_GT =
-          original_GT_field_ptr->get();
-        m_spanning_deletion_remapped_GT.resize(input_GT.size());
-        VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
-            num_reduced_alleles, has_NON_REF, GT_length_descriptor);
-        //Copy back
-        memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
-      }
       //Remap fields that need to be remapped
       for(auto i=0u;i<m_remapped_fields_query_idxs.size();++i)
       {
@@ -1006,6 +1013,29 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           }
         }
       }
+      //GT field
+      if(original_GT_field_ptr)
+      {
+        auto& input_GT =
+          original_GT_field_ptr->get();
+        m_spanning_deletion_remapped_GT.resize(input_GT.size());
+        auto remap_GT_based_on_input_GT =
+          update_GT_to_correspond_to_min_PL_value(
+              query_config,
+              curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX)),
+              input_GT,
+              GT_length_descriptor,
+              num_reduced_alleles,
+              has_NON_REF
+              );
+        if(remap_GT_based_on_input_GT) //update_GT_to_correspond_to_min_PL_value didn't work, remap based on input_GT only
+        {
+          VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
+              num_reduced_alleles, has_NON_REF, GT_length_descriptor);
+          //Copy back
+          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
+        }
+      }
       //Invalidate INFO fields
       for(const auto& tuple : m_INFO_fields_vec)
       {
@@ -1016,6 +1046,46 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       }
     }
   }
+}
+
+bool BroadCombinedGVCFOperator::update_GT_to_correspond_to_min_PL_value(
+    const VariantQueryConfig& query_config,
+    std::unique_ptr<VariantFieldBase>& PL_field,
+    std::vector<int>& input_GT,
+    const FieldLengthDescriptor& GT_length_descriptor,
+    const unsigned num_alleles,
+    const bool has_NON_REF)
+{
+  auto remap_GT_based_on_input_GT = true;
+  auto PL_field_ptr = PL_field.get();
+  if(PL_field_ptr && PL_field_ptr->is_valid()
+      && m_vcf_adapter->produce_GT_with_min_PL_value_for_spanning_deletions())
+  {
+    remap_GT_based_on_input_GT = false;
+    //Get handler for current type
+    auto& handler = get_handler_for_type(query_config.get_element_type(m_GT_query_idx));
+    assert(handler.get());
+    //Get the tuple containing data for min value of PL
+    auto min_value_tuple = handler->determine_allele_combination_and_genotype_index_for_min_value(
+        PL_field, num_alleles, has_NON_REF,
+        GT_length_descriptor.get_ploidy(input_GT.size()));
+    //Found one valid PL value - use allele idx vec
+    if(GenotypeForMinValueTracker<int>::found_at_least_one_valid_value(min_value_tuple))
+    {
+      //if phased ploidy, allele idx and phase information alternate in input_GT vector
+      //So, step value will be 2, if no phase, then step == 1
+      auto step_value = GT_length_descriptor.get_ploidy_step_value();
+      auto& allele_idx_vec = GenotypeForMinValueTracker<int>::get_allele_idx_vec(min_value_tuple);
+      for(auto i=0u,j=0u;i<input_GT.size();i+=step_value,++j)
+      {
+        assert(j < allele_idx_vec.size());
+        input_GT[i] =  allele_idx_vec[j];
+      }
+    }
+    else
+      remap_GT_based_on_input_GT = true; //no valid PL values found, remap based on input GT
+  }
+  return remap_GT_based_on_input_GT;
 }
 
 #endif //ifdef HTSDIR

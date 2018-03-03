@@ -271,6 +271,8 @@ VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffe
   m_is_bcf = true;
   m_produce_GT_field = false;
   m_produce_FILTER_field = false;
+  m_sites_only_query = false;
+  m_produce_GT_with_min_PL_value_for_spanning_deletions = false;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -314,7 +316,9 @@ void VCFAdapter::initialize(const std::string& reference_genome,
     const size_t combined_vcf_records_buffer_size_limit,
     const bool produce_GT_field,
     const bool index_output_VCF,
-    const bool produce_FILTER_field)
+    const bool produce_FILTER_field,
+    const bool sites_only_query,
+    const bool produce_GT_with_min_PL_value_for_spanning_deletions)
 {
   //Read template header with fields and contigs
   m_vcf_header_filename = vcf_header_filename;
@@ -360,6 +364,8 @@ void VCFAdapter::initialize(const std::string& reference_genome,
   m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
   m_produce_GT_field = produce_GT_field;
   m_produce_FILTER_field = produce_FILTER_field;
+  m_sites_only_query = sites_only_query;
+  m_produce_GT_with_min_PL_value_for_spanning_deletions = produce_GT_with_min_PL_value_for_spanning_deletions;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()

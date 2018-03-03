@@ -58,10 +58,11 @@
     <gnu.getopt.version>1.0.13</gnu.getopt.version>
     <surefire.plugin.version>2.20</surefire.plugin.version>
     <genomicsdb_source_directory>.</genomicsdb_source_directory>
-    <genomicsdb_lib_directory>bin</genomicsdb_lib_directory>
+    <genomicsdb_lib_directory>${genomicsdb_build_directory}/src/main</genomicsdb_lib_directory>
     <genomicsdb_build_directory>${project.basedir}/target</genomicsdb_build_directory>
     <protobuf.input.directory>${genomicsdb_source_directory}/src/resources</protobuf.input.directory>
-    <protobuf.output.directory>${genomicsdb_build_directory}/protobuf</protobuf.output.directory>
+    <protobuf.output.directory>${genomicsdb_source_directory}/src/main/java</protobuf.output.directory>
+    <test_source_directory>${genomicsdb_source_directory}/src/test/java</test_source_directory>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
@@ -116,7 +117,7 @@
 
   <build>
     <directory>${genomicsdb_build_directory}</directory>
-    <testSourceDirectory>${genomicsdb_source_directory}/src/test/java</testSourceDirectory>
+    <testSourceDirectory>${test_source_directory}</testSourceDirectory>
     <resources>
       <resource>
         <directory>${genomicsdb_lib_directory}</directory>
@@ -289,43 +290,7 @@
     <profile>
       <id>default_profile</id>
       <activation>
-        <property>
-        <name>!protobuf.regenerate</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <executions>
-              <!-- Add src/main/scala to source path of Eclipse -->
-              <execution>
-                <id>add-source</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>add-source</goal>
-                </goals>
-                <configuration>
-                  <sources>
-                    <source>${genomicsdb_source_directory}/src/main/java</source>
-                    <source>${genomicsdb_source_directory}/src/main/scala</source>
-                    <source>${genomicsdb_source_directory}/src/main/protobuf-generated/java</source>
-                  </sources>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>protobuf_regenerate_profile</id>
-      <activation>
-        <property>
-          <name>protobuf.regenerate</name>
-          <value>true</value>
-        </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <build>
         <plugins>
@@ -375,9 +340,9 @@
                 </goals>
                 <configuration>
                   <sources>
+		    <source>${protobuf.output.directory}</source>
                     <source>${genomicsdb_source_directory}/src/main/java</source>
                     <source>${genomicsdb_source_directory}/src/main/scala</source>
-                    <source>${protobuf.output.directory}</source>
                   </sources>
                 </configuration>
               </execution>

@@ -298,9 +298,6 @@ void VariantOperations::remap_data_based_on_genotype_general(const std::vector<D
 
 uint64_t VariantOperations::get_genotype_index(std::vector<int>& allele_idx_vec, const bool is_sorted)
 {
-  //To get genotype combination index for the input, alleles must be in sorted order
-  if(!is_sorted)
-    std::sort(allele_idx_vec.begin(), allele_idx_vec.end());
   switch(allele_idx_vec.size()) //ploidy
   {
     case 0u:
@@ -311,6 +308,9 @@ uint64_t VariantOperations::get_genotype_index(std::vector<int>& allele_idx_vec,
       return bcf_alleles2gt(allele_idx_vec[0u], allele_idx_vec[1u]);
     default:
       {
+        //To get genotype combination index for the input, alleles must be in sorted order
+        if(!is_sorted)
+          std::sort(allele_idx_vec.begin(), allele_idx_vec.end());
         auto gt_idx = 0ull;
         //From http://genome.sph.umich.edu/wiki/Relationship_between_Ploidy,_Alleles_and_Genotypes
         for(auto i=0ull;i<allele_idx_vec.size();++i)
@@ -395,6 +395,102 @@ void  VariantOperations::remap_data_based_on_genotype(const std::vector<DataType
           VariantOperations::reorder_field_based_on_genotype_index<DataType>);
       break;
   }
+}
+
+//genotype corresponding to min value PL field
+
+template<class DataType>
+void GenotypeForMinValueTracker<DataType>::track_minimum(const std::vector<DataType>& input_data,
+    std::vector<int>& allele_idx_vec_for_current_gt_combination)
+{
+  auto gt_idx = VariantOperations::get_genotype_index(allele_idx_vec_for_current_gt_combination, false);
+  if(gt_idx < input_data.size() && is_bcf_valid_value<DataType>(input_data[gt_idx])
+      && input_data[gt_idx] < m_current_min_value )
+  {
+    m_current_min_value = input_data[gt_idx];
+    m_genotype_index = gt_idx;
+    m_allele_idx_vec_for_current_genotype = allele_idx_vec_for_current_gt_combination;
+    m_found_one_valid_value = true;
+  }
+}
+
+template<class DataType>
+void GenotypeForMinValueTracker<DataType>::determine_allele_combination_and_genotype_index_for_min_value(const std::vector<DataType>& input_data,
+    const uint64_t input_call_idx,
+    const CombineAllelesLUT& alleles_LUT,
+    const unsigned num_merged_alleles, bool NON_REF_exists,
+    const bool curr_genotype_combination_contains_missing_allele_for_input,
+    const unsigned ploidy,
+    RemappedDataWrapperBase& remapped_data,
+    std::vector<uint64_t>& num_calls_with_valid_data, DataType missing_value,
+    const std::vector<int>& remapped_allele_idx_vec_for_current_gt_combination,
+    const uint64_t remapped_gt_idx,
+    std::vector<int>& input_call_allele_idx_vec_for_current_gt_combination
+    )
+{
+  auto& min_tracker = dynamic_cast<GenotypeForMinValueTracker<DataType>&>(remapped_data);
+  min_tracker.track_minimum(input_data, input_call_allele_idx_vec_for_current_gt_combination);
+}
+
+template<class DataType>
+GenotypeForMinValueResultTuple VariantFieldHandler<DataType>::determine_allele_combination_and_genotype_index_for_min_value(
+    std::unique_ptr<VariantFieldBase>& orig_field_ptr,
+    unsigned num_merged_alleles, bool non_ref_exists, const unsigned ploidy)
+{
+  m_min_genotype_tracker.reset();
+  if(!(orig_field_ptr.get() && orig_field_ptr->is_valid()))
+    return m_min_genotype_tracker.get_tuple_for_min_value(); //returns tuple with valid flag set to false
+  //Assert that ptr is of type VariantFieldPrimitiveVectorData<DataType>
+  assert(dynamic_cast<VariantFieldPrimitiveVectorData<DataType>*>(orig_field_ptr.get()));
+  auto& orig_vector_field_data = static_cast<VariantFieldPrimitiveVectorData<DataType>*>(orig_field_ptr.get())->get();
+  m_input_call_allele_idx_vec.resize(ploidy);
+  auto num_genotypes = KnownFieldInfo::get_num_elements_given_length_descriptor(BCF_VL_G,
+      num_merged_alleles-1u, ploidy, 0u);
+  switch(ploidy)
+  {
+    case 1u: //haploid, #genotypes == num_merged_alleles
+      {
+        for(auto i=0u;i<std::min<unsigned>(num_genotypes, orig_vector_field_data.size());++i)
+        {
+          m_input_call_allele_idx_vec[0u] = i;
+          m_min_genotype_tracker.track_minimum(orig_vector_field_data, m_input_call_allele_idx_vec);
+        }
+        break;
+      }
+    case 2u: //diploid - iterate over possible GT combinations
+      {
+        for(auto i=0u;i<num_merged_alleles;++i)
+        {
+          m_input_call_allele_idx_vec[0u] = i;
+          for(auto j=i;j<num_merged_alleles;++j)
+          {
+            m_input_call_allele_idx_vec[1u] = j;
+            m_min_genotype_tracker.track_minimum(orig_vector_field_data, m_input_call_allele_idx_vec);
+          }
+        }
+        break;
+      }
+    default:  //why not let this case handle diploid and haploid? A. speed, diploid is common case
+      {
+        //LUT with single sample, num_merged_alleles
+        m_alleles_identity_LUT.resize_luts_if_needed(1u, num_merged_alleles);
+        m_alleles_identity_LUT.reset_luts();
+        std::vector<uint64_t> empty_vec;
+        for(auto i=0u;i<num_merged_alleles;++i)
+          m_alleles_identity_LUT.add_input_merged_idx_pair(0u, i, i);
+        VariantOperations::remap_data_based_on_genotype_general<DataType>(orig_vector_field_data,
+            0ull,
+            m_alleles_identity_LUT,
+            num_merged_alleles, non_ref_exists, ploidy,
+            dynamic_cast<RemappedDataWrapperBase&>(m_min_genotype_tracker),
+            empty_vec, m_bcf_missing_value,
+            m_allele_idx_vec_for_current_genotype, m_ploidy_index_alleles_index_stack,
+            m_input_call_allele_idx_vec,
+            GenotypeForMinValueTracker<DataType>::determine_allele_combination_and_genotype_index_for_min_value);
+        break;
+      }
+  }
+  return m_min_genotype_tracker.get_tuple_for_min_value(); //returns tuple with valid flag set to false
 }
 
 //Variant handler functions
@@ -754,7 +850,7 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
         (use_vector_end_only || (is_GT_field && !use_missing_values_only_not_vector_end))
         ? get_bcf_vector_end_value<DataType>()
         : ((is_GT_field && use_missing_values_only_not_vector_end)
-            ? get_bcf_gt_missing_value<DataType>() //why? htsjdk does not handle a record where GT is missing in 1 sample, present in another
+            ? get_bcf_gt_no_call_allele_index<DataType>()  //why? htsjdk does not handle a record where GT is missing in 1 sample, present in another. So, set GT value to no-call
             : get_bcf_missing_value<DataType>());
       ++num_elements_inserted;
       ++extended_field_vector_idx;

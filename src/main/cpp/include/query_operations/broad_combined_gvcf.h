@@ -77,6 +77,18 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     void handle_FORMAT_fields(const Variant& variant);
     void handle_deletions(Variant& variant, const VariantQueryConfig& query_config);
     void merge_ID_field(const Variant& variant, const unsigned query_idx);
+    /*
+     * Find the GT combination that corresponds to min PL value and update
+     * input_GT
+     * Returns true if successful, else false
+     */
+    bool update_GT_to_correspond_to_min_PL_value(
+        const VariantQueryConfig& query_config,
+        std::unique_ptr<VariantFieldBase>& PL_field,
+        std::vector<int>& input_GT,
+        const FieldLengthDescriptor& GT_length_descriptor,
+        const unsigned num_alleles,
+        const bool has_NON_REF);
     //For combining allele specific annotations such as AS_BaseQRankSum
     //these are vectors of histograms
     template<class T1, class T2>
