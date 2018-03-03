@@ -367,7 +367,7 @@ def main():
                           "low": 0,
                           "high": 1000000000
                         }]
-                       }]
+                       }],
 		      "sites_only_query": True, "golden_output": {
                         "vcf"        : "golden_outputs/t6_7_8_vcf_sites_only_at_0",
                         } },
@@ -664,7 +664,7 @@ def main():
                             "low": 0,
                             "high": 1000000000
                         }]
-                    }],
+                        }],
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'produce_GT_field': True,
@@ -673,7 +673,12 @@ def main():
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                        }],
                       'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
                       "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
                       'produce_GT_field': True,
@@ -728,11 +733,21 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/min_PL_spanning_deletion.json',
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
-                    { "query_column_ranges" : [ [0, 1000000000] ],
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }],
                       'produce_GT_field': True, "golden_output": {
                         "vcf"        : "golden_outputs/min_PL_spanning_deletion_vcf_no_min_PL",
                         } },
-                    { "query_column_ranges" : [ [0, 1000000000] ],
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                    }],
                       'produce_GT_field': True,
                       'produce_GT_with_min_PL_value_for_spanning_deletions': True,
                       "golden_output": {
