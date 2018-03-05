@@ -64,7 +64,7 @@ public class GenomicsDBImporter {
     private static final HashSet<String> mRLengthTwoDIntVectorFields = new HashSet<>(Collections.singletonList(
             "AS_SB_TABLE"
     ));
-    static final String CHROMOSOME_INTERVAL_FOLDER = "%s_%d_%d";
+    static final String CHROMOSOME_INTERVAL_FOLDER = "%s#%d#%d";
     static long mDefaultBufferCapacity = 20480; //20KB
 
     static {
@@ -528,7 +528,7 @@ public class GenomicsDBImporter {
                     CompletableFuture.supplyAsync(() -> {
                         try {
                             final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                                    baseImportConfig.getSampleToReaderMap().apply(
+                                    baseImportConfig.sampleToReaderMapCreator().apply(
                                             baseImportConfig.getSampleNameToVcfPath(), updatedBatchSize, index);
 
                             GenomicsDBImporter importer = createImporter(

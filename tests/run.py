@@ -804,7 +804,7 @@ def main():
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
                 if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-                    test_name = "1_1_100000000"
+                    test_name = "1#1#100000000"
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
                 query_types_list = [
                         ('calls','--print-calls'),

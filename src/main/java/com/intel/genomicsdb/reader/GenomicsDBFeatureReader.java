@@ -137,9 +137,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private List<String> resolveChromosomeArrayFolderList(final String chromosome, final int intervalStart, final int intervalEnd) {
         String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
         Stream<String> stream = Arrays.stream(chromosomeIntervalArraysNames).filter(name -> {
-            String[] ref = name.split("_");
+            String[] ref = name.split("#");
             if (ref.length != 3) throw new RuntimeException("There is a wrong array folder name in the workspace. " +
-                    "Array folder name should be {chromosome}_{intervalStart}_{intervalEnd}");
+                    "Array folder name should be {chromosome}#{intervalStart}#{intervalEnd}");
             return chromosome.equals(ref[0]) && ((intervalStart >= Integer.parseInt(ref[1]) && intervalStart <= Integer.parseInt(ref[2])) ||
                     (intervalEnd >= Integer.parseInt(ref[1]) && intervalEnd <= Integer.parseInt(ref[2])));
         });

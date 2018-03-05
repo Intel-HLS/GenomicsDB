@@ -237,7 +237,7 @@ public final class GenomicsDBImporterSpec {
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
-                .setArray("1_17000_18000")
+                .setArray("1#17000#18000")
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());

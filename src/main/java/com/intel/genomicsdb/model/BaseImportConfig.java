@@ -152,7 +152,7 @@ public class BaseImportConfig {
         this.sampleNameToVcfPath = sampleNameToVcfPath;
     }
 
-    public Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> getSampleToReaderMap() {
+    public Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
         return sampleToReaderMap;
     }
 
