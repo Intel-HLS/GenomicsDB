@@ -47,6 +47,13 @@ void VariantQueryConfig::set_attributes_to_query(const vector<string>& attribute
     add_attribute_to_query(attributeNames[i], UNDEFINED_ATTRIBUTE_IDX_VALUE);
 }
 
+void VariantQueryConfig::clear_attributes_to_query()
+{
+  m_query_attribute_name_to_query_idx.clear();
+  m_query_attributes_info_vec.clear();
+  m_query_idx_known_variant_field_enum_LUT.reset_luts();
+}
+
 void VariantQueryConfig::set_rows_to_query(const vector<int64_t>& rowIdxVec)
 {
   m_query_rows.resize(rowIdxVec.size());

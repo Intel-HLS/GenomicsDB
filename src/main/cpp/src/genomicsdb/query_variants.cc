@@ -275,19 +275,48 @@ void VariantQueryProcessor::initialize()
 
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
-  if(queryConfig.get_num_queried_attributes() == 0u)  //add all attributes
+  if(queryConfig.get_num_queried_attributes() == 0u  //add all attributes
+      || queryConfig.sites_only_query())             //ignore INFO fields
   {
-    for(auto i=0ull;i<schema.attribute_num();++i)
-      queryConfig.add_attribute_to_query(schema.attribute_name(i), i);
-  }
-  else
-    for(auto i=0ull;i<schema.attribute_num();++i)
+    std::vector<std::string> new_query_attribute_vector;
+    if(queryConfig.get_num_queried_attributes() == 0u) //add all attributes from schema
+      for(auto i=0ull;i<schema.attribute_num();++i)
+        new_query_attribute_vector.push_back(schema.attribute_name(i));
+    else //only queried attributes
+      for(auto i=0ull;i<queryConfig.get_num_queried_attributes();++i)
+        new_query_attribute_vector.push_back(queryConfig.get_query_attribute_name(i));
+    std::vector<bool> valid_vector(new_query_attribute_vector.size(), true); //assume all valid first
+    //Filter out FORMAT fields
+    if(queryConfig.sites_only_query())
     {
-      const auto& name = schema.attribute_name(i);
-      unsigned query_idx = 0u;
-      if(queryConfig.get_query_idx_for_name(name, query_idx))
-        queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+      auto FORMAT_fields_needed_in_sites_only_query = std::unordered_set<std::string>({
+          "PL", "GT", "DP_FORMAT"
+          });
+      for(auto i=0ull;i<new_query_attribute_vector.size();++i)
+      {
+        auto& field_name = new_query_attribute_vector[i];
+        auto vid_field_info_ptr = m_vid_mapper->get_field_info(field_name);
+        assert(vid_field_info_ptr);
+        //drop FORMAT fields except those that are needed
+        if(vid_field_info_ptr && vid_field_info_ptr->m_is_vcf_FORMAT_field
+            && (FORMAT_fields_needed_in_sites_only_query.find(field_name)
+            == FORMAT_fields_needed_in_sites_only_query.end()))
+          valid_vector[i] = false;
+      }
     }
+    queryConfig.clear_attributes_to_query();
+    for(auto i=0u;i<new_query_attribute_vector.size();++i)
+      if(valid_vector[i])
+        queryConfig.add_attribute_to_query(new_query_attribute_vector[i], 0u);
+  }
+  //Map query attributes to schema idxs
+  for(auto i=0ull;i<schema.attribute_num();++i)
+  {
+    const auto& name = schema.attribute_name(i);
+    unsigned query_idx = 0u;
+    if(queryConfig.get_query_idx_for_name(name, query_idx))
+      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
+  }
   for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
     if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
       throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));
