@@ -47,9 +47,10 @@ import java.util.Set;
 public final class GenomicsDBImporterSpec {
 
 private static final File WORKSPACE = new File("__workspace");
-private static final String TILEDB_ARRAYNAME = "genomicsdb_test_array";
+private static final String TILEDB_ARRAY_NAME = "genomicsdb_test_array";
 private static final String TEST_CHROMOSOME_NAME = "1";
 private static final long DEFAULT_SEGMENT_SIZE = 1048576L;
+private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
 private static final File TEMP_VID_JSON_FILE = new File("generated_vidmap.json");
 private static final File TEMP_CALLSET_JSON_FILE = new File("generated_callsetmap.json");
 private static final File TEMP_VCF_HEADER_FILE = new File("vcfheader.vcf");
@@ -73,7 +74,7 @@ public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampl
       mergedHeader,
       chromosomeInterval,
       WORKSPACE.getAbsolutePath(),
-      TILEDB_ARRAYNAME,
+      TILEDB_ARRAY_NAME,
       1024L,
       10000000L);
 
@@ -89,7 +90,7 @@ public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampl
   @Test(testName = "genomicsdb protobuf importer",
       dataProvider = "vcfFiles",
       dataProviderClass = GenomicsDBTestUtils.class)
-  public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
+  public void testProtobufAPI(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
       throws IOException {
 
     ChromosomeInterval chromosomeInterval =
@@ -100,7 +101,8 @@ public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampl
     GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
         GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
 
-    GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
+    GenomicsDBVidMapProto.VidMappingPB vidMapPB = 
+	GenomicsDBImporter.generateVidMapFromMergedHeader(mergedHeader);
 
     GenomicsDBImportConfiguration.Partition.Builder pB =
       GenomicsDBImportConfiguration.Partition.newBuilder();
@@ -108,23 +110,17 @@ public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampl
       pB
         .setBegin(0)
         .setWorkspace(WORKSPACE.getAbsolutePath())
-        .setArray(TILEDB_ARRAYNAME)
+        .setArray(TILEDB_ARRAY_NAME)
         .build();
 
-    GenomicsDBImportConfiguration.ImportConfiguration.Builder importConfigurationPB =
+    GenomicsDBImportConfiguration.ImportConfiguration.Builder importConfiguration =
       GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
 
-    importBuilder
-      .setRowBasedPartitioning(false)
-      .setSizePerColumnPartition(16384)
-      .addColumnPartitions(p0)
-      .setProduceTiledbArray(true)
-      .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
-      .setCompressTiledbArray(true)
-      .setSegmentSize(DEFAULT_SEGMENT_SIZE)
-      .setTreatDeletionsAsIntervals(true)
-      .setFailIfUpdating(true)
-      .build();
+     GenomicsDBImportConfiguration.ImportConfiguration importConfigurationPB = 
+	     importConfiguration
+                   .setSizePerColumnPartition(16384)
+                   .addColumnPartitions(p0)
+                   .build();
 
     GenomicsDBImporter importer = new GenomicsDBImporter(
       importConfigurationPB,
@@ -141,71 +137,6 @@ public void testMultiGVCFInputs(Map<String, FeatureReader<VariantContext>> sampl
         callsetMappingPB);
     Assert.assertEquals(importer.isDone(), true);
   }
-
-
-  @Test(testName = "genomicsdb importer outputs merged headers as a JSON file",
-        dataProvider = "vcfFiles",
-        dataProviderClass = GenomicsDBTestUtils.class)
-  public void testVidMapJSONOutput(Map<String, FeatureReader<VariantContext>> sampleToReaderMap)
-    throws IOException {
-
-    ChromosomeInterval chromosomeInterval =
-      new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
-
-    Set<VCFHeaderLine> mergedHeaderLines = createMergedHeader(sampleToReaderMap);
-
-    GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A =
-        GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true,false);
-
-    
-
-    GenomicsDBImporter importer = new GenomicsDBImporter(
-      sampleToReaderMap,
-      mergedHeaderLines,
-      chromosomeInterval,
-      WORKSPACE.getAbsolutePath(),
-      TILEDB_ARRAYNAME,
-      1024L,
-      10000000L);
-
-    GenomicsDBImporter.writeVidMapJSONFile(TEMP_VID_JSON_FILE.getAbsolutePath(), mergedHeaderLines);
-    GenomicsDBImporter.writeVcfHeaderFile(TEMP_VCF_HEADER_FILE.getAbsolutePath(), mergedHeaderLines);
-    GenomicsDBImporter.writeCallsetMapJSONFile(TEMP_CALLSET_JSON_FILE.getAbsolutePath(),
-        callsetMappingPB_A);
-
-    importer.importBatch();
-    Assert.assertEquals(importer.isDone(), true);
-    Assert.assertEquals(TEMP_VID_JSON_FILE.isFile(), true);
-    Assert.assertEquals(TEMP_CALLSET_JSON_FILE.isFile(), true);
-    Assert.assertEquals(TEMP_VCF_HEADER_FILE.isFile(), true);
-
-    JSONParser parser = new JSONParser();
-
-    try {
-      FileReader fileReader = new FileReader(TEMP_CALLSET_JSON_FILE.getAbsolutePath());
-      JSONObject jsonObject = (JSONObject) parser.parse(fileReader);
-      JSONArray callsetArray = (JSONArray) jsonObject.get("callsets");
-
-      int index = 0;
-
-      for (Object cObject : callsetArray) {
-        JSONObject sampleObject = (JSONObject) cObject;
-        String sampleName_B = (String) sampleObject.get("sample_name");
-        Long tiledbRowIndex_B = (Long) sampleObject.get("row_idx");
-        String stream_name_B = (String) sampleObject.get("stream_name");
-
-        String sampleName_A = callsetMappingPB_A.getCallsets(index).getSampleName();
-        Long tileDBRowIndex_A = callsetMappingPB_A.getCallsets(index).getRowIdx();
-        String stream_name_A = callsetMappingPB_A.getCallsets(index).getStreamName();
-
-        Assert.assertEquals(sampleName_A, sampleName_B);
-        Assert.assertEquals(tileDBRowIndex_A, tiledbRowIndex_B);
-        Assert.assertEquals(stream_name_A, stream_name_B);
-        index++;
-      }
-    } catch (ParseException p) {
-      p.printStackTrace();
-    }
 
     @Test(testName = "genomicsdb importer outputs merged headers as a JSON file",
             dataProvider = "vcfFiles",

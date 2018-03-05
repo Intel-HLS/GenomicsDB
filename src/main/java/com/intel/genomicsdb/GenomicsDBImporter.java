@@ -574,7 +574,7 @@ public class GenomicsDBImporter
           sampleToIDMap.getStreamName(),
         (VCFHeader) featureReader.getHeader(),
         iterator,
-        importConfiguration.getSizePerColumnPartition(),
+        importConfigurationPB.getSizePerColumnPartition(),
         passAsVcf ? VariantContextWriterBuilder.OutputType.VCF_STREAM
         : VariantContextWriterBuilder.OutputType.BCF_STREAM,
         null);
