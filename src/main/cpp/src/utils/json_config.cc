@@ -76,6 +76,20 @@ void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value&
   }
 }
 
+//JSON produced by Protobuf - { "low":<>, "high":<> }
+bool JSONConfigBase::extract_interval_from_PB_struct_or_return_false(const rapidjson::Value& curr_json_object,
+    ColumnRange& result)
+{
+  if(curr_json_object.IsObject() && curr_json_object.MemberCount() == 2u &&
+      curr_json_object.HasMember("low") && curr_json_object.HasMember("high"))
+  {
+    result.first = curr_json_object["low"].GetInt64();
+    result.second = curr_json_object["high"].GetInt64();
+    return true;
+  }
+  return false;
+}
+
 void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper, const int rank)
 {
   std::ifstream ifs(filename.c_str());
@@ -165,7 +179,13 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       m_column_ranges.resize(q1.Size());
       for(rapidjson::SizeType i=0;i<q1.Size();++i)
       {
-        const rapidjson::Value& q2 = q1[i];
+        auto& curr_q1_entry = q1[i];
+        VERIFY_OR_THROW(curr_q1_entry.IsArray() || curr_q1_entry.IsObject());
+        //JSON produced by Protobuf - { "range_list": [ { "low":<>, "high":<> } ] }
+        if(curr_q1_entry.IsObject())
+          VERIFY_OR_THROW(curr_q1_entry.MemberCount() == 1u && curr_q1_entry.HasMember("range_list"));
+        const rapidjson::Value& q2 = curr_q1_entry.IsArray() ? q1[i]
+          : curr_q1_entry["range_list"];
         VERIFY_OR_THROW(q2.IsArray());
         m_column_ranges[i].resize(q2.Size());
         for(rapidjson::SizeType j=0;j<q2.Size();++j)
@@ -195,8 +215,12 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset;
             m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
           }
-          else //must be object { "chr" : [ b , e ] }
-            extract_contig_interval_from_object(q3, id_mapper, m_column_ranges[i][j]);
+          else
+            if(!extract_interval_from_PB_struct_or_return_false(q3, m_column_ranges[i][j])) //check if PB based JSON
+            {
+              //must be object { "chr" : [ b , e ] }
+              extract_contig_interval_from_object(q3, id_mapper, m_column_ranges[i][j]);
+            }
           if(m_column_ranges[i][j].first > m_column_ranges[i][j].second)
             std::swap<int64_t>(m_column_ranges[i][j].first, m_column_ranges[i][j].second);
         }
@@ -293,7 +317,13 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       m_row_ranges.resize(q1.Size());
       for(rapidjson::SizeType i=0;i<q1.Size();++i)
       {
-        const rapidjson::Value& q2 = q1[i];
+        auto& curr_q1_entry = q1[i];
+        VERIFY_OR_THROW(curr_q1_entry.IsArray() || curr_q1_entry.IsObject());
+        //JSON produced by Protobuf - { "range_list": [ { "low":<>, "high":<> } ] }
+        if(curr_q1_entry.IsObject())
+          VERIFY_OR_THROW(curr_q1_entry.MemberCount() == 1u && curr_q1_entry.HasMember("range_list"));
+        const rapidjson::Value& q2 = curr_q1_entry.IsArray() ? q1[i]
+          : curr_q1_entry["range_list"];
         VERIFY_OR_THROW(q2.IsArray());
         m_row_ranges[i].resize(q2.Size());
         for(rapidjson::SizeType j=0;j<q2.Size();++j)
@@ -308,11 +338,16 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_row_ranges[i][j].first = q3[0u].GetInt64();
             m_row_ranges[i][j].second = q3[1u].GetInt64();
           }
-          else //single position
+          else
           {
-            VERIFY_OR_THROW(q3.IsInt64());
-            m_row_ranges[i][j].first = q3.GetInt64();
-            m_row_ranges[i][j].second = q3.GetInt64();
+            if(q3.IsInt64()) //single position
+            {
+              m_row_ranges[i][j].first = q3.GetInt64();
+              m_row_ranges[i][j].second = q3.GetInt64();
+            }
+            else
+              if(q3.IsObject()) //Must be PB generated JSON object { "low": <>, "high": <> }
+                VERIFY_OR_THROW(extract_interval_from_PB_struct_or_return_false(q3, m_row_ranges[i][j]));
           }
           if(m_row_ranges[i][j].first > m_row_ranges[i][j].second)
             std::swap<int64_t>(m_row_ranges[i][j].first, m_row_ranges[i][j].second);
@@ -376,9 +411,12 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         }
       }
   }
-  if(m_json.HasMember("query_attributes"))
+  if(m_json.HasMember("query_attributes") && m_json.HasMember("attributes"))
+    throw RunConfigException("Query configuration cannot have both \"query_attributes\" and \"attributes\"");
+  if(m_json.HasMember("query_attributes") || m_json.HasMember("attributes"))
   {
-    const rapidjson::Value& q1 = m_json["query_attributes"];
+    const rapidjson::Value& q1 = m_json.HasMember("query_attributes") ?
+      m_json["query_attributes"] : m_json["attributes"];
     VERIFY_OR_THROW(q1.IsArray());
     m_attributes.resize(q1.Size());
     for(rapidjson::SizeType i=0;i<q1.Size();++i)

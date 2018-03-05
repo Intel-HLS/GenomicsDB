@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb;
 
+import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -29,7 +30,6 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 

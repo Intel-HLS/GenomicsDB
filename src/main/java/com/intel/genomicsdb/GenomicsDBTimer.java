@@ -24,7 +24,7 @@ package com.intel.genomicsdb;
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 
-class GenomicsDBTimer
+public class GenomicsDBTimer
 {
     private long mBeginWallClockTime = 0;
     private long mBeginCpuTime = 0;

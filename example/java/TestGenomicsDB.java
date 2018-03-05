@@ -1,4 +1,4 @@
-/**
+/*
  * The MIT License (MIT)
  * Copyright (c) 2016-2017 Intel Corporation
  *
@@ -21,11 +21,14 @@
  */
 
 import java.io.IOException;
+
+import com.googlecode.protobuf.format.JsonFormat;
+import com.intel.genomicsdb.GenomicsDBExportConfiguration;
+import com.intel.genomicsdb.GenomicsDBImporter;
+import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.vcf.VCFCodec;
-import htsjdk.tribble.readers.PositionalBufferedStream;
-import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -34,31 +37,48 @@ import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import java.lang.Long;
 import java.lang.Integer;
-import com.intel.genomicsdb.GenomicsDBFeatureReader;
-import com.intel.genomicsdb.GenomicsDBImporter;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Optional;
+
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 
 public final class TestGenomicsDB
 {
+  private static String readFile(String path, Charset encoding) throws IOException {
+    byte[] encoded = Files.readAllBytes(Paths.get(path));
+    return new String(encoded, encoding);
+  }
+
+  private static GenomicsDBExportConfiguration.ExportConfiguration resolveExportConfigurationFromJsonString(String jsonString) throws JsonFormat.ParseException {
+    GenomicsDBExportConfiguration.ExportConfiguration.Builder exportConfigurationBuilder =
+            GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
+    JsonFormat.merge(jsonString, exportConfigurationBuilder);
+    return exportConfigurationBuilder.build();
+  }
+
   public static <SourceType, CodecType extends FeatureCodec<VariantContext, SourceType>> void runQuery(
-      CodecType codec,
-      String[] args, int optind, int numPositionalArgs,
-      final String loaderJSONFile,
-      final String workspace, final String array, final String referenceGenome, final String templateVCFHeader,
-      final String chromosome, final int chrBegin, final int chrEnd,
-      final boolean countOnly) throws IOException
+          CodecType codec,
+          String[] args, int optind, int numPositionalArgs,
+          final String loaderJSONFile,
+          final String workspace, final String array, final String referenceGenome, final String templateVCFHeader,
+          final String chromosome, final int chrBegin, final int chrEnd,
+          final boolean countOnly) throws IOException
   {
-    GenomicsDBFeatureReader<VariantContext, SourceType> reader = null;
+    GenomicsDBFeatureReader<VariantContext, SourceType> reader;
+    GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
     if(numPositionalArgs == 1)
     {
       //query with [-l <loader.json>] <query.json> - required positions may be
       //specified in <query.json>
       //Vid and callset mapping file may be specified in the query JSON
       //If no positions are specified in <query.json>, the whole array will be scanned
-      String queryJSONFile = args[optind];
-      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
-        (loaderJSONFile, queryJSONFile, codec);
+      String queryJSONFilePath = args[optind];
+      String queryJsonFileContent = readFile(queryJSONFilePath, Charset.defaultCharset());
+      exportConfiguration = resolveExportConfigurationFromJsonString(queryJsonFileContent);
+      reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
     }
     else
     {
@@ -69,12 +89,16 @@ public final class TestGenomicsDB
       assert(!workspace.isEmpty());
       assert(!array.isEmpty());
       assert(!referenceGenome.isEmpty());
-      reader = new GenomicsDBFeatureReader<VariantContext, SourceType>
-        (loaderJSONFile, workspace, array, referenceGenome, templateVCFHeader, codec);
+      exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
+              .setWorkspace(workspace)
+              .setArray(array)
+              .setReferenceGenome(referenceGenome)
+              .setVcfHeaderFilename(templateVCFHeader).build();
+      reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
     }
     final VariantContextWriter writer =
-      new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(
-          Options.INDEX_ON_THE_FLY).build();
+            new VariantContextWriterBuilder().setOutputVCFStream(System.out).unsetOption(
+                    Options.INDEX_ON_THE_FLY).build();
     if(!countOnly)
       writer.writeHeader((VCFHeader)(reader.getHeader()));
     if(chromosome.isEmpty()) //chr not specified on command line
@@ -101,7 +125,7 @@ public final class TestGenomicsDB
     {
       //chr,start,end specified on the command line - scan only the required positions
       CloseableTribbleIterator<VariantContext> gdbIterator = reader.query(chromosome,
-          chrBegin, chrEnd);
+              chrBegin, chrEnd);
       if(countOnly)
       {
         long counter = 0;
@@ -174,9 +198,9 @@ public final class TestGenomicsDB
     if(args.length < 2)
     {
       System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
-          +"--workspace=<workspace> --array=<array> --reference_genome=<reference_genome> [--template_vcf_header=<template_VCF_header>]"
-          +" [--chromosome=<chr> --begin=<start> --end=<end>] ]\n"
-          +"\tFor loading: --load <loader.json> [--rank=rank --lb_row_idx=lbRowIdx --ub_row_idx=ubRowIdx]");
+              +"--workspace=<workspace> --array=<array> --reference_genome=<reference_genome> [--template_vcf_header=<template_VCF_header>]"
+              +" [--chromosome=<chr> --begin=<start> --end=<end>] ]\n"
+              +"\tFor loading: --load <loader.json> [--rank=rank --lb_row_idx=lbRowIdx --ub_row_idx=ubRowIdx]");
       System.exit(-1);
     }
     boolean doQuery = false;
@@ -218,55 +242,55 @@ public final class TestGenomicsDB
           loaderJSONFile = g.getOptarg();
           break;
         default:
+        {
+          if(c >= firstEnumIdx && c < ArgsIdxEnum.ARGS_IDX_AFTER_LAST_ARG_IDX.idx())
           {
-            if(c >= firstEnumIdx && c < ArgsIdxEnum.ARGS_IDX_AFTER_LAST_ARG_IDX.idx())
+            int offset = c - firstEnumIdx;
+            assert offset < enumArray.length;
+            switch(enumArray[offset])
             {
-              int offset = c - firstEnumIdx;
-              assert offset < enumArray.length;
-              switch(enumArray[offset])
-              {
-                case ARGS_IDX_DO_QUERY:
-                  doQuery = true;
-                  break;
-                case ARGS_IDX_DO_LOAD:
-                  doLoad = true;
-                  break;
-                case ARGS_IDX_REFERENCE_GENOME:
-                  referenceGenome = g.getOptarg();
-                  break;
-                case ARGS_IDX_TEMPLATE_VCF_HEADER:
-                  templateVCFHeader = g.getOptarg();
-                  break;
-                case ARGS_IDX_LB_ROW_IDX:
-                  lbRowIdx = Long.parseLong(g.getOptarg());
-                  break;
-                case ARGS_IDX_UB_ROW_IDX:
-                  ubRowIdx = Long.parseLong(g.getOptarg());
-                  break;
-                case ARGS_IDX_CHROMOSOME:
-                  chromosome = g.getOptarg();
-                  break;
-                case ARGS_IDX_BEGIN:
-                  chrBegin = Integer.parseInt(g.getOptarg());
-                  break;
-                case ARGS_IDX_END:
-                  chrEnd = Integer.parseInt(g.getOptarg());
-                  break;
-                case ARGS_IDX_COUNT_ONLY:
-                  countOnly = true;
-                  break;
-                case ARGS_IDX_PASS_AS_VCF:
-                  passAsVCF = true;
-                  break;
-                default:
-                  System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
-                  break;
-              }
+              case ARGS_IDX_DO_QUERY:
+                doQuery = true;
+                break;
+              case ARGS_IDX_DO_LOAD:
+                doLoad = true;
+                break;
+              case ARGS_IDX_REFERENCE_GENOME:
+                referenceGenome = g.getOptarg();
+                break;
+              case ARGS_IDX_TEMPLATE_VCF_HEADER:
+                templateVCFHeader = g.getOptarg();
+                break;
+              case ARGS_IDX_LB_ROW_IDX:
+                lbRowIdx = Long.parseLong(g.getOptarg());
+                break;
+              case ARGS_IDX_UB_ROW_IDX:
+                ubRowIdx = Long.parseLong(g.getOptarg());
+                break;
+              case ARGS_IDX_CHROMOSOME:
+                chromosome = g.getOptarg();
+                break;
+              case ARGS_IDX_BEGIN:
+                chrBegin = Integer.parseInt(g.getOptarg());
+                break;
+              case ARGS_IDX_END:
+                chrEnd = Integer.parseInt(g.getOptarg());
+                break;
+              case ARGS_IDX_COUNT_ONLY:
+                countOnly = true;
+                break;
+              case ARGS_IDX_PASS_AS_VCF:
+                passAsVCF = true;
+                break;
+              default:
+                System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+                break;
             }
-            else
-              System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
-            break;
           }
+          else
+            System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
+          break;
+        }
       }
     }
     //Do either query or load but not both
@@ -278,21 +302,21 @@ public final class TestGenomicsDB
     if(doQuery)
     {
       if(passAsVCF)
-        TestGenomicsDB.<LineIterator, VCFCodec>runQuery(
-            new VCFCodec(),
-            args, g.getOptind(), numPositionalArgs,
-            loaderJSONFile,
-            workspace, array, referenceGenome, templateVCFHeader,
-            chromosome, chrBegin, chrEnd,
-            countOnly);
+        TestGenomicsDB.runQuery(
+                new VCFCodec(),
+                args, g.getOptind(), numPositionalArgs,
+                loaderJSONFile,
+                workspace, array, referenceGenome, templateVCFHeader,
+                chromosome, chrBegin, chrEnd,
+                countOnly);
       else
-        TestGenomicsDB.<PositionalBufferedStream, BCF2Codec>runQuery(
-            new BCF2Codec(),
-            args, g.getOptind(), numPositionalArgs,
-            loaderJSONFile,
-            workspace, array, referenceGenome, templateVCFHeader,
-            chromosome, chrBegin, chrEnd,
-            countOnly);
+        TestGenomicsDB.runQuery(
+                new BCF2Codec(),
+                args, g.getOptind(), numPositionalArgs,
+                loaderJSONFile,
+                workspace, array, referenceGenome, templateVCFHeader,
+                chromosome, chrBegin, chrEnd,
+                countOnly);
     }
     else
     {

@@ -22,7 +22,6 @@
 package com.intel.genomicsdb;
 
 import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
@@ -35,31 +34,43 @@ import java.util.Map;
 
 public final class GenomicsDBTestUtils {
 
-  @DataProvider(name="vcfFiles")
-  public static Object[][] vcfFiles() {
-    File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
-    File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
-    File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
+    @DataProvider(name = "vcfFile")
+    public static Object[][] vcfFile() {
+        File t0 = new File("tests/inputs/vcfs/t0.vcf.gz");
 
-    Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
-    FeatureReader<VariantContext> reader_t6 =
-      AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), new VCFCodec(), false);
-    FeatureReader<VariantContext> reader_t7 =
-      AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), new VCFCodec(), false);
-    FeatureReader<VariantContext> reader_t8 =
-      AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), new VCFCodec(), false);
-    sampleToReaderMap.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
-    sampleToReaderMap.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
-    sampleToReaderMap.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+        Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
+        FeatureReader<VariantContext> reader_t0 =
+                AbstractFeatureReader.getFeatureReader(t0.getAbsolutePath(), new VCFCodec(), false);
+        sampleToReaderMap.put(((VCFHeader) reader_t0.getHeader()).getGenotypeSamples().get(0), reader_t0);
 
-    return new Object[][] {{ sampleToReaderMap }};
-  }
+        return new Object[][]{{sampleToReaderMap}};
+    }
 
-  @DataProvider(name="nullFeatureReaders")
-  public static Object[][] nullFeatureReaders() {
-    Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
-    sampleToReaderMap.put("ABC", null);
+    @DataProvider(name = "vcfFiles")
+    public static Object[][] vcfFiles() {
+        File t6 = new File("tests/inputs/vcfs/t6.vcf.gz");
+        File t7 = new File("tests/inputs/vcfs/t7.vcf.gz");
+        File t8 = new File("tests/inputs/vcfs/t8.vcf.gz");
 
-    return new Object[][] {{ sampleToReaderMap }};
-  }
+        Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
+        FeatureReader<VariantContext> reader_t6 =
+                AbstractFeatureReader.getFeatureReader(t6.getAbsolutePath(), new VCFCodec(), false);
+        FeatureReader<VariantContext> reader_t7 =
+                AbstractFeatureReader.getFeatureReader(t7.getAbsolutePath(), new VCFCodec(), false);
+        FeatureReader<VariantContext> reader_t8 =
+                AbstractFeatureReader.getFeatureReader(t8.getAbsolutePath(), new VCFCodec(), false);
+        sampleToReaderMap.put(((VCFHeader) reader_t6.getHeader()).getGenotypeSamples().get(0), reader_t6);
+        sampleToReaderMap.put(((VCFHeader) reader_t7.getHeader()).getGenotypeSamples().get(0), reader_t7);
+        sampleToReaderMap.put(((VCFHeader) reader_t8.getHeader()).getGenotypeSamples().get(0), reader_t8);
+
+        return new Object[][]{{sampleToReaderMap}};
+    }
+
+    @DataProvider(name = "nullFeatureReaders")
+    public static Object[][] nullFeatureReaders() {
+        Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new HashMap<>();
+        sampleToReaderMap.put("ABC", null);
+
+        return new Object[][]{{sampleToReaderMap}};
+    }
 }

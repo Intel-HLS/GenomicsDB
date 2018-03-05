@@ -172,7 +172,7 @@ if(USE_GPERFTOOLS)
     find_package(GPerftools)
     if(GPERFTOOLS_FOUND)
         message(STATUS "Enabling profiling using GPerftools")
-	add_definitions(-DUSE_GPERFTOOLS)
+    add_definitions(-DUSE_GPERFTOOLS)
         include_directories(${GPERFTOOLS_INCLUDE_DIR})
     else()
         message(WARNING "GPerftools headers/library not found")
@@ -269,7 +269,8 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/SampleInfo.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBTimer.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBPartitionInfo.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBInputSplit.java
         ./src/main/java/com/intel/genomicsdb/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBException.java
@@ -278,10 +279,14 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBRecordReader.java
         ./src/main/java/com/intel/genomicsdb/ChromosomeInterval.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
+        ./src/test/java/com/intel/genomicsdb/model/BaseImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
-	./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
+        ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
+        ./src/main/java/com/intel/genomicsdb/model/BaseImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
