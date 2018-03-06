@@ -68,6 +68,8 @@ class JSONConfigBase
     void clear();
     static void extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
         const VidMapper* id_mapper, ColumnRange& result);
+    static bool extract_interval_from_PB_struct_or_return_false(const rapidjson::Value& curr_json_object,
+        ColumnRange& result);
     void read_from_file(const std::string& filename, const VidMapper* id_mapper=0, const int rank=0);
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
