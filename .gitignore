@@ -22,8 +22,8 @@ tests/coverage.info
 /target/
 .tmp_loader.json
 build/
-src/main/java/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java
-src/main/java/com/intel/genomicsdb/GenomicsDBExportConfiguration.java
-src/main/java/com/intel/genomicsdb/GenomicsDBImportConfiguration.java
-src/main/java/com/intel/genomicsdb/GenomicsDBVidMapProto.java
+src/main/java/com/intel/genomicsdb/model/GenomicsDBCallsetsMapProto.java
+src/main/java/com/intel/genomicsdb/model/GenomicsDBExportConfiguration.java
+src/main/java/com/intel/genomicsdb/model/GenomicsDBImportConfiguration.java
+src/main/java/com/intel/genomicsdb/model/GenomicsDBVidMapProto.java
 

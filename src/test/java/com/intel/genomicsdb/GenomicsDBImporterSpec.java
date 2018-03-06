@@ -23,6 +23,8 @@
 package com.intel.genomicsdb;
 
 import com.intel.genomicsdb.model.CommandLineImportConfig;
+import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
+import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
