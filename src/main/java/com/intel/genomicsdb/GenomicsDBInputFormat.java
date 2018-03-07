@@ -23,6 +23,7 @@
 package com.intel.genomicsdb;
 
 import com.googlecode.protobuf.format.JsonFormat;
+import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;

@@ -24,6 +24,9 @@ package com.intel.genomicsdb;
 
 import com.googlecode.protobuf.format.JsonFormat;
 import com.intel.genomicsdb.model.BaseImportConfig;
+import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
+import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
+import com.intel.genomicsdb.model.GenomicsDBVidMapProto;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.tribble.AbstractFeatureReader;

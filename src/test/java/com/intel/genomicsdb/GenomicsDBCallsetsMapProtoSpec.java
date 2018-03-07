@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb;
 
+import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

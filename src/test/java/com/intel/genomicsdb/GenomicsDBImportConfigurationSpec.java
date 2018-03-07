@@ -21,6 +21,7 @@
  */
 package com.intel.genomicsdb;
 
+import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
