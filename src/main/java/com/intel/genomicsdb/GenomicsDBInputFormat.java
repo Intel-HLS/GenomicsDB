@@ -103,12 +103,12 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
       queryJson = configuration.get(GenomicsDBConfiguration.QUERYJSON);
     }
 
-    GenomicsDBExportConfiguration.ExportConfiguration.Builder exportConfigurationBuilder = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
-    JsonFormat.merge(queryJson, exportConfigurationBuilder);
-    GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = exportConfigurationBuilder
-            .setWorkspace("").setReferenceGenome("").build();
+    //GenomicsDBExportConfiguration.ExportConfiguration.Builder exportConfigurationBuilder = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder();
+    //JsonFormat.merge(queryJson, exportConfigurationBuilder);
+    //GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = exportConfigurationBuilder
+            //.setWorkspace("").setReferenceGenome("").build();
 
-    featureReader = new GenomicsDBFeatureReader<>(exportConfiguration,
+    featureReader = new GenomicsDBFeatureReader<>(queryJson,
             (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec(), Optional.of(loaderJson));
     recordReader = new GenomicsDBRecordReader<>(featureReader);
     return recordReader;

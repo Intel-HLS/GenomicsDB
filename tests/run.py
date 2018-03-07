@@ -176,6 +176,11 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
+                    { "query_column_ranges": [ [ [0, 1000000] ] ],
+                      "pass_through_query_json": True,
+                      "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
                     { "query_column_ranges" : [{
                         "range_list": [{
                              "low": 0,
@@ -825,9 +830,13 @@ def main():
                             fptr.close();
                         if(query_type == 'java_vcf'):
                             loader_argument = loader_json_filename;
+                            misc_args = ''
                             if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                                 loader_argument = '""'
-                            query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename;
+                            if("pass_through_query_json" in query_param_dict and query_param_dict["pass_through_query_json"]):
+                                misc_args = "--pass_through_query_json"
+                            query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename \
+                                + ' ' + misc_args;
                             pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
                         else:
                             if(query_type == 'consolidate_and_vcf'):
