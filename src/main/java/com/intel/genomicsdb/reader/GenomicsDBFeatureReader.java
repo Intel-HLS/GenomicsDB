@@ -47,7 +47,7 @@ import static java.util.stream.Collectors.toList;
  */
 public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements FeatureReader<T> {
     private String loaderJSONFile;
-    private String userProvidedQueryJSONFilename = null;
+    private String queryJsonFileName = null;
     private GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
     private FeatureCodec<T, SOURCE> codec;
     private FeatureCodecHeader featureCodecHeader;
@@ -88,7 +88,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     public GenomicsDBFeatureReader(final String queryJSONFilename,
                                    final FeatureCodec<T, SOURCE> codec,
                                    final Optional<String> loaderJSONFile) throws IOException {
-        this.userProvidedQueryJSONFilename = queryJSONFilename;
+        this.queryJsonFileName = queryJSONFilename;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");
         generateHeadersForQueryGivenQueryJSONFile(queryJSONFilename);
@@ -122,8 +122,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> iterator() throws IOException {
-        List<String> chromosomeIntervalArraysPaths = (this.userProvidedQueryJSONFilename != null)
-            ? Arrays.asList(this.userProvidedQueryJSONFilename)
+        List<String> chromosomeIntervalArraysPaths =
+          (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
+            ? Arrays.asList(this.queryJsonFileName)
             : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
                     new ArrayList<String>() {{
                         add(exportConfiguration.getArray());
@@ -142,8 +143,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> query(final String chr, final int start, final int end) throws IOException {
-        List<String> chromosomeIntervalArraysPaths = (this.userProvidedQueryJSONFilename != null)
-            ? Arrays.asList(this.userProvidedQueryJSONFilename)
+        List<String> chromosomeIntervalArraysPaths =
+          (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
+            ? Arrays.asList(this.queryJsonFileName)
             : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
                 new ArrayList<String>() {{
                     add(exportConfiguration.getArray());
