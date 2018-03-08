@@ -25,6 +25,7 @@ package com.intel.genomicsdb;
 import com.intel.genomicsdb.model.CommandLineImportConfig;
 import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
 import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
+import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
@@ -68,14 +69,19 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
                 GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true, false);
 
+        GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder()
+                .setBegin(0).setWorkspace(WORKSPACE.getAbsolutePath()).setArray(TEST_CHROMOSOME_NAME).build();
+
+        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+                GenomicsDBImportConfiguration.ImportConfiguration.newBuilder().addColumnPartitions(partition)
+                        .setSizePerColumnPartition(1024L).setSegmentSize(10000000L).build();
+
         GenomicsDBImporter importer = new GenomicsDBImporter(
                 sampleToReaderMap,
                 mergedHeader,
                 chromosomeInterval,
-                WORKSPACE.getAbsolutePath(),
-                TEST_CHROMOSOME_NAME,
-                1024L,
-                10000000L);
+                true,
+                importConfiguration);
 
         importer.importBatch();
 
@@ -100,14 +106,19 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB_A =
                 GenomicsDBImporter.generateSortedCallSetMap(sampleToReaderMap, true, false);
 
+        GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder()
+                .setBegin(0).setWorkspace(WORKSPACE.getAbsolutePath()).setArray(TEST_CHROMOSOME_NAME).build();
+
+        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
+                GenomicsDBImportConfiguration.ImportConfiguration.newBuilder().addColumnPartitions(partition)
+                        .setSizePerColumnPartition(1024L).setSegmentSize(10000000L).build();
+
         GenomicsDBImporter importer = new GenomicsDBImporter(
                 sampleToReaderMap,
                 mergedHeaderLines,
                 chromosomeInterval,
-                WORKSPACE.getAbsolutePath(),
-                TEST_CHROMOSOME_NAME,
-                1024L,
-                10000000L);
+                true,
+                importConfiguration);
 
         GenomicsDBImporter.writeVidMapJSONFile(tempVidJsonFile.getAbsolutePath(), mergedHeaderLines);
         GenomicsDBImporter.writeVcfHeaderFile(tempVcfHeaderFile.getAbsolutePath(), mergedHeaderLines);

@@ -46,30 +46,13 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.googlecode.protobuf.format.JsonFormat.printToString;
+import static com.intel.genomicsdb.importer.Constants.*;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
  * All vid information is assumed to be set correctly by the user (JSON files)
  */
 public class GenomicsDBImporter {
-    private static final String DEFAULT_ARRAY_NAME = "genomicsdb_array";
-    private static final int DEFAULT_TILEDB_CELLS_PER_TILE = 1000;
-    private static final int DEFAULT_ZERO_BATCH_SIZE = 0;
-    //Allele specific annotation fields
-    private static final HashSet<String> mRLengthHistogramFieldsWithFloatBins = new HashSet<>(Arrays.asList(
-            "AS_RAW_BaseQRankSum",
-            "AS_RAW_MQRankSum",
-            "AS_RAW_ReadPosRankSum"
-    ));
-    private static final HashSet<String> mRLengthTwoDFloatVectorFields = new HashSet<>(Collections.singletonList(
-            "AS_RAW_MQ"
-    ));
-    private static final HashSet<String> mRLengthTwoDIntVectorFields = new HashSet<>(Collections.singletonList(
-            "AS_SB_TABLE"
-    ));
-    static final String CHROMOSOME_INTERVAL_FOLDER = "%s#%d#%d";
-    static long mDefaultBufferCapacity = 20480; //20KB
-
     static {
         try {
             boolean loaded = GenomicsDBUtils.loadLibrary();
@@ -78,10 +61,6 @@ public class GenomicsDBImporter {
             throw new GenomicsDBException("Could not load genomicsdb native library", ule);
         }
     }
-
-  /*
-   * JNI functions
-   */
 
     private String mLoaderJSONFile = null;
     private int mRank = 0;
@@ -112,8 +91,7 @@ public class GenomicsDBImporter {
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      */
     public GenomicsDBImporter(String loaderJSONFile) {
-        initialize(loaderJSONFile, 0, 0,
-                Long.MAX_VALUE - 1);
+        initialize(loaderJSONFile, 0, 0, Long.MAX_VALUE - 1);
     }
 
     /**
@@ -139,32 +117,6 @@ public class GenomicsDBImporter {
     }
 
     /**
-     * Constructor to create required data structures from a list
-     * of GVCF files and a chromosome interval. This constructor
-     * is developed specifically for GATK4 GenomicsDBImport tool.
-     *
-     * @param sampleToVCMap          Variant Readers objects of the input GVCF files
-     * @param mergedHeader           Headers from all input GVCF files merged into one
-     * @param chromosomeInterval     Chromosome interval to traverse input VCFs
-     * @param workspace              TileDB workspace
-     * @param arrayname              TileDB array name
-     * @param sizePerColumnPartition sizePerColumnPartition in bytes
-     * @param segmentSize            segmentSize in bytes
-     * @throws IOException FeatureReader.query can throw an IOException if invalid file is used
-     */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long sizePerColumnPartition,
-                              Long segmentSize) throws IOException {
-        this(sampleToVCMap, mergedHeader, chromosomeInterval,
-                workspace, arrayname, sizePerColumnPartition, segmentSize,
-                (long) 0, Long.MAX_VALUE - 1, true);
-    }
-
-    /**
      * Constructor with an GenomicsDB import configuration protocol buffer
      * structure. Avoids passing long list of parameters. This constructor
      * is developed specifically for GATK4 GenomicsDBImport tool.
@@ -181,125 +133,8 @@ public class GenomicsDBImporter {
                               Set<VCFHeaderLine> mergedHeader,
                               ChromosomeInterval chromosomeInterval,
                               boolean validateSampleToReaderMap,
-                              GenomicsDBImportConfiguration.ImportConfiguration importConfiguration)
-            throws IOException {
-        this(sampleToVCMap,
-                mergedHeader,
-                chromosomeInterval,
-                importConfiguration.getColumnPartitions(0).getWorkspace(),
-                importConfiguration.getColumnPartitions(0).getArray(),
-                importConfiguration.getSizePerColumnPartition(),
-                importConfiguration.getSegmentSize(),
-                importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-                importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex(),
-                false,  //useSamplesInOrderProvided
-                importConfiguration.getFailIfUpdating(),
-                validateSampleToReaderMap
-        );
-    }
-
-    /**
-     * Constructor to create required data structures from a list
-     * of GVCF files and a chromosome interval. This constructor
-     * is developed specifically for GATK4 GenomicsDBImport tool.
-     *
-     * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
-     * @param mergedHeader              Headers from all input GVCF files merged into one
-     * @param chromosomeInterval        Chromosome interval to traverse input VCFs
-     * @param workspace                 TileDB workspace
-     * @param arrayname                 TileDB array name
-     * @param sizePerColumnPartition    sizePerColumnPartition in bytes
-     * @param segmentSize               segmentSize in bytes
-     * @param lbRowIdx                  Smallest row idx which should be imported by this object
-     * @param ubRowIdx                  Largest row idx which should be imported by this object
-     * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
-     * @throws IOException FeatureReader.query can throw an IOException if invalid file is used
-     */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long sizePerColumnPartition,
-                              Long segmentSize,
-                              Long lbRowIdx,
-                              Long ubRowIdx,
-                              boolean validateSampleToReaderMap) throws IOException {
-        this(sampleToReaderMap, mergedHeader, chromosomeInterval,
-                workspace, arrayname, sizePerColumnPartition, segmentSize, lbRowIdx, ubRowIdx,
-                false, validateSampleToReaderMap);
-    }
-
-    /**
-     * Constructor to create required data structures from a list
-     * of GVCF files and a chromosome interval. This constructor
-     * is developed specifically for GATK4 GenomicsDBImport tool.
-     *
-     * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
-     * @param mergedHeader              Headers from all input GVCF files merged into one
-     * @param chromosomeInterval        Chromosome interval to traverse input VCFs
-     * @param workspace                 TileDB workspace
-     * @param arrayname                 TileDB array name
-     * @param sizePerColumnPartition    sizePerColumnPartition in bytes
-     * @param segmentSize               segmentSize in bytes
-     * @param lbRowIdx                  Smallest row idx which should be imported by this object
-     * @param ubRowIdx                  Largest row idx which should be imported by this object
-     * @param useSamplesInOrderProvided if true, don't sort samples, instead
-     *                                  use in the the order provided
-     * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
-     * @throws IOException FeatureReader.query can throw an IOException if invalid file is used
-     */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long sizePerColumnPartition,
-                              Long segmentSize,
-                              Long lbRowIdx,
-                              Long ubRowIdx,
-                              boolean useSamplesInOrderProvided,
-                              boolean validateSampleToReaderMap) throws IOException {
-        this(sampleToReaderMap, mergedHeader, chromosomeInterval,
-                workspace, arrayname, sizePerColumnPartition, segmentSize,
-                lbRowIdx, ubRowIdx, useSamplesInOrderProvided, false, validateSampleToReaderMap);
-    }
-
-    /**
-     * Constructor to create required data structures from a list
-     * of GVCF files and a chromosome interval. This constructor
-     * is developed specifically for GATK4 GenomicsDBImport tool.
-     *
-     * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
-     * @param mergedHeader              Set of VCFHeaderLine from the merged header across all input files
-     * @param chromosomeInterval        Chromosome interval to traverse input VCFs
-     * @param workspace                 TileDB workspace
-     * @param arrayname                 TileDB array name
-     * @param sizePerColumnPartition    sizePerColumnPartition in bytes
-     * @param segmentSize               segmentSize in bytes
-     * @param lbRowIdx                  Smallest row idx which should be imported by this object
-     * @param ubRowIdx                  Largest row idx which should be imported by this object
-     * @param useSamplesInOrderProvided if true, don't sort samples, instead use in the the order
-     *                                  provided
-     * @param failIfUpdating            if true, fail if updating an existing array
-     * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
-     * @throws IOException when load into TileDB array fails
-     */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long sizePerColumnPartition,
-                              Long segmentSize,
-                              Long lbRowIdx,
-                              Long ubRowIdx,
-                              boolean useSamplesInOrderProvided,
-                              boolean failIfUpdating,
-                              boolean validateSampleToReaderMap) throws IOException {
-        this(sampleToReaderMap, mergedHeader, chromosomeInterval,
-                workspace, arrayname, sizePerColumnPartition, segmentSize,
-                lbRowIdx, ubRowIdx, useSamplesInOrderProvided, failIfUpdating, 0, validateSampleToReaderMap);
+                              GenomicsDBImportConfiguration.ImportConfiguration importConfiguration) throws IOException {
+        this(sampleToVCMap, mergedHeader, chromosomeInterval, importConfiguration, 0, validateSampleToReaderMap,true);
     }
 
     /**
@@ -310,65 +145,6 @@ public class GenomicsDBImporter {
      * @param sampleToReaderMap               Feature Readers objects corresponding to input GVCF files
      * @param mergedHeader                    Set of VCFHeaderLine from the merged header across all input files
      * @param chromosomeInterval              Chromosome interval to traverse input VCFs
-     * @param workspace                       TileDB workspace
-     * @param arrayname                       TileDB array name
-     * @param vcfBufferSizePerColumnPartition vcfBufferSizePerColumnPartition in bytes
-     * @param segmentSize                     segmentSize in bytes
-     * @param lbRowIdx                        Smallest row idx which should be imported by this object
-     * @param ubRowIdx                        Largest row idx which should be imported by this object
-     * @param useSamplesInOrderProvided       if true, don't sort samples, instead use in the the order
-     *                                        provided
-     * @param failIfUpdating                  if true, fail if updating an existing array
-     * @param rank                            Rank of object - corresponds to the partition index in the loader
-     * @param validateSampleToReaderMap       Check validity of sampleToreaderMap entries
-     * @throws IOException when load into TileDB array fails
-     */
-    public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              Set<VCFHeaderLine> mergedHeader,
-                              ChromosomeInterval chromosomeInterval,
-                              String workspace,
-                              String arrayname,
-                              Long vcfBufferSizePerColumnPartition,
-                              Long segmentSize,
-                              Long lbRowIdx,
-                              Long ubRowIdx,
-                              boolean useSamplesInOrderProvided,
-                              boolean failIfUpdating,
-                              int rank,
-                              boolean validateSampleToReaderMap) throws IOException, IllegalArgumentException {
-        this(sampleToReaderMap,
-                mergedHeader,
-                chromosomeInterval,
-                workspace,
-                arrayname,
-                vcfBufferSizePerColumnPartition,
-                segmentSize,
-                lbRowIdx,
-                ubRowIdx,
-                useSamplesInOrderProvided,
-                failIfUpdating,
-                rank,
-                validateSampleToReaderMap,
-                true);
-    }
-
-    /**
-     * Constructor to create required data structures from a list
-     * of GVCF files and a chromosome interval. This constructor
-     * is developed specifically for GATK4 GenomicsDBImport tool.
-     *
-     * @param sampleToReaderMap               Feature Readers objects corresponding to input GVCF files
-     * @param mergedHeader                    Set of VCFHeaderLine from the merged header across all input files
-     * @param chromosomeInterval              Chromosome interval to traverse input VCFs
-     * @param workspace                       TileDB workspace
-     * @param arrayname                       TileDB array name
-     * @param vcfBufferSizePerColumnPartition vcfBufferSizePerColumnPartition in bytes
-     * @param segmentSize                     segmentSize in bytes
-     * @param lbRowIdx                        Smallest row idx which should be imported by this object
-     * @param ubRowIdx                        Largest row idx which should be imported by this object
-     * @param useSamplesInOrderProvided       if true, don't sort samples, instead use in the the order
-     *                                        provided
-     * @param failIfUpdating                  if true, fail if updating an existing array
      * @param rank                            Rank of object - corresponds to the partition index in the loader
      * @param validateSampleToReaderMap       Check validity of sampleToreaderMap entries
      * @param passAsVcf                       Use the VCF format to pass data from Java to C++
@@ -377,14 +153,7 @@ public class GenomicsDBImporter {
     public GenomicsDBImporter(final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                               final Set<VCFHeaderLine> mergedHeader,
                               final ChromosomeInterval chromosomeInterval,
-                              final String workspace,
-                              final String arrayname,
-                              final Long vcfBufferSizePerColumnPartition,
-                              final Long segmentSize,
-                              final Long lbRowIdx,
-                              final Long ubRowIdx,
-                              final boolean useSamplesInOrderProvided,
-                              final boolean failIfUpdating,
+                              final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
                               final int rank,
                               final boolean validateSampleToReaderMap,
                               final boolean passAsVcf) throws IOException, IllegalArgumentException {
@@ -392,23 +161,22 @@ public class GenomicsDBImporter {
         // and callset map are propagated to C++ GenomicsDBImporter
         mUsingVidMappingProtoBuf = true;
 
-        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-                createImportConfiguration(workspace, arrayname, vcfBufferSizePerColumnPartition,
-                        segmentSize, failIfUpdating);
-
-
         GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
 
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMapPB =
-                generateSortedCallSetMap(sampleToReaderMap, useSamplesInOrderProvided,
-                        validateSampleToReaderMap, lbRowIdx);
+                generateSortedCallSetMap(sampleToReaderMap,
+                        importConfiguration.getGatk4IntegrationParameters().getUseSamplesInOrderProvided(),
+                        validateSampleToReaderMap, importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex());
 
         File importJSONFile = dumpTemporaryLoaderJSONFile(importConfiguration, "");
 
-        initialize(importJSONFile.getAbsolutePath(), rank, lbRowIdx, ubRowIdx);
+        initialize(importJSONFile.getAbsolutePath(), rank,
+                importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
+                importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
 
-        mGenomicsDBImporterObjectHandle =
-                jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank, lbRowIdx, ubRowIdx);
+        mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
+                        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
+                        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
 
         jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
         jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMapPB.toByteArray());
@@ -534,11 +302,11 @@ public class GenomicsDBImporter {
                                     baseImportConfig.sampleToReaderMapCreator().apply(
                                             baseImportConfig.getSampleNameToVcfPath(), updatedBatchSize, index);
 
-                            GenomicsDBImporter importer = createImporter(
-                                    baseImportConfig, sampleCount, baseImportConfig.getMergedHeader(), index, sampleToReaderMap, chromosomeInterval);
+                            GenomicsDBImporter importer = createImporter(baseImportConfig, sampleCount,
+                                    baseImportConfig.getMergedHeader(), index, sampleToReaderMap, chromosomeInterval);
                             return importer.importBatch();
                         } catch (Exception ex) {
-                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
                         }
                     }, executor)
             ).collect(Collectors.toList());
@@ -558,14 +326,29 @@ public class GenomicsDBImporter {
                                                      final Set<VCFHeaderLine> mergedHeader, final int index,
                                                      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                                      final ChromosomeInterval chromInterval) throws IOException {
+        GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = GenomicsDBImportConfiguration.GATK4Integration.newBuilder()
+                .setLowerSampleIndex((long) index).setUpperSampleIndex((long) (index + baseImportConfig.getBatchSize() - 1))
+                .setUseSamplesInOrderProvided(true).build();
+        GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder().setBegin(0)
+                .setWorkspace(baseImportConfig.getWorkspace()).setArray(String.format(CHROMOSOME_INTERVAL_FOLDER,
+                        chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd())).build();
+        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = GenomicsDBImportConfiguration.ImportConfiguration.newBuilder()
+                .addColumnPartitions(partition).setSizePerColumnPartition(baseImportConfig.getVcfBufferSizePerColumnPartition() * samplesSize)
+                .setSegmentSize(baseImportConfig.getSegmentSize()).setGatk4IntegrationParameters(gatk4Integration)
+                .setFailIfUpdating(baseImportConfig.isFailIfUpdating())
+                //TODO: making the following attributes explicit since the C++ layer is not working with the
+                // protobuf object and it's defaults
+                .setTreatDeletionsAsIntervals(true).setCompressTiledbArray(true).setNumCellsPerTile(1000)
+                .setRowBasedPartitioning(false).setProduceTiledbArray(true).build();
+
         return new GenomicsDBImporter(
-                sampleToReaderMap, mergedHeader, new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
-                baseImportConfig.getWorkspace(), String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
-                chromInterval.getStart(), chromInterval.getEnd()),
-                baseImportConfig.getVcfBufferSizePerColumnPartition() * samplesSize,
-                baseImportConfig.getSegmentSize(), (long) index, (long) (index + baseImportConfig.getBatchSize() - 1),
-                true, baseImportConfig.isFailIfUpdating(), baseImportConfig.getRank(),
-                baseImportConfig.isValidateSampleToReaderMap(), baseImportConfig.isPassAsVcf());
+                sampleToReaderMap,
+                mergedHeader,
+                new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
+                importConfiguration,
+                baseImportConfig.getRank(),
+                baseImportConfig.isValidateSampleToReaderMap(),
+                baseImportConfig.isPassAsVcf());
     }
 
     /**
@@ -901,9 +684,9 @@ public class GenomicsDBImporter {
                 infoBuilder
                         .setName(infoFieldName);
                 //allele specific annotations
-                if (mRLengthHistogramFieldsWithFloatBins.contains(infoFieldName)
-                        || mRLengthTwoDFloatVectorFields.contains(infoFieldName)
-                        || mRLengthTwoDIntVectorFields.contains(infoFieldName)
+                if (R_LENGTH_HISTOGRAM_FIELDS_FLOAT_BINS.contains(infoFieldName)
+                        || R_LENGTH_TWO_DIM_FLOAT_VECTOR_FIELDS.contains(infoFieldName)
+                        || R_LENGTH_TWO_DIM_INT_VECTOR_FIELDS.contains(infoFieldName)
                         ) {
                     lengthDescriptorComponentBuilder.setVariableLengthDescriptor("R");
                     infoBuilder.addLength(lengthDescriptorComponentBuilder.build());
@@ -911,16 +694,16 @@ public class GenomicsDBImporter {
                     infoBuilder.addLength(lengthDescriptorComponentBuilder.build());
                     infoBuilder.addVcfDelimiter("|");
                     infoBuilder.addVcfDelimiter(",");
-                    if (mRLengthHistogramFieldsWithFloatBins.contains(infoFieldName)) {
+                    if (R_LENGTH_HISTOGRAM_FIELDS_FLOAT_BINS.contains(infoFieldName)) {
                         //Each element of the vector is a tuple <float, int>
                         infoBuilder.addType("float");
                         infoBuilder.addType("int");
                         infoBuilder.setVCFFieldCombineOperation("histogram_sum");
                     } else {
                         infoBuilder.setVCFFieldCombineOperation("element_wise_sum");
-                        if (mRLengthTwoDFloatVectorFields.contains(infoFieldName)) {
+                        if (R_LENGTH_TWO_DIM_FLOAT_VECTOR_FIELDS.contains(infoFieldName)) {
                             infoBuilder.addType("float");
-                        } else if (mRLengthTwoDIntVectorFields.contains(infoFieldName)) {
+                        } else if (R_LENGTH_TWO_DIM_INT_VECTOR_FIELDS.contains(infoFieldName)) {
                             infoBuilder.addType("int");
                         }
                     }
@@ -1249,33 +1032,6 @@ public class GenomicsDBImporter {
      */
     private native boolean jniImportBatch(long genomicsDBImporterHandle,
                                           long[] exhaustedBufferIdentifiers);
-
-    private GenomicsDBImportConfiguration.ImportConfiguration createImportConfiguration(
-            String workspace,
-            String arrayname,
-            Long sizePerColumnPartition,
-            Long segmentSize,
-            boolean failIfUpdating) {
-
-        String name = (arrayname.isEmpty()) ? DEFAULT_ARRAY_NAME : arrayname;
-
-        GenomicsDBImportConfiguration.Partition.Builder pB = GenomicsDBImportConfiguration.Partition.newBuilder();
-        GenomicsDBImportConfiguration.Partition p0 = pB.setBegin(0).setWorkspace(workspace).setArray(name).build();
-        GenomicsDBImportConfiguration.ImportConfiguration.Builder importBuilder =
-                GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
-
-        return importBuilder
-                .setRowBasedPartitioning(false)
-                .setSizePerColumnPartition(sizePerColumnPartition)
-                .addColumnPartitions(p0)
-                .setProduceTiledbArray(true)
-                .setNumCellsPerTile(DEFAULT_TILEDB_CELLS_PER_TILE)
-                .setCompressTiledbArray(true)
-                .setSegmentSize(segmentSize)
-                .setTreatDeletionsAsIntervals(true)
-                .setFailIfUpdating(failIfUpdating)
-                .build();
-    }
 
     /**
      * Initialize variables
