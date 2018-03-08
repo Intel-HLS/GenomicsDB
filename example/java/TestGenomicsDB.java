@@ -65,7 +65,8 @@ public final class TestGenomicsDB
           final String loaderJSONFile,
           final String workspace, final String array, final String referenceGenome, final String templateVCFHeader,
           final String chromosome, final int chrBegin, final int chrEnd,
-          final boolean countOnly) throws IOException
+          final boolean countOnly,
+          final boolean passThroughQueryJSON) throws IOException
   {
     GenomicsDBFeatureReader<VariantContext, SourceType> reader;
     GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
@@ -76,9 +77,14 @@ public final class TestGenomicsDB
       //Vid and callset mapping file may be specified in the query JSON
       //If no positions are specified in <query.json>, the whole array will be scanned
       String queryJSONFilePath = args[optind];
-      String queryJsonFileContent = readFile(queryJSONFilePath, Charset.defaultCharset());
-      exportConfiguration = resolveExportConfigurationFromJsonString(queryJsonFileContent);
-      reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
+      if(passThroughQueryJSON)
+        reader = new GenomicsDBFeatureReader<>(queryJSONFilePath, codec, Optional.of(loaderJSONFile));
+      else
+      {
+        String queryJsonFileContent = readFile(queryJSONFilePath, Charset.defaultCharset());
+        exportConfiguration = resolveExportConfigurationFromJsonString(queryJsonFileContent);
+        reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
+      }
     }
     else
     {
@@ -158,7 +164,8 @@ public final class TestGenomicsDB
     ARGS_IDX_END(1008),
     ARGS_IDX_COUNT_ONLY(1009),
     ARGS_IDX_PASS_AS_VCF(1010),
-    ARGS_IDX_AFTER_LAST_ARG_IDX(1011);
+    ARGS_IDX_PASS_THROUGH_QUERY_JSON(1011),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1012);
 
     private final int mArgsIdx;
     ArgsIdxEnum(final int idx)
@@ -175,7 +182,7 @@ public final class TestGenomicsDB
   public static void main(final String[] args) throws IOException
   {
     int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx();
-    LongOpt[] longopts = new LongOpt[15];
+    LongOpt[] longopts = new LongOpt[16];
     longopts[0] = new LongOpt("query", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx());
     longopts[1] = new LongOpt("load", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_LOAD.idx());
     //Specify rank (or partition idx) of this process
@@ -195,6 +202,7 @@ public final class TestGenomicsDB
     longopts[12] = new LongOpt("loader_json_file", LongOpt.REQUIRED_ARGUMENT, null, 'l');
     longopts[13] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_COUNT_ONLY.idx());
     longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_VCF.idx());
+    longopts[15] = new LongOpt("pass_through_query_json", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_THROUGH_QUERY_JSON.idx());
     if(args.length < 2)
     {
       System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
@@ -219,6 +227,7 @@ public final class TestGenomicsDB
     int chrEnd = Integer.MAX_VALUE-1;
     boolean countOnly = false;
     boolean passAsVCF = false;
+    boolean passThroughQueryJSON = false;
     //Arg parsing
     Getopt g = new Getopt("TestGenomicsDB", args, "w:A:r:l:", longopts);
     int c = -1;
@@ -282,6 +291,9 @@ public final class TestGenomicsDB
               case ARGS_IDX_PASS_AS_VCF:
                 passAsVCF = true;
                 break;
+              case ARGS_IDX_PASS_THROUGH_QUERY_JSON:
+                passThroughQueryJSON = true;
+                break;
               default:
                 System.err.println("Unknown command line option "+g.getOptarg()+" - ignored");
                 break;
@@ -308,7 +320,8 @@ public final class TestGenomicsDB
                 loaderJSONFile,
                 workspace, array, referenceGenome, templateVCFHeader,
                 chromosome, chrBegin, chrEnd,
-                countOnly);
+                countOnly,
+                passThroughQueryJSON);
       else
         TestGenomicsDB.runQuery(
                 new BCF2Codec(),
@@ -316,7 +329,8 @@ public final class TestGenomicsDB
                 loaderJSONFile,
                 workspace, array, referenceGenome, templateVCFHeader,
                 chromosome, chrBegin, chrEnd,
-                countOnly);
+                countOnly,
+                passThroughQueryJSON);
     }
     else
     {
