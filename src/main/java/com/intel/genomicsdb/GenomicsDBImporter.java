@@ -124,9 +124,9 @@ public class GenomicsDBImporter {
      * @param sampleToVCMap             Variant Readers objects of the input GVCF files
      * @param mergedHeader              Set of VCFHeaderLine from the merged header across all input files
      * @param chromosomeInterval        Chromosome interval to traverse input VCFs
+     * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
      * @param importConfiguration       Protobuf configuration object containing related input
      *                                  parameters, filenames, etc.
-     * @param validateSampleToReaderMap Check validity of sampleToreaderMap entries
      * @throws IOException Throws file IO exception.
      */
     public GenomicsDBImporter(Map<String, FeatureReader<VariantContext>> sampleToVCMap,
@@ -145,6 +145,7 @@ public class GenomicsDBImporter {
      * @param sampleToReaderMap               Feature Readers objects corresponding to input GVCF files
      * @param mergedHeader                    Set of VCFHeaderLine from the merged header across all input files
      * @param chromosomeInterval              Chromosome interval to traverse input VCFs
+     * @param importConfiguration             Protobuf configuration object containing related input parameters, filenames, etc.
      * @param rank                            Rank of object - corresponds to the partition index in the loader
      * @param validateSampleToReaderMap       Check validity of sampleToreaderMap entries
      * @param passAsVcf                       Use the VCF format to pass data from Java to C++
@@ -156,7 +157,7 @@ public class GenomicsDBImporter {
                               final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
                               final int rank,
                               final boolean validateSampleToReaderMap,
-                              final boolean passAsVcf) throws IOException, IllegalArgumentException {
+                              final boolean passAsVcf) throws IOException {
         // Mark this flag so that protocol buffer based vid
         // and callset map are propagated to C++ GenomicsDBImporter
         mUsingVidMappingProtoBuf = true;
