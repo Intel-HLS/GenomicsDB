@@ -273,7 +273,7 @@ void VariantQueryProcessor::initialize()
   register_field_creators(*m_array_schema, *m_vid_mapper);
 }
 
-void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
+void VariantQueryProcessor::finalize_queried_attributes(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
   if(queryConfig.get_num_queried_attributes() == 0u  //add all attributes
       || queryConfig.sites_only_query())             //ignore INFO fields
@@ -300,7 +300,7 @@ void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchem
         //drop FORMAT fields except those that are needed
         if(vid_field_info_ptr && vid_field_info_ptr->m_is_vcf_FORMAT_field
             && (FORMAT_fields_needed_in_sites_only_query.find(field_name)
-            == FORMAT_fields_needed_in_sites_only_query.end()))
+              == FORMAT_fields_needed_in_sites_only_query.end()))
           valid_vector[i] = false;
       }
     }
@@ -309,6 +309,10 @@ void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchem
       if(valid_vector[i])
         queryConfig.add_attribute_to_query(new_query_attribute_vector[i], 0u);
   }
+}
+
+void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
+{
   //Map query attributes to schema idxs
   for(auto i=0ull;i<schema.attribute_num();++i)
   {
@@ -606,8 +610,9 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     VariantQueryConfig& query_config, const VidMapper& vid_mapper, const bool alleles_required) const
 {
   //Flatten composite fields - fields whose elements are tuples
-  //Must do this before call to obtain_TileDB_attribute_idxs
+  //Must do this before call to finalize_queried_attributes obtain_TileDB_attribute_idxs
   query_config.flatten_composite_fields(vid_mapper);
+  finalize_queried_attributes(array_schema, query_config);
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
   unsigned END_schema_idx = 
