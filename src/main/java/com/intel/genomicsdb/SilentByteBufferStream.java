@@ -25,6 +25,8 @@ package com.intel.genomicsdb;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import static com.intel.genomicsdb.importer.Constants.DEFAULT_BUFFER_CAPACITY;
+
 /**
  * Buffer stream implementation - it's silent in the sense that when the buffer is full,
  * it doesn't raise an exception but just marks a a flag as full. It's up to the caller
@@ -43,7 +45,7 @@ class SilentByteBufferStream extends OutputStream
    */
   public SilentByteBufferStream()
   {
-    mBuffer = new byte[(int)GenomicsDBImporter.mDefaultBufferCapacity];
+    mBuffer = new byte[(int)DEFAULT_BUFFER_CAPACITY];
   }
 
   /**

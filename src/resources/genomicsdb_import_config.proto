@@ -39,7 +39,7 @@ option java_outer_classname = "GenomicsDBImportConfiguration";
 message Partition {
   required int64 begin = 1;
   optional string workspace = 2;
-  optional string array = 3;
+  optional string array = 3 [default = "genomicsdb_array"];
   optional string vcf_output_filename = 4;
   optional int64 end = 5 [default = 0x7FFFFFFFFFFFFFFF ];
 }
