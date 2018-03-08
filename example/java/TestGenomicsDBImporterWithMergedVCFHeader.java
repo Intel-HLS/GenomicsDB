@@ -31,9 +31,6 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
 
   public static void main(final String[] args) throws IOException, GenomicsDBException, ParseException, InterruptedException {
     CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-    config.setVcfBufferSizePerColumnPartition(10000L);
-    config.setSegmentSize(1048576L);
-
     GenomicsDBImporter.parallelImport(config);
   }
 }

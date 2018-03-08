@@ -23,7 +23,7 @@
 package com.intel.genomicsdb;
 
 import com.googlecode.protobuf.format.JsonFormat;
-import com.intel.genomicsdb.model.BaseImportConfig;
+import com.intel.genomicsdb.model.ParallelImportConfig;
 import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
 import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
 import com.intel.genomicsdb.model.GenomicsDBVidMapProto;
@@ -244,20 +244,20 @@ public class GenomicsDBImporter {
     /**
      * Import multiple chromosome interval
      *
-     * @param baseImportConfig basic import configuration
+     * @param parallelImportConfig basic import configuration
      * @throws IOException
      */
-    public static void parallelImport(final BaseImportConfig baseImportConfig) throws IOException, InterruptedException {
-        parallelImport(baseImportConfig, 0);
+    public static void parallelImport(final ParallelImportConfig parallelImportConfig) throws IOException, InterruptedException {
+        parallelImport(parallelImportConfig, 0);
     }
 
     /**
      * Import multiple chromosome interval
      *
-     * @param baseImportConfig basic import configuration
+     * @param parallelImportConfig basic import configuration
      * @param numThreads       number of threads to use
      */
-    public static void parallelImport(final BaseImportConfig baseImportConfig, final int numThreads) throws IOException, InterruptedException {
+    public static void parallelImport(final ParallelImportConfig parallelImportConfig, final int numThreads) throws IOException, InterruptedException {
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
         //you must have consistent ordering of samples across partitions. If file order is different
@@ -265,29 +265,33 @@ public class GenomicsDBImporter {
         //generateSortedCallSetMap ensure consistent ordering across samples
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
                 GenomicsDBImporter.generateSortedCallSetMap(new ArrayList<>(
-                        baseImportConfig.getSampleNameToVcfPath().keySet()), baseImportConfig.isUseSamplesInOrderProvided());
+                        parallelImportConfig.getSampleNameToVcfPath().keySet()),
+                        parallelImportConfig.getImportConfiguration().getGatk4IntegrationParameters().getUseSamplesInOrderProvided());
 
         //Write out callset map if needed
-        if (baseImportConfig.getCallsetOutputFilepath() != null)
-            GenomicsDBImporter.writeCallsetMapJSONFile(baseImportConfig.getCallsetOutputFilepath(), callsetMappingPB);
+        String outputCallsetmapJsonFilePath = parallelImportConfig.getImportConfiguration().getGatk4IntegrationParameters().getOutputCallsetmapJsonFile();
+        if (outputCallsetmapJsonFilePath != null && !outputCallsetmapJsonFilePath.isEmpty())
+            GenomicsDBImporter.writeCallsetMapJSONFile(outputCallsetmapJsonFilePath, callsetMappingPB);
 
         //Write out vidmap if needed
-        if (baseImportConfig.getVidmapOutputFilepath() != null)
-            GenomicsDBImporter.writeVidMapJSONFile(baseImportConfig.getVidmapOutputFilepath(), baseImportConfig.getMergedHeader());
+        String vidmapOutputFilepath = parallelImportConfig.getImportConfiguration().getGatk4IntegrationParameters().getOutputVidmapJsonFile();
+        if (vidmapOutputFilepath != null && !vidmapOutputFilepath.isEmpty())
+            GenomicsDBImporter.writeVidMapJSONFile(vidmapOutputFilepath, parallelImportConfig.getMergedHeader());
 
         //Write out merged header if needed
-        if (baseImportConfig.getVcfHeaderOutputFilepath() != null)
-            GenomicsDBImporter.writeVcfHeaderFile(baseImportConfig.getVcfHeaderOutputFilepath(), baseImportConfig.getMergedHeader());
+        String vcfHeaderOutputFilepath = parallelImportConfig.getImportConfiguration().getColumnPartitions(0).getVcfOutputFilename();
+        if (vcfHeaderOutputFilepath != null && !vcfHeaderOutputFilepath.isEmpty())
+            GenomicsDBImporter.writeVcfHeaderFile(vcfHeaderOutputFilepath, parallelImportConfig.getMergedHeader());
 
         //Create workspace folder to avoid issues with concurrency
-        if (!new File(baseImportConfig.getWorkspace()).exists()) {
-            int tileDBWorkspace = createTileDBWorkspace(baseImportConfig.getWorkspace());
-            if (tileDBWorkspace < 0) throw new IllegalStateException(String.format("Cannot create '%s' workspace.",
-                    baseImportConfig.getWorkspace()));
+        String workspace = parallelImportConfig.getImportConfiguration().getColumnPartitions(0).getWorkspace();
+        if (!new File(workspace).exists()) {
+            int tileDBWorkspace = createTileDBWorkspace(workspace);
+            if (tileDBWorkspace < 0) throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
         }
 
-        final int batchSize = baseImportConfig.getBatchSize();
-        final int sampleCount = baseImportConfig.getSampleNameToVcfPath().size();
+        final int batchSize = parallelImportConfig.getBatchSize();
+        final int sampleCount = parallelImportConfig.getSampleNameToVcfPath().size();
         final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
 
         ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
@@ -296,15 +300,14 @@ public class GenomicsDBImporter {
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
 
-            List<CompletableFuture<Boolean>> futures = baseImportConfig.getChromosomeIntervalList().stream().map(chromosomeInterval ->
+            List<CompletableFuture<Boolean>> futures = parallelImportConfig.getChromosomeIntervalList().stream().map(chromosomeInterval ->
                     CompletableFuture.supplyAsync(() -> {
                         try {
                             final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                                    baseImportConfig.sampleToReaderMapCreator().apply(
-                                            baseImportConfig.getSampleNameToVcfPath(), updatedBatchSize, index);
+                                    parallelImportConfig.sampleToReaderMapCreator().apply(
+                                            parallelImportConfig.getSampleNameToVcfPath(), updatedBatchSize, index);
 
-                            GenomicsDBImporter importer = createImporter(baseImportConfig, sampleCount,
-                                    baseImportConfig.getMergedHeader(), index, sampleToReaderMap, chromosomeInterval);
+                            GenomicsDBImporter importer = createImporter(parallelImportConfig, sampleCount, index, sampleToReaderMap, chromosomeInterval);
                             return importer.importBatch();
                         } catch (Exception ex) {
                             throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
@@ -323,20 +326,21 @@ public class GenomicsDBImporter {
         }
     }
 
-    private static GenomicsDBImporter createImporter(final BaseImportConfig baseImportConfig, final int samplesSize,
-                                                     final Set<VCFHeaderLine> mergedHeader, final int index,
+    private static GenomicsDBImporter createImporter(final ParallelImportConfig parallelImportConfig, final int samplesSize, final int index,
                                                      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                                      final ChromosomeInterval chromInterval) throws IOException {
-        GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = GenomicsDBImportConfiguration.GATK4Integration.newBuilder()
-                .setLowerSampleIndex((long) index).setUpperSampleIndex((long) (index + baseImportConfig.getBatchSize() - 1))
+        GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = parallelImportConfig.getImportConfiguration()
+                .getGatk4IntegrationParameters().toBuilder().setLowerSampleIndex((long) index)
+                .setUpperSampleIndex((long) (index + parallelImportConfig.getBatchSize() - 1))
                 .setUseSamplesInOrderProvided(true).build();
-        GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder().setBegin(0)
-                .setWorkspace(baseImportConfig.getWorkspace()).setArray(String.format(CHROMOSOME_INTERVAL_FOLDER,
-                        chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd())).build();
-        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = GenomicsDBImportConfiguration.ImportConfiguration.newBuilder()
-                .addColumnPartitions(partition).setSizePerColumnPartition(baseImportConfig.getVcfBufferSizePerColumnPartition() * samplesSize)
-                .setSegmentSize(baseImportConfig.getSegmentSize()).setGatk4IntegrationParameters(gatk4Integration)
-                .setFailIfUpdating(baseImportConfig.isFailIfUpdating())
+        GenomicsDBImportConfiguration.Partition partition = parallelImportConfig.getImportConfiguration().getColumnPartitions(0)
+                .toBuilder().setArray(String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
+                        chromInterval.getStart(), chromInterval.getEnd())).build();
+        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = parallelImportConfig.getImportConfiguration().toBuilder()
+                .setColumnPartitions(0, partition).setSizePerColumnPartition(
+                        parallelImportConfig.getImportConfiguration().getSizePerColumnPartition() * samplesSize)
+                .setSegmentSize(parallelImportConfig.getImportConfiguration().getSegmentSize()).setGatk4IntegrationParameters(gatk4Integration)
+                .setFailIfUpdating(parallelImportConfig.getImportConfiguration().getFailIfUpdating())
                 //TODO: making the following attributes explicit since the C++ layer is not working with the
                 // protobuf object and it's defaults
                 .setTreatDeletionsAsIntervals(true).setCompressTiledbArray(true).setNumCellsPerTile(1000)
@@ -344,12 +348,12 @@ public class GenomicsDBImporter {
 
         return new GenomicsDBImporter(
                 sampleToReaderMap,
-                mergedHeader,
+                parallelImportConfig.getMergedHeader(),
                 new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
                 importConfiguration,
-                baseImportConfig.getRank(),
-                baseImportConfig.isValidateSampleToReaderMap(),
-                baseImportConfig.isPassAsVcf());
+                parallelImportConfig.getRank(),
+                parallelImportConfig.isValidateSampleToReaderMap(),
+                parallelImportConfig.isPassAsVcf());
     }
 
     /**

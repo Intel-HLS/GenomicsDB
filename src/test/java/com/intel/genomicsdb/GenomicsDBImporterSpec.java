@@ -26,6 +26,7 @@ import com.intel.genomicsdb.model.CommandLineImportConfig;
 import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
 import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
 import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
+import com.intel.genomicsdb.model.GenomicsDBImportConfiguration.ImportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
@@ -72,8 +73,8 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder()
                 .setBegin(0).setWorkspace(WORKSPACE.getAbsolutePath()).setArray(TEST_CHROMOSOME_NAME).build();
 
-        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-                GenomicsDBImportConfiguration.ImportConfiguration.newBuilder().addColumnPartitions(partition)
+        ImportConfiguration importConfiguration =
+                ImportConfiguration.newBuilder().addColumnPartitions(partition)
                         .setSizePerColumnPartition(1024L).setSegmentSize(10000000L).build();
 
         GenomicsDBImporter importer = new GenomicsDBImporter(
@@ -109,8 +110,8 @@ public final class GenomicsDBImporterSpec {
         GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder()
                 .setBegin(0).setWorkspace(WORKSPACE.getAbsolutePath()).setArray(TEST_CHROMOSOME_NAME).build();
 
-        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration =
-                GenomicsDBImportConfiguration.ImportConfiguration.newBuilder().addColumnPartitions(partition)
+        ImportConfiguration importConfiguration =
+                ImportConfiguration.newBuilder().addColumnPartitions(partition)
                         .setSizePerColumnPartition(1024L).setSegmentSize(10000000L).build();
 
         GenomicsDBImporter importer = new GenomicsDBImporter(
@@ -179,12 +180,12 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
+                "--size_per_column_partition 10000 " +
+                "--segment_size 1048576 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-        config.setVcfBufferSizePerColumnPartition(10000L);
-        config.setSegmentSize(1048576L);
 
         //When
         GenomicsDBImporter.parallelImport(config);
@@ -230,12 +231,12 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
+                "--size_per_column_partition 10000 " +
+                "--segment_size 1048576 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-        config.setVcfBufferSizePerColumnPartition(10000L);
-        config.setSegmentSize(1048576L);
         GenomicsDBImporter.parallelImport(config);
         long duration = (System.nanoTime() - start) / 1_000_000;
         System.out.printf("Processed %d chromosomes intervals in %d millis\n", config.getChromosomeIntervalList().size(), duration);
@@ -271,15 +272,13 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
+                "--size_per_column_partition 10000 " +
+                "--segment_size 1048576 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-        config.setVcfBufferSizePerColumnPartition(10000L);
-        config.setSegmentSize(1048576L);
-
         GenomicsDBImporter.parallelImport(config);
-
         long duration = (System.nanoTime() - start) / 1_000_000;
         System.out.printf("Processed %d chromosomes intervals in %d millis\n", config.getChromosomeIntervalList().size(), duration);
         Assert.assertEquals(tempVidJsonFile.isFile(), true);

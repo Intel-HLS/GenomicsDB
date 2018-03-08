@@ -1,5 +1,6 @@
 package com.intel.genomicsdb.model;
 
+import com.google.protobuf.UninitializedMessageException;
 import com.intel.genomicsdb.ChromosomeInterval;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
@@ -19,26 +20,41 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
 
-public class CommandLineImportConfig extends BaseImportConfig {
+public class CommandLineImportConfig extends ParallelImportConfig {
+    GenomicsDBImportConfiguration.Partition.Builder partitionBuilder =
+            GenomicsDBImportConfiguration.Partition.newBuilder();
+    GenomicsDBImportConfiguration.GATK4Integration.Builder gatk4IntegrationBuilder =
+            GenomicsDBImportConfiguration.GATK4Integration.newBuilder();
+    GenomicsDBImportConfiguration.ImportConfiguration.Builder configurationBuilder =
+            GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
 
     public CommandLineImportConfig(final String command, final String[] commandArgs) {
         Getopt getOpt = new Getopt(command, commandArgs, "w:A:L:", resolveLongOpt());
         resolveCommandArgs(getOpt);
+        try {
+            configurationBuilder.addColumnPartitions(partitionBuilder.build());
+            configurationBuilder.setGatk4IntegrationParameters(gatk4IntegrationBuilder.build());
+            this.setImportConfiguration(configurationBuilder.build());
+        } catch (UninitializedMessageException ex) {
+            throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
+                    "-w genomicsdbworkspace --size_per_column_partition 10000 --segment_size 1048576 variantfile(s) " +
+                    "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]", ex);
+        }
         this.validateChromosomeIntervals(this.getChromosomeIntervalList());
         int numPositionalArgs = commandArgs.length - getOpt.getOptind();
-        if (numPositionalArgs <= 0 || this.getWorkspace().isEmpty() || this.getChromosomeIntervalList().isEmpty()) {
+        if (numPositionalArgs <= 0 || this.getImportConfiguration().getColumnPartitions(0).getWorkspace().isEmpty()
+                || this.getChromosomeIntervalList().isEmpty()) {
             throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
-                    "-w genomicsdbworkspace variantfile(s) [--use_samples_in_order --fail_if_updating " +
-                    "--batchsize=<N> --vidmap-output <path>]");
+                    "-w genomicsdbworkspace --size_per_column_partition=10000 --segment_size=1048576 variantfile(s) " +
+                    "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]");
         }
-
         List<String> files = IntStream.range(getOpt.getOptind(), commandArgs.length).mapToObj(i -> commandArgs[i]).collect(toList());
         this.resolveHeaders(files);
         this.setSampleToReaderMap(this::createSampleToReaderMap);
     }
 
     private LongOpt[] resolveLongOpt() {
-        LongOpt[] longopts = new LongOpt[9];
+        LongOpt[] longopts = new LongOpt[11];
         longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
         longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
         longopts[2] = new LongOpt("interval", LongOpt.REQUIRED_ARGUMENT, null, 'L');
@@ -48,6 +64,8 @@ public class CommandLineImportConfig extends BaseImportConfig {
         longopts[6] = new LongOpt("callset-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CALLSET_OUTPUT.idx());
         longopts[7] = new LongOpt("pass-as-bcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_BCF.idx());
         longopts[8] = new LongOpt("vcf-header-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_VCF_HEADER_OUTPUT.idx());
+        longopts[9] = new LongOpt("size_per_column_partition", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_SIZE_PER_COLUMN_PARTITION.idx());
+        longopts[10] = new LongOpt("segment_size", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_SEGMENT_SIZE.idx());
         return longopts;
     }
 
@@ -58,7 +76,7 @@ public class CommandLineImportConfig extends BaseImportConfig {
         while ((c = commandArgs.getopt()) != -1) {
             switch (c) {
                 case 'w':
-                    this.setWorkspace(commandArgs.getOptarg());
+                    partitionBuilder.setWorkspace(commandArgs.getOptarg());
                     break;
                 case 'L':
                     Function<String[], ChromosomeInterval> chromInterConverter = par -> new ChromosomeInterval(par[0],
@@ -72,25 +90,31 @@ public class CommandLineImportConfig extends BaseImportConfig {
                         assert offset < enumArray.length;
                         switch (enumArray[offset]) {
                             case ARGS_IDX_USE_SAMPLES_IN_ORDER:
-                                setUseSamplesInOrderProvided(true);
+                                gatk4IntegrationBuilder.setUseSamplesInOrderProvided(true);
                                 break;
                             case ARGS_IDX_FAIL_IF_UPDATING:
-                                setFailIfUpdating(true);
+                                configurationBuilder.setFailIfUpdating(true);
                                 break;
                             case ARGS_IDX_BATCHSIZE:
                                 setBatchSize(Integer.parseInt(commandArgs.getOptarg()));
                                 break;
                             case ARGS_IDX_VIDMAP_OUTPUT:
-                                setVidmapOutputFilepath(commandArgs.getOptarg());
+                                gatk4IntegrationBuilder.setOutputVidmapJsonFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_CALLSET_OUTPUT:
-                                setCallsetOutputFilepath(commandArgs.getOptarg());
+                                gatk4IntegrationBuilder.setOutputCallsetmapJsonFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_VCF_HEADER_OUTPUT:
-                                setVcfHeaderOutputFilepath(commandArgs.getOptarg());
+                                partitionBuilder.setVcfOutputFilename(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_PASS_AS_BCF:
                                 setPassAsVcf(false);
+                                break;
+                            case ARGS_IDX_SIZE_PER_COLUMN_PARTITION:
+                                configurationBuilder.setSizePerColumnPartition(Long.parseLong(commandArgs.getOptarg()));
+                                break;
+                            case ARGS_IDX_SEGMENT_SIZE:
+                                configurationBuilder.setSegmentSize(Long.parseLong(commandArgs.getOptarg()));
                                 break;
                             default:
                                 throw new IllegalArgumentException("Unknown command line option " +
@@ -103,6 +127,7 @@ public class CommandLineImportConfig extends BaseImportConfig {
                 }
             }
         }
+        partitionBuilder.setBegin(0);
     }
 
     private void resolveHeaders(final List<String> files) {
@@ -145,8 +170,9 @@ public class CommandLineImportConfig extends BaseImportConfig {
         ARGS_IDX_CALLSET_OUTPUT(1004),
         ARGS_IDX_PASS_AS_BCF(1005),
         ARGS_IDX_VCF_HEADER_OUTPUT(1006),
-        ARGS_IDX_AFTER_LAST_ARG_IDX(1007);
-
+        ARGS_IDX_SIZE_PER_COLUMN_PARTITION(1007),
+        ARGS_IDX_SEGMENT_SIZE(1008),
+        ARGS_IDX_AFTER_LAST_ARG_IDX(1009);
         private final int mArgsIdx;
 
         ArgsIdxEnum(final int idx) {

@@ -29,74 +29,42 @@ import htsjdk.variant.vcf.VCFHeaderLine;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 
-public class BaseImportConfig {
+public class ParallelImportConfig {
+    private GenomicsDBImportConfiguration.ImportConfiguration importConfiguration;
     //TODO: too many parameters, need to be re-grouped or reduced based on protobuf classes
     private List<ChromosomeInterval> chromosomeIntervalList = new ArrayList<>();
-    private String workspace;
-    private Long vcfBufferSizePerColumnPartition;
-    private Long segmentSize;
-    private Long lbRowIdx;
-    private Long ubRowIdx;
-    private boolean useSamplesInOrderProvided = false;
-    private boolean failIfUpdating = false;
     private int rank;
     private boolean validateSampleToReaderMap;
     private boolean passAsVcf = true;
     // Extra params
     private int batchSize = 1000000;
-    private String vidmapOutputFilepath;
-    private String callsetOutputFilepath;
-    private String vcfHeaderOutputFilepath;
     private Set<VCFHeaderLine> mergedHeader;
     private Map<String, Path> sampleNameToVcfPath;
     private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMap;
 
-    public BaseImportConfig(final List<ChromosomeInterval> chromosomeIntervalList,
-                            final String workspace,
-                            final Long vcfBufferSizePerColumnPartition,
-                            final Long segmentSize,
-                            final Long lbRowIdx,
-                            final Long ubRowIdx,
-                            final boolean useSamplesInOrderProvided,
-                            final boolean failIfUpdating,
-                            final int rank,
-                            final boolean validateSampleToReaderMap,
-                            final boolean passAsVcf,
-                            final int batchSize,
-                            final String vidmapOutputFilepath,
-                            final String callsetOutputFilepath,
-                            final String vcfHeaderOutputFilepath,
-                            final Set<VCFHeaderLine> mergedHeader,
-                            final Map<String, Path> sampleNameToVcfPath,
-                            final Func<Map<String, Path>, Integer, Integer,
+    public ParallelImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
+                                final List<ChromosomeInterval> chromosomeIntervalList,
+                                final int rank,
+                                final boolean validateSampleToReaderMap,
+                                final boolean passAsVcf,
+                                final int batchSize,
+                                final Set<VCFHeaderLine> mergedHeader,
+                                final Map<String, Path> sampleNameToVcfPath,
+                                final Func<Map<String, Path>, Integer, Integer,
                                     Map<String, FeatureReader<VariantContext>>> sampleToReaderMap) {
+        this.setImportConfiguration(importConfiguration);
         this.setChromosomeIntervalList(chromosomeIntervalList);
-        this.setWorkspace(workspace);
-        this.setVcfBufferSizePerColumnPartition(vcfBufferSizePerColumnPartition);
-        this.setSegmentSize(segmentSize);
-        this.setLbRowIdx(lbRowIdx);
-        this.setUbRowIdx(ubRowIdx);
-        this.setUseSamplesInOrderProvided(useSamplesInOrderProvided);
-        this.setFailIfUpdating(failIfUpdating);
         this.setRank(rank);
         this.setValidateSampleToReaderMap(validateSampleToReaderMap);
         this.setPassAsVcf(passAsVcf);
         this.setBatchSize(batchSize);
-        this.setVidmapOutputFilepath(vidmapOutputFilepath);
-        this.setCallsetOutputFilepath(callsetOutputFilepath);
-        this.setVcfHeaderOutputFilepath(vcfHeaderOutputFilepath);
         this.setMergedHeader(mergedHeader);
         this.setSampleNameToVcfPath(sampleNameToVcfPath);
         this.setSampleToReaderMap(sampleToReaderMap);
     }
 
-    protected BaseImportConfig() {
-    }
-
-    private <T> void validate(final T attribute, final Function<T, Boolean> validation, final String errorMessage) {
-        if(!validation.apply(attribute)) throw new IllegalArgumentException(errorMessage);
+    protected ParallelImportConfig() {
     }
 
     private boolean isWithinChromosomeInterval(final ChromosomeInterval current, final ChromosomeInterval chromInterval) {
@@ -131,12 +99,12 @@ public class BaseImportConfig {
                     "Intervals should be defined without intersections.");
     }
 
-    public boolean isUseSamplesInOrderProvided() {
-        return useSamplesInOrderProvided;
+    public GenomicsDBImportConfiguration.ImportConfiguration getImportConfiguration() {
+        return importConfiguration;
     }
 
-    public void setUseSamplesInOrderProvided(boolean useSamplesInOrderProvided) {
-        this.useSamplesInOrderProvided = useSamplesInOrderProvided;
+    public void setImportConfiguration(GenomicsDBImportConfiguration.ImportConfiguration importConfiguration) {
+        this.importConfiguration = importConfiguration;
     }
 
     @FunctionalInterface
@@ -164,28 +132,6 @@ public class BaseImportConfig {
         return chromosomeIntervalList;
     }
 
-    public String getWorkspace() {
-        return workspace;
-    }
-
-    public Long getVcfBufferSizePerColumnPartition() {
-        return vcfBufferSizePerColumnPartition;
-    }
-
-    public Long getSegmentSize() {
-        return segmentSize;
-    }
-
-    public Long getLbRowIdx() { return lbRowIdx; }
-
-    public Long getUbRowIdx() {
-        return ubRowIdx;
-    }
-
-    public boolean isFailIfUpdating() {
-        return failIfUpdating;
-    }
-
     public int getRank() {
         return rank;
     }
@@ -202,46 +148,9 @@ public class BaseImportConfig {
         return batchSize;
     }
 
-    public String getVidmapOutputFilepath() {
-        return vidmapOutputFilepath;
-    }
-
-    public String getCallsetOutputFilepath() {
-        return callsetOutputFilepath;
-    }
-
-    public String getVcfHeaderOutputFilepath() {
-        return vcfHeaderOutputFilepath;
-    }
-
     public void setChromosomeIntervalList(List<ChromosomeInterval> chromosomeIntervalList) {
         this.validateChromosomeIntervals(chromosomeIntervalList);
         this.chromosomeIntervalList = chromosomeIntervalList;
-    }
-
-    public void setWorkspace(String workspace) {
-        this.validate(workspace, (value) -> value != null && !value.isEmpty(), "Workspace name cannot be null or empty.");
-        this.workspace = workspace;
-    }
-
-    public void setVcfBufferSizePerColumnPartition(Long vcfBufferSizePerColumnPartition) {
-        this.vcfBufferSizePerColumnPartition = vcfBufferSizePerColumnPartition;
-    }
-
-    public void setSegmentSize(Long segmentSize) {
-        this.segmentSize = segmentSize;
-    }
-
-    public void setLbRowIdx(Long lbRowIdx) {
-        this.lbRowIdx = lbRowIdx;
-    }
-
-    public void setUbRowIdx(Long ubRowIdx) {
-        this.ubRowIdx = ubRowIdx;
-    }
-
-    public void setFailIfUpdating(boolean failIfUpdating) {
-        this.failIfUpdating = failIfUpdating;
     }
 
     public void setRank(int rank) {
@@ -258,18 +167,6 @@ public class BaseImportConfig {
 
     public void setBatchSize(int batchSize) {
         this.batchSize = batchSize;
-    }
-
-    public void setVidmapOutputFilepath(String vidmapOutputFilepath) {
-        this.vidmapOutputFilepath = vidmapOutputFilepath;
-    }
-
-    public void setCallsetOutputFilepath(String callsetOutputFilepath) {
-        this.callsetOutputFilepath = callsetOutputFilepath;
-    }
-
-    public void setVcfHeaderOutputFilepath(String vcfHeaderOutputFilepath) {
-        this.vcfHeaderOutputFilepath = vcfHeaderOutputFilepath;
     }
 
     public Set<VCFHeaderLine> getMergedHeader() {

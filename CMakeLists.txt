@@ -279,14 +279,14 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBRecordReader.java
         ./src/main/java/com/intel/genomicsdb/ChromosomeInterval.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
-        ./src/test/java/com/intel/genomicsdb/model/BaseImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
-        ./src/main/java/com/intel/genomicsdb/model/BaseImportConfig.java
         ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/ParallelImportConfig.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala

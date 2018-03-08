@@ -35,7 +35,8 @@ public class CommandLineImportConfigSpec {
     public void shouldThrowExceptionWhenThereAreIntersectionsInChromosomeIntervals() {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 -L 1:18000-19000 -w path/to/ws " +
-                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+                "--size_per_column_partition 10000 --segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
@@ -46,8 +47,9 @@ public class CommandLineImportConfigSpec {
     @Test(testName = "should not throw exception when there are intersections on intervals ranges but not for the same chromosome")
     public void shouldNotThrowExceptionWhenThereAreIntersectionsButDifferentChromosomes() {
         //Given
-        String[] args = ("-L 1:12000-13000 -L 2:12000-13000 -w path/to/ws " +
-                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        String[] args = ("-L 1:12000-13000 -L 2:12000-13000 -w path/to/ws --size_per_column_partition 10000 " +
+                "--segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
@@ -58,8 +60,8 @@ public class CommandLineImportConfigSpec {
     @Test(testName = "should not throw exception when there is only one interval")
     public void shouldNotThrowExceptionWhenThereIsOnlyOneInteval() {
         //Given
-        String[] args = ("-L 1:12000-13000 -w path/to/ws --vidmap-output path/to/vidmap " +
-                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        String[] args = ("-L 1:12000-13000 -w path/to/ws --size_per_column_partition 10000 --segment_size 1048576 " +
+                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
