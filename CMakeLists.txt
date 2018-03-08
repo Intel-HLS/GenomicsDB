@@ -271,6 +271,10 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/GenomicsDBPartitionInfo.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/importer/Constants.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/CallSetMapExtensions.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/JsonFileExtensions.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/VidMapExtensions.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBInputSplit.java
         ./src/main/java/com/intel/genomicsdb/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBException.java

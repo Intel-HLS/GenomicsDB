@@ -32,40 +32,48 @@ public class CommandLineImportConfig extends ParallelImportConfig {
         Getopt getOpt = new Getopt(command, commandArgs, "w:A:L:", resolveLongOpt());
         resolveCommandArgs(getOpt);
         try {
+            partitionBuilder.setBegin(0);
             configurationBuilder.addColumnPartitions(partitionBuilder.build());
             configurationBuilder.setGatk4IntegrationParameters(gatk4IntegrationBuilder.build());
             this.setImportConfiguration(configurationBuilder.build());
         } catch (UninitializedMessageException ex) {
-            throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
-                    "-w genomicsdbworkspace --size_per_column_partition 10000 --segment_size 1048576 variantfile(s) " +
-                    "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]", ex);
+            throwIllegalArgumentException();
         }
         this.validateChromosomeIntervals(this.getChromosomeIntervalList());
         int numPositionalArgs = commandArgs.length - getOpt.getOptind();
-        if (numPositionalArgs <= 0 || this.getImportConfiguration().getColumnPartitions(0).getWorkspace().isEmpty()
+        if (numPositionalArgs <= 0
+                || this.getImportConfiguration().getColumnPartitions(0).getWorkspace().isEmpty()
                 || this.getChromosomeIntervalList().isEmpty()) {
-            throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
-                    "-w genomicsdbworkspace --size_per_column_partition=10000 --segment_size=1048576 variantfile(s) " +
-                    "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]");
+            throwIllegalArgumentException();
         }
-        List<String> files = IntStream.range(getOpt.getOptind(), commandArgs.length).mapToObj(i -> commandArgs[i]).collect(toList());
+        List<String> files = IntStream.range(getOpt.getOptind(), commandArgs.length).mapToObj(
+                i -> commandArgs[i]).collect(toList());
         this.resolveHeaders(files);
         this.setSampleToReaderMap(this::createSampleToReaderMap);
     }
 
     private LongOpt[] resolveLongOpt() {
         LongOpt[] longopts = new LongOpt[11];
-        longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
-        longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
+        longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
+        longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_FAIL_IF_UPDATING.idx());
         longopts[2] = new LongOpt("interval", LongOpt.REQUIRED_ARGUMENT, null, 'L');
         longopts[3] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
-        longopts[4] = new LongOpt("batchsize", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_BATCHSIZE.idx());
-        longopts[5] = new LongOpt("vidmap-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_VIDMAP_OUTPUT.idx());
-        longopts[6] = new LongOpt("callset-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CALLSET_OUTPUT.idx());
-        longopts[7] = new LongOpt("pass-as-bcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_BCF.idx());
-        longopts[8] = new LongOpt("vcf-header-output", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_VCF_HEADER_OUTPUT.idx());
-        longopts[9] = new LongOpt("size_per_column_partition", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_SIZE_PER_COLUMN_PARTITION.idx());
-        longopts[10] = new LongOpt("segment_size", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_SEGMENT_SIZE.idx());
+        longopts[4] = new LongOpt("batchsize", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_BATCHSIZE.idx());
+        longopts[5] = new LongOpt("vidmap-output", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_VIDMAP_OUTPUT.idx());
+        longopts[6] = new LongOpt("callset-output", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_CALLSET_OUTPUT.idx());
+        longopts[7] = new LongOpt("pass-as-bcf", LongOpt.NO_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_PASS_AS_BCF.idx());
+        longopts[8] = new LongOpt("vcf-header-output", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_VCF_HEADER_OUTPUT.idx());
+        longopts[9] = new LongOpt("size_per_column_partition", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_SIZE_PER_COLUMN_PARTITION.idx());
+        longopts[10] = new LongOpt("segment_size", LongOpt.REQUIRED_ARGUMENT, null,
+                ArgsIdxEnum.ARGS_IDX_SEGMENT_SIZE.idx());
         return longopts;
     }
 
@@ -117,17 +125,26 @@ public class CommandLineImportConfig extends ParallelImportConfig {
                                 configurationBuilder.setSegmentSize(Long.parseLong(commandArgs.getOptarg()));
                                 break;
                             default:
-                                throw new IllegalArgumentException("Unknown command line option " +
-                                        commandArgs.getOptarg() + " - ignored");
+                                throwIllegalArgumentException(commandArgs);
+                                return;
                         }
                     } else {
-                        throw new IllegalArgumentException("Unknown command line option " +
-                                commandArgs.getOptarg() + " - ignored");
+                        throwIllegalArgumentException(commandArgs);
                     }
                 }
             }
         }
-        partitionBuilder.setBegin(0);
+    }
+
+    private void throwIllegalArgumentException() {
+        throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
+                "-w genomicsdbworkspace --size_per_column_partition 10000 --segment_size 1048576 variantfile(s) " +
+                "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]");
+    }
+
+    private void throwIllegalArgumentException(Getopt commandArgs) {
+        throw new IllegalArgumentException("Unknown command line option " +
+                commandArgs.getOptarg() + " - ignored");
     }
 
     private void resolveHeaders(final List<String> files) {

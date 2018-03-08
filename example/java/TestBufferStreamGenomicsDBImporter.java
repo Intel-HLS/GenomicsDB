@@ -174,7 +174,7 @@ public final class TestBufferStreamGenomicsDBImporter
     if(args[0].equals("-iterators"))
     {
       //Much simpler interface if using Iterator<VariantContext>
-      loader.importBatch();
+      loader.executeSingleImport();
       assert loader.isDone();
     }
     else
@@ -206,7 +206,7 @@ public final class TestBufferStreamGenomicsDBImporter
                 currInfo.mNextVC = null;
           }
         }
-        loader.importBatch();
+        loader.executeSingleImport();
         numExhaustedBufferStreams = (int)loader.getNumExhaustedBufferStreams();
         for(int i=0;i<numExhaustedBufferStreams;++i)
           exhaustedBufferStreamIdxs[i] = loader.getExhaustedBufferStreamIndex(i);

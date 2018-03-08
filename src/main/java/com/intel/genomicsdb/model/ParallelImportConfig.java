@@ -32,12 +32,10 @@ import java.util.*;
 
 public class ParallelImportConfig {
     private GenomicsDBImportConfiguration.ImportConfiguration importConfiguration;
-    //TODO: too many parameters, need to be re-grouped or reduced based on protobuf classes
     private List<ChromosomeInterval> chromosomeIntervalList = new ArrayList<>();
-    private int rank;
+    private int rank = 0;
     private boolean validateSampleToReaderMap;
     private boolean passAsVcf = true;
-    // Extra params
     private int batchSize = 1000000;
     private Set<VCFHeaderLine> mergedHeader;
     private Map<String, Path> sampleNameToVcfPath;
