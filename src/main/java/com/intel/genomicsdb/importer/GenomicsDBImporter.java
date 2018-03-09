@@ -53,7 +53,8 @@ import static com.intel.genomicsdb.importer.Constants.*;
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
  * All vid information is assumed to be set correctly by the user (JSON files)
  */
-public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensions, VidMapExtensions {
+public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFileExtensions, CallSetMapExtensions,
+        VidMapExtensions {
     static {
         try {
             boolean loaded = GenomicsDBLibLoader.loadLibrary();
@@ -219,41 +220,6 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
         }
     }
 
-    /**
-     * Obtain the chromosome intervals for the column partition specified in the loader JSON file
-     * identified by the rank. The information is returned as a string in JSON format
-     * {
-     * "contigs": [
-     * { "chr1": [ 100, 200] },
-     * { "chr2": [ 500, 600] }
-     * ]
-     * }
-     *
-     * @param loaderJSONFile path to loader JSON file
-     * @param rank           rank/partition index
-     * @return chromosome intervals for the queried column partition in JSON format
-     */
-    private static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
-
-    /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    private static native int jniCreateTileDBWorkspace(final String workspace);
-
-    /**
-     * Consolidate TileDB array
-     *
-     * @param workspace path to workspace directory
-     * @param arrayName array name
-     */
-    private static native void jniConsolidateTileDBArray(final String workspace, final String arrayName);
-
     //TODO: this signature is going to be renamed to executeImport once the single import move to private access
     /**
      * Import multiple chromosome interval
@@ -264,50 +230,8 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
         executeParallelImport(0);
     }
 
-    //TODO: this signature is going to be renamed to executeImport once the single import move to private access
-    /**
-     * Import multiple chromosome interval
-     *
-     * @param numThreads number of threads to use
-     */
-    public void executeParallelImport(final int numThreads) throws IOException, InterruptedException {
-        final int batchSize = this.config.getBatchSize();
-        final int sampleCount = this.config.getSampleNameToVcfPath().size();
-        final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
-
-        ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
-
-        //Iterate over sorted sample list in batches
-        for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
-            final int index = i;
-
-            List<CompletableFuture<Boolean>> futures = this.config.getChromosomeIntervalList().stream().map(chromosomeInterval ->
-                    CompletableFuture.supplyAsync(() -> {
-                        try {
-                            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                                    this.config.sampleToReaderMapCreator().apply(
-                                            this.config.getSampleNameToVcfPath(), updatedBatchSize, index);
-
-                            GenomicsDBImporter importer = createImporter(this.config, sampleCount, index, sampleToReaderMap, chromosomeInterval);
-                            return importer.executeSingleImport();
-                        } catch (Exception ex) {
-                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
-                        }
-                    }, executor)
-            ).collect(Collectors.toList());
-
-            List<Boolean> result = futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
-
-            if (result.contains(false)) {
-                executor.shutdown();
-                throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
-            }
-        }
-
-        executor.shutdown();
-    }
-
-    private static GenomicsDBImporter createImporter(final ParallelImportConfig parallelImportConfig, final int samplesSize, final int index,
+    private static GenomicsDBImporter createImporter(final ParallelImportConfig parallelImportConfig,
+                                                     final int samplesSize, final int index,
                                                      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                                      final ChromosomeInterval chromInterval) throws IOException {
         String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
@@ -321,7 +245,8 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
         GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = parallelImportConfig
                 .getImportConfiguration().toBuilder().setColumnPartitions(0, partition).setSizePerColumnPartition(
                         parallelImportConfig.getImportConfiguration().getSizePerColumnPartition() * samplesSize)
-                .setSegmentSize(parallelImportConfig.getImportConfiguration().getSegmentSize()).setGatk4IntegrationParameters(gatk4Integration)
+                .setSegmentSize(parallelImportConfig.getImportConfiguration().getSegmentSize())
+                .setGatk4IntegrationParameters(gatk4Integration)
                 .setFailIfUpdating(parallelImportConfig.getImportConfiguration().getFailIfUpdating())
                 //TODO: making the following attributes explicit since the C++ layer is not working with the
                 // protobuf object and it's defaults
@@ -447,114 +372,6 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
     }
 
     /**
-     * Creates GenomicsDBImporter object when importing VCF files (no streams)
-     *
-     * @param loaderJSONFile Path to loader JSON file
-     * @param rank           Rank of object - corresponds to the partition index in the loader
-     *                       for which this object will import data
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
-     * @return status - 0 if everything was ok, -1 otherwise
-     */
-    private native int jniGenomicsDBImporter(String loaderJSONFile,
-                                             int rank,
-                                             long lbRowIdx,
-                                             long ubRowIdx);
-
-    /**
-     * Creates GenomicsDBImporter object when importing VCF files (no streams)
-     *
-     * @param loaderJSONFile Path to loader JSON file
-     * @param rank           Rank of object - corresponds to the partition index in the
-     *                       loader for which this object will import data
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
-     * @return "pointer"/address to GenomicsDBImporter object in memory,
-     * if 0, then something went wrong
-     */
-    private native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile,
-                                                              int rank,
-                                                              long lbRowIdx,
-                                                              long ubRowIdx);
-
-    /**
-     * Copy the vid map protocol buffer to C++ through JNI
-     *
-     * @param genomicsDBImporterHandle Reference to a C++ GenomicsDBImporter object
-     * @param vidMapAsByteArray        INFO, FORMAT, FILTER header lines and contig positions
-     * @return Reference to a C++ GenomicsDBImporter object as long
-     */
-    private native long jniCopyVidMap(long genomicsDBImporterHandle,
-                                      byte[] vidMapAsByteArray);
-
-    /**
-     * Copy the callset map protocol buffer to C++ through JNI
-     *
-     * @param genomicsDBImporterHandle Reference to a C++ GenomicsDBImporter object
-     * @param callsetMapAsByteArray    Callset name and row index map
-     * @return Reference to a C++ GenomicsDBImporter object as long
-     */
-    private native long jniCopyCallsetMap(long genomicsDBImporterHandle,
-                                          byte[] callsetMapAsByteArray);
-
-    /**
-     * Notify importer object that a new stream is to be added
-     *
-     * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
-     * @param streamName               name of the stream
-     * @param isBCF                    use BCF format to pass data to C++ layer
-     * @param bufferCapacity           in bytes
-     * @param buffer                   initialization buffer containing the VCF/BCF header
-     * @param numValidBytesInBuffer    num valid bytes in the buffer (length of the header)
-     */
-    private native void jniAddBufferStream(long genomicsDBImporterHandle,
-                                           String streamName,
-                                           boolean isBCF,
-                                           long bufferCapacity,
-                                           byte[] buffer,
-                                           long numValidBytesInBuffer);
-
-    /**
-     * Setup loader after all the buffer streams are added
-     *
-     * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
-     * @param callsetMappingJSON       JSON formatted string containing globally consistent callset
-     *                                 name to row index mapping
-     * @param usingVidMappingProtoBuf  use protocol buffer based header
-     * @return maximum number of buffer stream identifiers that can be returned in
-     * mExhaustedBufferStreamIdentifiers later
-     * (this depends on the number of partitions and the number of buffer streams)
-     */
-    private native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle,
-                                                 final String callsetMappingJSON,
-                                                 boolean usingVidMappingProtoBuf);
-
-    /**
-     * @param handle                "pointer" returned by jniInitializeGenomicsDBImporterObject
-     * @param streamIdx             stream index
-     * @param partitionIdx          partition index (unused now)
-     * @param buffer                buffer containing data
-     * @param numValidBytesInBuffer num valid bytes in the buffer
-     */
-    private native void jniWriteDataToBufferStream(long handle,
-                                                   int streamIdx,
-                                                   int partitionIdx,
-                                                   byte[] buffer,
-                                                   long numValidBytesInBuffer);
-
-    /**
-     * Import the next batch of data into TileDB/GenomicsDB
-     *
-     * @param genomicsDBImporterHandle   "pointer" returned by jniInitializeGenomicsDBImporterObject
-     * @param exhaustedBufferIdentifiers contains the list of exhausted buffer stream identifiers
-     *                                   - the number of
-     *                                   exhausted streams is stored in the last element of the array
-     * @return true if the whole import process is completed, false otherwise
-     */
-    private native boolean jniImportBatch(long genomicsDBImporterHandle,
-                                          long[] exhaustedBufferIdentifiers);
-
-    /**
      * Initialize variables
      *
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
@@ -592,8 +409,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
                                final VCFHeader vcfHeader,
                                final long bufferCapacity,
                                final VariantContextWriterBuilder.OutputType streamType,
-                               final Map<Integer, SampleInfo> sampleIndexToInfo)
-            throws GenomicsDBException {
+                               final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException {
         return addBufferStream(streamName, vcfHeader, bufferCapacity,
                 streamType, null, sampleIndexToInfo);
     }
@@ -851,6 +667,49 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
         }
 
         return mDone;
+    }
+
+    //TODO: this signature is going to be renamed to executeImport once the single import move to private access
+    /**
+     * Import multiple chromosome interval
+     *
+     * @param numThreads number of threads to use
+     */
+    public void executeParallelImport(final int numThreads) throws IOException, InterruptedException {
+        final int batchSize = this.config.getBatchSize();
+        final int sampleCount = this.config.getSampleNameToVcfPath().size();
+        final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
+
+        ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
+
+        //Iterate over sorted sample list in batches
+        for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
+            final int index = i;
+
+            List<CompletableFuture<Boolean>> futures = this.config.getChromosomeIntervalList().stream().map(chromosomeInterval ->
+                    CompletableFuture.supplyAsync(() -> {
+                        try {
+                            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
+                                    this.config.sampleToReaderMapCreator().apply(
+                                            this.config.getSampleNameToVcfPath(), updatedBatchSize, index);
+
+                            GenomicsDBImporter importer = createImporter(this.config, sampleCount, index, sampleToReaderMap, chromosomeInterval);
+                            return importer.executeSingleImport();
+                        } catch (Exception ex) {
+                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
+                        }
+                    }, executor)
+            ).collect(Collectors.toList());
+
+            List<Boolean> result = futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
+
+            if (result.contains(false)) {
+                executor.shutdown();
+                throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+            }
+        }
+
+        executor.shutdown();
     }
 
     /**
