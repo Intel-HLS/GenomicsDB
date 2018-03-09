@@ -20,8 +20,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.importer;
 
+import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;

@@ -22,6 +22,8 @@
 
 package com.intel.genomicsdb
 
+import com.intel.genomicsdb.spark.{GenomicsDBConfiguration, GenomicsDBInputFormat}
+import com.intel.genomicsdb.spark.GenomicsDBInputFormat
 import htsjdk.tribble.readers.PositionalBufferedStream
 import htsjdk.variant.variantcontext.VariantContext
 import org.apache.spark.rdd.RDD

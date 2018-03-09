@@ -20,38 +20,25 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
-
-import htsjdk.samtools.util.Locatable;
+package com.intel.genomicsdb.importer.model;
 
 /**
- * Utility class to represent a chromosome interval
- * Contains 3 members - chr name, start, end (1-based)
+ * Utility class that stores row index and globally unique name for a given sample
  */
-public class ChromosomeInterval implements Locatable {
+public class SampleInfo {
+  private String name = null;
+  private long rowIdx = -1;
 
-  private String mChromosomeName = null;
-  private long mBegin = -1;
-  private long mEnd = -1;
-
-  public ChromosomeInterval(final String name, final long begin, final long end) {
-    mChromosomeName = name;
-    mBegin = begin;
-    mEnd = end;
+  public SampleInfo(final String name, final long rowIdx) {
+    this.name = name;
+    this.rowIdx = rowIdx;
   }
 
-  @Override
-  public String getContig() {
-    return mChromosomeName;
+  public String getName() {
+    return name;
   }
 
-  @Override
-  public int getStart() {
-    return (int) mBegin;
-  }
-
-  @Override
-  public int getEnd() {
-    return (int) mEnd;
+  public long getRowIdx() {
+    return rowIdx;
   }
 }

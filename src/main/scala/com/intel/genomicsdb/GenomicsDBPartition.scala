@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb
 
+import com.intel.genomicsdb.spark.GenomicsDBInputSplit
 import htsjdk.tribble.Feature
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapreduce.InputSplit
@@ -34,7 +35,7 @@ import org.apache.spark.{Partition, SerializableWritable}
   * @param rddId  unique rdd identifier
   * @param index  index for task scheduler
   * @param rawSplit  GenomicsDB input split passed from RDD getpartitions
-  *                  [[com.intel.genomicsdb.GenomicsDBInputSplit]]
+  *                  [[GenomicsDBInputSplit]]
   */
 private[genomicsdb] class GenomicsDBPartition[VCONTEXT <: Feature, SOURCE](
     rddId: Int,
