@@ -75,6 +75,7 @@ class VariantQueryConfig
       clear();
       m_query_idx_known_variant_field_enum_LUT.reset_luts();
       m_done_bookkeeping = false;
+      m_sites_only_query = false;
       m_query_all_rows = true;
       m_num_rows_in_array = UNDEFINED_NUM_ROWS_VALUE;
       m_smallest_row_idx = 0;
@@ -96,6 +97,10 @@ class VariantQueryConfig
      * Function used by query processor to add extra attributes to query
      */
     void add_attribute_to_query(const std::string& name, unsigned schema_idx);
+    /*
+     * Clear attributes to query
+     */
+    void clear_attributes_to_query();
     /**
      * Check whether attribute is defined
      */
@@ -340,6 +345,8 @@ class VariantQueryConfig
     }
     inline uint64_t get_column_begin(unsigned idx) const { return get_column_interval(idx).first; }
     inline uint64_t get_column_end(unsigned idx) const { return get_column_interval(idx).second; }
+    inline void set_sites_only_query(const bool val) { m_sites_only_query = val; }
+    inline bool sites_only_query() const { return m_sites_only_query; }
   private:
     /*
      * Function to invalid TileDB array row idx -> query row idx mapping
@@ -351,6 +358,8 @@ class VariantQueryConfig
     std::unordered_map<std::string, unsigned> m_query_attribute_name_to_query_idx;
     //Flag that tracks whether book-keeping is done
     bool m_done_bookkeeping;
+    //Sites only query - INFO fields only are queried
+    bool m_sites_only_query;
     //Idx in m_query_attributes_info_vec with the first common attribute - see reorder_query_fields();
     unsigned m_first_normal_field_query_idx;
     //Mapping between queried idx and known fields enum

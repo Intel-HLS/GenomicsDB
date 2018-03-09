@@ -915,5 +915,6 @@ void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, Vari
 {
   JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
   JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank, combined_vcf_records_buffer_size_limit);
+  query_config.set_sites_only_query(vcf_adapter.sites_only_query());
 }
 #endif
