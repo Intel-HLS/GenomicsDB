@@ -91,6 +91,26 @@ public final class TestBufferStreamGenomicsDBImporter
   }
 
   /**
+   * Static function that reads sample names from the vcfHeader and adds entries to the map.
+   * The function assumes that the samples will be assigned row indexes beginning at rowIdx
+   * and that the sample names specified in the header
+   * are globally unique (across all streams/files)
+   *
+   * @param sampleIndexToInfo map: key=sampleIndex in vcfHeader: value=SampleInfo
+   * @param vcfHeader         VCF header
+   * @param rowIdx            Starting row index from which to assign
+   * @return rowIdx+#samples in the header
+   */
+  static long initializeSampleInfoMapFromHeader(Map<Integer, SampleInfo> sampleIndexToInfo, final VCFHeader vcfHeader,
+                                                final long rowIdx) {
+    final List<String> headerSampleNames = vcfHeader.getGenotypeSamples();
+    final int numSamplesInHeader = headerSampleNames.size();
+    for (int i = 0; i < numSamplesInHeader; ++i)
+      sampleIndexToInfo.put(i, new SampleInfo(headerSampleNames.get(i), rowIdx + i));
+    return rowIdx + numSamplesInHeader;
+  }
+
+  /**
    * Sample driver code for testing Java VariantContext write API for GenomicsDB
    * The code shows two ways of using the API
    *   (a) Iterator<VariantContext>
@@ -152,7 +172,7 @@ public final class TestBufferStreamGenomicsDBImporter
        */
       LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
         new LinkedHashMap<Integer, SampleInfo>();
-      rowIdx = GenomicsDBImporter.initializeSampleInfoMapFromHeader(sampleIndexToInfo,
+      rowIdx = initializeSampleInfoMapFromHeader(sampleIndexToInfo,
         currInfo.mVCFHeader, rowIdx);
       int streamIdx = -1;
       if(args[0].equals("-iterators"))
@@ -163,7 +183,7 @@ public final class TestBufferStreamGenomicsDBImporter
       else
         //use buffers - VCs will be provided by caller
         streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, bufferCapacity,
-          VariantContextWriterBuilder.OutputType.BCF_STREAM, sampleIndexToInfo);
+          VariantContextWriterBuilder.OutputType.BCF_STREAM, null, sampleIndexToInfo);
       currInfo.mStreamIdx = streamIdx;
       streamInfoVec.add(currInfo);
     }
