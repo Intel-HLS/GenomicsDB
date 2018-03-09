@@ -27,8 +27,8 @@ public interface JsonFileExtensions {
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
     default File dumpTemporaryLoaderJSONFile(
-            GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-            String filename) throws IOException {
+            final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
+            final String filename) throws IOException {
         String loaderJSONString = JsonFormat.printToString(importConfiguration);
 
         File tempLoaderJSONFile = (filename.isEmpty()) ?
@@ -54,8 +54,9 @@ public interface JsonFileExtensions {
      * @param callsetMappingPB             Protobuf callset map object
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
-    default void writeCallsetMapJSONFile(String outputCallsetMapJSONFilePath,
-                                        GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB) throws FileNotFoundException {
+    default void writeCallsetMapJSONFile(final String outputCallsetMapJSONFilePath,
+                                         final GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB)
+            throws FileNotFoundException {
         String callsetMapJSONString = printToString(callsetMappingPB);
         File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
         PrintWriter out = new PrintWriter(callsetMapJSONFile);
@@ -73,7 +74,8 @@ public interface JsonFileExtensions {
      * @param vidMappingPB             ProtoBuf data structure for vid mapping
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
-    default void writeVidMapJSONFile(String outputVidMapJSONFilePath, GenomicsDBVidMapProto.VidMappingPB vidMappingPB)
+    default void writeVidMapJSONFile(final String outputVidMapJSONFilePath,
+                                     final GenomicsDBVidMapProto.VidMappingPB vidMappingPB)
             throws FileNotFoundException {
         String vidMapJSONString = printToString(vidMappingPB);
         File vidMapJSONFile = new File(outputVidMapJSONFilePath);
@@ -92,7 +94,8 @@ public interface JsonFileExtensions {
      * @param headerLines             Set of header lines
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
-    default void writeVcfHeaderFile(String outputVcfHeaderFilePath, Set<VCFHeaderLine> headerLines) throws FileNotFoundException {
+    default void writeVcfHeaderFile(final String outputVcfHeaderFilePath, final Set<VCFHeaderLine> headerLines)
+            throws FileNotFoundException {
         File vcfHeaderFile = new File(outputVcfHeaderFilePath);
         final VCFHeader vcfHeader = new VCFHeader(headerLines);
         VariantContextWriter vcfWriter = new VariantContextWriterBuilder()
