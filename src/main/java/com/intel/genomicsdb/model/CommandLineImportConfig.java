@@ -1,7 +1,7 @@
 package com.intel.genomicsdb.model;
 
 import com.google.protobuf.UninitializedMessageException;
-import com.intel.genomicsdb.ChromosomeInterval;
+import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 import htsjdk.tribble.AbstractFeatureReader;

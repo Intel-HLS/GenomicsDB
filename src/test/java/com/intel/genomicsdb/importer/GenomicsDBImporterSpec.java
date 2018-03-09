@@ -20,9 +20,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.importer;
 
+import com.intel.genomicsdb.GenomicsDBTestUtils;
+import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import com.intel.genomicsdb.importer.extensions.CallSetMapExtensions;
+import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import com.intel.genomicsdb.model.*;
 import com.intel.genomicsdb.model.GenomicsDBImportConfiguration.ImportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;

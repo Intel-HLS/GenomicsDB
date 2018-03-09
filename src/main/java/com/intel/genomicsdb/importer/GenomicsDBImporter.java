@@ -20,15 +20,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.importer;
 
+import com.intel.genomicsdb.GenomicsDBLibLoader;
+import com.intel.genomicsdb.exception.GenomicsDBException;
 import com.intel.genomicsdb.importer.extensions.CallSetMapExtensions;
 import com.intel.genomicsdb.importer.extensions.JsonFileExtensions;
 import com.intel.genomicsdb.importer.extensions.VidMapExtensions;
-import com.intel.genomicsdb.model.ParallelImportConfig;
-import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
-import com.intel.genomicsdb.model.GenomicsDBImportConfiguration;
-import com.intel.genomicsdb.model.GenomicsDBVidMapProto;
+import com.intel.genomicsdb.importer.model.ChromosomeInterval;
+import com.intel.genomicsdb.importer.model.SampleInfo;
+import com.intel.genomicsdb.model.*;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -55,7 +56,7 @@ import static com.intel.genomicsdb.importer.Constants.*;
 public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensions, VidMapExtensions {
     static {
         try {
-            boolean loaded = GenomicsDBUtils.loadLibrary();
+            boolean loaded = GenomicsDBLibLoader.loadLibrary();
             if (!loaded) throw new GenomicsDBException("Could not load genomicsdb native library");
         } catch (UnsatisfiedLinkError ule) {
             throw new GenomicsDBException("Could not load genomicsdb native library", ule);
@@ -708,10 +709,10 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
         if (sampleIndexToInfo != null) {
             for (Map.Entry<Integer, SampleInfo> currEntry : sampleIndexToInfo.entrySet()) {
                 JSONObject sampleJSON = new JSONObject();
-                sampleJSON.put("row_idx", currEntry.getValue().mRowIdx);
+                sampleJSON.put("row_idx", currEntry.getValue().getRowIdx());
                 sampleJSON.put("stream_name", streamName);
                 sampleJSON.put("idx_in_file", currEntry.getKey());
-                mCallsetMappingJSON.put(currEntry.getValue().mName, sampleJSON);
+                mCallsetMappingJSON.put(currEntry.getValue().getName(), sampleJSON);
             }
         }
         return currIdx;

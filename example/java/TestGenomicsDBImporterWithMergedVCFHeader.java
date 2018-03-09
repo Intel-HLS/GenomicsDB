@@ -20,8 +20,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import com.intel.genomicsdb.GenomicsDBException;
-import com.intel.genomicsdb.GenomicsDBImporter;
+import com.intel.genomicsdb.exception.GenomicsDBException;
+import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import com.intel.genomicsdb.model.CommandLineImportConfig;
 import org.json.simple.parser.ParseException;
 

@@ -20,8 +20,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.spark;
 
+import com.intel.genomicsdb.GenomicsDBPartitionStrategy;
 import org.apache.hadoop.conf.Configuration;
 
 import java.io.FileInputStream;

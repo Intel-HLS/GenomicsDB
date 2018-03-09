@@ -8,7 +8,7 @@ fi
 SPARK_MASTER_URL="$1"
 shift
 
-CLASS=com.intel.genomicsdb.GenomicsDBJavaSparkFactory
+CLASS=com.intel.genomicsdb.spark.GenomicsDBJavaSparkFactory
 GENOMICSDB_JAR=genomicsdb-0.4.0-jar-with-dependencies.jar
 GENOMICSDB_BIN_DIR="$(cd `dirname $0`; pwd)"
 GENOMICSDB_JAR_PATH=$GENOMICSDB_BIN_DIR/$GENOMICSDB_JAR
