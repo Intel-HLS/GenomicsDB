@@ -22,7 +22,7 @@ public interface VidMapExtensions {
      * @return a vid map containing all field names, lengths and types
      * from the merged GVCF header
      */
-    default GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(Set<VCFHeaderLine> mergedHeader) {
+    default GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(final Set<VCFHeaderLine> mergedHeader) {
         List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
         List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
 
@@ -178,7 +178,7 @@ public interface VidMapExtensions {
      * @param headerLine Info or Format header line from VCF
      * @return VAR, A, R, G, or integer values from VCF
      */
-    default String getVcfHeaderLength(VCFHeaderLine headerLine) {
+    default String getVcfHeaderLength(final VCFHeaderLine headerLine) {
         VCFHeaderLineCount type;
 
         if (headerLine instanceof VCFFormatHeaderLine) {
@@ -224,7 +224,8 @@ public interface VidMapExtensions {
         return length;
     }
 
-    default GenomicsDBVidMapProto.InfoField removeInfoFields(List<GenomicsDBVidMapProto.InfoField> infoFields, int dpIndex) {
+    default GenomicsDBVidMapProto.InfoField removeInfoFields(List<GenomicsDBVidMapProto.InfoField> infoFields,
+                                                             final int dpIndex) {
         GenomicsDBVidMapProto.InfoField dpFormatField = infoFields.get(dpIndex);
         infoFields.remove(dpIndex);
         return dpFormatField;

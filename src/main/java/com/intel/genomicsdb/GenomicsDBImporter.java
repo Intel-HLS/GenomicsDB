@@ -85,7 +85,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      *
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      */
-    public GenomicsDBImporter(String loaderJSONFile) {
+    public GenomicsDBImporter(final String loaderJSONFile) {
         initialize(loaderJSONFile, 0, 0, Long.MAX_VALUE - 1);
     }
 
@@ -95,7 +95,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param rank           Rank of this process (TileDB/GenomicsDB partition idx)
      */
-    public GenomicsDBImporter(String loaderJSONFile, int rank) {
+    public GenomicsDBImporter(final String loaderJSONFile, final int rank) {
         initialize(loaderJSONFile, rank, 0, Long.MAX_VALUE - 1);
     }
 
@@ -107,7 +107,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param lbRowIdx       Smallest row idx which should be imported by this object
      * @param ubRowIdx       Largest row idx which should be imported by this object
      */
-    public GenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx) {
+    public GenomicsDBImporter(final String loaderJSONFile, final int rank, final long lbRowIdx, final long ubRowIdx) {
         initialize(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     }
 
@@ -184,7 +184,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param config Parallel import configuration
      * @throws FileNotFoundException
      */
-    public GenomicsDBImporter(ParallelImportConfig config) throws FileNotFoundException {
+    public GenomicsDBImporter(final ParallelImportConfig config) throws FileNotFoundException {
         this.config = config;
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
@@ -915,7 +915,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      *
      * @param lbRowIdx Minimum row idx from which new data will be added
      */
-    public void write(long lbRowIdx) throws GenomicsDBException {
+    public void write(final long lbRowIdx) throws GenomicsDBException {
         write(mLoaderJSONFile, mRank, lbRowIdx, Long.MAX_VALUE - 1);
     }
 
@@ -926,7 +926,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param rank     Rank of this process (TileDB/GenomicsDB partition idx)
      * @param lbRowIdx Minimum row idx from which new data will be added
      */
-    public void write(int rank, long lbRowIdx) throws GenomicsDBException {
+    public void write(final int rank, final long lbRowIdx) throws GenomicsDBException {
         write(mLoaderJSONFile, rank, lbRowIdx, Long.MAX_VALUE - 1);
     }
 
@@ -938,7 +938,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param lbRowIdx Minimum row idx from which new data will be added
      * @param ubRowIdx Maximum row idx upto which new data will be added
      */
-    public void write(int rank, long lbRowIdx, long ubRowIdx) throws GenomicsDBException {
+    public void write(final int rank, final long lbRowIdx, final long ubRowIdx) throws GenomicsDBException {
         write(mLoaderJSONFile, rank, lbRowIdx, ubRowIdx);
     }
 
@@ -950,7 +950,7 @@ public class GenomicsDBImporter implements JsonFileExtensions, CallSetMapExtensi
      * @param lbRowIdx       Minimum row idx from which new data will be added
      * @param ubRowIdx       Maximum row idx upto which new data will be added
      */
-    public void write(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx)
+    public void write(final String loaderJSONFile, final int rank, final long lbRowIdx, final long ubRowIdx)
             throws GenomicsDBException {
         mDone = false;
         if (loaderJSONFile == null)

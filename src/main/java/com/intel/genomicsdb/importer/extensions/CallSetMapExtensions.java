@@ -22,8 +22,8 @@ public interface CallSetMapExtensions {
      * @return Mappings of callset (sample) names to TileDB rows
      */
     default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-            List<String> sampleNames,
-            boolean useSamplesInOrderProvided) {
+            final List<String> sampleNames,
+            final boolean useSamplesInOrderProvided) {
         return generateSortedCallSetMap(sampleNames, useSamplesInOrderProvided, 0L);
     }
 
@@ -41,8 +41,8 @@ public interface CallSetMapExtensions {
      * @return Mappings of callset (sample) names to TileDB rows
      */
     default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-            List<String> sampleNames,
-            boolean useSamplesInOrderProvided,
+            final List<String> sampleNames,
+            final boolean useSamplesInOrderProvided,
             final long lbRowIdx) {
         if (!useSamplesInOrderProvided)
             Collections.sort(sampleNames);
@@ -76,6 +76,26 @@ public interface CallSetMapExtensions {
      * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
      * @param useSamplesInOrderProvided If True, do not sort the samples,
      *                                  use the order they appear in
+     * @param validateSampleToReaderMap
+     * @return Mappings of callset (sample) names to TileDB rows
+     */
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+            final boolean validateSampleToReaderMap,
+            final boolean useSamplesInOrderProvided) {
+        return generateSortedCallSetMap(sampleToReaderMap, useSamplesInOrderProvided, validateSampleToReaderMap, 0L);
+    }
+
+    /**
+     * Creates a sorted list of callsets and generates unique TileDB
+     * row indices for them. Sorted to maintain order between
+     * distributed share-nothing load processes.
+     * <p>
+     * Assume one sample per input GVCF file
+     *
+     * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
+     * @param useSamplesInOrderProvided If True, do not sort the samples,
+     *                                  use the order they appear in
      * @param validateSampleMap         Check i) whether sample names are consistent
      *                                  with headers and ii) feature readers are valid
      *                                  in sampleToReaderMap
@@ -84,8 +104,8 @@ public interface CallSetMapExtensions {
      */
     default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
             final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-            boolean useSamplesInOrderProvided,
-            boolean validateSampleMap,
+            final boolean useSamplesInOrderProvided,
+            final boolean validateSampleMap,
             final long lbRowIdx) {
         if (!validateSampleMap) {
             return generateSortedCallSetMap(new ArrayList<>(sampleToReaderMap.keySet()), useSamplesInOrderProvided, lbRowIdx);
@@ -120,25 +140,5 @@ public interface CallSetMapExtensions {
             listOfSampleNames.add(sampleName);
         }
         return generateSortedCallSetMap(listOfSampleNames, useSamplesInOrderProvided, lbRowIdx);
-    }
-
-    /**
-     * Creates a sorted list of callsets and generates unique TileDB
-     * row indices for them. Sorted to maintain order between
-     * distributed share-nothing load processes.
-     * <p>
-     * Assume one sample per input GVCF file
-     *
-     * @param sampleToReaderMap         Variant Readers objects of the input GVCF files
-     * @param useSamplesInOrderProvided If True, do not sort the samples,
-     *                                  use the order they appear in
-     * @param validateSampleToReaderMap
-     * @return Mappings of callset (sample) names to TileDB rows
-     */
-    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-            boolean validateSampleToReaderMap,
-            boolean useSamplesInOrderProvided) {
-        return generateSortedCallSetMap(sampleToReaderMap, useSamplesInOrderProvided, validateSampleToReaderMap, 0L);
     }
 }
