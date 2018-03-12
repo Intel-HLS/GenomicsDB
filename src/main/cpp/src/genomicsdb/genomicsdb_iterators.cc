@@ -59,6 +59,8 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
 {
 #ifdef DO_PROFILING
   memset(m_num_cells_traversed_stats, 0, GenomicsDBIteratorStatsEnum::NUM_STATS*sizeof(uint64_t));
+  //No point in tracking beyond 10K cell segments
+  m_useless_cell_interval_lengths_histogram.resize(10000u, 0ull);
   m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram.resize(query_config.get_num_rows_in_array(), 0ull);
 #ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
   m_cell_counts_since_last_cell_from_same_row.resize(query_config.get_num_rows_in_array(), 0ull);
@@ -135,6 +137,9 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
   for(auto i=0u;i<GenomicsDBIteratorStatsEnum::NUM_STATS;++i)
     std::cerr << "," << m_num_cells_traversed_stats[i];
   std::cerr << "\n";
+  std::cerr << "Useless cell segment lengths histogram\n";
+  for(auto i=0ull;i<m_useless_cell_interval_lengths_histogram.size();++i)
+    std::cerr << i << "  " <<m_useless_cell_interval_lengths_histogram[i]<<"\n";
   auto num_live_list_entries = 0ull;
   auto num_free_list_entries = 0ull;
   for(const auto& field : m_fields)
@@ -615,9 +620,6 @@ bool SingleCellTileDBIterator::advance_coords_and_END(const uint64_t num_cells_t
       return false;
     increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
   }
-#ifdef DO_PROFILING
-  increment_num_cells_traversed_stats(num_cells_to_advance);
-#endif
   return true;
 }
 
@@ -724,9 +726,12 @@ void SingleCellTileDBIterator::increment_num_cells_traversed_stats(const uint64_
   if(m_in_find_intersecting_intervals_mode)
     m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_CELLS_TRAVERSED_IN_FIND_INTERSECTING_INTERVALS_MODE]
       += num_cells_incremented;
+  auto num_useless_cells = (num_cells_incremented - 1ull);
   m_num_cells_traversed_stats[m_in_find_intersecting_intervals_mode
     ? GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE
-    : GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_SIMPLE_TRAVERSAL_MODE] += (num_cells_incremented - 1u);
+    : GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_SIMPLE_TRAVERSAL_MODE] += num_useless_cells;
+  auto idx = std::min<uint64_t>(num_useless_cells, m_useless_cell_interval_lengths_histogram.size()-1u);
+  ++(m_useless_cell_interval_lengths_histogram[idx]);
 }
 #endif
 

@@ -374,6 +374,8 @@ class SingleCellTileDBIterator
     TileDB_Array* m_owned_tiledb_array;
 #ifdef DO_PROFILING
     uint64_t m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_STATS];
+    //For a given query, tracks the length of consecutive cell segments that are useless
+    std::vector<uint64_t> m_useless_cell_interval_lengths_histogram;
     std::vector<uint64_t> m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram;
 #ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
     std::vector<uint64_t> m_cell_counts_since_last_cell_from_same_row;
