@@ -20,7 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.model;
 
 import com.intel.genomicsdb.model.GenomicsDBCallsetsMapProto;
 import org.testng.Assert;

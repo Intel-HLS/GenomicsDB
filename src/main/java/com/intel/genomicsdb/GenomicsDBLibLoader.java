@@ -29,25 +29,22 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 
-/**
- * Utility Java functions for GenomicsDB
- */
-class GenomicsDBUtils {
-    private final static String mGenomicsDBLibraryName = "tiledbgenomicsdb";
+public class GenomicsDBLibLoader {
+    private final static String GENOMICSDB_LIBRARY_NAME = "tiledbgenomicsdb";
     private static boolean mIsLibraryLoaded = false;
 
     private static native int jniGenomicsDBOneTimeInitialize();
 
-    static synchronized boolean loadLibrary() {
+    public static synchronized boolean loadLibrary() {
         if (mIsLibraryLoaded) return true;
 
         //try loading from outside the JAR - on GNU/Linux, if the LD_LIBRARY_PATH variable is set, then the library will be loaded
         try {
-            System.loadLibrary(mGenomicsDBLibraryName);
+            System.loadLibrary(GENOMICSDB_LIBRARY_NAME);
         } catch (UnsatisfiedLinkError ule) {
             //Could not load based on external loader configuration 
             try {
-                loadLibraryFromJar("/" + System.mapLibraryName(mGenomicsDBLibraryName));
+                loadLibraryFromJar("/" + System.mapLibraryName(GENOMICSDB_LIBRARY_NAME));
             } catch (IOException ioe) {
                 //Throw the UnsatisfiedLinkError to make it clear to the user what failed
                 throw ule;
@@ -107,7 +104,7 @@ class GenomicsDBUtils {
         int readBytes;
 
         // Open and check input stream
-        InputStream is = GenomicsDBUtils.class.getResourceAsStream(path);
+        InputStream is = GenomicsDBLibLoader.class.getResourceAsStream(path);
         if (is == null) {
             throw new FileNotFoundException("File " + path + " was not found inside JAR.");
         }

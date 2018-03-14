@@ -20,9 +20,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import com.intel.genomicsdb.SampleInfo;
+import com.intel.genomicsdb.exception.GenomicsDBException;
+import com.intel.genomicsdb.importer.model.SampleInfo;
+import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -31,15 +32,10 @@ import htsjdk.variant.vcf.VCFHeader;
 import org.json.simple.parser.ContainerFactory;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Iterator;
-import com.intel.genomicsdb.GenomicsDBImporter;
-import com.intel.genomicsdb.GenomicsDBException;
+import java.util.*;
 
 /**
  * Wrapper class to maintain stream state for the test driver program
@@ -92,6 +88,26 @@ public final class TestBufferStreamGenomicsDBImporter
     {
       return new LinkedHashMap();
     }
+  }
+
+  /**
+   * Static function that reads sample names from the vcfHeader and adds entries to the map.
+   * The function assumes that the samples will be assigned row indexes beginning at rowIdx
+   * and that the sample names specified in the header
+   * are globally unique (across all streams/files)
+   *
+   * @param sampleIndexToInfo map: key=sampleIndex in vcfHeader: value=SampleInfo
+   * @param vcfHeader         VCF header
+   * @param rowIdx            Starting row index from which to assign
+   * @return rowIdx+#samples in the header
+   */
+  static long initializeSampleInfoMapFromHeader(Map<Integer, SampleInfo> sampleIndexToInfo, final VCFHeader vcfHeader,
+                                                final long rowIdx) {
+    final List<String> headerSampleNames = vcfHeader.getGenotypeSamples();
+    final int numSamplesInHeader = headerSampleNames.size();
+    for (int i = 0; i < numSamplesInHeader; ++i)
+      sampleIndexToInfo.put(i, new SampleInfo(headerSampleNames.get(i), rowIdx + i));
+    return rowIdx + numSamplesInHeader;
   }
 
   /**
@@ -156,7 +172,7 @@ public final class TestBufferStreamGenomicsDBImporter
        */
       LinkedHashMap<Integer, SampleInfo> sampleIndexToInfo =
         new LinkedHashMap<Integer, SampleInfo>();
-      rowIdx = GenomicsDBImporter.initializeSampleInfoMapFromHeader(sampleIndexToInfo,
+      rowIdx = initializeSampleInfoMapFromHeader(sampleIndexToInfo,
         currInfo.mVCFHeader, rowIdx);
       int streamIdx = -1;
       if(args[0].equals("-iterators"))
@@ -167,14 +183,14 @@ public final class TestBufferStreamGenomicsDBImporter
       else
         //use buffers - VCs will be provided by caller
         streamIdx = loader.addBufferStream(entry.getKey(), currInfo.mVCFHeader, bufferCapacity,
-          VariantContextWriterBuilder.OutputType.BCF_STREAM, sampleIndexToInfo);
+          VariantContextWriterBuilder.OutputType.BCF_STREAM, null, sampleIndexToInfo);
       currInfo.mStreamIdx = streamIdx;
       streamInfoVec.add(currInfo);
     }
     if(args[0].equals("-iterators"))
     {
       //Much simpler interface if using Iterator<VariantContext>
-      loader.importBatch();
+      loader.executeSingleImport();
       assert loader.isDone();
     }
     else
@@ -206,7 +222,7 @@ public final class TestBufferStreamGenomicsDBImporter
                 currInfo.mNextVC = null;
           }
         }
-        loader.importBatch();
+        loader.executeSingleImport();
         numExhaustedBufferStreams = (int)loader.getNumExhaustedBufferStreams();
         for(int i=0;i<numExhaustedBufferStreams;++i)
           exhaustedBufferStreamIdxs[i] = loader.getExhaustedBufferStreamIndex(i);

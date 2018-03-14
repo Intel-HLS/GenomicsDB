@@ -26,6 +26,8 @@ package com.intel.genomicsdb.model;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static com.intel.genomicsdb.model.CommandLineImportConfig.DEFAULT_SIZE_PER_COLUMN_PARTITION;
+
 public class CommandLineImportConfigSpec {
 
     @Test(testName = "should throw an exception when there are intersections within chromosome intervals",
@@ -35,7 +37,8 @@ public class CommandLineImportConfigSpec {
     public void shouldThrowExceptionWhenThereAreIntersectionsInChromosomeIntervals() {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 -L 1:18000-19000 -w path/to/ws " +
-                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+                "--size_per_column_partition 10000 --segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
@@ -46,8 +49,9 @@ public class CommandLineImportConfigSpec {
     @Test(testName = "should not throw exception when there are intersections on intervals ranges but not for the same chromosome")
     public void shouldNotThrowExceptionWhenThereAreIntersectionsButDifferentChromosomes() {
         //Given
-        String[] args = ("-L 1:12000-13000 -L 2:12000-13000 -w path/to/ws " +
-                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        String[] args = ("-L 1:12000-13000 -L 2:12000-13000 -w path/to/ws --size_per_column_partition 10000 " +
+                "--segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
@@ -58,12 +62,25 @@ public class CommandLineImportConfigSpec {
     @Test(testName = "should not throw exception when there is only one interval")
     public void shouldNotThrowExceptionWhenThereIsOnlyOneInteval() {
         //Given
-        String[] args = ("-L 1:12000-13000 -w path/to/ws --vidmap-output path/to/vidmap " +
-                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        String[] args = ("-L 1:12000-13000 -w path/to/ws --size_per_column_partition 10000 --segment_size 1048576 " +
+                "--vidmap-output path/to/vidmap --callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
         //When
         CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
 
         //Then
         Assert.assertEquals(config.getSampleNameToVcfPath().values().toArray()[0].toString(), "tests/inputs/vcfs/t0.vcf.gz");
+    }
+
+    //TODO: remove this test once C++ layer makes use of protobuf structures
+    @Test(testName = "should explicitly set size per column partition with default value")
+    public void shouldExplicitlySetSizePerColumnPartitionWithDefaultValue() {
+        //Given
+        String[] args = ("-L 1:12000-13000 -w path/to/ws --segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        //When
+        CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+
+        //Then
+        Assert.assertEquals(config.getImportConfiguration().getSizePerColumnPartition(), DEFAULT_SIZE_PER_COLUMN_PARTITION);
     }
 }

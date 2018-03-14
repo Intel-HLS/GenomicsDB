@@ -20,8 +20,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.spark;
 
+import com.intel.genomicsdb.GenomicsDBContext;
+import com.intel.genomicsdb.spark.GenomicsDBConfiguration;
+import com.intel.genomicsdb.spark.GenomicsDBInputFormat;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.SparkConf;
