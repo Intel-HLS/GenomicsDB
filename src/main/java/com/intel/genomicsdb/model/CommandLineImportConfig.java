@@ -21,6 +21,8 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 
 public class CommandLineImportConfig extends ParallelImportConfig {
+    //TODO: remove this constant once C++ layer makes use of protobuf structures
+    protected static final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 16384L;
     GenomicsDBImportConfiguration.Partition.Builder partitionBuilder =
             GenomicsDBImportConfiguration.Partition.newBuilder();
     GenomicsDBImportConfiguration.GATK4Integration.Builder gatk4IntegrationBuilder =
@@ -30,6 +32,8 @@ public class CommandLineImportConfig extends ParallelImportConfig {
 
     public CommandLineImportConfig(final String command, final String[] commandArgs) {
         Getopt getOpt = new Getopt(command, commandArgs, "w:A:L:", resolveLongOpt());
+        //TODO: remove next line once C++ layer makes use of protobuf structures. Making size per column partition explicit.
+        configurationBuilder.setSizePerColumnPartition(DEFAULT_SIZE_PER_COLUMN_PARTITION);
         resolveCommandArgs(getOpt);
         try {
             configurationBuilder.addColumnPartitions(partitionBuilder.build());

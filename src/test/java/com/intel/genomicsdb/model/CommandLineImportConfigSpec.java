@@ -26,6 +26,8 @@ package com.intel.genomicsdb.model;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static com.intel.genomicsdb.model.CommandLineImportConfig.DEFAULT_SIZE_PER_COLUMN_PARTITION;
+
 public class CommandLineImportConfigSpec {
 
     @Test(testName = "should throw an exception when there are intersections within chromosome intervals",
@@ -67,5 +69,18 @@ public class CommandLineImportConfigSpec {
 
         //Then
         Assert.assertEquals(config.getSampleNameToVcfPath().values().toArray()[0].toString(), "tests/inputs/vcfs/t0.vcf.gz");
+    }
+
+    //TODO: remove this test once C++ layer makes use of protobuf structures
+    @Test(testName = "should explicitly set size per column partition with default value")
+    public void shouldExplicitlySetSizePerColumnPartitionWithDefaultValue() {
+        //Given
+        String[] args = ("-L 1:12000-13000 -w path/to/ws --segment_size 1048576 --vidmap-output path/to/vidmap " +
+                "--callset-output path/to/callset tests/inputs/vcfs/t0.vcf.gz").split(" ");
+        //When
+        CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
+
+        //Then
+        Assert.assertEquals(config.getImportConfiguration().getSizePerColumnPartition(), DEFAULT_SIZE_PER_COLUMN_PARTITION);
     }
 }

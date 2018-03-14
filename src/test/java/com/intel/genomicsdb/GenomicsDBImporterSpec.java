@@ -180,8 +180,8 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
-                "--size_per_column_partition 10000 " +
-                "--segment_size 1048576 " +
+                "--size_per_column_partition 16384 " +
+                "--segment_size 10485760 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
@@ -231,8 +231,7 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
-                "--size_per_column_partition 10000 " +
-                "--segment_size 1048576 " +
+                "--segment_size 10485760 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");
@@ -272,8 +271,8 @@ public final class GenomicsDBImporterSpec {
         //Given
         String[] args = ("-L 1:12000-13000 -L 1:17000-18000 " +
                 "-w " + WORKSPACE.getAbsolutePath() + " " +
-                "--size_per_column_partition 10000 " +
-                "--segment_size 1048576 " +
+                "--size_per_column_partition 16384 " +
+                "--segment_size 10485760 " +
                 "--vidmap-output " + tempVidJsonFile.getAbsolutePath() + " " +
                 "--callset-output " + tempCallsetJsonFile.getAbsolutePath() + " " +
                 "tests/inputs/vcfs/t0.vcf.gz").split(" ");

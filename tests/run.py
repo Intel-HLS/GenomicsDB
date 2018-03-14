@@ -804,8 +804,8 @@ def main():
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
-            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader --size_per_column_partition 10000 '
-                                   '--segment_size 1048576'+arg_list,
+            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader --size_per_column_partition 16384 '
+                                   '--segment_size 10485760'+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
