@@ -22,8 +22,6 @@
 
 package com.intel.genomicsdb.reader;
 
-import com.intel.genomicsdb.GenomicsDBQueryStream;
-import com.intel.genomicsdb.GenomicsDBTimer;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;

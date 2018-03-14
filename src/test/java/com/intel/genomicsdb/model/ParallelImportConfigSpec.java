@@ -1,6 +1,6 @@
 package com.intel.genomicsdb.model;
 
-import com.intel.genomicsdb.ChromosomeInterval;
+import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeaderLine;

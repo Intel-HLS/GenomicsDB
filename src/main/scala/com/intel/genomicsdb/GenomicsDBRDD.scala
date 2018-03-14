@@ -22,6 +22,8 @@
 
 package com.intel.genomicsdb
 
+import com.intel.genomicsdb.spark.{GenomicsDBConfiguration, GenomicsDBInputFormat, GenomicsDBRecordReader}
+import com.intel.genomicsdb.spark.GenomicsDBInputFormat
 import htsjdk.tribble.Feature
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.Writable

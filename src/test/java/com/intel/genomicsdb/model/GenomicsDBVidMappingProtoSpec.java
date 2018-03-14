@@ -19,7 +19,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.model;
 
 import com.intel.genomicsdb.model.GenomicsDBVidMapProto;
 import org.testng.Assert;

@@ -20,7 +20,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.spark;
 
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;

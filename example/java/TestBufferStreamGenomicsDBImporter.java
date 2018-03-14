@@ -20,9 +20,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import com.intel.genomicsdb.SampleInfo;
+import com.intel.genomicsdb.exception.GenomicsDBException;
+import com.intel.genomicsdb.importer.model.SampleInfo;
+import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
@@ -31,15 +32,10 @@ import htsjdk.variant.vcf.VCFHeader;
 import org.json.simple.parser.ContainerFactory;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Iterator;
-import com.intel.genomicsdb.GenomicsDBImporter;
-import com.intel.genomicsdb.GenomicsDBException;
+import java.util.*;
 
 /**
  * Wrapper class to maintain stream state for the test driver program
@@ -174,7 +170,7 @@ public final class TestBufferStreamGenomicsDBImporter
     if(args[0].equals("-iterators"))
     {
       //Much simpler interface if using Iterator<VariantContext>
-      loader.importBatch();
+      loader.executeSingleImport();
       assert loader.isDone();
     }
     else
@@ -206,7 +202,7 @@ public final class TestBufferStreamGenomicsDBImporter
                 currInfo.mNextVC = null;
           }
         }
-        loader.importBatch();
+        loader.executeSingleImport();
         numExhaustedBufferStreams = (int)loader.getNumExhaustedBufferStreams();
         for(int i=0;i<numExhaustedBufferStreams;++i)
           exhaustedBufferStreamIdxs[i] = loader.getExhaustedBufferStreamIndex(i);

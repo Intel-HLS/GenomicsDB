@@ -20,8 +20,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.importer;
 
+import com.intel.genomicsdb.exception.GenomicsDBException;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;

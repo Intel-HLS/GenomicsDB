@@ -20,8 +20,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import com.intel.genomicsdb.GenomicsDBException;
-import com.intel.genomicsdb.GenomicsDBImporter;
+import com.intel.genomicsdb.exception.GenomicsDBException;
+import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import com.intel.genomicsdb.model.CommandLineImportConfig;
 import org.json.simple.parser.ParseException;
 
@@ -31,6 +31,7 @@ public final class TestGenomicsDBImporterWithMergedVCFHeader {
 
   public static void main(final String[] args) throws IOException, GenomicsDBException, ParseException, InterruptedException {
     CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-    GenomicsDBImporter.parallelImport(config);
+    GenomicsDBImporter importer = new GenomicsDBImporter(config);
+    importer.executeParallelImport();
   }
 }

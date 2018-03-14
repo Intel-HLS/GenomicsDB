@@ -20,7 +20,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.intel.genomicsdb;
+package com.intel.genomicsdb.reader;
+
+import com.intel.genomicsdb.GenomicsDBLibLoader;
+import com.intel.genomicsdb.exception.GenomicsDBException;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -38,7 +41,7 @@ public class GenomicsDBQueryStream extends InputStream
     {
         try
         {
-            boolean loaded = GenomicsDBUtils.loadLibrary();
+            boolean loaded = GenomicsDBLibLoader.loadLibrary();
             if(!loaded)
                 throw new GenomicsDBException("Could not load genomicsdb native library");
         }

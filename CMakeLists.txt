@@ -261,43 +261,50 @@ add_subdirectory(example)
 
 if(BUILD_JAVA)
     set(JAVA_SCALA_SOURCES
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBConfiguration.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBQueryStream.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBJavaSparkFactory.java
-        ./src/main/java/com/intel/genomicsdb/SilentByteBufferStream.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBImporter.java
-        ./src/main/java/com/intel/genomicsdb/SampleInfo.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBTimer.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBPartitionInfo.java
-        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
-        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBInputSplit.java
-        ./src/main/java/com/intel/genomicsdb/MultiChromosomeIterator.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBException.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBImporterStreamWrapper.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBInputFormat.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBRecordReader.java
-        ./src/main/java/com/intel/genomicsdb/ChromosomeInterval.java
-        ./src/main/java/com/intel/genomicsdb/GenomicsDBUtils.java
-        ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
-        ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
-        ./src/test/java/com/intel/genomicsdb/GenomicsDBVidMappingProtoSpec.java
-        ./src/test/java/com/intel/genomicsdb/GenomicsDBImportConfigurationSpec.java
-        ./src/test/java/com/intel/genomicsdb/GenomicsDBExportConfigurationSpec.java
-        ./src/test/java/com/intel/genomicsdb/GenomicsDBImporterSpec.java
+        ./src/main/java/com/intel/genomicsdb/exception/GenomicsDBException.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/CallSetMapExtensions.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/JsonFileExtensions.java
+        ./src/main/java/com/intel/genomicsdb/importer/extensions/VidMapExtensions.java
+        ./src/main/java/com/intel/genomicsdb/importer/model/ChromosomeInterval.java
+        ./src/main/java/com/intel/genomicsdb/importer/model/SampleInfo.java
+        ./src/main/java/com/intel/genomicsdb/importer/Constants.java
+        ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporter.java
+        ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporterJni.java
+        ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporterStreamWrapper.java
+        ./src/main/java/com/intel/genomicsdb/importer/MultiChromosomeIterator.java
+        ./src/main/java/com/intel/genomicsdb/importer/SilentByteBufferStream.java
         ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
         ./src/main/java/com/intel/genomicsdb/model/ParallelImportConfig.java
-        ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
-        ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBTimer.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBConfiguration.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBInputFormat.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBInputSplit.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBJavaSparkFactory.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBPartitionInfo.java
+        ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBRecordReader.java
+        ./src/main/java/com/intel/genomicsdb/GenomicsDBLibLoader.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
+        ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBRDD.scala
+        ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
+        ./src/test/java/com/intel/genomicsdb/importer/GenomicsDBImporterSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/GenomicsDBCallsetsMapProtoSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/GenomicsDBImportConfigurationSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/GenomicsDBVidMappingProtoSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/GenomicsDBTestUtils.java
         )
     if(PROTOBUF_REGENERATE)
         #Must be set here - see https://cmake.org/cmake/help/v3.3/command/set_source_files_properties.html
         set_source_files_properties(${PROTOBUF_GENERATED_JAVA_SRCS} PROPERTIES GENERATED True)
         #Protobuf files are generated by Maven
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "-Dprotoc.filepath=${PROTOBUF_PROTOC_EXECUTABLE}"
-	  "-Dprotobuf.output.directory=${PROTOBUF_JAVA_OUTPUT_DIR}")
+      "-Dprotobuf.output.directory=${PROTOBUF_JAVA_OUTPUT_DIR}")
     else()
         set(JAVA_SCALA_SOURCES ${JAVA_SCALA_SOURCES} ${PROTOBUF_GENERATED_JAVA_SRCS})
         set(MAVEN_PROTOBUF_REGENERATE_ARGS "")
