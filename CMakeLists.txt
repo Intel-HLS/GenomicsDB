@@ -269,6 +269,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/importer/model/SampleInfo.java
         ./src/main/java/com/intel/genomicsdb/importer/Constants.java
         ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporter.java
+        ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporterJni.java
         ./src/main/java/com/intel/genomicsdb/importer/GenomicsDBImporterStreamWrapper.java
         ./src/main/java/com/intel/genomicsdb/importer/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/importer/SilentByteBufferStream.java
