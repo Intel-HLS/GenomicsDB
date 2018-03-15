@@ -97,10 +97,12 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
     //Buffer pointers and size
     m_buffer_pointers.push_back(0);
     m_buffer_sizes.push_back(0);
+    m_skip_counts.push_back(0u);
     if(is_variable_length_field)
     {
       m_buffer_pointers.push_back(0);
       m_buffer_sizes.push_back(0);
+      m_skip_counts.push_back(0u);
     }
   }
   //Co-ordinates
@@ -112,6 +114,7 @@ SingleCellTileDBIterator::SingleCellTileDBIterator(TileDB_CTX* tiledb_ctx,
   //Buffer pointers and size for COORDS
   m_buffer_pointers.push_back(0);
   m_buffer_sizes.push_back(0);
+  m_skip_counts.push_back(0u);
   //Set row idx for live cell markers
   for(auto i=0ull;i<query_config.get_num_rows_in_array();++i)
     m_live_cell_markers.set_row_idx(i, m_smallest_row_idx_in_array+i);
@@ -243,7 +246,7 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
         throw GenomicsDBIteratorException(std::string("Error in tiledb_array_reset_subarray()")
            + "\nTileDB error message : "+tiledb_errmsg);
     }
-    read_from_TileDB();
+    read_from_TileDB(false);
     m_first_read_from_TileDB = false;
     if(!m_done_reading_from_TileDB)
     {
@@ -324,10 +327,12 @@ void SingleCellTileDBIterator::reset_for_next_query_interval()
     m_query_attribute_idx_vec[i] = i;
 }
 
-void SingleCellTileDBIterator::read_from_TileDB()
+void SingleCellTileDBIterator::read_from_TileDB(const bool skip_cells)
 {
   //Zero out all buffer sizes
   memset(&(m_buffer_sizes[0]), 0, m_buffer_sizes.size()*sizeof(size_t));
+  //Zero out skip counts
+  m_skip_counts.assign(m_skip_counts.size(), 0u);
   //Only set non-0 buffer sizes for attributes for which we wish to get more data
   for(auto i=0ull;i<m_query_attribute_idx_vec.size();++i)
   {
@@ -342,23 +347,30 @@ void SingleCellTileDBIterator::read_from_TileDB()
     assert(static_cast<size_t>(query_idx) < m_query_attribute_idx_to_tiledb_buffer_idx.size());
     auto buffer_idx = m_query_attribute_idx_to_tiledb_buffer_idx[query_idx];
     assert(buffer_idx < m_buffer_pointers.size());
+    auto skip_count = skip_cells ? m_query_attribute_idx_num_cells_to_increment_vec[i] : 0ull;
     //For variable length field, first the offsets buffer
     if(genomicsdb_columnar_field.is_variable_length_field())
     {
       m_buffer_pointers[buffer_idx] = reinterpret_cast<void*>(genomicsdb_buffer_ptr->get_offsets_pointer());
       m_buffer_sizes[buffer_idx] = genomicsdb_buffer_ptr->get_offsets_size_in_bytes();
+      m_skip_counts[buffer_idx] = skip_count;
       ++buffer_idx;
       assert(buffer_idx < m_buffer_pointers.size());
     }
     m_buffer_pointers[buffer_idx] = reinterpret_cast<void*>(genomicsdb_buffer_ptr->get_buffer_pointer());
     m_buffer_sizes[buffer_idx] = genomicsdb_buffer_ptr->get_buffer_size_in_bytes();
+    m_skip_counts[buffer_idx] = skip_count;
   }
-  auto status = tiledb_array_read(m_tiledb_array, &(m_buffer_pointers[0]), &(m_buffer_sizes[0]));
+  auto status = tiledb_array_skip_and_read(m_tiledb_array, &(m_buffer_pointers[0]), &(m_buffer_sizes[0]), &(m_skip_counts[0u]));
+  VERIFY_OR_THROW(status == TILEDB_OK);
   if(status != TILEDB_OK)
     throw GenomicsDBIteratorException(std::string("Error while reading from TileDB array ")
         + "\nTileDB error message : "+tiledb_errmsg);
 #ifdef DEBUG
   auto num_done_fields = 0u;
+  //tiledb_array_skip_and_read must have skipped all cells that needed to be skipped
+  for(auto val : m_skip_counts)
+    assert(val == 0u);
 #endif
   //Set number of live entries in each buffer
   for(auto i=0ull;i<m_query_attribute_idx_vec.size();++i)
@@ -367,6 +379,9 @@ void SingleCellTileDBIterator::read_from_TileDB()
     auto& genomicsdb_columnar_field = m_fields[query_idx];
     auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
     auto buffer_idx = m_query_attribute_idx_to_tiledb_buffer_idx[query_idx];
+    //tiledb_array_skip_and_read() must have taken care of this
+    assert(m_skip_counts[buffer_idx] == 0u);
+    m_query_attribute_idx_num_cells_to_increment_vec[i] = 0u; //index i, not query_idx
     //For variable length field, first the offsets buffer
     auto filled_buffer_size = m_buffer_sizes[buffer_idx];
     auto num_live_entries = 0u;
@@ -376,6 +391,8 @@ void SingleCellTileDBIterator::read_from_TileDB()
       genomicsdb_buffer_ptr->set_num_live_entries(num_live_entries);
       //Append size of the variable length field
       genomicsdb_buffer_ptr->set_offset(num_live_entries, m_buffer_sizes[buffer_idx+1u]);
+      //tiledb_array_skip_and_read() must have taken care of this
+      assert(m_skip_counts[buffer_idx+1u] == 0u);
     }
     else
     {
@@ -547,6 +564,7 @@ bool SingleCellTileDBIterator::advance_coords_and_END_till_useful_cell_found(
           coords_columnar_field.get_curr_index_in_live_list_tail()
           )
         );
+    std::cerr << "COORDS "<<coords[0] <<" "<<coords[1] << "\n";
     //TileDB doesn't have a good way of requesting a subset of rows
     //Skip over rows that are not part of the query if coords are part of the queried attributes
     //in this round
@@ -612,7 +630,7 @@ bool SingleCellTileDBIterator::advance_coords_and_END(const uint64_t num_cells_t
   //some fields have exhausted buffers, need to fetch from TileDB
   while(!m_query_attribute_idx_vec.empty())
   {
-    read_from_TileDB();
+    read_from_TileDB(false);
     assert(curr_query_column_interval_idx == m_query_column_interval_idx);
     //read_from_TileDB() might have determined that no more cells exist for the current query
     //interval
@@ -642,12 +660,19 @@ void SingleCellTileDBIterator::advance_fields_other_than_coords_END(const uint64
   //some fields have exhausted buffers, need to fetch from TileDB
   while(!m_query_attribute_idx_vec.empty())
   {
-    read_from_TileDB();
+    read_from_TileDB(true);
     //TODO: either all fields are done reading or none are - is that right?
     //also, same column interval being queried
     assert(!m_done_reading_from_TileDB
         && m_query_column_interval_idx == curr_query_column_interval_idx);
-    increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
+#ifdef DEBUG
+    //After the skip cells API is implemented, there shouldn't be any attributes
+    //whose cells need to be skipped after a call to read_from_TileDB()
+    for(auto val : m_query_attribute_idx_num_cells_to_increment_vec)
+      assert(val == 0u);
+#endif
+    m_query_attribute_idx_vec.resize(0u); //no more attributes to query after skip
+    //increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
   }
 #ifdef DEBUG
   for(auto i=0u;i<m_fields.size();++i)

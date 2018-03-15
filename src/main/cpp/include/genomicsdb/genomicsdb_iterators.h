@@ -272,8 +272,10 @@ class SingleCellTileDBIterator
     void reset_for_next_query_interval();
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec from TileDB
+     * skip_cells - for queried attributes, skip #cells specified in
+     *              m_query_attribute_idx_num_cells_to_increment_vec
      */
-    void read_from_TileDB();
+    void read_from_TileDB(const bool skip_cells);
     //Given the columnar field object, get the buffer pointer and index in the buffer
     //Response depends on whether this is a cell that begins before the query interval begin
     //or cell >= query interval begin
@@ -365,6 +367,7 @@ class SingleCellTileDBIterator
     std::vector<size_t> m_query_attribute_idx_to_tiledb_buffer_idx;
     std::vector<void*> m_buffer_pointers;
     std::vector<size_t> m_buffer_sizes;
+    std::vector<size_t> m_skip_counts;
     //The TileDB array object
     //Could point to an object initialized by the caller or could point
     //to an object owned by the iterator
