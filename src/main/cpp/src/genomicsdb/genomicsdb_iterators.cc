@@ -564,7 +564,7 @@ bool SingleCellTileDBIterator::advance_coords_and_END_till_useful_cell_found(
           coords_columnar_field.get_curr_index_in_live_list_tail()
           )
         );
-    std::cerr << "COORDS "<<coords[0] <<" "<<coords[1] << "\n";
+    //std::cerr << "COORDS "<<coords[0] <<" "<<coords[1] << "\n";
     //TileDB doesn't have a good way of requesting a subset of rows
     //Skip over rows that are not part of the query if coords are part of the queried attributes
     //in this round
@@ -668,8 +668,8 @@ void SingleCellTileDBIterator::advance_fields_other_than_coords_END(const uint64
 #ifdef DEBUG
     //After the skip cells API is implemented, there shouldn't be any attributes
     //whose cells need to be skipped after a call to read_from_TileDB()
-    for(auto val : m_query_attribute_idx_num_cells_to_increment_vec)
-      assert(val == 0u);
+    for(auto i=0u;i<m_query_attribute_idx_vec.size();++i)
+      assert(m_query_attribute_idx_num_cells_to_increment_vec[i] == 0u);
 #endif
     m_query_attribute_idx_vec.resize(0u); //no more attributes to query after skip
     //increment_iterator_within_live_buffer_list_tail_ptr_for_fields();
