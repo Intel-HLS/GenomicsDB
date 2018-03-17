@@ -172,6 +172,12 @@ SingleCellTileDBIterator::~SingleCellTileDBIterator()
 #endif //DO_PROFILING
 }
 
+inline bool SingleCellTileDBIterator::keep_advancing_in_find_intersecting_intervals_mode() const
+{
+  return (!m_done_reading_from_TileDB
+      && (m_num_markers_initialized < m_query_config->get_num_rows_to_query()));
+}
+
 void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiledb_ctx, const char* array_path,
     std::vector<const char*>* attribute_names)
 {
@@ -260,8 +266,7 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
           m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE];
 #endif
         //Array done or all initialized - exit loop
-        while(!m_done_reading_from_TileDB
-            && (m_num_markers_initialized < m_query_config->get_num_rows_to_query()))
+        while(keep_advancing_in_find_intersecting_intervals_mode())
         {
 #ifdef DO_PROFILING
           assert(m_num_markers_initialized < m_query_config->get_num_rows_in_array());
@@ -272,8 +277,7 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
             m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_USELESS_CELLS_IN_FIND_INTERSECTING_INTERVALS_MODE];
 #endif
           handle_current_cell_in_find_intersecting_intervals_mode();
-          if(!m_done_reading_from_TileDB
-            && (m_num_markers_initialized < m_query_config->get_num_rows_to_query()))
+          if(keep_advancing_in_find_intersecting_intervals_mode())
             advance_to_next_useful_cell(1u);
         }
 #ifdef DO_PROFILING
@@ -440,36 +444,32 @@ void SingleCellTileDBIterator::handle_current_cell_in_find_intersecting_interval
   assert(row_idx >= m_smallest_row_idx_in_array && m_query_config->is_queried_array_row_idx(row_idx));
   auto marker_idx = row_idx - m_smallest_row_idx_in_array;
   assert(m_live_cell_markers.get_row_idx(marker_idx) == row_idx);
-  //Not yet initialized
-  if(!m_live_cell_markers.is_initialized(marker_idx))
+  //Set initialized
+  assert(!(m_live_cell_markers.is_initialized(marker_idx)));
+  m_live_cell_markers.set_initialized(marker_idx, true);
+  //Reference - value gets modified
+  auto& coords_column = coords[1];
+  assert(m_query_column_interval_idx < m_query_config->get_num_column_intervals());
+  auto query_interval_begin = m_query_config->get_column_begin(m_query_column_interval_idx);
+  //Only deal with intervals that begin before query_interval_begin and intersect it
+  assert(is_duplicate_cell_at_end_position_that_begins_before_query_interval(coords_column,
+       END_field_value, query_interval_begin));
+  std::swap(coords_column, END_field_value);
+  m_live_cell_markers.set_valid(marker_idx, true);
+  //Add to PQ
+  m_live_cell_markers.set_column_interval(marker_idx, coords_column, END_field_value);
+  m_PQ_live_cell_markers.push(marker_idx);
+  //Track offsets for each field and keep the buffer alive
+  for(auto i=0u;i<m_fields.size();++i)
   {
-    m_live_cell_markers.set_initialized(marker_idx, true); //one way or the other this is initialized
-    auto& coords_column = coords[1];
-    assert(m_query_column_interval_idx < m_query_config->get_num_column_intervals());
-    auto query_interval_begin = m_query_config->get_column_begin(m_query_column_interval_idx);
-    //Only deal with END cells that begin before the queried column interval begin and intersect it
-    if(coords_column > END_field_value && static_cast<uint64_t>(END_field_value) < query_interval_begin)
-    {
-      std::swap(coords_column, END_field_value);
-      m_live_cell_markers.set_valid(marker_idx, true);
-      //Add to PQ
-      m_live_cell_markers.set_column_interval(marker_idx, coords_column, END_field_value);
-      m_PQ_live_cell_markers.push(marker_idx);
-      //Track offsets for each field and keep the buffer alive
-      for(auto i=0u;i<m_fields.size();++i)
-      {
-        auto& genomicsdb_columnar_field = m_fields[i];
-        auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
-        assert(genomicsdb_buffer_ptr);
-        m_live_cell_markers.set_field_marker(marker_idx, i, genomicsdb_buffer_ptr,
-            genomicsdb_columnar_field.get_curr_index_in_live_list_tail());
-        genomicsdb_buffer_ptr->increment_num_live_entries();
-      }
-    }
-    else
-      m_live_cell_markers.set_valid(marker_idx, false);
-    ++m_num_markers_initialized;
+    auto& genomicsdb_columnar_field = m_fields[i];
+    auto* genomicsdb_buffer_ptr = genomicsdb_columnar_field.get_live_buffer_list_tail_ptr();
+    assert(genomicsdb_buffer_ptr);
+    m_live_cell_markers.set_field_marker(marker_idx, i, genomicsdb_buffer_ptr,
+        genomicsdb_columnar_field.get_curr_index_in_live_list_tail());
+    genomicsdb_buffer_ptr->increment_num_live_entries();
   }
+  ++m_num_markers_initialized;
 }
 
 const SingleCellTileDBIterator& SingleCellTileDBIterator::operator++()
@@ -573,17 +573,18 @@ bool SingleCellTileDBIterator::advance_coords_and_END_till_useful_cell_found(
       hitting_useless_cells = true;
     else
     {
-      //keep incrementing iterator if hitting duplicates at end in simple traversal mode
+      auto coords_column = coords[1];
+      assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
+      auto END_field_value = *(reinterpret_cast<const int64_t*>(
+            END_columnar_field.get_pointer_to_data_in_buffer_at_index(
+              END_columnar_field.get_live_buffer_list_tail_ptr(),
+              END_columnar_field.get_curr_index_in_live_list_tail()
+              )
+            ));
       if(m_in_simple_traversal_mode)
       {
-        assert(END_columnar_field.get_live_buffer_list_tail_ptr()->get_num_unprocessed_entries() > 0u);
-        auto END_field_value = *(reinterpret_cast<const int64_t*>(
-              END_columnar_field.get_pointer_to_data_in_buffer_at_index(
-                END_columnar_field.get_live_buffer_list_tail_ptr(),
-                END_columnar_field.get_curr_index_in_live_list_tail()
-                )
-              ));
-        hitting_useless_cells = (END_field_value < coords[1]);
+        //keep incrementing iterator if hitting duplicates at end in simple traversal mode
+        hitting_useless_cells = is_duplicate_cell_at_end_position(coords_column, END_field_value);
 #if defined(DO_PROFILING) && defined(COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW)
         auto marker_idx = coords[0] - m_smallest_row_idx_in_array;
         auto histogram_bin_idx = (m_cell_counts_since_last_cell_from_same_row[marker_idx]/
@@ -605,7 +606,29 @@ bool SingleCellTileDBIterator::advance_coords_and_END_till_useful_cell_found(
         assert(m_live_cell_markers.get_row_idx(marker_idx) == row_idx);
         //if the row is already initialized in the find intersecting intervals mode, can skip
         //this cell
-        hitting_useless_cells = m_live_cell_markers.is_initialized(marker_idx);
+        if(m_live_cell_markers.is_initialized(marker_idx))
+          hitting_useless_cells = true;
+        else
+        {
+          assert(m_query_column_interval_idx < m_query_config->get_num_column_intervals());
+          auto query_interval_begin = m_query_config->get_column_begin(m_query_column_interval_idx);
+          //Interval that begins before the queried column interval begin and intersects it
+          //This is a valid interval for the query and must be handled by
+          //handle_current_cell_in_find_intersecting_intervals_mode
+          if(is_duplicate_cell_at_end_position_that_begins_before_query_interval(coords_column, END_field_value,
+                query_interval_begin))
+          {
+            //do not set initialized to true here, handle_current_cell_in_find_intersecting_intervals_mode will
+            //do it
+            hitting_useless_cells = false;
+          }
+          else
+          {
+            m_live_cell_markers.set_initialized(marker_idx, true); //Non-intersecting cell, mark initialized
+            ++m_num_markers_initialized;
+            hitting_useless_cells = keep_advancing_in_find_intersecting_intervals_mode();
+          }
+        }
       }
     }
   }
