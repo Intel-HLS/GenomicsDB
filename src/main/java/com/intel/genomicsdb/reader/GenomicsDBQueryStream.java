@@ -232,8 +232,7 @@ public class GenomicsDBQueryStream extends InputStream {
 
     @Override
     public int read(byte[] buffer, int off, int len) throws IOException {
-        if(len <= 0)
-            return 0;
+        if (len <= 0) return 0;
         long numBytesRead = jniGenomicsDBRead(readStateHandle, buffer, off, len);
         return (numBytesRead == 0) ? -1 : (int)numBytesRead;
     }
