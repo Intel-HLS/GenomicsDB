@@ -55,7 +55,8 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
      * @throws IOException when data cannot be read from the stream
      */
     GenomicsDBFeatureIterator(final String loaderJSONFile, final List<String> queryJSONFiles,
-                                     final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec) throws IOException {
+                              final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec)
+            throws IOException {
         this(loaderJSONFile, queryJSONFiles, featureCodecHeader, codec, "", 0, 0);
     }
 
