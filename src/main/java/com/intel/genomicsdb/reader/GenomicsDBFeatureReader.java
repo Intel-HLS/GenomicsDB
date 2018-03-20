@@ -192,8 +192,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     private void generateHeadersForQueryGivenQueryJSONFile(final String queryJSONFilename) throws IOException {
-        GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(this.loaderJSONFile,
-                queryJSONFilename,
+        GenomicsDBQueryStream gdbStream = new GenomicsDBQueryStream(this.loaderJSONFile, queryJSONFilename,
                 this.codec instanceof BCF2Codec, true);
         SOURCE source = this.codec.makeSourceFromStream(gdbStream);
         this.featureCodecHeader = this.codec.readHeader(source);
@@ -207,7 +206,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
 
     // TODO: remove this once protobuf classes are created
     private File createTempQueryJsonFile(final String arrayName,
-                                         final GenomicsDBExportConfiguration.ExportConfiguration finalExportConfiguration) throws IOException {
+                                         final GenomicsDBExportConfiguration.ExportConfiguration finalExportConfiguration)
+            throws IOException {
         File tmpQueryJSONFile = File.createTempFile(String.format("queryJSON_%s", arrayName), ".json");
         tmpQueryJSONFile.deleteOnExit();
         FileWriter fptr = new FileWriter(tmpQueryJSONFile);

@@ -21,49 +21,39 @@
  */
 
 package com.intel.genomicsdb.reader;
+
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 
-public class GenomicsDBTimer
-{
+public class GenomicsDBTimer {
     private long mBeginWallClockTime = 0;
     private long mBeginCpuTime = 0;
-
-    //Interval time
-    private long mLastIntervalWallClockTime = 0;
-    private long mLastIntervalCpuTime = 0;
 
     //Cumulative time
     private double mCumulativeWallClockTime = 0;
     private double mCumulativeCpuTime = 0;
 
-    public GenomicsDBTimer()
-    {
+    public GenomicsDBTimer() {
         start();
     }
 
-    public void start()
-    {
+    public void start() {
         mBeginWallClockTime = System.nanoTime();
         mBeginCpuTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
     }
 
-    public void stop()
-    {
+    public void stop() {
         long endWallClockTime = System.nanoTime();
         long endCpuTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
-        mLastIntervalWallClockTime = (endWallClockTime - mBeginWallClockTime);
-        mLastIntervalCpuTime = (endCpuTime - mBeginCpuTime);
-        mCumulativeWallClockTime += (((double)mLastIntervalWallClockTime)/1e9);
-        mCumulativeCpuTime += (((double)mLastIntervalCpuTime)/1e9);
+        long mLastIntervalWallClockTime = (endWallClockTime - mBeginWallClockTime);
+        long mLastIntervalCpuTime = (endCpuTime - mBeginCpuTime);
+        mCumulativeWallClockTime += (((double) mLastIntervalWallClockTime) / 1e9);
+        mCumulativeCpuTime += (((double) mLastIntervalCpuTime) / 1e9);
     }
 
-    public void print(final String prefix, PrintStream fptr)
-    {
+    public void print(final String prefix, PrintStream fptr) {
         fptr.print("GENOMICSDB_TIMER,");
-        if(!prefix.isEmpty())
-            fptr.print(prefix+',');
-        fptr.println("Wall-clock time(s)," + mCumulativeWallClockTime + ",Cpu time(s),"
-                + mCumulativeCpuTime);
+        if (!prefix.isEmpty()) fptr.print(prefix + ',');
+        fptr.println("Wall-clock time(s)," + mCumulativeWallClockTime + ",Cpu time(s)," + mCumulativeCpuTime);
     }
 }
