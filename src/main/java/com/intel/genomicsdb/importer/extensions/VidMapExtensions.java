@@ -27,8 +27,7 @@ public interface VidMapExtensions {
         List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
 
         //ID field
-        GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder =
-                GenomicsDBVidMapProto.InfoField.newBuilder();
+        GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder = GenomicsDBVidMapProto.InfoField.newBuilder();
         GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
                 GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
         lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var");
@@ -39,9 +38,7 @@ public interface VidMapExtensions {
         long columnOffset = 0L;
 
         for (VCFHeaderLine headerLine : mergedHeader) {
-            GenomicsDBVidMapProto.InfoField.Builder infoBuilder =
-                    GenomicsDBVidMapProto.InfoField.newBuilder();
-
+            GenomicsDBVidMapProto.InfoField.Builder infoBuilder = GenomicsDBVidMapProto.InfoField.newBuilder();
             if (headerLine instanceof VCFFormatHeaderLine) {
                 VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
                 boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
@@ -50,32 +47,24 @@ public interface VidMapExtensions {
                         ? "VAR" : getVcfHeaderLength(formatHeaderLine);
                 lengthDescriptorComponentBuilder.setVariableLengthDescriptor(genomicsDBLength);
 
-                infoBuilder
-                        .setName(formatHeaderLine.getID())
+                infoBuilder.setName(formatHeaderLine.getID())
                         .addType(genomicsDBType)
                         .addLength(lengthDescriptorComponentBuilder.build());
 
                 if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
                     GenomicsDBVidMapProto.InfoField prevDPField = removeInfoFields(infoFields, dpIndex);
-
-                    infoBuilder
-                            .addVcfFieldClass(prevDPField.getVcfFieldClass(0))
-                            .addVcfFieldClass("FORMAT");
+                    infoBuilder.addVcfFieldClass(prevDPField.getVcfFieldClass(0)).addVcfFieldClass("FORMAT");
                 } else {
-                    infoBuilder
-                            .addVcfFieldClass("FORMAT");
+                    infoBuilder.addVcfFieldClass("FORMAT");
                 }
 
                 GenomicsDBVidMapProto.InfoField formatField = infoBuilder.build();
                 infoFields.add(formatField);
-                if (formatHeaderLine.getID().equals("DP")) {
-                    dpIndex = infoFields.indexOf(formatField);
-                }
+                if (formatHeaderLine.getID().equals("DP")) dpIndex = infoFields.indexOf(formatField);
             } else if (headerLine instanceof VCFInfoHeaderLine) {
                 VCFInfoHeaderLine infoHeaderLine = (VCFInfoHeaderLine) headerLine;
                 final String infoFieldName = infoHeaderLine.getID();
-                infoBuilder
-                        .setName(infoFieldName);
+                infoBuilder.setName(infoFieldName);
                 //allele specific annotations
                 if (R_LENGTH_HISTOGRAM_FIELDS_FLOAT_BINS.contains(infoFieldName)
                         || R_LENGTH_TWO_DIM_FLOAT_VECTOR_FIELDS.contains(infoFieldName)
@@ -107,28 +96,18 @@ public interface VidMapExtensions {
                     infoBuilder.addType(infoHeaderLine.getType().toString())
                             .addLength(lengthDescriptorComponentBuilder.build());
                 }
-
                 if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
                     GenomicsDBVidMapProto.InfoField prevDPield = removeInfoFields(infoFields, dpIndex);
-
-                    infoBuilder
-                            .addVcfFieldClass(prevDPield.getVcfFieldClass(0))
-                            .addVcfFieldClass("INFO");
+                    infoBuilder.addVcfFieldClass(prevDPield.getVcfFieldClass(0)).addVcfFieldClass("INFO");
                 } else {
-                    infoBuilder
-                            .addVcfFieldClass("INFO");
+                    infoBuilder.addVcfFieldClass("INFO");
                 }
-
                 GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
                 infoFields.add(infoField);
-                if (infoHeaderLine.getID().equals("DP")) {
-                    dpIndex = infoFields.indexOf(infoField);
-                }
+                if (infoHeaderLine.getID().equals("DP")) dpIndex = infoFields.indexOf(infoField);
             } else if (headerLine instanceof VCFFilterHeaderLine) {
                 VCFFilterHeaderLine filterHeaderLine = (VCFFilterHeaderLine) headerLine;
-
                 infoBuilder.setName(filterHeaderLine.getID());
-
                 if (!filterHeaderLine.getValue().isEmpty()) {
                     infoBuilder.addType(filterHeaderLine.getValue());
                 } else {
@@ -136,34 +115,21 @@ public interface VidMapExtensions {
                 }
                 infoBuilder.addVcfFieldClass("FILTER");
                 GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
-
                 infoFields.add(filterField);
             } else if (headerLine instanceof VCFContigHeaderLine) {
                 VCFContigHeaderLine contigHeaderLine = (VCFContigHeaderLine) headerLine;
-
                 long length = contigHeaderLine.getSAMSequenceRecord().getSequenceLength();
-                GenomicsDBVidMapProto.Chromosome.Builder contigBuilder =
-                        GenomicsDBVidMapProto.Chromosome.newBuilder();
-                contigBuilder
-                        .setName(contigHeaderLine.getID())
-                        .setLength(length)
-                        .setTiledbColumnOffset(columnOffset);
-
+                GenomicsDBVidMapProto.Chromosome.Builder contigBuilder = GenomicsDBVidMapProto.Chromosome.newBuilder();
+                contigBuilder.setName(contigHeaderLine.getID()).setLength(length).setTiledbColumnOffset(columnOffset);
                 columnOffset += length;
-
                 GenomicsDBVidMapProto.Chromosome chromosome = contigBuilder.build();
-
                 contigs.add(chromosome);
             }
         }
 
-        GenomicsDBVidMapProto.VidMappingPB.Builder vidMapBuilder =
-                GenomicsDBVidMapProto.VidMappingPB.newBuilder();
+        GenomicsDBVidMapProto.VidMappingPB.Builder vidMapBuilder = GenomicsDBVidMapProto.VidMappingPB.newBuilder();
 
-        return vidMapBuilder
-                .addAllFields(infoFields)
-                .addAllContigs(contigs)
-                .build();
+        return vidMapBuilder.addAllFields(infoFields).addAllContigs(contigs).build();
     }
 
     /**
@@ -214,10 +180,8 @@ public interface VidMapExtensions {
                     isFlagType = infoHeaderLine.getType().equals(VCFHeaderLineType.Flag);
                 }
                 //Weird Flag fields - Number=0 in the VCF header :(
-                if (count == 0 && isFlagType)
-                    length = "1";
-                else
-                    length = String.valueOf(count);
+                if (count == 0 && isFlagType) length = "1";
+                else length = String.valueOf(count);
                 break;
             }
         }
