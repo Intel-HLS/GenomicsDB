@@ -27,16 +27,13 @@
 
 syntax = "proto2";
 
+import "genomicsdb_coordinates.proto";
+
 option java_package = "com.intel.genomicsdb.model";
 option java_outer_classname = "GenomicsDBExportConfiguration";
 
-message ColumnRange {
-  required int64 low = 1;
-  required int64 high = 2;
-}
-
-message ColumnRangeList {
-  repeated ColumnRange range_list = 1;
+message GenomicsDBColumnOrIntervalList {
+  repeated GenomicsDBColumnOrInterval column_or_interval_list = 1;
 }
 
 message RowRange {
@@ -52,7 +49,7 @@ message ExportConfiguration {
   required string workspace = 1;
   optional string array = 2;
   required string reference_genome = 3;
-  repeated ColumnRangeList query_column_ranges = 4;
+  repeated GenomicsDBColumnOrIntervalList query_column_ranges = 4;
   repeated RowRangeList query_row_ranges = 5;
   repeated string attributes = 6;
   optional string vcf_header_filename = 7;

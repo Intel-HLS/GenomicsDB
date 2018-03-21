@@ -2,6 +2,7 @@ package com.intel.genomicsdb.model;
 
 import com.google.protobuf.UninitializedMessageException;
 import com.intel.genomicsdb.importer.model.ChromosomeInterval;
+import com.intel.genomicsdb.model.coordinates;
 import gnu.getopt.Getopt;
 import gnu.getopt.LongOpt;
 import htsjdk.tribble.AbstractFeatureReader;
@@ -25,24 +26,11 @@ public class CommandLineImportConfig extends ParallelImportConfig {
     protected static final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 16384L;
     GenomicsDBImportConfiguration.Partition.Builder partitionBuilder =
             GenomicsDBImportConfiguration.Partition.newBuilder();
-    GenomicsDBImportConfiguration.GATK4Integration.Builder gatk4IntegrationBuilder =
-            GenomicsDBImportConfiguration.GATK4Integration.newBuilder();
     GenomicsDBImportConfiguration.ImportConfiguration.Builder configurationBuilder =
             GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
 
     public CommandLineImportConfig(final String command, final String[] commandArgs) {
         Getopt getOpt = new Getopt(command, commandArgs, "w:A:L:", resolveLongOpt());
-        //TODO: remove next line once C++ layer makes use of protobuf structures. Making size per column partition explicit.
-        configurationBuilder.setSizePerColumnPartition(DEFAULT_SIZE_PER_COLUMN_PARTITION);
-        resolveCommandArgs(getOpt);
-        try {
-            partitionBuilder.setBegin(0);
-            configurationBuilder.addColumnPartitions(partitionBuilder.build());
-            configurationBuilder.setGatk4IntegrationParameters(gatk4IntegrationBuilder.build());
-            this.setImportConfiguration(configurationBuilder.build());
-        } catch (UninitializedMessageException ex) {
-            throwIllegalArgumentException();
-        }
         this.validateChromosomeIntervals(this.getChromosomeIntervalList());
         int numPositionalArgs = commandArgs.length - getOpt.getOptind();
         if (numPositionalArgs <= 0
@@ -50,10 +38,34 @@ public class CommandLineImportConfig extends ParallelImportConfig {
                 || this.getChromosomeIntervalList().isEmpty()) {
             throwIllegalArgumentException();
         }
+        //TODO: remove next line once C++ layer makes use of protobuf structures. Making size per column partition explicit.
+        configurationBuilder.setSizePerColumnPartition(DEFAULT_SIZE_PER_COLUMN_PARTITION);
+        resolveCommandArgs(getOpt);
+        try {
+            for(ChromosomeInterval currInterval : this.getChromosomeIntervalList()) {
+                coordinates.ContigPosition.Builder contigPositionBuilder =
+                    coordinates.ContigPosition.newBuilder();
+                coordinates.GenomicsDBColumn.Builder columnBuilder =
+                    coordinates.GenomicsDBColumn.newBuilder();
+                //begin
+                contigPositionBuilder.setContig(currInterval.getContig())
+                    .setPosition(currInterval.getStart());
+                columnBuilder.setContigPosition(contigPositionBuilder.build());
+                partitionBuilder.setBegin(columnBuilder.build());
+                //end
+                contigPositionBuilder.setPosition(currInterval.getEnd());
+                columnBuilder.setContigPosition(contigPositionBuilder.build());
+                partitionBuilder.setEnd(columnBuilder.build());
+                configurationBuilder.addColumnPartitions(partitionBuilder.build());
+            }
+            this.setImportConfiguration(configurationBuilder.build());
+        } catch (UninitializedMessageException ex) {
+            throwIllegalArgumentException();
+        }
         List<String> files = IntStream.range(getOpt.getOptind(), commandArgs.length).mapToObj(
                 i -> commandArgs[i]).collect(toList());
         this.resolveHeaders(files);
-        this.setSampleToReaderMap(this::createSampleToReaderMap);
+        this.setSampleToReaderMapCreator(this::createSampleToReaderMap);
     }
 
     private LongOpt[] resolveLongOpt() {
@@ -102,7 +114,7 @@ public class CommandLineImportConfig extends ParallelImportConfig {
                         assert offset < enumArray.length;
                         switch (enumArray[offset]) {
                             case ARGS_IDX_USE_SAMPLES_IN_ORDER:
-                                gatk4IntegrationBuilder.setUseSamplesInOrderProvided(true);
+                                this.setUseSamplesInOrder(true);
                                 break;
                             case ARGS_IDX_FAIL_IF_UPDATING:
                                 configurationBuilder.setFailIfUpdating(true);
@@ -111,10 +123,10 @@ public class CommandLineImportConfig extends ParallelImportConfig {
                                 setBatchSize(Integer.parseInt(commandArgs.getOptarg()));
                                 break;
                             case ARGS_IDX_VIDMAP_OUTPUT:
-                                gatk4IntegrationBuilder.setOutputVidmapJsonFile(commandArgs.getOptarg());
+                                this.setOutputVidmapJsonFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_CALLSET_OUTPUT:
-                                gatk4IntegrationBuilder.setOutputCallsetmapJsonFile(commandArgs.getOptarg());
+                                this.setOutputCallsetmapJsonFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_VCF_HEADER_OUTPUT:
                                 partitionBuilder.setVcfOutputFilename(commandArgs.getOptarg());

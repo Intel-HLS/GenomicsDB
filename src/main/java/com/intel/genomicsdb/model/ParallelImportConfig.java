@@ -29,17 +29,22 @@ import htsjdk.variant.vcf.VCFHeaderLine;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.lang.Integer;
 
 public class ParallelImportConfig {
     private GenomicsDBImportConfiguration.ImportConfiguration importConfiguration;
     private List<ChromosomeInterval> chromosomeIntervalList = new ArrayList<>();
     private int rank = 0;
-    private boolean validateSampleToReaderMap;
+    private boolean validateSampleToReaderMap = false;
     private boolean passAsVcf = true;
-    private int batchSize = 1000000;
+    private boolean useSamplesInOrder = false;
+    private int batchSize = Integer.MAX_VALUE;
     private Set<VCFHeaderLine> mergedHeader;
     private Map<String, Path> sampleNameToVcfPath;
-    private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMap;
+    private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
+    private String outputVidMapJsonFile = null;
+    private String outputCallsetMapJsonFile = null;
+
 
     public ParallelImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
                                 final List<ChromosomeInterval> chromosomeIntervalList,
@@ -50,7 +55,7 @@ public class ParallelImportConfig {
                                 final Set<VCFHeaderLine> mergedHeader,
                                 final Map<String, Path> sampleNameToVcfPath,
                                 final Func<Map<String, Path>, Integer, Integer,
-                                    Map<String, FeatureReader<VariantContext>>> sampleToReaderMap) {
+                                    Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
         this.setChromosomeIntervalList(chromosomeIntervalList);
         this.setRank(rank);
@@ -59,7 +64,7 @@ public class ParallelImportConfig {
         this.setBatchSize(batchSize);
         this.setMergedHeader(mergedHeader);
         this.setSampleNameToVcfPath(sampleNameToVcfPath);
-        this.setSampleToReaderMap(sampleToReaderMap);
+        this.setSampleToReaderMapCreator(sampleToReaderMapCreator);
     }
 
     protected ParallelImportConfig() {
@@ -119,11 +124,12 @@ public class ParallelImportConfig {
     }
 
     public Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
-        return sampleToReaderMap;
+        return sampleToReaderMapCreator;
     }
 
-    public void setSampleToReaderMap(Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMap) {
-        this.sampleToReaderMap = sampleToReaderMap;
+    public void setSampleToReaderMapCreator(
+            Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
+        this.sampleToReaderMapCreator = sampleToReaderMapCreator;
     }
 
     public List<ChromosomeInterval> getChromosomeIntervalList() {
@@ -140,6 +146,10 @@ public class ParallelImportConfig {
 
     public boolean isPassAsVcf() {
         return passAsVcf;
+    }
+
+    public boolean isUseSamplesInOrder() {
+        return useSamplesInOrder;
     }
 
     public int getBatchSize() {
@@ -163,6 +173,10 @@ public class ParallelImportConfig {
         this.passAsVcf = passAsVcf;
     }
 
+    public void setUseSamplesInOrder(final boolean useSamplesInOrder) {
+        this.useSamplesInOrder = useSamplesInOrder;
+    }
+
     public void setBatchSize(int batchSize) {
         this.batchSize = batchSize;
     }
@@ -175,4 +189,19 @@ public class ParallelImportConfig {
         this.mergedHeader = mergedHeader;
     }
 
+    public String getOutputCallsetmapJsonFile() {
+        return outputCallsetMapJsonFile;
+    }
+
+    public String getOutputVidmapJsonFile() {
+        return outputVidMapJsonFile;
+    }
+
+    public void setOutputCallsetmapJsonFile(final String outputCallsetMapJsonFile) {
+        this.outputCallsetMapJsonFile = outputCallsetMapJsonFile;
+    }
+
+    public void setOutputVidmapJsonFile(final String outputVidMapJsonFile) {
+        this.outputVidMapJsonFile = outputVidMapJsonFile;
+    }
 }

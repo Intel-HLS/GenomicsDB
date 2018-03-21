@@ -134,7 +134,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                               final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
                               final int rank,
                               final boolean validateSampleToReaderMap,
-                              final boolean passAsVcf) throws IOException {
+                              final boolean passAsVcf,
+                              final boolean useSamplesInOrder) throws IOException {
         // Mark this flag so that protocol buffer based vid
         // and callset map are propagated to C++ GenomicsDBImporter
         mUsingVidMappingProtoBuf = true;
@@ -142,18 +143,18 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
 
         callsetMappingPB = generateSortedCallSetMap(sampleToReaderMap,
-                importConfiguration.getGatk4IntegrationParameters().getUseSamplesInOrderProvided(),
-                validateSampleToReaderMap, importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex());
+                useSamplesInOrder,
+                validateSampleToReaderMap, importConfiguration.getLbCallsetRowIdx());
 
         File importJSONFile = dumpTemporaryLoaderJSONFile(importConfiguration, "");
 
         initialize(importJSONFile.getAbsolutePath(), rank,
-                importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-                importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
+                importConfiguration.getLbCallsetRowIdx(),
+                importConfiguration.getUbCallsetRowIdx());
 
         mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
-                        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-                        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
+                        importConfiguration.getLbCallsetRowIdx(),
+                        importConfiguration.getUbCallsetRowIdx());
 
         jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
         jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMappingPB.toByteArray());
@@ -194,16 +195,15 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         //in different processes, then set useSamplesInOrder to false and let the sort in
         //generateSortedCallSetMap ensure consistent ordering across samples
         callsetMappingPB = this.generateSortedCallSetMap(new ArrayList<>(this.config.getSampleNameToVcfPath().keySet()),
-                this.config.getImportConfiguration().getGatk4IntegrationParameters().getUseSamplesInOrderProvided());
+                this.config.isUseSamplesInOrder());
 
         //Write out callset map if needed
-        String outputCallsetmapJsonFilePath = this.config.getImportConfiguration().getGatk4IntegrationParameters()
-                .getOutputCallsetmapJsonFile();
+        String outputCallsetmapJsonFilePath = this.config.getOutputCallsetmapJsonFile();
         if (outputCallsetmapJsonFilePath != null && !outputCallsetmapJsonFilePath.isEmpty())
             this.writeCallsetMapJSONFile(outputCallsetmapJsonFilePath, callsetMappingPB);
 
         //Write out vidmap if needed
-        String vidmapOutputFilepath = this.config.getImportConfiguration().getGatk4IntegrationParameters().getOutputVidmapJsonFile();
+        String vidmapOutputFilepath = this.config.getOutputVidmapJsonFile();
         if (vidmapOutputFilepath != null && !vidmapOutputFilepath.isEmpty())
             this.writeVidMapJSONFile(vidmapOutputFilepath, generateVidMapFromMergedHeader(this.config.getMergedHeader()));
 
@@ -601,17 +601,21 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                                                      final ChromosomeInterval chromInterval) throws IOException {
         String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
                 chromInterval.getStart(), chromInterval.getEnd());
-        GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = parallelImportConfig.getImportConfiguration()
-                .getGatk4IntegrationParameters().toBuilder().setLowerSampleIndex((long) index)
-                .setUpperSampleIndex((long) (index + parallelImportConfig.getBatchSize() - 1))
-                .setUseSamplesInOrderProvided(true).build();
+        //GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = parallelImportConfig.getImportConfiguration()
+            //.getGatk4IntegrationParameters();
+                //.getGatk4IntegrationParameters().toBuilder().setLowerSampleIndex((long) index)
+                //.setUpperSampleIndex((long) (index + parallelImportConfig.getBatchSize() - 1))
+                //.setUseSamplesInOrderProvided(true).build();
+        parallelImportConfig.setImportConfiguration(parallelImportConfig.getImportConfiguration().toBuilder()
+                .setLbCallsetRowIdx((long)index)
+                .setUbCallsetRowIdx((long) (index + parallelImportConfig.getBatchSize() - 1))
+                .build());
         GenomicsDBImportConfiguration.Partition partition = parallelImportConfig.getImportConfiguration()
                 .getColumnPartitions(0).toBuilder().setArray(arrayName).build();
         GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = parallelImportConfig
                 .getImportConfiguration().toBuilder().setColumnPartitions(0, partition).setSizePerColumnPartition(
                         parallelImportConfig.getImportConfiguration().getSizePerColumnPartition() * samplesSize)
                 .setSegmentSize(parallelImportConfig.getImportConfiguration().getSegmentSize())
-                .setGatk4IntegrationParameters(gatk4Integration)
                 .setFailIfUpdating(parallelImportConfig.getImportConfiguration().getFailIfUpdating())
                 //TODO: making the following attributes explicit since the C++ layer is not working with the
                 // protobuf object and it's defaults
@@ -625,7 +629,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 importConfiguration,
                 parallelImportConfig.getRank(),
                 parallelImportConfig.isValidateSampleToReaderMap(),
-                parallelImportConfig.isPassAsVcf());
+                parallelImportConfig.isPassAsVcf(),
+                parallelImportConfig.isUseSamplesInOrder());
     }
 
     /**
