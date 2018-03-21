@@ -21,9 +21,8 @@ public interface CallSetMapExtensions {
      *                                  use the order they appear in
      * @return Mappings of callset (sample) names to TileDB rows
      */
-    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-            final List<String> sampleNames,
-            final boolean useSamplesInOrderProvided) {
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(final List<String> sampleNames,
+                                                                                 final boolean useSamplesInOrderProvided) {
         return generateSortedCallSetMap(sampleNames, useSamplesInOrderProvided, 0L);
     }
 
@@ -40,12 +39,10 @@ public interface CallSetMapExtensions {
      * @param lbRowIdx                  Smallest row idx which should be imported by this object
      * @return Mappings of callset (sample) names to TileDB rows
      */
-    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
-            final List<String> sampleNames,
-            final boolean useSamplesInOrderProvided,
-            final long lbRowIdx) {
-        if (!useSamplesInOrderProvided)
-            Collections.sort(sampleNames);
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(final List<String> sampleNames,
+                                                                                 final boolean useSamplesInOrderProvided,
+                                                                                 final long lbRowIdx) {
+        if (!useSamplesInOrderProvided) Collections.sort(sampleNames);
 
         GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
                 GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
@@ -56,13 +53,15 @@ public interface CallSetMapExtensions {
             GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder idMapBuilder =
                     GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
 
-            idMapBuilder.setSampleName(sampleName).setRowIdx(tileDBRowIndex++).setIdxInFile(0).setStreamName(sampleName + "_stream");
+            idMapBuilder.setSampleName(sampleName).setRowIdx(tileDBRowIndex++).setIdxInFile(0)
+                    .setStreamName(sampleName + "_stream");
 
             GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
                     idMapBuilder.build();
 
             callsetMapBuilder.addCallsets(sampleIDToTileDBIDMap);
         }
+
         return callsetMapBuilder.build();
     }
 
@@ -107,34 +106,29 @@ public interface CallSetMapExtensions {
             final boolean useSamplesInOrderProvided,
             final boolean validateSampleMap,
             final long lbRowIdx) {
-        if (!validateSampleMap) {
-            return generateSortedCallSetMap(new ArrayList<>(sampleToReaderMap.keySet()), useSamplesInOrderProvided, lbRowIdx);
-        }
+        if (!validateSampleMap) return generateSortedCallSetMap(new ArrayList<>(sampleToReaderMap.keySet()),
+                useSamplesInOrderProvided, lbRowIdx);
 
         List<String> listOfSampleNames = new ArrayList<>(sampleToReaderMap.size());
-        for (Map.Entry<String, FeatureReader<VariantContext>> mapObject :
-                sampleToReaderMap.entrySet()) {
-
+        for (Map.Entry<String, FeatureReader<VariantContext>> mapObject : sampleToReaderMap.entrySet()) {
             String sampleName = mapObject.getKey();
             FeatureReader<VariantContext> featureReader = mapObject.getValue();
 
-            if (featureReader == null) {
+            if (featureReader == null)
                 throw new IllegalArgumentException("Null FeatureReader found for sample: " + sampleName);
-            }
 
             VCFHeader header = (VCFHeader) featureReader.getHeader();
             List<String> sampleNamesInHeader = header.getSampleNamesInOrder();
             if (sampleNamesInHeader.size() > 1) {
                 StringBuilder messageBuilder = new StringBuilder("Multiple samples ");
-                for (String name : sampleNamesInHeader) {
+                for (String name : sampleNamesInHeader)
                     messageBuilder.append(name).append(" ");
-                }
                 messageBuilder.append(" appear in header for ").append(sampleName);
                 throw new IllegalArgumentException(messageBuilder.toString());
             } else {
                 if (!sampleName.equals(sampleNamesInHeader.get(0))) {
-                    System.err.println("Sample " + header + " does not match with " +
-                            sampleNamesInHeader.get(0) + " in header");
+                    System.err.println("Sample " + header + " does not match with " + sampleNamesInHeader.get(0) +
+                            " in header");
                 }
             }
             listOfSampleNames.add(sampleName);

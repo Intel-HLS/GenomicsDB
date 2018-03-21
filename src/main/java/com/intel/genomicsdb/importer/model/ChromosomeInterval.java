@@ -30,28 +30,28 @@ import htsjdk.samtools.util.Locatable;
  */
 public class ChromosomeInterval implements Locatable {
 
-  private String mChromosomeName = null;
-  private long mBegin = -1;
-  private long mEnd = -1;
+  private String chromosomeName;
+  private long begin;
+  private long end;
 
   public ChromosomeInterval(final String name, final long begin, final long end) {
-    mChromosomeName = name;
-    mBegin = begin;
-    mEnd = end;
+    this.chromosomeName = name;
+    this.begin = begin;
+    this.end = end;
   }
 
   @Override
   public String getContig() {
-    return mChromosomeName;
+    return chromosomeName;
   }
 
   @Override
   public int getStart() {
-    return (int) mBegin;
+    return (int) begin;
   }
 
   @Override
   public int getEnd() {
-    return (int) mEnd;
+    return (int) end;
   }
 }

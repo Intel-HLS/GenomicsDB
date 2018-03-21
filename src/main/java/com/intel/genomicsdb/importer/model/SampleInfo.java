@@ -26,8 +26,8 @@ package com.intel.genomicsdb.importer.model;
  * Utility class that stores row index and globally unique name for a given sample
  */
 public class SampleInfo {
-  private String name = null;
-  private long rowIdx = -1;
+  private String name;
+  private long rowIdx;
 
   public SampleInfo(final String name, final long rowIdx) {
     this.name = name;
