@@ -44,16 +44,6 @@ message Partition {
   optional string vcf_output_filename = 4;
   optional GenomicsDBColumn end = 5;
 }
-/*
-message GATK4Integration {
-  optional string output_vidmap_json_file = 1;
-  optional string output_callsetmap_json_file = 2;
-  optional int32 batch_size = 3 [default = 0];
-  optional bool use_samples_in_order_provided = 4 [default = false];
-  optional bool validate_sample_to_reader_map = 5 [default = false];
-  optional bool pass_as_vcf = 6 [default = true];
-}
-*/
 
 message ImportConfiguration {
   required int64 size_per_column_partition = 7 [default = 16384];

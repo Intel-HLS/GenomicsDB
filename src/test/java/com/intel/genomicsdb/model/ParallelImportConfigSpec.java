@@ -1,6 +1,5 @@
 package com.intel.genomicsdb.model;
 
-import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeaderLine;
@@ -18,39 +17,48 @@ public class ParallelImportConfigSpec {
                     "Intervals should be defined without intersections.")
     public void shouldThrowExceptionWhenThereIsAnIntersectionBetweenChromosomeIntervals() {
         //Given
-        ChromosomeInterval chromosomeInterval1 = new ChromosomeInterval("1", 1, 10);
-        ChromosomeInterval chromosomeInterval2 = new ChromosomeInterval("1", 5, 15);
-        final List<ChromosomeInterval> chromosomeIntervals = new ArrayList<>();
-        chromosomeIntervals.add(chromosomeInterval1);
-        chromosomeIntervals.add(chromosomeInterval2);
-
         //When
-        createBaseImportConfig(chromosomeIntervals);
+        createBaseImportConfig(true);
 
         //Then
         //Exception is expected
     }
 
-    @Test(testName = "should throw an exception when there are not intersections between chromosome intervals")
+    @Test(testName = "should not throw an exception when there are not intersections between chromosome intervals")
     public void shouldNotThrowExceptionWhenThereAreIntersectionsButDifferentChromosomes() {
         //Given
-        ChromosomeInterval chromosomeInterval1 = new ChromosomeInterval("1", 1, 10);
-        ChromosomeInterval chromosomeInterval2 = new ChromosomeInterval("2", 5, 15);
-        final List<ChromosomeInterval> chromosomeIntervals = new ArrayList<>();
-        chromosomeIntervals.add(chromosomeInterval1);
-        chromosomeIntervals.add(chromosomeInterval2);
-
         //When
-        ParallelImportConfig config = createBaseImportConfig(chromosomeIntervals);
+        ParallelImportConfig config = createBaseImportConfig(false);
 
         //Then
-        Assert.assertEquals(config.getChromosomeIntervalList().size(), 2);
+        Assert.assertEquals(config.getImportConfiguration().getColumnPartitionsList().size(), 2);
     }
 
-    private ParallelImportConfig createBaseImportConfig(final List<ChromosomeInterval> chromosomeIntervalList) {
-        List<ChromosomeInterval> chromosomeIntervals = chromosomeIntervalList;
-        GenomicsDBImportConfiguration.ImportConfiguration configuration = GenomicsDBImportConfiguration.ImportConfiguration.getDefaultInstance();
-        int rank = 1;
+    private ParallelImportConfig createBaseImportConfig(final boolean withIntersection) {
+        String defaultName = "a";
+        String secondPartition = withIntersection ? defaultName : "b";
+        GenomicsDBImportConfiguration.ImportConfiguration configuration = GenomicsDBImportConfiguration.ImportConfiguration.newBuilder()
+                .addColumnPartitions(GenomicsDBImportConfiguration.Partition.newBuilder().setBegin(
+                        Coordinates.GenomicsDBColumn.newBuilder().setContigPosition(
+                                Coordinates.ContigPosition.newBuilder().setContig("a").setPosition(1).build()
+                        ).build()
+                        ).setEnd(
+                        Coordinates.GenomicsDBColumn.newBuilder().setContigPosition(
+                                Coordinates.ContigPosition.newBuilder().setContig("a").setPosition(2).build()
+                        ).build()
+                        ).build()
+                )
+                .addColumnPartitions(GenomicsDBImportConfiguration.Partition.newBuilder().setBegin(
+                        Coordinates.GenomicsDBColumn.newBuilder().setContigPosition(
+                                Coordinates.ContigPosition.newBuilder().setContig(secondPartition).setPosition(1).build()
+                        ).build()
+                        ).setEnd(
+                        Coordinates.GenomicsDBColumn.newBuilder().setContigPosition(
+                                Coordinates.ContigPosition.newBuilder().setContig(secondPartition).setPosition(2).build()
+                        ).build()
+                        ).build()
+                )
+                .setSizePerColumnPartition(16000).build();
         boolean validateSampleToReaderMap = true;
         boolean passAsVcf = true;
         int batchSize = 1000;
@@ -59,7 +67,7 @@ public class ParallelImportConfigSpec {
         ParallelImportConfig.Func<Map<String, Path>, Integer, Integer,
                 Map<String, FeatureReader<VariantContext>>> sampleToReaderMap = (a, b, c) -> new TreeMap<>();
 
-        return new ParallelImportConfig(configuration, chromosomeIntervals, rank, validateSampleToReaderMap,
-                passAsVcf, batchSize, mergedHeader, sampleNameToVcfPath, sampleToReaderMap);
+        return new ParallelImportConfig(configuration, validateSampleToReaderMap, passAsVcf, batchSize, mergedHeader,
+                sampleNameToVcfPath, sampleToReaderMap);
     }
 }

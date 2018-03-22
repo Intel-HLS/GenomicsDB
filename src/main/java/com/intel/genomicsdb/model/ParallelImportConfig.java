@@ -33,8 +33,6 @@ import java.lang.Integer;
 
 public class ParallelImportConfig {
     private GenomicsDBImportConfiguration.ImportConfiguration importConfiguration;
-    private List<ChromosomeInterval> chromosomeIntervalList = new ArrayList<>();
-    private int rank = 0;
     private boolean validateSampleToReaderMap = false;
     private boolean passAsVcf = true;
     private boolean useSamplesInOrder = false;
@@ -45,10 +43,7 @@ public class ParallelImportConfig {
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
 
-
     public ParallelImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-                                final List<ChromosomeInterval> chromosomeIntervalList,
-                                final int rank,
                                 final boolean validateSampleToReaderMap,
                                 final boolean passAsVcf,
                                 final int batchSize,
@@ -57,8 +52,7 @@ public class ParallelImportConfig {
                                 final Func<Map<String, Path>, Integer, Integer,
                                     Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
-        this.setChromosomeIntervalList(chromosomeIntervalList);
-        this.setRank(rank);
+        this.validateChromosomeIntervals();
         this.setValidateSampleToReaderMap(validateSampleToReaderMap);
         this.setPassAsVcf(passAsVcf);
         this.setBatchSize(batchSize);
@@ -70,21 +64,22 @@ public class ParallelImportConfig {
     protected ParallelImportConfig() {
     }
 
-    private boolean isWithinChromosomeInterval(final ChromosomeInterval current, final ChromosomeInterval chromInterval) {
-        return (current.getStart() >= chromInterval.getStart() &&
-                current.getStart() <= chromInterval.getEnd() &&
-                current.getContig().equals(chromInterval.getContig())) ||
-                (current.getEnd() >= chromInterval.getStart() &&
-                        current.getEnd() <= chromInterval.getEnd() &&
-                        current.getContig().equals(chromInterval.getContig()));
+    private boolean isWithinChromosomeInterval(final GenomicsDBImportConfiguration.Partition current,
+                                               final GenomicsDBImportConfiguration.Partition chromInterval) {
+        return (current.getBegin().getContigPosition().getPosition() >= chromInterval.getBegin().getContigPosition().getPosition() &&
+                current.getBegin().getContigPosition().getPosition() <= chromInterval.getEnd().getContigPosition().getPosition() &&
+                current.getBegin().getContigPosition().getContig().equals(chromInterval.getBegin().getContigPosition().getContig())) ||
+                (current.getEnd().getContigPosition().getPosition() >= chromInterval.getBegin().getContigPosition().getPosition() &&
+                        current.getEnd().getContigPosition().getPosition() <= chromInterval.getEnd().getContigPosition().getPosition() &&
+                        current.getBegin().getContigPosition().getContig().equals(chromInterval.getBegin().getContigPosition().getContig()));
     }
 
-    private boolean isThereChromosomeIntervalIntersection(final List<ChromosomeInterval> chromIntervals, boolean isThereInter) {
+    private boolean isThereChromosomeIntervalIntersection(final List<GenomicsDBImportConfiguration.Partition> chromIntervals, boolean isThereInter) {
         if (chromIntervals.isEmpty() || chromIntervals.size() < 2) return isThereInter;
-        ChromosomeInterval head = chromIntervals.get(0);
-        List<ChromosomeInterval> tail = chromIntervals.subList(1, chromIntervals.size());
+        GenomicsDBImportConfiguration.Partition head = chromIntervals.get(0);
+        List<GenomicsDBImportConfiguration.Partition> tail = chromIntervals.subList(1, chromIntervals.size());
 
-        for (ChromosomeInterval chrom : tail) {
+        for (GenomicsDBImportConfiguration.Partition chrom : tail) {
             boolean interEval = isWithinChromosomeInterval(head, chrom);
             isThereInter = isThereInter || interEval;
         }
@@ -92,12 +87,13 @@ public class ParallelImportConfig {
         return isThereChromosomeIntervalIntersection(tail, isThereInter);
     }
 
-    private boolean isThereChromosomeIntervalIntersection(final List<ChromosomeInterval> chromIntervals) {
-        return isThereChromosomeIntervalIntersection(chromIntervals, false);
+    private boolean isThereChromosomeIntervalIntersection() {
+        List<GenomicsDBImportConfiguration.Partition> partitions = this.importConfiguration.getColumnPartitionsList();
+        return isThereChromosomeIntervalIntersection(partitions, false);
     }
 
-    void validateChromosomeIntervals(final List<ChromosomeInterval> chromosomeIntervalList) {
-        if (isThereChromosomeIntervalIntersection(chromosomeIntervalList))
+    void validateChromosomeIntervals() {
+        if (isThereChromosomeIntervalIntersection())
             throw new IllegalArgumentException("There are multiple intervals sharing same value. This is not allowed. " +
                     "Intervals should be defined without intersections.");
     }
@@ -132,14 +128,6 @@ public class ParallelImportConfig {
         this.sampleToReaderMapCreator = sampleToReaderMapCreator;
     }
 
-    public List<ChromosomeInterval> getChromosomeIntervalList() {
-        return chromosomeIntervalList;
-    }
-
-    public int getRank() {
-        return rank;
-    }
-
     public boolean isValidateSampleToReaderMap() {
         return validateSampleToReaderMap;
     }
@@ -154,15 +142,6 @@ public class ParallelImportConfig {
 
     public int getBatchSize() {
         return batchSize;
-    }
-
-    public void setChromosomeIntervalList(List<ChromosomeInterval> chromosomeIntervalList) {
-        this.validateChromosomeIntervals(chromosomeIntervalList);
-        this.chromosomeIntervalList = chromosomeIntervalList;
-    }
-
-    public void setRank(int rank) {
-        this.rank = rank;
     }
 
     public void setValidateSampleToReaderMap(boolean validateSampleToReaderMap) {

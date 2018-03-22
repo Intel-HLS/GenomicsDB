@@ -23,7 +23,7 @@
 syntax = "proto2";
 
 option java_package = "com.intel.genomicsdb.model";
-option java_outer_classname = "coordinates";
+option java_outer_classname = "Coordinates";
 
 message ContigPosition {
   required string contig = 1;
