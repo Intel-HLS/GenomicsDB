@@ -38,6 +38,7 @@ set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
+set(USE_HDFS False CACHE BOOL "Enable storing data on HDFS compliant stores")
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -153,6 +154,11 @@ if(LIBCSV_FOUND)
     add_definitions(-DUSE_LIBCSV)
 endif()
 
+#HDFS
+if(USE_HDFS)
+    add_definitions(-DUSE_HDFS)
+endif()
+
 #Collect stats
 if(DO_PROFILING)
     message(STATUS "Enabling stats collection")
@@ -216,7 +222,7 @@ include_directories (
 )
 
 set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    ${LIBUUID_LIBRARY})
+    ${LIBUUID_LIBRARY} ${HDFS_LIBRARY} ${JAVA_JVM_LIBRARY})
 
 if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(IPP REQUIRED)
@@ -285,6 +291,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBJavaSparkFactory.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBPartitionInfo.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBRecordReader.java
+	./src/main/java/com/intel/genomicsdb/spark/GenomicsDBQueryInfo.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBLibLoader.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
@@ -297,6 +304,7 @@ if(BUILD_JAVA)
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBImportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBVidMappingProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
+	./src/test/java/com/intel/genomicsdb/spark/GenomicsDBInputFormatTest.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBTestUtils.java
         )
     if(PROTOBUF_REGENERATE)
@@ -344,7 +352,8 @@ if(BUILD_JAVA)
     set(GENOMICSDB_EXAMPLE_SOURCES
         ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
         ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
-        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBSparkHDFS.java)
 
     add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
         SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}

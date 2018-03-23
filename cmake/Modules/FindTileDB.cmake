@@ -2,6 +2,10 @@
 # Once done this will define
 # TILEDB_FOUND - TileDB found
 
+if(USE_HDFS)
+    list(APPEND TILEDB_CMAKE_ARGS "-DUSE_HDFS:BOOL=True")
+    find_package(HDFS REQUIRED)
+endif()
 #Disable Master Catalog in TileDB
 list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
 list(APPEND TILEDB_CMAKE_ARGS "-DTILEDB_VERBOSE:BOOL=True")
