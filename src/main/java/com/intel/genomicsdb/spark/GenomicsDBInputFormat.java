@@ -292,7 +292,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     //GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration = exportConfigurationBuilder
             //.setWorkspace("").setReferenceGenome("").build();
 
-    featureReader = new GenomicsDBFeatureReader<>(amendedquery,
+    featureReader = new GenomicsDBFeatureReader<>(amendedQuery,
             (FeatureCodec<VCONTEXT, SOURCE>) new BCF2Codec(), Optional.of(loaderJson));
     recordReader = new GenomicsDBRecordReader<>(featureReader);
     return recordReader;
