@@ -18,7 +18,7 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
 
-public class CommandLineImportConfig extends ParallelImportConfig {
+public class CommandLineImportConfig extends ImportConfig {
     //TODO: remove this constant once C++ layer makes use of protobuf structures
     protected static final long DEFAULT_SIZE_PER_COLUMN_PARTITION = 16384L;
     private GenomicsDBImportConfiguration.ImportConfiguration.Builder configurationBuilder =

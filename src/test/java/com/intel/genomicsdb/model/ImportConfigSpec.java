@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 import java.nio.file.Path;
 import java.util.*;
 
-public class ParallelImportConfigSpec {
+public class ImportConfigSpec {
 
     @Test(testName = "should throw an exception when there is an intersection between chromosome intervals",
             expectedExceptions = IllegalArgumentException.class,
@@ -28,13 +28,13 @@ public class ParallelImportConfigSpec {
     public void shouldNotThrowExceptionWhenThereAreIntersectionsButDifferentChromosomes() {
         //Given
         //When
-        ParallelImportConfig config = createBaseImportConfig(false);
+        ImportConfig config = createBaseImportConfig(false);
 
         //Then
         Assert.assertEquals(config.getImportConfiguration().getColumnPartitionsList().size(), 2);
     }
 
-    private ParallelImportConfig createBaseImportConfig(final boolean withIntersection) {
+    private ImportConfig createBaseImportConfig(final boolean withIntersection) {
         String defaultName = "a";
         String secondPartition = withIntersection ? defaultName : "b";
         GenomicsDBImportConfiguration.ImportConfiguration configuration = GenomicsDBImportConfiguration.ImportConfiguration.newBuilder()
@@ -64,10 +64,10 @@ public class ParallelImportConfigSpec {
         int batchSize = 1000;
         Set<VCFHeaderLine> mergedHeader = new HashSet();
         Map<String, Path> sampleNameToVcfPath = new TreeMap<>();
-        ParallelImportConfig.Func<Map<String, Path>, Integer, Integer,
+        ImportConfig.Func<Map<String, Path>, Integer, Integer,
                 Map<String, FeatureReader<VariantContext>>> sampleToReaderMap = (a, b, c) -> new TreeMap<>();
 
-        return new ParallelImportConfig(configuration, validateSampleToReaderMap, passAsVcf, batchSize, mergedHeader,
+        return new ImportConfig(configuration, validateSampleToReaderMap, passAsVcf, batchSize, mergedHeader,
                 sampleNameToVcfPath, sampleToReaderMap);
     }
 }

@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb.model;
 
-import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeaderLine;
@@ -31,7 +30,11 @@ import java.nio.file.Path;
 import java.util.*;
 import java.lang.Integer;
 
-public class ParallelImportConfig {
+/**
+ * This implementation extends what is in GenomicsDBImportConfiguration. Add extra data that is needed for parallel
+ * import.
+ */
+public class ImportConfig {
     private GenomicsDBImportConfiguration.ImportConfiguration importConfiguration;
     private boolean validateSampleToReaderMap = false;
     private boolean passAsVcf = true;
@@ -43,13 +46,23 @@ public class ParallelImportConfig {
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
 
-    public ParallelImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-                                final boolean validateSampleToReaderMap,
-                                final boolean passAsVcf,
-                                final int batchSize,
-                                final Set<VCFHeaderLine> mergedHeader,
-                                final Map<String, Path> sampleNameToVcfPath,
-                                final Func<Map<String, Path>, Integer, Integer,
+    /**
+     * Main ImportConfig constructor
+     * @param importConfiguration GenomicsDBImportConfiguration protobuf object
+     * @param validateSampleToReaderMap Flag for validating sample to reader map
+     * @param passAsVcf Flag for indicating that a VCF is being passed
+     * @param batchSize Batch size
+     * @param mergedHeader Required header
+     * @param sampleNameToVcfPath Sample name to VCF path map
+     * @param sampleToReaderMapCreator Function used for creating sampleToReaderMap
+     */
+    public ImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
+                        final boolean validateSampleToReaderMap,
+                        final boolean passAsVcf,
+                        final int batchSize,
+                        final Set<VCFHeaderLine> mergedHeader,
+                        final Map<String, Path> sampleNameToVcfPath,
+                        final Func<Map<String, Path>, Integer, Integer,
                                     Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
         this.validateChromosomeIntervals();
@@ -61,12 +74,13 @@ public class ParallelImportConfig {
         this.setSampleToReaderMapCreator(sampleToReaderMapCreator);
     }
 
-    //Deep copy constructor
-    public ParallelImportConfig(final ParallelImportConfig source) {
-        this.setImportConfiguration(
-                source.getImportConfiguration() != null
-                ? source.getImportConfiguration().toBuilder().build()
-                : null);
+    /**
+     * Deep copy constructor
+     * @param source Source ImportConfig
+     */
+    public ImportConfig(final ImportConfig source) {
+        this.setImportConfiguration(source.getImportConfiguration() != null ?
+                source.getImportConfiguration().toBuilder().build() : null);
         this.validateChromosomeIntervals();
         this.setValidateSampleToReaderMap(source.isValidateSampleToReaderMap());
         this.setPassAsVcf(source.isPassAsVcf());
@@ -76,21 +90,18 @@ public class ParallelImportConfig {
         this.setMergedHeader(source.getMergedHeader());
         //Deep copy sample name to path
         if(source.getSampleNameToVcfPath() != null) {
-            LinkedHashMap<String, Path> sampleNameToVcfPath = new LinkedHashMap<String, Path>();
-            for(Map.Entry<String, Path> currEntry : source.getSampleNameToVcfPath().entrySet())
-                sampleNameToVcfPath.put(currEntry.getKey(), currEntry.getValue());
-            this.setSampleNameToVcfPath(sampleNameToVcfPath);
+            this.setSampleNameToVcfPath(new LinkedHashMap<>(source.getSampleNameToVcfPath()));
         }
         //Function object - no deep copy
         this.setSampleToReaderMapCreator(source.sampleToReaderMapCreator());
         //Deep copy
-        this.setOutputVidmapJsonFile(source.getOutputVidmapJsonFile() != null
-                ? new String(source.getOutputVidmapJsonFile()): null);
-        this.setOutputCallsetmapJsonFile(source.getOutputCallsetmapJsonFile() != null
-                ? new String(source.getOutputCallsetmapJsonFile()): null);
+        this.setOutputVidmapJsonFile(source.getOutputVidmapJsonFile() != null ?
+                new String(source.getOutputVidmapJsonFile()) : null);
+        this.setOutputCallsetmapJsonFile(source.getOutputCallsetmapJsonFile() != null ?
+                new String(source.getOutputCallsetmapJsonFile()) : null);
     }
 
-    protected ParallelImportConfig() {
+    protected ImportConfig() {
     }
 
     private boolean isWithinChromosomeInterval(final GenomicsDBImportConfiguration.Partition current,

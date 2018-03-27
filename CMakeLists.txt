@@ -274,7 +274,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/importer/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/importer/SilentByteBufferStream.java
         ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
-        ./src/main/java/com/intel/genomicsdb/model/ParallelImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/ImportConfig.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java
@@ -296,7 +296,7 @@ if(BUILD_JAVA)
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBImportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBVidMappingProtoSpec.java
-        ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/ImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBTestUtils.java
         )
     if(PROTOBUF_REGENERATE)
