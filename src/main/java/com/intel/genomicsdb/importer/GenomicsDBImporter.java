@@ -479,10 +479,9 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         }
     }
 
-    //This should be public because there can be use cases where iterator<VariantContext>
-    //are not used - the data is written to buffers directly after which this function is
-    //called. See TestBufferStreamGenomicsDBImporter.java for an example
     /**
+     * Only to be used in cases where iterator<VariantContext> are not used. The data is written to buffers
+     * directly after which this function is called. See TestBufferStreamGenomicsDBImporter.java for an example
      * @return true if the import process is done
      * @throws IOException if the import fails
      */
