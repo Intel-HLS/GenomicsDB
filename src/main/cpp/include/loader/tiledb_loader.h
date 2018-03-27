@@ -29,6 +29,7 @@
 #include "load_operators.h"
 #include "genomicsdb_vid_mapping.pb.h"
 #include "genomicsdb_callsets_mapping.pb.h"
+#include "tiledb_storage.h"
 
 //Exceptions thrown
 class VCF2TileDBException : public std::exception{
@@ -407,8 +408,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     /*
      * Create TileDB workspace static function
      */
-    static int create_tiledb_workspace(const char* workspace);
-    static int create_tiledb_workspace(const std::string& workspace) { return create_tiledb_workspace(workspace.c_str()); }
+    static int create_tiledb_workspace(const std::string& workspace);
     /*
      * Consolidate TileDB array
      */

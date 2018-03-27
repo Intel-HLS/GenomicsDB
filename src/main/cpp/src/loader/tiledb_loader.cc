@@ -1045,50 +1045,13 @@ void VCF2TileDBLoader::clear()
 }
 
 
-int VCF2TileDBLoader::create_tiledb_workspace(const char* workspace)
+int VCF2TileDBLoader::create_tiledb_workspace(const std::string& workspace)
 {
-  assert(workspace);
-  //Create workspace if it does not exist
-  struct stat st;
-  auto status = stat(workspace, &st);
-  int returnval = 0;
-  //Exists and is not a directory
-  if(status >= 0 && !S_ISDIR(st.st_mode))
-  {
-    std::cerr << "Workspace path " << workspace << " exists and is not a directory\n";
-    returnval = -1;
-  }
-  else
-  {
-    if(status >= 0)
-    {
-      auto workspace_file = std::string(workspace)+ "/__tiledb_workspace.tdb";
-      status = stat(workspace_file.c_str(), &st);
-      //__tiledb_workspace.tdb not found or is not a file
-      if(status != 0 || !S_ISREG(st.st_mode))
-      {
-        std::cerr << "Directory " << workspace
-          << " exists, but is not a TileDB workspace (doesn't contain regular file __tiledb_workspace.tdb)\n";
-        returnval = -1;
-      }
-    }
-    else  //Doesn't exist, create workspace
-    {
-      TileDB_CTX* tiledb_ctx = 0;
-      /*Initialize context with default params*/
-      auto status = tiledb_ctx_init(&tiledb_ctx, NULL);
-      VERIFY_OR_THROW(status == TILEDB_OK);
-      if(tiledb_workspace_create(tiledb_ctx, workspace) != TILEDB_OK)
-      {
-        std::cerr << "Failed to create workspace "<<workspace<<"\n";
-        returnval = -2;
-      }
-      else
-        std::cerr << "Created workspace "<<workspace<<"\n";
-      tiledb_ctx_finalize(tiledb_ctx);
-    }
-  }
-  return returnval;
+  TileDB_CTX* tiledb_ctx = 0;
+  VERIFY_OR_THROW(initialize_storage(&tiledb_ctx, workspace) == TILEDB_OK);
+  VERIFY_OR_THROW(tiledb_ctx != NULL);
+  VERIFY_OR_THROW(finalize_storage(tiledb_ctx));
+  return 0;
 }
 
 void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const char* array_name)

@@ -29,6 +29,7 @@
 #include "genomicsdb_iterators.h"
 #include <zlib.h>
 #include "tiledb.h"
+#include "tiledb_storage.h"
 #include "timer.h"
 
 //Exceptions thrown 
@@ -191,6 +192,9 @@ class VariantArrayInfo
  * Wrapper class around TileDB C API - shields GenomicsDB from changes in
  * core
  */
+int initialize_storage(TileDB_CTX **ptiledb_ctx, const std::string& workspace);
+int finalize_storage(TileDB_CTX *tiledb_ctx);
+
 class VariantStorageManager
 {
   public:
@@ -205,10 +209,7 @@ class VariantStorageManager
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;
     VariantStorageManager(VariantStorageManager&& other) = delete;
-    /*
-     * Wrapper functions around the C-API
-     */
-    bool check_if_TileDB_array_exists(const std::string& array_name);
+    
     int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
         const int tiledb_zlib_compression_level=TILEDB_COMPRESSION_LEVEL_GZIP);
     void close_array(const int ad, const bool consolidate_tiledb_array=false);

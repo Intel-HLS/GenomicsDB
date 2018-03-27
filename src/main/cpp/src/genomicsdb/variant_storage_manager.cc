@@ -22,8 +22,9 @@
 
 #include "variant_storage_manager.h"
 #include "variant_field_data.h"
-#include <sys/stat.h>
 #include "json_config.h"
+
+#include <mutex>
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VariantStorageManagerException(#X);
 #define GET_METADATA_PATH(workspace, array) ((workspace)+'/'+(array)+"/genomicsdb_meta.json")
@@ -35,6 +36,10 @@ const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_
 };
 
 std::vector<const char*> VariantStorageManager::m_metadata_attributes = std::vector<const char*>({ "max_valid_row_idx_in_array" });
+
+// Cache of metadata json to minimize reading from storage.
+std::mutex metadata_cache_mtx;
+static std::unordered_map<std::string, int64_t> metadata_cache;
 
 //ceil(buffer_size/field_size)*field_size
 #define GET_ALIGNED_BUFFER_SIZE(buffer_size, field_size) ((((buffer_size)+(field_size)-1u)/(field_size))*(field_size))
@@ -287,22 +292,47 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
   m_metadata_contains_max_valid_row_idx_in_array = false;
   const auto& dim_domains = m_schema.dim_domains();
   m_max_valid_row_idx_in_array = dim_domains[0].second;
+
+  // Check if metadata is cached
+  auto search = metadata_cache.find(m_metadata_filename);
+  if(search != metadata_cache.end()) {
+    m_max_valid_row_idx_in_array = search->second;
+    m_metadata_contains_max_valid_row_idx_in_array = true;
+    return;
+  }
+  
   //Try reading from metadata
-  if(m_metadata_filename.length())
-  {
-    std::ifstream ifs(m_metadata_filename.c_str());
-    if(ifs.is_open())
-    {
-      rapidjson::Document json_doc;
-      std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-      json_doc.Parse(str.c_str());
-      if(json_doc.HasParseError())
-        throw VariantStorageManagerException(std::string("Syntax error in corrupted JSON metadata file ")+m_metadata_filename);
-      if(json_doc.HasMember("max_valid_row_idx_in_array") && json_doc["max_valid_row_idx_in_array"].IsInt64())
-      {
-        m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
-        m_metadata_contains_max_valid_row_idx_in_array = true;
-      }
+  if (is_file(m_tiledb_ctx, m_metadata_filename)) {
+    size_t size = file_size(m_tiledb_ctx, m_metadata_filename);
+    if (size > 0) {
+       char *buffer = (char *)malloc(size+1);
+       if (!buffer) 
+         throw VariantStorageManagerException(std::string("Out-of-memory exception while allocating memory"));
+       
+       buffer[size] = 0;
+
+       VERIFY_OR_THROW(read_from_file(m_tiledb_ctx, m_metadata_filename, 0, buffer, size) == TILEDB_OK);
+       VERIFY_OR_THROW(close_file(m_tiledb_ctx, m_metadata_filename) == TILEDB_OK);
+       
+       rapidjson::Document json_doc;
+       json_doc.Parse(buffer);
+       if(json_doc.HasParseError())
+         throw VariantStorageManagerException(std::string("Syntax error in corrupted JSON metadata file ")+m_metadata_filename);
+
+       if(json_doc.HasMember("max_valid_row_idx_in_array") && json_doc["max_valid_row_idx_in_array"].IsInt64())
+       {
+         m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
+         m_metadata_contains_max_valid_row_idx_in_array = true;
+         
+         // Update Metadata Cache
+         metadata_cache_mtx.lock();
+         auto search = metadata_cache.find(m_metadata_filename);
+         if(search == metadata_cache.end()) {
+           metadata_cache.insert({m_metadata_filename, m_max_valid_row_idx_in_array});
+         }
+         metadata_cache_mtx.unlock();
+       }
+       free(buffer);
     }
   }
 }
@@ -319,6 +349,7 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
       || (max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
   {
     m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
+    
     rapidjson::Document json_doc;
     json_doc.SetObject();
     json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
@@ -326,10 +357,9 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     json_doc.Accept(writer);
-    auto* fptr = fopen(metadata_filename.c_str(), "w");
-    VERIFY_OR_THROW(fptr);
-    fwrite(reinterpret_cast<const void*>(buffer.GetString()), 1u, strlen(buffer.GetString()), fptr);
-    fclose(fptr);
+
+     VERIFY_OR_THROW(write_to_file(m_tiledb_ctx, metadata_filename, buffer.GetString(), strlen(buffer.GetString())) == TILEDB_OK);
+     VERIFY_OR_THROW(close_file(m_tiledb_ctx, metadata_filename) == TILEDB_OK);
   }
 }
 
@@ -367,62 +397,50 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
   m_mode = -1;
 }
 
+int initialize_storage(TileDB_CTX **ptiledb_ctx, const std::string& workspace)
+{
+  int rc;
+
+  if (is_hdfs_path(workspace)) 
+  {
+    TileDB_Config tiledb_config;
+    bzero(&tiledb_config, sizeof(TileDB_Config));
+    
+    std::string parent = parent_dir(workspace);
+    tiledb_config.home_ = new char [parent.length()+1];
+    std::strcpy ((char *)tiledb_config.home_, parent.c_str());
+    tiledb_config.read_method_ = TILEDB_IO_READ;
+    tiledb_config.write_method_ = TILEDB_IO_WRITE;
+    rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
+    delete tiledb_config.home_;
+  } else {
+    rc = tiledb_ctx_init(ptiledb_ctx, NULL);
+  }
+
+  if (rc == TILEDB_OK && !is_workspace(*ptiledb_ctx, workspace))
+  {
+    rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
+    if (rc != TILEDB_OK) {
+      finalize_storage(*ptiledb_ctx);
+    }
+  }
+
+  return rc;
+}
+
+int finalize_storage(TileDB_CTX *tiledb_ctx)
+{
+  return tiledb_ctx_finalize(tiledb_ctx);
+}
+
 //VariantStorageManager functions
 VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size)
 {
   m_workspace = workspace;
   m_segment_size = segment_size;
-  /*Initialize context with default params*/
-  tiledb_ctx_init(&m_tiledb_ctx, NULL);
-  //Create workspace if it does not exist
-  struct stat st;
-  auto status = stat(workspace.c_str(), &st);
-  //Exists and is not a directory
-  if(status >= 0 && !S_ISDIR(st.st_mode))
-    throw VariantStorageManagerException(std::string("Workspace path ")+workspace+" exists and is not a directory");
-  //Doesn't exist, create workspace
-  if(status < 0)
-    VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
-}
 
-bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& array_name)
-{
-  //Use tiledb_ls call to avoid non-faulty error message while trying to init array during loading
-  std::vector<char*> ws_entries(1024u);
-  std::vector<int> ws_entry_types;
-  for(auto i=0ull;i<ws_entries.size();++i)
-    ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
-  auto num_entries = 0;
-  auto ls_status = TILEDB_ERR;
-  while(ls_status == TILEDB_ERR && ws_entries.size() < 100000ll) //cutoff if too many entries in workspace
-  {
-    num_entries = ws_entries.size();
-    ws_entry_types.resize(ws_entries.size());
-    ls_status = tiledb_ls(m_tiledb_ctx, m_workspace.c_str(), &(ws_entries[0]), &(ws_entry_types[0]), &num_entries);
-    if(ls_status == TILEDB_ERR)
-    {
-      std::cerr << "[GenomicsDB::VariantStorageManager] INFO: ignore message \"[TileDB::StorageManager] Error: Cannot list TileDB directory; Directory buffer overflow.\" in the previous line\n";
-      auto old_size = ws_entries.size();
-      ws_entries.resize(2u*ws_entries.size()+1u);
-      for(auto i=old_size;i<ws_entries.size();++i)
-        ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
-    }
-  }
-  if(ls_status == TILEDB_ERR)
-    throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 100K entries");
-  auto string_length = std::min<size_t>(array_name.length(), TILEDB_NAME_MAX_LEN);
-  auto array_exists = false;
-  for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
-  {
-    if(ws_entry_types[i] == TILEDB_ARRAY
-        && strnlen(ws_entries[i], TILEDB_NAME_MAX_LEN+1u) == string_length
-        && strncmp(array_name.c_str(), ws_entries[i], string_length) == 0)
-      array_exists = true;
-    delete[] ws_entries[i];
-  }
-  for(auto i=static_cast<size_t>(num_entries);i<ws_entries.size();++i)
-    delete[] ws_entries[i];
-  return array_exists;
+  VERIFY_OR_THROW(initialize_storage(&m_tiledb_ctx, workspace) == TILEDB_OK && "Failure to initialize TileDB storage");
+  VERIFY_OR_THROW(m_tiledb_ctx != NULL && "Could not get TileDB context");
 }
 
 int VariantStorageManager::open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
@@ -431,8 +449,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
   auto mode_iter = VariantStorageManager::m_mode_string_to_int.find(mode);
   VERIFY_OR_THROW(mode_iter != VariantStorageManager::m_mode_string_to_int.end() && "Unknown mode of opening an array");
   auto mode_int = (*mode_iter).second;
-  auto array_exists = check_if_TileDB_array_exists(array_name);
-  if(array_exists)
+  if(is_array(m_tiledb_ctx, m_workspace + '/' + array_name))
   {
     //Try to open the array
     TileDB_Array* tiledb_array;
@@ -447,13 +464,7 @@ int VariantStorageManager::open_array(const std::string& array_name, const VidMa
       auto idx = m_open_arrays_info_vector.size();
       //Schema
       VariantArraySchema tmp_schema;
-      get_array_schema(array_name, &tmp_schema);
-      //Check for metadata JSON file
-      auto* fptr = fopen(GET_METADATA_PATH(m_workspace, array_name).c_str(), "r");
-      if(fptr == 0) //file doesn't exist
-        define_metadata_schema(&tmp_schema);
-      else
-        fclose(fptr);
+      get_array_schema(array_name, &tmp_schema);     
       m_open_arrays_info_vector.emplace_back(idx, mode_int,
           m_workspace, array_name,
           vid_mapper, tmp_schema,
@@ -543,37 +554,18 @@ int VariantStorageManager::define_array(const VariantArraySchema* variant_array_
   if(status == TILEDB_OK)
   {
     status = tiledb_array_free_schema(&array_schema);
-    if(status == TILEDB_OK)
-      status = define_metadata_schema(variant_array_schema);
   }
   return status;
 }
 
 void VariantStorageManager::delete_array(const std::string& array_name)
 {
-  auto array_exists = check_if_TileDB_array_exists(array_name);
-  if(array_exists)
+  if(is_array(m_tiledb_ctx, m_workspace + '/' + array_name))
   {
-    remove(GET_METADATA_PATH(m_workspace, array_name).c_str());
-    auto status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
-    VERIFY_OR_THROW(status == TILEDB_OK);
+    if (is_file(m_tiledb_ctx, GET_METADATA_PATH(m_workspace, array_name)))
+        VERIFY_OR_THROW(delete_file(m_tiledb_ctx, GET_METADATA_PATH(m_workspace, array_name)) == TILEDB_OK);
+    VERIFY_OR_THROW(tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str()) == TILEDB_OK);
   }
-}
-
-//Define metadata
-int VariantStorageManager::define_metadata_schema(const VariantArraySchema* variant_array_schema)
-{
-  auto* fptr = fopen(GET_METADATA_PATH(m_workspace, variant_array_schema->array_name()).c_str(), "w");
-  VERIFY_OR_THROW(fptr);
-  //Create empty JSON
-  rapidjson::Document d;
-  d.SetObject();
-  rapidjson::StringBuffer buffer;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-  d.Accept(writer);
-  fwrite(buffer.GetString(), 1, strlen(buffer.GetString()), fptr);
-  fclose(fptr);
-  return TILEDB_OK;
 }
 
 int VariantStorageManager::get_array_schema(const int ad, VariantArraySchema* variant_array_schema)
