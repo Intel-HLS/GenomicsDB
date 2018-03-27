@@ -588,12 +588,16 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         }
 
         executor.shutdown();
+
+        mDone = true;
     }
 
-    private static GenomicsDBImporter createImporter(ParallelImportConfig parallelImportConfig,
+    private static GenomicsDBImporter createImporter(final ParallelImportConfig inputParallelImportConfig,
                                                      final int samplesSize, final int index,
                                                      final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                                      final int rank) throws IOException {
+        //since this may be called in a multi-threaded env, do a deep copy
+        ParallelImportConfig parallelImportConfig = new ParallelImportConfig(inputParallelImportConfig);
         String chromosomeName = parallelImportConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getContig();
         int chromosomeStart = (int) parallelImportConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getPosition();
         int chromosomeEnd = (int) parallelImportConfig.getImportConfiguration().getColumnPartitions(rank).getEnd().getContigPosition().getPosition();

@@ -61,6 +61,35 @@ public class ParallelImportConfig {
         this.setSampleToReaderMapCreator(sampleToReaderMapCreator);
     }
 
+    //Deep copy constructor
+    public ParallelImportConfig(final ParallelImportConfig source) {
+        this.setImportConfiguration(
+                source.getImportConfiguration() != null
+                ? source.getImportConfiguration().toBuilder().build()
+                : null);
+        this.validateChromosomeIntervals();
+        this.setValidateSampleToReaderMap(source.isValidateSampleToReaderMap());
+        this.setPassAsVcf(source.isPassAsVcf());
+        this.setUseSamplesInOrder(source.isUseSamplesInOrder());
+        this.setBatchSize(source.getBatchSize());
+        //Cannot deep copy mergedHeader easily - so do shallow copy and make it unmodifiable
+        this.setMergedHeader(source.getMergedHeader());
+        //Deep copy sample name to path
+        if(source.getSampleNameToVcfPath() != null) {
+            LinkedHashMap<String, Path> sampleNameToVcfPath = new LinkedHashMap<String, Path>();
+            for(Map.Entry<String, Path> currEntry : source.getSampleNameToVcfPath().entrySet())
+                sampleNameToVcfPath.put(currEntry.getKey(), currEntry.getValue());
+            this.setSampleNameToVcfPath(sampleNameToVcfPath);
+        }
+        //Function object - no deep copy
+        this.setSampleToReaderMapCreator(source.sampleToReaderMapCreator());
+        //Deep copy
+        this.setOutputVidmapJsonFile(source.getOutputVidmapJsonFile() != null
+                ? new String(source.getOutputVidmapJsonFile()): null);
+        this.setOutputCallsetmapJsonFile(source.getOutputCallsetmapJsonFile() != null
+                ? new String(source.getOutputCallsetmapJsonFile()): null);
+    }
+
     protected ParallelImportConfig() {
     }
 
@@ -161,7 +190,7 @@ public class ParallelImportConfig {
     }
 
     public Set<VCFHeaderLine> getMergedHeader() {
-        return mergedHeader;
+        return Collections.unmodifiableSet(mergedHeader);
     }
 
     public void setMergedHeader(Set<VCFHeaderLine> mergedHeader) {
