@@ -120,6 +120,7 @@ LoaderArrayWriter::LoaderArrayWriter(
         config_filename,
         id_mapper->get_num_callsets(),
         rank,
+        id_mapper,
         vid_mapper_file_required),
         m_array_descriptor(-1),
         m_schema(0),
@@ -308,14 +309,18 @@ void LoaderArrayWriter::finish(const int64_t column_interval_end)
 }
 
 #ifdef HTSDIR
-LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
-    bool handle_spanning_deletions, int partition_idx, const ColumnRange& partition_range)
-  : LoaderOperatorBase(config_filename, id_mapper->get_num_callsets(), partition_idx), m_schema(0), m_query_processor(0), m_operator(0)
+LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper,
+    const std::string& config_filename,
+    int partition_idx,
+    const bool vid_mapper_file_required)
+  : LoaderOperatorBase(config_filename,
+      id_mapper->get_num_callsets(),
+      partition_idx,
+      id_mapper,
+      vid_mapper_file_required),
+  m_schema(0), m_query_processor(0), m_operator(0)
 {
   clear(); 
-  //Loader configuration
-  if(!m_loader_json_config.is_partitioned_by_row())
-    m_column_partition = m_loader_json_config.get_column_partition(partition_idx);
   //initialize arguments
   m_vid_mapper = id_mapper;
   //initialize query processor
@@ -343,7 +348,10 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
     m_buffered_vcf_adapter = 0;
   }
   JSONVCFAdapterConfig vcf_adapter_config;
-  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, "", partition_idx);
+  VidMapper tmp_vid_mapper;
+  if(m_vid_mapper)
+    tmp_vid_mapper = *m_vid_mapper;
+  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, &tmp_vid_mapper, "", partition_idx);
   //Initialize operator
   if(vcf_adapter_config.get_determine_sites_with_max_alleles() > 0)
     m_operator = new MaxAllelesCountOperator(vcf_adapter_config.get_determine_sites_with_max_alleles());
@@ -355,8 +363,6 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_variant.resize_based_on_query();
   //Cell
   m_cell = new BufferVariantCell(*m_schema, m_query_config);
-  //Partition bounds
-  m_partition = partition_range;
   //PQ elements
   m_tmp_pq_vector.resize(m_query_config.get_num_rows_to_query());
   //Position elements
@@ -364,7 +370,6 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
   m_next_start_position = -1ll;
   //Deletion flags
   m_num_calls_with_deletions = 0;
-  m_handle_spanning_deletions = handle_spanning_deletions;
   //Profiling
 #ifdef DO_PROFILING
   m_stats_ptr = &m_stats;
@@ -402,15 +407,15 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       return;
   }
   //Either un-initialized or VariantCall interval starts before/at partition begin value
-  if(m_current_start_position < 0 || column_begin <= m_partition.first)
+  if(m_current_start_position < 0 || column_begin <= m_column_partition.first)
   {
     m_current_start_position = column_begin;
     m_variant.set_column_interval(column_begin, column_begin);
   }
-  else  //column_begin > m_partition.first, check if m_current_start_position < m_partition.first
-    if(m_current_start_position < m_partition.first)
+  else  //column_begin > m_column_partition.first, check if m_current_start_position < m_column_partition.first
+    if(m_current_start_position < m_column_partition.first)
     {
-      m_current_start_position = m_partition.first;
+      m_current_start_position = m_column_partition.first;
       m_variant.set_column_interval(m_current_start_position, m_current_start_position);
     }
   m_cell->set_cell(cell_ptr);
@@ -418,7 +423,8 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       m_variant, *m_operator, *m_cell,
       m_end_pq, m_tmp_pq_vector,
       m_current_start_position, m_next_start_position,
-      m_num_calls_with_deletions, m_handle_spanning_deletions,
+      m_num_calls_with_deletions,
+      m_loader_json_config.treat_deletions_as_intervals(),
       m_stats_ptr);
 #ifdef DO_MEMORY_PROFILING
   statm_t mem_result;
@@ -438,9 +444,9 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
   assert(!m_offload_vcf_output_processing || m_buffered_vcf_adapter->get_num_entries_with_valid_data() == 0u);
   pre_operate_sequential();
   //Fix start and next_start positions if necessary
-  if(m_current_start_position < m_partition.first)
+  if(m_current_start_position < m_column_partition.first)
   {
-    m_current_start_position = m_partition.first;
+    m_current_start_position = m_column_partition.first;
     m_variant.set_column_interval(m_current_start_position, m_current_start_position);
   }
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;

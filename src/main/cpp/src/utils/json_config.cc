@@ -53,11 +53,26 @@ void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value&
   VERIFY_OR_THROW(curr_json_object.MemberCount() == 1);
   auto itr = curr_json_object.MemberBegin();
   std::string contig_name = itr->name.GetString();
+  const rapidjson::Value* contig_position_ptr = 0;
+  if(contig_name == "contig_position") // Produced by PB
+  {
+    VERIFY_OR_THROW(itr->value.IsObject());
+    auto& pb_contig_position_dict = itr->value;
+    VERIFY_OR_THROW(pb_contig_position_dict.MemberCount() == 2);
+    VERIFY_OR_THROW(pb_contig_position_dict.HasMember("contig")
+        && pb_contig_position_dict["contig"].IsString()
+        && pb_contig_position_dict.HasMember("position")
+        && pb_contig_position_dict["position"].IsInt64());
+    contig_name = pb_contig_position_dict["contig"].GetString();
+    contig_position_ptr = &(pb_contig_position_dict["position"]);
+  }
+  else
+    contig_position_ptr = &(itr->value);
   ContigInfo contig_info;
   VERIFY_OR_THROW(id_mapper != 0 && id_mapper->is_initialized());
   if (!id_mapper->get_contig_info(contig_name, contig_info))
     throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
-  const rapidjson::Value& contig_position = itr->value;
+  const rapidjson::Value& contig_position = *contig_position_ptr;
   if (contig_position.IsArray())
   {
     VERIFY_OR_THROW(contig_position.Size() == 2);
@@ -78,14 +93,98 @@ void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value&
 
 //JSON produced by Protobuf - { "low":<>, "high":<> }
 bool JSONConfigBase::extract_interval_from_PB_struct_or_return_false(const rapidjson::Value& curr_json_object,
+    const VidMapper* id_mapper,
     ColumnRange& result)
 {
-  if(curr_json_object.IsObject() && curr_json_object.MemberCount() == 2u &&
-      curr_json_object.HasMember("low") && curr_json_object.HasMember("high"))
+  VERIFY_OR_THROW(id_mapper != 0 && id_mapper->is_initialized());
+  if(curr_json_object.IsObject())
   {
-    result.first = curr_json_object["low"].GetInt64();
-    result.second = curr_json_object["high"].GetInt64();
-    return true;
+    //Dictionary of the form { "high": <>, "low": <> }
+    if(curr_json_object.MemberCount() == 2u &&
+        curr_json_object.HasMember("low") && curr_json_object.HasMember("high"))
+    {
+      result.first = curr_json_object["low"].GetInt64();
+      result.second = curr_json_object["high"].GetInt64();
+      return true;
+    }
+    if(curr_json_object.MemberCount() == 1u)
+    {
+      //Dictionary representing column interval
+      if(curr_json_object.HasMember("column_interval"))
+      {
+        const auto& interval_object = curr_json_object["column_interval"];
+        //This could be TileDB column interval or contig interval
+        if(interval_object.IsObject())
+        {
+          //TileDB column interval
+          if(interval_object.HasMember("column_interval")
+              && interval_object["column_interval"].IsObject()
+              && interval_object["column_interval"].HasMember("begin")
+              && interval_object["column_interval"].HasMember("end"))
+          {
+            result.first = interval_object["column_interval"]["begin"].GetInt64();
+            result.second = interval_object["column_interval"]["end"].GetInt64();
+            return true;
+          }
+          else
+            if(interval_object.HasMember("contig_interval")
+                && interval_object["contig_interval"].IsObject()
+                && interval_object["contig_interval"].HasMember("contig")
+                && interval_object["contig_interval"].HasMember("begin")
+                && interval_object["contig_interval"].HasMember("end"))
+            {
+              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+              result.first = interval_object["contig_interval"]["begin"].GetInt64() - 1;
+              result.second = interval_object["contig_interval"]["end"].GetInt64() - 1;
+              ContigInfo contig_info;
+              auto contig_name = interval_object["contig_interval"]["contig"].GetString();
+              if (!id_mapper->get_contig_info(contig_name, contig_info))
+                throw VidMapperException(std::string("JSONConfigBase::read_from_file: Invalid contig name : ")
+                    + contig_name );
+              result.first += contig_info.m_tiledb_column_offset;
+              result.second += contig_info.m_tiledb_column_offset;
+              return true;
+            }
+        }
+      }
+      else
+      {
+        //Dictionary representing column position
+        if(curr_json_object.HasMember("column"))
+        {
+          const auto& interval_object = curr_json_object["column"];
+          //This could be TileDB column or contig position
+          if(interval_object.IsObject())
+          {
+            //TileDB column
+            if(interval_object.HasMember("tiledb_column")
+                && interval_object["tiledb_column"].IsInt64())
+            {
+              result.first = interval_object["tiledb_column"].GetInt64();
+              result.second = result.first;
+              return true;
+            }
+            else
+              if(interval_object.HasMember("contig_position")
+                  && interval_object["contig_position"].IsObject()
+                  && interval_object["contig_position"].HasMember("contig")
+                  && interval_object["contig_position"].HasMember("position"))
+              {
+                // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+                result.first = interval_object["contig_position"]["position"].GetInt64() - 1;
+                ContigInfo contig_info;
+                auto contig_name = interval_object["contig_position"]["contig"].GetString();
+                if (!id_mapper->get_contig_info(contig_name, contig_info))
+                  throw VidMapperException(std::string("JSONConfigBase::read_from_file: Invalid contig name : ")
+                      + contig_name );
+                result.first += contig_info.m_tiledb_column_offset;
+                result.second = result.first;
+                return true;
+              }
+          }
+        }
+      }
+    }
   }
   return false;
 }
@@ -98,7 +197,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   m_json.Parse(str.c_str());
   if(m_json.HasParseError())
     throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
-  FileBasedVidMapper tmp_vid_mapper;
+  VidMapper tmp_vid_mapper;
   //Null or un-initialized
   if(id_mapper == 0 || !(id_mapper->is_initialized()))
   {
@@ -183,9 +282,17 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         VERIFY_OR_THROW(curr_q1_entry.IsArray() || curr_q1_entry.IsObject());
         //JSON produced by Protobuf - { "range_list": [ { "low":<>, "high":<> } ] }
         if(curr_q1_entry.IsObject())
-          VERIFY_OR_THROW(curr_q1_entry.MemberCount() == 1u && curr_q1_entry.HasMember("range_list"));
+        {
+          if(curr_q1_entry.MemberCount() == 0u)
+            continue;
+          VERIFY_OR_THROW(curr_q1_entry.MemberCount() == 1u &&
+              (curr_q1_entry.HasMember("range_list")
+               || curr_q1_entry.HasMember("column_or_interval_list")));
+        }
         const rapidjson::Value& q2 = curr_q1_entry.IsArray() ? q1[i]
-          : curr_q1_entry["range_list"];
+          : (curr_q1_entry.HasMember("range_list")
+              ?  curr_q1_entry["range_list"]
+              : curr_q1_entry["column_or_interval_list"]);
         VERIFY_OR_THROW(q2.IsArray());
         m_column_ranges[i].resize(q2.Size());
         for(rapidjson::SizeType j=0;j<q2.Size();++j)
@@ -216,7 +323,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
           }
           else
-            if(!extract_interval_from_PB_struct_or_return_false(q3, m_column_ranges[i][j])) //check if PB based JSON
+            if(!extract_interval_from_PB_struct_or_return_false(q3, id_mapper, m_column_ranges[i][j])) //check if PB based JSON
             {
               //must be object { "chr" : [ b , e ] }
               extract_contig_interval_from_object(q3, id_mapper, m_column_ranges[i][j]);
@@ -347,7 +454,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             }
             else
               if(q3.IsObject()) //Must be PB generated JSON object { "low": <>, "high": <> }
-                VERIFY_OR_THROW(extract_interval_from_PB_struct_or_return_false(q3, m_row_ranges[i][j]));
+                VERIFY_OR_THROW(extract_interval_from_PB_struct_or_return_false(q3, id_mapper, m_row_ranges[i][j]));
           }
           if(m_row_ranges[i][j].first > m_row_ranges[i][j].second)
             std::swap<int64_t>(m_row_ranges[i][j].first, m_row_ranges[i][j].second);
@@ -488,7 +595,7 @@ const std::vector<ColumnRange>& JSONConfigBase::get_query_column_ranges(const in
   return m_column_ranges[fixed_rank];
 }
 
-void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank)
+void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank)
 {
   auto& vid_mapping_file = m_vid_mapping_file;
   auto& callset_mapping_file = m_callset_mapping_file;
@@ -580,7 +687,7 @@ void JSONBasicQueryConfig::subset_query_column_ranges_based_on_partition(const J
 }
 
 void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-    FileBasedVidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
+    VidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
 {
   //Need to parse here first because id_mapper initialization in read_and_initialize_vid_and_callset_mapping_if_available() requires
   //valid m_json object
@@ -679,7 +786,7 @@ JSONLoaderConfig::JSONLoaderConfig(
   m_no_mandatory_VCF_fields = false;
 }
 
-void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper, const int rank)
+void JSONLoaderConfig::read_from_file(const std::string& filename, VidMapper* id_mapper, const int rank)
 {
   JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //Check for row based partitioning - default column based
@@ -794,10 +901,12 @@ void JSONLoaderConfig::read_from_file(const std::string& filename, FileBasedVidM
 #ifdef HTSDIR
 
 void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
-    VCFAdapter& vcf_adapter, std::string output_format, const int rank,
+    VCFAdapter& vcf_adapter,
+    VidMapper* id_mapper,
+    std::string output_format, const int rank,
     const size_t combined_vcf_records_buffer_size_limit)
 {
-  JSONConfigBase::read_from_file(filename, 0, rank);
+  JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //VCF header filename
   if(m_json.HasMember("vcf_header_filename"))
   {
@@ -910,11 +1019,12 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
 }
 
 void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
+        VCFAdapter& vcf_adapter, VidMapper* id_mapper,
         std::string output_format, const int rank, const size_t combined_vcf_records_buffer_size_limit)
 {
   JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
-  JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, output_format, rank, combined_vcf_records_buffer_size_limit);
+  JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, id_mapper,
+      output_format, rank, combined_vcf_records_buffer_size_limit);
   query_config.set_sites_only_query(vcf_adapter.sites_only_query());
 }
 #endif

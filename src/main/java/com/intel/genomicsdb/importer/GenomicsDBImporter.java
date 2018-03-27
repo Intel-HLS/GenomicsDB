@@ -479,12 +479,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         }
     }
 
-    //TODO: this is going to be private access and after that should write in parallel.
+    //This should be public because there can be use cases where iterator<VariantContext>
+    //are not used - the data is written to buffers directly after which this function is
+    //called. See TestBufferStreamGenomicsDBImporter.java for an example
     /**
      * @return true if the import process is done
-     * @throws IOException if the wimport fails
+     * @throws IOException if the import fails
      */
-    private boolean executeSingleImport() throws IOException {
+    public boolean executeSingleImport() throws IOException {
         if (mDone)
             return true;
         if (!mIsLoaderSetupDone)

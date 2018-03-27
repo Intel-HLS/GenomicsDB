@@ -140,6 +140,24 @@ def print_diff(golden_output, test_output):
     print(test_output);
     print("=======END=======");
 
+def modify_query_column_ranges_for_PB(test_query_dict):
+    if('query_column_ranges' in test_query_dict):
+        original_query_column_ranges = test_query_dict['query_column_ranges']
+        new_query_column_ranges = []
+        for curr_entry in original_query_column_ranges:
+            if(type(curr_entry) is dict and 'range_list' in curr_entry):
+                new_interval_list = []
+                for curr_interval in curr_entry['range_list']:
+                    if(type(curr_interval) is dict and 'low' in curr_interval
+                            and 'high' in curr_interval):
+                        new_interval_list.append({'column_interval': { 'column_interval':
+                            { 'begin': curr_interval['low'], 'end': curr_interval['high'] } } })
+                new_entry = { 'column_or_interval_list': new_interval_list }
+                new_query_column_ranges.append(new_entry)
+        test_query_dict['query_column_ranges'] = new_query_column_ranges
+
+
+
 def cleanup_and_exit(tmpdir, exit_code):
     if(exit_code == 0):
         shutil.rmtree(tmpdir, ignore_errors=True)
@@ -839,6 +857,8 @@ def main():
                         if((query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1)
                                 and 'force_override' not in query_param_dict):
                             test_query_dict['attributes'] = vcf_attributes_order;
+                        if(query_type.find('java_vcf') != -1 and 'pass_through_query_json' not in query_param_dict):
+                            modify_query_column_ranges_for_PB(test_query_dict)
                         query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                         with open(query_json_filename, 'wb') as fptr:
                             json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
