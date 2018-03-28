@@ -179,6 +179,24 @@ def main():
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
     loader_tests = [
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'chromosome_intervals': [ '1:1-12160', '1:12161-12200', '1:12201-18000' ],
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                "query_params": [
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 18000
+                        }]
+                    }],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
+                        } }
+                ]
+            },
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 "query_params": [
@@ -530,7 +548,7 @@ def main():
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges": [{
@@ -563,7 +581,7 @@ def main():
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8",
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges": [{
@@ -629,7 +647,7 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS_ID",
                 'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "query_params": [
                     { "query_column_ranges": [{
                         "range_list": [{
@@ -749,7 +767,7 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_all_asa",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_all_asa.json',
                 'vid_mapping_file': 'inputs/vid_all_asa.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "query_params": [
                     { "query_column_ranges": [{
                         "range_list": [{
@@ -815,8 +833,10 @@ def main():
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir \
-                    +' --use_samples_in_order ' + ' --batchsize=2 ';
+            arg_list = ''
+            for interval in test_params_dict['chromosome_intervals']:
+                arg_list += ' -L '+interval
+            arg_list += ' -w ' + ws_dir +' --use_samples_in_order ' + ' --batchsize=2 ';
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
