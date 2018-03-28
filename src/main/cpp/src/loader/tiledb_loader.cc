@@ -1050,7 +1050,7 @@ int VCF2TileDBLoader::create_tiledb_workspace(const std::string& workspace)
   TileDB_CTX* tiledb_ctx = 0;
   VERIFY_OR_THROW(initialize_storage(&tiledb_ctx, workspace) == TILEDB_OK);
   VERIFY_OR_THROW(tiledb_ctx != NULL);
-  VERIFY_OR_THROW(finalize_storage(tiledb_ctx));
+  VERIFY_OR_THROW(finalize_storage(tiledb_ctx) == TILEDB_OK);
   return 0;
 }
 
