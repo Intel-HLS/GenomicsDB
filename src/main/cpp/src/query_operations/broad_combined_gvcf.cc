@@ -169,7 +169,9 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
           && VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
           );
       auto add_to_FORMAT_vector = (
-	  (field_info->m_is_vcf_FORMAT_field && (!sites_only_query || known_field_enum == GVCF_DP_FORMAT_IDX)) //FORMAT field when !sites_only_query or FORMAT field specifically GVCF_DP_FORMAT_IDX
+	  (field_info->m_is_vcf_FORMAT_field && (!sites_only_query
+                                                 || known_field_enum == GVCF_DP_FORMAT_IDX
+                                                 || known_field_enum == GVCF_MIN_DP_IDX)) //FORMAT field when !sites_only_query or FORMAT field specifically GVCF_DP_FORMAT_IDX or GVCF_MIN_DP_IDX
 	   ||
           (field_info->m_is_vcf_INFO_field
            && ((known_field_enum == GVCF_DP_IDX && VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP)
@@ -623,7 +625,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     if(valid_field_found)
     {
       auto j=0u;
-      auto do_insert = true;    //by default, insert into VCF record
+      auto do_insert = !(m_vcf_adapter->sites_only_query());    //by default, insert into VCF record if !sites_only
       switch(known_field_enum)
       {
         case GVCF_GT_IDX: //GT field is a pita
@@ -1019,10 +1021,13 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto& input_GT =
           original_GT_field_ptr->get();
         m_spanning_deletion_remapped_GT.resize(input_GT.size());
+        auto null_PL_ptr = std::move(std::unique_ptr<VariantFieldBase>(nullptr));
         auto remap_GT_based_on_input_GT =
           update_GT_to_correspond_to_min_PL_value(
               query_config,
-              curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX)),
+              query_config.is_defined_query_idx_for_known_field_enum(GVCF_PL_IDX)
+              ? curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX))
+              : null_PL_ptr,
               input_GT,
               GT_length_descriptor,
               num_reduced_alleles,
