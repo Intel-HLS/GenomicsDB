@@ -74,33 +74,6 @@ public class ImportConfig {
         this.setSampleToReaderMapCreator(sampleToReaderMapCreator);
     }
 
-    /**
-     * Deep copy constructor
-     * @param source Source ImportConfig
-     */
-    public ImportConfig(final ImportConfig source) {
-        this.setImportConfiguration(source.getImportConfiguration() != null ?
-                source.getImportConfiguration().toBuilder().build() : null);
-        this.validateChromosomeIntervals();
-        this.setValidateSampleToReaderMap(source.isValidateSampleToReaderMap());
-        this.setPassAsVcf(source.isPassAsVcf());
-        this.setUseSamplesInOrder(source.isUseSamplesInOrder());
-        this.setBatchSize(source.getBatchSize());
-        //Cannot deep copy mergedHeader easily - so do shallow copy and make it unmodifiable
-        this.setMergedHeader(source.getMergedHeader());
-        //Deep copy sample name to path
-        if(source.getSampleNameToVcfPath() != null) {
-            this.setSampleNameToVcfPath(new LinkedHashMap<>(source.getSampleNameToVcfPath()));
-        }
-        //Function object - no deep copy
-        this.setSampleToReaderMapCreator(source.sampleToReaderMapCreator());
-        //Deep copy
-        this.setOutputVidmapJsonFile(source.getOutputVidmapJsonFile() != null ?
-                new String(source.getOutputVidmapJsonFile()) : null);
-        this.setOutputCallsetmapJsonFile(source.getOutputCallsetmapJsonFile() != null ?
-                new String(source.getOutputCallsetmapJsonFile()) : null);
-    }
-
     protected ImportConfig() {
     }
 
