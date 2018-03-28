@@ -1021,10 +1021,13 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
         auto& input_GT =
           original_GT_field_ptr->get();
         m_spanning_deletion_remapped_GT.resize(input_GT.size());
+        auto null_PL_ptr = std::move(std::unique_ptr<VariantFieldBase>(nullptr));
         auto remap_GT_based_on_input_GT =
           update_GT_to_correspond_to_min_PL_value(
               query_config,
-              curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX)),
+              query_config.is_defined_query_idx_for_known_field_enum(GVCF_PL_IDX)
+              ? curr_call.get_field(query_config.get_query_idx_for_known_field_enum(GVCF_PL_IDX))
+              : null_PL_ptr,
               input_GT,
               GT_length_descriptor,
               num_reduced_alleles,
