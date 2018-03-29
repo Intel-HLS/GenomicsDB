@@ -22,6 +22,7 @@
 
 package com.intel.genomicsdb.reader;
 
+import com.intel.genomicsdb.model.Coordinates;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
@@ -30,6 +31,8 @@ import htsjdk.variant.bcf2.BCF2Codec;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -48,39 +51,52 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
     /**
      * Constructor
      *
-     * @param loaderJSONFile GenomicsDB loader JSON configuration file
-     * @param queryJSONFiles  GenomicsDB query JSON configuration file list
-     * @param codec          FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                       and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param loaderJSONFile     GenomicsDB loader JSON configuration file
+     * @param queryJSONFiles     GenomicsDB query JSON configuration file list
+     * @param featureCodecHeader htsjdk Feature codec header
+     * @param codec              FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *                           and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param intervalPerArray   Optional map of relation between qjf and a contig interval
      * @throws IOException when data cannot be read from the stream
      */
     GenomicsDBFeatureIterator(final String loaderJSONFile, final List<String> queryJSONFiles,
-                              final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec)
+                              final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec,
+                              final Optional<Map<String, Coordinates.ContigInterval>> intervalPerArray)
             throws IOException {
-        this(loaderJSONFile, queryJSONFiles, featureCodecHeader, codec, "", 0, 0);
+        this(loaderJSONFile, queryJSONFiles, featureCodecHeader, codec, "", 0, 0, intervalPerArray);
     }
 
     /**
      * Constructor
      *
-     * @param loaderJSONFile GenomicsDB loader JSON configuration file
-     * @param queryJSONFiles  GenomicsDB query JSON configuration file list
-     * @param codec          FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                       and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @param chr            contig name
-     * @param start          start position (1-based)
-     * @param end            end position, inclusive (1-based)
+     * @param loaderJSONFile     GenomicsDB loader JSON configuration file
+     * @param queryJSONFiles     GenomicsDB query JSON configuration file list
+     * @param featureCodecHeader htsjdk Feature codec header
+     * @param codec              FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *                           and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param chr                contig name
+     * @param start              start position (1-based)
+     * @param end                end position, inclusive (1-based)
+     * @param intervalPerArray   Optional map of relation between qjf and a contig interval
      * @throws IOException when data cannot be read from the stream
      */
     GenomicsDBFeatureIterator(final String loaderJSONFile, final List<String> queryJSONFiles,
-                                     final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec,
-                                     final String chr, final int start, final int end) throws IOException {
+                              final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec,
+                              final String chr, final int start, final int end,
+                              final Optional<Map<String, Coordinates.ContigInterval>> intervalPerArray) throws IOException {
         this.featureCodecHeader = featureCodecHeader;
         this.codec = codec;
         boolean readAsBCF = this.codec instanceof BCF2Codec;
+        boolean areIntervalPerArraySpecified = intervalPerArray.isPresent() && intervalPerArray.get().size() > 0;
         this.sources = queryJSONFiles.stream().map(qjf -> {
-            GenomicsDBQueryStream genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr,
-                    start, end, readAsBCF);
+            GenomicsDBQueryStream genomicsDBQueryStream;
+            if (areIntervalPerArraySpecified) {
+                Coordinates.ContigInterval interval = intervalPerArray.get().get(qjf);
+                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
+                        (int) interval.getBegin(), (int) interval.getEnd(), readAsBCF);
+            } else {
+                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr, start, end, readAsBCF);
+            }
             if (readAsBCF) { //BCF2 codec provides size of header
                 try {
                     genomicsDBQueryStream.skip(this.featureCodecHeader.getHeaderEnd());
