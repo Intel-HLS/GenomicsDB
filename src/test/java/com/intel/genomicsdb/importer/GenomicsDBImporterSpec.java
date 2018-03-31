@@ -205,7 +205,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
-                .setArray("1#17000#18000")
+                .setArrayName("1#17000#18000")
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());

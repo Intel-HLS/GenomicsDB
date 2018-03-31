@@ -115,7 +115,7 @@ public class GenomicsDBExportConfigurationSpec {
     GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration =
       configBuilder
         .setWorkspace(TILEDB_WORKSPACE)
-        .setArray(TEST_ARRAY)
+        .setArrayName(TEST_ARRAY)
     .setReferenceGenome(REFERENCE_GENOME)
         .addQueryColumnRanges(list)
         .addAllQueryRowRanges(rowRangeLists)        
@@ -133,7 +133,7 @@ public class GenomicsDBExportConfigurationSpec {
 
     // Assert has methods
     Assert.assertEquals(exportConfiguration.hasWorkspace(), true);
-    Assert.assertEquals(exportConfiguration.hasArray(), true);
+    Assert.assertEquals(exportConfiguration.hasArrayName(), true);
     Assert.assertEquals(exportConfiguration.hasReferenceGenome(), true);
     Assert.assertEquals(exportConfiguration.hasVidMappingFile(), true);
     Assert.assertEquals(exportConfiguration.hasCallsetMappingFile(), true);
@@ -145,7 +145,7 @@ public class GenomicsDBExportConfigurationSpec {
     
     // Assert gets
     Assert.assertEquals(exportConfiguration.getWorkspace(), TILEDB_WORKSPACE);
-    Assert.assertEquals(exportConfiguration.getArray(), TEST_ARRAY);
+    Assert.assertEquals(exportConfiguration.getArrayName(), TEST_ARRAY);
     Assert.assertEquals(exportConfiguration.getReferenceGenome(), REFERENCE_GENOME);
     Assert.assertEquals(exportConfiguration.getQueryColumnRangesCount(), 1);
 

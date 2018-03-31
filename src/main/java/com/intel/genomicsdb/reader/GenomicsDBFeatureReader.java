@@ -67,8 +67,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         this.exportConfiguration = exportConfiguration;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");
-        String[] chromosomeIntervalArrays = this.exportConfiguration.hasArray() ? new String[]{
-                exportConfiguration.getArray()
+        String[] chromosomeIntervalArrays = this.exportConfiguration.hasArrayName() ? new String[]{
+                exportConfiguration.getArrayName()
         } : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
         if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.length < 1)
             throw new IllegalStateException("There is no genome data stored in the database");
@@ -124,9 +124,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         List<String> chromosomeIntervalArraysPaths =
                 (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
                         ? Collections.singletonList(this.queryJsonFileName)
-                        : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
+                        : this.exportConfiguration.hasArrayName() ? createArrayFolderListFromArrayStream(
                         new ArrayList<String>() {{
-                            add(exportConfiguration.getArray());
+                            add(exportConfiguration.getArrayName());
                         }}.stream()) : resolveChromosomeArrayFolderList();
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths,
                 this.featureCodecHeader, this.codec, Optional.of(this.intervalsPerArray));
@@ -145,9 +145,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         List<String> chromosomeIntervalArraysPaths =
                 (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
                         ? Collections.singletonList(this.queryJsonFileName)
-                        : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
+                        : this.exportConfiguration.hasArrayName() ? createArrayFolderListFromArrayStream(
                         new ArrayList<String>() {{
-                            add(exportConfiguration.getArray());
+                            add(exportConfiguration.getArrayName());
                         }}.stream()) : resolveChromosomeArrayFolderList(chr, start, end);
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths, this.featureCodecHeader,
                 this.codec, chr, start, end, Optional.empty());
@@ -192,9 +192,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private List<String> createArrayFolderListFromArrayStream(Stream<String> stream) {
         return stream.map(name -> {
             GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
-                    GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration).setArray(name).build();
+                    GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration).setArrayName(name).build();
             try {
-                return createTempQueryJsonFile(fullExportConfiguration.getArray(), fullExportConfiguration).getAbsolutePath();
+                return createTempQueryJsonFile(fullExportConfiguration.getArrayName(), fullExportConfiguration).getAbsolutePath();
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -204,7 +204,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private void generateHeadersForQuery(final String randomExistingArrayName) throws IOException {
         GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
                 GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration)
-                        .setArray(randomExistingArrayName).build();
+                        .setArrayName(randomExistingArrayName).build();
         File queryJSONFile = createTempQueryJsonFile(randomExistingArrayName, fullExportConfiguration);
         generateHeadersForQueryGivenQueryJSONFile(queryJSONFile.getAbsolutePath());
         queryJSONFile.delete();

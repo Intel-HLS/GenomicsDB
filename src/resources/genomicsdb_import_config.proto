@@ -40,9 +40,12 @@ import "genomicsdb_coordinates.proto";
 message Partition {
   required GenomicsDBColumn begin = 1;
   optional string workspace = 2;
-  optional string array = 3 [default = "genomicsdb_array"];
-  optional string vcf_output_filename = 4;
-  optional GenomicsDBColumn end = 5;
+  oneof array {
+    string array_name = 3;
+    bool generate_array_name_from_partition_bounds = 4;
+  }
+  optional string vcf_output_filename = 5;
+  optional GenomicsDBColumn end = 6;
 }
 
 message ImportConfiguration {

@@ -98,7 +98,7 @@ public final class TestGenomicsDB
               .setVcfHeaderFilename(templateVCFHeader)
               .setScanFull(true);
       if(!array.isEmpty())
-        exportConfigurationBuilder.setArray(array);
+        exportConfigurationBuilder.setArrayName(array);
       exportConfiguration = exportConfigurationBuilder.build();
       reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
     }

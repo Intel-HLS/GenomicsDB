@@ -40,12 +40,12 @@ public class GenomicsDBImportConfigurationSpec {
     Coordinates.GenomicsDBColumn genomicsDBColumn0 = Coordinates.GenomicsDBColumn.newBuilder().setTiledbColumn(0).build();
     GenomicsDBImportConfiguration.Partition.Builder partition0 = GenomicsDBImportConfiguration.Partition.newBuilder();
     GenomicsDBImportConfiguration.Partition p0 = partition0.setVcfOutputFilename("junk0").setWorkspace(TILEDB_WORKSPACE)
-            .setArray(ARRAY_FOR_PARTITION0).setBegin(genomicsDBColumn0).build();
+            .setArrayName(ARRAY_FOR_PARTITION0).setBegin(genomicsDBColumn0).build();
 
     Coordinates.GenomicsDBColumn genomicsDBColumn1 = Coordinates.GenomicsDBColumn.newBuilder().setTiledbColumn(0).build();
     GenomicsDBImportConfiguration.Partition.Builder partition1 = GenomicsDBImportConfiguration.Partition.newBuilder();
     GenomicsDBImportConfiguration.Partition p1 = partition1.setVcfOutputFilename("junk1").setWorkspace(TILEDB_WORKSPACE)
-            .setArray(ARRAY_FOR_PARTITION1).setBegin(genomicsDBColumn1).build();
+            .setArrayName(ARRAY_FOR_PARTITION1).setBegin(genomicsDBColumn1).build();
 
     partitions.add(p0);
     partitions.add(p1);

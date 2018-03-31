@@ -33,7 +33,7 @@ import jsondiff
 query_json_template_string="""
 {   
         "workspace" : "",
-        "array" : "",
+        "array_name" : "",
         "vcf_header_filename" : ["inputs/template_vcf_header.vcf"],
         "query_column_ranges": [{
             "range_list": [{
@@ -61,7 +61,7 @@ default_segment_size = 40
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
-    test_dict["array"] = test_name
+    test_dict["array_name"] = test_name
     test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
     if("vid_mapping_file" in query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
@@ -89,7 +89,7 @@ loader_json_template_string="""
 {
     "row_based_partitioning" : false,
     "column_partitions" : [
-        {"begin": 0, "workspace":"", "array": "" }
+        {"begin": 0, "workspace":"", "array_name": "" }
     ],
     "callset_mapping_file" : "",
     "vid_mapping_file" : "inputs/vid.json",
@@ -114,7 +114,7 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     if('column_partitions' in test_params_dict):
         test_dict['column_partitions'] = test_params_dict['column_partitions'];
     test_dict["column_partitions"][0]["workspace"] = ws_dir;
-    test_dict["column_partitions"][0]["array"] = test_name;
+    test_dict["column_partitions"][0]["array_name"] = test_name;
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
@@ -183,6 +183,7 @@ def main():
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 'chromosome_intervals': [ '1:1-12160', '1:12161-12200', '1:12201-18000' ],
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
+                'generate_array_name_from_partition_bounds': True,
                 "query_params": [
                     { "query_column_ranges": [{
                         "range_list": [{
@@ -387,7 +388,7 @@ def main():
             },
             { "name" : "t0_overlapping_at_12202", 'golden_output': 'golden_outputs/t0_overlapping_at_12202',
                 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
-                'column_partitions': [ {"begin": 12202, "workspace":"", "array": "" }]
+                'column_partitions': [ {"begin": 12202, "workspace":"", "array_name": "" }]
             },
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
@@ -836,7 +837,10 @@ def main():
             arg_list = ''
             for interval in test_params_dict['chromosome_intervals']:
                 arg_list += ' -L '+interval
-            arg_list += ' -w ' + ws_dir +' --use_samples_in_order ' + ' --batchsize=2 ';
+            arg_list += ' -w ' + ws_dir +' --use_samples_in_order ' + ' --batchsize=2 '
+            if('generate_array_name_from_partition_bounds' not in test_params_dict or
+                    not test_params_dict['generate_array_name_from_partition_bounds']):
+                arg_list += ' -A ' + test_name
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
@@ -861,9 +865,14 @@ def main():
                 cleanup_and_exit(tmpdir, -1);
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
-                if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-                    test_name = "1#1#100000000"
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
+                if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1 and
+                        'generate_array_name_from_partition_bounds' in test_params_dict
+                        and test_params_dict['generate_array_name_from_partition_bounds']):
+                    if('array' in test_query_dict):
+                        del test_query_dict['array']
+                    if('array_name' in test_query_dict):
+                        del test_query_dict['array_name']
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),

@@ -25,6 +25,7 @@ public class CommandLineImportConfig extends ImportConfig {
             GenomicsDBImportConfiguration.ImportConfiguration.newBuilder();
     private List<GenomicsDBImportConfiguration.Partition.Builder> partitionList = new ArrayList<>();
     private String workspace = "";
+    private String array = "";
     private String vcfOutputFilename = "";
     private Consumer<String[]> chromInterToPartitionList = par -> {
         GenomicsDBImportConfiguration.Partition.Builder partitionBuilder = GenomicsDBImportConfiguration.Partition.newBuilder();
@@ -48,6 +49,10 @@ public class CommandLineImportConfig extends ImportConfig {
         resolveCommandArgs(getOpt);
         partitionList.forEach(partition -> {
                     partition.setWorkspace(this.workspace);
+                    if(array.isEmpty())
+                         partition.setGenerateArrayNameFromPartitionBounds(true);
+                    else
+                         partition.setArrayName(array);
                     if (!vcfOutputFilename.isEmpty()) partition.setVcfOutputFilename(vcfOutputFilename);
                 });
         partitionList.forEach(partition -> configurationBuilder.addColumnPartitions(partition));
@@ -66,7 +71,7 @@ public class CommandLineImportConfig extends ImportConfig {
     }
 
     private LongOpt[] resolveLongOpt() {
-        LongOpt[] longopts = new LongOpt[11];
+        LongOpt[] longopts = new LongOpt[12];
         longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null,
                 ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
         longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null,
@@ -87,6 +92,7 @@ public class CommandLineImportConfig extends ImportConfig {
                 ArgsIdxEnum.ARGS_IDX_SIZE_PER_COLUMN_PARTITION.idx());
         longopts[10] = new LongOpt("segment_size", LongOpt.REQUIRED_ARGUMENT, null,
                 ArgsIdxEnum.ARGS_IDX_SEGMENT_SIZE.idx());
+        longopts[11] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
         return longopts;
     }
 
@@ -98,6 +104,9 @@ public class CommandLineImportConfig extends ImportConfig {
             switch (c) {
                 case 'w':
                     workspace = commandArgs.getOptarg();
+                    break;
+                case 'A':
+                    array = commandArgs.getOptarg();
                     break;
                 case 'L':
                     chromInterToPartitionList.accept(commandArgs.getOptarg().split(":"));
@@ -148,7 +157,7 @@ public class CommandLineImportConfig extends ImportConfig {
 
     private void throwIllegalArgumentException() {
         throw new IllegalArgumentException("Invalid usage. Correct way of using arguments: -L chromosome:interval " +
-                "-w genomicsdbworkspace --size_per_column_partition 10000 --segment_size 1048576 variantfile(s) " +
+                "-w genomicsdbworkspace [-A array] --size_per_column_partition 10000 --segment_size 1048576 variantfile(s) " +
                 "[--use_samples_in_order --fail_if_updating --batchsize=<N> --vidmap-output <path>]");
     }
 

@@ -226,9 +226,10 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
     }
   }
   //Array
-  if(m_json.HasMember("array"))
+  VERIFY_OR_THROW(!(m_json.HasMember("array") && m_json.HasMember("array_name")));
+  if(m_json.HasMember("array") || m_json.HasMember("array_name"))
   {
-    const rapidjson::Value& array_name = m_json["array"];
+    const rapidjson::Value& array_name = m_json.HasMember("array") ? m_json["array"] : m_json["array_name"];
     //array could be an array, one array dir for every rank
     if(array_name.IsArray())
     {
@@ -383,11 +384,15 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
             m_single_workspace_path = false;
           }
-          if(curr_partition_info_dict.HasMember("array"))
+          if(curr_partition_info_dict.HasMember("array") || curr_partition_info_dict.HasMember("array_name"))
           {
+            VERIFY_OR_THROW(!(curr_partition_info_dict.HasMember("array")
+                  && curr_partition_info_dict.HasMember("array_name")));
             if(column_partitions_array.Size() >= m_array_names.size())
               m_array_names.resize(column_partitions_array.Size(), array_name_string);
-            m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
+            m_array_names[partition_idx] = curr_partition_info_dict.HasMember("array")
+              ? curr_partition_info_dict["array"].GetString()
+              : curr_partition_info_dict["array_name"].GetString();
             m_single_array_name = false;
           }
           //Mapping from begin pos to index
@@ -492,11 +497,15 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             m_workspaces[partition_idx] = curr_partition_info_dict["workspace"].GetString();
             m_single_workspace_path = false;
           }
-          if(curr_partition_info_dict.HasMember("array"))
+          if(curr_partition_info_dict.HasMember("array") || curr_partition_info_dict.HasMember("array_name"))
           {
+            VERIFY_OR_THROW(!(curr_partition_info_dict.HasMember("array")
+                  && curr_partition_info_dict.HasMember("array_name")));
             if(row_partitions_array.Size() >= m_array_names.size())
               m_array_names.resize(row_partitions_array.Size(), array_name_string);
-            m_array_names[partition_idx] = curr_partition_info_dict["array"].GetString();
+            m_array_names[partition_idx] = curr_partition_info_dict.HasMember("array")
+              ? curr_partition_info_dict["array"].GetString()
+              : curr_partition_info_dict["array_name"].GetString();
             m_single_array_name = false;
           }
           //Mapping from begin pos to index
@@ -649,7 +658,7 @@ void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, c
     m_workspaces.push_back(loader_config->get_workspace(rank));
   }
   // Update array if it is not provided in query json
-  if (!m_json.HasMember("array"))
+  if (!(m_json.HasMember("array") || m_json.HasMember("array_name")))
   {
     // Set as single array
     m_single_array_name = true;

@@ -47,7 +47,10 @@ message RowRangeList {
 
 message ExportConfiguration {
   required string workspace = 1;
-  optional string array = 2;
+  oneof array {
+    string array_name = 2;
+    bool generate_array_name_from_partition_bounds = 18;
+  }
   required string reference_genome = 3;
   repeated GenomicsDBColumnOrIntervalList query_column_ranges = 4;
   repeated RowRangeList query_row_ranges = 5;
@@ -63,5 +66,5 @@ message ExportConfiguration {
   optional bool produce_FILTER_field = 15;
   optional bool sites_only_query = 16;
   optional bool produce_GT_with_min_PL_value_for_spanning_deletions = 17;
-  optional bool scan_full = 18;
+  optional bool scan_full = 19;
 }

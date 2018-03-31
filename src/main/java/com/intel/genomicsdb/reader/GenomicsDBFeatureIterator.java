@@ -107,9 +107,11 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
             return genomicsDBQueryStream;
         }).map(gqs -> this.codec.makeSourceFromStream(gqs)).collect(Collectors.toList());
         if (sources.isEmpty()) throw new IllegalStateException("There are no sources based on those query parameters");
+        if (!readAsBCF) { //VCF Codec must parse out header again since getHeaderEnd() returns 0
+          for(SOURCE currSource : this.sources)
+            this.codec.readHeader(currSource); //no need to store header anywhere
+        }
         this.currentSource = this.sources.get(0);
-        if (!readAsBCF) //VCF Codec must parse out header again since getHeaderEnd() returns 0
-            this.codec.readHeader(this.currentSource); //no need to store header anywhere
         this.timer = new GenomicsDBTimer();
         this.closedBefore = false;
     }

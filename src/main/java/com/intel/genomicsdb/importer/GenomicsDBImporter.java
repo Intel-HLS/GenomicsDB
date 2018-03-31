@@ -611,9 +611,12 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 .getContigPosition().getPosition();
         int chromosomeEnd = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getEnd()
                 .getContigPosition().getPosition();
-        String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromosomeName, chromosomeStart, chromosomeEnd);
         GenomicsDBImportConfiguration.Partition partition = importConfig.getImportConfiguration()
-                .getColumnPartitions(rank).toBuilder().setArray(arrayName).build();
+            .getColumnPartitions(rank);
+        if(partition.hasGenerateArrayNameFromPartitionBounds()) {
+            String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromosomeName, chromosomeStart, chromosomeEnd);
+            partition = partition.toBuilder().setArrayName(arrayName).build();
+        }
         GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = importConfig
                 .getImportConfiguration().toBuilder()
                 .setLbCallsetRowIdx((long) index)
