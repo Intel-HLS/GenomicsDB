@@ -195,6 +195,17 @@ def main():
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         "golden_output": {
                         "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
+                        } },
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 12150,
+                            "high": 18000
+                        }]
+                    }],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_12150_18000",
                         } }
                 ]
             },
