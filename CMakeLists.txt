@@ -291,6 +291,7 @@ if(BUILD_JAVA)
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBRDD.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/test/java/com/intel/genomicsdb/importer/GenomicsDBImporterSpec.java
+        ./src/test/java/com/intel/genomicsdb/reader/ChrArrayFolderComparatorSpec.java
         ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBCallsetsMapProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java

@@ -154,9 +154,10 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     private List<String> resolveChromosomeArrayFolderList() {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        List<String> qjfs = createArrayFolderListFromArrayStream(Arrays.stream(chromosomeIntervalArraysNames));
-        List<Coordinates.ContigInterval> contigIntervals = Arrays.stream(chromosomeIntervalArraysNames).map(name -> {
+        List<String> chromosomeIntervalArraysNames = Arrays.asList(getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace())));
+        chromosomeIntervalArraysNames.sort(new ChrArrayFolderComparator());
+        List<String> qjfs = createArrayFolderListFromArrayStream(chromosomeIntervalArraysNames.stream());
+        List<Coordinates.ContigInterval> contigIntervals = chromosomeIntervalArraysNames.stream().map(name -> {
             String[] ref = name.split("#");
             throwExceptionIfArrayFolderRefIsWrong(ref);
             return Coordinates.ContigInterval.newBuilder().setContig(ref[0]).setBegin(Integer.parseInt(ref[1]))
