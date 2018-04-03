@@ -179,8 +179,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         Stream<String> stream = Arrays.stream(chromosomeIntervalArraysNames).filter(name -> {
             String[] ref = name.split("#");
             throwExceptionIfArrayFolderRefIsWrong(ref);
-            return chromosome.equals(ref[0]) && ((intervalStart >= Integer.parseInt(ref[1]) && intervalStart <= Integer.parseInt(ref[2])) ||
-                    (intervalEnd >= Integer.parseInt(ref[1]) && intervalEnd <= Integer.parseInt(ref[2])));
+            return chromosome.equals(ref[0]) && (intervalStart <= Integer.parseInt(ref[2]) && intervalEnd >= Integer.parseInt(ref[1]));
         });
         return createArrayFolderListFromArrayStream(stream);
     }

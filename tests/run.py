@@ -62,7 +62,10 @@ def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
     test_dict["array_name"] = test_name
-    test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
+    if('query_column_ranges' in query_param_dict):
+        test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
+    else:
+        test_dict['scan_full'] = True
     if("vid_mapping_file" in query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
@@ -196,12 +199,12 @@ def main():
                         "golden_output": {
                         "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
                         } },
-                    { "query_column_ranges": [{
-                        "range_list": [{
-                            "low": 12150,
-                            "high": 18000
-                        }]
-                    }],
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 12151,
+                            "end": 18000
+                        },
                         'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                         "vid_mapping_file": "inputs/vid_phased_GT.json",
                         "golden_output": {
@@ -849,6 +852,8 @@ def main():
             for interval in test_params_dict['chromosome_intervals']:
                 arg_list += ' -L '+interval
             arg_list += ' -w ' + ws_dir +' --use_samples_in_order ' + ' --batchsize=2 '
+            arg_list += ' --vidmap-output '+ tmpdir + os.path.sep + 'vid.json'
+            arg_list += ' --callset-output '+ tmpdir + os.path.sep + 'callsets.json'
             if('generate_array_name_from_partition_bounds' not in test_params_dict or
                     not test_params_dict['generate_array_name_from_partition_bounds']):
                 arg_list += ' -A ' + test_name
@@ -884,6 +889,9 @@ def main():
                         del test_query_dict['array']
                     if('array_name' in test_query_dict):
                         del test_query_dict['array_name']
+                    if('query_column_ranges' in test_query_dict):
+                        del test_query_dict['query_column_ranges']
+                        test_query_dict['scan_full'] = True
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),
@@ -910,6 +918,11 @@ def main():
                                 loader_argument = '""'
                             if("pass_through_query_json" in query_param_dict and query_param_dict["pass_through_query_json"]):
                                 misc_args = "--pass_through_query_json"
+                            if('query_contig_interval' in query_param_dict):
+                                query_contig_interval_dict = query_param_dict['query_contig_interval']
+                                misc_args += ('--chromosome '+query_contig_interval_dict['contig'] \
+                                        + ' --begin %d --end %d')%(query_contig_interval_dict['begin'],
+                                                query_contig_interval_dict['end'])
                             query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename \
                                 + ' ' + misc_args;
                             pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
