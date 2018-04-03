@@ -39,6 +39,9 @@ set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark ver
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
 set(USE_HDFS False CACHE BOOL "Enable storing data on HDFS compliant stores")
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
