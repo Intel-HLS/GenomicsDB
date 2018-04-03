@@ -96,11 +96,6 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     ArrayList<GenomicsDBPartitionInfo> partitionsList = genomicsDBConfiguration.getPartitions();
     ArrayList<GenomicsDBQueryInfo> queryRangeList = genomicsDBConfiguration.getQueryRanges();
 
-    int queryRangeSum = 0;
-    for (int i = 0; i < queryRangeList.size(); ++i) {
-      queryRangeSum += 
-        queryRangeList.get(i).getEndPosition() - queryRangeList.get(i).getBeginPosition() + 1;
-    }
     long goalBlockSize = Math.max(minSize, 
 		           Math.min(genomicsDBConfiguration.getQueryBlockSize(), maxSize));
 

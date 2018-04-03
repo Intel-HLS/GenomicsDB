@@ -425,7 +425,9 @@ bool VCFDiffFile::compare_unequal_vector(const bcf_hdr_t* gold_hdr, const bcf1_t
           build_gold_gt_idx_to_test_gt_idx);
     }
     int lut_test_sample_idx = (bcf_field_type == BCF_HL_INFO) ? 0 : m_samples_lut.get_test_idx_for_gold(0, j);
-    assert(!GoldLUT::is_missing_value(lut_test_sample_idx) && lut_test_sample_idx < bcf_hdr_nsamples(m_hdr));
+    assert(!GoldLUT::is_missing_value(lut_test_sample_idx) &&
+        (lut_test_sample_idx < bcf_hdr_nsamples(m_hdr)
+         || (bcf_hdr_nsamples(m_hdr) == 0))); //sites-only query
     auto gold_ptr = GET_DATA_PTR<const T1*>(gold_line, bcf_field_type, gold_line_field_pos_idx, j, num_gold_elements);
     auto test_ptr = GET_DATA_PTR<const T2*>(m_line, bcf_field_type, test_line_field_pos_idx, lut_test_sample_idx, num_test_elements);
     for(auto k=0;k<min_num_per_sample;++k)
@@ -627,6 +629,11 @@ void VCFDiffFile::get_ploidy(const uint64_t num_samples, const bcf_fmt_t& GT_fmt
 
 void VCFDiffFile::get_ploidy_wrapper(const bcf_hdr_t* hdr, const bcf1_t* line)
 {
+  if(line->n_fmt == 0)
+  {
+    m_gold_ploidy.assign(m_gold_ploidy.size(), 0);
+    return;
+  }
   //Get ploidy for each sample in the golden set
   //First FORMAT field must be GT field
   auto& GT_fmt_t = line->d.fmt[0];

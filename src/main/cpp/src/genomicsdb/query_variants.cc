@@ -290,7 +290,7 @@ void VariantQueryProcessor::finalize_queried_attributes(const VariantArraySchema
     if(queryConfig.sites_only_query())
     {
       auto FORMAT_fields_needed_in_sites_only_query = std::unordered_set<std::string>({
-          "PL", "GT", "DP_FORMAT"
+          "PL", "GT", "DP_FORMAT", "MIN_DP"
           });
       for(auto i=0ull;i<new_query_attribute_vector.size();++i)
       {
