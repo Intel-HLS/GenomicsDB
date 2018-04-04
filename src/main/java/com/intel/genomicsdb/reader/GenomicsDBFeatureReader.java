@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX;
+import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -160,14 +162,14 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         chromosomeIntervalArraysNames.sort(new ChrArrayFolderComparator());
         List<String> qjfs = createArrayFolderListFromArrayStream(chromosomeIntervalArraysNames.stream());
         List<Coordinates.ContigInterval> contigIntervals = chromosomeIntervalArraysNames.stream().map(name -> {
-            String[] ref = name.split("#");
+            String[] ref = name.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
             throwExceptionIfArrayFolderRefIsWrong(ref);
             return Coordinates.ContigInterval.newBuilder().setContig(ref[0]).setBegin(Integer.parseInt(ref[1]))
                     .setEnd(Integer.parseInt(ref[2])).build();
         }).collect(toList());
         this.intervalsPerArray = contigIntervals.stream().map(contig -> {
-            List<String> qjf = qjfs.stream().filter(file -> file.contains(String.format(
-                    "%s#%d#%d", contig.getContig(), contig.getBegin(), contig.getEnd()))).collect(toList());
+            List<String> qjf = qjfs.stream().filter(file -> file.contains(String.format(CHROMOSOME_INTERVAL_FOLDER,
+                    contig.getContig(), contig.getBegin(), contig.getEnd()))).collect(toList());
             if (qjf.size() != 1) {
                 throw new IllegalStateException("Multiple results for relation array folder name <-> contig interval values");
             }
@@ -178,7 +180,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
 
     private void throwExceptionIfArrayFolderRefIsWrong(String[] ref) {
         if (ref.length != 3) throw new RuntimeException("There is a wrong array folder name in the workspace. " +
-                "Array folder name should be {chromosome}#{intervalStart}#{intervalEnd}");
+                "Array folder name should be {chromosome}{delimiter}{intervalStart}{delimiter}{intervalEnd}");
     }
 
     private List<String> createArrayFolderListFromArrayStream(Stream<String> stream) {
@@ -231,7 +233,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private List<String> getArrayListFromWorkspace(final File workspace, Optional<Coordinates.ContigInterval> chromosome) {
         List<String> folders = Arrays.asList(workspace.list((current, name) -> new File(current, name).isDirectory()));
         return chromosome.isPresent() ? folders.stream().filter(name -> {
-            String[] ref = name.split("#");
+            String[] ref = name.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
             throwExceptionIfArrayFolderRefIsWrong(ref);
             return chromosome.get().getContig().equals(ref[0]) && (chromosome.get().getBegin() <= Integer.parseInt(ref[2])
                     && chromosome.get().getEnd() >= Integer.parseInt(ref[1]));

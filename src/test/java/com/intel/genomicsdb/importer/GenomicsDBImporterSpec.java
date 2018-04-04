@@ -49,6 +49,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.Optional;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
+
 
 public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
     private static final String TEST_CHROMOSOME_NAME = "1";
@@ -205,7 +207,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
-                .setArrayName("1#17000#18000")
+                .setArrayName(String.format(CHROMOSOME_INTERVAL_FOLDER, "1", 17000, 18000))
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());

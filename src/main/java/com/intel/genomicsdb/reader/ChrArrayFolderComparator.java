@@ -2,6 +2,8 @@ package com.intel.genomicsdb.reader;
 
 import java.util.Comparator;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX;
+
 public class ChrArrayFolderComparator implements Comparator<String> {
     @Override
     public int compare(String o1, String o2) {
@@ -14,12 +16,12 @@ public class ChrArrayFolderComparator implements Comparator<String> {
     }
 
     private String extractChromsomeName(String s) {
-        String[] values = s.split("#");
+        String[] values = s.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
         return values[0];
     }
 
     private int extractIntervalStart(String s) {
-        String[] values = s.split("#");
+        String[] values = s.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
         return Integer.parseInt(values[1]);
     }
 }

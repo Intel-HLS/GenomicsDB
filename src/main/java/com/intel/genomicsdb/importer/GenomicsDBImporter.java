@@ -48,6 +48,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static com.intel.genomicsdb.importer.Constants.*;
 
 /**
