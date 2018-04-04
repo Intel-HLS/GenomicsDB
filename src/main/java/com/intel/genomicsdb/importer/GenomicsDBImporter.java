@@ -570,12 +570,17 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
         ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
 
+        //Set size_per_column_partition once
+        this.config.setImportConfiguration(this.config.getImportConfiguration().toBuilder()
+            .setSizePerColumnPartition(this.config.getImportConfiguration().getSizePerColumnPartition()
+              * sampleCount).build());
+
         //Iterate over sorted sample list in batches
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
 
             IntStream.range(0, numberPartitions).forEach(rank ->
-                    updateConfigPartitionsAndLbUb(this.config, sampleCount, index, rank));
+                    updateConfigPartitionsAndLbUb(this.config, index, rank));
 
             List<CompletableFuture<Boolean>> futures = IntStream.range(0, numberPartitions).mapToObj(rank ->
                     CompletableFuture.supplyAsync(() -> {
@@ -604,7 +609,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         mDone = true;
     }
 
-    private void updateConfigPartitionsAndLbUb(ImportConfig importConfig, final int samplesSize, final int index,
+    private void updateConfigPartitionsAndLbUb(ImportConfig importConfig, final int index,
                                                final int rank) {
         String chromosomeName = importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin()
                 .getContigPosition().getContig();
@@ -622,9 +627,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 .getImportConfiguration().toBuilder()
                 .setLbCallsetRowIdx((long) index)
                 .setUbCallsetRowIdx((long) (index + importConfig.getBatchSize() - 1))
-                .setColumnPartitions(rank, partition)
-                .setSizePerColumnPartition(importConfig.getImportConfiguration().getSizePerColumnPartition()
-                        * samplesSize).build();
+                .setColumnPartitions(rank, partition).build();
         importConfig.setImportConfiguration(importConfiguration);
     }
 
