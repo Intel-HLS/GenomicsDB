@@ -117,7 +117,7 @@
 ##contig=<ID=NC_007605,length=171823>
 ##reference=file:///seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00141	HG01958	HG01530
-1	12151	.	C	<NON_REF>	.	.	END=12160	GT:DP:GQ:MIN_DP:PL	./.:2:0:0:0,0,0	./.:3:0:0:0,0,0	.
+1	12151	.	A	<NON_REF>	.	.	END=12160	GT:DP:GQ:MIN_DP:PL	./.:2:0:0:0,0,0	./.:3:0:0:0,0,0	.
 1	12161	.	C	<NON_REF>	.	.	END=12200	GT:DP:GQ:MIN_DP:PL	./.:2:0:0:0,0,0	./.:3:0:0:0,0,0	.
 1	12201	.	C	<NON_REF>	.	.	END=12277	GT:DP:GQ:MIN_DP:PL	./.:2:0:0:0,0,0	./.:3:0:0:0,0,0	.
 1	12278	.	C	<NON_REF>	.	.	END=12295	GT:DP:GQ:MIN_DP:PL	./.:2:0:0:0,0,0	.	.

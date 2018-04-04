@@ -67,12 +67,12 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         this.exportConfiguration = exportConfiguration;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");
-        String[] chromosomeIntervalArrays = this.exportConfiguration.hasArrayName() ? new String[]{
-                exportConfiguration.getArrayName()
-        } : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.length < 1)
+        List<String> chromosomeIntervalArrays = this.exportConfiguration.hasArrayName() ? new ArrayList<String>() {{
+            add(exportConfiguration.getArrayName());
+        }} : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()), Optional.empty());
+        if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.size() < 1)
             throw new IllegalStateException("There is no genome data stored in the database");
-        generateHeadersForQuery(chromosomeIntervalArrays[0]);
+        generateHeadersForQuery(chromosomeIntervalArrays.get(0));
     }
 
     /**
@@ -127,7 +127,7 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                         : this.exportConfiguration.hasArrayName() ? createArrayFolderListFromArrayStream(
                         new ArrayList<String>() {{
                             add(exportConfiguration.getArrayName());
-                        }}.stream()) : resolveChromosomeArrayFolderList();
+                        }}.stream()) : resolveChromosomeArrayFolderList(Optional.empty());
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths,
                 this.featureCodecHeader, this.codec, Optional.of(this.intervalsPerArray));
     }
@@ -148,13 +148,15 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                         : this.exportConfiguration.hasArrayName() ? createArrayFolderListFromArrayStream(
                         new ArrayList<String>() {{
                             add(exportConfiguration.getArrayName());
-                        }}.stream()) : resolveChromosomeArrayFolderList(chr, start, end);
+                        }}.stream()) : resolveChromosomeArrayFolderList(Optional.of(
+                                Coordinates.ContigInterval.newBuilder().setContig(chr).setBegin(start).setEnd(end).build()
+                ));
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths, this.featureCodecHeader,
-                this.codec, chr, start, end, Optional.empty());
+                this.codec, chr, OptionalInt.of(start), OptionalInt.of(end), Optional.of(this.intervalsPerArray));
     }
 
-    private List<String> resolveChromosomeArrayFolderList() {
-        List<String> chromosomeIntervalArraysNames = Arrays.asList(getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace())));
+    private List<String> resolveChromosomeArrayFolderList(final Optional<Coordinates.ContigInterval> chromosome) {
+        List<String> chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()), chromosome);
         chromosomeIntervalArraysNames.sort(new ChrArrayFolderComparator());
         List<String> qjfs = createArrayFolderListFromArrayStream(chromosomeIntervalArraysNames.stream());
         List<Coordinates.ContigInterval> contigIntervals = chromosomeIntervalArraysNames.stream().map(name -> {
@@ -172,16 +174,6 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
             return new AbstractMap.SimpleEntry<>(qjf.get(0), contig);
         }).collect(toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
         return qjfs;
-    }
-
-    private List<String> resolveChromosomeArrayFolderList(final String chromosome, final int intervalStart, final int intervalEnd) {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        Stream<String> stream = Arrays.stream(chromosomeIntervalArraysNames).filter(name -> {
-            String[] ref = name.split("#");
-            throwExceptionIfArrayFolderRefIsWrong(ref);
-            return chromosome.equals(ref[0]) && (intervalStart <= Integer.parseInt(ref[2]) && intervalEnd >= Integer.parseInt(ref[1]));
-        });
-        return createArrayFolderListFromArrayStream(stream);
     }
 
     private void throwExceptionIfArrayFolderRefIsWrong(String[] ref) {
@@ -236,7 +228,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         return tmpQueryJSONFile;
     }
 
-    private String[] getArrayListFromWorkspace(final File workspace) {
-        return workspace.list((current, name) -> new File(current, name).isDirectory());
+    private List<String> getArrayListFromWorkspace(final File workspace, Optional<Coordinates.ContigInterval> chromosome) {
+        List<String> folders = Arrays.asList(workspace.list((current, name) -> new File(current, name).isDirectory()));
+        return chromosome.isPresent() ? folders.stream().filter(name -> {
+            String[] ref = name.split("#");
+            throwExceptionIfArrayFolderRefIsWrong(ref);
+            return chromosome.get().getContig().equals(ref[0]) && (chromosome.get().getBegin() <= Integer.parseInt(ref[2])
+                    && chromosome.get().getEnd() >= Integer.parseInt(ref[1]));
+        }).collect(toList()) : folders;
     }
 }

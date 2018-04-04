@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 /**
@@ -63,7 +64,8 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
                               final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec,
                               final Optional<Map<String, Coordinates.ContigInterval>> intervalPerArray)
             throws IOException {
-        this(loaderJSONFile, queryJSONFiles, featureCodecHeader, codec, "", 0, 0, intervalPerArray);
+        this(loaderJSONFile, queryJSONFiles, featureCodecHeader, codec, "", OptionalInt.empty(),
+                OptionalInt.empty(), intervalPerArray);
     }
 
     /**
@@ -82,7 +84,7 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
      */
     GenomicsDBFeatureIterator(final String loaderJSONFile, final List<String> queryJSONFiles,
                               final FeatureCodecHeader featureCodecHeader, final FeatureCodec<T, SOURCE> codec,
-                              final String chr, final int start, final int end,
+                              final String chr, final OptionalInt start, final OptionalInt end,
                               final Optional<Map<String, Coordinates.ContigInterval>> intervalPerArray) throws IOException {
         this.featureCodecHeader = featureCodecHeader;
         this.codec = codec;
@@ -90,12 +92,17 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
         boolean areIntervalPerArraySpecified = intervalPerArray.isPresent() && intervalPerArray.get().size() > 0;
         this.sources = queryJSONFiles.stream().map(qjf -> {
             GenomicsDBQueryStream genomicsDBQueryStream;
-            if (areIntervalPerArraySpecified) {
+            if (areIntervalPerArraySpecified && start.isPresent() && end.isPresent()) {
+                Coordinates.ContigInterval interval = intervalPerArray.get().get(qjf);
+                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
+                        Math.max(start.getAsInt(), (int) interval.getBegin()),
+                        Math.min(end.getAsInt(), (int) interval.getEnd()), readAsBCF);
+            } else if (areIntervalPerArraySpecified && !start.isPresent() && !end.isPresent()) {
                 Coordinates.ContigInterval interval = intervalPerArray.get().get(qjf);
                 genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
                         (int) interval.getBegin(), (int) interval.getEnd(), readAsBCF);
             } else {
-                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr, start, end, readAsBCF);
+                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr, 0, 0, readAsBCF);
             }
             if (readAsBCF) { //BCF2 codec provides size of header
                 try {
