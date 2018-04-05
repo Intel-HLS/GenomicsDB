@@ -182,36 +182,6 @@ def main():
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
     loader_tests = [
-            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig",
-                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'chromosome_intervals': [ '1:1-12160', '1:12161-12200', '1:12201-18000' ],
-                "vid_mapping_file": "inputs/vid_phased_GT.json",
-                'generate_array_name_from_partition_bounds': True,
-                "query_params": [
-                    { "query_column_ranges": [{
-                        "range_list": [{
-                            "low": 0,
-                            "high": 18000
-                        }]
-                    }],
-                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                        "vid_mapping_file": "inputs/vid_phased_GT.json",
-                        "golden_output": {
-                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
-                        } },
-                    {
-                        "query_contig_interval": {
-                            "contig": "1",
-                            "begin": 12151,
-                            "end": 18000
-                        },
-                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                        "vid_mapping_file": "inputs/vid_phased_GT.json",
-                        "golden_output": {
-                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_12150_18000",
-                        } }
-                ]
-            },
             { "name" : "t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
                 "query_params": [
@@ -357,6 +327,36 @@ def main():
                         } },
                     ]
             },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'chromosome_intervals': [ '1:1-12160', '1:12161-12200', '1:12201-18000' ],
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                'generate_array_name_from_partition_bounds': True,
+                "query_params": [
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 18000
+                        }]
+                    }],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 12151,
+                            "end": 18000
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_12150_18000",
+                        } }
+                ]
+            },
             { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_csv.json',
                 "query_params": [
@@ -447,6 +447,41 @@ def main():
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
+            },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8_multi_contig",
+                'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                'chromosome_intervals': [ '1:1-8029500','1:8029501-8029501', '1:8029502-10000000' ],
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                'generate_array_name_from_partition_bounds': True,
+                "query_params": [
+                    {   'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_0",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 8029501,
+                            "end": 8029510
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_8029500",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 8029502,
+                            "end": 8029502
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_8029501",
+                        } }
+                ]
             },
             { "name" : "java_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
