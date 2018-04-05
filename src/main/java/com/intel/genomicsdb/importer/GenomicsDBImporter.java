@@ -264,8 +264,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      */
     private static ArrayList<ChromosomeInterval> getChromosomeIntervalsForColumnPartition(
             final String loaderJSONFile, final int partitionIdx) throws ParseException {
-        final String chromosomeIntervalsJSONString =
-                jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx);
+        final String chromosomeIntervalsJSONString = jniGetChromosomeIntervalsForColumnPartition(loaderJSONFile, partitionIdx);
     /* JSON format
       {
         "contigs": [
@@ -312,9 +311,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             AbstractFeatureReader<VariantContext, SOURCE> reader,
             final String loaderJSONFile,
             final int partitionIdx) throws ParseException, IOException {
-        return new MultiChromosomeIterator<>(reader,
-                GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(
-                        loaderJSONFile, partitionIdx));
+        return new MultiChromosomeIterator<>(reader, GenomicsDBImporter.getChromosomeIntervalsForColumnPartition(
+                loaderJSONFile, partitionIdx));
     }
 
     /**
@@ -382,27 +380,24 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                                Iterator<VariantContext> vcIterator,
                                final Map<Integer, SampleInfo> sampleIndexToInfo)
             throws GenomicsDBException {
-        if (mIsLoaderSetupDone)
-            throw new GenomicsDBException("Cannot add buffer streams after "
-                    + "setupGenomicsDBImporter() is called");
+        if (mIsLoaderSetupDone) throw new GenomicsDBException(
+                "Cannot add buffer streams after setupGenomicsDBImporter() is called");
         //First time a buffer is added
         if (!mContainsBufferStreams) {
             if (mGenomicsDBImporterObjectHandle == 0) {
-                mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile,
-                        mRank, mLbRowIdx, mUbRowIdx);
+                mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
+                        mLbRowIdx, mUbRowIdx);
             }
-            if (mGenomicsDBImporterObjectHandle == 0)
-                throw new GenomicsDBException("Could not initialize GenomicsDBImporter object");
+            if (mGenomicsDBImporterObjectHandle == 0) throw new GenomicsDBException(
+                    "Could not initialize GenomicsDBImporter object");
             mBufferStreamWrapperVector = new ArrayList<>();
             mCallsetMappingJSON = new JSONObject();
             mContainsBufferStreams = true;
         }
-        mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader,
-                bufferCapacity, streamType, vcIterator));
+        mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader, bufferCapacity, streamType, vcIterator));
         int currIdx = mBufferStreamWrapperVector.size() - 1;
-        SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(currIdx).mStream;
-        jniAddBufferStream(mGenomicsDBImporterObjectHandle,
-                streamName, streamType == VariantContextWriterBuilder.OutputType.BCF_STREAM,
+        SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(currIdx).getStream();
+        jniAddBufferStream(mGenomicsDBImporterObjectHandle, streamName, streamType == VariantContextWriterBuilder.OutputType.BCF_STREAM,
                 bufferCapacity, currStream.getBuffer(), currStream.getNumValidBytes());
         if (sampleIndexToInfo != null) {
             for (Map.Entry<Integer, SampleInfo> currEntry : sampleIndexToInfo.entrySet()) {
@@ -425,8 +420,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      */
     @SuppressWarnings("unchecked")
     public void setupGenomicsDBImporter() throws IOException {
-        if (mIsLoaderSetupDone)
-            return;
+        if (mIsLoaderSetupDone) return;
         //Callset mapping JSON - convert to string
         JSONObject topCallsetJSON = new JSONObject();
         topCallsetJSON.put("callsets", mCallsetMappingJSON);
@@ -443,15 +437,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         //Add all streams to mExhaustedBufferStreamIdentifiers - this way when doSingleImport is
         //called the first time all streams' data are written
         for (int i = 0, idx = 0; i < mBufferStreamWrapperVector.size(); ++i, idx += 2) {
-            SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(i).mStream;
+            SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(i).getStream();
             currStream.setNumValidBytes(0);
             mExhaustedBufferStreamIdentifiers[idx] = i;
             mExhaustedBufferStreamIdentifiers[idx + 1] = 0;
         }
         //Set number of exhausted buffer streams - all streams are exhausted the first time
         mNumExhaustedBufferStreams = mBufferStreamWrapperVector.size();
-        mExhaustedBufferStreamIdentifiers[(int) (2 * mMaxBufferStreamIdentifiers)] =
-                mNumExhaustedBufferStreams;
+        mExhaustedBufferStreamIdentifiers[(int) (2 * mMaxBufferStreamIdentifiers)] = mNumExhaustedBufferStreams;
         mIsLoaderSetupDone = true;
     }
 
@@ -463,36 +456,32 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * @param streamIdx index of the stream returned by the addBufferStream() call
      * @return true if the vc object was written successfully, false otherwise
      */
-    public boolean add(VariantContext vc, final int streamIdx)
-            throws GenomicsDBException, RuntimeIOException {
-        if (streamIdx < 0 || streamIdx >= mBufferStreamWrapperVector.size())
-            throw new GenomicsDBException("Invalid stream idx "
-                    + Integer.toString(streamIdx) + " must be between [0-"
-                    + Long.toString(mBufferStreamWrapperVector.size() - 1) + "]");
-        if (!mIsLoaderSetupDone)
-            throw new GenomicsDBException("Cannot add VariantContext objects " +
-                    "to streams before calling setupGenomicsDBImporter()");
+    public boolean add(VariantContext vc, final int streamIdx) throws GenomicsDBException, RuntimeIOException {
+        if (streamIdx < 0 || streamIdx >= mBufferStreamWrapperVector.size()) throw new GenomicsDBException(
+                "Invalid stream idx " + Integer.toString(streamIdx) + " must be between [0-"
+                        + Long.toString(mBufferStreamWrapperVector.size() - 1) + "]");
+        if (!mIsLoaderSetupDone) throw new GenomicsDBException("Cannot add VariantContext objects to streams before " +
+                "calling setupGenomicsDBImporter()");
         GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(streamIdx);
-        currWrapper.mVCWriter.add(vc);
-        SilentByteBufferStream currStream = currWrapper.mStream;
+        currWrapper.getVcWriter().add(vc);
+        SilentByteBufferStream currStream = currWrapper.getStream();
         //at least one record already existed in the buffer
         if (currStream.overflow() && currStream.getMarker() > 0) {
             //Set num valid bytes to marker - marker points to location
             //after the last valid serialized vc in the buffer
             currStream.setNumValidBytes(currStream.getMarker());
             return false;
-        } else {
-            //the first record to be added to the buffer is too large, resize buffer
-            while (currStream.overflow()) {
-                currStream.resize(2 * currStream.size() + 1);
-                currStream.setNumValidBytes(0);
-                currStream.setOverflow(false);
-                currWrapper.mVCWriter.add(vc);
-            }
-            //Update marker - marker points to location after the last valid serialized vc in the buffer
-            currStream.setMarker(currStream.getNumValidBytes());
-            return true;
         }
+        //the first record to be added to the buffer is too large, resize buffer
+        while (currStream.overflow()) {
+            currStream.resize(2 * currStream.size() + 1);
+            currStream.setNumValidBytes(0);
+            currStream.setOverflow(false);
+            currWrapper.getVcWriter().add(vc);
+        }
+        //Update marker - marker points to location after the last valid serialized vc in the buffer
+        currStream.setMarker(currStream.getNumValidBytes());
+        return true;
     }
 
     /**
@@ -510,21 +499,18 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             //Write data from buffer streams exhausted in the previous round into GenomicsDB
             for (int i = 0, idx = 0; i < mNumExhaustedBufferStreams; ++i, idx += 2) {
                 int bufferStreamIdx = (int) mExhaustedBufferStreamIdentifiers[idx];
-                GenomicsDBImporterStreamWrapper currWrapper =
-                        mBufferStreamWrapperVector.get(bufferStreamIdx);
+                GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(bufferStreamIdx);
                 //If iterator is provided, get data from iterator
                 if (currWrapper.hasIterator()) {
                     while (currWrapper.getCurrentVC() != null) {
                         boolean added = add(currWrapper.getCurrentVC(), bufferStreamIdx);
-                        if (added)
-                            currWrapper.next();
-                        else
-                            break; //buffer full
+                        if (added) currWrapper.next();
+                        else break; //buffer full
                     }
                 }
-                SilentByteBufferStream currStream = currWrapper.mStream;
-                jniWriteDataToBufferStream(mGenomicsDBImporterObjectHandle, bufferStreamIdx,
-                        0, currStream.getBuffer(), currStream.getNumValidBytes());
+                SilentByteBufferStream currStream = currWrapper.getStream();
+                jniWriteDataToBufferStream(mGenomicsDBImporterObjectHandle, bufferStreamIdx, 0, currStream.getBuffer(),
+                        currStream.getNumValidBytes());
             }
             mDone = jniImportBatch(mGenomicsDBImporterObjectHandle, mExhaustedBufferStreamIdentifiers);
             mNumExhaustedBufferStreams = mExhaustedBufferStreamIdentifiers[mExhaustedBufferStreamIdentifiers.length - 1];
@@ -532,9 +518,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             for (long i = 0, idx = 0; i < mNumExhaustedBufferStreams; ++i, idx += 2) {
                 int bufferStreamIdx = (int) mExhaustedBufferStreamIdentifiers[(int) idx];
                 GenomicsDBImporterStreamWrapper currWrapper = mBufferStreamWrapperVector.get(bufferStreamIdx);
-                if (!currWrapper.hasIterator())
-                    allExhaustedStreamsHaveIterators = false;
-                SilentByteBufferStream currStream = currWrapper.mStream;
+                if (!currWrapper.hasIterator()) allExhaustedStreamsHaveIterators = false;
+                SilentByteBufferStream currStream = currWrapper.getStream();
                 currStream.setOverflow(false);
                 currStream.setMarker(0);
                 currStream.setNumValidBytes(0);
@@ -735,9 +720,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         if (loaderJSONFile == null) throw new GenomicsDBException("Loader JSON file not specified");
         if (mContainsBufferStreams) throw new GenomicsDBException("Cannot call write() functions if buffer streams are added");
         int status = jniGenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
-        if (status != 0)
-            throw new GenomicsDBException("GenomicsDBImporter write failed for loader JSON: "
-                    + loaderJSONFile + " rank: " + rank);
+        if (status != 0) throw new GenomicsDBException("GenomicsDBImporter write failed for loader JSON: "
+                + loaderJSONFile + " rank: " + rank);
         mDone = true;
     }
 }

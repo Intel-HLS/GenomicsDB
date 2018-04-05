@@ -26,17 +26,15 @@ public interface JsonFileExtensions {
      * @return New file (with the specified name) written to local storage
      * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
-    default File dumpTemporaryLoaderJSONFile(
-            final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-            final String filename) throws IOException {
+    default File dumpTemporaryLoaderJSONFile(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
+                                             final String filename) throws IOException {
         String loaderJSONString = JsonFormat.printToString(importConfiguration);
 
         File tempLoaderJSONFile = (filename.isEmpty()) ?
                 File.createTempFile("loader_", ".json") :
                 new File(filename);
 
-        if (filename.isEmpty())
-            tempLoaderJSONFile.deleteOnExit();
+        if (filename.isEmpty()) tempLoaderJSONFile.deleteOnExit();
 
         PrintWriter out = new PrintWriter(tempLoaderJSONFile);
         out.println(loaderJSONString);

@@ -33,156 +33,143 @@ import static com.intel.genomicsdb.importer.Constants.DEFAULT_BUFFER_CAPACITY;
  * to check the flag and retry later
  * Why? Most likely, it's faster to check a flag rather than throw and catch an exception
  */
-class SilentByteBufferStream extends OutputStream
-{
-  private byte mBuffer[] = null;
-  private long mNumValidBytes = 0;
-  private long mMarker = 0;
-  private boolean mOverflow = false;
+class SilentByteBufferStream extends OutputStream {
+    private byte buffer[] = null;
+    private long numValidBytes = 0;
+    private long marker = 0;
+    private boolean overflow = false;
 
-  /**
-   * Constructor - uses default value of buffer capacity (20KiB)
-   */
-  public SilentByteBufferStream()
-  {
-    mBuffer = new byte[(int)DEFAULT_BUFFER_CAPACITY];
-  }
-
-  /**
-   * Constructor - uses specified buffer capacity
-   * @param capacity size of buffer in bytes
-   */
-  public SilentByteBufferStream(final long capacity)
-  {
-    mBuffer = new byte[(int)capacity];
-  }
-
-  @Override
-  public void close() throws IOException  //does nothing
-  {
-  }
-
-  @Override
-  public void flush() throws IOException  //does nothing
-  {
-  }
-
-  @Override
-  public void write(byte[] b, int off, int len) throws IOException
-  {
-    if(mOverflow)
-      return;
-    if(len+mNumValidBytes > mBuffer.length)
-      mOverflow = true;
-    else
-    {
-      System.arraycopy(b, off, mBuffer, (int)mNumValidBytes, len);
-      mNumValidBytes += len;
+    /**
+     * Constructor - uses default value of buffer capacity (20KiB)
+     */
+    public SilentByteBufferStream() {
+        buffer = new byte[(int) DEFAULT_BUFFER_CAPACITY];
     }
-  }
 
-  @Override
-  public void write(byte[] b) throws IOException
-  {
-    write(b, 0, b.length);
-  }
-
-  @Override
-  public void write(int b) throws IOException
-  {
-    if(mOverflow)
-      return;
-    if(mNumValidBytes+1>mBuffer.length)
-      mOverflow = true;
-    else
-    {
-      mBuffer[(int)mNumValidBytes] = (byte)b;
-      ++mNumValidBytes;
+    /**
+     * Constructor - uses specified buffer capacity
+     *
+     * @param capacity size of buffer in bytes
+     */
+    public SilentByteBufferStream(final long capacity) {
+        buffer = new byte[(int) capacity];
     }
-  }
 
-  /**
-   * Returns buffer capacity in bytes
-   * @return buffer capacity in bytes
-   */
-  public int size()
-  {
-    return mBuffer.length;
-  }
+    @Override
+    public void close() throws IOException  //does nothing
+    {
+    }
 
-  /**
-   * Resizes buffer to new size - data is retained
-   * @param newSize new capacity of the buffer
-   */
-  public void resize(final long newSize)
-  {
-    byte tmp[] = new byte[(int)newSize];
-    System.arraycopy(mBuffer, 0, tmp, 0, mBuffer.length);
-    mBuffer = tmp; //hopefully Java GC does its job
-  }
+    @Override
+    public void flush() throws IOException  //does nothing
+    {
+    }
 
-  /**
-   * Returns if the buffer has overflowed
-   * @return true if the buffer has overflowed
-   */
-  public boolean overflow()
-  {
-    return mOverflow;
-  }
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (overflow) return;
+        if (len + numValidBytes > buffer.length) overflow = true;
+        else {
+            System.arraycopy(b, off, buffer, (int) numValidBytes, len);
+            numValidBytes += len;
+        }
+    }
 
-  /**
-   * Set overflow value
-   * @param value overflow value
-   */
-  public void setOverflow(final boolean value)
-  {
-    mOverflow = value;
-  }
+    @Override
+    public void write(byte[] b) throws IOException { write(b, 0, b.length); }
 
-  /**
-   * Get number of valid bytes
-   * @return number of valid bytes
-   */
-  public long getNumValidBytes()
-  {
-    return mNumValidBytes;
-  }
+    @Override
+    public void write(int b) throws IOException {
+        if (overflow) return;
+        if (numValidBytes + 1 > buffer.length) overflow = true;
+        else {
+            buffer[(int) numValidBytes] = (byte) b;
+            ++numValidBytes;
+        }
+    }
 
-  /**
-   * Set number of valid bytes
-   * @param value number of valid bytes
-   */
-  public void setNumValidBytes(final long value)
-  {
-    mNumValidBytes = value;
-  }
+    /**
+     * Returns buffer capacity in bytes
+     *
+     * @return buffer capacity in bytes
+     */
+    public int size() {
+        return buffer.length;
+    }
 
-  /**
-   * Caller code can use this function to mark a certain point in the buffer
-   * This is generally used to mark the position in the buffer after the last
-   * complete VariantContext object written
-   * @param value set marker value
-   */
-  public void setMarker(final long value)
-  {
-    mMarker = value;
-  }
+    /**
+     * Resizes buffer to new size - data is retained
+     *
+     * @param newSize new capacity of the buffer
+     */
+    public void resize(final long newSize) {
+        byte tmp[] = new byte[(int) newSize];
+        System.arraycopy(buffer, 0, tmp, 0, buffer.length);
+        buffer = tmp; //hopefully Java GC does its job
+    }
 
-  /**
-   * Get marker value
-   * @return marker value
-   */
-  public long getMarker()
-  {
-    return mMarker;
-  }
+    /**
+     * Returns if the buffer has overflowed
+     *
+     * @return true if the buffer has overflowed
+     */
+    public boolean overflow() {
+        return overflow;
+    }
 
-  /**
-   * Get byte buffer for this stream
-   * @return byte buffer for this stream
-   */
-  public byte[] getBuffer()
-  {
-    return mBuffer;
-  }
+    /**
+     * Set overflow value
+     *
+     * @param value overflow value
+     */
+    public void setOverflow(final boolean value) {
+        overflow = value;
+    }
+
+    /**
+     * Get number of valid bytes
+     *
+     * @return number of valid bytes
+     */
+    public long getNumValidBytes() {
+        return numValidBytes;
+    }
+
+    /**
+     * Set number of valid bytes
+     *
+     * @param value number of valid bytes
+     */
+    public void setNumValidBytes(final long value) {
+        numValidBytes = value;
+    }
+
+    /**
+     * Get marker value
+     *
+     * @return marker value
+     */
+    public long getMarker() {
+        return marker;
+    }
+
+    /**
+     * Caller code can use this function to mark a certain point in the buffer
+     * This is generally used to mark the position in the buffer after the last
+     * complete VariantContext object written
+     *
+     * @param value set marker value
+     */
+    public void setMarker(final long value) {
+        marker = value;
+    }
+
+    /**
+     * Get byte buffer for this stream
+     *
+     * @return byte buffer for this stream
+     */
+    public byte[] getBuffer() {
+        return buffer;
+    }
 }
