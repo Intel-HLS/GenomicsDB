@@ -168,8 +168,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
                     .setEnd(Integer.parseInt(ref[2])).build();
         }).collect(toList());
         this.intervalsPerArray = contigIntervals.stream().map(contig -> {
-            List<String> qjf = qjfs.stream().filter(file -> file.contains(String.format(CHROMOSOME_INTERVAL_FOLDER,
-                    contig.getContig(), contig.getBegin(), contig.getEnd()))).collect(toList());
+            List<String> qjf = qjfs.stream().filter(file -> file.contains(String.format("_%s",
+                    String.format(CHROMOSOME_INTERVAL_FOLDER, contig.getContig(), contig.getBegin(), contig.getEnd()))
+            )).collect(toList());
             if (qjf.size() != 1) {
                 throw new IllegalStateException("Multiple results for relation array folder name <-> contig interval values");
             }
