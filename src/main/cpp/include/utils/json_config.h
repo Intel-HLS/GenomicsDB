@@ -69,6 +69,7 @@ class JSONConfigBase
     static void extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
         const VidMapper* id_mapper, ColumnRange& result);
     static bool extract_interval_from_PB_struct_or_return_false(const rapidjson::Value& curr_json_object,
+        const VidMapper* id_mapper,
         ColumnRange& result);
     void read_from_file(const std::string& filename, const VidMapper* id_mapper=0, const int rank=0);
     const std::string& get_workspace(const int rank) const;
@@ -76,7 +77,7 @@ class JSONConfigBase
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
-    void read_and_initialize_vid_and_callset_mapping_if_available(FileBasedVidMapper* id_mapper, const int rank);
+    void read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank);
     const std::vector<ColumnRange>& get_query_column_ranges(const int rank) const;
     const std::vector<RowRange>& get_query_row_ranges(const int rank) const;
   protected:
@@ -110,7 +111,7 @@ class JSONBasicQueryConfig : public JSONConfigBase
 {
   public:
     JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, FileBasedVidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
+    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
     void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
     void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
 };
@@ -122,7 +123,7 @@ class JSONLoaderConfig : public JSONConfigBase
 {
   public:
     JSONLoaderConfig(bool vid_mapper_file_required = true);
-    void read_from_file(const std::string& filename, FileBasedVidMapper* id_mapper=0, int rank=0);
+    void read_from_file(const std::string& filename, VidMapper* id_mapper=0, int rank=0);
     inline bool is_partitioned_by_row() const { return m_row_based_partitioning; }
     inline bool is_partitioned_by_column() const { return !m_row_based_partitioning; }
     inline ColumnRange get_column_partition(int idx) const
@@ -148,6 +149,7 @@ class JSONLoaderConfig : public JSONConfigBase
     inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
     inline bool discard_missing_GTs() const { return m_discard_missing_GTs; }
     inline bool no_mandatory_VCF_fields() const { return m_no_mandatory_VCF_fields; }
+    inline bool treat_deletions_as_intervals() const { return m_treat_deletions_as_intervals; }
   protected:
     bool m_standalone_converter_process;
     bool m_treat_deletions_as_intervals;
@@ -204,7 +206,9 @@ class JSONVCFAdapterConfig : public JSONConfigBase
       m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
     }
     void read_from_file(const std::string& filename,
-        VCFAdapter& vcf_adapter, std::string output_format="", int rank=0,
+        VCFAdapter& vcf_adapter,
+        VidMapper* id_mapper,
+        std::string output_format="", int rank=0,
         const size_t combined_vcf_records_buffer_size_limit=0u);
     inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
     inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
@@ -226,7 +230,7 @@ class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQ
   public:
     JSONVCFAdapterQueryConfig() : JSONVCFAdapterConfig(), JSONBasicQueryConfig() { ; }
     void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, FileBasedVidMapper* id_mapper,
+        VCFAdapter& vcf_adapter, VidMapper* id_mapper,
         std::string output_format="", int rank=0,
         const size_t combined_vcf_records_buffer_size_limit=0u);
 };

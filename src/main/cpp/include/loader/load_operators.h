@@ -58,6 +58,7 @@ class LoaderOperatorBase
       const std::string& loader_config_file,
       const size_t num_callsets,
       const int partition_idx,
+      const VidMapper* vid_mapper=0,
       const bool vid_mapper_file_required = true)
       : m_column_partition(0, INT64_MAX-1), m_row_partition(0, INT64_MAX-1)
     {
@@ -70,8 +71,11 @@ class LoaderOperatorBase
       m_cell_copies.resize(num_callsets, 0);
       m_last_end_position_for_row.resize(num_callsets, -1ll);
 #endif
+      VidMapper tmp_vid_mapper;
+      if(vid_mapper)
+        tmp_vid_mapper = *vid_mapper;
       //Parse loader JSON
-      m_loader_json_config.read_from_file(loader_config_file);
+      m_loader_json_config.read_from_file(loader_config_file, &tmp_vid_mapper, partition_idx);
       //Partitioning information
       m_row_partition = RowRange(0, m_loader_json_config.get_max_num_rows_in_array()-1);
       if(m_loader_json_config.is_partitioned_by_row())
@@ -194,8 +198,9 @@ class LoaderArrayWriter : public LoaderOperatorBase
 class LoaderCombinedGVCFOperator : public LoaderOperatorBase
 {
   public:
-    LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename, bool handle_spanning_deletions,
-        int partition_idx, const ColumnRange& partition_range);
+    LoaderCombinedGVCFOperator(const VidMapper* id_mapper, const std::string& config_filename,
+        int partition_idx,
+        const bool vid_mapper_file_required);
     virtual ~LoaderCombinedGVCFOperator()
     {
       clear();
@@ -236,8 +241,6 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     SingleVariantOperatorBase* m_operator;
     Variant m_variant;
     BufferVariantCell* m_cell;
-    //Column interval bounds
-    ColumnRange m_partition;
     //PQ and aux structures
     VariantCallEndPQ m_end_pq;
     std::vector<VariantCall*> m_tmp_pq_vector;
@@ -245,7 +248,6 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
     int64_t m_current_start_position;
     int64_t m_next_start_position;
     //Deletions
-    bool m_handle_spanning_deletions;
     uint64_t m_num_calls_with_deletions;
     //Profiling stat
     GTProfileStats m_stats;

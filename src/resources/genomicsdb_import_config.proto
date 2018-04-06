@@ -35,22 +35,17 @@ syntax = "proto2";
 option java_package = "com.intel.genomicsdb.model";
 option java_outer_classname = "GenomicsDBImportConfiguration";
 
+import "genomicsdb_coordinates.proto";
 
 message Partition {
-  required int64 begin = 1;
+  required GenomicsDBColumn begin = 1;
   optional string workspace = 2;
-  optional string array = 3 [default = "genomicsdb_array"];
-  optional string vcf_output_filename = 4;
-  optional int64 end = 5 [default = 0x7FFFFFFFFFFFFFFF ];
-}
-
-message GATK4Integration {
-  optional string output_vidmap_json_file = 1;
-  optional string output_callsetmap_json_file = 2;
-  optional int32 batch_size = 3 [default = 0];
-  optional bool use_samples_in_order_provided = 4 [default = false];
-  optional int64 lower_sample_index = 5 [default = 0];
-  optional int64 upper_sample_index = 6 [default = 0x7FFFFFFFFFFFFFFF];
+  oneof array {
+    string array_name = 3;
+    bool generate_array_name_from_partition_bounds = 4;
+  }
+  optional string vcf_output_filename = 5;
+  optional GenomicsDBColumn end = 6;
 }
 
 message ImportConfiguration {
@@ -71,9 +66,10 @@ message ImportConfiguration {
   optional bool compress_tiledb_array = 15 [default = true];
   optional int64 num_cells_per_tile = 16 [default = 1000];
   optional bool fail_if_updating = 17 [default = false];
-  optional GATK4Integration gatk4_integration_parameters = 18;
   optional int32 tiledb_compression_level = 19 [default = -1];
   optional bool consolidate_tiledb_array_after_load = 20 [default = false];
   optional bool disable_synced_writes = 21 [default = true];
   optional bool ignore_cells_not_in_partition = 22;
+  optional int64 lb_callset_row_idx = 23 [ default = 0 ];
+  optional int64 ub_callset_row_idx = 24 [ default = 0x7FFFFFFFFFFFFFFF ];
 }

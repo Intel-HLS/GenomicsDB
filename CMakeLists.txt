@@ -274,7 +274,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/importer/MultiChromosomeIterator.java
         ./src/main/java/com/intel/genomicsdb/importer/SilentByteBufferStream.java
         ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
-        ./src/main/java/com/intel/genomicsdb/model/ParallelImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/ImportConfig.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java
@@ -285,18 +285,20 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBJavaSparkFactory.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBPartitionInfo.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBRecordReader.java
+        ./src/main/java/com/intel/genomicsdb/Constants.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBLibLoader.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBPartition.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBRDD.scala
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/test/java/com/intel/genomicsdb/importer/GenomicsDBImporterSpec.java
+        ./src/test/java/com/intel/genomicsdb/reader/ChrArrayFolderComparatorSpec.java
         ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBCallsetsMapProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBImportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBVidMappingProtoSpec.java
-        ./src/test/java/com/intel/genomicsdb/model/ParallelImportConfigSpec.java
+        ./src/test/java/com/intel/genomicsdb/model/ImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBTestUtils.java
         )
     if(PROTOBUF_REGENERATE)

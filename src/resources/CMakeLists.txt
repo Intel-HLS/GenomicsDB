@@ -1,4 +1,5 @@
 set(PROTOBUF_PROTO_FILES
+    genomicsdb_coordinates.proto
     genomicsdb_callsets_mapping.proto
     genomicsdb_export_config.proto
     genomicsdb_import_config.proto
@@ -10,6 +11,7 @@ if(PROTOBUF_REGENERATE)
         CACHE INTERNAL "Path to protocol buffers generated C++ headers")
     add_custom_target(PROTOBUF_GENERATED_CXX_TARGET DEPENDS ${PROTOBUF_GENERATED_CXX_SRCS} ${PROTOBUF_GENERATED_CXX_HDRS})
     set(PROTOBUF_GENERATED_JAVA_SRCS
+      ${GENOMICSDB_MAVEN_BUILD_DIR}/protobuf/com/intel/genomicsdb/GenomicsDBColumn.java
         ${GENOMICSDB_MAVEN_BUILD_DIR}/protobuf/com/intel/genomicsdb/GenomicsDBCallsetsMapProto.java
         ${GENOMICSDB_MAVEN_BUILD_DIR}/protobuf/com/intel/genomicsdb/GenomicsDBExportConfiguration.java
         ${GENOMICSDB_MAVEN_BUILD_DIR}/protobuf/com/intel/genomicsdb/GenomicsDBImportConfiguration.java
