@@ -321,23 +321,28 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   //Individual pointers will be allocated later
   m_spanning_deletions_remapped_fields.resize(m_remapped_fields_query_idxs.size());
   //Initialize GT encoding function pointer
-  const auto& GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
-  if(GT_length_descriptor.contains_phase_information())
+  if(query_config.is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX))
   {
-    //GATK CombineGVCF does not produce GT field by default - option to produce GT
-    if(m_vcf_adapter->produce_GT_field())
-      m_encode_GT_vector_function_ptr = encode_GT_vector<true, true>;
+    const auto& GT_length_descriptor = query_config.get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+    if(GT_length_descriptor.contains_phase_information())
+    {
+      //GATK CombineGVCF does not produce GT field by default - option to produce GT
+      if(m_vcf_adapter->produce_GT_field())
+        m_encode_GT_vector_function_ptr = encode_GT_vector<true, true>;
+      else
+        m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>;
+    }
     else
-      m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>;
+    {
+      //GATK CombineGVCF does not produce GT field by default - option to produce GT
+      if(m_vcf_adapter->produce_GT_field())
+        m_encode_GT_vector_function_ptr = encode_GT_vector<false, true>;
+      else
+        m_encode_GT_vector_function_ptr = encode_GT_vector<false, false>;
+    }
   }
   else
-  {
-    //GATK CombineGVCF does not produce GT field by default - option to produce GT
-    if(m_vcf_adapter->produce_GT_field())
-      m_encode_GT_vector_function_ptr = encode_GT_vector<false, true>;
-    else
-      m_encode_GT_vector_function_ptr = encode_GT_vector<false, false>;
-  }
+    m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>; //encode phase, but don't produce GT
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -883,7 +888,9 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
   //can be much larger. LUT gets resized later
   m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), 3u);
   m_reduced_alleles_LUT.reset_luts();
-  auto GT_length_descriptor = m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx);
+  auto GT_length_descriptor = m_query_config->is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX)
+    ? m_query_config->get_length_descriptor_for_query_attribute_idx(m_GT_query_idx)
+    : FieldLengthDescriptor();
   for(auto iter=variant.begin(), e=variant.end();iter != e;++iter)
   {
     auto& curr_call = *iter;
@@ -917,18 +924,20 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       int lowest_PL_value = INT_MAX;
       auto PL_field_ptr = get_known_field_if_queried<VariantFieldPrimitiveVectorData<int>, true>(curr_call, query_config, GVCF_PL_IDX);
       auto has_NON_REF = false;
-      //PL field exists
-      if(PL_field_ptr && PL_field_ptr->is_valid())
+      //PL field exists flag
+      auto PL_field_exists = (PL_field_ptr && PL_field_ptr->is_valid());
+      std::vector<int> empty_int_vec;
+      auto& PL_vector = PL_field_exists ? PL_field_ptr->get() : empty_int_vec;
+      m_spanning_deletion_current_genotype.resize(ploidy);
+      for(auto i=0u;i<alt_alleles.size();++i)
       {
-        auto& PL_vector = PL_field_ptr->get();
-        m_spanning_deletion_current_genotype.resize(ploidy);
-        for(auto i=0u;i<alt_alleles.size();++i)
+        auto allele_idx = i+1;  //+1 for REF
+        if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
         {
-          auto allele_idx = i+1;  //+1 for REF
-          if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+          if(lowest_deletion_allele_idx < 0) //uninitialized, assign to first deletion found
+            lowest_deletion_allele_idx = allele_idx;
+          if(PL_field_exists)
           {
-            if(lowest_deletion_allele_idx < 0) //uninitialized
-              lowest_deletion_allele_idx = allele_idx;
             //Genotype with all elements set to the deletion allele
             m_spanning_deletion_current_genotype.assign(ploidy, allele_idx);
             auto gt_idx = VariantOperations::get_genotype_index(m_spanning_deletion_current_genotype, true);
@@ -939,26 +948,13 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
               lowest_deletion_allele_idx = allele_idx;
             }
           }
-          else
-            if(IS_NON_REF_ALLELE(alt_alleles[i]))
-            {
-              m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
-              has_NON_REF = true;
-            }
         }
-      }
-      else      //PL field is not queried/doesn't exist, simply use the first deletion allele
-      {
-        lowest_deletion_allele_idx = 1;
-        for(auto i=0u;i<alt_alleles.size();++i)
-        {
-          auto allele_idx = i+1;  //+1 for REF
-          if(VariantUtils::is_deletion(ref_allele, alt_alleles[i]))
+        else
+          if(IS_NON_REF_ALLELE(alt_alleles[i]))
           {
-            lowest_deletion_allele_idx = allele_idx;
-            break;
+            m_reduced_alleles_LUT.add_input_merged_idx_pair(curr_call_idx_in_variant, allele_idx, 2);
+            has_NON_REF = true;
           }
-        }
       }
       assert(lowest_deletion_allele_idx >= 1);    //should be an ALT allele
       //first ALT allele in reduced list is *
