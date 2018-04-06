@@ -178,8 +178,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     }
 
     private String createQueryJsonFileFromArrayFolderName(String folderName) throws IOException {
-        GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
-                GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration).setArrayName(folderName).build();
+        GenomicsDBExportConfiguration.ExportConfiguration.Builder fullExportConfigurationBuilder =
+            GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration)
+            .setArrayName(folderName);
+        if(this.exportConfiguration.getQueryColumnRangesCount() == 0
+                && this.exportConfiguration.getQueryRowRangesCount() == 0)
+            fullExportConfigurationBuilder.setScanFull(true);
+        GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration = fullExportConfigurationBuilder.build();
         return createTempQueryJsonFile(fullExportConfiguration.getArrayName(), fullExportConfiguration).getAbsolutePath();
     }
 

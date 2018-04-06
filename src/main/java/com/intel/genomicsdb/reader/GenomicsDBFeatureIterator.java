@@ -125,7 +125,10 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
 
     @Override
     public boolean hasNext() {
-        if (this.codec.isDone(this.currentSource)) setNextSourceAsCurrent();
+        int index = 0;
+        //While loop since the next source might not return any data, but subsequent sources might
+        while(this.codec.isDone(this.currentSource) && index < this.sources.size())
+          index = setNextSourceAsCurrent();
         boolean isDone = (this.codec.isDone(this.currentSource));
         if (isDone) close();
         return !isDone;
@@ -163,8 +166,10 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
         throw new UnsupportedOperationException("Remove is not supported in Iterators");
     }
 
-    private void setNextSourceAsCurrent() {
+    private int setNextSourceAsCurrent() {
+        this.codec.close(this.currentSource);
         int index = this.sources.indexOf(this.currentSource);
         if (index < this.sources.size() - 1) this.currentSource = this.sources.get(index + 1);
+        return index + 1;
     }
 }

@@ -45,6 +45,29 @@ void JSONConfigBase::clear()
   m_callset_mapping_file.clear();
 }
 
+ColumnRange verify_contig_position_and_get_tiledb_column_interval(const ContigInfo& contig_info,
+    const int64_t begin, const int64_t end)
+{
+  ColumnRange result;
+  result.first = std::min(begin, end);
+  result.second = std::max(begin, end);
+  if(result.first > contig_info.m_length)
+    throw RunConfigException(std::string("Position ")+std::to_string(result.first)
+        +" queried for contig "+contig_info.m_name+" which is of length "
+        +std::to_string(contig_info.m_length)+"; queried position is past end of contig");
+  if(result.second > contig_info.m_length)
+  {
+    std::cerr << "WARNING: position "+std::to_string(result.second)
+        +" queried for contig "+contig_info.m_name+" which is of length "
+        +std::to_string(contig_info.m_length)+"; queried interval is past end of contig, truncating to contig length";
+    result.second = contig_info.m_length;
+  }
+  // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
+  result.first += (contig_info.m_tiledb_column_offset - 1);
+  result.second += (contig_info.m_tiledb_column_offset - 1);
+  return result;
+}
+
 void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
     const VidMapper* id_mapper, ColumnRange& result)
 {
@@ -78,16 +101,15 @@ void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value&
     VERIFY_OR_THROW(contig_position.Size() == 2);
     VERIFY_OR_THROW(contig_position[0u].IsInt64());
     VERIFY_OR_THROW(contig_position[1u].IsInt64());
-    // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-    result.first = contig_info.m_tiledb_column_offset + contig_position[0u].GetInt64() - 1;
-    result.second = contig_info.m_tiledb_column_offset + contig_position[1u].GetInt64() - 1;
+    result = verify_contig_position_and_get_tiledb_column_interval(contig_info,
+        contig_position[0u].GetInt64(), contig_position[1u].GetInt64());
   }
   else // single position
   {
     VERIFY_OR_THROW(contig_position.IsInt64());
-    // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-    result.first = contig_info.m_tiledb_column_offset + contig_position.GetInt64() - 1;
-    result.second = result.first;
+    auto contig_position_int = contig_position.GetInt64();
+    result = verify_contig_position_and_get_tiledb_column_interval(contig_info,
+        contig_position_int, contig_position_int);
   }
 }
 
@@ -133,16 +155,14 @@ bool JSONConfigBase::extract_interval_from_PB_struct_or_return_false(const rapid
                 && interval_object["contig_interval"].HasMember("begin")
                 && interval_object["contig_interval"].HasMember("end"))
             {
-              // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-              result.first = interval_object["contig_interval"]["begin"].GetInt64() - 1;
-              result.second = interval_object["contig_interval"]["end"].GetInt64() - 1;
               ContigInfo contig_info;
               auto contig_name = interval_object["contig_interval"]["contig"].GetString();
               if (!id_mapper->get_contig_info(contig_name, contig_info))
                 throw VidMapperException(std::string("JSONConfigBase::read_from_file: Invalid contig name : ")
                     + contig_name );
-              result.first += contig_info.m_tiledb_column_offset;
-              result.second += contig_info.m_tiledb_column_offset;
+              result = verify_contig_position_and_get_tiledb_column_interval(contig_info,
+                  interval_object["contig_interval"]["begin"].GetInt64(),
+                  interval_object["contig_interval"]["end"].GetInt64());
               return true;
             }
         }
@@ -170,15 +190,14 @@ bool JSONConfigBase::extract_interval_from_PB_struct_or_return_false(const rapid
                   && interval_object["contig_position"].HasMember("contig")
                   && interval_object["contig_position"].HasMember("position"))
               {
-                // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-                result.first = interval_object["contig_position"]["position"].GetInt64() - 1;
                 ContigInfo contig_info;
                 auto contig_name = interval_object["contig_position"]["contig"].GetString();
                 if (!id_mapper->get_contig_info(contig_name, contig_info))
                   throw VidMapperException(std::string("JSONConfigBase::read_from_file: Invalid contig name : ")
                       + contig_name );
-                result.first += contig_info.m_tiledb_column_offset;
-                result.second = result.first;
+                auto contig_position_int = interval_object["contig_position"]["position"].GetInt64();
+                result = verify_contig_position_and_get_tiledb_column_interval(contig_info,
+                    contig_position_int, contig_position_int);
                 return true;
               }
           }
