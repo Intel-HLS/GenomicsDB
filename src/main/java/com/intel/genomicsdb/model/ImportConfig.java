@@ -45,16 +45,18 @@ public class ImportConfig {
     private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
+    private String outputVcfHeaderFile = null;
 
     /**
      * Main ImportConfig constructor
-     * @param importConfiguration GenomicsDBImportConfiguration protobuf object
+     *
+     * @param importConfiguration       GenomicsDBImportConfiguration protobuf object
      * @param validateSampleToReaderMap Flag for validating sample to reader map
-     * @param passAsVcf Flag for indicating that a VCF is being passed
-     * @param batchSize Batch size
-     * @param mergedHeader Required header
-     * @param sampleNameToVcfPath Sample name to VCF path map
-     * @param sampleToReaderMapCreator Function used for creating sampleToReaderMap
+     * @param passAsVcf                 Flag for indicating that a VCF is being passed
+     * @param batchSize                 Batch size
+     * @param mergedHeader              Required header
+     * @param sampleNameToVcfPath       Sample name to VCF path map
+     * @param sampleToReaderMapCreator  Function used for creating sampleToReaderMap
      */
     public ImportConfig(final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
                         final boolean validateSampleToReaderMap,
@@ -63,7 +65,7 @@ public class ImportConfig {
                         final Set<VCFHeaderLine> mergedHeader,
                         final Map<String, Path> sampleNameToVcfPath,
                         final Func<Map<String, Path>, Integer, Integer,
-                                    Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
+                                Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
         this.validateChromosomeIntervals();
         this.setValidateSampleToReaderMap(validateSampleToReaderMap);
@@ -119,9 +121,17 @@ public class ImportConfig {
         this.importConfiguration = importConfiguration;
     }
 
+    public String getOutputVcfHeaderFile() {
+        return outputVcfHeaderFile;
+    }
+
+    public void setOutputVcfHeaderFile(String outputVcfHeaderFile) {
+        this.outputVcfHeaderFile = outputVcfHeaderFile;
+    }
+
     @FunctionalInterface
-    public interface Func<T1, T2, T3, R>{
-        R apply(T1 t1,T2 t2,T3 t3);
+    public interface Func<T1, T2, T3, R> {
+        R apply(T1 t1, T2 t2, T3 t3);
     }
 
     public Map<String, Path> getSampleNameToVcfPath() {
