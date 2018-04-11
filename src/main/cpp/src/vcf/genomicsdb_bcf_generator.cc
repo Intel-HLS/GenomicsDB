@@ -62,6 +62,7 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
     m_query_config.set_column_interval_to_query(column_begin, column_end);
   }
   m_storage_manager = new VariantStorageManager(static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_workspace(my_rank), tiledb_segment_size);
+  m_scan_state = new VariantQueryProcessorScanState();
   m_query_processor = new VariantQueryProcessor(m_storage_manager,
       static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_array_name(my_rank),
       m_vid_mapper);
@@ -71,12 +72,12 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
   m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config,
       bcf_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped(), use_missing_values_only_not_vector_end);
   if(produce_header_only)
-    m_scan_state.set_done(true);
+    m_scan_state->set_done(true);
   else
   {
     m_query_column_interval_idx = 0u;
     m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
-        true, &m_scan_state);
+        true, m_scan_state);
   }
 #ifdef DO_PROFILING
   m_timer.stop();
@@ -89,6 +90,9 @@ GenomicsDBBCFGenerator::~GenomicsDBBCFGenerator()
   if(m_combined_bcf_operator)
     delete m_combined_bcf_operator;
   m_combined_bcf_operator = 0;
+  if (m_scan_state)
+    delete m_scan_state;
+  m_scan_state = 0;
   if(m_query_processor)
     delete m_query_processor;
   m_query_processor = 0;
@@ -107,7 +111,7 @@ void GenomicsDBBCFGenerator::produce_next_batch()
   auto num_bytes_produced = 0ull;
   while(num_bytes_produced == 0u)
   {
-    if(m_scan_state.end())
+    if(m_scan_state->end())
     {
       ++m_query_column_interval_idx;
       if(m_produce_header_only || 
@@ -117,12 +121,12 @@ void GenomicsDBBCFGenerator::produce_next_batch()
         m_done = true;
         return;
       }
-      m_scan_state.reset();
+      m_scan_state->reset();
     }
     reset_read_buffer();
     set_write_buffer();
     m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
-        true, &m_scan_state);
+        true, m_scan_state);
     num_bytes_produced = m_buffers[m_buffer_control.get_read_idx()].m_num_valid_bytes;
   }
 }
