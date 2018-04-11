@@ -18,7 +18,6 @@ set(GenomicsDB_library_sources
     cpp/src/loader/tiledb_loader_file_base.cc
     cpp/src/loader/tiledb_loader.cc
     cpp/src/utils/command_line.cc
-    cpp/src/utils/libtiledb_variant.cc
     cpp/src/utils/memory_measure.cc
     cpp/src/utils/histogram.cc
     cpp/src/utils/json_config.cc

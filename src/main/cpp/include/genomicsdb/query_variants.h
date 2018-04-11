@@ -131,6 +131,7 @@ class VariantQueryProcessorScanState
       : m_stats()
     {
       reset();
+      m_iter = 0;
     }
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
       : m_stats()
@@ -143,6 +144,7 @@ class VariantQueryProcessorScanState
     {
       if(m_iter)
         delete m_iter;
+      m_iter = 0;
       invalidate();
     }
     bool end() const { return m_done; }
@@ -154,7 +156,6 @@ class VariantQueryProcessorScanState
     }
     void invalidate()
     {
-      m_iter = 0;
       m_current_start_position = -1ll;
     }
     /*
@@ -170,6 +171,8 @@ class VariantQueryProcessorScanState
     Variant& get_variant() { return m_variant; }
     uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
     void set_done(const bool val) { m_done = val; }
+    VariantArrayCellIterator* get_iterator() { return m_iter; }
+    void set_iterator(VariantArrayCellIterator* v) { m_iter = v; }
     /*void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }*/
   private:
     bool m_done;
@@ -260,7 +263,9 @@ class VariantQueryProcessor {
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
     void gt_get_column(
         const int ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
-        Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
+        Variant& variant,
+        VariantArrayCellIterator* arg_cell_iter,
+        GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
     /*
      * Create Variant from a buffer produced by the binary_serialize() functions
      * This is a member of VariantQueryProcessor because the Factory methods are already setup for 
@@ -329,7 +334,7 @@ class VariantQueryProcessor {
      * Initializes forward iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
      */
-    unsigned int gt_initialize_forward_iter(
+    void gt_initialize_forward_iter(
         const int ad,
         const VariantQueryConfig& query_config, const int64_t column,
         VariantArrayCellIterator*& forward_iter) const;

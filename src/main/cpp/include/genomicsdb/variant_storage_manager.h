@@ -95,6 +95,14 @@ class VariantArrayCellIterator
       return *this;
     }
     const BufferVariantCell& operator*();
+    //Set new interval to query
+    void reset_subarray(const int64_t* coords)
+    {
+      assert(m_tiledb_array_iterator);
+      if(tiledb_array_iterator_reset_subarray(m_tiledb_array_iterator,
+          reinterpret_cast<const void*>(coords)) != TILEDB_OK)
+        throw VariantStorageManagerException("Error resetting TileDB iterator subarray");
+    }
   private:
     unsigned m_num_queried_attributes;
     TileDB_CTX* m_tiledb_ctx;

@@ -24,9 +24,9 @@
 #include <string>
 #include <getopt.h>
 #include <mpi.h>
-#include "libtiledb_variant.h"
 #include "json_config.h"
 #include "timer.h"
+#include "query_variants.h"
 #include "broad_combined_gvcf.h"
 #include "vid_mapper_pb.h"
 

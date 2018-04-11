@@ -85,6 +85,12 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
 
 GenomicsDBBCFGenerator::~GenomicsDBBCFGenerator()
 {
+  //Delete iterator before storage manager is deleted
+  if(m_scan_state.get_iterator())
+  {
+    delete m_scan_state.get_iterator();
+    m_scan_state.set_iterator(0);
+  }
   m_buffers.clear();
   if(m_combined_bcf_operator)
     delete m_combined_bcf_operator;

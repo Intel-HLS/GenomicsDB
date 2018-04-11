@@ -396,7 +396,7 @@ void VariantQueryProcessor::scan_and_operate(
   std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Forward iterator
   VariantArrayCellIterator* forward_iter = 0;
-  if(scan_state && scan_state->m_iter && scan_state->m_current_start_position >= 0) //resuming a previous scan
+  if(scan_state)
   {
     current_start_position = scan_state->m_current_start_position;
     forward_iter = scan_state->m_iter;
@@ -404,7 +404,8 @@ void VariantQueryProcessor::scan_and_operate(
     stats_ptr = &(scan_state->m_stats);
 #endif
   }
-  else //new scan
+  //Not resuming a previous scan
+  if(!(scan_state && scan_state->m_iter && scan_state->m_current_start_position >= 0))
   {
     //Scan only queried interval, not whole array
     if(query_config.get_num_column_intervals() > 0u)
@@ -414,7 +415,7 @@ void VariantQueryProcessor::scan_and_operate(
       //information is recorded in the Call
       //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
       //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
-      gt_get_column(ad, query_config, column_interval_idx, variant, stats_ptr);
+      gt_get_column(ad, query_config, column_interval_idx, variant, forward_iter, stats_ptr);
       //Insert valid calls produced by gt_get_column into the priority queue
       for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
       {
@@ -484,16 +485,17 @@ void VariantQueryProcessor::scan_and_operate(
     //handle last interval
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position,
         is_last_call, num_calls_with_deletions, stats_ptr);
-    if(!variant_operator.overflow())
+    //If scan_state is non-NULL, it's the responsibility of the caller to deallocate
+    //m_iter
+    if(scan_state == 0)
       delete forward_iter;
 #ifdef DO_PROFILING
     stats_ptr->print_stats(std::cerr);
 #endif
     if(scan_state)
     {
-      if(variant_operator.overflow()) //buffer full
-        scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
-      else //totally done
+      scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
+      if(!variant_operator.overflow()) //totally done
       {
         //Invalidate iterator
         scan_state->invalidate();
@@ -751,7 +753,9 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
     std::cerr << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
 #endif
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant,
+        0,
+        stats_ptr,
 #ifdef DUPLICATE_CELL_AT_END
         0
 #else
@@ -874,7 +878,9 @@ void VariantQueryProcessor::gt_get_column_interval(
 void VariantQueryProcessor::gt_get_column(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    Variant& variant, GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
+    Variant& variant,
+    VariantArrayCellIterator* arg_cell_iter,
+    GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
 #ifdef DO_PROFILING
   assert(stats_ptr);
   stats_ptr->m_interval_sweep_timer.start();
@@ -896,7 +902,7 @@ void VariantQueryProcessor::gt_get_column(
 #ifdef DUPLICATE_CELL_AT_END
   //If cells are duplicated at the end, we only need a forward iterator starting at col
   //i.e. start at the smallest cell with co-ordinate >= col
-  VariantArrayCellIterator* cell_iter = 0;
+  VariantArrayCellIterator* cell_iter = arg_cell_iter;
   gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first, cell_iter);
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
@@ -1139,19 +1145,18 @@ void VariantQueryProcessor::gt_fill_row(
 }
 
 inline
-unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
+void VariantQueryProcessor::gt_initialize_forward_iter(
     const int ad,
     const VariantQueryConfig& query_config, const int64_t column,
     VariantArrayCellIterator*& forward_iter) const {
   assert(query_config.is_bookkeeping_done());
-  //Num attributes in query
-  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
-  //Assign forward iterator
   vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
     static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
     column, INT64_MAX };
-  forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
-  return num_queried_attributes - 1;
+  if(forward_iter)
+    forward_iter->reset_subarray(&(query_range[0]));
+  else     //Assign forward iterator
+    forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
 }
 
 void VariantQueryProcessor::clear()
