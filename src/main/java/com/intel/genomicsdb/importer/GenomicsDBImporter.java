@@ -552,7 +552,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
         final int numberPartitions = this.config.getImportConfiguration().getColumnPartitionsList().size();
         final ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
-        final boolean peformConsolidation = this.config.getImportConfiguration().getConsolidateTiledbArrayAfterLoad();
+        final boolean performConsolidation = this.config.getImportConfiguration().getConsolidateTiledbArrayAfterLoad();
 
         //Set size_per_column_partition once
         this.config.setImportConfiguration(this.config.getImportConfiguration().toBuilder()
@@ -560,19 +560,22 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                         * sampleCount).build());
 
         //Iterate over sorted sample list in batches
-        iterateOverSamplesInBatches(sampleCount, updatedBatchSize, numberPartitions, executor, peformConsolidation);
+        iterateOverSamplesInBatches(sampleCount, updatedBatchSize, numberPartitions, executor, performConsolidation);
         executor.shutdown();
         mDone = true;
     }
 
     private void iterateOverSamplesInBatches(final int sampleCount, final int updatedBatchSize, final int numberPartitions,
-                                             final ExecutorService executor, final boolean peformConsolidation) {
+                                             final ExecutorService executor, final boolean performConsolidation) {
+        final boolean failIfUpdating = this.config.getImportConfiguration().getFailIfUpdating();
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
             IntStream.range(0, numberPartitions).forEach(rank -> updateConfigPartitionsAndLbUb(this.config, index, rank));
             GenomicsDBImportConfiguration.ImportConfiguration updatedConfig =
                     this.config.getImportConfiguration().toBuilder().setConsolidateTiledbArrayAfterLoad(
-                            i + updatedBatchSize >= sampleCount && peformConsolidation).build();
+                            i + updatedBatchSize >= sampleCount && performConsolidation)
+                    .setFailIfUpdating(failIfUpdating && i == 0) //fail if updating should be set to true iff user sets it and this is the first batch
+                    .build();
             this.config.setImportConfiguration(updatedConfig);
             List<CompletableFuture<Boolean>> futures = iterateOverChromosomeIntervals(updatedBatchSize, numberPartitions, executor, index);
             List<Boolean> result = futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
