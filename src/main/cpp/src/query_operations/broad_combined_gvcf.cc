@@ -25,6 +25,11 @@
 #include "broad_combined_gvcf.h"
 #include "genomicsdb_multid_vector_field.h"
 
+#ifdef DO_MEMORY_PROFILING
+#include "memory_measure.h"
+#define ONE_MB 1024ull*1024ull
+#endif
+
 //INFO fields
 #define MAKE_BCF_INFO_TUPLE(enum_idx, query_idx, field_info) \
   INFO_tuple_type(enum_idx, query_idx, field_info)
@@ -343,6 +348,9 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   }
   else
     m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>; //encode phase, but don't produce GT
+#ifdef DO_MEMORY_PROFILING
+  m_next_memory_limit = 100*ONE_MB;
+#endif
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -869,6 +877,20 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   handle_FORMAT_fields(variant);
 #ifdef DO_PROFILING
   m_bcf_t_creation_timer.stop();
+#endif
+#ifdef DO_MEMORY_PROFILING
+  statm_t mem_result;
+  read_off_memory_status(mem_result);
+  if(mem_result.resident >= m_next_memory_limit)
+  {
+    std::cerr << "Crossed "<<m_next_memory_limit
+      << " memory used (bytes) " << mem_result.resident
+      <<" at contig "
+      << bcf_hdr_id2name(m_vcf_hdr, m_curr_contig_hdr_idx)
+      << " position " << m_bcf_out->pos+1
+      << "\n";
+    m_next_memory_limit += 100*ONE_MB;
+  }
 #endif
   m_vcf_adapter->handoff_output_bcf_line(m_bcf_out, m_bcf_record_size);
 }

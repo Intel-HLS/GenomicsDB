@@ -38,6 +38,8 @@
 #include "gperftools/profiler.h"
 #endif
 
+//#define VERBOSE 1
+
 enum ArgsEnum
 {
   ARGS_IDX_SKIP_QUERY_ON_ROOT=1000,
@@ -462,6 +464,7 @@ int main(int argc, char *argv[]) {
   auto print_version_only = false;
   unsigned command_idx = COMMAND_RANGE_QUERY;
   size_t segment_size = 10u*1024u*1024u; //in bytes = 10MB
+  auto segment_size_set_in_command_line = false;
   auto sub_operation_type = ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_UNKNOWN;
   while((c=getopt_long(argc, argv, "j:l:w:A:p:O:s:r:", long_options, NULL)) >= 0)
   {
@@ -485,6 +488,7 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         segment_size = strtoull(optarg, 0, 10);
+        segment_size_set_in_command_line = true;
         break;
       case ARGS_IDX_SKIP_QUERY_ON_ROOT:
         skip_query_on_root = true;
@@ -544,59 +548,32 @@ int main(int argc, char *argv[]) {
     auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
     JSONVCFAdapterQueryConfig scan_config;
 #endif
-    //If JSON file specified, read workspace, array_name, rows/columns/fields to query from JSON file
-    if(json_config_file != "")
+    if(json_config_file.empty())
     {
-      JSONBasicQueryConfig* json_config_ptr = 0;
-      JSONBasicQueryConfig range_query_config;
-      switch(command_idx)
-      {
-        case COMMAND_PRODUCE_BROAD_GVCF:
+      std::cerr << "Query JSON file (-j) is a mandatory argument - unspecified\n";
+      exit(-1);
+    }
+    JSONBasicQueryConfig* json_config_ptr = 0;
+    JSONBasicQueryConfig range_query_config;
+    switch(command_idx)
+    {
+      case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-          scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
-          json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
+        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
+        json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
 #else
-          std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
-          exit(-1);
+        std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
+        exit(-1);
 #endif
-          break;
-        default:
-          range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
-          json_config_ptr = &range_query_config;
-          break;
-      }
-      ASSERT(json_config_ptr);
-      workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
-      array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
+        break;
+      default:
+        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
+        json_config_ptr = &range_query_config;
+        break;
     }
-    else
-    {
-      if( optind + 2 > argc ) {
-        std::cerr << std::endl<< "ERROR: Invalid number of arguments" << std::endl << std::endl;
-        std::cout << "Usage: " << argv[0] << " ( -j <json_config_file> | -w <workspace> -A <array name> <start> <end> )"
-          << " [ -l <loader_json_file] -O <output_format> -p <page_size> ]" << std::endl;
-        return -1;
-      }
-      uint64_t start = std::stoull(std::string(argv[optind]));
-      uint64_t end = std::stoull(std::string(argv[optind+1])); 
-      query_config.add_column_interval_to_query(start, end);
-      switch(command_idx)
-      {
-        case COMMAND_PRODUCE_BROAD_GVCF:
-          std::cerr << "To produce Broad's combined GVCF, you need to pass parameters through a JSON file, exiting\n";
-          exit(-1);
-          break;
-        case COMMAND_PRODUCE_HISTOGRAM:
-          break;  //no attributes
-        case COMMAND_PRINT_CALLS:
-        case COMMAND_PRINT_CSV:
-          query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT"});
-          break;
-        default:
-          query_config.set_attributes_to_query(std::vector<std::string>{"REF", "ALT", "BaseQRankSum", "AD", "PL"});
-          break;
-      }
-    }
+    ASSERT(json_config_ptr);
+    workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
+    array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
     if(workspace == "" || array_name == "")
     {
       std::cerr << "Missing workspace(-w) or array name (-A)\n";
@@ -605,6 +582,8 @@ int main(int argc, char *argv[]) {
 #ifdef USE_GPERFTOOLS
     ProfilerStart("gprofile.log");
 #endif
+    segment_size = segment_size_set_in_command_line ? segment_size
+      : json_config_ptr->get_segment_size();
 #if VERBOSE>0
     std::cerr << "Segment size: "<<segment_size<<" bytes\n";
 #endif
