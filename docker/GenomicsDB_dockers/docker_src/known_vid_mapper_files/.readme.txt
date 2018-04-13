@@ -1,0 +1,2 @@
+GRCH37.vid : customer
+HG19.vid : Geno1000

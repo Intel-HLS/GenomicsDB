@@ -1,0 +1,27 @@
+#!/bin/bash
+. /usr/share/cont-lib/cont-lib.sh
+
+ls /usr/bin/vcf2tiledb > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  ls /usr/bin/gt_mpi_gather > /dev/null 2>&1
+  test $? -ne 0 && cont_error "cannot find neither vcf2tiledb or gt_mpi_gather... exiting" && exit 2
+  executable='/usr/bin/gt_mpi_gather'
+else
+  executable='/usr/bin/vcf2tiledb'
+fi
+if [ "$#" -gt 0 -a "$1" == "--version" ]; then
+  __cont_msg "info $(basename ${executable}) version is $($executable --version)"
+  exit 0
+fi
+
+my_uid=$(id -u)
+test -z "$*" && set -- bash
+__cont_msg "info run $1 as user id $my_uid, GenomicsDB utils version is $(${executable} --version)"
+echo
+
+if [ $my_uid != 5658 ]; then
+  export HOME=/
+fi
+cd $HOME
+export PATH=$PATH:/usr/lib64/mpich/bin
+exec "$@"

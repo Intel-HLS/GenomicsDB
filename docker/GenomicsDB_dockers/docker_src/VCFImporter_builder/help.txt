@@ -1,0 +1,29 @@
+This is help for VCF importer
+
+Required arguments are:
+
+    -R: the path to a reference_genome file
+    -C: the path to a callsets file or to a root path where generated callsets will be stored
+    -V: the path to a vid mapping file or to a name of predefined vid mapping files
+    -o: the root path of GenomicsDB workspace
+    -i: the root path of input VCF files or path to a VCF file list or a list of VCF files separated by ","
+
+Optional arguments are:
+
+    --range: the format of range is 'chromesome_name:begin-end', separated by ',',
+             the field 1 'chromesome_name' is the name of a chromosome that is defined in the vid mapper file.
+             the field 2 'begin' is the begining position of the chromosome, the default is 1.
+             the field 3 'end' is the end position of the chromosome.
+
+            Examples for option 'range':
+                1) '--range 1:1-249250621'
+                    load chromosome '1' from position 1 to 249250621
+
+Tips:
+    When running 'vcf_import.py' script in a docker container, the host callsets file likely need to modified due to the changes of input VCF files path. If you just want to generate callsets, use 'callsets_generator.py'.
+
+    The required arguments of 'callsets_generator.py' are:
+        -C: the path to a root path where generated callsets will be stored
+        -i: the root path of input VCF files or path to a VCF file list or a list of VCF files separated by ","
+
+    ** you must map the drives the same way as when run 'vcf_import.py'

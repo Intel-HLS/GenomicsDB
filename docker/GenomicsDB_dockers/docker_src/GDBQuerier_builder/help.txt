@@ -1,0 +1,15 @@
+This is help for GenomicsDB Querier
+
+Required arguments are:
+    -R: the path to a reference_genome file
+    -C: the path to a callsets file or a root path where generated callsets will be stored
+    -V: the path to a vid mapping file or a name of predefined vid mapping files
+    -o: the root path of GenomicsDB workspace
+    --positions: the path of position list file
+
+    --print-AC or --print-calls
+        --print-AC : print allele count
+        --print-calls : print calls
+
+Optional arguments are:
+    -A: additional attributes

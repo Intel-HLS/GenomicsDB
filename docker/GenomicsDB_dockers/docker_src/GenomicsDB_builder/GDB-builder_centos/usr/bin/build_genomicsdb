@@ -1,0 +1,63 @@
+#! /bin/bash
+export BUILD_ROOT=${HOME}/build_src
+export PROTOBUF_LIBRARY=$BUILD_ROOT/protobuf_build
+echo "build_home=$build_home, PROTOBUF_LIBRARY=$PROTOBUF_LIBRARY, GenomicsDB_HOME=$GenomicsDB_HOME"
+
+# make protobuf
+build_proto_buf() {
+  echo "+++ Building protobuf at ${PROTOBUF_LIBRARY}..."
+  mkdir -p ${PROTOBUF_LIBRARY} && pushd ${PROTOBUF_LIBRARY} >/dev/null 2>&1
+  git clone https://github.com/google/protobuf.git
+  cd protobuf
+  git checkout 3.0.x
+  ./autogen.sh
+  ./configure --prefix=/usr --with-pic
+  if [ -f ./Makefile ]; then
+     make && make install
+     basename $(ls /usr/bin/protoc)
+     find /usr/lib/ -name 'libproto*' -type f -exec basename {} \;
+     echo "--- Done building protobuf"
+     popd >/dev/null 2>&1
+     return 0
+  else
+     popd >/dev/null 2>&1
+     echo "ERROR: build_proto_buf not find Makefile"
+     return -1
+  fi
+}
+
+# make genomicsdb
+build_gdb() {
+  echo "+++ Building GenomicsDB at ${GenomicsDB_HOME}..."
+  git clone --recursive https://github.com/Intel-HLS/GenomicsDB.git
+  ws=GenomicsDB/build
+  mkdir -p $ws && pushd $ws >/dev/null 2>&1
+  cmake --warn-uninitialized --debug-output .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DDISABLE_OPENMP=True -DBUILD_JAVA=False -DDO_PROFILING=False -DPROTOBUF_LIBRARY=/usr 
+  if [ -f ./Makefile ]; then
+     make && make  install
+     echo "INFO: Successfully built GenomicsDB... run test"
+     ../tests/run.py $PWD /usr
+     popd >/dev/null 2>&1
+     return 0
+  else
+     echo "ERROR: build_gdb not find Makefile"
+     popd >/dev/null 2>&1
+     return -1
+  fi
+}
+
+#source /opt/rh/devtoolset-4/enable
+gcc --version
+mkdir -p ${BUILD_ROOT} && pushd ${BUILD_ROOT} >/dev/null 2>&1
+build_proto_buf
+retst=$?
+if [ $retst -eq 0 ]; then
+  build_gdb
+  retst=$?
+  if [ -f /usr/bin/vcf2tiledb ] && [ $# -gt 0 ] && [ -d $1 ]; then
+    cp /usr/bin/vcf2tiledb /$1/
+  fi
+fi
+[[ $retst -eq 0 ]] && echo "DONE: built GenomicsDB" || echo "FAIL: cannot build GenomicsDB" 
+popd >/dev/null 2>&1
+exit $retst

@@ -1,0 +1,86 @@
+{
+    "file_division": [
+        [
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t1.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_overlapping.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_haploid_triploid.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t8.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op0.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t3_triploid_deletion.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_with_missing_PL_SB_fields.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op2.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t7.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op1.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_1_2_combined.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t6.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0.vcf.gz",
+            "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t2.vcf.gz"
+        ]
+    ],
+    "callsets": {
+        "HG01958": {
+            "row_idx": 0,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t1.vcf.gz"
+        },
+        "HG00141": {
+            "row_idx": 1,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_overlapping.vcf.gz"
+        },
+        "HG00141_673fd50c-3ce4-4378-9cf4-aab0fa60c537": {
+            "row_idx": 2,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_haploid_triploid.vcf.gz"
+        },
+        "HG01530": {
+            "row_idx": 3,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t8.vcf.gz"
+        },
+        "HG00141_12bba08f-0adc-4ce8-befe-f2bc2e45c12e": {
+            "row_idx": 4,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op0.vcf.gz"
+        },
+        "NA12878": {
+            "row_idx": 5,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t3_triploid_deletion.vcf.gz"
+        },
+        "HG00141_5ee33832-db35-41a5-8044-2a5e36a27f2a": {
+            "row_idx": 6,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_with_missing_PL_SB_fields.vcf.gz"
+        },
+        "HG01530_eded5b0b-b9fc-4c51-932a-da458feabfd3": {
+            "row_idx": 7,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op2.vcf.gz"
+        },
+        "HG01958_9205af2a-59a5-442e-812f-43d3c22a0c73": {
+            "row_idx": 8,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t7.vcf.gz"
+        },
+        "HG01958_313c25a2-a577-48f4-8738-b85a962b8ed0": {
+            "row_idx": 9,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/info_op1.vcf.gz"
+        },
+        "HG00141_4a0ae9ea-13ff-4b11-86e4-8d324d3647f0": {
+            "row_idx": 10,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_1_2_combined.vcf.gz"
+        },
+        "HG01958_4b22f3c0-2871-4f86-a11e-02e91ac2b1cd": {
+            "row_idx": 11,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_1_2_combined.vcf.gz"
+        },
+        "HG01530_d84670f0-2d14-48e8-aad4-da31f1064aec": {
+            "row_idx": 12,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0_1_2_combined.vcf.gz"
+        },
+        "HG00141_a72a5106-b657-4e1e-a821-f23e749e0923": {
+            "row_idx": 13,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t6.vcf.gz"
+        },
+        "HG00141_8bd28418-3f46-46a2-832e-431d5e1a2614": {
+            "row_idx": 14,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t0.vcf.gz"
+        },
+        "HG01530_150a1316-c077-4031-be4a-ff42efce59cb": {
+            "row_idx": 15,
+            "filename": "/home/mingrutar/mydocker/pyPerfProject/test_resource/vcfs/t2.vcf.gz"
+        }
+    }
+}
