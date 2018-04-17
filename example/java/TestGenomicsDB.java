@@ -90,13 +90,16 @@ public final class TestGenomicsDB
       //<template_VCF_header>
       assert(!loaderJSONFile.isEmpty());
       assert(!workspace.isEmpty());
-      assert(!array.isEmpty());
       assert(!referenceGenome.isEmpty());
-      exportConfiguration = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
+      GenomicsDBExportConfiguration.ExportConfiguration.Builder exportConfigurationBuilder
+        = GenomicsDBExportConfiguration.ExportConfiguration.newBuilder()
               .setWorkspace(workspace)
-              .setArray(array)
               .setReferenceGenome(referenceGenome)
-              .setVcfHeaderFilename(templateVCFHeader).build();
+              .setVcfHeaderFilename(templateVCFHeader)
+              .setScanFull(true);
+      if(!array.isEmpty())
+        exportConfigurationBuilder.setArrayName(array);
+      exportConfiguration = exportConfigurationBuilder.build();
       reader = new GenomicsDBFeatureReader<>(exportConfiguration, codec, Optional.of(loaderJSONFile));
     }
     final VariantContextWriter writer =

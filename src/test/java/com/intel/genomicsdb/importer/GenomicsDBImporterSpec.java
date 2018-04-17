@@ -23,11 +23,9 @@
 package com.intel.genomicsdb.importer;
 
 import com.intel.genomicsdb.GenomicsDBTestUtils;
-import com.intel.genomicsdb.importer.GenomicsDBImporter;
 import com.intel.genomicsdb.importer.extensions.CallSetMapExtensions;
 import com.intel.genomicsdb.importer.model.ChromosomeInterval;
 import com.intel.genomicsdb.model.*;
-import com.intel.genomicsdb.model.GenomicsDBImportConfiguration.ImportConfiguration;
 import com.intel.genomicsdb.reader.GenomicsDBFeatureReader;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
@@ -51,7 +49,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.Optional;
 
-import static com.intel.genomicsdb.importer.Constants.DEFAULT_ZERO_BATCH_SIZE;
+import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
+
 
 public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
     private static final String TEST_CHROMOSOME_NAME = "1";
@@ -68,11 +67,9 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
         GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB =
                 this.generateSortedCallSetMap(sampleToReaderMap, true, false);
 
-        Set<VCFHeaderLine> mergedHeader = createMergedHeader(sampleToReaderMap);
+        GenomicsDBImporter importer = getGenomicsDBImporterForMultipleImport();
 
-        GenomicsDBImporter importer = getGenomicsDBImporterForSingleImport(sampleToReaderMap, mergedHeader);
-
-        importer.executeSingleImport();
+        importer.executeImport();
 
         importer.writeCallsetMapJSONFile(tempCallsetJsonFile.getAbsolutePath(),
                 callsetMappingPB);
@@ -91,14 +88,14 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
 
         Set<VCFHeaderLine> mergedHeader = createMergedHeader(sampleToReaderMap);
 
-        GenomicsDBImporter importer = getGenomicsDBImporterForSingleImport(sampleToReaderMap, mergedHeader);
+        GenomicsDBImporter importer = getGenomicsDBImporterForMultipleImport();
 
         importer.writeVidMapJSONFile(tempVidJsonFile.getAbsolutePath(),
                 importer.generateVidMapFromMergedHeader(mergedHeader));
         importer.writeVcfHeaderFile(tempVcfHeaderFile.getAbsolutePath(), mergedHeader);
         importer.writeCallsetMapJSONFile(tempCallsetJsonFile.getAbsolutePath(),
                 callsetMappingPB_A);
-        importer.executeSingleImport();
+        importer.executeImport();
 
         Assert.assertEquals(importer.isDone(), true);
         Assert.assertEquals(tempVidJsonFile.isFile(), true);
@@ -152,15 +149,24 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
         GenomicsDBImporter importer = getGenomicsDBImporterForMultipleImport();
 
         //When
-        importer.executeParallelImport();
+        importer.executeImport();
 
         //Then
         Assert.assertEquals(tempVidJsonFile.isFile(), true);
         Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
 
         String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
-        GenomicsDBExportConfiguration.ColumnRangeList.Builder columnRange = GenomicsDBExportConfiguration.ColumnRangeList.newBuilder()
-                .addRangeList(GenomicsDBExportConfiguration.ColumnRange.newBuilder().setHigh(50000).setLow(0));
+
+        Coordinates.ContigInterval interval0 = Coordinates.ContigInterval.newBuilder().setBegin(0).setEnd(50000).setContig("").build();
+        Coordinates.GenomicsDBColumnInterval columnInterval = Coordinates.GenomicsDBColumnInterval.newBuilder()
+                .setContigInterval(interval0).build();
+        Coordinates.GenomicsDBColumnOrInterval columnRange = Coordinates.GenomicsDBColumnOrInterval.newBuilder()
+                .setColumnInterval(columnInterval).build();
+        List<Coordinates.GenomicsDBColumnOrInterval> columnRangeLists = new ArrayList<>(2);
+        columnRangeLists.add(columnRange);
+        GenomicsDBExportConfiguration.GenomicsDBColumnOrIntervalList columnRanges =
+                GenomicsDBExportConfiguration.GenomicsDBColumnOrIntervalList.newBuilder()
+                        .addAllColumnOrIntervalList(columnRangeLists).build();
         GenomicsDBExportConfiguration.RowRangeList.Builder rowRange = GenomicsDBExportConfiguration.RowRangeList.newBuilder()
                 .addRangeList(GenomicsDBExportConfiguration.RowRange.newBuilder().setHigh(3).setLow(0));
 
@@ -169,7 +175,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
-                .addQueryColumnRanges(columnRange)
+                .addQueryColumnRanges(columnRanges)
                 .addQueryRowRanges(rowRange)
                 .addAttributes("GT")
                 .build();
@@ -189,7 +195,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
     public void testShouldBeAbleToQueryUsingSpecificArrayName() throws IOException, InterruptedException {
         //Given
         GenomicsDBImporter importer = getGenomicsDBImporterForMultipleImport();
-        importer.executeParallelImport();
+        importer.executeImport();
         Assert.assertEquals(tempVidJsonFile.isFile(), true);
         Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
         String referenceGenome = "tests/inputs/chr1_10MB.fasta.gz";
@@ -201,7 +207,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
                 .setVidMappingFile(tempVidJsonFile.getAbsolutePath())
                 .setCallsetMappingFile(tempCallsetJsonFile.getAbsolutePath()).setProduceGTField(true)
                 .setScanFull(true)
-                .setArray("1#17000#18000")
+                .setArrayName(String.format(CHROMOSOME_INTERVAL_FOLDER, "1", 17000, 18000))
                 .build();
 
         GenomicsDBFeatureReader reader = new GenomicsDBFeatureReader<>(exportConfiguration, new BCF2Codec(), Optional.empty());
@@ -219,7 +225,7 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
     public void testShouldBeAbleToQueryUsingSpecificChromosomeInterval() throws IOException, InterruptedException {
         //Given
         GenomicsDBImporter importer = getGenomicsDBImporterForMultipleImport();
-        importer.executeParallelImport();
+        importer.executeImport();
         Assert.assertEquals(tempVidJsonFile.isFile(), true);
         Assert.assertEquals(tempCallsetJsonFile.isFile(), true);
 
@@ -266,25 +272,6 @@ public final class GenomicsDBImporterSpec implements CallSetMapExtensions {
             headers.add((VCFHeader) variant.getValue().getHeader());
         }
         return VCFUtils.smartMergeHeaders(headers, true);
-    }
-
-    private GenomicsDBImporter getGenomicsDBImporterForSingleImport(
-            Map<String, FeatureReader<VariantContext>> sampleToReaderMap, Set<VCFHeaderLine> mergedHeader) throws IOException {
-        ChromosomeInterval chromosomeInterval =
-                new ChromosomeInterval(TEST_CHROMOSOME_NAME, 1, 249250619);
-        GenomicsDBImportConfiguration.Partition partition = GenomicsDBImportConfiguration.Partition.newBuilder()
-                .setBegin(0).setWorkspace(WORKSPACE.getAbsolutePath()).setArray(TEST_CHROMOSOME_NAME).build();
-        ImportConfiguration importConfiguration =
-                ImportConfiguration.newBuilder().addColumnPartitions(partition)
-                        .setSizePerColumnPartition(1024L).setSegmentSize(10000000L).build();
-        return new GenomicsDBImporter(
-                sampleToReaderMap,
-                mergedHeader,
-                chromosomeInterval,
-                importConfiguration,
-                DEFAULT_ZERO_BATCH_SIZE,
-                true,
-                true);
     }
 
     private GenomicsDBImporter getGenomicsDBImporterForMultipleImport() throws FileNotFoundException {

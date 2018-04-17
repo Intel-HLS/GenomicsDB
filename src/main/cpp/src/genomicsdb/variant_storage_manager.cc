@@ -38,7 +38,7 @@ const std::unordered_map<std::string, int> VariantStorageManager::m_mode_string_
 std::vector<const char*> VariantStorageManager::m_metadata_attributes = std::vector<const char*>({ "max_valid_row_idx_in_array" });
 
 // Cache of metadata json to minimize reading from storage.
-std::mutex metadata_cache_mtx;
+static std::mutex metadata_cache_mtx;
 static std::unordered_map<std::string, int64_t> metadata_cache;
 
 //ceil(buffer_size/field_size)*field_size
@@ -308,12 +308,11 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
        char *buffer = (char *)malloc(size+1);
        if (!buffer) 
          throw VariantStorageManagerException(std::string("Out-of-memory exception while allocating memory"));
-       
-       buffer[size] = 0;
+       memset(buffer, 0, size+1); 
 
        VERIFY_OR_THROW(read_from_file(m_tiledb_ctx, m_metadata_filename, 0, buffer, size) == TILEDB_OK);
        VERIFY_OR_THROW(close_file(m_tiledb_ctx, m_metadata_filename) == TILEDB_OK);
-       
+
        rapidjson::Document json_doc;
        json_doc.Parse(buffer);
        if(json_doc.HasParseError())
@@ -358,8 +357,22 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     json_doc.Accept(writer);
 
-     VERIFY_OR_THROW(write_to_file(m_tiledb_ctx, metadata_filename, buffer.GetString(), strlen(buffer.GetString())) == TILEDB_OK);
-     VERIFY_OR_THROW(close_file(m_tiledb_ctx, metadata_filename) == TILEDB_OK);
+    if (is_file(m_tiledb_ctx, metadata_filename)) {
+        VERIFY_OR_THROW(delete_file(m_tiledb_ctx, metadata_filename) == TILEDB_OK);
+    }
+
+    VERIFY_OR_THROW(write_to_file(m_tiledb_ctx, metadata_filename, buffer.GetString(), strlen(buffer.GetString())) == TILEDB_OK);
+    VERIFY_OR_THROW(close_file(m_tiledb_ctx, metadata_filename) == TILEDB_OK);
+
+    // Update metadata cache
+    metadata_cache_mtx.lock();
+    auto search = metadata_cache.find(m_metadata_filename);
+    if(search != metadata_cache.end()) {
+      metadata_cache.insert({m_metadata_filename, m_max_valid_row_idx_in_array});
+    } else {
+      metadata_cache[m_metadata_filename] = m_max_valid_row_idx_in_array;
+    }
+    metadata_cache_mtx.unlock();
   }
 }
 

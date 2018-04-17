@@ -21,7 +21,6 @@
  */
 package com.intel.genomicsdb.model;
 
-import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -36,7 +35,9 @@ public class GenomicsDBExportConfigurationSpec {
   private final String REFERENCE_GENOME = "/path/to/HG38.fasta";
   private final String TEST_VIDMAP_FILENAME = "/path/to/junk/vidmap.json";
   private final String TEST_CALLSETMAP_FILENAME = "/path/to/junk/callsetmap.json";
-  private final List<String> ATTRIBUTES = new ArrayList<>(Arrays.asList("REF", "ALT", "BaseQRankSum", "MQ", "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL", "DP_FORMAT", "MIN_DP", "PID", "PGT"));
+  private final List<String> ATTRIBUTES = new ArrayList<>(Arrays.asList("REF", "ALT", "BaseQRankSum", "MQ",
+          "RAW_MQ", "MQ0", "ClippingRankSum", "MQRankSum", "ReadPosRankSum", "DP", "GT", "GQ", "SB", "AD", "PL",
+          "DP_FORMAT", "MIN_DP", "PID", "PGT"));
 
   private final String VCF_HEADER_FILENAME = "inputs/template_vcf_header.vcf";
   private final String VCF_OUTPUT_FILENAME = "outputs/test.vcf.gz";
@@ -46,111 +47,51 @@ public class GenomicsDBExportConfigurationSpec {
 
   @Test(groups = {"configuration tests"})
   public void testExportConfiguration() {
-    List<GenomicsDBExportConfiguration.ColumnRange> columnRanges0 = new ArrayList<>(2);
-    List<GenomicsDBExportConfiguration.ColumnRange> columnRanges1 = new ArrayList<>(2);
-    List<GenomicsDBExportConfiguration.ColumnRangeList> columnRangeLists = new ArrayList<>(2);
     List<GenomicsDBExportConfiguration.RowRange> rowRanges0 = new ArrayList<>(2);
     List<GenomicsDBExportConfiguration.RowRange> rowRanges1 = new ArrayList<>(2);
     List<GenomicsDBExportConfiguration.RowRangeList> rowRangeLists = new ArrayList<>(2);
 
+    Coordinates.ContigInterval interval0 = Coordinates.ContigInterval.newBuilder().setBegin(0).setEnd(100000).setContig("").build();
+    Coordinates.ContigInterval interval1 = Coordinates.ContigInterval.newBuilder().setBegin(100001).setEnd(200000).setContig("").build();
+    Coordinates.GenomicsDBColumnInterval columnInterval0 = Coordinates.GenomicsDBColumnInterval.newBuilder()
+            .setContigInterval(interval0).setContigInterval(interval1).build();
+    Coordinates.GenomicsDBColumnOrInterval columnRanges0 = Coordinates.GenomicsDBColumnOrInterval.newBuilder()
+            .setColumnInterval(columnInterval0).build();
 
-    GenomicsDBExportConfiguration.ColumnRange.Builder columnRange0 =
-      GenomicsDBExportConfiguration.ColumnRange.newBuilder();
-    GenomicsDBExportConfiguration.ColumnRange c0 =
-      columnRange0
-        .setLow(0)
-        .setHigh(100000)
-        .build();
+    Coordinates.ContigInterval interval2 = Coordinates.ContigInterval.newBuilder().setBegin(200001).setEnd(300000).setContig("").build();
+    Coordinates.GenomicsDBColumnInterval columnInterval1 = Coordinates.GenomicsDBColumnInterval.newBuilder()
+            .setContigInterval(interval1).setContigInterval(interval2).build();
+    Coordinates.GenomicsDBColumnOrInterval columnRanges1 = Coordinates.GenomicsDBColumnOrInterval.newBuilder()
+            .setColumnInterval(columnInterval1).build();
+
+  List<Coordinates.GenomicsDBColumnOrInterval> columnRangeLists = new ArrayList<>(2);
+  columnRangeLists.add(columnRanges0);
+  columnRangeLists.add(columnRanges1);
+
+  GenomicsDBExportConfiguration.GenomicsDBColumnOrIntervalList list =
+          GenomicsDBExportConfiguration.GenomicsDBColumnOrIntervalList.newBuilder()
+                  .addAllColumnOrIntervalList(columnRangeLists).build();
+
+
+    GenomicsDBExportConfiguration.RowRange.Builder rowRange0 = GenomicsDBExportConfiguration.RowRange.newBuilder();
+    GenomicsDBExportConfiguration.RowRange r0 = rowRange0.setLow(0).setHigh(100).build();
     
-    GenomicsDBExportConfiguration.ColumnRange.Builder columnRange1 =
-      GenomicsDBExportConfiguration.ColumnRange.newBuilder();
-    GenomicsDBExportConfiguration.ColumnRange c1 =
-      columnRange1
-        .setLow(100001)
-        .setHigh(200000)
-        .build();
-
-    columnRanges0.add(c0);
-    columnRanges0.add(c1); 
-
-    GenomicsDBExportConfiguration.ColumnRange.Builder columnRange2 =
-      GenomicsDBExportConfiguration.ColumnRange.newBuilder();
-    GenomicsDBExportConfiguration.ColumnRange c2 =
-      columnRange2
-        .setLow(200001)
-        .setHigh(300000)
-        .build();
-    
-    GenomicsDBExportConfiguration.ColumnRange.Builder columnRange3 =
-      GenomicsDBExportConfiguration.ColumnRange.newBuilder();
-    GenomicsDBExportConfiguration.ColumnRange c3 =
-      columnRange3
-        .setLow(300001)
-        .setHigh(400000)
-        .build();
-
-    columnRanges1.add(c2);
-    columnRanges1.add(c3); 
-
-    GenomicsDBExportConfiguration.ColumnRangeList.Builder columnRangeList0 =
-      GenomicsDBExportConfiguration.ColumnRangeList.newBuilder();
-
-    GenomicsDBExportConfiguration.ColumnRangeList queryColumnRanges0 =
-      columnRangeList0
-        .addAllRangeList(columnRanges0)
-        .build();
-
-    GenomicsDBExportConfiguration.ColumnRangeList.Builder columnRangeList1 =
-      GenomicsDBExportConfiguration.ColumnRangeList.newBuilder();
-
-    GenomicsDBExportConfiguration.ColumnRangeList queryColumnRanges1 =
-      columnRangeList1
-        .addAllRangeList(columnRanges1)
-        .build();
-
-    columnRangeLists.add(queryColumnRanges0);
-    columnRangeLists.add(queryColumnRanges1);
-
-    GenomicsDBExportConfiguration.RowRange.Builder rowRange0 =
-      GenomicsDBExportConfiguration.RowRange.newBuilder();
-    GenomicsDBExportConfiguration.RowRange r0 =
-      rowRange0
-        .setLow(0)
-        .setHigh(100)
-        .build();
-    
-    GenomicsDBExportConfiguration.RowRange.Builder rowRange1 =
-      GenomicsDBExportConfiguration.RowRange.newBuilder();
-    GenomicsDBExportConfiguration.RowRange r1 =
-      rowRange1
-        .setLow(101)
-        .setHigh(200)
-        .build();
+    GenomicsDBExportConfiguration.RowRange.Builder rowRange1 = GenomicsDBExportConfiguration.RowRange.newBuilder();
+    GenomicsDBExportConfiguration.RowRange r1 = rowRange1.setLow(101).setHigh(200).build();
 
     rowRanges0.add(r0);
     rowRanges0.add(r1); 
 
-    GenomicsDBExportConfiguration.RowRange.Builder rowRange2 =
-      GenomicsDBExportConfiguration.RowRange.newBuilder();
-    GenomicsDBExportConfiguration.RowRange r2 =
-      rowRange2
-        .setLow(201)
-        .setHigh(300)
-        .build();
+    GenomicsDBExportConfiguration.RowRange.Builder rowRange2 = GenomicsDBExportConfiguration.RowRange.newBuilder();
+    GenomicsDBExportConfiguration.RowRange r2 = rowRange2.setLow(201).setHigh(300).build();
     
-    GenomicsDBExportConfiguration.RowRange.Builder rowRange3 =
-      GenomicsDBExportConfiguration.RowRange.newBuilder();
-    GenomicsDBExportConfiguration.RowRange r3 =
-      rowRange3
-        .setLow(301)
-        .setHigh(400)
-        .build();
+    GenomicsDBExportConfiguration.RowRange.Builder rowRange3 = GenomicsDBExportConfiguration.RowRange.newBuilder();
+    GenomicsDBExportConfiguration.RowRange r3 = rowRange3.setLow(301).setHigh(400).build();
 
     rowRanges1.add(r2);
     rowRanges1.add(r3); 
 
-    GenomicsDBExportConfiguration.RowRangeList.Builder rowRangeList0 =
-      GenomicsDBExportConfiguration.RowRangeList.newBuilder();
+    GenomicsDBExportConfiguration.RowRangeList.Builder rowRangeList0 = GenomicsDBExportConfiguration.RowRangeList.newBuilder();
 
     GenomicsDBExportConfiguration.RowRangeList queryRowRanges0 =
       rowRangeList0
@@ -174,25 +115,25 @@ public class GenomicsDBExportConfigurationSpec {
     GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration =
       configBuilder
         .setWorkspace(TILEDB_WORKSPACE)
-        .setArray(TEST_ARRAY)
-	.setReferenceGenome(REFERENCE_GENOME)
-        .addAllQueryColumnRanges(columnRangeLists)        
+        .setArrayName(TEST_ARRAY)
+    .setReferenceGenome(REFERENCE_GENOME)
+        .addQueryColumnRanges(list)
         .addAllQueryRowRanges(rowRangeLists)        
-	.addAllAttributes(ATTRIBUTES)
-	.setVidMappingFile(TEST_VIDMAP_FILENAME)
-	.setCallsetMappingFile(TEST_CALLSETMAP_FILENAME)
-	.setVcfHeaderFilename(VCF_HEADER_FILENAME)
-	.setVcfOutputFilename(VCF_OUTPUT_FILENAME)
-	.setVcfOutputFormat(VCF_OUTPUT_FORMAT)
-	.setMaxDiploidAltAllelesThatCanBeGenotyped(MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
-	.setIndexOutputVCF(INDEX_OUTPUT_VCF)
+    .addAllAttributes(ATTRIBUTES)
+    .setVidMappingFile(TEST_VIDMAP_FILENAME)
+    .setCallsetMappingFile(TEST_CALLSETMAP_FILENAME)
+    .setVcfHeaderFilename(VCF_HEADER_FILENAME)
+    .setVcfOutputFilename(VCF_OUTPUT_FILENAME)
+    .setVcfOutputFormat(VCF_OUTPUT_FORMAT)
+    .setMaxDiploidAltAllelesThatCanBeGenotyped(MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
+    .setIndexOutputVCF(INDEX_OUTPUT_VCF)
         .build();
     
     Assert.assertEquals(exportConfiguration.isInitialized(), true);
 
     // Assert has methods
     Assert.assertEquals(exportConfiguration.hasWorkspace(), true);
-    Assert.assertEquals(exportConfiguration.hasArray(), true);
+    Assert.assertEquals(exportConfiguration.hasArrayName(), true);
     Assert.assertEquals(exportConfiguration.hasReferenceGenome(), true);
     Assert.assertEquals(exportConfiguration.hasVidMappingFile(), true);
     Assert.assertEquals(exportConfiguration.hasCallsetMappingFile(), true);
@@ -204,9 +145,10 @@ public class GenomicsDBExportConfigurationSpec {
     
     // Assert gets
     Assert.assertEquals(exportConfiguration.getWorkspace(), TILEDB_WORKSPACE);
-    Assert.assertEquals(exportConfiguration.getArray(), TEST_ARRAY);
+    Assert.assertEquals(exportConfiguration.getArrayName(), TEST_ARRAY);
     Assert.assertEquals(exportConfiguration.getReferenceGenome(), REFERENCE_GENOME);
-    Assert.assertEquals(exportConfiguration.getQueryColumnRangesCount(), 2);
+    Assert.assertEquals(exportConfiguration.getQueryColumnRangesCount(), 1);
+
     Assert.assertEquals(exportConfiguration.getQueryRowRangesCount(), 2);
     Assert.assertEquals(exportConfiguration.getAttributesCount(), 19);
     Assert.assertEquals(exportConfiguration.getVidMappingFile(), TEST_VIDMAP_FILENAME);

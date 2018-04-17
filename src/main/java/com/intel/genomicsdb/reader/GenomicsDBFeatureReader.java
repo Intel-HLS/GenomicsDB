@@ -23,6 +23,7 @@
 package com.intel.genomicsdb.reader;
 
 import com.googlecode.protobuf.format.JsonFormat;
+import com.intel.genomicsdb.model.Coordinates;
 import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
 import htsjdk.tribble.*;
 import htsjdk.variant.bcf2.BCF2Codec;
@@ -32,12 +33,9 @@ import htsjdk.variant.vcf.VCFHeader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.*;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -50,7 +48,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
     private FeatureCodec<T, SOURCE> codec;
     private FeatureCodecHeader featureCodecHeader;
-    private ArrayList<String> sequenceNames;
+    private List<String> sequenceNames;
+    private Map<String, Coordinates.ContigInterval> intervalsPerArray = new HashMap<>();
 
     /**
      * Constructor
@@ -67,21 +66,21 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         this.exportConfiguration = exportConfiguration;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");
-        String[] chromosomeIntervalArrays = this.exportConfiguration.hasArray() ? new String[]{
-                exportConfiguration.getArray()
-        } : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.length < 1)
+        List<String> chromosomeIntervalArrays = this.exportConfiguration.hasArrayName() ? new ArrayList<String>() {{
+            add(exportConfiguration.getArrayName());
+        }} : getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()), Optional.empty());
+        if (chromosomeIntervalArrays == null || chromosomeIntervalArrays.size() < 1)
             throw new IllegalStateException("There is no genome data stored in the database");
-        generateHeadersForQuery(chromosomeIntervalArrays[0]);
+        generateHeadersForQuery(chromosomeIntervalArrays.get(0));
     }
 
     /**
      * Constructor
      *
-     * @param queryJSONFilename   JSON file with query parameters
-     * @param codec               FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
-     *                            and {@link htsjdk.variant.vcf.VCFCodec} are tested
-     * @param loaderJSONFile      GenomicsDB loader JSON configuration file
+     * @param queryJSONFilename JSON file with query parameters
+     * @param codec             FeatureCodec, currently only {@link htsjdk.variant.bcf2.BCF2Codec}
+     *                          and {@link htsjdk.variant.vcf.VCFCodec} are tested
+     * @param loaderJSONFile    GenomicsDB loader JSON configuration file
      * @throws IOException when data cannot be read from the stream
      */
     public GenomicsDBFeatureReader(final String queryJSONFilename,
@@ -121,15 +120,9 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> iterator() throws IOException {
-        List<String> chromosomeIntervalArraysPaths =
-          (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
-            ? Arrays.asList(this.queryJsonFileName)
-            : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
-                    new ArrayList<String>() {{
-                        add(exportConfiguration.getArray());
-                    }}.stream()) : resolveChromosomeArrayFolderList();
+        List<String> chromosomeIntervalArraysPaths = resolveChromosomeIntervalArraysPaths(Optional.empty());
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths,
-                this.featureCodecHeader, this.codec);
+                this.featureCodecHeader, this.codec, Optional.of(this.intervalsPerArray));
     }
 
     /**
@@ -142,50 +135,66 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
      * @return iterator over {@link htsjdk.variant.variantcontext.VariantContext} objects
      */
     public CloseableTribbleIterator<T> query(final String chr, final int start, final int end) throws IOException {
-        List<String> chromosomeIntervalArraysPaths =
-          (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
-            ? Arrays.asList(this.queryJsonFileName)
-            : this.exportConfiguration.hasArray() ? createArrayFolderListFromArrayStream(
-                new ArrayList<String>() {{
-                    add(exportConfiguration.getArray());
-                }}.stream()) : resolveChromosomeArrayFolderList(chr, start, end);
+        Optional<Coordinates.ContigInterval> contigInterval = Optional.of(
+                Coordinates.ContigInterval.newBuilder().setContig(chr).setBegin(start).setEnd(end).build());
+        List<String> chromosomeIntervalArraysPaths = resolveChromosomeIntervalArraysPaths(contigInterval);
         return new GenomicsDBFeatureIterator(this.loaderJSONFile, chromosomeIntervalArraysPaths, this.featureCodecHeader,
-                this.codec, chr, start, end);
+                this.codec, chr, OptionalInt.of(start), OptionalInt.of(end), Optional.of(this.intervalsPerArray));
     }
 
-    private List<String> resolveChromosomeArrayFolderList() {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        return createArrayFolderListFromArrayStream(Arrays.stream(chromosomeIntervalArraysNames));
+    private List<String> resolveChromosomeIntervalArraysPaths(Optional<Coordinates.ContigInterval> contigInterval) throws IOException {
+        return (this.queryJsonFileName != null && !this.queryJsonFileName.isEmpty())
+                ? Collections.singletonList(this.queryJsonFileName)
+                : this.exportConfiguration.hasArrayName() ? new ArrayList<String>() {{
+                    add(createQueryJsonFileFromArrayFolderName(exportConfiguration.getArrayName()));
+                }} : resolveChromosomeArrayFolderList(contigInterval);
     }
 
-    private List<String> resolveChromosomeArrayFolderList(final String chromosome, final int intervalStart, final int intervalEnd) {
-        String[] chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()));
-        Stream<String> stream = Arrays.stream(chromosomeIntervalArraysNames).filter(name -> {
-            String[] ref = name.split("#");
-            if (ref.length != 3) throw new RuntimeException("There is a wrong array folder name in the workspace. " +
-                    "Array folder name should be {chromosome}#{intervalStart}#{intervalEnd}");
-            return chromosome.equals(ref[0]) && ((intervalStart >= Integer.parseInt(ref[1]) && intervalStart <= Integer.parseInt(ref[2])) ||
-                    (intervalEnd >= Integer.parseInt(ref[1]) && intervalEnd <= Integer.parseInt(ref[2])));
-        });
-        return createArrayFolderListFromArrayStream(stream);
+    private List<String> resolveChromosomeArrayFolderList(final Optional<Coordinates.ContigInterval> chromosome) {
+        List<String> chromosomeIntervalArraysNames = getArrayListFromWorkspace(new File(exportConfiguration.getWorkspace()), chromosome);
+        chromosomeIntervalArraysNames.sort(new ChrArrayFolderComparator());
+        return resolveIntervalsPerArray(chromosomeIntervalArraysNames);
     }
 
-    private List<String> createArrayFolderListFromArrayStream(Stream<String> stream) {
-        return stream.map(name -> {
-            GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
-                    GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration).setArray(name).build();
+    private List<String> resolveIntervalsPerArray(List<String> chromosomeIntervalArraysNames) {
+        return chromosomeIntervalArraysNames.stream().map(array -> {
+            String[] ref = array.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
+            throwExceptionIfArrayFolderRefIsWrong(ref);
+            Coordinates.ContigInterval contigInterval = Coordinates.ContigInterval.newBuilder().setContig(ref[0])
+                    .setBegin(Integer.parseInt(ref[1])).setEnd(Integer.parseInt(ref[2])).build();
             try {
-                return createTempQueryJsonFile(fullExportConfiguration.getArray(), fullExportConfiguration).getAbsolutePath();
+                String qjf = createQueryJsonFileFromArrayFolderName(array);
+                this.intervalsPerArray.put(qjf, contigInterval);
+                return qjf;
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
         }).collect(toList());
     }
 
+    private void throwExceptionIfArrayFolderRefIsWrong(String[] ref) {
+        if (ref.length != 3) throw new RuntimeException("There is a wrong array folder name in the workspace. " +
+                "Array folder name should be {chromosome}{delimiter}{intervalStart}{delimiter}{intervalEnd}");
+    }
+
+    private String createQueryJsonFileFromArrayFolderName(String folderName) throws IOException {
+        GenomicsDBExportConfiguration.ExportConfiguration.Builder fullExportConfigurationBuilder =
+            GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration)
+            .setArrayName(folderName);
+        if(this.exportConfiguration.getQueryColumnRangesCount() == 0
+                && this.exportConfiguration.getQueryRowRangesCount() == 0)
+            fullExportConfigurationBuilder.setScanFull(true);
+        GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration = fullExportConfigurationBuilder.build();
+        return createTempQueryJsonFile(fullExportConfiguration.getArrayName(), fullExportConfiguration).getAbsolutePath();
+    }
+
     private void generateHeadersForQuery(final String randomExistingArrayName) throws IOException {
         GenomicsDBExportConfiguration.ExportConfiguration fullExportConfiguration =
                 GenomicsDBExportConfiguration.ExportConfiguration.newBuilder(this.exportConfiguration)
-                        .setArray(randomExistingArrayName).build();
+                        .setArrayName(randomExistingArrayName)
+                        .clearQueryColumnRanges()
+                        .clearQueryRowRanges()
+                        .setScanFull(true).build();
         File queryJSONFile = createTempQueryJsonFile(randomExistingArrayName, fullExportConfiguration);
         generateHeadersForQueryGivenQueryJSONFile(queryJSONFile.getAbsolutePath());
         queryJSONFile.delete();
@@ -217,7 +226,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         return tmpQueryJSONFile;
     }
 
-    private String[] getArrayListFromWorkspace(final File workspace) {
-        return workspace.list((current, name) -> new File(current, name).isDirectory());
+    private List<String> getArrayListFromWorkspace(final File workspace, Optional<Coordinates.ContigInterval> chromosome) {
+        List<String> folders = Arrays.asList(workspace.list((current, name) -> new File(current, name).isDirectory()));
+        return chromosome.map(contigInterval -> folders.stream().filter(name -> {
+            String[] ref = name.split(CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX);
+            throwExceptionIfArrayFolderRefIsWrong(ref);
+            return contigInterval.getContig().equals(ref[0]) && (contigInterval.getBegin() <= Integer.parseInt(ref[2])
+                    && contigInterval.getEnd() >= Integer.parseInt(ref[1]));
+        }).collect(toList())).orElse(folders);
     }
 }

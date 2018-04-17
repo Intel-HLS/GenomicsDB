@@ -46,7 +46,9 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static com.intel.genomicsdb.importer.Constants.*;
 
 /**
@@ -63,7 +65,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             throw new GenomicsDBException("Could not load genomicsdb native library", ule);
         }
     }
-    private ParallelImportConfig config;
+
+    private ImportConfig config;
     private GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB;
     private String mLoaderJSONFile = null;
     private int mRank = 0;
@@ -113,50 +116,44 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         initialize(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
     }
 
-    //TODO: this ctor is going to be deprecated towards the use of parallelImportConfig
     /**
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
      * is developed specifically for GATK4 GenomicsDBImport tool.
      *
-     * @param sampleToReaderMap               Feature Readers objects corresponding to input GVCF files
-     * @param mergedHeader                    Set of VCFHeaderLine from the merged header across all input files
-     * @param chromosomeInterval              Chromosome interval to traverse input VCFs
-     * @param importConfiguration             Protobuf configuration object containing related input parameters, filenames, etc.
-     * @param rank                            Rank of object - corresponds to the partition index in the loader
-     * @param validateSampleToReaderMap       Check validity of sampleToreaderMap entries
-     * @param passAsVcf                       Use the VCF format to pass data from Java to C++
+     * @param sampleToReaderMap Feature Readers objects corresponding to input GVCF files
+     * @param rank              Rank of object - corresponds to the partition index in the loader
      * @throws IOException when load into TileDB array fails
      */
-    public GenomicsDBImporter(final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                              final Set<VCFHeaderLine> mergedHeader,
-                              final ChromosomeInterval chromosomeInterval,
-                              final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration,
-                              final int rank,
-                              final boolean validateSampleToReaderMap,
-                              final boolean passAsVcf) throws IOException {
+    private GenomicsDBImporter(final ImportConfig importConfig,
+                               final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
+                               final int rank) throws IOException {
         // Mark this flag so that protocol buffer based vid
         // and callset map are propagated to C++ GenomicsDBImporter
         mUsingVidMappingProtoBuf = true;
 
-        GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(mergedHeader);
+        GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(importConfig.getMergedHeader());
 
-        callsetMappingPB = generateSortedCallSetMap(sampleToReaderMap,
-                importConfiguration.getGatk4IntegrationParameters().getUseSamplesInOrderProvided(),
-                validateSampleToReaderMap, importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex());
+        callsetMappingPB = generateSortedCallSetMap(sampleToReaderMap, importConfig.isUseSamplesInOrder(),
+                importConfig.isValidateSampleToReaderMap(), importConfig.getImportConfiguration()
+                        .getLbCallsetRowIdx());
 
-        File importJSONFile = dumpTemporaryLoaderJSONFile(importConfiguration, "");
+        File importJSONFile = dumpTemporaryLoaderJSONFile(importConfig.getImportConfiguration(), "");
 
         initialize(importJSONFile.getAbsolutePath(), rank,
-                importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-                importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
+                importConfig.getImportConfiguration().getLbCallsetRowIdx(),
+                importConfig.getImportConfiguration().getUbCallsetRowIdx());
 
         mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
-                        importConfiguration.getGatk4IntegrationParameters().getLowerSampleIndex(),
-                        importConfiguration.getGatk4IntegrationParameters().getUpperSampleIndex());
+                importConfig.getImportConfiguration().getLbCallsetRowIdx(),
+                importConfig.getImportConfiguration().getUbCallsetRowIdx());
 
         jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
         jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMappingPB.toByteArray());
+
+        String chromosomeName = importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getContig();
+        int chromosomeStart = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getPosition();
+        int chromosomeEnd = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getEnd().getContigPosition().getPosition();
 
         for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleToIDMap :
                 callsetMappingPB.getCallsetsList()) {
@@ -165,15 +162,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
             FeatureReader<VariantContext> featureReader = sampleToReaderMap.get(sampleName);
 
-            CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeInterval.getContig(),
-                    chromosomeInterval.getStart(), chromosomeInterval.getEnd());
+            CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeName, chromosomeStart, chromosomeEnd);
 
             addSortedVariantContextIterator(
                     sampleToIDMap.getStreamName(),
                     (VCFHeader) featureReader.getHeader(),
                     iterator,
-                    importConfiguration.getSizePerColumnPartition(),
-                    passAsVcf ? VariantContextWriterBuilder.OutputType.VCF_STREAM
+                    importConfig.getImportConfiguration().getSizePerColumnPartition(),
+                    importConfig.isPassAsVcf() ? VariantContextWriterBuilder.OutputType.VCF_STREAM
                             : VariantContextWriterBuilder.OutputType.BCF_STREAM,
                     null);
         }
@@ -183,32 +179,33 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * Constructor to create required data structures from a list
      * of GVCF files and a chromosome interval. This constructor
      * is developed specifically for running Chromosome intervals imports in parallel.
+     *
      * @param config Parallel import configuration
      * @throws FileNotFoundException
      */
-    public GenomicsDBImporter(final ParallelImportConfig config) throws FileNotFoundException {
+    public GenomicsDBImporter(final ImportConfig config) throws FileNotFoundException {
         this.config = config;
+        this.config.setImportConfiguration(addExplicitValuesToImportConfiguration(config));
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
         //you must have consistent ordering of samples across partitions. If file order is different
         //in different processes, then set useSamplesInOrder to false and let the sort in
         //generateSortedCallSetMap ensure consistent ordering across samples
-        this.callsetMappingPB = this.generateSortedCallSetMap(new ArrayList<>(this.config.getSampleNameToVcfPath().keySet()),
-                this.config.getImportConfiguration().getGatk4IntegrationParameters().getUseSamplesInOrderProvided());
+        callsetMappingPB = this.generateSortedCallSetMap(new ArrayList<>(this.config.getSampleNameToVcfPath().keySet()),
+                this.config.isUseSamplesInOrder());
 
         //Write out callset map if needed
-        String outputCallsetmapJsonFilePath = this.config.getImportConfiguration().getGatk4IntegrationParameters()
-                .getOutputCallsetmapJsonFile();
+        String outputCallsetmapJsonFilePath = this.config.getOutputCallsetmapJsonFile();
         if (outputCallsetmapJsonFilePath != null && !outputCallsetmapJsonFilePath.isEmpty())
             this.writeCallsetMapJSONFile(outputCallsetmapJsonFilePath, callsetMappingPB);
 
         //Write out vidmap if needed
-        String vidmapOutputFilepath = this.config.getImportConfiguration().getGatk4IntegrationParameters().getOutputVidmapJsonFile();
+        String vidmapOutputFilepath = this.config.getOutputVidmapJsonFile();
         if (vidmapOutputFilepath != null && !vidmapOutputFilepath.isEmpty())
             this.writeVidMapJSONFile(vidmapOutputFilepath, generateVidMapFromMergedHeader(this.config.getMergedHeader()));
 
         //Write out merged header if needed
-        String vcfHeaderOutputFilepath = this.config.getImportConfiguration().getColumnPartitions(0).getVcfOutputFilename();
+        String vcfHeaderOutputFilepath = this.config.getOutputVcfHeaderFile();
         if (vcfHeaderOutputFilepath != null && !vcfHeaderOutputFilepath.isEmpty())
             this.writeVcfHeaderFile(vcfHeaderOutputFilepath, this.config.getMergedHeader());
 
@@ -216,7 +213,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         String workspace = this.config.getImportConfiguration().getColumnPartitions(0).getWorkspace();
         if (!new File(workspace).exists()) {
             int tileDBWorkspace = createTileDBWorkspace(workspace);
-            if (tileDBWorkspace < 0) throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
+            if (tileDBWorkspace < 0)
+                throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
         }
     }
 
@@ -305,6 +303,18 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 loaderJSONFile, partitionIdx));
     }
 
+    private GenomicsDBImportConfiguration.ImportConfiguration addExplicitValuesToImportConfiguration(ImportConfig config) {
+        GenomicsDBImportConfiguration.ImportConfiguration.Builder importConfigurationBuilder =
+                config.getImportConfiguration().toBuilder();
+        importConfigurationBuilder.setSegmentSize(config.getImportConfiguration().getSegmentSize())
+                .setFailIfUpdating(config.getImportConfiguration().getFailIfUpdating())
+                //TODO: making the following attributes explicit since the C++ layer is not working with the
+                // protobuf object and it's defaults
+                .setTreatDeletionsAsIntervals(true).setCompressTiledbArray(true).setNumCellsPerTile(1000)
+                .setRowBasedPartitioning(false).setProduceTiledbArray(true).build();
+        return importConfigurationBuilder.build();
+    }
+
     /**
      * Initialize variables
      *
@@ -323,7 +333,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     /**
      * Add a sorted VC iterator as the data source - caller must:
      * 1. Call setupGenomicsDBImporter() once all iterators are added
-     * 2. Call executeSingleImport()
+     * 2. Call doSingleImport()
      * 3. Done!
      *
      * @param streamName        Name of the stream being added - must be unique with respect
@@ -345,8 +355,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             final long bufferCapacity,
             final VariantContextWriterBuilder.OutputType streamType,
             final Map<Integer, SampleInfo> sampleIndexToInfo) throws GenomicsDBException {
-        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType,
-                vcIterator, sampleIndexToInfo);
+        return addBufferStream(streamName, vcfHeader, bufferCapacity, streamType, vcIterator, sampleIndexToInfo);
     }
 
     /**
@@ -365,11 +374,11 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      */
     @SuppressWarnings("unchecked")
     public int addBufferStream(final String streamName,
-                                final VCFHeader vcfHeader,
-                                final long bufferCapacity,
-                                final VariantContextWriterBuilder.OutputType streamType,
-                                Iterator<VariantContext> vcIterator,
-                                final Map<Integer, SampleInfo> sampleIndexToInfo)
+                               final VCFHeader vcfHeader,
+                               final long bufferCapacity,
+                               final VariantContextWriterBuilder.OutputType streamType,
+                               Iterator<VariantContext> vcIterator,
+                               final Map<Integer, SampleInfo> sampleIndexToInfo)
             throws GenomicsDBException {
         if (mIsLoaderSetupDone) throw new GenomicsDBException(
                 "Cannot add buffer streams after setupGenomicsDBImporter() is called");
@@ -422,10 +431,10 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 stringWriter.toString(), mUsingVidMappingProtoBuf);
         //Why 2* - each identifier is a pair<buffer_stream_idx, partition_idx>
         //Why +1 - the last element will contain the number of exhausted stream identifiers
-        //when executeSingleImport() is called
+        //when doSingleImport() is called
         mExhaustedBufferStreamIdentifiers = new long[2 * ((int) mMaxBufferStreamIdentifiers) + 1];
         //Set all streams to empty
-        //Add all streams to mExhaustedBufferStreamIdentifiers - this way when executeSingleImport is
+        //Add all streams to mExhaustedBufferStreamIdentifiers - this way when doSingleImport is
         //called the first time all streams' data are written
         for (int i = 0, idx = 0; i < mBufferStreamWrapperVector.size(); ++i, idx += 2) {
             SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(i).getStream();
@@ -475,12 +484,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         return true;
     }
 
-    //TODO: this is going to be private access and after that should write in parallel.
     /**
+     * Only to be used in cases where iterator of VariantContext are not used. The data is written to buffers
+     * directly after which this function is called. See TestBufferStreamGenomicsDBImporter.java for an example
+     *
      * @return true if the import process is done
-     * @throws IOException if the wimport fails
+     * @throws IOException if the import fails
      */
-    public boolean executeSingleImport() throws IOException {
+    public boolean doSingleImport() throws IOException {
         if (mDone) return true;
         if (!mIsLoaderSetupDone) setupGenomicsDBImporter();
         boolean allExhaustedStreamsHaveIterators = true;
@@ -502,8 +513,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                         currStream.getNumValidBytes());
             }
             mDone = jniImportBatch(mGenomicsDBImporterObjectHandle, mExhaustedBufferStreamIdentifiers);
-            mNumExhaustedBufferStreams =
-                    mExhaustedBufferStreamIdentifiers[mExhaustedBufferStreamIdentifiers.length - 1];
+            mNumExhaustedBufferStreams = mExhaustedBufferStreamIdentifiers[mExhaustedBufferStreamIdentifiers.length - 1];
             //Reset markers, numValidBytesInBuffer and overflow flag for the exhausted streams
             for (long i = 0, idx = 0; i < mNumExhaustedBufferStreams; ++i, idx += 2) {
                 int bufferStreamIdx = (int) mExhaustedBufferStreamIdentifiers[(int) idx];
@@ -524,46 +534,50 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         return mDone;
     }
 
-    //TODO: this signature is going to be renamed to executeImport once the single import move to private access
     /**
      * Import multiple chromosome interval
      *
-     * @throws IOException
+     * @throws InterruptedException when there is an exception in any of the threads in the stream
      */
-    public void executeParallelImport() throws IOException, InterruptedException { executeParallelImport(0); }
+    public void executeImport() throws InterruptedException {
+        executeImport(0);
+    }
 
-    //TODO: this signature is going to be renamed to executeImport once the single import move to private access
     /**
      * Import multiple chromosome interval
-     *
-     * @param numThreads number of threads to use
      */
-    public void executeParallelImport(final int numThreads) throws IOException, InterruptedException {
+    public void executeImport(final int numThreads) {
         final int batchSize = this.config.getBatchSize();
         final int sampleCount = this.config.getSampleNameToVcfPath().size();
         final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
+        final int numberPartitions = this.config.getImportConfiguration().getColumnPartitionsList().size();
+        final ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
+        final boolean performConsolidation = this.config.getImportConfiguration().getConsolidateTiledbArrayAfterLoad();
 
-        ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
+        //Set size_per_column_partition once
+        this.config.setImportConfiguration(this.config.getImportConfiguration().toBuilder()
+                .setSizePerColumnPartition(this.config.getImportConfiguration().getSizePerColumnPartition()
+                        * sampleCount).build());
 
         //Iterate over sorted sample list in batches
+        iterateOverSamplesInBatches(sampleCount, updatedBatchSize, numberPartitions, executor, performConsolidation);
+        executor.shutdown();
+        mDone = true;
+    }
+
+    private void iterateOverSamplesInBatches(final int sampleCount, final int updatedBatchSize, final int numberPartitions,
+                                             final ExecutorService executor, final boolean performConsolidation) {
+        final boolean failIfUpdating = this.config.getImportConfiguration().getFailIfUpdating();
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
-
-            List<CompletableFuture<Boolean>> futures = this.config.getChromosomeIntervalList().stream().map(chromosomeInterval ->
-                    CompletableFuture.supplyAsync(() -> {
-                        try {
-                            final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                                    this.config.sampleToReaderMapCreator().apply(
-                                            this.config.getSampleNameToVcfPath(), updatedBatchSize, index);
-
-                            GenomicsDBImporter importer = createImporter(this.config, sampleCount, index, sampleToReaderMap, chromosomeInterval);
-                            return importer.executeSingleImport();
-                        } catch (Exception ex) {
-                            throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
-                        }
-                    }, executor)
-            ).collect(Collectors.toList());
-
+            IntStream.range(0, numberPartitions).forEach(rank -> updateConfigPartitionsAndLbUb(this.config, index, rank));
+            GenomicsDBImportConfiguration.ImportConfiguration updatedConfig =
+                    this.config.getImportConfiguration().toBuilder().setConsolidateTiledbArrayAfterLoad(
+                            i + updatedBatchSize >= sampleCount && performConsolidation)
+                    .setFailIfUpdating(failIfUpdating && i == 0) //fail if updating should be set to true iff user sets it and this is the first batch
+                    .build();
+            this.config.setImportConfiguration(updatedConfig);
+            List<CompletableFuture<Boolean>> futures = iterateOverChromosomeIntervals(updatedBatchSize, numberPartitions, executor, index);
             List<Boolean> result = futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
 
             if (result.contains(false)) {
@@ -571,41 +585,53 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
             }
         }
-
-        executor.shutdown();
     }
 
-    private static GenomicsDBImporter createImporter(final ParallelImportConfig parallelImportConfig,
-                                                     final int samplesSize, final int index,
-                                                     final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
-                                                     final ChromosomeInterval chromInterval) throws IOException {
-        final String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromInterval.getContig(),
-                chromInterval.getStart(), chromInterval.getEnd());
-        final GenomicsDBImportConfiguration.GATK4Integration gatk4Integration = parallelImportConfig.getImportConfiguration()
-                .getGatk4IntegrationParameters().toBuilder().setLowerSampleIndex((long) index)
-                .setUpperSampleIndex((long) (index + parallelImportConfig.getBatchSize() - 1))
-                .setUseSamplesInOrderProvided(true).build();
-        final GenomicsDBImportConfiguration.Partition partition = parallelImportConfig.getImportConfiguration()
-                .getColumnPartitions(0).toBuilder().setArray(arrayName).build();
-        final GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = parallelImportConfig
-                .getImportConfiguration().toBuilder().setColumnPartitions(0, partition).setSizePerColumnPartition(
-                        parallelImportConfig.getImportConfiguration().getSizePerColumnPartition() * samplesSize)
-                .setSegmentSize(parallelImportConfig.getImportConfiguration().getSegmentSize())
-                .setGatk4IntegrationParameters(gatk4Integration)
-                .setFailIfUpdating(parallelImportConfig.getImportConfiguration().getFailIfUpdating())
-                //TODO: making the following attributes explicit since the C++ layer is not working with the
-                // protobuf object and it's defaults
-                .setTreatDeletionsAsIntervals(true).setCompressTiledbArray(true).setNumCellsPerTile(1000)
-                .setRowBasedPartitioning(false).setProduceTiledbArray(true).build();
+    private List<CompletableFuture<Boolean>> iterateOverChromosomeIntervals(final int updatedBatchSize, final int numberPartitions,
+                                                                            final ExecutorService executor, final int index) {
+        return IntStream.range(0, numberPartitions).mapToObj(rank ->
+                CompletableFuture.supplyAsync(() -> {
+                    try {
+                        final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
+                                this.config.sampleToReaderMapCreator().apply(
+                                        this.config.getSampleNameToVcfPath(), updatedBatchSize, index);
+                        GenomicsDBImporter importer = new GenomicsDBImporter(this.config, sampleToReaderMap, rank);
+                        Boolean result = importer.doSingleImport();
+                        sampleToReaderMap.values().forEach(v -> {
+                            try {
+                                v.close();
+                            } catch (IOException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        });
+                        return result;
+                    } catch (IOException ex) {
+                        throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
+                    }
+                }, executor)
+        ).collect(Collectors.toList());
+    }
 
-        return new GenomicsDBImporter(
-                sampleToReaderMap,
-                parallelImportConfig.getMergedHeader(),
-                new ChromosomeInterval(chromInterval.getContig(), chromInterval.getStart(), chromInterval.getEnd()),
-                importConfiguration,
-                parallelImportConfig.getRank(),
-                parallelImportConfig.isValidateSampleToReaderMap(),
-                parallelImportConfig.isPassAsVcf());
+    private void updateConfigPartitionsAndLbUb(ImportConfig importConfig, final int index, final int rank) {
+        final String chromosomeName = importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin()
+                .getContigPosition().getContig();
+        final int chromosomeStart = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin()
+                .getContigPosition().getPosition();
+        final int chromosomeEnd = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getEnd()
+                .getContigPosition().getPosition();
+        GenomicsDBImportConfiguration.Partition partition = importConfig.getImportConfiguration().getColumnPartitions(rank);
+
+        if (partition.hasGenerateArrayNameFromPartitionBounds()) {
+            String arrayName = String.format(CHROMOSOME_INTERVAL_FOLDER, chromosomeName, chromosomeStart, chromosomeEnd);
+            partition = partition.toBuilder().setArrayName(arrayName).build();
+        }
+
+        GenomicsDBImportConfiguration.ImportConfiguration importConfiguration = importConfig
+                .getImportConfiguration().toBuilder()
+                .setLbCallsetRowIdx((long) index)
+                .setUbCallsetRowIdx((long) (index + importConfig.getBatchSize() - 1))
+                .setColumnPartitions(rank, partition).build();
+        importConfig.setImportConfiguration(importConfiguration);
     }
 
     /**
@@ -710,7 +736,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             throws GenomicsDBException {
         mDone = false;
         if (loaderJSONFile == null) throw new GenomicsDBException("Loader JSON file not specified");
-        if (mContainsBufferStreams) throw new GenomicsDBException("Cannot call write() functions if buffer streams are added");
+        if (mContainsBufferStreams)
+            throw new GenomicsDBException("Cannot call write() functions if buffer streams are added");
         int status = jniGenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
         if (status != 0) throw new GenomicsDBException("GenomicsDBImporter write failed for loader JSON: "
                 + loaderJSONFile + " rank: " + rank);

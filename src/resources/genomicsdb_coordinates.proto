@@ -1,6 +1,6 @@
-/*
+/**
  * The MIT License (MIT)
- * Copyright (c) 2016-2017 Intel Corporation
+ * Copyright (c) 2016-2018 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of 
  * this software and associated documentation files (the "Software"), to deal in 
@@ -18,21 +18,46 @@
  * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER 
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+*/
 
-import com.intel.genomicsdb.exception.GenomicsDBException;
-import com.intel.genomicsdb.importer.GenomicsDBImporter;
-import com.intel.genomicsdb.model.CommandLineImportConfig;
-import org.json.simple.parser.ParseException;
+syntax = "proto2";
 
-import java.io.IOException;
+option java_package = "com.intel.genomicsdb.model";
+option java_outer_classname = "Coordinates";
 
-public final class TestGenomicsDBImporterWithMergedVCFHeader {
+message ContigPosition {
+  required string contig = 1;
+  required int64 position = 2;
+}
 
-  public static void main(final String[] args) throws IOException, GenomicsDBException, ParseException, InterruptedException {
-    CommandLineImportConfig config = new CommandLineImportConfig("TestGenomicsDBImporterWithMergedVCFHeader", args);
-    GenomicsDBImporter importer = new GenomicsDBImporter(config);
-    importer.executeImport();
+message GenomicsDBColumn {
+  oneof column {
+    int64 tiledb_column = 1;
+    ContigPosition contig_position = 2;
   }
+}
 
+message TileDBColumnInterval {
+  required int64 begin = 1;
+  required int64 end = 2;
+}
+
+message ContigInterval {
+  required string contig = 1;
+  required int64 begin = 2;
+  required int64 end = 3;
+}
+
+message GenomicsDBColumnInterval {
+  oneof interval {
+    TileDBColumnInterval column_interval = 1;
+    ContigInterval contig_interval = 2;
+  }
+}
+
+message GenomicsDBColumnOrInterval {
+  oneof column_or_interval {
+    GenomicsDBColumn column = 1;
+    GenomicsDBColumnInterval column_interval = 2;
+  }
 }
