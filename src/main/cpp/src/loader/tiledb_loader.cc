@@ -1103,6 +1103,7 @@ void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const cha
   auto ad = sm.open_array(array_name, 0, "w");
   if(ad < 0)
     throw VCF2TileDBException(std::string("Error opening array ")+array_name
-        +" in workspace "+workspace+" when trying to consolidate");
+        +" in workspace "+workspace+" when trying to consolidate"
+        + "\nTileDB error message : "+tiledb_errmsg);
   sm.close_array(ad, true);
 }

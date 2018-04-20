@@ -143,8 +143,9 @@ LoaderArrayWriter::LoaderArrayWriter(
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
   {
-    VERIFY_OR_THROW(m_storage_manager->define_array(m_schema, m_loader_json_config.get_num_cells_per_tile()) == TILEDB_OK
-        && "Could not define TileDB array");
+    if(m_storage_manager->define_array(m_schema, m_loader_json_config.get_num_cells_per_tile()) != TILEDB_OK)
+        throw LoadOperatorException(std::string("Could not define TileDB array")
+            +"\nTileDB error message : "+tiledb_errmsg);
     //Open array in write mode
     m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w");
   }
@@ -152,7 +153,9 @@ LoaderArrayWriter::LoaderArrayWriter(
     if(m_loader_json_config.fail_if_updating())
       throw LoadOperatorException(std::string("Array ")+workspace + "/" + array_name
           + " exists and flag \"fail_if_updating\" is set to true in the loader JSON configuration");
-  VERIFY_OR_THROW(m_array_descriptor != -1 && "Could not open TileDB array for loading");
+  if(m_array_descriptor < 0)
+    throw LoadOperatorException(std::string("Could not open TileDB array for loading")
+        + "\nTileDB error message : "+tiledb_errmsg);
   m_storage_manager->update_row_bounds_in_array(m_array_descriptor, m_row_partition.first,
       std::min(m_row_partition.second, id_mapper->get_max_callset_row_idx()));
 }

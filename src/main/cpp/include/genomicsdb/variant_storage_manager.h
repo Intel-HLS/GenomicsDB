@@ -71,7 +71,8 @@ class VariantArrayCellIterator
 #endif
       auto status = tiledb_array_iterator_next(m_tiledb_array_iterator);
       if(status != TILEDB_OK)
-        throw VariantStorageManagerException("VariantArrayCellIterator increment failed");
+        throw VariantStorageManagerException(std::string("VariantArrayCellIterator increment failed")
+            + "\nTileDB error message : "+tiledb_errmsg);
 #ifdef DEBUG
       if(!end())
       {
