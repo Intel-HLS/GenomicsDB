@@ -24,6 +24,8 @@
 #include "query_variants.h"
 #include "timer.h"
 
+#include <mutex>
+
 using namespace std;
 
 #if 0
@@ -116,6 +118,12 @@ unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProce
 //Initialize static members function
 void VariantQueryProcessor::initialize_static_members()
 {
+  static mutex m_initialize_static_members_mtx;
+  m_initialize_static_members_mtx.lock();
+  if (VariantQueryProcessor::m_are_static_members_initialized) {
+    m_initialize_static_members_mtx.unlock();
+    return;
+  }
   VariantQueryProcessor::m_type_index_to_creator.clear();
   //Map type_index to creator functions
   VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(bool))] =
@@ -141,6 +149,7 @@ void VariantQueryProcessor::initialize_static_members()
     std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>()); 
   //Set initialized flag
   VariantQueryProcessor::m_are_static_members_initialized = true;
+  m_initialize_static_members_mtx.unlock();
 }
 
 void VariantQueryProcessor::initialize_known(const VariantArraySchema& schema)
