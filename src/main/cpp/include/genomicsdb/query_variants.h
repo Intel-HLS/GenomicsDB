@@ -302,14 +302,6 @@ class VariantQueryProcessor {
   private:
     /*initialize all known info about variants*/
     void initialize_known(const VariantArraySchema& array_schema);
-    /*Initialize schema version v0 info*/
-    void initialize_v0(const VariantArraySchema& array_schema);
-    /*Check and initialize schema version v1 info*/
-    void initialize_v1(const VariantArraySchema& array_schema);
-    /*Check and initialize schema version v2 info*/
-    void initialize_v2(const VariantArraySchema& array_schema);
-    /*Initialize versioning information based on schema*/
-    void initialize_version(const VariantArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
     void register_field_creators(const VariantArraySchema& array_schema, const VidMapper& vid_mapper);
     /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
@@ -366,10 +358,6 @@ class VariantQueryProcessor {
      */
     const VariantStorageManager* m_storage_manager;
     /**
-     * Variables to store versioning information about array schema
-     */
-    unsigned m_GT_schema_version;
-    /**
      * Map the known field enum to cell attribute idx for the given schema
      */
     SchemaIdxToKnownVariantFieldsEnumLUT m_schema_idx_to_known_variant_field_enum_LUT;
@@ -388,10 +376,6 @@ class VariantQueryProcessor {
     VidMapper* m_vid_mapper;
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
-    //Flag to check whether static members are initialized
-    static bool m_are_static_members_initialized; 
-    //Function that initializes static members
-    static void initialize_static_members();
 };
 
 

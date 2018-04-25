@@ -889,7 +889,8 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
       << bcf_hdr_id2name(m_vcf_hdr, m_curr_contig_hdr_idx)
       << " position " << m_bcf_out->pos+1
       << "\n";
-    m_next_memory_limit += 100*ONE_MB;
+    m_next_memory_limit = std::max<uint64_t>(m_next_memory_limit, mem_result.resident)
+      + 100*ONE_MB;
   }
 #endif
   m_vcf_adapter->handoff_output_bcf_line(m_bcf_out, m_bcf_record_size);
