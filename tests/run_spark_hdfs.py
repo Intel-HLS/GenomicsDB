@@ -349,12 +349,14 @@ def main():
             # invoke vcf2tiledb -r <rank> where <rank> goes from 0 to num partitions
             # otherwise this only loads the first partition
             for i in range(0, len(col_part)):
-                pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb -r '+str(i)+' '+loader_json_filename, shell=True,
+                etl_cmd=exe_path+os.path.sep+'vcf2tiledb -r '+str(i)+' '+loader_json_filename
+                pid = subprocess.Popen(etl_cmd, shell=True,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE);
                 stdout_string, stderr_string = pid.communicate()
                 if(pid.returncode != 0):
                     sys.stderr.write('Loading failed for test: '+test_name+' rank '+str(i)+'\n');
-                    sys.stderr.write('Loader file:'+str(test_loader_dict)+'\n');
+                    sys.stderr.write('Loading command: '+etl_cmd+'\n');
+                    sys.stderr.write('Loader file :'+str(test_loader_dict)+'\n');
                     sys.stderr.write('Loading stdout: '+stdout_string+'\n');
                     sys.stderr.write('Loading stderr: '+stderr_string+'\n');
                     cleanup_and_exit(namenode, tmpdir, -1);
