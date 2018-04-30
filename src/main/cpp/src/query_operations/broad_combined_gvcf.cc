@@ -904,7 +904,8 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
       auto& alt_alleles = get_known_field<VariantFieldALTData, true>(curr_call, query_config, GVCF_ALT_IDX)->get();
       assert(alt_alleles.size() > 0u);
       //Already handled as a spanning deletion, nothing to do
-      if(alt_alleles[0u] == g_vcf_SPANNING_DELETION)
+      if(alt_alleles[0u] == g_vcf_SPANNING_DELETION &&
+          (alt_alleles.size() == 1u || (alt_alleles.size() == 2u && IS_NON_REF_ALLELE(alt_alleles[1u]))))
         continue;
       m_reduced_alleles_LUT.resize_luts_if_needed(variant.get_num_calls(), alt_alleles.size()+1u); //+1 for REF
       //Reduced allele list will be REF="N", ALT="*, <NON_REF>"

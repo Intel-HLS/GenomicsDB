@@ -180,6 +180,9 @@ class VariantArrayInfo
     //Max valid row idx in array
     int64_t m_max_valid_row_idx_in_array;
     bool m_metadata_contains_max_valid_row_idx_in_array;
+    //Lb row idx
+    bool m_metadata_contains_lb_row_idx;
+    int64_t m_lb_row_idx;
     //Vid mapper
     const VidMapper* m_vid_mapper;
 #ifdef DEBUG
