@@ -135,7 +135,7 @@ class VariantArrayInfo
         const VidMapper* vid_mapper,
         const VariantArraySchema& schema,
         TileDB_CTX* tiledb_ctx,
-        TileDB_Array* tiledb_array, const std::string& metadata_filename,
+        TileDB_Array* tiledb_array,
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
@@ -156,10 +156,12 @@ class VariantArrayInfo
     void write_cell(const void* ptr);
     //Read #valid rows from metadata if available, else set from schema (array domain)
     void read_row_bounds_from_metadata();
+    int read_row_bounds_from_metadata(const std::string& filename, const std::string& filepath,
+        const unsigned char filetype);
     /*
      * Update #valid rows in the metadata
      */
-    void update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
+    void update_row_bounds_in_array(
         const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array);
     //Return #valid rows in the array
     inline int64_t get_num_valid_rows_in_array() const
@@ -169,6 +171,10 @@ class VariantArrayInfo
     inline const VidMapper* get_vid_mapper() const { return m_vid_mapper; }
     const TileDB_Array* get_tiledb_array() const { return m_tiledb_array; }
   private:
+    void get_genomicsdb_meta_directory_entries(std::string& buffer,
+        std::vector<char*>& dir_entries_pointers,
+        std::vector<unsigned char>& dir_entries_type);
+  private:
     int m_idx;
     int m_mode;
     std::string m_workspace;
@@ -177,7 +183,6 @@ class VariantArrayInfo
     BufferVariantCell m_cell;
     TileDB_CTX* m_tiledb_ctx;
     TileDB_Array* m_tiledb_array;
-    std::string m_metadata_filename;
     //For writing cells
     //Buffers to hold data
     std::vector<std::vector<uint8_t>> m_buffers;
