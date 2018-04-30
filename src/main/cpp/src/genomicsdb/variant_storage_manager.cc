@@ -199,6 +199,8 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
     m_buffer_pointers[i] = reinterpret_cast<void*>(&(m_buffers[i][0]));
   m_metadata_contains_max_valid_row_idx_in_array = other.m_metadata_contains_max_valid_row_idx_in_array;
   m_max_valid_row_idx_in_array = other.m_max_valid_row_idx_in_array;
+  m_metadata_contains_lb_row_idx = other.m_metadata_contains_lb_row_idx;
+  m_lb_row_idx = other.m_lb_row_idx;
 #ifdef DEBUG
   m_last_row = other.m_last_row;
   m_last_column = other.m_last_column;
@@ -294,7 +296,9 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
 {
   //Compute value from array schema
   m_metadata_contains_max_valid_row_idx_in_array = false;
+  m_metadata_contains_lb_row_idx = false;
   const auto& dim_domains = m_schema.dim_domains();
+  m_lb_row_idx = dim_domains[0].first;
   m_max_valid_row_idx_in_array = dim_domains[0].second;
   //Try reading from metadata
   if(m_metadata_filename.length())
@@ -312,6 +316,11 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
         m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
         m_metadata_contains_max_valid_row_idx_in_array = true;
       }
+      if(json_doc.HasMember("lb_row_idx") && json_doc["lb_row_idx"].IsInt64())
+      {
+        m_lb_row_idx = json_doc["lb_row_idx"].GetInt64();
+        m_metadata_contains_lb_row_idx = true;
+      }
     }
   }
 }
@@ -319,7 +328,9 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
 void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
     const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array)
 {
+  auto update_metadata = false;
   //Update metadata if:
+
   // (it did not exist and (#valid rows is set to large value or  num_rows_seen > num rows as defined in schema
   //                (old implementation))  OR
   // (num_rows_seen > #valid rows in metadata (this part implies that metadata file exists)
@@ -328,10 +339,21 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
       || (max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
   {
     m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
+    update_metadata = true;
+  }
+  // (metadata did not exist OR
+  // (new_lb < value in metadata file)
+  if(!m_metadata_contains_lb_row_idx || lb_row_idx < m_lb_row_idx)
+  {
+    m_lb_row_idx = lb_row_idx;
+    update_metadata = true;
+  }
+  if(update_metadata)
+  {
     rapidjson::Document json_doc;
     json_doc.SetObject();
-    json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
-    json_doc.AddMember("max_valid_row_idx_in_array", max_valid_row_idx_in_array, json_doc.GetAllocator());
+    json_doc.AddMember("lb_row_idx", m_lb_row_idx, json_doc.GetAllocator());
+    json_doc.AddMember("max_valid_row_idx_in_array", m_max_valid_row_idx_in_array, json_doc.GetAllocator());
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     json_doc.Accept(writer);
