@@ -16,6 +16,7 @@ import java.io.PrintWriter;
 import java.util.Set;
 
 import static com.googlecode.protobuf.format.JsonFormat.printToString;
+import static com.intel.genomicsdb.importer.GenomicsDBImporter.*;
 
 public interface JsonFileExtensions {
     /**
@@ -50,16 +51,12 @@ public interface JsonFileExtensions {
      *
      * @param outputCallsetMapJSONFilePath Full path of file to be written
      * @param callsetMappingPB             Protobuf callset map object
-     * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
     default void writeCallsetMapJSONFile(final String outputCallsetMapJSONFilePath,
                                          final GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB)
-            throws FileNotFoundException {
+    {
         String callsetMapJSONString = printToString(callsetMappingPB);
-        File callsetMapJSONFile = new File(outputCallsetMapJSONFilePath);
-        PrintWriter out = new PrintWriter(callsetMapJSONFile);
-        out.println(callsetMapJSONString);
-        out.close();
+	writeToFile(outputCallsetMapJSONFilePath, callsetMapJSONString);
     }
 
     /**
@@ -70,16 +67,12 @@ public interface JsonFileExtensions {
      *
      * @param outputVidMapJSONFilePath Full path of file to be written
      * @param vidMappingPB             ProtoBuf data structure for vid mapping
-     * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
     default void writeVidMapJSONFile(final String outputVidMapJSONFilePath,
                                      final GenomicsDBVidMapProto.VidMappingPB vidMappingPB)
-            throws FileNotFoundException {
+    {
         String vidMapJSONString = printToString(vidMappingPB);
-        File vidMapJSONFile = new File(outputVidMapJSONFilePath);
-        PrintWriter out = new PrintWriter(vidMapJSONFile);
-        out.println(vidMapJSONString);
-        out.close();
+	writeToFile(outputVidMapJSONFilePath, vidMapJSONString);
     }
 
     /**
@@ -90,18 +83,25 @@ public interface JsonFileExtensions {
      *
      * @param outputVcfHeaderFilePath Full path of file to be written
      * @param headerLines             Set of header lines
-     * @throws FileNotFoundException PrintWriter throws this exception when file not found
      */
     default void writeVcfHeaderFile(final String outputVcfHeaderFilePath, final Set<VCFHeaderLine> headerLines)
-            throws FileNotFoundException {
-        File vcfHeaderFile = new File(outputVcfHeaderFilePath);
-        final VCFHeader vcfHeader = new VCFHeader(headerLines);
-        VariantContextWriter vcfWriter = new VariantContextWriterBuilder()
-                .clearOptions()
-                .setOutputFile(vcfHeaderFile)
-                .setOutputFileType(VariantContextWriterBuilder.OutputType.VCF)
-                .build();
-        vcfWriter.writeHeader(vcfHeader);
-        vcfWriter.close();
+    {
+	File vcfHeaderFile;
+	try {
+	    vcfHeaderFile = File.createTempFile("GDB-", "-GDB");
+	} catch(IOException e) {
+	    throw new RuntimeException("Encountered error creating temp file");
+	}
+
+	final VCFHeader vcfHeader = new VCFHeader(headerLines);
+	VariantContextWriter vcfWriter = new VariantContextWriterBuilder()
+	    .clearOptions()
+	    .setOutputFile(vcfHeaderFile)
+	    .setOutputFileType(VariantContextWriterBuilder.OutputType.VCF)
+	    .build();
+	vcfWriter.writeHeader(vcfHeader);
+	vcfWriter.close();
+
+	moveFile(vcfHeaderFile.getAbsolutePath(), outputVcfHeaderFilePath);
     }
 }

@@ -410,40 +410,158 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
   m_mode = -1;
 }
 
-int initialize_storage(TileDB_CTX **ptiledb_ctx, const std::string& workspace)
+void tiledb_setup(TileDB_CTX **ptiledb_ctx, const std::string& home)
 {
   int rc;
+  TileDB_Config tiledb_config;
+  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  tiledb_config.home_ = strdup(home.c_str());
+  rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
+  free((void *)tiledb_config.home_);
+  VERIFY_OR_THROW(rc == TILEDB_OK && "Could not setup TileDB with given URI");
+}
 
-  if (is_hdfs_path(workspace)) 
-  {
-    TileDB_Config tiledb_config;
-    bzero(&tiledb_config, sizeof(TileDB_Config));
-    
-    std::string parent = parent_dir(workspace);
-    tiledb_config.home_ = new char [parent.length()+1];
-    std::strcpy ((char *)tiledb_config.home_, parent.c_str());
-    tiledb_config.read_method_ = TILEDB_IO_READ;
-    tiledb_config.write_method_ = TILEDB_IO_WRITE;
-    rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
-    delete tiledb_config.home_;
-  } else {
-    rc = tiledb_ctx_init(ptiledb_ctx, NULL);
+void tiledb_close(TileDB_CTX *tiledb_ctx)
+{
+  VERIFY_OR_THROW(tiledb_ctx_finalize(tiledb_ctx) == TILEDB_OK && "Could not finalize TileDB");
+}
+
+/*
+ * Returns 0 when workspace is created
+ *        -1 when path is not a directory
+ *        -2 when workspace could not be created
+ *         1 when workspace exists and nothing is changed
+ */
+#define OK 0
+#define NOT_DIR -1
+#define NOT_CREATED -2
+#define UNCHANGED 1
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite)
+{
+  *ptiledb_ctx = NULL;
+
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(ptiledb_ctx, workspace);
+  int rc;
+  if (is_file(*ptiledb_ctx, workspace)) {
+    tiledb_close(*ptiledb_ctx);
+    return NOT_DIR;
   }
 
-  if (rc == TILEDB_OK && !is_workspace(*ptiledb_ctx, workspace))
-  {
-    rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
-    if (rc != TILEDB_OK) {
-      finalize_storage(*ptiledb_ctx);
+  if (is_workspace(*ptiledb_ctx, workspace)) {
+    if (overwrite) {
+      rc = tiledb_delete(*ptiledb_ctx, workspace.c_str());
+      if (rc != TILEDB_OK) {
+	return NOT_CREATED;
+      }
+    } else {
+      return UNCHANGED;
     }
+  }
+
+  rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
+  if (rc != TILEDB_OK) {
+    rc = NOT_CREATED;
+  } else {
+    rc = OK;
   }
 
   return rc;
 }
 
-int finalize_storage(TileDB_CTX *tiledb_ctx)
+int finalize_workspace(TileDB_CTX *tiledb_ctx)
 {
-  return tiledb_ctx_finalize(tiledb_ctx);
+  tiledb_close(tiledb_ctx);
+  return TILEDB_OK;
+}
+
+bool workspace_exists(const std::string& workspace)
+{
+  bool exists = false;
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, workspace);
+  exists = is_workspace(tiledb_ctx, workspace);
+  tiledb_close(tiledb_ctx);
+  return exists;
+}
+
+int read_file(const std::string& filename, off_t offset, void *buffer, size_t length)
+{
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, parent_dir(filename));
+  if (is_dir(tiledb_ctx, filename)) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Given path to filename is a directory");
+  }
+  if (!is_file(tiledb_ctx, filename)) {
+    tiledb_close(tiledb_ctx);
+    return -1;
+  }
+  int rc = read_from_file(tiledb_ctx, filename, offset, buffer, length);
+  tiledb_close(tiledb_ctx);
+  return rc;
+}
+
+int write_file(const std::string& filename, void *buffer, size_t length, const bool overwrite)
+{
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, parent_dir(filename));
+  if (is_dir(tiledb_ctx, filename)) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Given path to filename is a directory");
+  }
+  int rc = TILEDB_OK;
+  if (overwrite && is_file(tiledb_ctx, filename)) {
+    rc = delete_file(tiledb_ctx, filename);
+    if (rc) {
+      tiledb_close(tiledb_ctx);
+      VERIFY_OR_THROW(false && "File could not be deleted for overwriting");
+    }
+  }
+  rc = write_to_file(tiledb_ctx, filename, buffer, length);
+  tiledb_close(tiledb_ctx);
+  return rc;
+}
+
+int delete_file(const std::string& filename)
+{
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, parent_dir(filename));
+  if (is_dir(tiledb_ctx, filename)) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Given path to filename is a directory");
+  }
+  int rc = delete_file(tiledb_ctx, filename);
+  tiledb_close(tiledb_ctx);
+  return rc;
+}
+
+int move_across_filesystems(const std::string& src, const std::string& dest)
+{
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, parent_dir(src));
+  if (is_dir(tiledb_ctx, src)) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Given path to src is a directory");
+  }
+  size_t size = file_size(tiledb_ctx, src);
+  void *buffer = malloc(size);
+  if (read_from_file(tiledb_ctx, src, 0, buffer, size) != TILEDB_OK) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Could not read from file");
+  }
+
+  delete_file(tiledb_ctx, src);
+  tiledb_close(tiledb_ctx);
+
+  tiledb_setup(&tiledb_ctx, parent_dir(dest));
+  if (is_dir(tiledb_ctx, dest)) {
+    tiledb_close(tiledb_ctx);
+    VERIFY_OR_THROW(false && "Given path to dest is a directory");
+  }
+  int rc = write_to_file(tiledb_ctx, dest, buffer, size);
+  tiledb_close(tiledb_ctx);
+  return rc;
 }
 
 //VariantStorageManager functions
@@ -452,7 +570,7 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
   m_workspace = workspace;
   m_segment_size = segment_size;
 
-  VERIFY_OR_THROW(initialize_storage(&m_tiledb_ctx, workspace) == TILEDB_OK && "Failure to initialize TileDB storage");
+  VERIFY_OR_THROW(initialize_workspace(&m_tiledb_ctx, workspace, false) >= 0 && "Failure to initialize TileDB storage");
   VERIFY_OR_THROW(m_tiledb_ctx != NULL && "Could not get TileDB context");
 }
 

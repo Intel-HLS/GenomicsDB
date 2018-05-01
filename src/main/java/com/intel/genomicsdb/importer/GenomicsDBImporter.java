@@ -211,10 +211,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
         //Create workspace folder to avoid issues with concurrency
         String workspace = this.config.getImportConfiguration().getColumnPartitions(0).getWorkspace();
-        if (!new File(workspace).exists()) {
-            int tileDBWorkspace = createTileDBWorkspace(workspace);
-            if (tileDBWorkspace < 0)
-                throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
+	if (createTileDBWorkspace(workspace, false) < 0) {
+	    throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
         }
     }
 
@@ -222,14 +220,35 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * Create TileDB workspace
      *
      * @param workspace path to workspace directory
+     * @param overwrite when set the existing directory is deleted first
      * @return status 0 = workspace created,
      * -1 = path was not a directory,
      * -2 = failed to create workspace,
      * 1 = existing directory, nothing changed
      */
-    public static int createTileDBWorkspace(final String workspace) {
-        return jniCreateTileDBWorkspace(workspace);
+    public static int createTileDBWorkspace(final String workspace, final boolean overwrite) {
+        return jniCreateTileDBWorkspace(workspace, overwrite);
     }
+
+    /**
+     * Write contents into file
+     * @param filename path to file
+     * @param contents buffer to be written out
+     * @return status 0 = OK
+     */
+    public static int writeToFile(final String filename, final String contents) {
+	return jniWriteToFile(filename, contents, (long)contents.length());
+    }
+
+    /**
+     * Copy source path contents to destination
+     * @param source local filesystem path
+     * @param destination local or cloud filesystem URI
+     * @return status 0 = OK
+     */
+    public static int moveFile(final String source, final String destination) {
+	return jniMoveFile(source, destination);
+    } 
 
     /**
      * Consolidate TileDB array

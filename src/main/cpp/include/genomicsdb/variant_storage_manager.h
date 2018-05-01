@@ -192,8 +192,14 @@ class VariantArrayInfo
  * Wrapper class around TileDB C API - shields GenomicsDB from changes in
  * core
  */
-int initialize_storage(TileDB_CTX **ptiledb_ctx, const std::string& workspace);
-int finalize_storage(TileDB_CTX *tiledb_ctx);
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite);
+int finalize_workspace(TileDB_CTX *tiledb_ctx);
+bool workspace_exists(const std::string& workspace);
+
+int read_file(const std::string& filename, off_t offset, void *buffer, size_t length);
+int write_file(const std::string& filename, void *buffer, size_t length, const bool overwrite);
+int delete_file(const std::string& file);
+int move_across_filesystems(const std::string& src, const std::string& dest);
 
 class VariantStorageManager
 {
@@ -204,7 +210,7 @@ class VariantStorageManager
       m_open_arrays_info_vector.clear();
       m_workspace.clear();
        /* Finalize context. */
-      tiledb_ctx_finalize(m_tiledb_ctx);
+      finalize_workspace(m_tiledb_ctx);
     }
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;

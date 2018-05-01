@@ -7,10 +7,46 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_SIZE_PER_COLUMN_PARTITION
-#define com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_SIZE_PER_COLUMN_PARTITION 10240LL
-#undef com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_TILEDB_CELLS_PER_TILE
-#define com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_TILEDB_CELLS_PER_TILE 1000L
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniGetChromosomeIntervalsForColumnPartition
+ * Signature: (Ljava/lang/String;I)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGetChromosomeIntervalsForColumnPartition
+  (JNIEnv *, jclass, jstring, jint);
+
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniCreateTileDBWorkspace
+ * Signature: (Ljava/lang/String;Z)I
+ */
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
+  (JNIEnv *, jclass, jstring, jboolean);
+
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniWriteToFile
+ * Signature: (Ljava/lang/String;Ljava/lang/String;J)I
+ */
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniWriteToFile
+  (JNIEnv *, jclass, jstring, jstring, jlong);
+
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniMoveFile
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniMoveFile
+  (JNIEnv *, jclass, jstring, jstring);
+
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniConsolidateTileDBArray
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
+  (JNIEnv *, jclass, jstring, jstring);
+
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniGenomicsDBImporter
@@ -74,30 +110,6 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_
  */
 JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniImportBatch
   (JNIEnv *, jobject, jlong, jlongArray);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniGetChromosomeIntervalsForColumnPartition
- * Signature: (Ljava/lang/String;I)Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGetChromosomeIntervalsForColumnPartition
-  (JNIEnv *, jclass, jstring, jint);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniCreateTileDBWorkspace
- * Signature: (Ljava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
-  (JNIEnv *, jclass, jstring);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniConsolidateTileDBArray
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
-  (JNIEnv *, jclass, jstring, jstring);
 
 #ifdef __cplusplus
 }

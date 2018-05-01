@@ -335,15 +335,46 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCopyCallsetMap
 } // end of jniCopyCallsetMap
 
 JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
-  (JNIEnv* env, jclass currClass, jstring workspace)
+  (JNIEnv* env, jclass currClass, jstring workspace, jboolean overwrite)
 {
   auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
   VERIFY_OR_THROW(workspace_cstr);
-  auto return_val = VCF2TileDBLoader::create_tiledb_workspace(workspace_cstr);
+  bool should_overwrite = (overwrite == JNI_TRUE)?true:false;
+  auto return_val = VCF2TileDBLoader::create_tiledb_workspace(workspace_cstr, should_overwrite);
   //Cleanup
   env->ReleaseStringUTFChars(
     workspace,
     workspace_cstr);
+  return return_val;
+}
+
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniWriteToFile
+(JNIEnv* env, jclass currClass, jstring filename, jstring contents, jlong length) {
+  auto filename_cstr = env->GetStringUTFChars(filename, NULL);
+  VERIFY_OR_THROW(filename_cstr);
+  auto contents_cstr = env->GetStringUTFChars(contents, NULL);
+  VERIFY_OR_THROW(contents_cstr);
+  
+  auto return_val =  VCF2TileDBLoader::write_to_file(filename_cstr, (void *)contents_cstr, (size_t)length, false);
+
+  env->ReleaseStringUTFChars(filename, filename_cstr);
+  env->ReleaseStringUTFChars(contents, contents_cstr);
+
+  return return_val;
+}
+
+JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniMoveFile
+(JNIEnv* env, jclass currClass, jstring source, jstring destination) {
+  auto source_cstr = env->GetStringUTFChars(source, NULL);
+  VERIFY_OR_THROW(source_cstr);
+  auto destination_cstr = env->GetStringUTFChars(destination, NULL);
+  VERIFY_OR_THROW(destination_cstr);
+
+  auto return_val = VCF2TileDBLoader::move_file(source_cstr, destination_cstr);
+
+  env->ReleaseStringUTFChars(source, source_cstr);
+  env->ReleaseStringUTFChars(destination, destination_cstr);
+
   return return_val;
 }
 

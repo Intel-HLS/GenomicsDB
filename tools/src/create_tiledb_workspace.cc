@@ -30,5 +30,5 @@ int main(int argc, char** argv)
     std::cerr << "Needs 1 argument <workspace_directory>\n";
     exit(-1);
   }
-  return VCF2TileDBLoader::create_tiledb_workspace(argv[1]);
+  return VCF2TileDBLoader::create_tiledb_workspace(argv[1], false);
 }
