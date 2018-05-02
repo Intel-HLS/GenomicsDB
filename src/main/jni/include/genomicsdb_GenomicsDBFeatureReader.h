@@ -8,11 +8,11 @@
 extern "C" {
 #endif
 /*
- * Class:     com_intel_genomicsdb_reader_GenomicsDBFeatureReader
+ * Class:     com_intel_genomicsdb_reader_GenomicsDBFeatureReaderJni
  * Method:    jniIsTileDBArray
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureReader_jniIsTileDBArray
+JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureReaderJni_jniIsTileDBArray
   (JNIEnv *, jclass, jstring, jstring);
 
 #ifdef __cplusplus

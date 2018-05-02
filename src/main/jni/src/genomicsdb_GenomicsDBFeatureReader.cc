@@ -26,7 +26,7 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 
-JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureReader_jniIsTileDBArray
+JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureReaderJni_jniIsTileDBArray
   (JNIEnv* env, jclass currClass, jstring workspace, jstring arrayName)
 {
   auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
