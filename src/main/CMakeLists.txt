@@ -46,6 +46,7 @@ endif()
 
 if(BUILD_JAVA)
     set(GenomicsDB_library_sources ${GenomicsDB_library_sources}
+        jni/src/genomicsdb_GenomicsDBFeatureReader.cc
         jni/src/genomicsdb_GenomicsDBImporter.cc
         jni/src/genomicsdb_GenomicsDBQueryStream.cc
         jni/src/genomicsdb_jni_init.cc

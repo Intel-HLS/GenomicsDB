@@ -194,7 +194,9 @@ class VariantArrayInfo
  */
 int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite);
 int finalize_workspace(TileDB_CTX *tiledb_ctx);
+
 bool workspace_exists(const std::string& workspace);
+bool array_exists(const std::string& workspace, const std::string& array_name);
 
 int read_file(const std::string& filename, off_t offset, void *buffer, size_t length);
 int write_file(const std::string& filename, void *buffer, size_t length, const bool overwrite);

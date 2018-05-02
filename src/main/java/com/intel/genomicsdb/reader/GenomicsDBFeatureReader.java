@@ -42,7 +42,7 @@ import static java.util.stream.Collectors.toList;
  * A reader for GenomicsDB that implements {@link htsjdk.tribble.FeatureReader}
  * Currently, the reader only return {@link htsjdk.variant.variantcontext.VariantContext}
  */
-public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements FeatureReader<T> {
+public class GenomicsDBFeatureReader<T extends Feature, SOURCE> extends GenomicsDBFeatureReaderJni implements FeatureReader<T> {
     private String loaderJSONFile;
     private String queryJsonFileName = null;
     private GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration;
@@ -50,6 +50,16 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private FeatureCodecHeader featureCodecHeader;
     private List<String> sequenceNames;
     private Map<String, Coordinates.ContigInterval> intervalsPerArray = new HashMap<>();
+
+    /**
+     * Checks if GenomicsDB array exists.
+     * @param workspace
+     * @param arrayName
+     * @return <code>true</code> if workspace with arrayName exists else return <code>false</code>
+     */
+    public static boolean isGenomicsDBArray(final String workspace, final String arrayName) {
+	return jniIsTileDBArray(workspace, arrayName);
+    }
 
     /**
      * Constructor
@@ -63,6 +73,8 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     public GenomicsDBFeatureReader(final GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration,
                                    final FeatureCodec<T, SOURCE> codec,
                                    final Optional<String> loaderJSONFile) throws IOException {
+	if (isGenomicsDBArray("workspacce", "array")) 
+	    throw new IllegalStateException("Not available");
         this.exportConfiguration = exportConfiguration;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");

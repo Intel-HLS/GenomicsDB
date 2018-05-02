@@ -485,6 +485,16 @@ bool workspace_exists(const std::string& workspace)
   return exists;
 }
 
+bool array_exists(const std::string& workspace, const std::string& array_name)
+{
+  bool exists = false;
+  TileDB_CTX *tiledb_ctx;
+  tiledb_setup(&tiledb_ctx, workspace);
+  exists = is_array(tiledb_ctx, workspace + '/' + array_name);
+  tiledb_close(tiledb_ctx);
+  return exists;
+}
+
 int read_file(const std::string& filename, off_t offset, void *buffer, size_t length)
 {
   TileDB_CTX *tiledb_ctx;
