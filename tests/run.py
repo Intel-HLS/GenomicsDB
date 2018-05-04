@@ -33,7 +33,7 @@ import jsondiff
 query_json_template_string="""
 {   
         "workspace" : "",
-        "array" : "",
+        "array_name" : "",
         "vcf_header_filename" : ["inputs/template_vcf_header.vcf"],
         "query_column_ranges": [{
             "range_list": [{
@@ -61,8 +61,11 @@ default_segment_size = 40
 def create_query_json(ws_dir, test_name, query_param_dict):
     test_dict=json.loads(query_json_template_string);
     test_dict["workspace"] = ws_dir
-    test_dict["array"] = test_name
-    test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
+    test_dict["array_name"] = test_name
+    if('query_column_ranges' in query_param_dict):
+        test_dict["query_column_ranges"] = query_param_dict["query_column_ranges"]
+    else:
+        test_dict['scan_full'] = True
     if("vid_mapping_file" in query_param_dict):
         test_dict["vid_mapping_file"] = query_param_dict["vid_mapping_file"];
     if("callset_mapping_file" in query_param_dict):
@@ -89,7 +92,7 @@ loader_json_template_string="""
 {
     "row_based_partitioning" : false,
     "column_partitions" : [
-        {"begin": 0, "workspace":"", "array": "" }
+        {"begin": 0, "workspace":"", "array_name": "" }
     ],
     "callset_mapping_file" : "",
     "vid_mapping_file" : "inputs/vid.json",
@@ -114,7 +117,7 @@ def create_loader_json(ws_dir, test_name, test_params_dict):
     if('column_partitions' in test_params_dict):
         test_dict['column_partitions'] = test_params_dict['column_partitions'];
     test_dict["column_partitions"][0]["workspace"] = ws_dir;
-    test_dict["column_partitions"][0]["array"] = test_name;
+    test_dict["column_partitions"][0]["array_name"] = test_name;
     test_dict["callset_mapping_file"] = test_params_dict['callset_mapping_file'];
     if('vid_mapping_file' in test_params_dict):
         test_dict['vid_mapping_file'] = test_params_dict['vid_mapping_file'];
@@ -139,6 +142,24 @@ def print_diff(golden_output, test_output):
     print("=======Test output:=======");
     print(test_output);
     print("=======END=======");
+
+def modify_query_column_ranges_for_PB(test_query_dict):
+    if('query_column_ranges' in test_query_dict):
+        original_query_column_ranges = test_query_dict['query_column_ranges']
+        new_query_column_ranges = []
+        for curr_entry in original_query_column_ranges:
+            if(type(curr_entry) is dict and 'range_list' in curr_entry):
+                new_interval_list = []
+                for curr_interval in curr_entry['range_list']:
+                    if(type(curr_interval) is dict and 'low' in curr_interval
+                            and 'high' in curr_interval):
+                        new_interval_list.append({'column_interval': { 'column_interval':
+                            { 'begin': curr_interval['low'], 'end': curr_interval['high'] } } })
+                new_entry = { 'column_or_interval_list': new_interval_list }
+                new_query_column_ranges.append(new_entry)
+        test_query_dict['query_column_ranges'] = new_query_column_ranges
+
+
 
 def cleanup_and_exit(tmpdir, exit_code):
     if(exit_code == 0):
@@ -174,6 +195,11 @@ def main():
                         "variants"   : "golden_outputs/t0_1_2_variants_at_0",
                         "vcf"        : "golden_outputs/t0_1_2_vcf_at_0",
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
+                        } },
+                    { "query_column_ranges": [ [ [0, 1000000] ] ],
+                      "pass_through_query_json": True,
+                      "golden_output": {
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
                     { "query_column_ranges" : [{
@@ -301,6 +327,36 @@ def main():
                         } },
                     ]
             },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig",
+                'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                'chromosome_intervals': [ '1:1-12160', '1:12161-12200', '1:12201-18000' ],
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                'generate_array_name_from_partition_bounds': True,
+                "query_params": [
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 18000
+                        }]
+                    }],
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_0_18000",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 12151,
+                            "end": 18000
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_genomicsdb_importer_from_vcfs_t0_1_2_multi_contig_vcf_12150_18000",
+                        } }
+                ]
+            },
             { "name" : "t0_1_2_csv", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_csv.json',
                 "query_params": [
@@ -346,7 +402,7 @@ def main():
             },
             { "name" : "t0_overlapping_at_12202", 'golden_output': 'golden_outputs/t0_overlapping_at_12202',
                 'callset_mapping_file': 'inputs/callsets/t0_overlapping.json',
-                'column_partitions': [ {"begin": 12202, "workspace":"", "array": "" }]
+                'column_partitions': [ {"begin": 12202, "workspace":"", "array_name": "" }]
             },
             { "name" : "t6_7_8", 'golden_output' : 'golden_outputs/t6_7_8_loading',
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
@@ -391,6 +447,41 @@ def main():
                         "vcf"        : "golden_outputs/t6_7_8_vcf_at_8029500-8029500",
                         } }
                     ]
+            },
+            { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8_multi_contig",
+                'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                'chromosome_intervals': [ '1:1-8029500','1:8029501-8029501', '1:8029502-10000000' ],
+                "vid_mapping_file": "inputs/vid_phased_GT.json",
+                'generate_array_name_from_partition_bounds': True,
+                "query_params": [
+                    {   'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_0",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 8029501,
+                            "end": 8029510
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_8029500",
+                        } },
+                    {
+                        "query_contig_interval": {
+                            "contig": "1",
+                            "begin": 8029502,
+                            "end": 8029502
+                        },
+                        'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
+                        "vid_mapping_file": "inputs/vid_phased_GT.json",
+                        "golden_output": {
+                        "java_vcf"   : "golden_outputs/java_t6_7_8_vcf_at_8029501",
+                        } }
+                ]
             },
             { "name" : "java_t0_1_2", 'golden_output' : 'golden_outputs/t0_1_2_loading',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
@@ -507,7 +598,7 @@ def main():
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges": [{
@@ -540,7 +631,7 @@ def main():
             },
             { "name" : "java_genomicsdb_importer_from_vcfs_t6_7_8",
                 'callset_mapping_file': 'inputs/callsets/t6_7_8.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "vid_mapping_file": "inputs/vid_phased_GT.json",
                 "query_params": [
                     { "query_column_ranges": [{
@@ -606,7 +697,7 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_with_DS_ID",
                 'vid_mapping_file': 'inputs/vid_DS_ID_phased_GT.json',
                 'callset_mapping_file': 'inputs/callsets/t0_1_2.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "query_params": [
                     { "query_column_ranges": [{
                         "range_list": [{
@@ -688,6 +779,20 @@ def main():
                         "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_produce_GT_for_min_value_PL",
                         "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_produce_GT_for_min_PL",
                         } },
+                    { "query_column_ranges": [{
+                        "range_list": [{
+                            "low": 0,
+                            "high": 1000000000
+                        }]
+                        }],
+                      'callset_mapping_file': 'inputs/callsets/t0_haploid_triploid_1_2_3_triploid_deletion.json',
+                      "vid_mapping_file": "inputs/vid_DS_ID_phased_GT.json",
+                      'sites_only_query': True,
+                      'segment_size': 100,
+                      "golden_output": {
+                        "vcf"        : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_vcf_sites_only",
+                        "java_vcf"   : "golden_outputs/t0_haploid_triploid_1_2_3_triploid_deletion_java_vcf_sites_only",
+                        } },
                 ]
             },
             { "name" : "t0_1_2_all_asa", 'golden_output' : 'golden_outputs/t0_1_2_all_asa_loading',
@@ -712,7 +817,7 @@ def main():
             { "name" : "java_genomicsdb_importer_from_vcfs_t0_1_2_all_asa",
                 'callset_mapping_file': 'inputs/callsets/t0_1_2_all_asa.json',
                 'vid_mapping_file': 'inputs/vid_all_asa.json',
-                'chromosome_interval': '1:1-100000000',
+                'chromosome_intervals': [ '1:1-100000000' ],
                 "query_params": [
                     { "query_column_ranges": [{
                         "range_list": [{
@@ -778,14 +883,22 @@ def main():
                     +' '+test_params_dict['stream_name_to_filename_mapping'],
                     shell=True, stdout=subprocess.PIPE);
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-            arg_list = ' -L '+test_params_dict['chromosome_interval'] + ' -w ' + ws_dir \
-                    +' --use_samples_in_order ' + ' --batchsize=2 ';
+            arg_list = ''
+            for interval in test_params_dict['chromosome_intervals']:
+                arg_list += ' -L '+interval
+            arg_list += ' -w ' + ws_dir +' --use_samples_in_order ' + ' --batchsize=2 '
+            arg_list += ' --vidmap-output '+ tmpdir + os.path.sep + 'vid.json'
+            arg_list += ' --callset-output '+ tmpdir + os.path.sep + 'callsets.json'
+            if('generate_array_name_from_partition_bounds' not in test_params_dict or
+                    not test_params_dict['generate_array_name_from_partition_bounds']):
+                arg_list += ' -A ' + test_name
             with open(test_params_dict['callset_mapping_file'], 'rb') as cs_fptr:
                 callset_mapping_dict = json.load(cs_fptr, object_pairs_hook=OrderedDict)
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
-            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader '+arg_list,
+            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader --size_per_column_partition 16384 '
+                                   '--segment_size 10485760'+arg_list,
                     shell=True, stdout=subprocess.PIPE);
         else:
             pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
@@ -803,9 +916,17 @@ def main():
                 cleanup_and_exit(tmpdir, -1);
         if('query_params' in test_params_dict):
             for query_param_dict in test_params_dict['query_params']:
-                if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
-                    test_name = "1#1#100000000"
                 test_query_dict = create_query_json(ws_dir, test_name, query_param_dict)
+                if(test_name.find('java_genomicsdb_importer_from_vcfs') != -1 and
+                        'generate_array_name_from_partition_bounds' in test_params_dict
+                        and test_params_dict['generate_array_name_from_partition_bounds']):
+                    if('array' in test_query_dict):
+                        del test_query_dict['array']
+                    if('array_name' in test_query_dict):
+                        del test_query_dict['array_name']
+                    if('query_column_ranges' in test_query_dict):
+                        del test_query_dict['query_column_ranges']
+                        test_query_dict['scan_full'] = True
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),
@@ -819,15 +940,26 @@ def main():
                         if((query_type == 'vcf' or query_type == 'batched_vcf' or query_type.find('java_vcf') != -1)
                                 and 'force_override' not in query_param_dict):
                             test_query_dict['attributes'] = vcf_attributes_order;
+                        if(query_type.find('java_vcf') != -1 and 'pass_through_query_json' not in query_param_dict):
+                            modify_query_column_ranges_for_PB(test_query_dict)
                         query_json_filename = tmpdir+os.path.sep+test_name+'_'+query_type+'.json'
                         with open(query_json_filename, 'wb') as fptr:
                             json.dump(test_query_dict, fptr, indent=4, separators=(',', ': '));
                             fptr.close();
                         if(query_type == 'java_vcf'):
                             loader_argument = loader_json_filename;
+                            misc_args = ''
                             if("query_without_loader" in query_param_dict and query_param_dict["query_without_loader"]):
                                 loader_argument = '""'
-                            query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename;
+                            if("pass_through_query_json" in query_param_dict and query_param_dict["pass_through_query_json"]):
+                                misc_args = "--pass_through_query_json"
+                            if('query_contig_interval' in query_param_dict):
+                                query_contig_interval_dict = query_param_dict['query_contig_interval']
+                                misc_args += ('--chromosome '+query_contig_interval_dict['contig'] \
+                                        + ' --begin %d --end %d')%(query_contig_interval_dict['begin'],
+                                                query_contig_interval_dict['end'])
+                            query_command = 'java -ea TestGenomicsDB --query -l '+loader_argument+' '+query_json_filename \
+                                + ' ' + misc_args;
                             pid = subprocess.Popen(query_command, shell=True, stdout=subprocess.PIPE);
                         else:
                             if(query_type == 'consolidate_and_vcf'):

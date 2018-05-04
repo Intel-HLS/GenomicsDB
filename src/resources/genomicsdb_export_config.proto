@@ -27,16 +27,13 @@
 
 syntax = "proto2";
 
-option java_package = "com.intel.genomicsdb";
+import "genomicsdb_coordinates.proto";
+
+option java_package = "com.intel.genomicsdb.model";
 option java_outer_classname = "GenomicsDBExportConfiguration";
 
-message ColumnRange {
-  required int64 low = 1;
-  required int64 high = 2;
-}
-
-message ColumnRangeList {
-  repeated ColumnRange range_list = 1;
+message GenomicsDBColumnOrIntervalList {
+  repeated GenomicsDBColumnOrInterval column_or_interval_list = 1;
 }
 
 message RowRange {
@@ -50,9 +47,12 @@ message RowRangeList {
 
 message ExportConfiguration {
   required string workspace = 1;
-  optional string array = 2;
+  oneof array {
+    string array_name = 2;
+    bool generate_array_name_from_partition_bounds = 18;
+  }
   required string reference_genome = 3;
-  repeated ColumnRangeList query_column_ranges = 4;
+  repeated GenomicsDBColumnOrIntervalList query_column_ranges = 4;
   repeated RowRangeList query_row_ranges = 5;
   repeated string attributes = 6;
   optional string vcf_header_filename = 7;
@@ -66,5 +66,5 @@ message ExportConfiguration {
   optional bool produce_FILTER_field = 15;
   optional bool sites_only_query = 16;
   optional bool produce_GT_with_min_PL_value_for_spanning_deletions = 17;
-  optional bool scan_full = 18;
+  optional bool scan_full = 19;
 }

@@ -244,7 +244,9 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
   m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, &vid_mapper, "r");
   if(m_ad < 0)
-    throw VariantQueryProcessorException("Could not open array "+array_name+" at workspace: "+storage_manager->get_workspace());
+    throw VariantQueryProcessorException("Could not open array "+array_name
+        +" at workspace: "+storage_manager->get_workspace()
+        + "\nTileDB error message : "+tiledb_errmsg);
   m_array_schema = new VariantArraySchema();
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
@@ -273,21 +275,54 @@ void VariantQueryProcessor::initialize()
   register_field_creators(*m_array_schema, *m_vid_mapper);
 }
 
+void VariantQueryProcessor::finalize_queried_attributes(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
+{
+  if(queryConfig.get_num_queried_attributes() == 0u  //add all attributes
+      || queryConfig.sites_only_query())             //ignore INFO fields
+  {
+    std::vector<std::string> new_query_attribute_vector;
+    if(queryConfig.get_num_queried_attributes() == 0u) //add all attributes from schema
+      for(auto i=0ull;i<schema.attribute_num();++i)
+        new_query_attribute_vector.push_back(schema.attribute_name(i));
+    else //only queried attributes
+      for(auto i=0ull;i<queryConfig.get_num_queried_attributes();++i)
+        new_query_attribute_vector.push_back(queryConfig.get_query_attribute_name(i));
+    std::vector<bool> valid_vector(new_query_attribute_vector.size(), true); //assume all valid first
+    //Filter out FORMAT fields
+    if(queryConfig.sites_only_query())
+    {
+      auto FORMAT_fields_needed_in_sites_only_query = std::unordered_set<std::string>({
+          "DP_FORMAT", "MIN_DP"
+          });
+      for(auto i=0ull;i<new_query_attribute_vector.size();++i)
+      {
+        auto& field_name = new_query_attribute_vector[i];
+        auto vid_field_info_ptr = m_vid_mapper->get_field_info(field_name);
+        assert(vid_field_info_ptr);
+        //drop FORMAT fields except those that are needed
+        if(vid_field_info_ptr && vid_field_info_ptr->m_is_vcf_FORMAT_field
+            && (FORMAT_fields_needed_in_sites_only_query.find(field_name)
+              == FORMAT_fields_needed_in_sites_only_query.end()))
+          valid_vector[i] = false;
+      }
+    }
+    queryConfig.clear_attributes_to_query();
+    for(auto i=0u;i<new_query_attribute_vector.size();++i)
+      if(valid_vector[i])
+        queryConfig.add_attribute_to_query(new_query_attribute_vector[i], 0u);
+  }
+}
+
 void VariantQueryProcessor::obtain_TileDB_attribute_idxs(const VariantArraySchema& schema, VariantQueryConfig& queryConfig) const
 {
-  if(queryConfig.get_num_queried_attributes() == 0u)  //add all attributes
+  //Map query attributes to schema idxs
+  for(auto i=0ull;i<schema.attribute_num();++i)
   {
-    for(auto i=0ull;i<schema.attribute_num();++i)
-      queryConfig.add_attribute_to_query(schema.attribute_name(i), i);
+    const auto& name = schema.attribute_name(i);
+    unsigned query_idx = 0u;
+    if(queryConfig.get_query_idx_for_name(name, query_idx))
+      queryConfig.set_schema_idx_for_query_idx(query_idx, i);
   }
-  else
-    for(auto i=0ull;i<schema.attribute_num();++i)
-    {
-      const auto& name = schema.attribute_name(i);
-      unsigned query_idx = 0u;
-      if(queryConfig.get_query_idx_for_name(name, query_idx))
-        queryConfig.set_schema_idx_for_query_idx(query_idx, i);
-    }
   for(auto i=0u;i<queryConfig.get_num_queried_attributes();++i)
     if(!queryConfig.is_schema_idx_defined_for_query_idx(i))
       throw UnknownQueryAttributeException("Invalid query attribute : "+queryConfig.get_query_attribute_name(i));
@@ -577,8 +612,9 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
     VariantQueryConfig& query_config, const VidMapper& vid_mapper, const bool alleles_required) const
 {
   //Flatten composite fields - fields whose elements are tuples
-  //Must do this before call to obtain_TileDB_attribute_idxs
+  //Must do this before call to finalize_queried_attributes obtain_TileDB_attribute_idxs
   query_config.flatten_composite_fields(vid_mapper);
+  finalize_queried_attributes(array_schema, query_config);
   obtain_TileDB_attribute_idxs(array_schema, query_config);
   //Add END as a query attribute by default
   unsigned END_schema_idx = 

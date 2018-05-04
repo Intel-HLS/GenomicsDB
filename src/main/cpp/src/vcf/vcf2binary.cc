@@ -96,7 +96,11 @@ VCFReader::VCFReader()
 VCFReader::~VCFReader()
 {
   if(m_indexed_reader)
+  {
+    if(m_indexed_reader->nreaders > 0)
+      remove_reader();
     bcf_sr_destroy(m_indexed_reader);
+  }
   m_indexed_reader = 0;
   if(m_fptr)
     bcf_close(m_fptr);

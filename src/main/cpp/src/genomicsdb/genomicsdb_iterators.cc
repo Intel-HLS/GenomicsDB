@@ -215,7 +215,9 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
           reinterpret_cast<const void*>(query_range),
           &((*attribute_names)[0]),
           attribute_names->size());
-      VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB array object");
+      if(status != TILEDB_OK)
+        throw GenomicsDBIteratorException(std::string("Error while initializing TileDB array object")
+            + "\nTileDB error message : "+tiledb_errmsg);
       m_tiledb_array = m_owned_tiledb_array;
     }
     else
@@ -227,10 +229,14 @@ void SingleCellTileDBIterator::begin_new_query_column_interval(TileDB_CTX* tiled
         status = tiledb_array_reset_attributes(m_tiledb_array,
             &((*attribute_names)[0]),
             attribute_names->size());
-        VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing attributes for the TileDB array object");
+        if(status != TILEDB_OK)
+          throw GenomicsDBIteratorException(std::string("Error while initializing attributes for the TileDB array object")
+              + "\nTileDB error message : "+tiledb_errmsg);
       }
       status = tiledb_array_reset_subarray(m_tiledb_array, reinterpret_cast<const void*>(query_range));
-      VERIFY_OR_THROW(status == TILEDB_OK && "Error in tiledb_array_reset_subarray()");
+      if(status != TILEDB_OK)
+        throw GenomicsDBIteratorException(std::string("Error in tiledb_array_reset_subarray()")
+           + "\nTileDB error message : "+tiledb_errmsg);
     }
     read_from_TileDB();
     m_first_read_from_TileDB = false;
@@ -343,7 +349,9 @@ void SingleCellTileDBIterator::read_from_TileDB()
     m_buffer_sizes[buffer_idx] = genomicsdb_buffer_ptr->get_buffer_size_in_bytes();
   }
   auto status = tiledb_array_read(m_tiledb_array, &(m_buffer_pointers[0]), &(m_buffer_sizes[0]));
-  VERIFY_OR_THROW(status == TILEDB_OK);
+  if(status != TILEDB_OK)
+    throw GenomicsDBIteratorException(std::string("Error while reading from TileDB array ")
+        + "\nTileDB error message : "+tiledb_errmsg);
 #ifdef DEBUG
   auto num_done_fields = 0u;
 #endif

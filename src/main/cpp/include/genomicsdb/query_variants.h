@@ -282,6 +282,11 @@ class VariantQueryProcessor {
     int get_array_descriptor() const { return m_ad; }
     const VariantArraySchema& get_array_schema() const { return *m_array_schema; }
     /**
+     * A function that determines the attributes to query - this might cause some fields
+     * to be dropped from the query
+     */
+    void finalize_queried_attributes(const VariantArraySchema& array_schema, VariantQueryConfig& queryConfig) const;
+    /**
      * A function that obtains cell attribute idxs for queried attribute names in the queryConfig object
      */
     void obtain_TileDB_attribute_idxs(const VariantArraySchema& array_schema, VariantQueryConfig& queryConfig) const;

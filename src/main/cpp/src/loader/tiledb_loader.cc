@@ -68,7 +68,6 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
 {
   clear();
   m_idx = idx;
-  JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
   //Override
   m_lb_callset_row_idx = std::max(lb_callset_row_idx, m_lb_callset_row_idx);
   m_ub_callset_row_idx = std::min(ub_callset_row_idx, m_ub_callset_row_idx);
@@ -188,6 +187,8 @@ VCF2TileDBConverter::VCF2TileDBConverter(
     m_exchanges.resize(exchange_vector->size());
     for(auto i=0u;i<m_exchanges.size();++i)
       m_exchanges[i] = &((*exchange_vector)[i]);
+    VidMapper tmp_vid_mapper = *m_vid_mapper;
+    JSONLoaderConfig::read_from_file(config_filename, &tmp_vid_mapper, m_idx);
   }
   determine_num_callsets_owned(m_vid_mapper, false);
   m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
@@ -573,7 +574,9 @@ void VCF2TileDBLoader::common_constructor_initialization(
           callsetmap_pb,
           buffer_stream_info_vec));
     m_vid_mapper_file_required = false;
+    JSONLoaderConfig::read_from_file(config_filename, m_vid_mapper, m_idx);
   } else {
+    JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
     m_vid_mapper = static_cast<VidMapper*>(
         new FileBasedVidMapper(
           m_vid_mapping_file,
@@ -642,8 +645,11 @@ void VCF2TileDBLoader::common_constructor_initialization(
 #ifdef HTSDIR
     //Operators
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
-          new LoaderCombinedGVCFOperator(m_vid_mapper, config_filename, m_treat_deletions_as_intervals, m_idx,
-            get_column_partition())));
+          new LoaderCombinedGVCFOperator(
+            m_vid_mapper,
+            config_filename,
+            m_idx,
+            m_vid_mapper_file_required)));
     m_operators_overflow.push_back(false);
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
@@ -1097,6 +1103,7 @@ void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const cha
   auto ad = sm.open_array(array_name, 0, "w");
   if(ad < 0)
     throw VCF2TileDBException(std::string("Error opening array ")+array_name
-        +" in workspace "+workspace+" when trying to consolidate");
+        +" in workspace "+workspace+" when trying to consolidate"
+        + "\nTileDB error message : "+tiledb_errmsg);
   sm.close_array(ad, true);
 }

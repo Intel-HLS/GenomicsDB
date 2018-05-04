@@ -87,8 +87,10 @@ VariantArrayCellIterator::VariantArrayCellIterator(TileDB_CTX* tiledb_ctx, const
       &(attribute_names[0]),           
       attribute_names.size(),
       const_cast<void**>(&(m_buffer_pointers[0])),
-      &(m_buffer_sizes[0]));      
-  VERIFY_OR_THROW(status == TILEDB_OK && "Error while initializing TileDB iterator");
+      &(m_buffer_sizes[0]));
+  if(status != TILEDB_OK)
+    throw VariantStorageManagerException(std::string("Error while initializing TileDB iterator")
+          +"\nTileDB error message : "+tiledb_errmsg);
 #ifdef DEBUG
   m_last_row = -1;
   m_last_column = -1;
@@ -110,14 +112,19 @@ const BufferVariantCell& VariantArrayCellIterator::operator*()
   {
     auto status = tiledb_array_iterator_get_value(m_tiledb_array_iterator, i,
         reinterpret_cast<const void**>(&field_ptr), &field_size);
-    VERIFY_OR_THROW(status == TILEDB_OK);
+    if(status != TILEDB_OK)
+      throw VariantStorageManagerException(std::string("Error while getting value from TileDB iterator")
+          +" for field with query index "+std::to_string(i)
+          +"\nTileDB error message : "+tiledb_errmsg);
     m_cell.set_field_ptr_for_query_idx(i, field_ptr);
     m_cell.set_field_size_in_bytes(i, field_size);
   }
   //Co-ordinates
   auto status = tiledb_array_iterator_get_value(m_tiledb_array_iterator, m_num_queried_attributes,
         reinterpret_cast<const void**>(&field_ptr), &field_size);
-  VERIFY_OR_THROW(status == TILEDB_OK);
+  if(status != TILEDB_OK)
+    throw VariantStorageManagerException(std::string("Error while getting coordinate value from TileDB iterator")
+        +"\nTileDB error message : "+tiledb_errmsg);
   assert(field_size == m_variant_array_schema->dim_size_in_bytes());
   auto coords_ptr = reinterpret_cast<const int64_t*>(field_ptr);
   m_cell.set_coordinates(coords_ptr[0], coords_ptr[1]);
@@ -192,6 +199,8 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
     m_buffer_pointers[i] = reinterpret_cast<void*>(&(m_buffers[i][0]));
   m_metadata_contains_max_valid_row_idx_in_array = other.m_metadata_contains_max_valid_row_idx_in_array;
   m_max_valid_row_idx_in_array = other.m_max_valid_row_idx_in_array;
+  m_metadata_contains_lb_row_idx = other.m_metadata_contains_lb_row_idx;
+  m_lb_row_idx = other.m_lb_row_idx;
 #ifdef DEBUG
   m_last_row = other.m_last_row;
   m_last_column = other.m_last_column;
@@ -237,7 +246,9 @@ void VariantArrayInfo::write_cell(const void* ptr)
   if(overflow)
   {
     auto status = tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
-    VERIFY_OR_THROW(status == TILEDB_OK);
+    if(status != TILEDB_OK)
+      throw VariantStorageManagerException(std::string("Error while writing to TileDB array")
+          +"\nTileDB error message : "+tiledb_errmsg);
     memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
   }
   buffer_idx = 0;
@@ -285,7 +296,9 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
 {
   //Compute value from array schema
   m_metadata_contains_max_valid_row_idx_in_array = false;
+  m_metadata_contains_lb_row_idx = false;
   const auto& dim_domains = m_schema.dim_domains();
+  m_lb_row_idx = dim_domains[0].first;
   m_max_valid_row_idx_in_array = dim_domains[0].second;
   //Try reading from metadata
   if(m_metadata_filename.length())
@@ -303,6 +316,11 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
         m_max_valid_row_idx_in_array = json_doc["max_valid_row_idx_in_array"].GetInt64();
         m_metadata_contains_max_valid_row_idx_in_array = true;
       }
+      if(json_doc.HasMember("lb_row_idx") && json_doc["lb_row_idx"].IsInt64())
+      {
+        m_lb_row_idx = json_doc["lb_row_idx"].GetInt64();
+        m_metadata_contains_lb_row_idx = true;
+      }
     }
   }
 }
@@ -310,7 +328,9 @@ void VariantArrayInfo::read_row_bounds_from_metadata()
 void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const std::string& metadata_filename,
     const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array)
 {
+  auto update_metadata = false;
   //Update metadata if:
+
   // (it did not exist and (#valid rows is set to large value or  num_rows_seen > num rows as defined in schema
   //                (old implementation))  OR
   // (num_rows_seen > #valid rows in metadata (this part implies that metadata file exists)
@@ -319,10 +339,21 @@ void VariantArrayInfo::update_row_bounds_in_array(TileDB_CTX* tiledb_ctx, const 
       || (max_valid_row_idx_in_array > m_max_valid_row_idx_in_array))
   {
     m_max_valid_row_idx_in_array = max_valid_row_idx_in_array;
+    update_metadata = true;
+  }
+  // (metadata did not exist OR
+  // (new_lb < value in metadata file)
+  if(!m_metadata_contains_lb_row_idx || lb_row_idx < m_lb_row_idx)
+  {
+    m_lb_row_idx = lb_row_idx;
+    update_metadata = true;
+  }
+  if(update_metadata)
+  {
     rapidjson::Document json_doc;
     json_doc.SetObject();
-    json_doc.AddMember("lb_row_idx", lb_row_idx, json_doc.GetAllocator());
-    json_doc.AddMember("max_valid_row_idx_in_array", max_valid_row_idx_in_array, json_doc.GetAllocator());
+    json_doc.AddMember("lb_row_idx", m_lb_row_idx, json_doc.GetAllocator());
+    json_doc.AddMember("max_valid_row_idx_in_array", m_max_valid_row_idx_in_array, json_doc.GetAllocator());
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     json_doc.Accept(writer);
@@ -343,23 +374,27 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
     {
       auto status = tiledb_array_write(m_tiledb_array, const_cast<const void**>(&(m_buffer_pointers[0])), &(m_buffer_offsets[0]));
       if(status != TILEDB_OK)
-        throw VariantStorageManagerException("Error while writing to array "+m_name);
+        throw VariantStorageManagerException("Error while writing to array "+m_name
+            +"\nTileDB error message : "+tiledb_errmsg);
       memset(&(m_buffer_offsets[0]), 0, m_buffer_offsets.size()*sizeof(size_t));
     }
     auto sync_status = tiledb_array_sync(m_tiledb_array);
     if(sync_status != TILEDB_OK)
-      throw VariantStorageManagerException("Error while syncing array "+m_name+" to disk");
+      throw VariantStorageManagerException("Error while syncing array "+m_name+" to disk"
+          +"\nTileDB error message : "+tiledb_errmsg);
   }
   if(m_tiledb_array)
   {
     auto status = tiledb_array_finalize(m_tiledb_array);
     if(status != TILEDB_OK)
-      throw VariantStorageManagerException("Error while finalizing TileDB array "+m_name);
+      throw VariantStorageManagerException("Error while finalizing TileDB array "+m_name
+          +"\nTileDB error message : "+tiledb_errmsg);
     if(consolidate_tiledb_array)
     {
       auto status = tiledb_array_consolidate(m_tiledb_ctx, (m_workspace + '/' + m_name).c_str());
       if(status != TILEDB_OK)
-        throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name);
+        throw VariantStorageManagerException("Error while consolidating TileDB array "+m_name
+            +"\nTileDB error message : "+tiledb_errmsg);
     }
   }
   m_tiledb_array = 0;
@@ -382,7 +417,10 @@ VariantStorageManager::VariantStorageManager(const std::string& workspace, const
     throw VariantStorageManagerException(std::string("Workspace path ")+workspace+" exists and is not a directory");
   //Doesn't exist, create workspace
   if(status < 0)
-    VERIFY_OR_THROW(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) == TILEDB_OK);
+    if(tiledb_workspace_create(m_tiledb_ctx, workspace.c_str()) != TILEDB_OK)
+      throw VariantStorageManagerException(std::string("Error while creating TileDB workspace ")
+          + workspace
+          +"\nTileDB error message : "+tiledb_errmsg);
 }
 
 bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& array_name)
@@ -556,7 +594,10 @@ void VariantStorageManager::delete_array(const std::string& array_name)
   {
     remove(GET_METADATA_PATH(m_workspace, array_name).c_str());
     auto status = tiledb_delete(m_tiledb_ctx, (m_workspace+"/"+array_name).c_str());
-    VERIFY_OR_THROW(status == TILEDB_OK);
+    if(status != TILEDB_OK)
+      throw VariantStorageManagerException(std::string("Error while deleting TileDB array ")
+          + (m_workspace+"/"+array_name)
+          + "\nTileDB error message : "+tiledb_errmsg);
   }
 }
 

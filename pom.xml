@@ -237,6 +237,7 @@
           <show>private</show>
           <nohelp>true</nohelp>
           <sourceFileExcludes>
+            <exclude>**/Coordinates.java</exclude>
             <exclude>**/GenomicsDBVidMapProto.java</exclude>
             <exclude>**/GenomicsDBCallsetsMapProto.java</exclude>
             <exclude>**/GenomicsDBImportConfiguration.java</exclude>
