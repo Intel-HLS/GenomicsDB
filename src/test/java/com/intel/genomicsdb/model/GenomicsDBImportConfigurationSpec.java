@@ -64,8 +64,6 @@ public class GenomicsDBImportConfigurationSpec {
         .setFailIfUpdating(false)
         .setDisableSyncedWrites(true)
         .setIgnoreCellsNotInPartition(false)
-        .setVidMappingFile(TEST_VIDMAP_FILENAME)
-        .setCallsetMappingFile(TEST_CALLSETMAP_FILENAME)
         .build();
     
     Assert.assertEquals(importConfiguration.isInitialized(), true);
