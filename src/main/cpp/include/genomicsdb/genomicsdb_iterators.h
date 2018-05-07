@@ -272,8 +272,10 @@ class SingleCellTileDBIterator
     void reset_for_next_query_interval();
     /*
      * Does one read for the attributes in m_query_attribute_idx_vec from TileDB
+     * skip_cells - for queried attributes, skip #cells specified in
+     *              m_query_attribute_idx_num_cells_to_increment_vec
      */
-    void read_from_TileDB();
+    void read_from_TileDB(const bool skip_cells);
     //Given the columnar field object, get the buffer pointer and index in the buffer
     //Response depends on whether this is a cell that begins before the query interval begin
     //or cell >= query interval begin
@@ -334,6 +336,27 @@ class SingleCellTileDBIterator
         uint64_t& num_cells_incremented);
     bool advance_coords_and_END(const uint64_t num_cells_to_advance);
     void advance_fields_other_than_coords_END(const uint64_t num_cells_to_increment);
+    /*
+     * Return marker idx given TileDB row
+     */
+    inline uint64_t get_marker_idx_for_tiledb_row_idx(const int64_t row_idx) const
+    {
+      assert(row_idx >= m_smallest_row_idx_in_array);
+      auto marker_idx = row_idx - m_smallest_row_idx_in_array;
+      return marker_idx;
+    }
+    bool keep_advancing_in_find_intersecting_intervals_mode() const;
+    inline bool is_duplicate_cell_at_end_position(const int64_t coords_column_value, const int64_t END_field_value) const
+    {
+      return coords_column_value > END_field_value;
+    }
+    inline bool is_duplicate_cell_at_end_position_that_begins_before_query_interval(const int64_t coords_column_value,
+        const int64_t END_field_value, const uint64_t query_column) const
+    {
+      //interval corresponding to this cell begins before the query column
+      return is_duplicate_cell_at_end_position(coords_column_value, END_field_value)
+        && (static_cast<uint64_t>(END_field_value) < query_column);
+    }
   private:
     bool m_done_reading_from_TileDB;
     bool m_in_find_intersecting_intervals_mode;
@@ -365,6 +388,7 @@ class SingleCellTileDBIterator
     std::vector<size_t> m_query_attribute_idx_to_tiledb_buffer_idx;
     std::vector<void*> m_buffer_pointers;
     std::vector<size_t> m_buffer_sizes;
+    std::vector<size_t> m_skip_counts;
     //The TileDB array object
     //Could point to an object initialized by the caller or could point
     //to an object owned by the iterator
@@ -374,6 +398,8 @@ class SingleCellTileDBIterator
     TileDB_Array* m_owned_tiledb_array;
 #ifdef DO_PROFILING
     uint64_t m_num_cells_traversed_stats[GenomicsDBIteratorStatsEnum::NUM_STATS];
+    //For a given query, tracks the length of consecutive cell segments that are useless
+    std::vector<uint64_t> m_useless_cell_interval_lengths_histogram;
     std::vector<uint64_t> m_num_cells_traversed_in_find_intersecting_intervals_mode_histogram;
 #ifdef COUNT_NUM_CELLS_BETWEEN_TWO_CELLS_FROM_THE_SAME_ROW
     std::vector<uint64_t> m_cell_counts_since_last_cell_from_same_row;

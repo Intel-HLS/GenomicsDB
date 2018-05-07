@@ -739,6 +739,10 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
   //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
   //Example GT:PL   0/0:.  0/1:0,0,0
   //However, flag fields have num_values == 1, but no value is returned in the buffer
+  //#define DEBUG_VARIANT_CELL_OFFSETS
+#ifdef DEBUG_VARIANT_CELL_OFFSETS
+  std::cerr << field_name << " write_offset "<< buffer_offset << "\n";
+#endif
   if(num_values <= 0
      || (num_values == 1 && bcf_ht_type != BCF_HT_FLAG && is_bcf_missing_value<FieldType>(ptr[0])))
   {

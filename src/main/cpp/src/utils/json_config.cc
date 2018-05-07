@@ -561,6 +561,11 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       m_attributes[i] = std::move(std::string(q2.GetString()));
     }
   }
+  if(m_json.HasMember("segment_size"))
+  {
+    VERIFY_OR_THROW(m_json["segment_size"].IsInt64());
+    m_segment_size = m_json["segment_size"].GetInt64();
+  }
 }
 
 const std::string& JSONConfigBase::get_workspace(const int rank) const

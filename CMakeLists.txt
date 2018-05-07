@@ -99,6 +99,9 @@ add_definitions(-DHTSDIR=1) #htslib is a mandatory requirement
 add_definitions(-DDUPLICATE_CELL_AT_END=1) #mandatory
 add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
 
+find_package(libuuid REQUIRED)
+include_directories(${LIBUUID_INCLUDE_DIR})
+
 #RapidJSON
 find_package(RapidJSON REQUIRED)
 include_directories(${RAPIDJSON_INCLUDE_DIR})
