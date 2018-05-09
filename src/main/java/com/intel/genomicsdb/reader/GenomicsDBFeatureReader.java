@@ -22,6 +22,8 @@
 
 package com.intel.genomicsdb.reader;
 
+import com.intel.genomicsdb.GenomicsDBLibLoader;
+import com.intel.genomicsdb.exception.GenomicsDBException;
 import com.googlecode.protobuf.format.JsonFormat;
 import com.intel.genomicsdb.model.Coordinates;
 import com.intel.genomicsdb.model.GenomicsDBExportConfiguration;
@@ -50,6 +52,16 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> extends Genomics
     private FeatureCodecHeader featureCodecHeader;
     private List<String> sequenceNames;
     private Map<String, Coordinates.ContigInterval> intervalsPerArray = new HashMap<>();
+
+
+    static {
+        try {
+            boolean loaded = GenomicsDBLibLoader.loadLibrary();
+            if (!loaded) throw new GenomicsDBException("Could not load genomicsdb native library");
+        } catch (UnsatisfiedLinkError ule) {
+            throw new GenomicsDBException("Could not load genomicsdb native library", ule);
+        }
+    }
 
     /**
      * Checks if GenomicsDB array exists.

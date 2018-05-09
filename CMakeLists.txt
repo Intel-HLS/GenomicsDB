@@ -38,7 +38,6 @@ set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
-set(USE_HDFS False CACHE BOOL "Enable storing data on HDFS compliant stores")
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -157,11 +156,6 @@ if(LIBCSV_FOUND)
     add_definitions(-DUSE_LIBCSV)
 endif()
 
-#HDFS
-if(USE_HDFS)
-    add_definitions(-DUSE_HDFS)
-endif()
-
 #Collect stats
 if(DO_PROFILING)
     message(STATUS "Enabling stats collection")
@@ -225,7 +219,7 @@ include_directories (
 )
 
 set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    ${LIBUUID_LIBRARY} ${HDFS_LIBRARY} ${JAVA_JVM_LIBRARY})
+    ${LIBUUID_LIBRARY})
 
 if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(IPP REQUIRED)
@@ -241,7 +235,7 @@ function(build_GenomicsDB_executable_common target)
     if(HTSLIB_SOURCE_DIR)
         add_dependencies(${target} htslib)
     endif()
-    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY})
+    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
@@ -286,6 +280,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/model/ImportConfig.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReaderJni.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBTimer.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBConfiguration.java
