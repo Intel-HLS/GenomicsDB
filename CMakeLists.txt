@@ -292,7 +292,6 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBJavaSparkFactory.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBPartitionInfo.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBRecordReader.java
-	./src/main/java/com/intel/genomicsdb/spark/GenomicsDBQueryInfo.java
         ./src/main/java/com/intel/genomicsdb/Constants.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBLibLoader.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
@@ -306,7 +305,6 @@ if(BUILD_JAVA)
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBImportConfigurationSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBVidMappingProtoSpec.java
-	./src/test/java/com/intel/genomicsdb/spark/GenomicsDBInputFormatTest.java
         ./src/test/java/com/intel/genomicsdb/model/ImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/GenomicsDBTestUtils.java
         )
@@ -355,8 +353,7 @@ if(BUILD_JAVA)
     set(GENOMICSDB_EXAMPLE_SOURCES
         ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
         ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
-        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java
-        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBSparkHDFS.java)
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
 
     add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
         SOURCES ${GENOMICSDB_EXAMPLE_SOURCES}
