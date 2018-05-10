@@ -93,7 +93,7 @@ public class GenomicsDBLibLoader {
 
         // Prepare temporary file
         File temp = File.createTempFile(prefix, suffix);
-        //temp.deleteOnExit();
+        temp.deleteOnExit();
 
         if (!temp.exists()) {
             throw new FileNotFoundException("File " + temp.getAbsolutePath() + " does not exist.");
