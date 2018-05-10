@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
+import java.io.IOException;
 
 import static java.util.stream.Collectors.toList;
 
@@ -66,7 +67,12 @@ public class CommandLineImportConfig extends ImportConfig {
         }
         List<String> files = IntStream.range(getOpt.getOptind(), commandArgs.length).mapToObj(
                 i -> commandArgs[i]).collect(toList());
-        this.resolveHeaders(files);
+        try {
+            this.resolveHeaders(files);
+        }
+        catch(IOException e) {
+            System.err.println("IOException thrown "+e);
+        }
         this.setSampleToReaderMapCreator(this::createSampleToReaderMap);
     }
 
@@ -166,7 +172,7 @@ public class CommandLineImportConfig extends ImportConfig {
                 commandArgs.getOptarg() + " - ignored");
     }
 
-    private void resolveHeaders(final List<String> files) {
+    private void resolveHeaders(final List<String> files) throws IOException {
         List<VCFHeader> headers = new ArrayList<>();
         Map<String, Path> sampleNameToVcfPath = new LinkedHashMap<>();
 
@@ -177,6 +183,7 @@ public class CommandLineImportConfig extends ImportConfig {
             headers.add((VCFHeader) reader.getHeader());
             final String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
             sampleNameToVcfPath.put(sampleName, Paths.get(file));
+            reader.close();
             //Hopefully, GC kicks in and frees resources assigned to reader
         }
 
