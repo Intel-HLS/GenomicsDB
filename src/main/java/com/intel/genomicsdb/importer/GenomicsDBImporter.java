@@ -168,7 +168,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                     sampleToIDMap.getStreamName(),
                     (VCFHeader) featureReader.getHeader(),
                     iterator,
-                    importConfig.getImportConfiguration().getSizePerColumnPartition(),
+                    importConfig.getImportConfiguration().getSizePerColumnPartition()/sampleToReaderMap.size(),
                     importConfig.isPassAsVcf() ? VariantContextWriterBuilder.OutputType.VCF_STREAM
                             : VariantContextWriterBuilder.OutputType.BCF_STREAM,
                     null);
@@ -549,7 +549,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     public void executeImport(final int numThreads) {
         final int batchSize = this.config.getBatchSize();
         final int sampleCount = this.config.getSampleNameToVcfPath().size();
-        final int updatedBatchSize = (batchSize == DEFAULT_ZERO_BATCH_SIZE) ? sampleCount : batchSize;
+        final int updatedBatchSize = (batchSize <= 0) ? sampleCount : Math.min(batchSize, sampleCount);
         final int numberPartitions = this.config.getImportConfiguration().getColumnPartitionsList().size();
         final ExecutorService executor = numThreads == 0 ? ForkJoinPool.commonPool() : Executors.newFixedThreadPool(numThreads);
         final boolean performConsolidation = this.config.getImportConfiguration().getConsolidateTiledbArrayAfterLoad();
@@ -557,7 +557,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         //Set size_per_column_partition once
         this.config.setImportConfiguration(this.config.getImportConfiguration().toBuilder()
                 .setSizePerColumnPartition(this.config.getImportConfiguration().getSizePerColumnPartition()
-                        * sampleCount).build());
+                        * updatedBatchSize).build());
 
         //Iterate over sorted sample list in batches
         iterateOverSamplesInBatches(sampleCount, updatedBatchSize, numberPartitions, executor, performConsolidation);
