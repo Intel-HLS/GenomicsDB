@@ -145,6 +145,9 @@ class BroadCombinedGVCFOperator : public GA4GHOperator
     //To avoid doing complex if-else statements for encoding the GT vector
     void (*m_encode_GT_vector_function_ptr)(int* inout_vec, const uint64_t input_offset,
         const unsigned num_elements_per_sample, uint64_t& output_idx);
+#ifdef DO_MEMORY_PROFILING
+    uint64_t m_next_memory_limit;
+#endif
 };
 
 #endif //ifdef HTSDIR

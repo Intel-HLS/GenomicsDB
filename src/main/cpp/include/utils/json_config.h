@@ -63,6 +63,7 @@ class JSONConfigBase
       //Lower and upper bounds of callset row idx to import in this invocation
       m_lb_callset_row_idx = 0;
       m_ub_callset_row_idx = INT64_MAX-1;
+      m_segment_size = 10u*1024u*1024u; //10MiB default
       clear();
     }
     void clear();
@@ -80,6 +81,8 @@ class JSONConfigBase
     void read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank);
     const std::vector<ColumnRange>& get_query_column_ranges(const int rank) const;
     const std::vector<RowRange>& get_query_row_ranges(const int rank) const;
+    inline size_t get_segment_size() const { return m_segment_size; }
+    void set_segment_size(const size_t v) { m_segment_size = v; }
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -103,6 +106,8 @@ class JSONConfigBase
     std::string m_vid_mapping_file;
     //callset mapping file - if defined in upper level config file
     std::string m_callset_mapping_file;
+    //TileDB segment size
+    size_t m_segment_size;
 };
 
 class JSONLoaderConfig;

@@ -302,7 +302,7 @@ bool VariantUtils::contains_deletion(const std::string& REF, const std::vector<s
   if(REF_length <= 1u)
     return false;
   for(auto& alt_allele : ALT_vec)
-    if(!(IS_NON_REF_ALLELE(alt_allele)) && alt_allele.length() < REF_length)
+    if(!(is_symbolic_allele(alt_allele)) && alt_allele.length() < REF_length)
       return true;
   return false;
 }

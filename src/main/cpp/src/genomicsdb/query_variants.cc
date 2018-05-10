@@ -24,8 +24,6 @@
 #include "query_variants.h"
 #include "timer.h"
 
-#include <mutex>
-
 using namespace std;
 
 #if 0
@@ -112,45 +110,50 @@ void GTProfileStats::print_stats(std::ostream& fptr) const
 }
 
 //Static members
-bool VariantQueryProcessor::m_are_static_members_initialized = false;
-unordered_map<type_index, shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator;
-
-//Initialize static members function
-void VariantQueryProcessor::initialize_static_members()
+std::unordered_map<type_index, std::shared_ptr<VariantFieldCreatorBase>> VariantQueryProcessor::m_type_index_to_creator =
 {
-  static mutex m_initialize_static_members_mtx;
-  m_initialize_static_members_mtx.lock();
-  if (VariantQueryProcessor::m_are_static_members_initialized) {
-    m_initialize_static_members_mtx.unlock();
-    return;
-  }
-  VariantQueryProcessor::m_type_index_to_creator.clear();
-  //Map type_index to creator functions
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(bool))] =
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int8_t))] =
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int8_t, int>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint8_t))] =
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(unsigned))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<unsigned>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(int64_t))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int64_t>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(uint64_t))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint64_t>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(float))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<float>>());
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(double))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<double>>());
+  {
+    std::type_index(typeid(bool)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>())
+  },
+  {
+    std::type_index(typeid(int8_t)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int8_t, int>>())
+  },
+  {
+    std::type_index(typeid(uint8_t)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint8_t, unsigned>>())
+  },
+  {
+    std::type_index(typeid(int)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int>>())
+  },
+  {
+    std::type_index(typeid(unsigned)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<unsigned>>())
+  },
+  {
+    std::type_index(typeid(int64_t)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<int64_t>>())
+  },
+  {
+    std::type_index(typeid(uint64_t)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<uint64_t>>())
+  },
+  {
+    std::type_index(typeid(float)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<float>>())
+  },
+  {
+    std::type_index(typeid(double)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldPrimitiveVectorData<double>>())
+  },
   //Char becomes string instead of vector<char>
-  VariantQueryProcessor::m_type_index_to_creator[std::type_index(typeid(char))] = 
-    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>()); 
-  //Set initialized flag
-  VariantQueryProcessor::m_are_static_members_initialized = true;
-  m_initialize_static_members_mtx.unlock();
-}
+  {
+    std::type_index(typeid(char)),
+    std::shared_ptr<VariantFieldCreatorBase>(new VariantFieldCreator<VariantFieldData<std::string>>())
+  }
+};
 
 void VariantQueryProcessor::initialize_known(const VariantArraySchema& schema)
 {
@@ -162,48 +165,6 @@ void VariantQueryProcessor::initialize_known(const VariantArraySchema& schema)
     if(iter != g_known_variant_field_name_to_enum.end())
       m_schema_idx_to_known_variant_field_enum_LUT.add_schema_idx_known_field_mapping(i, (*iter).second);
   }
-}
-
-void VariantQueryProcessor::initialize_v0(const VariantArraySchema& schema)
-{
-  m_GT_schema_version = GT_SCHEMA_V0;
-}
-
-//Added AF,AN and AC fields
-void VariantQueryProcessor::initialize_v1(const VariantArraySchema& schema)
-{
-  //Check if any attributes in V2 schema
-  const auto v1_fields = std::unordered_set<std::string>{ "AF", "AN", "AC" };
-  for(auto i=0ull;i<schema.attribute_num();++i)
-    if(v1_fields.find(schema.attribute_name(i)) != v1_fields.end())
-    {
-      //set schema version
-      m_GT_schema_version = GT_SCHEMA_V1;
-      break;
-    }
-}
-
-//Added GT and PS fields
-void VariantQueryProcessor::initialize_v2(const VariantArraySchema& schema)
-{
-  //Check if any attributes in V2 schema
-  const auto v2_fields = std::unordered_set<std::string>{ "GT", "PS" };
-  for(auto i=0ull;i<schema.attribute_num();++i)
-    if(v2_fields.find(schema.attribute_name(i)) != v2_fields.end())
-    {
-      //set schema version
-      m_GT_schema_version = GT_SCHEMA_V2;
-      break;
-    }
-}
-
-void VariantQueryProcessor::initialize_version(const VariantArraySchema& schema)
-{
-  initialize_known(schema);
-  //Initialize to v0 schema by default
-  initialize_v0(schema);
-  initialize_v1(schema);
-  initialize_v2(schema);
 }
 
 void VariantQueryProcessor::register_field_creators(const VariantArraySchema& schema, const VidMapper& vid_mapper)
@@ -246,14 +207,13 @@ void VariantQueryProcessor::register_field_creators(const VariantArraySchema& sc
 VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_manager, const std::string& array_name,
     const VidMapper& vid_mapper)
 {
-  //initialize static members
-  if(!VariantQueryProcessor::m_are_static_members_initialized)
-    VariantQueryProcessor::initialize_static_members();
   clear();
   m_storage_manager = storage_manager;
   m_ad = storage_manager->open_array(array_name, &vid_mapper, "r");
   if(m_ad < 0)
-    throw VariantQueryProcessorException("Could not open array "+array_name+" at workspace: "+storage_manager->get_workspace());
+    throw VariantQueryProcessorException("Could not open array "+array_name
+        +" at workspace: "+storage_manager->get_workspace()
+        + "\nTileDB error message : "+tiledb_errmsg);
   m_array_schema = new VariantArraySchema();
   auto status = storage_manager->get_array_schema(m_ad, m_array_schema);
   assert(status == TILEDB_OK);
@@ -263,9 +223,6 @@ VariantQueryProcessor::VariantQueryProcessor(VariantStorageManager* storage_mana
 
 VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_schema, const VidMapper& vid_mapper)
 {
-  //initialize static members
-  if(!VariantQueryProcessor::m_are_static_members_initialized)
-    VariantQueryProcessor::initialize_static_members();
   clear();
   m_storage_manager = 0;
   m_array_schema = new VariantArraySchema(array_schema);
@@ -277,7 +234,7 @@ void VariantQueryProcessor::initialize()
 {
   assert(m_array_schema);
   //Initialize versioning information
-  initialize_version(*m_array_schema); 
+  initialize_known(*m_array_schema);
   //Register creators in factory
   register_field_creators(*m_array_schema, *m_vid_mapper);
 }
@@ -403,7 +360,7 @@ void VariantQueryProcessor::scan_and_operate(
   std::vector<VariantCall*> tmp_pq_buffer(query_config.get_num_rows_to_query());
   //Forward iterator
   VariantArrayCellIterator* forward_iter = 0;
-  if(scan_state && scan_state->m_iter && scan_state->m_current_start_position >= 0) //resuming a previous scan
+  if(scan_state)
   {
     current_start_position = scan_state->m_current_start_position;
     forward_iter = scan_state->m_iter;
@@ -411,7 +368,8 @@ void VariantQueryProcessor::scan_and_operate(
     stats_ptr = &(scan_state->m_stats);
 #endif
   }
-  else //new scan
+  //Not resuming a previous scan
+  if(!(scan_state && scan_state->m_iter && scan_state->m_current_start_position >= 0))
   {
     //Scan only queried interval, not whole array
     if(query_config.get_num_column_intervals() > 0u)
@@ -421,7 +379,7 @@ void VariantQueryProcessor::scan_and_operate(
       //information is recorded in the Call
       //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
       //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
-      gt_get_column(ad, query_config, column_interval_idx, variant, stats_ptr);
+      gt_get_column(ad, query_config, column_interval_idx, variant, forward_iter, stats_ptr);
       //Insert valid calls produced by gt_get_column into the priority queue
       for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
       {
@@ -491,16 +449,17 @@ void VariantQueryProcessor::scan_and_operate(
     //handle last interval
     handle_gvcf_ranges(end_pq, query_config, variant, variant_operator, current_start_position, next_start_position,
         is_last_call, num_calls_with_deletions, stats_ptr);
-    if(!variant_operator.overflow())
+    //If scan_state is non-NULL, it's the responsibility of the caller to deallocate
+    //m_iter
+    if(scan_state == 0)
       delete forward_iter;
 #ifdef DO_PROFILING
     stats_ptr->print_stats(std::cerr);
 #endif
     if(scan_state)
     {
-      if(variant_operator.overflow()) //buffer full
-        scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
-      else //totally done
+      scan_state->set_scan_state(forward_iter, current_start_position, num_calls_with_deletions);
+      if(!variant_operator.overflow()) //totally done
       {
         //Invalidate iterator
         scan_state->invalidate();
@@ -540,7 +499,7 @@ bool VariantQueryProcessor::scan_handle_cell(const VariantQueryConfig& query_con
     //Set new start for next interval
     current_start_position = next_start_position;
     variant.set_column_interval(current_start_position, current_start_position);
-    //Do not reset variant as some of the Calls that are long intervals might still be valid 
+    //Do not reset variant as some of the Calls that are long intervals might still be valid
   }
   //Accumulate cells with position == current_start_position
   //Include only if row is part of query
@@ -758,7 +717,9 @@ void VariantQueryProcessor::gt_get_column_interval(
 #if VERBOSE>0
     std::cerr << "[query_variants:gt_get_column_interval] Getting " << query_config.get_num_rows_to_query() << " rows" << std::endl;
 #endif
-    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant, stats_ptr,
+    gt_get_column(ad, query_config, column_interval_idx, interval_begin_variant,
+        0,
+        stats_ptr,
 #ifdef DUPLICATE_CELL_AT_END
         0
 #else
@@ -881,7 +842,9 @@ void VariantQueryProcessor::gt_get_column_interval(
 void VariantQueryProcessor::gt_get_column(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
-    Variant& variant, GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
+    Variant& variant,
+    VariantArrayCellIterator* arg_cell_iter,
+    GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
 #ifdef DO_PROFILING
   assert(stats_ptr);
   stats_ptr->m_interval_sweep_timer.start();
@@ -903,7 +866,7 @@ void VariantQueryProcessor::gt_get_column(
 #ifdef DUPLICATE_CELL_AT_END
   //If cells are duplicated at the end, we only need a forward iterator starting at col
   //i.e. start at the smallest cell with co-ordinate >= col
-  VariantArrayCellIterator* cell_iter = 0;
+  VariantArrayCellIterator* cell_iter = arg_cell_iter;
   gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first, cell_iter);
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
@@ -1146,19 +1109,18 @@ void VariantQueryProcessor::gt_fill_row(
 }
 
 inline
-unsigned int VariantQueryProcessor::gt_initialize_forward_iter(
+void VariantQueryProcessor::gt_initialize_forward_iter(
     const int ad,
     const VariantQueryConfig& query_config, const int64_t column,
     VariantArrayCellIterator*& forward_iter) const {
   assert(query_config.is_bookkeeping_done());
-  //Num attributes in query
-  unsigned num_queried_attributes = query_config.get_num_queried_attributes();
-  //Assign forward iterator
   vector<int64_t> query_range = { query_config.get_smallest_row_idx_in_array(),
     static_cast<int64_t>(query_config.get_num_rows_in_array()+query_config.get_smallest_row_idx_in_array()-1),
     column, INT64_MAX };
-  forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
-  return num_queried_attributes - 1;
+  if(forward_iter)
+    forward_iter->reset_subarray(&(query_range[0]));
+  else     //Assign forward iterator
+    forward_iter = get_storage_manager()->begin(ad, &(query_range[0]), query_config.get_query_attributes_schema_idxs());
 }
 
 void VariantQueryProcessor::clear()

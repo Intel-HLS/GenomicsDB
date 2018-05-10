@@ -131,6 +131,7 @@ class VariantQueryProcessorScanState
       : m_stats()
     {
       reset();
+      m_iter = 0;
     }
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
       : m_stats()
@@ -143,6 +144,7 @@ class VariantQueryProcessorScanState
     {
       if(m_iter)
         delete m_iter;
+      m_iter = 0;
       invalidate();
     }
     bool end() const { return m_done; }
@@ -154,7 +156,6 @@ class VariantQueryProcessorScanState
     }
     void invalidate()
     {
-      m_iter = 0;
       m_current_start_position = -1ll;
     }
     /*
@@ -170,6 +171,8 @@ class VariantQueryProcessorScanState
     Variant& get_variant() { return m_variant; }
     uint64_t get_num_calls_with_deletions() const { return m_num_calls_with_deletions; }
     void set_done(const bool val) { m_done = val; }
+    VariantArrayCellIterator* get_iterator() { return m_iter; }
+    void set_iterator(VariantArrayCellIterator* v) { m_iter = v; }
     /*void set_num_calls_with_deletions(const uint64_t val) { m_num_calls_with_deletions = val; }*/
   private:
     bool m_done;
@@ -260,7 +263,9 @@ class VariantQueryProcessor {
     //This is the reverse of the cell position order (as reverse iterators are used in gt_get_column)
     void gt_get_column(
         const int ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
-        Variant& variant, GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
+        Variant& variant,
+        VariantArrayCellIterator* arg_cell_iter,
+        GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
     /*
      * Create Variant from a buffer produced by the binary_serialize() functions
      * This is a member of VariantQueryProcessor because the Factory methods are already setup for 
@@ -297,14 +302,6 @@ class VariantQueryProcessor {
   private:
     /*initialize all known info about variants*/
     void initialize_known(const VariantArraySchema& array_schema);
-    /*Initialize schema version v0 info*/
-    void initialize_v0(const VariantArraySchema& array_schema);
-    /*Check and initialize schema version v1 info*/
-    void initialize_v1(const VariantArraySchema& array_schema);
-    /*Check and initialize schema version v2 info*/
-    void initialize_v2(const VariantArraySchema& array_schema);
-    /*Initialize versioning information based on schema*/
-    void initialize_version(const VariantArraySchema& array_schema);
     /*Register field creator pointers with the factory object*/
     void register_field_creators(const VariantArraySchema& array_schema, const VidMapper& vid_mapper);
     /*Wrapper for initialize functions - assumes m_array_schema is initialized correctly*/
@@ -329,7 +326,7 @@ class VariantQueryProcessor {
      * Initializes forward iterators for joint genotyping for column col. 
      * Returns the number of attributes used in joint genotyping.
      */
-    unsigned int gt_initialize_forward_iter(
+    void gt_initialize_forward_iter(
         const int ad,
         const VariantQueryConfig& query_config, const int64_t column,
         VariantArrayCellIterator*& forward_iter) const;
@@ -361,10 +358,6 @@ class VariantQueryProcessor {
      */
     const VariantStorageManager* m_storage_manager;
     /**
-     * Variables to store versioning information about array schema
-     */
-    unsigned m_GT_schema_version;
-    /**
      * Map the known field enum to cell attribute idx for the given schema
      */
     SchemaIdxToKnownVariantFieldsEnumLUT m_schema_idx_to_known_variant_field_enum_LUT;
@@ -383,10 +376,6 @@ class VariantQueryProcessor {
     VidMapper* m_vid_mapper;
     //Mapping from std::type_index to VariantFieldCreator pointers, used when schema loaded to set creators for each attribute
     static std::unordered_map<std::type_index, std::shared_ptr<VariantFieldCreatorBase>> m_type_index_to_creator;
-    //Flag to check whether static members are initialized
-    static bool m_are_static_members_initialized; 
-    //Function that initializes static members
-    static void initialize_static_members();
 };
 
 
