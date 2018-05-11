@@ -39,7 +39,7 @@ public class ImportConfig {
     private boolean validateSampleToReaderMap = false;
     private boolean passAsVcf = true;
     private boolean useSamplesInOrder = false;
-    private int batchSize = Integer.MAX_VALUE;
+    private int batchSize = 0;
     private Set<VCFHeaderLine> mergedHeader;
     private Map<String, Path> sampleNameToVcfPath;
     private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
