@@ -28,6 +28,7 @@ import htsjdk.variant.vcf.VCFHeaderLine;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.lang.Integer;
 
 /**
@@ -43,6 +44,7 @@ public class ImportConfig {
     private Set<VCFHeaderLine> mergedHeader;
     private Map<String, Path> sampleNameToVcfPath;
     private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
+    private Function<BatchCompletionCallbackFunctionArgument, Void> functionToCallOnBatchCompletion = null;
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
     private String outputVcfHeaderFile = null;
@@ -205,5 +207,13 @@ public class ImportConfig {
 
     public void setOutputVidmapJsonFile(final String outputVidMapJsonFile) {
         this.outputVidMapJsonFile = outputVidMapJsonFile;
+    }
+
+    public void setFunctionToCallOnBatchCompletion(Function<BatchCompletionCallbackFunctionArgument, Void> functionToCallOnBatchCompletion) {
+        this.functionToCallOnBatchCompletion = functionToCallOnBatchCompletion;
+    }
+
+    public Function<BatchCompletionCallbackFunctionArgument, Void> getFunctionToCallOnBatchCompletion() {
+        return functionToCallOnBatchCompletion;
     }
 }
