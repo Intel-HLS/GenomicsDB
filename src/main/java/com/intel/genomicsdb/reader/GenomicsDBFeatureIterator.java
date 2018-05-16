@@ -102,7 +102,10 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
                 genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
                         (int) interval.getBegin(), (int) interval.getEnd(), readAsBCF);
             } else {
-                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr, 0, 0, readAsBCF);
+                final boolean isChrEmpty = chr.isEmpty();
+                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr,
+                    start.isPresent() ? start.getAsInt() : isChrEmpty ? 0 : 1,
+                    end.isPresent() ? end.getAsInt() : isChrEmpty ? 0 : Integer.MAX_VALUE , readAsBCF);
             }
             if (readAsBCF) { //BCF2 codec provides size of header
                 try {
