@@ -278,6 +278,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/importer/SilentByteBufferStream.java
         ./src/main/java/com/intel/genomicsdb/model/CommandLineImportConfig.java
         ./src/main/java/com/intel/genomicsdb/model/ImportConfig.java
+        ./src/main/java/com/intel/genomicsdb/model/BatchCompletionCallbackFunctionArgument.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java

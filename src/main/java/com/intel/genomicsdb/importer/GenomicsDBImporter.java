@@ -568,6 +568,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     private void iterateOverSamplesInBatches(final int sampleCount, final int updatedBatchSize, final int numberPartitions,
                                              final ExecutorService executor, final boolean performConsolidation) {
         final boolean failIfUpdating = this.config.getImportConfiguration().getFailIfUpdating();
+        final int totalBatchCount = (sampleCount + updatedBatchSize - 1)/updatedBatchSize; //ceil
+        BatchCompletionCallbackFunctionArgument callbackFunctionArgument = new BatchCompletionCallbackFunctionArgument(0, totalBatchCount);
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
             IntStream.range(0, numberPartitions).forEach(rank -> updateConfigPartitionsAndLbUb(this.config, index, rank));
@@ -583,6 +585,10 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             if (result.contains(false)) {
                 executor.shutdown();
                 throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+            }
+            if(this.config.getFunctionToCallOnBatchCompletion() != null) {
+                callbackFunctionArgument.batchCount = batchCount;
+                this.config.getFunctionToCallOnBatchCompletion().apply(callbackFunctionArgument);
             }
         }
     }
