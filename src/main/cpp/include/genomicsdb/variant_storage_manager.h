@@ -100,8 +100,12 @@ class VariantArrayCellIterator
     {
       assert(m_tiledb_array_iterator);
       if(tiledb_array_iterator_reset_subarray(m_tiledb_array_iterator,
-          reinterpret_cast<const void*>(coords)) != TILEDB_OK)
+            reinterpret_cast<const void*>(coords)) != TILEDB_OK)
         throw VariantStorageManagerException("Error resetting TileDB iterator subarray");
+#ifdef DEBUG
+      m_last_row = -1;
+      m_last_column = -1;
+#endif
     }
   private:
     unsigned m_num_queried_attributes;

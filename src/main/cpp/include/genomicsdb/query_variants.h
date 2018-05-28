@@ -153,6 +153,8 @@ class VariantQueryProcessorScanState
       invalidate();
       m_done = false;
       m_num_calls_with_deletions = 0;
+      while(!m_end_pq.empty())
+        m_end_pq.pop();
     }
     void invalidate()
     {
@@ -264,7 +266,7 @@ class VariantQueryProcessor {
     void gt_get_column(
         const int ad, const VariantQueryConfig& query_config, unsigned column_interval_idx,
         Variant& variant,
-        VariantArrayCellIterator* arg_cell_iter,
+        VariantArrayCellIterator** arg_cell_iter,
         GTProfileStats* stats=0, std::vector<uint64_t>* query_row_idx_in_order=0) const;
     /*
      * Create Variant from a buffer produced by the binary_serialize() functions

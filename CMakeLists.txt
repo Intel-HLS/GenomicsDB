@@ -121,11 +121,11 @@ include_directories(${TILEDB_INCLUDE_DIR})
 find_library(LIBRT_LIBRARY rt)
 
 #pgsql driver and dbi libs
-find_package(libdbi)
-if(LIBDBI_FOUND)
-    include_directories(${LIBDBI_INCLUDE_DIR})
-    add_definitions(-DLIBDBI)
-endif()
+#find_package(libdbi)
+#if(LIBDBI_FOUND)
+    #include_directories(${LIBDBI_INCLUDE_DIR})
+    #add_definitions(-DLIBDBI)
+#endif()
 
 #Protobuf library
 find_package(ProtobufWrapper REQUIRED)

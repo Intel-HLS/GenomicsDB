@@ -346,9 +346,9 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
   Timer timer;
   timer.start();
   //At least 1 iteration
+  VariantQueryProcessorScanState scan_state;
   for(auto i=0u;i<std::max(1u, query_config.get_num_column_intervals());++i)
   {
-    VariantQueryProcessorScanState scan_state;
     while(!scan_state.end())
     {
       qp.scan_and_operate(qp.get_array_descriptor(), query_config, *op_ptr, i, true, &scan_state);
@@ -358,6 +358,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
         rw_buffer.m_num_valid_bytes = 0u;
       }
     }
+    scan_state.reset();
   }
   timer.stop();
   timer.print(std::string("Total scan_and_produce_Broad_GVCF time")+" for rank "+std::to_string(my_world_mpi_rank), std::cerr);
