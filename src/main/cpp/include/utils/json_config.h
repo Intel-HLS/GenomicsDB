@@ -210,6 +210,12 @@ class JSONVCFAdapterConfig : public JSONConfigBase
       m_determine_sites_with_max_alleles = 0;
       m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
     }
+    ~JSONVCFAdapterConfig()
+    {
+      if (is_tmp_vcf_header_filename) {
+	unlink(m_vcf_header_filename.c_str());
+      }
+    }
     void read_from_file(const std::string& filename,
         VCFAdapter& vcf_adapter,
         VidMapper* id_mapper,
@@ -228,6 +234,8 @@ class JSONVCFAdapterConfig : public JSONConfigBase
     unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
     //Buffer size for combined vcf records
     size_t m_combined_vcf_records_buffer_size_limit;
+ private:
+    bool is_tmp_vcf_header_filename = false;
 };
 
 class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQueryConfig

@@ -18,35 +18,6 @@ class GenomicsDBImporterJni {
     static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
 
     /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @param overwrite if set existing directory is deleted
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    static native int jniCreateTileDBWorkspace(final String workspace, final boolean overwrite);
-
-    /**
-     * Write contents into file
-     * @param filename path to file
-     * @param contents buffer to be written out
-     * @param length of buffer to be written out
-     * @return status 0 = OK
-     */
-    static native int jniWriteToFile(final String filename, final String contents, final long length);
-
-    /**
-     * Copy source path contents to destination
-     * @param source path to source file
-     * @param destination path to destination file
-     * @return status 0 = OK
-     */
-    static native int jniMoveFile(final String source, final String destination);
-
-    /**
      * Consolidate TileDB array
      *
      * @param workspace path to workspace directory

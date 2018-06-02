@@ -9,10 +9,7 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Set;
 
 import static com.googlecode.protobuf.format.JsonFormat.printToString;
@@ -86,22 +83,15 @@ public interface JsonFileExtensions {
      */
     default void writeVcfHeaderFile(final String outputVcfHeaderFilePath, final Set<VCFHeaderLine> headerLines)
     {
-	File vcfHeaderFile;
-	try {
-	    vcfHeaderFile = File.createTempFile("GDB-", "-GDB");
-	} catch(IOException e) {
-	    throw new RuntimeException("Encountered error creating temp file");
-	}
-
+        final OutputStream stream = new ByteArrayOutputStream();
 	final VCFHeader vcfHeader = new VCFHeader(headerLines);
 	VariantContextWriter vcfWriter = new VariantContextWriterBuilder()
 	    .clearOptions()
-	    .setOutputFile(vcfHeaderFile)
-	    .setOutputFileType(VariantContextWriterBuilder.OutputType.VCF)
+	    .setOutputStream(stream)
 	    .build();
 	vcfWriter.writeHeader(vcfHeader);
 	vcfWriter.close();
-
-	moveFile(vcfHeaderFile.getAbsolutePath(), outputVcfHeaderFilePath);
+	String buffer = stream.toString();
+        writeToFile(outputVcfHeaderFilePath, buffer);
     }
 }

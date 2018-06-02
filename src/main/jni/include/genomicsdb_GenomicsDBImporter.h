@@ -17,38 +17,6 @@ JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJ
 
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniCreateTileDBWorkspace
- * Signature: (Ljava/lang/String;Z)I
- */
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
-  (JNIEnv *, jclass, jstring, jboolean);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniWriteToFile
- * Signature: (Ljava/lang/String;Ljava/lang/String;J)I
- */
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniWriteToFile
-  (JNIEnv *, jclass, jstring, jstring, jlong);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniMoveFile
- * Signature: (Ljava/lang/String;Ljava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniMoveFile
-  (JNIEnv *, jclass, jstring, jstring);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniConsolidateTileDBArray
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
-  (JNIEnv *, jclass, jstring, jstring);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniGenomicsDBImporter
  * Signature: (Ljava/lang/String;IJJ)I
  */
@@ -110,6 +78,14 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_
  */
 JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniImportBatch
   (JNIEnv *, jobject, jlong, jlongArray);
+
+/*
+ * Class:     com_intel_genomicsdb_GenomicsDBUtilsJni
+ * Method:    jniConsolidateTileDBArray
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniConsolidateTileDBArray
+  (JNIEnv *, jclass, jstring, jstring);
 
 #ifdef __cplusplus
 }

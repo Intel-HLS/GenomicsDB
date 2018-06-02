@@ -22,7 +22,9 @@
 
 #include "genomicsdb_jni_exception.h"
 #include "genomicsdb_GenomicsDBFeatureReader.h"
-#include "variant_storage_manager.h"
+
+#include <vector>
+#include <string>
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBJNIException(#X);
 
@@ -41,4 +43,24 @@ JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureRea
   env->ReleaseStringUTFChars(workspace, workspace_cstr);
 
   return return_val;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_intel_genomicsdb_reader_GenomicsDBFeatureReaderJni_jniListTileDBArrays
+  (JNIEnv *env, jclass currClass, jstring workspace)
+{
+  auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
+  VERIFY_OR_THROW(workspace_cstr);
+
+  std::vector<std::string> array_names = get_array_names(workspace_cstr);
+
+  jobjectArray obj_array = (jobjectArray)env->NewObjectArray(array_names.size(),
+							     env->FindClass("java/lang/String"),
+							     env->NewStringUTF(""));
+  for(uint i=0; i<array_names.size(); i++) {
+    env->SetObjectArrayElement(obj_array, i, env->NewStringUTF(array_names[i].c_str()));
+  }
+
+  env->ReleaseStringUTFChars(workspace, workspace_cstr);
+
+  return obj_array;
 }

@@ -1050,31 +1050,6 @@ void VCF2TileDBLoader::clear()
   m_operators_overflow.clear();
 }
 
-
-int VCF2TileDBLoader::create_tiledb_workspace(const std::string& workspace, bool overwrite)
-{
-  TileDB_CTX *tiledb_ctx;
-  VERIFY_OR_THROW(initialize_workspace(&tiledb_ctx, workspace, overwrite) >= 0);
-  VERIFY_OR_THROW(tiledb_ctx != NULL);
-  VERIFY_OR_THROW(finalize_workspace(tiledb_ctx) == 0);
-  return 0;
-}
-
-int VCF2TileDBLoader::read_from_file(const std::string& filename, void* buffer, size_t length)
-{
-  return read_file(filename, 0, buffer, length);
-}
-
-int VCF2TileDBLoader::write_to_file(const std::string& filename, void* buffer, size_t length, const bool overwrite)
-{
-  return write_file(filename, buffer, length, overwrite);
-}
-
-int VCF2TileDBLoader::move_file(const std::string& source, const std::string& destination)
-{
-  return move_across_filesystems(source, destination);
-}
-
 void VCF2TileDBLoader::consolidate_tiledb_array(const char* workspace, const char* array_name)
 {
   VariantStorageManager sm(workspace);

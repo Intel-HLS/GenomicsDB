@@ -82,7 +82,7 @@ class GenomicsDBBCFGenerator
     VariantQueryConfig m_query_config;
     VCFSerializedBufferAdapter m_vcf_adapter;
     unsigned m_query_column_interval_idx;
-    VariantQueryProcessorScanState* m_scan_state;
+    VariantQueryProcessorScanState m_scan_state;
     BroadCombinedGVCFOperator* m_combined_bcf_operator;
     //If using ping-pong buffering, then multiple buffers exist
     std::vector<RWBuffer> m_buffers;

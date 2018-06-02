@@ -23,6 +23,7 @@
 package com.intel.genomicsdb.spark;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
@@ -36,6 +37,8 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   // one GenomicsDB instance per node, hence one host
   // per split
   String[] hosts;
+  GenomicsDBPartitionInfo partition;
+  GenomicsDBQueryInfo queryRange;
   long length = 0;
 
   Logger logger = Logger.getLogger(GenomicsDBInputSplit.class);
@@ -51,20 +54,55 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
     hosts[0] = loc;
   }
 
+  public GenomicsDBInputSplit(GenomicsDBPartitionInfo partition, GenomicsDBQueryInfo queryRange) {
+    this.partition = new GenomicsDBPartitionInfo(partition);
+    this.queryRange = new GenomicsDBQueryInfo(queryRange);
+    // TODO: populate hosts if partition workspace is HDFS or S3?
+    // this would help with locality
+  }
+
   public GenomicsDBInputSplit(long length) {
     this.length = length;
   }
 
   public void write(DataOutput dataOutput) throws IOException {
+    dataOutput.writeLong(this.partition.getBeginPosition());
+    Text.writeString(dataOutput, this.partition.getWorkspace());
+    Text.writeString(dataOutput, this.partition.getArrayName());
+    String vcfOutput = this.partition.getVcfOutputFileName();
+    if (vcfOutput == null) {
+      Text.writeString(dataOutput, "null");
+    }
+    else {
+      Text.writeString(dataOutput, vcfOutput); 
+    }
+    dataOutput.writeLong(this.queryRange.getBeginPosition());
+    dataOutput.writeLong(this.queryRange.getEndPosition());
     dataOutput.writeLong(this.length);
   }
 
   public void readFields(DataInput dataInput) throws IOException {
+    long _begin = dataInput.readLong();
+    String _workspace = Text.readString(dataInput);
+    String _array = Text.readString(dataInput);
+    String _vcfOutput = Text.readString(dataInput);
+    if (_vcfOutput == "null")
+      _vcfOutput = null;
+    partition = new GenomicsDBPartitionInfo(_begin, _workspace, _array, _vcfOutput);
+    queryRange = new GenomicsDBQueryInfo(dataInput.readLong(), dataInput.readLong());
     length = dataInput.readLong();
   }
 
   public long getLength() throws IOException, InterruptedException {
     return this.length;
+  }
+
+  public GenomicsDBPartitionInfo getPartitionInfo() {
+    return partition;
+  }
+
+  public GenomicsDBQueryInfo getQueryInfo() {
+    return queryRange;
   }
 
   /**
@@ -74,6 +112,10 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
    *                   in GenomicsDBConfiguration or hadoopConfiguration in SparkContext
    */
   public String[] getLocations() throws IOException, InterruptedException {
+    if (hosts == null)
+    {
+      return new String[]{};
+    }
     return hosts;
   }
 }
