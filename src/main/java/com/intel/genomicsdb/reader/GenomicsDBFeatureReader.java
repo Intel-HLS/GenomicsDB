@@ -39,7 +39,7 @@ import java.util.*;
 
 import static com.intel.genomicsdb.Constants.CHROMOSOME_FOLDER_DELIMITER_SYMBOL_REGEX;
 import static java.util.stream.Collectors.toList;
-import static com.intel.genomicsdb.GenomicsDBUtilsJni.*;
+import static com.intel.genomicsdb.GenomicsDBUtils.*;
 
 /**
  * A reader for GenomicsDB that implements {@link htsjdk.tribble.FeatureReader}
@@ -53,26 +53,6 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     private FeatureCodecHeader featureCodecHeader;
     private List<String> sequenceNames;
     private Map<String, Coordinates.ContigInterval> intervalsPerArray = new HashMap<>();
-
-    /**
-     * Checks if GenomicsDB array exists.
-     * @param workspace
-     * @param arrayName
-     * @return <code>true</code> if workspace with arrayName exists else return <code>false</code>
-     */
-    public static boolean isGenomicsDBArray(final String workspace, final String arrayName) {
-	return jniIsTileDBArray(workspace, arrayName);
-    }
-
-    /**
-     * List the GenomicsDB arrays in the given workspace
-     * @param workspace
-     * @return names of GenomicsDB arrays if they exist
-     */
-    public static String[] listGenomicsDBArrays(final String workspace) {
-        return jniListTileDBArrays(workspace);
-    }
-
     /**
      * Constructor
      *
@@ -85,8 +65,6 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
     public GenomicsDBFeatureReader(final GenomicsDBExportConfiguration.ExportConfiguration exportConfiguration,
                                    final FeatureCodec<T, SOURCE> codec,
                                    final Optional<String> loaderJSONFile) throws IOException {
-	if (isGenomicsDBArray("workspacce", "array")) 
-	    throw new IllegalStateException("Not available");
         this.exportConfiguration = exportConfiguration;
         this.codec = codec;
         this.loaderJSONFile = loaderJSONFile.orElse("");

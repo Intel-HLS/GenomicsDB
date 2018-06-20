@@ -24,27 +24,42 @@ package com.intel.genomicsdb;
 
 import com.intel.genomicsdb.exception.GenomicsDBException;
 
-public class GenomicsDBUtilsJni {
-    static {
-        try {
-            boolean loaded = GenomicsDBLibLoader.loadLibrary();
-            if (!loaded) throw new GenomicsDBException("Could not load genomicsdb native library");
-        } catch (UnsatisfiedLinkError ule) {
-            throw new GenomicsDBException("Could not load genomicsdb native library", ule);
-        }
-    }
+import static com.intel.genomicsdb.GenomicsDBUtilsJni.*;
 
+public class GenomicsDBUtils {
     /**
      * Create TileDB workspace
      *
      * @param workspace path to workspace directory
-     * @param replace if set existing directory is first deleted
+     * @param replace when set, the directory is deleted first if it exists
      * @return status 0 = workspace created,
      * -1 = path was not a directory,
      * -2 = failed to create workspace,
      * 1 = existing directory, nothing changed
      */
-    public static native int jniCreateTileDBWorkspace(final String workspace, final boolean replace);
+    public static int createTileDBWorkspace(final String workspace, final boolean replace) {
+        return jniCreateTileDBWorkspace(workspace, replace);
+    }
+
+    /**
+     * Write contents into file
+     * @param filename path to file
+     * @param contents buffer to be written out
+     * @return status 0 = OK
+     */
+    public static int writeToFile(final String filename, final String contents) {
+	return jniWriteToFile(filename, contents, (long)contents.length());
+    }
+
+    /**
+     * Copy source path contents to destination
+     * @param source local filesystem path
+     * @param destination local or cloud filesystem URI
+     * @return status 0 = OK
+     */
+    public static int moveFile(final String source, final String destination) {
+	return jniMoveFile(source, destination);
+    } 
 
     /**
      * Consolidate TileDB array
@@ -52,7 +67,9 @@ public class GenomicsDBUtilsJni {
      * @param workspace path to workspace directory
      * @param arrayName array name
      */
-    public static native void jniConsolidateTileDBArray(final String workspace, final String arrayName);
+    public static void consolidateTileDBArray(final String workspace, final String arrayName) {
+        jniConsolidateTileDBArray(workspace, arrayName);
+    }
 
     /**
      * Checks if GenomicsDB array exists.
@@ -60,31 +77,18 @@ public class GenomicsDBUtilsJni {
      * @param arrayName
      * @return <code>true</code> if workspace with arrayName exists else return <code>false</code>
      */
-    public static native boolean jniIsTileDBArray(final String workspace, final String arrayName);
+    public static boolean isGenomicsDBArray(final String workspace, final String arrayName) {
+	return jniIsTileDBArray(workspace, arrayName);
+    }
 
     /**
-     * List Arrays in given workspace.
+     * List the GenomicsDB arrays in the given workspace
      * @param workspace
-     * @return list of arrays in given workspace.
+     * @return names of GenomicsDB arrays if they exist
      */
-    public static native String[] jniListTileDBArrays(final String workspace);
-
-    /**
-     * Write contents into file
-     * @param filename path to file, can be cloud URL
-     * @param contents buffer to be written out
-     * @param length of buffer to be written out
-     * @return status 0 = OK
-     */
-    public static native int jniWriteToFile(final String filename, final String contents, final long length);
-
-    /**
-     * Copy source path contents to destination
-     * @param source path to source file, can be cloud URL
-     * @param destination path to destination file, can be cloud URL
-     * @return status 0 = OK
-     */
-    public static native int jniMoveFile(final String source, final String destination);
+    public static String[] listGenomicsDBArrays(final String workspace) {
+        return jniListTileDBArrays(workspace);
+    }
 
 }
 

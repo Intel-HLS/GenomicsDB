@@ -50,7 +50,7 @@ import java.util.stream.IntStream;
 
 import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static com.intel.genomicsdb.importer.Constants.*;
-import static com.intel.genomicsdb.GenomicsDBUtilsJni.*;
+import static com.intel.genomicsdb.GenomicsDBUtils.*;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
