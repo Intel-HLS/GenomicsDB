@@ -1049,7 +1049,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
       && m_json["produce_GT_with_min_PL_value_for_spanning_deletions"].GetBool());
 
   // Move m_vcf_header_filename contents to a temporary local file for non-local URIs
-  if (m_vcf_header_filename.find("://") != std::string::npos) {
+  if (TileDBUtils::is_cloud_path(m_vcf_header_filename)) {
     char tmp_filename[PATH_MAX];
     TileDBUtils::create_temp_filename(tmp_filename, PATH_MAX);
     TileDBUtils::move_across_filesystems(m_vcf_header_filename, tmp_filename);

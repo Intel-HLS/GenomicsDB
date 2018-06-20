@@ -79,7 +79,7 @@ Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniWriteToFile
   VERIFY_OR_THROW(filename_cstr);
   auto contents_cstr = env->GetStringUTFChars(contents, NULL);
   VERIFY_OR_THROW(contents_cstr);
-  auto return_val =  TileDBUtils::write_file(filename_cstr, (void *)contents_cstr, (size_t)length, false);
+  auto return_val =  TileDBUtils::write_file(filename_cstr, (void *)contents_cstr, (size_t)length, true);
   env->ReleaseStringUTFChars(filename, filename_cstr);
   env->ReleaseStringUTFChars(contents, contents_cstr);
   return return_val;

@@ -13,7 +13,7 @@ import java.io.*;
 import java.util.Set;
 
 import static com.googlecode.protobuf.format.JsonFormat.printToString;
-import static com.intel.genomicsdb.importer.GenomicsDBImporter.*;
+import static com.intel.genomicsdb.GenomicsDBUtilsJni.*;
 
 public interface JsonFileExtensions {
     /**

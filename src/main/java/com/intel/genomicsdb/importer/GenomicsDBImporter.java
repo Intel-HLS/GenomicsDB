@@ -218,50 +218,6 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     }
 
     /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @param replace when set, the directory is deleted first if it exists
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    public static int createTileDBWorkspace(final String workspace, final boolean replace) {
-        return jniCreateTileDBWorkspace(workspace, replace);
-    }
-
-    /**
-     * Write contents into file
-     * @param filename path to file
-     * @param contents buffer to be written out
-     * @return status 0 = OK
-     */
-    public static int writeToFile(final String filename, final String contents) {
-	return jniWriteToFile(filename, contents, (long)contents.length());
-    }
-
-    /**
-     * Copy source path contents to destination
-     * @param source local filesystem path
-     * @param destination local or cloud filesystem URI
-     * @return status 0 = OK
-     */
-    public static int moveFile(final String source, final String destination) {
-	return jniMoveFile(source, destination);
-    } 
-
-    /**
-     * Consolidate TileDB array
-     *
-     * @param workspace path to workspace directory
-     * @param arrayName array name
-     */
-    public static void consolidateTileDBArray(final String workspace, final String arrayName) {
-        jniConsolidateTileDBArray(workspace, arrayName);
-    }
-
-    /**
      * Utility function that returns a list of ChromosomeInterval objects for
      * the column partition specified by the loader JSON file and rank/partition index
      *
