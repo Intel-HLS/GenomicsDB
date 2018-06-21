@@ -138,7 +138,7 @@ public class CommandLineImportConfig extends ImportConfig {
                                 this.setOutputCallsetmapJsonFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_VCF_HEADER_OUTPUT:
-                                vcfOutputFilename = commandArgs.getOptarg();
+                                this.setOutputVcfHeaderFile(commandArgs.getOptarg());
                                 break;
                             case ARGS_IDX_PASS_AS_BCF:
                                 setPassAsVcf(false);
