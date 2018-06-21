@@ -50,6 +50,7 @@ import java.util.stream.IntStream;
 
 import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static com.intel.genomicsdb.importer.Constants.*;
+import static com.intel.genomicsdb.GenomicsDBUtils.*;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -211,34 +212,9 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
         //Create workspace folder to avoid issues with concurrency
         String workspace = this.config.getImportConfiguration().getColumnPartitions(0).getWorkspace();
-        if (!new File(workspace).exists()) {
-            int tileDBWorkspace = createTileDBWorkspace(workspace);
-            if (tileDBWorkspace < 0)
-                throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
+	if (createTileDBWorkspace(workspace, false) < 0) {
+	    throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
         }
-    }
-
-    /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    public static int createTileDBWorkspace(final String workspace) {
-        return jniCreateTileDBWorkspace(workspace);
-    }
-
-    /**
-     * Consolidate TileDB array
-     *
-     * @param workspace path to workspace directory
-     * @param arrayName array name
-     */
-    public static void consolidateTileDBArray(final String workspace, final String arrayName) {
-        jniConsolidateTileDBArray(workspace, arrayName);
     }
 
     /**

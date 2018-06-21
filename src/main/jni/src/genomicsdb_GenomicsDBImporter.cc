@@ -334,32 +334,21 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCopyCallsetMap
   return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(importer));
 } // end of jniCopyCallsetMap
 
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
-  (JNIEnv* env, jclass currClass, jstring workspace)
-{
-  auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
-  VERIFY_OR_THROW(workspace_cstr);
-  auto return_val = VCF2TileDBLoader::create_tiledb_workspace(workspace_cstr);
-  //Cleanup
-  env->ReleaseStringUTFChars(
-    workspace,
-    workspace_cstr);
-  return return_val;
-}
 
-JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
-  (JNIEnv* env, jclass currClass, jstring workspace, jstring array_name)
-{
+JNIEXPORT void JNICALL
+Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniConsolidateTileDBArray
+  (JNIEnv *env, 
+   jclass currClass, 
+   jstring workspace, 
+   jstring array_name) {
+
   auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
   VERIFY_OR_THROW(workspace_cstr);
   auto array_name_cstr = env->GetStringUTFChars(array_name, NULL);
   VERIFY_OR_THROW(array_name_cstr);
   VCF2TileDBLoader::consolidate_tiledb_array(workspace_cstr, array_name_cstr);
+  
   //Cleanup
-  env->ReleaseStringUTFChars(
-      workspace,
-      workspace_cstr);
-  env->ReleaseStringUTFChars(
-      array_name,
-      array_name_cstr);
+  env->ReleaseStringUTFChars(workspace, workspace_cstr);
+  env->ReleaseStringUTFChars(array_name, array_name_cstr);
 }

@@ -7,10 +7,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_SIZE_PER_COLUMN_PARTITION
-#define com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_SIZE_PER_COLUMN_PARTITION 10240LL
-#undef com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_TILEDB_CELLS_PER_TILE
-#define com_intel_genomicsdb_importer_GenomicsDBImporterJni_DEFAULT_TILEDB_CELLS_PER_TILE 1000L
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniGetChromosomeIntervalsForColumnPartition
+ * Signature: (Ljava/lang/String;I)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGetChromosomeIntervalsForColumnPartition
+  (JNIEnv *, jclass, jstring, jint);
+
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniGenomicsDBImporter
@@ -76,27 +80,11 @@ JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporter
   (JNIEnv *, jobject, jlong, jlongArray);
 
 /*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniGetChromosomeIntervalsForColumnPartition
- * Signature: (Ljava/lang/String;I)Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGetChromosomeIntervalsForColumnPartition
-  (JNIEnv *, jclass, jstring, jint);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
- * Method:    jniCreateTileDBWorkspace
- * Signature: (Ljava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCreateTileDBWorkspace
-  (JNIEnv *, jclass, jstring);
-
-/*
- * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Class:     com_intel_genomicsdb_GenomicsDBUtilsJni
  * Method:    jniConsolidateTileDBArray
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniConsolidateTileDBArray
   (JNIEnv *, jclass, jstring, jstring);
 
 #ifdef __cplusplus

@@ -22,11 +22,13 @@
 
 #include <libgen.h>
 #include "vid_mapper.h"
-#include "tiledb.h"
 #include "json_config.h"
 #include "known_field_info.h"
+#include "tiledb.h"
+#include "tiledb_utils.h"
 #include "vcf.h"
 #include "variant_field_data.h"
+
 
 std::unordered_map<std::string, int> VidMapper::m_length_descriptor_string_to_int = std::unordered_map<std::string, int>({
     {"BCF_VL_FIXED", BCF_VL_FIXED},
@@ -541,6 +543,7 @@ std::string VidMapper::get_split_file_path(const std::string& original_filename,
     //dirname and basename modify the original string - so pass copies
     auto copy_filepath = strdup(original_filename.c_str());
     std::string original_dirname = dirname(copy_filepath);
+
     //restore original
     memcpy(copy_filepath, original_filename.c_str(), original_filename.length());
     std::string original_basename = basename(copy_filepath);
@@ -704,25 +707,36 @@ void VidMapper::add_mandatory_fields()
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw FileBasedVidMapperException(#X);
 
+rapidjson::Document parse_json_file(const std::string& filename) {
+  VERIFY_OR_THROW(filename.length() && "vid/callset mapping file unspecified");
+  char *json_buffer;
+  size_t json_buffer_length;
+  if (TileDBUtils::read_entire_file(filename, (void **)&json_buffer, &json_buffer_length) != TILEDB_OK || !json_buffer || json_buffer_length == 0) {
+    if (json_buffer) {
+      free(json_buffer);
+      throw FileBasedVidMapperException((std::string("Could not open vid/callset mapping file \"")+filename+"\"").c_str());
+    }
+  }
+  rapidjson::Document json_doc;
+  json_doc.Parse(json_buffer);
+  free(json_buffer);
+  if(json_doc.HasParseError()) {
+    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
+  }
+  return json_doc;
+}
+
 void FileBasedVidMapper::common_constructor_initialization(const std::string& filename,
     const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
     const std::string& callset_mapping_file,
     const std::string& buffer_stream_callset_mapping_json_string,
     const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool is_callset_mapping_required)
 {
-  m_lb_callset_row_idx = 0;
-  m_ub_callset_row_idx = INT64_MAX-1;
-  VERIFY_OR_THROW(filename.length() && "Vid mapping file unspecified");
-  rapidjson::Document json_doc;
-  std::ifstream ifs(filename.c_str());
-  if(!ifs.is_open())
-    throw FileBasedVidMapperException((std::string("Could not open vid mapping file \"")+filename+"\"").c_str());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  json_doc.Parse(str.c_str());
-  if(json_doc.HasParseError())
-    throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
+  rapidjson::Document json_doc = parse_json_file(filename);
+
   m_lb_callset_row_idx = lb_callset_row_idx;
   m_ub_callset_row_idx = ub_callset_row_idx;
+
   //Callset info parsing
   std::string real_callset_mapping_file;
   if(!callset_mapping_file.empty())
@@ -1197,17 +1211,13 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
 {
   if(json.empty())
     return;
+
   std::string filename = is_file ? json : "buffer_stream_callset_mapping_json_string";
+
   rapidjson::Document json_doc;
   if(is_file)
   {
-    std::ifstream ifs(filename.c_str());
-    if(!ifs.is_open())
-      throw FileBasedVidMapperException((std::string("Could not open callsets file \"")+filename+"\"").c_str());
-    std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-    json_doc.Parse(str.c_str());
-    if(json_doc.HasParseError())
-      throw FileBasedVidMapperException(std::string("Syntax error in JSON file ")+filename);
+    json_doc = parse_json_file(filename);
   }
   else
   {
@@ -1537,12 +1547,10 @@ void FileBasedVidMapper::write_partition_loader_json_file(const std::string& ori
       allocator);
   output_type.clear();
   auto output_filename = get_split_file_path(original_loader_filename, results_directory, output_type, rank);
-  auto* fptr = fopen(output_filename.c_str(), "w");
-  if(fptr == 0)
-    throw FileBasedVidMapperException(std::string("Could not write to partitioned loader JSON file ")+output_filename);
-  char write_buffer[65536];
-  rapidjson::FileWriteStream writer_stream(fptr, write_buffer, sizeof(write_buffer));
-  rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(writer_stream);
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
   json_doc.Accept(writer);
-  fclose(fptr);
+  if (TileDBUtils::write_file(output_filename, buffer.GetString(), strlen(buffer.GetString()), true)) {
+      throw FileBasedVidMapperException(std::string("Could not write to partitioned loader JSON file ")+output_filename);
+  }
 }

@@ -38,6 +38,9 @@ set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -235,7 +238,7 @@ function(build_GenomicsDB_executable_common target)
     if(HTSLIB_SOURCE_DIR)
         add_dependencies(${target} htslib)
     endif()
-    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY})
+    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
@@ -281,6 +284,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/model/BatchCompletionCallbackFunctionArgument.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureIterator.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReader.java
+        ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBFeatureReaderJni.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBQueryStream.java
         ./src/main/java/com/intel/genomicsdb/reader/GenomicsDBTimer.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBConfiguration.java
@@ -289,6 +293,7 @@ if(BUILD_JAVA)
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBJavaSparkFactory.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBPartitionInfo.java
         ./src/main/java/com/intel/genomicsdb/spark/GenomicsDBRecordReader.java
+	./src/main/java/com/intel/genomicsdb/spark/GenomicsDBQueryInfo.java
         ./src/main/java/com/intel/genomicsdb/Constants.java
         ./src/main/java/com/intel/genomicsdb/GenomicsDBLibLoader.java
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBContext.scala
@@ -297,6 +302,7 @@ if(BUILD_JAVA)
         ./src/main/scala/com/intel/genomicsdb/GenomicsDBScalaSparkFactory.scala
         ./src/test/java/com/intel/genomicsdb/importer/GenomicsDBImporterSpec.java
         ./src/test/java/com/intel/genomicsdb/reader/ChrArrayFolderComparatorSpec.java
+        ./src/test/java/com/intel/genomicsdb/spark/GenomicsDBInputFormatTest.java
         ./src/test/java/com/intel/genomicsdb/model/CommandLineImportConfigSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBCallsetsMapProtoSpec.java
         ./src/test/java/com/intel/genomicsdb/model/GenomicsDBExportConfigurationSpec.java
@@ -350,6 +356,7 @@ if(BUILD_JAVA)
     set(GENOMICSDB_EXAMPLE_SOURCES
         ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDB.java
         ${CMAKE_SOURCE_DIR}/example/java/TestBufferStreamGenomicsDBImporter.java
+        ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBSparkHDFS.java
         ${CMAKE_SOURCE_DIR}/example/java/TestGenomicsDBImporterWithMergedVCFHeader.java)
 
     add_jar(genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples
