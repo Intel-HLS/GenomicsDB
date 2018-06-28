@@ -197,6 +197,13 @@ def main():
                         "batched_vcf": "golden_outputs/t0_1_2_vcf_at_0",
                         "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_0",
                         } },
+                    { "query_column_ranges": [ [  12000, 12142, 12144, 12160, 12290, 12294, 14000, 17384, 18000 ]],
+                      "pass_through_query_json": True,
+                       "golden_output": {
+                        "calls"      : "golden_outputs/t0_1_2_calls_at_multiple_positions",
+                        "vcf"        : "golden_outputs/t0_1_2_vcf_at_multiple_positions",
+                        "java_vcf"   : "golden_outputs/java_t0_1_2_vcf_at_multiple_positions",
+                        } },
                     { "query_column_ranges": [ [ [0, 1000000] ] ],
                       "pass_through_query_json": True,
                       "golden_output": {
