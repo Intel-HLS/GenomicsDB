@@ -405,11 +405,6 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     bool read_next_cell_from_buffer(const int64_t row_idx);
     bool produce_cells_in_column_major_order(unsigned exchange_idx);
     /*
-     * Create TileDB workspace static function
-     */
-    static int create_tiledb_workspace(const char* workspace);
-    static int create_tiledb_workspace(const std::string& workspace) { return create_tiledb_workspace(workspace.c_str()); }
-    /*
      * Consolidate TileDB array
      */
     static void consolidate_tiledb_array(const char* workspace, const char* array_name);

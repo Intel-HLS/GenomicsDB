@@ -18,17 +18,6 @@ class GenomicsDBImporterJni {
     static native String jniGetChromosomeIntervalsForColumnPartition(final String loaderJSONFile, final int rank);
 
     /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    static native int jniCreateTileDBWorkspace(final String workspace);
-
-    /**
      * Consolidate TileDB array
      *
      * @param workspace path to workspace directory

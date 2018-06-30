@@ -50,6 +50,7 @@ import java.util.stream.IntStream;
 
 import static com.intel.genomicsdb.Constants.CHROMOSOME_INTERVAL_FOLDER;
 import static com.intel.genomicsdb.importer.Constants.*;
+import static com.intel.genomicsdb.GenomicsDBUtils.*;
 
 /**
  * Java wrapper for vcf2tiledb - imports VCFs into TileDB/GenomicsDB.
@@ -211,34 +212,9 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
         //Create workspace folder to avoid issues with concurrency
         String workspace = this.config.getImportConfiguration().getColumnPartitions(0).getWorkspace();
-        if (!new File(workspace).exists()) {
-            int tileDBWorkspace = createTileDBWorkspace(workspace);
-            if (tileDBWorkspace < 0)
-                throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
+	if (createTileDBWorkspace(workspace, false) < 0) {
+	    throw new IllegalStateException(String.format("Cannot create '%s' workspace.", workspace));
         }
-    }
-
-    /**
-     * Create TileDB workspace
-     *
-     * @param workspace path to workspace directory
-     * @return status 0 = workspace created,
-     * -1 = path was not a directory,
-     * -2 = failed to create workspace,
-     * 1 = existing directory, nothing changed
-     */
-    public static int createTileDBWorkspace(final String workspace) {
-        return jniCreateTileDBWorkspace(workspace);
-    }
-
-    /**
-     * Consolidate TileDB array
-     *
-     * @param workspace path to workspace directory
-     * @param arrayName array name
-     */
-    public static void consolidateTileDBArray(final String workspace, final String arrayName) {
-        jniConsolidateTileDBArray(workspace, arrayName);
     }
 
     /**
@@ -568,6 +544,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     private void iterateOverSamplesInBatches(final int sampleCount, final int updatedBatchSize, final int numberPartitions,
                                              final ExecutorService executor, final boolean performConsolidation) {
         final boolean failIfUpdating = this.config.getImportConfiguration().getFailIfUpdating();
+        final int totalBatchCount = (sampleCount + updatedBatchSize - 1)/updatedBatchSize; //ceil
+        BatchCompletionCallbackFunctionArgument callbackFunctionArgument = new BatchCompletionCallbackFunctionArgument(0, totalBatchCount);
         for (int i = 0, batchCount = 1; i < sampleCount; i += updatedBatchSize, ++batchCount) {
             final int index = i;
             IntStream.range(0, numberPartitions).forEach(rank -> updateConfigPartitionsAndLbUb(this.config, index, rank));
@@ -583,6 +561,10 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
             if (result.contains(false)) {
                 executor.shutdown();
                 throw new IllegalStateException("There was an unhandled exception during chromosome interval import.");
+            }
+            if(this.config.getFunctionToCallOnBatchCompletion() != null) {
+                callbackFunctionArgument.batchCount = batchCount;
+                this.config.getFunctionToCallOnBatchCompletion().apply(callbackFunctionArgument);
             }
         }
     }

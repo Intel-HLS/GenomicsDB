@@ -27,6 +27,7 @@
 
 #include <zlib.h>
 #include "json_config.h"
+#include "tiledb_utils.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw RunConfigException(#X);
 
@@ -1046,6 +1047,16 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   //when producing GT, use the min PL value GT for spanning deletions
   auto produce_GT_with_min_PL_value_for_spanning_deletions = (m_json.HasMember("produce_GT_with_min_PL_value_for_spanning_deletions")
       && m_json["produce_GT_with_min_PL_value_for_spanning_deletions"].GetBool());
+
+  // Move m_vcf_header_filename contents to a temporary local file for non-local URIs
+  if (TileDBUtils::is_cloud_path(m_vcf_header_filename)) {
+    char tmp_filename[PATH_MAX];
+    TileDBUtils::create_temp_filename(tmp_filename, PATH_MAX);
+    TileDBUtils::move_across_filesystems(m_vcf_header_filename, tmp_filename);
+    m_vcf_header_filename.assign(tmp_filename);
+    is_tmp_vcf_header_filename = true;
+  }
+
   vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit,
       produce_GT_field, index_output_VCF, produce_FILTER_field,
       sites_only_query, produce_GT_with_min_PL_value_for_spanning_deletions);

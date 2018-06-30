@@ -100,8 +100,12 @@ class VariantArrayCellIterator
     {
       assert(m_tiledb_array_iterator);
       if(tiledb_array_iterator_reset_subarray(m_tiledb_array_iterator,
-          reinterpret_cast<const void*>(coords)) != TILEDB_OK)
+            reinterpret_cast<const void*>(coords)) != TILEDB_OK)
         throw VariantStorageManagerException("Error resetting TileDB iterator subarray");
+#ifdef DEBUG
+      m_last_row = -1;
+      m_last_column = -1;
+#endif
     }
   private:
     unsigned m_num_queried_attributes;
@@ -156,8 +160,8 @@ class VariantArrayInfo
     void write_cell(const void* ptr);
     //Read #valid rows from metadata if available, else set from schema (array domain)
     void read_row_bounds_from_metadata();
-    int read_row_bounds_from_metadata(const std::string& filename, const std::string& filepath,
-        const unsigned char filetype);
+    int read_row_bounds_from_metadata(const std::string& filepath);
+
     /*
      * Update #valid rows in the metadata
      */
@@ -204,10 +208,6 @@ class VariantArrayInfo
 #endif
 };
 
-/*
- * Wrapper class around TileDB C API - shields GenomicsDB from changes in
- * core
- */
 class VariantStorageManager
 {
   public:
@@ -222,10 +222,7 @@ class VariantStorageManager
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;
     VariantStorageManager(VariantStorageManager&& other) = delete;
-    /*
-     * Wrapper functions around the C-API
-     */
-    bool check_if_TileDB_array_exists(const std::string& array_name);
+    
     int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
         const int tiledb_zlib_compression_level=TILEDB_COMPRESSION_LEVEL_GZIP);
     void close_array(const int ad, const bool consolidate_tiledb_array=false);

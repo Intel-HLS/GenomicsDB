@@ -379,7 +379,7 @@ void VariantQueryProcessor::scan_and_operate(
       //information is recorded in the Call
       //This part of the code accumulates such Calls, sets the current_start_position to query column interval begin
       //and lets the code in the for loop nest (forward scan) handle calling handle_gvcf_ranges()
-      gt_get_column(ad, query_config, column_interval_idx, variant, forward_iter, stats_ptr);
+      gt_get_column(ad, query_config, column_interval_idx, variant, &forward_iter, stats_ptr);
       //Insert valid calls produced by gt_get_column into the priority queue
       for(Variant::valid_calls_iterator iter=variant.begin();iter != variant.end();++iter)
       {
@@ -843,7 +843,7 @@ void VariantQueryProcessor::gt_get_column(
     const int ad,
     const VariantQueryConfig& query_config, unsigned column_interval_idx,
     Variant& variant,
-    VariantArrayCellIterator* arg_cell_iter,
+    VariantArrayCellIterator** arg_cell_iter,
     GTProfileStats* stats_ptr, std::vector<uint64_t>* query_row_idx_in_order) const {
 #ifdef DO_PROFILING
   assert(stats_ptr);
@@ -866,7 +866,7 @@ void VariantQueryProcessor::gt_get_column(
 #ifdef DUPLICATE_CELL_AT_END
   //If cells are duplicated at the end, we only need a forward iterator starting at col
   //i.e. start at the smallest cell with co-ordinate >= col
-  VariantArrayCellIterator* cell_iter = arg_cell_iter;
+  VariantArrayCellIterator* cell_iter = arg_cell_iter ? *arg_cell_iter : 0;
   gt_initialize_forward_iter(ad, query_config, query_config.get_column_interval(column_interval_idx).first, cell_iter);
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
@@ -920,7 +920,10 @@ void VariantQueryProcessor::gt_get_column(
   //Free memory 
   //if(cell.cell())
   //free(const_cast<void*>(cell.cell()));
-  delete cell_iter;
+  if(arg_cell_iter)
+    *arg_cell_iter = cell_iter;
+  else
+    delete cell_iter;
 
 #ifndef DUPLICATE_CELL_AT_END
   if(query_row_idx_in_order)
