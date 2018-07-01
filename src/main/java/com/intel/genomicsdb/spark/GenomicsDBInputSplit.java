@@ -66,30 +66,41 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
   }
 
   public void write(DataOutput dataOutput) throws IOException {
-    dataOutput.writeLong(this.partition.getBeginPosition());
-    Text.writeString(dataOutput, this.partition.getWorkspace());
-    Text.writeString(dataOutput, this.partition.getArrayName());
-    String vcfOutput = this.partition.getVcfOutputFileName();
-    if (vcfOutput == null) {
-      Text.writeString(dataOutput, "null");
+    if (this.partition != null) {
+      dataOutput.writeLong(this.partition.getBeginPosition());
+      Text.writeString(dataOutput, this.partition.getWorkspace());
+      Text.writeString(dataOutput, this.partition.getArrayName());
+      String vcfOutput = this.partition.getVcfOutputFileName();
+      if (vcfOutput == null) {
+        Text.writeString(dataOutput, "null");
+      }
+      else {
+        Text.writeString(dataOutput, vcfOutput); 
+      }
+      dataOutput.writeLong(this.queryRange.getBeginPosition());
+      dataOutput.writeLong(this.queryRange.getEndPosition());
     }
     else {
-      Text.writeString(dataOutput, vcfOutput); 
+      // write dummy value of -1 if we're using the posix fs
+      // legacy inputsplits
+      dataOutput.writeLong(-1);
     }
-    dataOutput.writeLong(this.queryRange.getBeginPosition());
-    dataOutput.writeLong(this.queryRange.getEndPosition());
     dataOutput.writeLong(this.length);
   }
 
   public void readFields(DataInput dataInput) throws IOException {
     long _begin = dataInput.readLong();
-    String _workspace = Text.readString(dataInput);
-    String _array = Text.readString(dataInput);
-    String _vcfOutput = Text.readString(dataInput);
-    if (_vcfOutput == "null")
-      _vcfOutput = null;
-    partition = new GenomicsDBPartitionInfo(_begin, _workspace, _array, _vcfOutput);
-    queryRange = new GenomicsDBQueryInfo(dataInput.readLong(), dataInput.readLong());
+    // if begin position is less than zero we don't leverage
+    // partition info to create inputsplits (legacy posix fs case)
+    if (_begin >= 0) {
+      String _workspace = Text.readString(dataInput);
+      String _array = Text.readString(dataInput);
+      String _vcfOutput = Text.readString(dataInput);
+      if (_vcfOutput == "null")
+        _vcfOutput = null;
+      partition = new GenomicsDBPartitionInfo(_begin, _workspace, _array, _vcfOutput);
+      queryRange = new GenomicsDBQueryInfo(dataInput.readLong(), dataInput.readLong());
+    }
     length = dataInput.readLong();
   }
 
