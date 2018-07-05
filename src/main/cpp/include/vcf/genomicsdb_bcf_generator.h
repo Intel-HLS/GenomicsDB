@@ -76,7 +76,6 @@ class GenomicsDBBCFGenerator
   private:
     bool m_done;
     bool m_produce_header_only;
-    FileBasedVidMapper m_vid_mapper;
     VariantStorageManager* m_storage_manager;
     VariantQueryProcessor* m_query_processor;
     VariantQueryConfig m_query_config;

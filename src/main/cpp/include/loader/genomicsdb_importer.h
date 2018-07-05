@@ -48,19 +48,13 @@ class GenomicsDBImporter
   public:
     GenomicsDBImporter(
       const std::string& loader_config_file,
-      const int rank,
-      const int64_t lb_callset_row_idx=0,
-      const int64_t ub_callset_row_idx=INT64_MAX-1)
+      const int rank)
     {
       m_is_loader_setup = false;
       m_rank = rank;
       m_loader_config_file = loader_config_file;
-      m_lb_callset_row_idx = lb_callset_row_idx;
-      m_ub_callset_row_idx = ub_callset_row_idx;
       m_loader_ptr = 0;
       m_read_state = 0;
-      m_vid_map = NULL;
-      m_callset_map = NULL;
     }
     //Delete copy constructor
     GenomicsDBImporter(const GenomicsDBImporter& other) = delete;
@@ -87,27 +81,8 @@ class GenomicsDBImporter
      * after setup_loader is called
      */
     void setup_loader(
-      const std::string& buffer_stream_callset_mapping_json_string="",
-      const bool using_vidmap_pb = false);
-
-    /**
-     * Protocol buffer based vid map used by
-     * GATK4 GenomicsDBImport tool
-     */
-    void setup_vidmap(const VidMappingPB* vidMap) {
-      assert (vidMap != NULL);
-      m_vid_map = new VidMappingPB(*vidMap);
-    }
-
-    /**
-     * Protocol buffer based Callset map used by
-     * GATK4 GenomicsDBImport tool
-     */
-    void setup_callsetmap(const CallsetMappingPB* callsetMap) {
-      assert (callsetMap != NULL);
-      m_callset_map = new CallsetMappingPB(*callsetMap);
-    }
-
+      const std::string& buffer_stream_callset_mapping_json_string="");
+    
     inline const std::vector<int64_t>&
       get_buffer_stream_idx_to_global_file_idx_vec() const
     {
@@ -161,14 +136,10 @@ class GenomicsDBImporter
     bool m_is_loader_setup;
     int m_rank;
     std::string m_loader_config_file;
-    int64_t m_lb_callset_row_idx;
-    int64_t m_ub_callset_row_idx;
     std::vector<BufferStreamInfo> m_buffer_stream_info_vec;
     std::unordered_set<std::string> m_buffer_stream_names;
     VCF2TileDBLoader* m_loader_ptr;
     VCF2TileDBLoaderReadState* m_read_state;
-    const VidMappingPB *m_vid_map;
-    const CallsetMappingPB *m_callset_map;
 };
 
 #endif

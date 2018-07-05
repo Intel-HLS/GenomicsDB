@@ -1,6 +1,6 @@
 /**
  * The MIT License (MIT)
- * Copyright (c) 2016-2017 Intel Corporation
+ * Copyright (c) 2018 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of 
  * this software and associated documentation files (the "Software"), to deal in 
@@ -20,25 +20,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef RUN_CONFIG_H
-#define RUN_CONFIG_H
+#ifndef GENOMICSDB_CONFIG_BASE_H
+#define GENOMICSDB_CONFIG_BASE_H
 
-#include "variant_query_config.h"
-#include "vcf_adapter.h"
 #include "vid_mapper.h"
 
-#include "rapidjson/document.h"
-#include "rapidjson/reader.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/filewritestream.h"
-#include "rapidjson/prettywriter.h"
-
 //Exceptions thrown 
-class RunConfigException : public std::exception {
+class GenomicsDBConfigException : public std::exception {
   public:
-    RunConfigException(const std::string m="") : msg_("RunConfigException : "+m) { ; }
-    ~RunConfigException() { ; }
+    GenomicsDBConfigException(const std::string m="") : msg_("GenomicsDBConfigException : "+m) { ; }
+    ~GenomicsDBConfigException() { ; }
     // ACCESSORS
     /** Returns the exception message. */
     const char* what() const noexcept { return msg_.c_str(); }
@@ -46,12 +37,12 @@ class RunConfigException : public std::exception {
     std::string msg_;
 };
 
-extern const char* g_json_indent_unit;
+class GenomicsDBImportConfig;
 
-class JSONConfigBase
+class GenomicsDBConfigBase
 {
   public:
-    JSONConfigBase()
+    GenomicsDBConfigBase()
     {
       m_single_array_name = false;
       m_single_workspace_path = false;
@@ -60,29 +51,58 @@ class JSONConfigBase
       m_single_query_row_ranges_vector = false;
       m_row_partitions_specified = false;
       m_scan_whole_array = false;
+      m_is_tmp_vcf_header_filename = false;
+      m_produce_GT_field = false;
+      m_produce_FILTER_field = false;
+      m_index_output_VCF = false;
+      m_sites_only_query = false;
+      m_produce_GT_with_min_PL_value_for_spanning_deletions = false;
       //Lower and upper bounds of callset row idx to import in this invocation
       m_lb_callset_row_idx = 0;
       m_ub_callset_row_idx = INT64_MAX-1;
       m_segment_size = 10u*1024u*1024u; //10MiB default
-      clear();
     }
-    void clear();
-    static void extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
-        const VidMapper* id_mapper, ColumnRange& result);
-    static bool extract_interval_from_PB_struct_or_return_false(const rapidjson::Value& curr_json_object,
-        const VidMapper* id_mapper,
-        ColumnRange& result);
-    void read_from_file(const std::string& filename, const VidMapper* id_mapper=0, const int rank=0);
+    ~GenomicsDBConfigBase()
+    {
+      if(m_is_tmp_vcf_header_filename)
+        unlink(m_vcf_header_filename.c_str());
+      m_is_tmp_vcf_header_filename = false;
+    }
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
     ColumnRange get_column_partition(const int rank, const unsigned idx=0u) const;
     RowRange get_row_partition(const int rank, const unsigned idx=0u) const;
     const std::vector<ColumnRange> get_sorted_column_partitions() const { return m_sorted_column_partitions; }
-    void read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank);
     const std::vector<ColumnRange>& get_query_column_ranges(const int rank) const;
     const std::vector<RowRange>& get_query_row_ranges(const int rank) const;
     inline size_t get_segment_size() const { return m_segment_size; }
     void set_segment_size(const size_t v) { m_segment_size = v; }
+    inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
+    inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
+    inline size_t get_combined_vcf_records_buffer_size_limit() const { return m_combined_vcf_records_buffer_size_limit; }
+    void set_vcf_header_filename(const std::string& vcf_header_filename);
+    const std::string& get_vcf_header_filename() const { return m_vcf_header_filename; }
+    void set_vcf_output_format(const std::string& output_format);
+    const std::string& get_vcf_output_format() const { return m_vcf_output_format; }
+    const std::string& get_vcf_output_filename() const { return m_vcf_output_filename; }
+    const std::string& get_reference_genome() const { return m_reference_genome; }
+    const bool produce_GT_field() const { return m_produce_GT_field; }
+    const bool produce_FILTER_field() const { return m_produce_FILTER_field; }
+    const bool sites_only_query() const { return m_sites_only_query; }
+    const bool index_output_VCF() const { return m_index_output_VCF; }
+    const bool produce_GT_with_min_PL_value_for_spanning_deletions() const
+    { return m_produce_GT_with_min_PL_value_for_spanning_deletions; }
+    const VidMapper& get_vid_mapper() const { return m_vid_mapper; }
+    //Utility functions
+    static ColumnRange verify_contig_position_and_get_tiledb_column_interval(const ContigInfo& contig_info,
+        const int64_t begin, const int64_t end);
+    const std::string& get_callset_mapping_file() const { return m_callset_mapping_file; }
+    const std::string& get_vid_mapping_file() const { return m_vid_mapping_file; }
+    //Sometimes information is present in the loader - copy over
+    void update_from_loader(const GenomicsDBImportConfig& loader_config, const int rank);
+    void subset_query_column_ranges_based_on_partition(const GenomicsDBImportConfig& loader_config, const int rank);
+    inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
+    inline uint64_t get_num_rows_within_bounds() const { return m_ub_callset_row_idx - m_lb_callset_row_idx + 1ull; }
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -91,7 +111,18 @@ class JSONConfigBase
     bool m_single_query_row_ranges_vector;
     bool m_row_partitions_specified;
     bool m_scan_whole_array;
-    rapidjson::Document m_json;
+    //Useful if template is not in POSIX fs - create copy and then parse
+    bool m_is_tmp_vcf_header_filename;
+    //GATK CombineGVCF does not produce GT field by default - option to produce GT
+    bool m_produce_GT_field;
+    //GATK CombineGVCF does not produce FILTER field by default - option to produce FILTER
+    bool m_produce_FILTER_field;
+    //index output VCF file
+    bool m_index_output_VCF;
+    //sites-only query - doesn't produce any of the FORMAT fields
+    bool m_sites_only_query;
+    //when producing GT, use the min PL value GT for spanning deletions
+    bool m_produce_GT_with_min_PL_value_for_spanning_deletions;
     std::vector<std::string> m_workspaces;
     std::vector<std::string> m_array_names;
     std::vector<std::vector<ColumnRange>> m_column_ranges;
@@ -102,39 +133,36 @@ class JSONConfigBase
     //Lower and upper bounds of callset row idx to import in this invocation
     int64_t m_lb_callset_row_idx;
     int64_t m_ub_callset_row_idx;
-    //Vid mapping file
-    std::string m_vid_mapping_file;
-    //callset mapping file - if defined in upper level config file
-    std::string m_callset_mapping_file;
     //TileDB segment size
     size_t m_segment_size;
+    //VCF output parameters 
+    std::string m_vcf_header_filename;
+    std::string m_reference_genome;
+    std::string m_vcf_output_filename;
+    std::string m_vcf_output_format;
+    //Count max #alt alleles , don't create combined gVCF
+    unsigned m_determine_sites_with_max_alleles;
+    //Max diploid alleles for which fields whose length is equal to the number of genotypes can be produced (such as PL)
+    unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
+    //Buffer size for combined vcf records
+    size_t m_combined_vcf_records_buffer_size_limit;
+    //VidMapper
+    VidMapper m_vid_mapper;
+    //Might be empty strings if using Protobuf
+    std::string m_vid_mapping_file;
+    std::string m_callset_mapping_file;
+  public:
+    //Static convenience member
+    static std::unordered_map<std::string, bool> m_vcf_output_format_to_is_bcf_flag;
 };
 
-class JSONLoaderConfig;
-
-class JSONBasicQueryConfig : public JSONConfigBase
+class GenomicsDBImportConfig : public GenomicsDBConfigBase
 {
   public:
-    JSONBasicQueryConfig() : JSONConfigBase()  { }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config, VidMapper* id_mapper=0, int rank=0, JSONLoaderConfig* loader_config=0);
-    void update_from_loader(JSONLoaderConfig* loader_config, const int rank);
-    void subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank);
-};
-
-#define JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME "begin"
-#define JSON_LOADER_PARTITION_INFO_END_FIELD_NAME "end"
-
-class JSONLoaderConfig : public JSONConfigBase
-{
-  public:
-    JSONLoaderConfig(bool vid_mapper_file_required = true);
-    void read_from_file(const std::string& filename, VidMapper* id_mapper=0, int rank=0);
+    GenomicsDBImportConfig();
+    void read_from_file(const std::string& filename, int rank=0);
     inline bool is_partitioned_by_row() const { return m_row_based_partitioning; }
     inline bool is_partitioned_by_column() const { return !m_row_based_partitioning; }
-    inline ColumnRange get_column_partition(int idx) const
-    {
-      return m_row_based_partitioning ? ColumnRange(0, INT64_MAX) : JSONConfigBase::get_column_partition(idx);
-    }
     inline int64_t get_max_num_rows_in_array() const { return m_max_num_rows_in_array; }
     inline bool offload_vcf_output_processing() const { return m_offload_vcf_output_processing; }
     inline bool ignore_cells_not_in_partition() const { return m_ignore_cells_not_in_partition; }
@@ -144,12 +172,6 @@ class JSONLoaderConfig : public JSONConfigBase
     inline size_t get_segment_size() const { return m_segment_size; }
     inline size_t get_num_cells_per_tile() const { return m_num_cells_per_tile; }
     inline int64_t get_tiledb_compression_level() const { return m_tiledb_compression_level; }
-    inline const std::string& get_vid_mapping_filename() const { return m_vid_mapping_file; }
-    inline const std::string& get_callset_mapping_filename() const { return m_callset_mapping_file; }
-    inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
-    inline void set_vid_mapper_file_required(bool val) {
-      m_vid_mapper_file_required = val;
-    }
     inline bool fail_if_updating() const { return m_fail_if_updating; }
     inline bool consolidate_tiledb_array_after_load() const { return m_consolidate_tiledb_array_after_load; }
     inline bool discard_missing_GTs() const { return m_discard_missing_GTs; }
@@ -186,8 +208,6 @@ class JSONLoaderConfig : public JSONConfigBase
     size_t m_num_cells_per_tile;
     //TileDB compression level
     int m_tiledb_compression_level;
-    //flag to say whether vid_mapping_file is required or optional
-    bool m_vid_mapper_file_required;
     //flag that causes the loader to fail if this is an update (rather than a fresh load)
     bool m_fail_if_updating;
     //consolidate TileDB array after load - merges fragments
@@ -197,59 +217,8 @@ class JSONLoaderConfig : public JSONConfigBase
     //The array will NOT contain mandatory VCF fields (ref, alt, qual, filter) 
     //if this flag is enabled
     bool m_no_mandatory_VCF_fields;
-};
-
-#ifdef HTSDIR
-
-class JSONVCFAdapterConfig : public JSONConfigBase
-{
-  public:
-    JSONVCFAdapterConfig() : JSONConfigBase()
-    {
-      m_vcf_header_filename = "";
-      m_determine_sites_with_max_alleles = 0;
-      m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
-    }
-    ~JSONVCFAdapterConfig()
-    {
-      if (is_tmp_vcf_header_filename) {
-	unlink(m_vcf_header_filename.c_str());
-      }
-    }
-    void read_from_file(const std::string& filename,
-        VCFAdapter& vcf_adapter,
-        VidMapper* id_mapper,
-        std::string output_format="", int rank=0,
-        const size_t combined_vcf_records_buffer_size_limit=0u);
-    inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
-    inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
-    inline size_t get_combined_vcf_records_buffer_size_limit() const { return m_combined_vcf_records_buffer_size_limit; }
   protected:
-    std::string m_vcf_header_filename;
-    std::string m_reference_genome;
-    std::string m_vcf_output_filename;
-    //Count max #alt alleles , don't create combined gVCF
-    unsigned m_determine_sites_with_max_alleles;
-    //Max diploid alleles for which fields whose length is equal to the number of genotypes can be produced (such as PL)
-    unsigned m_max_diploid_alt_alleles_that_can_be_genotyped;
-    //Buffer size for combined vcf records
-    size_t m_combined_vcf_records_buffer_size_limit;
- private:
-    bool is_tmp_vcf_header_filename = false;
+    void fix_callset_row_idx_bounds(const int rank);
 };
-
-class JSONVCFAdapterQueryConfig : public JSONVCFAdapterConfig, public JSONBasicQueryConfig
-{
-  public:
-    JSONVCFAdapterQueryConfig() : JSONVCFAdapterConfig(), JSONBasicQueryConfig() { ; }
-    void read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, VidMapper* id_mapper,
-        std::string output_format="", int rank=0,
-        const size_t combined_vcf_records_buffer_size_limit=0u);
-};
-
-
-
-#endif
 
 #endif

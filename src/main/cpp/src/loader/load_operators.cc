@@ -21,7 +21,6 @@
 */
 
 #include "load_operators.h"
-#include "json_config.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw LoadOperatorException(#X);
 #define ONE_GB (1024ull*1024ull*1024ull)
@@ -34,7 +33,7 @@
 void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t row, const int64_t begin, const int64_t end,
     const size_t cell_size, const void* cell_ptr)
 {
-  if(begin > m_column_partition.first)
+  if(begin > m_import_config_ptr->get_column_partition(m_partition_idx).first)
   {
     if(!m_crossed_column_partition_begin) //first cross
     {
@@ -66,8 +65,8 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
     }
     return;
   }
-  //begin <= m_column_partition.first from now
-  if(end >= m_column_partition.first)   //intersects current partition
+  //begin <= m_import_config_ptr->get_column_partition(m_partition_idx).first from now
+  if(end >= m_import_config_ptr->get_column_partition(m_partition_idx).first)   //intersects current partition
   {
     //Copy the cell - since this is the latest interval that intersects the partition
     m_last_end_position_for_row[row] = end;
@@ -81,9 +80,9 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
 
 void LoaderOperatorBase::check_cell_coordinates(const int64_t row_idx, const int64_t column_begin, const int64_t column_end)
 {
-  auto outside_row_bounds = (row_idx < m_row_partition.first || row_idx > m_row_partition.second);
-  auto ends_before_column_partition = (column_end < m_column_partition.first);
-  auto begins_after_column_partition = (column_begin > m_column_partition.second);
+  auto outside_row_bounds = (row_idx < m_import_config_ptr->get_row_bounds().first || row_idx > m_import_config_ptr->get_row_bounds().second);
+  auto ends_before_column_partition = (column_end < m_import_config_ptr->get_column_partition(m_partition_idx).first);
+  auto begins_after_column_partition = (column_begin > m_import_config_ptr->get_column_partition(m_partition_idx).second);
   //VCFs can have overlapping intervals - hence you might have the first cell intersecting with the interval
   //followed by cells that end before the interval (see wiki page for overlapping variants information)
   //Throw exception iff
@@ -92,15 +91,17 @@ void LoaderOperatorBase::check_cell_coordinates(const int64_t row_idx, const int
   //   (b) begins after column partition OR
   //   (c) this is the first cell AND ends before partition
   //   )
-  if(!m_loader_json_config.ignore_cells_not_in_partition() && (outside_row_bounds
+  if(!m_import_config_ptr->ignore_cells_not_in_partition() && (outside_row_bounds
         || begins_after_column_partition || (m_first_cell && ends_before_column_partition)
         )
       )
     throw LoadOperatorException(std::string("Found cell [ ")+std::to_string(row_idx)+", [ "
         +std::to_string(column_begin)+", "+std::to_string(column_end)
         +" ] ] that does not belong to TileDB/GenomicsDB partition with row_bounds [ "
-        +std::to_string(m_row_partition.first)+", "+std::to_string(m_row_partition.second)+" ] column_bounds [ "
-        +std::to_string(m_column_partition.first)+", "+std::to_string(m_column_partition.second)+" ]");
+        +std::to_string(m_import_config_ptr->get_row_bounds().first)+", "
+        +std::to_string(m_import_config_ptr->get_row_bounds().second)+" ] column_bounds [ "
+        +std::to_string(m_import_config_ptr->get_column_partition(m_partition_idx).first)+", "
+        +std::to_string(m_import_config_ptr->get_column_partition(m_partition_idx).second)+" ]");
   m_first_cell = false;
 }
 
@@ -112,52 +113,48 @@ void LoaderOperatorBase::finish(const int64_t column_interval_end)
 
 //LoaderArrayWriter - writes to TileDB arrays
 LoaderArrayWriter::LoaderArrayWriter(
-  const VidMapper* id_mapper,
-  const std::string& config_filename,
-  int rank,
-  const bool vid_mapper_file_required)
+    const GenomicsDBImportConfig& config,
+    int rank)
     : LoaderOperatorBase(
-        config_filename,
-        id_mapper->get_num_callsets(),
-        rank,
-        id_mapper,
-        vid_mapper_file_required),
+        config,
+        rank),
         m_array_descriptor(-1),
         m_schema(0),
         m_storage_manager(0) {
 
-  auto workspace = m_loader_json_config.get_workspace(rank);
-  auto array_name = m_loader_json_config.get_array_name(rank);
+  auto workspace = m_import_config_ptr->get_workspace(rank);
+  auto array_name = m_import_config_ptr->get_array_name(rank);
+  auto& id_mapper = m_import_config_ptr->get_vid_mapper();
   //Schema
-  id_mapper->build_tiledb_array_schema(m_schema, array_name, m_loader_json_config.is_partitioned_by_row(), m_row_partition,
-      m_loader_json_config.compress_tiledb_array(), m_loader_json_config.no_mandatory_VCF_fields());
+  id_mapper.build_tiledb_array_schema(m_schema, array_name,
+      m_import_config_ptr->compress_tiledb_array(), m_import_config_ptr->no_mandatory_VCF_fields());
   //Storage manager
-  size_t segment_size = m_loader_json_config.get_segment_size();
+  size_t segment_size = m_import_config_ptr->get_segment_size();
   m_storage_manager = new VariantStorageManager(workspace, segment_size);
-  if(m_loader_json_config.delete_and_create_tiledb_array())
+  if(m_import_config_ptr->delete_and_create_tiledb_array())
     m_storage_manager->delete_array(array_name);
   //Open array in write mode
-  m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w",
-      m_loader_json_config.get_tiledb_compression_level());
+  m_array_descriptor = m_storage_manager->open_array(array_name, &id_mapper,
+      "w", m_import_config_ptr->get_tiledb_compression_level());
   //Check if array already exists
   //Array does not exist - define it first
   if(m_array_descriptor < 0)
   {
-    if(m_storage_manager->define_array(m_schema, m_loader_json_config.get_num_cells_per_tile()) != TILEDB_OK)
+    if(m_storage_manager->define_array(m_schema, m_import_config_ptr->get_num_cells_per_tile()) != TILEDB_OK)
         throw LoadOperatorException(std::string("Could not define TileDB array")
             +"\nTileDB error message : "+tiledb_errmsg);
     //Open array in write mode
-    m_array_descriptor = m_storage_manager->open_array(array_name, id_mapper, "w");
+    m_array_descriptor = m_storage_manager->open_array(array_name, &id_mapper, "w");
   }
   else
-    if(m_loader_json_config.fail_if_updating())
+    if(m_import_config_ptr->fail_if_updating())
       throw LoadOperatorException(std::string("Array ")+workspace + "/" + array_name
           + " exists and flag \"fail_if_updating\" is set to true in the loader JSON configuration");
   if(m_array_descriptor < 0)
     throw LoadOperatorException(std::string("Could not open TileDB array for loading")
         + "\nTileDB error message : "+tiledb_errmsg);
-  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, m_row_partition.first,
-      std::min(m_row_partition.second, id_mapper->get_max_callset_row_idx()));
+  m_storage_manager->update_row_bounds_in_array(m_array_descriptor, m_import_config_ptr->get_row_bounds().first,
+      std::min(m_import_config_ptr->get_row_bounds().second, id_mapper.get_max_callset_row_idx()));
 }
 
 #ifdef DUPLICATE_CELL_AT_END
@@ -308,40 +305,31 @@ void LoaderArrayWriter::finish(const int64_t column_interval_end)
     write_top_element_to_disk();
 #endif
   if(m_storage_manager && m_array_descriptor >= 0)
-    m_storage_manager->close_array(m_array_descriptor, m_loader_json_config.consolidate_tiledb_array_after_load());
+    m_storage_manager->close_array(m_array_descriptor, m_import_config_ptr->consolidate_tiledb_array_after_load());
 }
 
 #ifdef HTSDIR
-LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mapper,
-    const std::string& config_filename,
-    int partition_idx,
-    const bool vid_mapper_file_required)
-  : LoaderOperatorBase(config_filename,
-      id_mapper->get_num_callsets(),
-      partition_idx,
-      id_mapper,
-      vid_mapper_file_required),
+LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const GenomicsDBImportConfig& config,
+    int partition_idx)
+  : LoaderOperatorBase(config,
+      partition_idx),
   m_schema(0), m_query_processor(0), m_operator(0)
 {
   clear(); 
   //initialize arguments
-  m_vid_mapper = id_mapper;
   //initialize query processor
-  m_vid_mapper->build_tiledb_array_schema(m_schema, "", false, RowRange(0, id_mapper->get_num_callsets()-1),
+  m_import_config_ptr->get_vid_mapper().build_tiledb_array_schema(m_schema, "",
       false, false);
-  m_query_processor = new VariantQueryProcessor(*m_schema, *id_mapper);
+  m_query_processor = new VariantQueryProcessor(*m_schema, m_import_config_ptr->get_vid_mapper());
   //Initialize query config
-  std::vector<std::string> query_attributes(m_schema->attribute_num());
-  for(auto i=0ull;i<m_schema->attribute_num();++i)
-    query_attributes[i] = m_schema->attribute_name(i);
-  m_query_config.set_attributes_to_query(query_attributes);
-  m_query_processor->do_query_bookkeeping(*m_schema, m_query_config, *m_vid_mapper, true);
+  static_cast<GenomicsDBConfigBase&>(m_query_config) = static_cast<const GenomicsDBConfigBase&>(config);
+  m_query_processor->do_query_bookkeeping(*m_schema, m_query_config, m_query_config.get_vid_mapper(), true);
   //Initialize VCF adapter
-  if(m_loader_json_config.offload_vcf_output_processing())
+  if(m_import_config_ptr->offload_vcf_output_processing())
   {
     m_offload_vcf_output_processing = true;
     //2 entries in circular buffer, max #entries to use in each line_buffer
-    m_buffered_vcf_adapter = new BufferedVCFAdapter(2u, m_vid_mapper->get_num_callsets());
+    m_buffered_vcf_adapter = new BufferedVCFAdapter(2u, m_import_config_ptr->get_num_rows_within_bounds());
     m_vcf_adapter = dynamic_cast<VCFAdapter*>(m_buffered_vcf_adapter);
   }
   else
@@ -350,17 +338,13 @@ LoaderCombinedGVCFOperator::LoaderCombinedGVCFOperator(const VidMapper* id_mappe
     m_vcf_adapter = new VCFAdapter();
     m_buffered_vcf_adapter = 0;
   }
-  JSONVCFAdapterConfig vcf_adapter_config;
-  VidMapper tmp_vid_mapper;
-  if(m_vid_mapper)
-    tmp_vid_mapper = *m_vid_mapper;
-  vcf_adapter_config.read_from_file(config_filename, *m_vcf_adapter, &tmp_vid_mapper, "", partition_idx);
+  m_vcf_adapter->initialize(m_query_config);
   //Initialize operator
-  if(vcf_adapter_config.get_determine_sites_with_max_alleles() > 0)
-    m_operator = new MaxAllelesCountOperator(vcf_adapter_config.get_determine_sites_with_max_alleles());
+  if(m_query_config.get_determine_sites_with_max_alleles() > 0)
+    m_operator = new MaxAllelesCountOperator(m_query_config.get_determine_sites_with_max_alleles());
   else
-    m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, *m_vid_mapper, m_query_config,
-        vcf_adapter_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
+    m_operator = new BroadCombinedGVCFOperator(*m_vcf_adapter, m_query_config.get_vid_mapper(), m_query_config,
+        m_query_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
   //Initialize variant
   m_variant = std::move(Variant(&m_query_config));
   m_variant.resize_based_on_query();
@@ -410,15 +394,15 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       return;
   }
   //Either un-initialized or VariantCall interval starts before/at partition begin value
-  if(m_current_start_position < 0 || column_begin <= m_column_partition.first)
+  if(m_current_start_position < 0 || column_begin <= m_import_config_ptr->get_column_partition(m_partition_idx).first)
   {
     m_current_start_position = column_begin;
     m_variant.set_column_interval(column_begin, column_begin);
   }
-  else  //column_begin > m_column_partition.first, check if m_current_start_position < m_column_partition.first
-    if(m_current_start_position < m_column_partition.first)
+  else  //column_begin > m_import_config_ptr->get_column_partition(m_partition_idx).first, check if m_current_start_position < m_import_config_ptr->get_column_partition(m_partition_idx).first
+    if(m_current_start_position < m_import_config_ptr->get_column_partition(m_partition_idx).first)
     {
-      m_current_start_position = m_column_partition.first;
+      m_current_start_position = m_import_config_ptr->get_column_partition(m_partition_idx).first;
       m_variant.set_column_interval(m_current_start_position, m_current_start_position);
     }
   m_cell->set_cell(cell_ptr);
@@ -427,7 +411,7 @@ void LoaderCombinedGVCFOperator::operate(const void* cell_ptr)
       m_end_pq, m_tmp_pq_vector,
       m_current_start_position, m_next_start_position,
       m_num_calls_with_deletions,
-      m_loader_json_config.treat_deletions_as_intervals(),
+      m_import_config_ptr->treat_deletions_as_intervals(),
       m_stats_ptr);
 #ifdef DO_MEMORY_PROFILING
   statm_t mem_result;
@@ -447,9 +431,9 @@ void LoaderCombinedGVCFOperator::finish(const int64_t column_interval_end)
   assert(!m_offload_vcf_output_processing || m_buffered_vcf_adapter->get_num_entries_with_valid_data() == 0u);
   pre_operate_sequential();
   //Fix start and next_start positions if necessary
-  if(m_current_start_position < m_column_partition.first)
+  if(m_current_start_position < m_import_config_ptr->get_column_partition(m_partition_idx).first)
   {
-    m_current_start_position = m_column_partition.first;
+    m_current_start_position = m_import_config_ptr->get_column_partition(m_partition_idx).first;
     m_variant.set_column_interval(m_current_start_position, m_current_start_position);
   }
   m_next_start_position = (column_interval_end == INT64_MAX) ? INT64_MAX : column_interval_end+1;

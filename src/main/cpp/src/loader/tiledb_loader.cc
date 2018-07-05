@@ -59,18 +59,30 @@ void LoaderConverterMessageExchange::initialize_from_loader(int64_t all_callsets
 }
 
 VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
-  const std::string& config_filename,
-  int idx,
-  const int64_t lb_callset_row_idx,
-  const int64_t ub_callset_row_idx,
-  bool vid_mapper_file_required)
-  : JSONLoaderConfig(vid_mapper_file_required)
+  const GenomicsDBImportConfig& config,
+  int idx)
+  : GenomicsDBImportConfig(config)
 {
   clear();
   m_idx = idx;
-  //Override
-  m_lb_callset_row_idx = std::max(lb_callset_row_idx, m_lb_callset_row_idx);
-  m_ub_callset_row_idx = std::min(ub_callset_row_idx, m_ub_callset_row_idx);
+  if(m_produce_combined_vcf && m_row_based_partitioning)
+    throw VCF2TileDBException("Cannot partition by rows and produce combined gVCF");
+  //Size circular buffers - 3 needed in non-standalone converter mode
+  auto num_circular_buffers = m_do_ping_pong_buffering ? 3u : 1u;
+  auto num_exchanges = m_do_ping_pong_buffering ? 2u : 1u;
+  resize_circular_buffers(num_circular_buffers);
+  //Exchange structure
+  m_owned_exchanges.resize(num_exchanges);
+}
+
+VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
+    const std::string& config_filename,
+    int idx)
+: GenomicsDBImportConfig()
+{
+  clear();
+  m_idx = idx;
+  GenomicsDBImportConfig::read_from_file(config_filename, m_idx);
   if(m_produce_combined_vcf && m_row_based_partitioning)
     throw VCF2TileDBException("Cannot partition by rows and produce combined gVCF");
   //Size circular buffers - 3 needed in non-standalone converter mode
@@ -83,8 +95,6 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
 
 void VCF2TileDBLoaderConverterBase::clear()
 {
-  m_vid_mapping_file.clear();
-  m_callset_mapping_file.clear();
   m_ping_pong_buffers.clear();
   m_owned_exchanges.clear();
   m_num_callsets_in_owned_file.clear();
@@ -94,37 +104,27 @@ void VCF2TileDBLoaderConverterBase::clear()
 
 void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper* vid_mapper, const bool from_loader)
 {
-  //If standalone or row partitioning, deal only with subset of files assigned to this converter
-  if((!from_loader && m_standalone_converter_process) || m_row_based_partitioning)
+  //Get list of files handled by this converter
+  auto& global_file_idx_vec = vid_mapper->get_global_file_idxs_owned_by(m_idx);
+  m_num_callsets_in_owned_file.resize(global_file_idx_vec.size());
+  m_num_orders_in_owned_file.resize(global_file_idx_vec.size());
+  for(auto i=0ull;i<global_file_idx_vec.size();++i)
   {
-    //Get list of files handled by this converter
-    auto& global_file_idx_vec = vid_mapper->get_global_file_idxs_owned_by(m_idx);
-    m_num_callsets_in_owned_file.resize(global_file_idx_vec.size());
-    m_num_orders_in_owned_file.resize(global_file_idx_vec.size());
-    for(auto i=0ull;i<global_file_idx_vec.size();++i)
+    auto global_file_idx = global_file_idx_vec[i];
+    auto& file_info = vid_mapper->get_file_info(global_file_idx);
+    m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
+    m_num_orders_in_owned_file[i] = file_info.get_num_orders();
+    auto found_callset_in_range_for_this_file = false;
+    for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
     {
-      auto global_file_idx = global_file_idx_vec[i];
-      auto& file_info = vid_mapper->get_file_info(global_file_idx);
-      m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
-      m_num_orders_in_owned_file[i] = file_info.get_num_orders();
-      for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
-        m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
+      auto row_idx = local_row_idx_pair.second;
+      if(row_idx >= m_lb_callset_row_idx && row_idx <= m_ub_callset_row_idx)
+      {
+        m_owned_row_idx_vec.push_back(row_idx);
+        found_callset_in_range_for_this_file = true;
+      }
     }
-  }
-  else
-  {
-    //Same process as loader and column based partitioning - must read all files
-    m_num_callsets_in_owned_file.resize(vid_mapper->get_num_files());
-    m_num_orders_in_owned_file.resize(vid_mapper->get_num_files());
-    for(auto i=0ll;i<vid_mapper->get_num_files();++i)
-    {
-      auto global_file_idx = i;
-      auto& file_info = vid_mapper->get_file_info(global_file_idx);
-      m_num_callsets_in_owned_file[i] = file_info.get_num_callsets();
-      m_num_orders_in_owned_file[i] = file_info.get_num_orders();
-      for(const auto& local_row_idx_pair : file_info.m_local_tiledb_row_idx_pairs)
-        m_owned_row_idx_vec.push_back(local_row_idx_pair.second);
-    }
+    assert(found_callset_in_range_for_this_file);
   }
   m_num_callsets_owned = 0;
   for(auto x : m_num_callsets_in_owned_file)
@@ -138,29 +138,23 @@ void VCF2TileDBLoaderConverterBase::determine_num_callsets_owned(const VidMapper
 
 #ifdef HTSDIR
 VCF2TileDBConverter::VCF2TileDBConverter(
-  const std::string& config_filename,
-  int idx,
-  VidMapper* vid_mapper,
-  std::vector<std::vector<uint8_t>>* buffers,
-  std::vector<LoaderConverterMessageExchange>* exchange_vector,
-  bool vid_mapper_file_required)
+    const GenomicsDBImportConfig& config,
+    int idx,
+    std::vector<std::vector<uint8_t>>* buffers,
+    std::vector<LoaderConverterMessageExchange>* exchange_vector)
   : VCF2TileDBLoaderConverterBase(
-      config_filename,
-      idx,
-      0,
-      INT64_MAX-1,
-      vid_mapper_file_required) {
+      config,
+      idx) {
 
-  m_vid_mapper = 0;
   clear();
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
   {
     VERIFY_OR_THROW(m_idx < m_num_converter_processes);
     //For standalone processes, must initialize VidMapper
-    m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_file, m_callset_mapping_file,
-          m_lb_callset_row_idx, m_ub_callset_row_idx, true));
-    m_vid_mapper->verify_file_partitioning();
+    //m_vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(m_vid_mapping_file, m_callset_mapping_file,
+          //m_lb_callset_row_idx, m_ub_callset_row_idx, true));
+    m_vid_mapper.verify_file_partitioning();
     //2 entries sufficient
     resize_circular_buffers(2u);
     //Buffer "pointers"
@@ -174,8 +168,6 @@ VCF2TileDBConverter::VCF2TileDBConverter(
   }
   else
   {
-    m_vid_mapper = vid_mapper;
-    VERIFY_OR_THROW(m_vid_mapper);
     //Buffer maintained external to converter, only maintain pointers
     VERIFY_OR_THROW(buffers);
     m_num_entries_in_circular_buffer = buffers->size();
@@ -187,10 +179,8 @@ VCF2TileDBConverter::VCF2TileDBConverter(
     m_exchanges.resize(exchange_vector->size());
     for(auto i=0u;i<m_exchanges.size();++i)
       m_exchanges[i] = &((*exchange_vector)[i]);
-    VidMapper tmp_vid_mapper = *m_vid_mapper;
-    JSONLoaderConfig::read_from_file(config_filename, &tmp_vid_mapper, m_idx);
   }
-  determine_num_callsets_owned(m_vid_mapper, false);
+  determine_num_callsets_owned(&m_vid_mapper, false);
   m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   initialize_file2binary_objects();
   initialize_column_batch_objects();
@@ -215,9 +205,6 @@ VCF2TileDBConverter::~VCF2TileDBConverter()
     ptr = 0;
   }
   clear();
-  if(m_standalone_converter_process && m_vid_mapper)
-    delete m_vid_mapper;
-  m_vid_mapper = 0;
 }
 
 void VCF2TileDBConverter::clear()
@@ -239,7 +226,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
   {
     case VidFileTypeEnum::VCF_FILE_TYPE:
       file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new VCF2Binary(
-            file_info.m_name, m_vcf_fields, local_file_idx, *m_vid_mapper,
+            file_info.m_name, m_vcf_fields, local_file_idx, m_vid_mapper,
             partition_bounds,
             m_max_size_per_callset,
             m_treat_deletions_as_intervals,
@@ -256,7 +243,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
       file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new VCF2Binary(
             file_info.m_name, m_vcf_fields,
             local_file_idx, file_info.m_buffer_stream_idx,
-            *m_vid_mapper,
+            m_vid_mapper,
             partition_bounds,
             file_info.m_buffer_capacity, (file_info.m_type == VidFileTypeEnum::BCF_BUFFER_STREAM_TYPE),
             &(file_info.m_initialization_buffer[0]), file_info.m_initialization_buffer_num_valid_bytes,
@@ -267,7 +254,7 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
     case VidFileTypeEnum::SORTED_CSV_FILE_TYPE:
     case VidFileTypeEnum::UNSORTED_CSV_FILE_TYPE:
       file2binary_base_ptr = dynamic_cast<File2TileDBBinaryBase*>(new CSV2TileDBBinary(
-            file_info.m_name, local_file_idx, *m_vid_mapper,
+            file_info.m_name, local_file_idx, m_vid_mapper,
             m_max_size_per_callset,
             partition_bounds,
             m_treat_deletions_as_intervals,
@@ -284,28 +271,17 @@ File2TileDBBinaryBase* VCF2TileDBConverter::create_file2tiledb_object(const File
 void VCF2TileDBConverter::initialize_file2binary_objects()
 {
   //VCF fields
-  m_vid_mapper->build_vcf_fields_vectors(m_vcf_fields);
+  m_vid_mapper.build_vcf_fields_vectors(m_vcf_fields);
   //If standalone or row partitioning, deal only with subset of files assigned to this converter
-  if(m_standalone_converter_process || m_row_based_partitioning)
+  auto partition_bounds = m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
+    : std::vector<ColumnRange>(1u, get_column_partition());
+  //Get list of files handled by this converter
+  auto& global_file_idx_vec = m_vid_mapper.get_global_file_idxs_owned_by(m_idx);
+  for(auto i=0ull;i<global_file_idx_vec.size();++i)
   {
-    auto partition_bounds = m_row_based_partitioning ? std::vector<ColumnRange>(1u, ColumnRange(0, INT64_MAX)) //row partition - single column range
-            : get_sorted_column_partitions();
-    //Get list of files handled by this converter
-    auto& global_file_idx_vec = m_vid_mapper->get_global_file_idxs_owned_by(m_idx);
-    for(auto i=0ull;i<global_file_idx_vec.size();++i)
-    {
-      auto global_file_idx = global_file_idx_vec[i];
-      assert(static_cast<size_t>(m_vid_mapper->get_file_info(global_file_idx).m_local_file_idx) == i);
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(global_file_idx), i, partition_bounds));
-    }
-  }
-  else
-  {
-    //Same process as loader - must read all files
-    //Also, only 1 partition needs to be handled  - the column partition corresponding to the loader
-    auto partition_bounds = std::vector<ColumnRange>(1u, get_column_partition());
-    for(auto i=0ll;i<m_vid_mapper->get_num_files();++i)
-      m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper->get_file_info(i), i, partition_bounds));
+    auto global_file_idx = global_file_idx_vec[i];
+    assert(static_cast<size_t>(m_vid_mapper.get_file_info(global_file_idx).m_local_file_idx) == i);
+    m_file2binary_handlers.emplace_back(create_file2tiledb_object(m_vid_mapper.get_file_info(global_file_idx), i, partition_bounds));
   }
 }
 
@@ -320,7 +296,7 @@ void VCF2TileDBConverter::initialize_column_batch_objects()
 	m_num_callsets_in_owned_file, m_num_orders_in_owned_file,
 	m_num_entries_in_circular_buffer);
   //Update row idx to ordering
-  m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_vid_mapper->get_num_callsets(), -1ll));
+  m_tiledb_row_idx_to_order = std::move(std::vector<int64_t>(m_vid_mapper.get_num_callsets(), -1ll));
   int64_t order = 0ll;
   for(const auto& x : m_file2binary_handlers)
     x->set_order_of_enabled_callsets(order, m_tiledb_row_idx_to_order);
@@ -353,9 +329,7 @@ void VCF2TileDBConverter::activate_next_batch(const unsigned exchange_idx, const
     auto row_idx = all_partitions_tiledb_row_idx_vec[idx_offset+i];
     int64_t local_file_idx = -1;
     //For non-standalone converters, global_file_idx == local_file_idx
-    auto status = (m_standalone_converter_process || m_row_based_partitioning)
-      ? m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx)
-      : m_vid_mapper->get_global_file_idx_for_row(row_idx, local_file_idx);
+    auto status = m_vid_mapper.get_local_file_idx_for_row(row_idx, local_file_idx);
     assert(status && local_file_idx >= 0 && static_cast<size_t>(local_file_idx) < m_file2binary_handlers.size());
     //Activate file - enable fetch flag and reserve entry in circular buffer
     m_partition_batch[partition_idx].activate_file(local_file_idx);
@@ -408,7 +382,7 @@ void VCF2TileDBConverter::read_next_batch(const unsigned exchange_idx)
 void VCF2TileDBConverter::write_data_to_buffer_stream(const int64_t buffer_stream_idx, const unsigned partition_idx,
     const uint8_t* data, const size_t num_bytes)
 {
-  auto local_file_idx = m_vid_mapper->get_local_file_idx_for_buffer_stream_idx(m_idx, buffer_stream_idx);
+  auto local_file_idx = m_vid_mapper.get_local_file_idx_for_buffer_stream_idx(m_idx, buffer_stream_idx);
   assert(static_cast<size_t>(local_file_idx) < m_file2binary_handlers.size());
   auto buffer_reader_ptr = dynamic_cast<BufferReaderBase*>(m_file2binary_handlers[local_file_idx]->get_base_reader_ptr(partition_idx));
   assert(buffer_reader_ptr);
@@ -432,7 +406,7 @@ void VCF2TileDBConverter::dump_latest_buffer(unsigned exchange_idx, std::ostream
         auto row_idx = curr_exchange.m_all_tiledb_row_idx_vec_response[idx_offset+i];
         int64_t local_file_idx = -1;
         auto status = 
-          m_vid_mapper->get_local_file_idx_for_row(row_idx, local_file_idx);
+          m_vid_mapper.get_local_file_idx_for_row(row_idx, local_file_idx);
         assert(status);
         auto& file_batch = m_partition_batch[partition_idx].get_partition_file_batch(local_file_idx);
         auto order = m_standalone_converter_process ? i : m_tiledb_row_idx_to_order[row_idx];
@@ -493,71 +467,40 @@ void VCF2TileDBConverter::print_all_partitions(const std::string& results_direct
 //Loader functions
 VCF2TileDBLoader::VCF2TileDBLoader(
   const std::string& config_filename,
-  const int idx,
-  const int64_t lb_callset_row_idx,
-  const int64_t ub_callset_row_idx,
-  bool using_vidmap_protobuf,
-  const VidMappingPB* vidmap_pb,
-  const CallsetMappingPB* callsetmap_pb)
+  const int idx)
   : VCF2TileDBLoaderConverterBase(
       config_filename,
-      idx,
-      lb_callset_row_idx,
-      ub_callset_row_idx,
-      !using_vidmap_protobuf)
+      idx)
 {
   std::vector<BufferStreamInfo> empty_vec;
   common_constructor_initialization(
     config_filename,
     empty_vec,
     "",
-    idx,
-    lb_callset_row_idx,
-    ub_callset_row_idx,
-    using_vidmap_protobuf,
-    vidmap_pb,
-    callsetmap_pb);
+    idx);
 }
 
 VCF2TileDBLoader::VCF2TileDBLoader(
   const std::string& config_filename,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
   const std::string& buffer_stream_callset_mapping_json_string,
-  const int idx,
-  const int64_t lb_callset_row_idx,
-  const int64_t ub_callset_row_idx,
-  bool using_vidmap_protobuf,
-  const VidMappingPB* vidmap_pb,
-  const CallsetMappingPB* callsetmap_pb)
+  const int idx)
   : VCF2TileDBLoaderConverterBase(
       config_filename,
-      idx,
-      lb_callset_row_idx,
-      ub_callset_row_idx,
-      !using_vidmap_protobuf)
+      idx)
 {
   common_constructor_initialization(
     config_filename,
     buffer_stream_info_vec,
     buffer_stream_callset_mapping_json_string,
-    idx,
-    lb_callset_row_idx,
-    ub_callset_row_idx,
-    using_vidmap_protobuf,
-    vidmap_pb,
-    callsetmap_pb);
+    idx);
 }
 
 void VCF2TileDBLoader::common_constructor_initialization(
   const std::string& config_filename,
   const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
   const std::string& buffer_stream_callset_mapping_json_string,
-  const int idx,
-  const int64_t lb_callset_row_idx,
-  const int64_t ub_callset_row_idx,
-  bool using_vidmap_protobuf,
-  const VidMappingPB* vidmap_pb,
-  const CallsetMappingPB* callsetmap_pb)
+  const int idx)
 {
 #ifdef HTSDIR
   m_converter = 0;
@@ -565,33 +508,11 @@ void VCF2TileDBLoader::common_constructor_initialization(
   m_previous_cell_row_idx = -1;
   m_previous_cell_column = -1;
   clear();
-  m_vid_mapper_file_required = true;
-  if (using_vidmap_protobuf) {
-    assert (vidmap_pb != NULL);
-    assert (callsetmap_pb != NULL);
-    m_vid_mapper = static_cast<VidMapper*>(
-        new ProtoBufBasedVidMapper(vidmap_pb,
-          callsetmap_pb,
-          buffer_stream_info_vec));
-    m_vid_mapper_file_required = false;
-    JSONLoaderConfig::read_from_file(config_filename, m_vid_mapper, m_idx);
-  } else {
-    JSONLoaderConfig::read_from_file(config_filename, 0, m_idx);
-    m_vid_mapper = static_cast<VidMapper*>(
-        new FileBasedVidMapper(
-          m_vid_mapping_file,
-          buffer_stream_info_vec,
-          m_callset_mapping_file,
-          buffer_stream_callset_mapping_json_string,
-          m_lb_callset_row_idx, m_ub_callset_row_idx,
-          true));
-  }
-  //partition files
-  if(m_row_based_partitioning)
-    m_vid_mapper->build_file_partitioning(m_idx, get_row_partition(idx));
+  //Select which files this object should deal with
+  m_vid_mapper.build_file_partitioning(m_idx, get_row_bounds());
   if(m_standalone_converter_process)
-    m_vid_mapper->verify_file_partitioning();
-  determine_num_callsets_owned(m_vid_mapper, true);
+    m_vid_mapper.verify_file_partitioning();
+  determine_num_callsets_owned(&m_vid_mapper, true);
   m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
@@ -603,12 +524,9 @@ void VCF2TileDBLoader::common_constructor_initialization(
   { 
 #ifdef HTSDIR
     m_converter = new VCF2TileDBConverter(
-                    config_filename,
-                    idx,
-                    m_vid_mapper,
-                    &m_ping_pong_buffers,
-                    &m_owned_exchanges,
-                    m_vid_mapper_file_required);
+        *this, idx,
+        &m_ping_pong_buffers,
+        &m_owned_exchanges);
 #endif
     //Num order values
     auto num_order_values = get_num_order_values();
@@ -646,10 +564,8 @@ void VCF2TileDBLoader::common_constructor_initialization(
     //Operators
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
           new LoaderCombinedGVCFOperator(
-            m_vid_mapper,
-            config_filename,
-            m_idx,
-            m_vid_mapper_file_required)));
+            *this,
+            m_idx)));
     m_operators_overflow.push_back(false);
 #else
     throw VCF2TileDBException("To produce VCFs, you need the htslib library - recompile with HTSDIR set");
@@ -659,10 +575,8 @@ void VCF2TileDBLoader::common_constructor_initialization(
   {
     m_operators.push_back(dynamic_cast<LoaderOperatorBase*>(
           new LoaderArrayWriter(
-            m_vid_mapper,
-            config_filename,
-            m_idx,
-            m_vid_mapper_file_required)));
+            *this,
+            m_idx)));
     m_operators_overflow.push_back(false);
   }
 #endif //ifdef PRODUCE_BINARY_CELLS
@@ -867,7 +781,7 @@ bool VCF2TileDBLoader::dump_latest_buffer(unsigned exchange_idx, std::ostream& o
 
 bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
 {
-  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper->get_num_callsets()));
+  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper.get_num_callsets()));
   auto order = get_order_for_row_idx(row_idx);
   assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
   auto& buffer_control = m_order_idx_to_buffer_control[order];
@@ -894,7 +808,7 @@ bool VCF2TileDBLoader::read_cell_from_buffer(const int64_t row_idx)
 
 bool VCF2TileDBLoader::read_next_cell_from_buffer(const int64_t row_idx)
 {
-  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper->get_num_callsets()));
+  assert(row_idx >= 0 && row_idx < static_cast<int64_t>(m_vid_mapper.get_num_callsets()));
   auto order = get_order_for_row_idx(row_idx);
   assert(order >= 0 && static_cast<size_t>(order) < m_order_idx_to_buffer_control.size());
   //curr position is valid

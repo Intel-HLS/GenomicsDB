@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
     rapidjson::Document json_doc;
     json_doc.Parse(str.c_str());
     if(json_doc.HasParseError())
-      throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
+      throw GenomicsDBConfigException(std::string("Syntax error in JSON file ")+filename);
     std::string stream_name;
     for(auto b=json_doc.MemberBegin(), e=json_doc.MemberEnd();b!=e;++b)
     {

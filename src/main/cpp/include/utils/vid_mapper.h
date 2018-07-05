@@ -756,7 +756,7 @@ class VidMapper
      */
     void build_vcf_fields_vectors(std::vector<std::vector<std::string>>& vcf_fields) const;
     void build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
-        const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields,
+        const bool compress_fields,
 	const bool no_mandatory_VCF_fields) const;
     /*
      * Get num contigs
@@ -787,11 +787,23 @@ class VidMapper
      * Utility function for obtaining contigs given a column partition
      * is_zero_based - return 0-based or 1-based chromosome intervals
      */
-    static std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
-        const std::string& loader_filename,
-        const int rank, const bool is_zero_based);
     std::vector<ContigIntervalTuple> get_contig_intervals_for_column_partition(
         const int64_t column_partition_begin, const int64_t column_partition_end, const bool is_zero_based) const;
+
+    //Useful when writing partitioned data
+    void write_partition_callsets_json_file(
+        const std::string& original_callsets_filename,
+        const std::string& results_directory,
+        const int rank) const;
+
+    void write_partition_loader_json_file(
+        const std::string& original_loader_filename,
+        const std::string& original_callsets_filename,
+        const std::string& results_directory,
+        const int num_partition_callset_mapping_files,
+        const int rank) const;
+
+
   protected:
     void add_mandatory_fields();
     void flatten_field(int& field_idx, const int original_field_idx);
@@ -862,24 +874,45 @@ class FileBasedVidMapper : public VidMapper
   public:
     FileBasedVidMapper() : VidMapper()
     {
-      m_lb_callset_row_idx = 0;
-      m_ub_callset_row_idx = INT64_MAX-1;
     }
 
     FileBasedVidMapper(
         const std::string& filename,
         const std::string& callset_mapping_file="",
-        const int64_t lb_callset_row_idx=0,
-        const int64_t ub_callset_row_idx=INT64_MAX-1,
         const bool is_callset_mapping_required=true) : VidMapper() {
-
       std::vector<BufferStreamInfo> empty_vec;
       common_constructor_initialization(
           filename,
           empty_vec,
           callset_mapping_file,
           "",
-          lb_callset_row_idx, ub_callset_row_idx,
+          is_callset_mapping_required);
+    }
+
+    FileBasedVidMapper(
+        const rapidjson::Document& json_doc,
+        const std::string& callset_mapping_file="",
+        const bool is_callset_mapping_required=true) : VidMapper() {
+      std::vector<BufferStreamInfo> empty_vec;
+      common_constructor_initialization(
+          json_doc,
+          empty_vec,
+          callset_mapping_file,
+          "",
+          is_callset_mapping_required);
+    }
+
+    FileBasedVidMapper(
+        const rapidjson::Document& json_doc,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+        const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
+        const bool is_callset_mapping_required=true) : VidMapper() {
+      common_constructor_initialization(
+          json_doc,
+          buffer_stream_info_vec,
+          callset_mapping_file,
+          buffer_stream_callset_mapping_json_string,
           is_callset_mapping_required);
     }
 
@@ -888,42 +921,28 @@ class FileBasedVidMapper : public VidMapper
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
         const std::string& callset_mapping_file="",
         const std::string& buffer_stream_callset_mapping_json_string="",
-        const int64_t lb_callset_row_idx=0,
-        const int64_t ub_callset_row_idx=INT64_MAX-1,
         const bool is_callset_mapping_required=true) : VidMapper() {
-
       common_constructor_initialization(
           filename,
           buffer_stream_info_vec,
           callset_mapping_file,
           buffer_stream_callset_mapping_json_string,
-          lb_callset_row_idx, ub_callset_row_idx,
           is_callset_mapping_required);
     }
-
-    //Useful when writing partitioned data
-    void write_partition_callsets_json_file(
-        const std::string& original_callsets_filename,
-        const std::string& results_directory,
-        const int rank) const;
-
-    void write_partition_loader_json_file(
-        const std::string& original_loader_filename,
-        const std::string& original_callsets_filename,
-        const std::string& results_directory,
-        const int num_partition_callset_mapping_files,
-        const int rank) const;
-
   private:
     void common_constructor_initialization(
         const std::string& filename,
         const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
         const std::string& callset_mapping_file="",
         const std::string& buffer_stream_callset_mapping_json_string="",
-        const int64_t lb_callset_row_idx=0,
-        const int64_t ub_callset_row_idx=INT64_MAX-1,
         const bool is_callset_mapping_required=true);
-
+    
+    void common_constructor_initialization(
+        const rapidjson::Document& json_doc,
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+        const std::string& callset_mapping_file="",
+        const std::string& buffer_stream_callset_mapping_json_string="",
+        const bool is_callset_mapping_required=true);
   private:
     void parse_callsets_json(
         const std::string& filename,
@@ -934,9 +953,6 @@ class FileBasedVidMapper : public VidMapper
         FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);
 
     void parse_type_descriptor(FieldInfo& field_info, const rapidjson::Value& field_info_json_dict);
-
-    int64_t m_lb_callset_row_idx;
-    int64_t m_ub_callset_row_idx;
 };
 
 #endif  // VID_MAPPER_HD

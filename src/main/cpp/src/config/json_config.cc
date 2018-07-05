@@ -1,6 +1,6 @@
 /**
  * The MIT License (MIT)
- * Copyright (c) 2016-2017 Intel Corporation
+ * Copyright (c) 2016-2018 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of 
  * this software and associated documentation files (the "Software"), to deal in 
@@ -29,45 +29,9 @@
 #include "json_config.h"
 #include "tiledb_utils.h"
 
-#define VERIFY_OR_THROW(X) if(!(X)) throw RunConfigException(#X);
+#define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBConfigException(#X);
 
 const char* g_json_indent_unit = "    ";
-
-void JSONConfigBase::clear()
-{
-  m_workspaces.clear();
-  m_array_names.clear();
-  m_column_ranges.clear();
-  m_row_ranges.clear();
-  m_attributes.clear();
-  m_sorted_column_partitions.clear();
-  m_sorted_row_partitions.clear();
-  m_vid_mapping_file.clear();
-  m_callset_mapping_file.clear();
-}
-
-ColumnRange verify_contig_position_and_get_tiledb_column_interval(const ContigInfo& contig_info,
-    const int64_t begin, const int64_t end)
-{
-  ColumnRange result;
-  result.first = std::min(begin, end);
-  result.second = std::max(begin, end);
-  if(result.first > contig_info.m_length)
-    throw RunConfigException(std::string("Position ")+std::to_string(result.first)
-        +" queried for contig "+contig_info.m_name+" which is of length "
-        +std::to_string(contig_info.m_length)+"; queried position is past end of contig");
-  if(result.second > contig_info.m_length)
-  {
-    std::cerr << "WARNING: position "+std::to_string(result.second)
-        +" queried for contig "+contig_info.m_name+" which is of length "
-        +std::to_string(contig_info.m_length)+"; queried interval is past end of contig, truncating to contig length";
-    result.second = contig_info.m_length;
-  }
-  // Subtract 1 as TileDB is 0-based and genomics (VCF) is 1-based
-  result.first += (contig_info.m_tiledb_column_offset - 1);
-  result.second += (contig_info.m_tiledb_column_offset - 1);
-  return result;
-}
 
 void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
     const VidMapper* id_mapper, ColumnRange& result)
@@ -209,25 +173,21 @@ bool JSONConfigBase::extract_interval_from_PB_struct_or_return_false(const rapid
   return false;
 }
 
-void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper* id_mapper, const int rank)
+void JSONConfigBase::read_from_file(const std::string& filename, const int rank)
 {
   std::ifstream ifs(filename.c_str());
   VERIFY_OR_THROW(ifs.is_open());
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   m_json.Parse(str.c_str());
   if(m_json.HasParseError())
-    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
-  VidMapper tmp_vid_mapper;
+    throw GenomicsDBConfigException(std::string("Syntax error in JSON file ")+filename);
   //Null or un-initialized
-  if(id_mapper == 0 || !(id_mapper->is_initialized()))
-  {
-    read_and_initialize_vid_and_callset_mapping_if_available(&tmp_vid_mapper, rank);
-    if(tmp_vid_mapper.is_initialized())
-      id_mapper = &tmp_vid_mapper;
-  }
+  read_and_initialize_vid_and_callset_mapping_if_available(rank);
+  VERIFY_OR_THROW(m_vid_mapper.is_initialized());
   //Workspace
   if(m_json.HasMember("workspace"))
   {
+    m_workspaces.clear();
     const rapidjson::Value& workspace = m_json["workspace"];
     //workspace could be an array, one workspace dir for every rank
     if(workspace.IsArray())
@@ -237,6 +197,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         VERIFY_OR_THROW(workspace[i].IsString());
         m_workspaces.push_back(workspace[i].GetString());
       }
+      m_single_workspace_path = false;
     }
     else //workspace is simply a string
     {
@@ -249,6 +210,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
   VERIFY_OR_THROW(!(m_json.HasMember("array") && m_json.HasMember("array_name")));
   if(m_json.HasMember("array") || m_json.HasMember("array_name"))
   {
+    m_array_names.clear();
     const rapidjson::Value& array_name = m_json.HasMember("array") ? m_json["array"] : m_json["array_name"];
     //array could be an array, one array dir for every rank
     if(array_name.IsArray())
@@ -258,6 +220,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         VERIFY_OR_THROW(array_name[i].IsString());
         m_array_names.push_back(array_name[i].GetString());
       }
+      m_single_array_name = false;
     }
     else //array is simply a string
     {
@@ -337,17 +300,17 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
           {
             ContigInfo contig_info;
             std::string contig_name = q3.GetString();
-            assert(id_mapper != 0);
-            if (!id_mapper->get_contig_info(contig_name, contig_info))
+            assert(m_vid_mapper.is_initialized());
+            if (!m_vid_mapper.get_contig_info(contig_name, contig_info))
               throw VidMapperException("JSONConfigBase::read_from_file: Invalid contig name : " + contig_name );
             m_column_ranges[i][j].first = contig_info.m_tiledb_column_offset;
             m_column_ranges[i][j].second = contig_info.m_tiledb_column_offset + contig_info.m_length - 1;
           }
           else
-            if(!extract_interval_from_PB_struct_or_return_false(q3, id_mapper, m_column_ranges[i][j])) //check if PB based JSON
+            if(!extract_interval_from_PB_struct_or_return_false(q3, &m_vid_mapper, m_column_ranges[i][j])) //check if PB based JSON
             {
               //must be object { "chr" : [ b , e ] }
-              extract_contig_interval_from_object(q3, id_mapper, m_column_ranges[i][j]);
+              extract_contig_interval_from_object(q3, &m_vid_mapper, m_column_ranges[i][j]);
             }
           if(m_column_ranges[i][j].first > m_column_ranges[i][j].second)
             std::swap<int64_t>(m_column_ranges[i][j].first, m_column_ranges[i][j].second);
@@ -372,18 +335,18 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
           //{ "begin" : <Val> }
           const auto& curr_partition_info_dict = column_partitions_array[partition_idx];
           VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-          VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
-          auto& begin_json_value = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME];
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
+          auto& begin_json_value = curr_partition_info_dict["begin"];
           //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
           VERIFY_OR_THROW(begin_json_value.IsInt64() || begin_json_value.IsObject());
           if(begin_json_value.IsInt64())
             m_column_ranges[partition_idx][0].first = begin_json_value.GetInt64();
           else
-            extract_contig_interval_from_object(begin_json_value, id_mapper, m_column_ranges[partition_idx][0]);
+            extract_contig_interval_from_object(begin_json_value, &m_vid_mapper, m_column_ranges[partition_idx][0]);
           m_column_ranges[partition_idx][0].second = INT64_MAX-1;
-          if(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_END_FIELD_NAME))
+          if(curr_partition_info_dict.HasMember("end"))
           {
-            auto& end_json_value = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_END_FIELD_NAME];
+            auto& end_json_value = curr_partition_info_dict["end"];
             //Either a TileDB column idx or a dictionary of the form { "chr1" : [ 5, 6 ] }
             VERIFY_OR_THROW(end_json_value.IsInt64() || end_json_value.IsObject());
             if(end_json_value.IsInt64())
@@ -391,7 +354,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             else
             {
               ColumnRange tmp_range;
-              extract_contig_interval_from_object(end_json_value, id_mapper, tmp_range);
+              extract_contig_interval_from_object(end_json_value, &m_vid_mapper, tmp_range);
               m_column_ranges[partition_idx][0].second = tmp_range.first;
             }
           }
@@ -479,7 +442,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
             }
             else
               if(q3.IsObject()) //Must be PB generated JSON object { "low": <>, "high": <> }
-                VERIFY_OR_THROW(extract_interval_from_PB_struct_or_return_false(q3, id_mapper, m_row_ranges[i][j]));
+                VERIFY_OR_THROW(extract_interval_from_PB_struct_or_return_false(q3, &m_vid_mapper, m_row_ranges[i][j]));
           }
           if(m_row_ranges[i][j].first > m_row_ranges[i][j].second)
             std::swap<int64_t>(m_row_ranges[i][j].first, m_row_ranges[i][j].second);
@@ -502,12 +465,12 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
         {
           const auto& curr_partition_info_dict = row_partitions_array[partition_idx];
           VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-          VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
+          VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
           m_row_ranges[partition_idx].resize(1);      //only 1 std::pair
-          m_row_ranges[partition_idx][0].first = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME].GetInt64();
+          m_row_ranges[partition_idx][0].first = curr_partition_info_dict["begin"].GetInt64();
           m_row_ranges[partition_idx][0].second = INT64_MAX-1;
-          if(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_END_FIELD_NAME))
-            m_row_ranges[partition_idx][0].second = curr_partition_info_dict[JSON_LOADER_PARTITION_INFO_END_FIELD_NAME].GetInt64();
+          if(curr_partition_info_dict.HasMember("end"))
+            m_row_ranges[partition_idx][0].second = curr_partition_info_dict["end"].GetInt64();
           if(m_row_ranges[partition_idx][0].first > m_row_ranges[partition_idx][0].second)
             std::swap<int64_t>(m_row_ranges[partition_idx][0].first, m_row_ranges[partition_idx][0].second);
           if(curr_partition_info_dict.HasMember("workspace"))
@@ -548,7 +511,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
       }
   }
   if(m_json.HasMember("query_attributes") && m_json.HasMember("attributes"))
-    throw RunConfigException("Query configuration cannot have both \"query_attributes\" and \"attributes\"");
+    throw GenomicsDBConfigException("Query configuration cannot have both \"query_attributes\" and \"attributes\"");
   if(m_json.HasMember("query_attributes") || m_json.HasMember("attributes"))
   {
     const rapidjson::Value& q1 = m_json.HasMember("query_attributes") ?
@@ -567,380 +530,6 @@ void JSONConfigBase::read_from_file(const std::string& filename, const VidMapper
     VERIFY_OR_THROW(m_json["segment_size"].IsInt64());
     m_segment_size = m_json["segment_size"].GetInt64();
   }
-}
-
-const std::string& JSONConfigBase::get_workspace(const int rank) const
-{
-  VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
-     && ("Workspace not defined for rank "+std::to_string(rank)).c_str());
-  if(m_single_workspace_path)
-    return m_workspaces[0];
-  return m_workspaces[rank];
-}
-
-const std::string& JSONConfigBase::get_array_name(const int rank) const
-{
-  VERIFY_OR_THROW((m_single_array_name || static_cast<size_t>(rank) < m_array_names.size())
-      && ("Could not find array for rank "+std::to_string(rank)).c_str());
-  if(m_single_array_name)
-    return m_array_names[0];
-  return m_array_names[rank];
-}
-
-RowRange JSONConfigBase::get_row_partition(const int rank, const unsigned idx) const
-{
-  if(!m_row_partitions_specified)
-    return RowRange(0, INT64_MAX-1);
-  auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
-  if(static_cast<size_t>(fixed_rank) >= m_row_ranges.size())
-    throw RunConfigException(std::string("No row partition/query interval available for process with rank ")
-        +std::to_string(rank));
-  VERIFY_OR_THROW(idx < m_row_ranges[fixed_rank].size());
-  return m_row_ranges[fixed_rank][idx];
-}
-
-ColumnRange JSONConfigBase::get_column_partition(const int rank, const unsigned idx) const
-{
-  if(!m_column_partitions_specified)
-    return ColumnRange(0, INT64_MAX-1);
-  auto fixed_rank = m_single_query_column_ranges_vector ? 0 : rank;
-  if(static_cast<size_t>(fixed_rank) >= m_column_ranges.size())
-    throw RunConfigException(std::string("No column partition/query interval available for process with rank ")
-        +std::to_string(rank));
-  VERIFY_OR_THROW(idx < m_column_ranges[fixed_rank].size());
-  return m_column_ranges[fixed_rank][idx];
-}
-
-const std::vector<RowRange>& JSONConfigBase::get_query_row_ranges(const int rank) const
-{
-  auto fixed_rank = m_single_query_row_ranges_vector ? 0 : rank;
-  if(static_cast<size_t>(fixed_rank) >= m_row_ranges.size())
-    throw RunConfigException(std::string("No row partition/query row range available for process with rank ")
-        +std::to_string(rank));
-  return m_row_ranges[fixed_rank];
-}
-
-const std::vector<ColumnRange>& JSONConfigBase::get_query_column_ranges(const int rank) const
-{
-  auto fixed_rank = m_single_query_column_ranges_vector ? 0 : rank;
-  if(static_cast<size_t>(fixed_rank) >= m_column_ranges.size())
-    throw RunConfigException(std::string("No column partition/query column range available for process with rank ")
-        +std::to_string(rank));
-  return m_column_ranges[fixed_rank];
-}
-
-void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(VidMapper* id_mapper, const int rank)
-{
-  auto& vid_mapping_file = m_vid_mapping_file;
-  auto& callset_mapping_file = m_callset_mapping_file;
-  //Callset mapping file and vid file
-  if(m_json.HasMember("vid_mapping_file"))
-  {
-    //Over-ride callset mapping file in top-level config if necessary
-    if(m_json.HasMember("callset_mapping_file"))
-    {
-      const rapidjson::Value& v = m_json["callset_mapping_file"];
-      //Could be array - one for each process
-      if(v.IsArray())
-      {
-        VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
-        VERIFY_OR_THROW(v[rank].IsString());
-        callset_mapping_file = v[rank].GetString();
-      }
-      else
-      {
-        VERIFY_OR_THROW(v.IsString());
-        callset_mapping_file = v.GetString();
-      }
-    }
-    const rapidjson::Value& v = m_json["vid_mapping_file"];
-    //Could be array - one for each process
-    if(v.IsArray())
-    {
-      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
-      VERIFY_OR_THROW(v[rank].IsString());
-      vid_mapping_file = v[rank].GetString();
-    }
-    else //or single string for all processes
-    {
-      VERIFY_OR_THROW(v.IsString());
-      vid_mapping_file = v.GetString();
-    }
-  }
-  if(id_mapper && !(vid_mapping_file.empty()))
-    (*id_mapper) = std::move(FileBasedVidMapper(vid_mapping_file, callset_mapping_file, m_lb_callset_row_idx, m_ub_callset_row_idx, false));
-}
-
-void JSONBasicQueryConfig::update_from_loader(JSONLoaderConfig* loader_config, const int rank)
-{
-  if (!loader_config)
-    return;
-  // Update workspace if it is not provided in query json
-  if (!m_json.HasMember("workspace"))
-  {
-    // Set as single workspace
-    m_single_workspace_path = true;
-    m_workspaces.push_back(loader_config->get_workspace(rank));
-  }
-  // Update array if it is not provided in query json
-  if (!(m_json.HasMember("array") || m_json.HasMember("array_name")))
-  {
-    // Set as single array
-    m_single_array_name = true;
-    m_array_names.push_back(loader_config->get_array_name(rank));
-  }
-  //Vid mapping
-  if(!m_json.HasMember("vid_mapping_file"))
-    m_vid_mapping_file = loader_config->get_vid_mapping_filename();
-  //Callset mapping
-  if(!m_json.HasMember("callset_mapping_file"))
-    m_callset_mapping_file = loader_config->get_callset_mapping_filename();
-}
-
-void JSONBasicQueryConfig::subset_query_column_ranges_based_on_partition(const JSONLoaderConfig* loader_config, const int rank)
-{
-  if(loader_config)
-  {
-    // Check if the partitioning is column-based, if so, pick the column corresponding to the rank
-    // and update the m_column_ranges
-    if (loader_config->is_partitioned_by_column())
-    {
-      ColumnRange my_rank_loader_column_range = loader_config->get_column_partition(rank);
-      std::vector<ColumnRange> my_rank_queried_columns;
-      for(auto queried_column_range : get_query_column_ranges(rank))
-      {
-        if(queried_column_range.second >= my_rank_loader_column_range.first
-            && queried_column_range.first <= my_rank_loader_column_range.second)
-          my_rank_queried_columns.emplace_back(queried_column_range);
-      }
-      auto idx = m_single_query_column_ranges_vector ? 0 : rank;
-      assert(static_cast<size_t>(idx) < m_column_ranges.size());
-      m_column_ranges[idx] = std::move(my_rank_queried_columns);
-    }
-  }
-}
-
-void JSONBasicQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-    VidMapper* id_mapper, const int rank, JSONLoaderConfig* loader_config)
-{
-  //Need to parse here first because id_mapper initialization in read_and_initialize_vid_and_callset_mapping_if_available() requires
-  //valid m_json object
-  std::ifstream ifs(filename.c_str());
-  VERIFY_OR_THROW(ifs.is_open());
-  std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-  m_json.Parse(str.c_str());
-  if(m_json.HasParseError())
-    throw RunConfigException(std::string("Syntax error in JSON file ")+filename);
-  // Update from loader_config_file
-  update_from_loader(loader_config, rank);
-  if (id_mapper)
-  {
-    read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
-    VERIFY_OR_THROW(id_mapper->is_initialized() && "No valid vid_mapping_file provided in loader or query JSON");
-  }
-  JSONConfigBase::read_from_file(filename, id_mapper, rank);
-  //Workspace
-  VERIFY_OR_THROW(m_workspaces.size() && "No workspace specified");
-  VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
-      && ("Could not find workspace for rank "+std::to_string(rank)).c_str());
-  auto& workspace = m_single_workspace_path ? m_workspaces[0] : m_workspaces[rank];
-  VERIFY_OR_THROW(workspace != "" && "Empty workspace string");
-  //Array
-  VERIFY_OR_THROW(m_array_names.size() && "No array specified");
-  VERIFY_OR_THROW((m_single_array_name || static_cast<size_t>(rank) < m_array_names.size())
-      && ("Could not find array for rank "+std::to_string(rank)).c_str());
-  auto& array_name = m_single_array_name ? m_array_names[0] : m_array_names[rank];
-  VERIFY_OR_THROW(array_name != "" && "Empty array name");
-  //Query columns
-  VERIFY_OR_THROW((m_column_ranges.size() || m_scan_whole_array) && "Query column ranges not specified");
-  subset_query_column_ranges_based_on_partition(loader_config, rank);
-  if(!m_scan_whole_array)
-  {
-    VERIFY_OR_THROW((m_single_query_column_ranges_vector || static_cast<size_t>(rank) < m_column_ranges.size())
-        && "Rank >= query column ranges vector size");
-    for(const auto& range : get_query_column_ranges(rank))
-      query_config.add_column_interval_to_query(range.first, range.second);
-  }
-  //Query rows
-  if(!m_scan_whole_array && m_row_ranges.size())
-  {
-    VERIFY_OR_THROW((m_single_query_row_ranges_vector || static_cast<size_t>(rank) < m_row_ranges.size())
-        && "Rank >= query row ranges vector size");
-    std::vector<int64_t> row_idxs;
-    for(const auto& range : get_query_row_ranges(rank))
-    {
-      auto j = row_idxs.size();
-      row_idxs.resize(row_idxs.size() + (range.second - range.first + 1ll));
-      for(auto i=range.first;i<=range.second;++i,++j)
-        row_idxs[j] = i;
-    }
-    query_config.set_rows_to_query(row_idxs);
-  }
-  //Attributes
-  query_config.set_attributes_to_query(m_attributes);
-}
-
-//Loader config functions
-JSONLoaderConfig::JSONLoaderConfig(
-  bool vid_mapper_file_required) : JSONConfigBase()
-{
-  m_standalone_converter_process = false;
-  m_treat_deletions_as_intervals = false;
-  m_produce_combined_vcf = false;
-  m_produce_tiledb_array = false;
-  m_compress_tiledb_array = true;
-  m_disable_synced_writes = false;
-  m_delete_and_create_tiledb_array = false;
-  m_row_based_partitioning = false;
-  //Flag that controls whether the VCF indexes should be discarded to reduce memory consumption
-  m_discard_vcf_index = true;
-  m_num_entries_in_circular_buffer = 1;
-  m_num_converter_processes = 0;
-  m_per_partition_size = 0;
-  m_max_size_per_callset = 0;
-  //Array domain
-  m_max_num_rows_in_array = INT64_MAX;
-  //#VCF files to open/process in parallel
-  m_num_parallel_vcf_files = 1;
-  //do ping-pong buffering
-  m_do_ping_pong_buffering = true;
-  //Offload VCF output processing to another thread
-  m_offload_vcf_output_processing = false;
-  //Ignore cells that do not belong to this partition
-  m_ignore_cells_not_in_partition = false;
-  m_vid_mapping_file = "";
-  m_callset_mapping_file = "";
-  m_segment_size = 10u*1024u*1024u; //10MiB default
-  m_num_cells_per_tile = 1024u;
-  m_vid_mapper_file_required = vid_mapper_file_required;
-  m_fail_if_updating = false;
-  m_tiledb_compression_level = Z_DEFAULT_COMPRESSION;
-  m_consolidate_tiledb_array_after_load = false;
-  m_discard_missing_GTs = false;
-  m_no_mandatory_VCF_fields = false;
-}
-
-void JSONLoaderConfig::read_from_file(const std::string& filename, VidMapper* id_mapper, const int rank)
-{
-  JSONConfigBase::read_from_file(filename, id_mapper, rank);
-  //Check for row based partitioning - default column based
-  m_row_based_partitioning = m_json.HasMember("row_based_partitioning") && m_json["row_based_partitioning"].IsBool()
-    && m_json["row_based_partitioning"].GetBool();
-  if(m_row_based_partitioning) //Row based partitioning
-  {
-    VERIFY_OR_THROW(m_json.HasMember("row_partitions"));
-  }
-  else //Column partitions - if no row based partitioning (default: column partitioning)
-  {
-    VERIFY_OR_THROW(m_json.HasMember("column_partitions"));
-  }
-  //Buffer size per column partition
-  VERIFY_OR_THROW(m_json.HasMember("size_per_column_partition"));
-  m_per_partition_size = m_json["size_per_column_partition"].GetInt64();
-  //Obtain number of converters
-  m_num_converter_processes = 0;
-  if(m_json.HasMember("num_converter_processes") && !m_row_based_partitioning)
-    m_num_converter_processes = m_json["num_converter_processes"].GetInt64();
-  //Converter processes run independent of loader when num_converter_processes > 0
-  m_standalone_converter_process = (m_num_converter_processes && !m_row_based_partitioning) ? true : false;
-  //treat deletions as intervals
-  if(m_json.HasMember("treat_deletions_as_intervals"))
-    m_treat_deletions_as_intervals = m_json["treat_deletions_as_intervals"].GetBool();
-  else
-    m_treat_deletions_as_intervals = false;
-  //Domain size of the array
-  m_max_num_rows_in_array = INT64_MAX;
-  if(m_json.HasMember("max_num_rows_in_array"))
-    m_max_num_rows_in_array = m_json["max_num_rows_in_array"].GetInt64();
-  //Ignore callsets with row idx < specified value
-  m_lb_callset_row_idx = 0;
-  if(m_json.HasMember("lb_callset_row_idx"))
-    m_lb_callset_row_idx = m_json["lb_callset_row_idx"].GetInt64();
-  //Ignore callsets with row idx > specified value
-  m_ub_callset_row_idx = INT64_MAX-1;
-  if(m_json.HasMember("ub_callset_row_idx"))
-    m_ub_callset_row_idx = m_json["ub_callset_row_idx"].GetInt64();
-  //Produce combined vcf
-  m_produce_combined_vcf = false;
-  if(m_json.HasMember("produce_combined_vcf") && m_json["produce_combined_vcf"].GetBool())
-    m_produce_combined_vcf = true;
-  //Produce TileDB array
-  m_produce_tiledb_array = false;
-  if(m_json.HasMember("produce_tiledb_array") && m_json["produce_tiledb_array"].GetBool())
-    m_produce_tiledb_array = true;
-  //Compress TileDB array by default or if flag set to true
-  m_compress_tiledb_array = (!m_json.HasMember("compress_tiledb_array")
-      || (m_json["compress_tiledb_array"].IsBool() && m_json["compress_tiledb_array"].GetBool()));
-  //Disable synced writes - default false
-  m_disable_synced_writes = (m_json.HasMember("disable_synced_writes") && m_json["disable_synced_writes"].IsBool()
-      && m_json["disable_synced_writes"].GetBool());
-  //recreate array from scratch
-  m_delete_and_create_tiledb_array = (m_json.HasMember("delete_and_create_tiledb_array") && m_json["delete_and_create_tiledb_array"].IsBool()
-    && m_json["delete_and_create_tiledb_array"].GetBool());
-  //Control whether VCF indexes should be discarded to save memory
-  m_discard_vcf_index = true;
-  if(m_json.HasMember("discard_vcf_index"))
-    m_discard_vcf_index = m_json["discard_vcf_index"].GetBool();
-  //#vcf files to process in parallel
-  m_num_parallel_vcf_files = 1;
-  if(m_json.HasMember("num_parallel_vcf_files"))
-    m_num_parallel_vcf_files = m_json["num_parallel_vcf_files"].GetInt();
-  //do ping pong buffering
-  m_do_ping_pong_buffering = true;
-  if(m_json.HasMember("do_ping_pong_buffering"))
-    m_do_ping_pong_buffering = m_json["do_ping_pong_buffering"].GetBool();
-  //Offload VCF output processing
-  m_offload_vcf_output_processing = false;
-  if(m_json.HasMember("offload_vcf_output_processing"))
-    m_offload_vcf_output_processing = m_do_ping_pong_buffering && m_json["offload_vcf_output_processing"].GetBool();
-  //Ignore cells that do not belong to this partition
-  if(m_json.HasMember("ignore_cells_not_in_partition") && m_json["ignore_cells_not_in_partition"].IsBool())
-    m_ignore_cells_not_in_partition = m_json["ignore_cells_not_in_partition"].GetBool();
-  //TileDB array segment size
-  if(m_json.HasMember("segment_size") && m_json["segment_size"].IsInt64())
-    m_segment_size = m_json["segment_size"].GetInt64();
-  //TileDB array #cells/tile
-  if(m_json.HasMember("num_cells_per_tile") && m_json["num_cells_per_tile"].IsInt64())
-    m_num_cells_per_tile = m_json["num_cells_per_tile"].GetInt64();
-  if(m_json.HasMember("tiledb_compression_level") && m_json["tiledb_compression_level"].IsInt()) {
-    int val = m_json["tiledb_compression_level"].GetInt();
-    if ((val < Z_DEFAULT_COMPRESSION) || (val > Z_BEST_COMPRESSION))
-       val = Z_DEFAULT_COMPRESSION;
-    m_tiledb_compression_level = val;
-  }
-  //Must have path to vid_mapping_file
-  if (m_vid_mapper_file_required) {
-    VERIFY_OR_THROW(m_json.HasMember("vid_mapping_file"));
-  }
-  //flag that causes the loader to fail if this is an update (rather than a fresh load)
-  m_fail_if_updating = false;
-  if(m_json.HasMember("fail_if_updating") && m_json["fail_if_updating"].IsBool())
-    m_fail_if_updating = m_json["fail_if_updating"].GetBool();
-  read_and_initialize_vid_and_callset_mapping_if_available(id_mapper, rank);
-  //consolidate TileDB array after load - merges fragments
-  m_consolidate_tiledb_array_after_load = false;
-  if(m_json.HasMember("consolidate_tiledb_array_after_load") && m_json["consolidate_tiledb_array_after_load"].IsBool())
-    m_consolidate_tiledb_array_after_load = m_json["consolidate_tiledb_array_after_load"].GetBool();
-  //Discard entries with ./. or .|. as the GT field
-  m_discard_missing_GTs = false;
-  if(m_json.HasMember("discard_missing_GTs") && m_json["discard_missing_GTs"].IsBool())
-    m_discard_missing_GTs = m_json["discard_missing_GTs"].GetBool();
-  //The array will NOT contain mandatory VCF fields (ref, alt, qual, filter) 
-  //if this flag is enabled
-  m_no_mandatory_VCF_fields = false;
-  if(m_json.HasMember("no_mandatory_VCF_fields") && m_json["no_mandatory_VCF_fields"].IsBool())
-    m_no_mandatory_VCF_fields = m_json["no_mandatory_VCF_fields"].GetBool();
-}
-   
-#ifdef HTSDIR
-
-void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
-    VCFAdapter& vcf_adapter,
-    VidMapper* id_mapper,
-    std::string output_format, const int rank,
-    const size_t combined_vcf_records_buffer_size_limit)
-{
-  JSONConfigBase::read_from_file(filename, id_mapper, rank);
   //VCF header filename
   if(m_json.HasMember("vcf_header_filename"))
   {
@@ -950,12 +539,12 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
     {
       VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
-      m_vcf_header_filename = v[rank].GetString();
+      set_vcf_header_filename(v[rank].GetString());
     }
     else //vcf_header_filename is simply a string
     {
       VERIFY_OR_THROW(v.IsString());
-      m_vcf_header_filename = v.GetString();
+      set_vcf_header_filename(v.GetString());
     }
   }
   //VCF output filename
@@ -977,6 +566,8 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   }
   else
     m_vcf_output_filename = "-";        //stdout
+  if(m_json.HasMember("vcf_output_format"))
+    set_vcf_output_format(m_json["vcf_output_format"].GetString());
   //VCF output could also be specified in column partitions
   if(m_json.HasMember("column_partitions"))
   {
@@ -988,7 +579,7 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
       // {"begin": x}
       auto& curr_partition_info_dict = column_partitions_array[static_cast<rapidjson::SizeType>(rank)];
       VERIFY_OR_THROW(curr_partition_info_dict.IsObject());
-      VERIFY_OR_THROW(curr_partition_info_dict.HasMember(JSON_LOADER_PARTITION_INFO_BEGIN_FIELD_NAME));
+      VERIFY_OR_THROW(curr_partition_info_dict.HasMember("begin"));
       if(curr_partition_info_dict.HasMember("vcf_output_filename"))
       {
         VERIFY_OR_THROW(curr_partition_info_dict["vcf_output_filename"].IsString());
@@ -1013,9 +604,6 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
       m_reference_genome = v.GetString();
     }
   }
-  //Output format - if arg not empty
-  if(output_format == "" && m_json.HasMember("vcf_output_format"))
-    output_format = m_json["vcf_output_format"].GetString(); 
   //Limit on max #alt alleles so that PL fields get re-computed
   if(m_json.HasMember("max_diploid_alt_alleles_that_can_be_genotyped"))
     m_max_diploid_alt_alleles_that_can_be_genotyped = m_json["max_diploid_alt_alleles_that_can_be_genotyped"].GetInt();
@@ -1027,48 +615,184 @@ void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
   else
     m_determine_sites_with_max_alleles = 0;
   //Buffer size for combined vcf records
-  if(combined_vcf_records_buffer_size_limit == 0u)
-    if(m_json.HasMember("combined_vcf_records_buffer_size_limit"))
-      m_combined_vcf_records_buffer_size_limit = m_json["combined_vcf_records_buffer_size_limit"].GetInt64();
-    else
-      m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
+  if(m_json.HasMember("combined_vcf_records_buffer_size_limit"))
+    m_combined_vcf_records_buffer_size_limit = m_json["combined_vcf_records_buffer_size_limit"].GetInt64();
   else
-    m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
+    m_combined_vcf_records_buffer_size_limit = DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE;
   //Cannot be 0
   m_combined_vcf_records_buffer_size_limit = std::max<size_t>(1ull, m_combined_vcf_records_buffer_size_limit);
   //GATK CombineGVCF does not produce GT field by default - option to produce GT
-  auto produce_GT_field = (m_json.HasMember("produce_GT_field") && m_json["produce_GT_field"].GetBool());
+  m_produce_GT_field = (m_json.HasMember("produce_GT_field") && m_json["produce_GT_field"].GetBool());
   //GATK CombineGVCF does not produce FILTER field by default - option to produce FILTER
-  auto produce_FILTER_field = (m_json.HasMember("produce_FILTER_field") && m_json["produce_FILTER_field"].GetBool());
+  m_produce_FILTER_field = (m_json.HasMember("produce_FILTER_field") && m_json["produce_FILTER_field"].GetBool());
   //index output VCF file
-  auto index_output_VCF = (m_json.HasMember("index_output_VCF") && m_json["index_output_VCF"].GetBool());
+  m_index_output_VCF = (m_json.HasMember("index_output_VCF") && m_json["index_output_VCF"].GetBool());
   //sites-only query - doesn't produce any of the FORMAT fields
-  auto sites_only_query = (m_json.HasMember("sites_only_query") && m_json["sites_only_query"].GetBool());
+  m_sites_only_query = (m_json.HasMember("sites_only_query") && m_json["sites_only_query"].GetBool());
   //when producing GT, use the min PL value GT for spanning deletions
-  auto produce_GT_with_min_PL_value_for_spanning_deletions = (m_json.HasMember("produce_GT_with_min_PL_value_for_spanning_deletions")
+  m_produce_GT_with_min_PL_value_for_spanning_deletions = (m_json.HasMember("produce_GT_with_min_PL_value_for_spanning_deletions")
       && m_json["produce_GT_with_min_PL_value_for_spanning_deletions"].GetBool());
-
-  // Move m_vcf_header_filename contents to a temporary local file for non-local URIs
-  if (TileDBUtils::is_cloud_path(m_vcf_header_filename)) {
-    char tmp_filename[PATH_MAX];
-    TileDBUtils::create_temp_filename(tmp_filename, PATH_MAX);
-    TileDBUtils::move_across_filesystems(m_vcf_header_filename, tmp_filename);
-    m_vcf_header_filename.assign(tmp_filename);
-    is_tmp_vcf_header_filename = true;
-  }
-
-  vcf_adapter.initialize(m_reference_genome, m_vcf_header_filename, m_vcf_output_filename, output_format, m_combined_vcf_records_buffer_size_limit,
-      produce_GT_field, index_output_VCF, produce_FILTER_field,
-      sites_only_query, produce_GT_with_min_PL_value_for_spanning_deletions);
 }
 
-void JSONVCFAdapterQueryConfig::read_from_file(const std::string& filename, VariantQueryConfig& query_config,
-        VCFAdapter& vcf_adapter, VidMapper* id_mapper,
-        std::string output_format, const int rank, const size_t combined_vcf_records_buffer_size_limit)
+void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(const int rank)
 {
-  JSONBasicQueryConfig::read_from_file(filename, query_config, id_mapper, rank);
-  JSONVCFAdapterConfig::read_from_file(filename, vcf_adapter, id_mapper,
-      output_format, rank, combined_vcf_records_buffer_size_limit);
-  query_config.set_sites_only_query(vcf_adapter.sites_only_query());
+  //Callset mapping file and vid file
+  if(m_json.HasMember("vid_mapping_file"))
+  {
+    //Over-ride callset mapping file in top-level config if necessary
+    if(m_json.HasMember("callset_mapping_file"))
+    {
+      const rapidjson::Value& v = m_json["callset_mapping_file"];
+      //Could be array - one for each process
+      if(v.IsArray())
+      {
+        VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
+        VERIFY_OR_THROW(v[rank].IsString());
+        m_callset_mapping_file = v[rank].GetString();
+      }
+      else
+      {
+        VERIFY_OR_THROW(v.IsString());
+        m_callset_mapping_file = v.GetString();
+      }
+    }
+    const rapidjson::Value& v = m_json["vid_mapping_file"];
+    //Could be array - one for each process
+    if(v.IsArray())
+    {
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
+      VERIFY_OR_THROW(v[rank].IsString());
+      m_vid_mapping_file = v[rank].GetString();
+    }
+    else //or single string for all processes
+    {
+      VERIFY_OR_THROW(v.IsString());
+      m_vid_mapping_file = v.GetString();
+    }
+  }
+  if(!m_vid_mapping_file.empty())
+    m_vid_mapper = std::move(FileBasedVidMapper(m_vid_mapping_file, m_callset_mapping_file, false));
 }
-#endif
+
+void GenomicsDBImportConfig::read_from_file(const std::string& filename, const int rank)
+{
+  //Why do this? Avoid diamond inheritance problem
+  JSONConfigBase tmp_config;
+  tmp_config.read_from_file(filename, rank);
+  //Copy over data from tmp_config
+  *(static_cast<GenomicsDBConfigBase*>(this)) = std::move(static_cast<GenomicsDBConfigBase&>(tmp_config));
+  auto& json_doc = tmp_config.get_rapidjson_doc();
+  //Check for row based partitioning - default column based
+  m_row_based_partitioning = json_doc.HasMember("row_based_partitioning") && json_doc["row_based_partitioning"].IsBool()
+    && json_doc["row_based_partitioning"].GetBool();
+  if(m_row_based_partitioning) //Row based partitioning
+  {
+    VERIFY_OR_THROW(json_doc.HasMember("row_partitions"));
+  }
+  else //Column partitions - if no row based partitioning (default: column partitioning)
+  {
+    VERIFY_OR_THROW(json_doc.HasMember("column_partitions"));
+  }
+  //Buffer size per column partition
+  VERIFY_OR_THROW(json_doc.HasMember("size_per_column_partition"));
+  m_per_partition_size = json_doc["size_per_column_partition"].GetInt64();
+  //Obtain number of converters
+  m_num_converter_processes = 0;
+  if(json_doc.HasMember("num_converter_processes") && !m_row_based_partitioning)
+    m_num_converter_processes = json_doc["num_converter_processes"].GetInt64();
+  //Converter processes run independent of loader when num_converter_processes > 0
+  m_standalone_converter_process = (m_num_converter_processes && !m_row_based_partitioning) ? true : false;
+  //treat deletions as intervals
+  if(json_doc.HasMember("treat_deletions_as_intervals"))
+    m_treat_deletions_as_intervals = json_doc["treat_deletions_as_intervals"].GetBool();
+  else
+    m_treat_deletions_as_intervals = false;
+  //Domain size of the array
+  m_max_num_rows_in_array = INT64_MAX;
+  if(json_doc.HasMember("max_num_rows_in_array"))
+    m_max_num_rows_in_array = json_doc["max_num_rows_in_array"].GetInt64();
+  //Ignore callsets with row idx < specified value
+  m_lb_callset_row_idx = 0;
+  if(json_doc.HasMember("lb_callset_row_idx"))
+    m_lb_callset_row_idx = json_doc["lb_callset_row_idx"].GetInt64();
+  //Ignore callsets with row idx > specified value
+  m_ub_callset_row_idx = INT64_MAX-1;
+  if(json_doc.HasMember("ub_callset_row_idx"))
+    m_ub_callset_row_idx = json_doc["ub_callset_row_idx"].GetInt64();
+  fix_callset_row_idx_bounds(rank);
+  //Produce combined vcf
+  m_produce_combined_vcf = false;
+  if(json_doc.HasMember("produce_combined_vcf") && json_doc["produce_combined_vcf"].GetBool())
+    m_produce_combined_vcf = true;
+  //Produce TileDB array
+  m_produce_tiledb_array = false;
+  if(json_doc.HasMember("produce_tiledb_array") && json_doc["produce_tiledb_array"].GetBool())
+    m_produce_tiledb_array = true;
+  //Compress TileDB array by default or if flag set to true
+  m_compress_tiledb_array = (!json_doc.HasMember("compress_tiledb_array")
+      || (json_doc["compress_tiledb_array"].IsBool() && json_doc["compress_tiledb_array"].GetBool()));
+  //Disable synced writes - default false
+  m_disable_synced_writes = (json_doc.HasMember("disable_synced_writes") && json_doc["disable_synced_writes"].IsBool()
+      && json_doc["disable_synced_writes"].GetBool());
+  //recreate array from scratch
+  m_delete_and_create_tiledb_array = (json_doc.HasMember("delete_and_create_tiledb_array") && json_doc["delete_and_create_tiledb_array"].IsBool()
+    && json_doc["delete_and_create_tiledb_array"].GetBool());
+  //Control whether VCF indexes should be discarded to save memory
+  m_discard_vcf_index = true;
+  if(json_doc.HasMember("discard_vcf_index"))
+    m_discard_vcf_index = json_doc["discard_vcf_index"].GetBool();
+  //#vcf files to process in parallel
+  m_num_parallel_vcf_files = 1;
+  if(json_doc.HasMember("num_parallel_vcf_files"))
+    m_num_parallel_vcf_files = json_doc["num_parallel_vcf_files"].GetInt();
+  //do ping pong buffering
+  m_do_ping_pong_buffering = true;
+  if(json_doc.HasMember("do_ping_pong_buffering"))
+    m_do_ping_pong_buffering = json_doc["do_ping_pong_buffering"].GetBool();
+  //Offload VCF output processing
+  m_offload_vcf_output_processing = false;
+  if(json_doc.HasMember("offload_vcf_output_processing"))
+    m_offload_vcf_output_processing = m_do_ping_pong_buffering && json_doc["offload_vcf_output_processing"].GetBool();
+  //Ignore cells that do not belong to this partition
+  if(json_doc.HasMember("ignore_cells_not_in_partition") && json_doc["ignore_cells_not_in_partition"].IsBool())
+    m_ignore_cells_not_in_partition = json_doc["ignore_cells_not_in_partition"].GetBool();
+  //TileDB array segment size
+  if(json_doc.HasMember("segment_size") && json_doc["segment_size"].IsInt64())
+    m_segment_size = json_doc["segment_size"].GetInt64();
+  //TileDB array #cells/tile
+  if(json_doc.HasMember("num_cells_per_tile") && json_doc["num_cells_per_tile"].IsInt64())
+    m_num_cells_per_tile = json_doc["num_cells_per_tile"].GetInt64();
+  if(json_doc.HasMember("tiledb_compression_level") && json_doc["tiledb_compression_level"].IsInt()) {
+    int val = json_doc["tiledb_compression_level"].GetInt();
+    if ((val < Z_DEFAULT_COMPRESSION) || (val > Z_BEST_COMPRESSION))
+       val = Z_DEFAULT_COMPRESSION;
+    m_tiledb_compression_level = val;
+  }
+  //flag that causes the loader to fail if this is an update (rather than a fresh load)
+  m_fail_if_updating = false;
+  if(json_doc.HasMember("fail_if_updating") && json_doc["fail_if_updating"].IsBool())
+    m_fail_if_updating = json_doc["fail_if_updating"].GetBool();
+  //consolidate TileDB array after load - merges fragments
+  m_consolidate_tiledb_array_after_load = false;
+  if(json_doc.HasMember("consolidate_tiledb_array_after_load") && json_doc["consolidate_tiledb_array_after_load"].IsBool())
+    m_consolidate_tiledb_array_after_load = json_doc["consolidate_tiledb_array_after_load"].GetBool();
+  //Discard entries with ./. or .|. as the GT field
+  m_discard_missing_GTs = false;
+  if(json_doc.HasMember("discard_missing_GTs") && json_doc["discard_missing_GTs"].IsBool())
+    m_discard_missing_GTs = json_doc["discard_missing_GTs"].GetBool();
+  //The array will NOT contain mandatory VCF fields (ref, alt, qual, filter) 
+  //if this flag is enabled
+  m_no_mandatory_VCF_fields = false;
+  if(json_doc.HasMember("no_mandatory_VCF_fields") && json_doc["no_mandatory_VCF_fields"].IsBool())
+    m_no_mandatory_VCF_fields = json_doc["no_mandatory_VCF_fields"].GetBool();
+}
+
+//void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
+    //VCFAdapter& vcf_adapter,
+    //VidMapper* id_mapper,
+    //std::string output_format, const int rank,
+    //const size_t combined_vcf_records_buffer_size_limit)
+//{
+  ////FIXME: provide overrides
+  ////combined_vcf_records_buffer_size_limit
+//}

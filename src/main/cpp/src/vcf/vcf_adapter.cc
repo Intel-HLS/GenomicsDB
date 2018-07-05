@@ -260,19 +260,14 @@ bool VCFAdapter::add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id
   return false;
 }
 
-VCFAdapter::VCFAdapter(bool open_output, const size_t combined_vcf_records_buffer_size_limit)
+VCFAdapter::VCFAdapter(bool open_output)
 {
   m_open_output = open_output;
-  m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
   clear();
-  m_vcf_header_filename = "";
   m_template_vcf_hdr = 0;
   m_output_fptr = 0;
   m_is_bcf = true;
-  m_produce_GT_field = false;
-  m_produce_FILTER_field = false;
-  m_sites_only_query = false;
-  m_produce_GT_with_min_PL_value_for_spanning_deletions = false;
+  m_config_base_ptr = 0;
 }
 
 VCFAdapter::~VCFAdapter()
@@ -284,19 +279,19 @@ VCFAdapter::~VCFAdapter()
   {
     bcf_close(m_output_fptr);
     auto status = 0;
-    switch(m_index_output_VCF)
+    switch(m_output_VCF_index_type)
     {
       case VCFIndexType::VCF_INDEX_CSI:
-        status = bcf_index_build(m_output_filename.c_str(), 14); //bcftools had default 14
+        status = bcf_index_build(m_config_base_ptr->get_vcf_output_filename().c_str(), 14); //bcftools had default 14
         break;
       case VCFIndexType::VCF_INDEX_TBI:
-        status = tbx_index_build(m_output_filename.c_str(), 0, &tbx_conf_vcf);
+        status = tbx_index_build(m_config_base_ptr->get_vcf_output_filename().c_str(), 0, &tbx_conf_vcf);
         break;
       default:
         break; //do nothing
     }
     if(status != 0)
-      std::cerr << "WARNING: error in creating index for output file "<<m_output_filename<<"\n";
+      std::cerr << "WARNING: error in creating index for output file "<<m_config_base_ptr->get_vcf_output_filename()<<"\n";
   }
   m_output_fptr = 0;
 #ifdef DO_PROFILING
@@ -307,39 +302,29 @@ VCFAdapter::~VCFAdapter()
 void VCFAdapter::clear()
 {
   m_reference_genome_info.clear();
-  m_vcf_header_filename.clear();
 }
 
-void VCFAdapter::initialize(const std::string& reference_genome,
-    const std::string& vcf_header_filename,
-    std::string output_filename, std::string output_format,
-    const size_t combined_vcf_records_buffer_size_limit,
-    const bool produce_GT_field,
-    const bool index_output_VCF,
-    const bool produce_FILTER_field,
-    const bool sites_only_query,
-    const bool produce_GT_with_min_PL_value_for_spanning_deletions)
+void VCFAdapter::initialize(const GenomicsDBConfigBase& config_base)
 {
   //Read template header with fields and contigs
-  m_vcf_header_filename = vcf_header_filename;
-  if(m_vcf_header_filename.length() > 0u)
+  if(config_base.get_vcf_header_filename().empty())
+    m_template_vcf_hdr = initialize_default_header();
+  else
   {
-    auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
+    auto* fptr = bcf_open(config_base.get_vcf_header_filename().c_str(), "r");
+    if(fptr == 0)
+      throw VCFAdapterException(std::string("Could not open template VCF header file ")
+          +config_base.get_vcf_header_filename());
     m_template_vcf_hdr = bcf_hdr_read_required_sample_line(fptr, 0); //sample line is not required
     bcf_close(fptr);
   }
-  else
-    m_template_vcf_hdr = initialize_default_header();
   //Output fptr
-  std::unordered_map<std::string, bool> valid_output_formats = { {"b", true}, {"bu",true}, {"z",false}, {"",false} };
-  if(valid_output_formats.find(output_format) == valid_output_formats.end())
-  {
-    std::cerr << "INFO: Invalid BCF/VCF output format: "<<output_format<<", will output compressed VCF\n";
-    output_format = "z";
-  }
-  m_is_bcf = valid_output_formats[output_format];
-  m_output_filename = output_filename;
-  m_index_output_VCF = VCF_INDEX_NONE;
+  auto& output_format = config_base.get_vcf_output_format();
+  assert(GenomicsDBConfigBase::m_vcf_output_format_to_is_bcf_flag.find(output_format)
+        != GenomicsDBConfigBase::m_vcf_output_format_to_is_bcf_flag.end());
+  m_is_bcf = GenomicsDBConfigBase::m_vcf_output_format_to_is_bcf_flag[output_format];
+  auto& output_filename = config_base.get_vcf_output_filename();
+  m_output_VCF_index_type = VCF_INDEX_NONE;
   if(m_open_output)
   {
     m_output_fptr = bcf_open(output_filename.c_str(), ("w"+output_format).c_str());
@@ -348,24 +333,21 @@ void VCFAdapter::initialize(const std::string& reference_genome,
       std::cerr << "Cannot write to output file "<< output_filename << ", exiting\n";
       exit(-1);
     }
-    if(index_output_VCF && !output_filename.empty() && !(output_filename.length() == 1u && output_filename[0] == '-'))
+    if(config_base.index_output_VCF() && !output_filename.empty()
+        && !(output_filename.length() == 1u && output_filename[0] == '-'))
     {
       if(output_format == "z")
-        m_index_output_VCF = VCFIndexType::VCF_INDEX_TBI;
+        m_output_VCF_index_type = VCFIndexType::VCF_INDEX_TBI;
       else
       {
         if(output_format == "b")
-          m_index_output_VCF = VCFIndexType::VCF_INDEX_CSI;
+          m_output_VCF_index_type = VCFIndexType::VCF_INDEX_CSI;
       }
     }
   }
   //Reference genome
-  m_reference_genome_info.initialize(reference_genome);
-  m_combined_vcf_records_buffer_size_limit = combined_vcf_records_buffer_size_limit;
-  m_produce_GT_field = produce_GT_field;
-  m_produce_FILTER_field = produce_FILTER_field;
-  m_sites_only_query = sites_only_query;
-  m_produce_GT_with_min_PL_value_for_spanning_deletions = produce_GT_with_min_PL_value_for_spanning_deletions;
+  m_reference_genome_info.initialize(config_base.get_reference_genome());
+  m_config_base_ptr = &config_base;
 }
 
 bcf_hdr_t* VCFAdapter::initialize_default_header()
@@ -391,8 +373,8 @@ void VCFAdapter::handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_
         +std::to_string(line->pos+1));
 }
 
-BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries, const size_t combined_vcf_records_buffer_size_limit)
-  : VCFAdapter(true, combined_vcf_records_buffer_size_limit), CircularBufferController(num_circular_buffers)
+BufferedVCFAdapter::BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries)
+  : VCFAdapter(true), CircularBufferController(num_circular_buffers)
 {
   clear();
   m_line_buffers.resize(num_circular_buffers);

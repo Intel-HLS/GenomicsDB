@@ -218,6 +218,7 @@ include_directories (
     src/main/cpp/include/query_operations
     src/main/cpp/include/utils
     src/main/cpp/include/vcf
+    src/main/cpp/include/config
     src/test/cpp/include
 )
 

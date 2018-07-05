@@ -352,12 +352,12 @@ void VidMapper::build_vcf_fields_vectors(std::vector<std::vector<std::string>>& 
 }
 
 void VidMapper::build_tiledb_array_schema(VariantArraySchema*& array_schema, const std::string array_name,
-    const bool row_based_partitioning, const RowRange& row_range, const bool compress_fields,
+    const bool compress_fields,
     const bool no_mandatory_VCF_fields)
   const
 {
   auto dim_names = std::vector<std::string>({"samples", "position"});
-  auto dim_domains = std::vector<std::pair<int64_t, int64_t>>({ {row_range.first, row_range.second}, {0, INT64_MAX}});
+  auto dim_domains = std::vector<std::pair<int64_t, int64_t>>({ {0, INT64_MAX-1}, {0, INT64_MAX-1}});
   std::vector<std::string> attribute_names;
   std::vector<std::type_index> types;
   std::vector<int> num_vals;
@@ -608,23 +608,6 @@ std::vector<ContigIntervalTuple> VidMapper::get_contig_intervals_for_column_part
   return contig_intervals;
 }
 
-std::vector<ContigIntervalTuple> VidMapper::get_contig_intervals_for_column_partition(
-        const std::string& loader_filename,
-        const int rank, const bool is_zero_based)
-{
-  JSONLoaderConfig loader_config;
-  loader_config.read_from_file(loader_filename);
-  //don't need a callset file
-  FileBasedVidMapper vid_mapper(loader_config.get_vid_mapping_filename(), "", 0, INT64_MAX-1, false);
-  if(loader_config.is_partitioned_by_row())
-    return vid_mapper.get_contig_intervals_for_column_partition(0, INT64_MAX-1, is_zero_based);
-  else
-  {
-    auto column_partition = loader_config.get_column_partition(rank);
-    return vid_mapper.get_contig_intervals_for_column_partition(column_partition.first, column_partition.second, is_zero_based);
-  }
-}
-
 void VidMapper::add_mandatory_fields()
 {
   //END
@@ -726,16 +709,28 @@ rapidjson::Document parse_json_file(const std::string& filename) {
   return json_doc;
 }
 
-void FileBasedVidMapper::common_constructor_initialization(const std::string& filename,
+void FileBasedVidMapper::common_constructor_initialization(
+    const std::string& filename,
     const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
     const std::string& callset_mapping_file,
     const std::string& buffer_stream_callset_mapping_json_string,
-    const int64_t lb_callset_row_idx, const int64_t ub_callset_row_idx, const bool is_callset_mapping_required)
+    const bool is_callset_mapping_required)
 {
   rapidjson::Document json_doc = parse_json_file(filename);
+  common_constructor_initialization(json_doc,
+      buffer_stream_info_vec,
+      callset_mapping_file,
+      buffer_stream_callset_mapping_json_string,
+      is_callset_mapping_required);
+}
 
-  m_lb_callset_row_idx = lb_callset_row_idx;
-  m_ub_callset_row_idx = ub_callset_row_idx;
+void FileBasedVidMapper::common_constructor_initialization(
+    const rapidjson::Document& json_doc,
+    const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
+    const std::string& callset_mapping_file,
+    const std::string& buffer_stream_callset_mapping_json_string,
+    const bool is_callset_mapping_required)
+{
 
   //Callset info parsing
   std::string real_callset_mapping_file;
@@ -893,7 +888,7 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
         field_name = (*dict_iter).name.GetString();
       if(m_field_name_to_idx.find(field_name) != m_field_name_to_idx.end())
       {
-        std::cerr << (std::string("Duplicate field name ")+field_name+" found in vid file "+filename) << "\n";
+        std::cerr << (std::string("Duplicate field name ")+field_name+" found in vid attribute \"fields\"") << "\n";
         duplicate_fields_exist = true;
         //advance loop
       }
@@ -981,7 +976,7 @@ void FileBasedVidMapper::common_constructor_initialization(const std::string& fi
     }
     add_mandatory_fields();
     if(duplicate_fields_exist)
-      throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid file ")+filename);
+      throw FileBasedVidMapperException(std::string("Duplicate fields exist in vid attribute \"fields\""));
   }
   m_is_initialized = true;
 }
@@ -1232,9 +1227,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
     //callsets is a dictionary of name:info key-value pairs or array of info dictionaries
     VERIFY_OR_THROW(callsets_container.IsObject() || callsets_container.IsArray());
     auto is_array = callsets_container.IsArray();
-    auto num_callsets_in_container = is_array ? callsets_container.Size() : callsets_container.MemberCount();
-    auto num_callsets = (m_ub_callset_row_idx == INT64_MAX) ? num_callsets_in_container :
-      std::min<int64_t>(num_callsets_in_container, m_ub_callset_row_idx+1);
+    auto num_callsets = is_array ? callsets_container.Size() : callsets_container.MemberCount();
     m_row_idx_to_info.resize(num_callsets);
     m_max_callset_row_idx = -1;
     std::string callset_name;
@@ -1276,65 +1269,62 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
         if(m_callset_name_to_row_idx[callset_name] != row_idx)
           throw FileBasedVidMapperException(std::string("Duplicate with conflicting row index for sample/callset name ")+callset_name
               +" found in callsets mapping "+std::to_string(m_callset_name_to_row_idx[callset_name])+", "+std::to_string(row_idx));
-      if(row_idx <= m_ub_callset_row_idx)
+      m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
+      //Resize vector
+      if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
+        m_row_idx_to_info.resize(row_idx+1);
+      auto file_idx = -1ll;
+      //idx in file
+      auto idx_in_file = 0ll;
+      if((callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
       {
-        m_max_callset_row_idx = std::max(m_max_callset_row_idx, row_idx);
-        //Resize vector
-        if(static_cast<size_t>(row_idx) >= m_row_idx_to_info.size())
-          m_row_idx_to_info.resize(row_idx+1);
-        auto file_idx = -1ll;
-        //idx in file
-        auto idx_in_file = 0ll;
-        if(row_idx >= m_lb_callset_row_idx && (callset_info_dict.HasMember("filename") || callset_info_dict.HasMember("stream_name")))
+        VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
+            && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
+        std::string filename = callset_info_dict.HasMember("filename")
+          ? std::move(callset_info_dict["filename"].GetString())
+          : std::move(callset_info_dict["stream_name"].GetString());
+        file_idx = get_or_append_global_file_idx(filename);
+        if(callset_info_dict.HasMember("idx_in_file"))
+          idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
+        //Check for conflicting file/stream info if initialized previously
+        const auto& curr_row_info = m_row_idx_to_info[row_idx];
+        if(curr_row_info.m_is_initialized)
         {
-          VERIFY_OR_THROW((!callset_info_dict.HasMember("filename") || !callset_info_dict.HasMember("stream_name"))
-              && (std::string("Cannot have both \"filename\" and \"stream_name\" as the data source for sample/CallSet ")+callset_name).c_str());
-          std::string filename = callset_info_dict.HasMember("filename")
-            ? std::move(callset_info_dict["filename"].GetString())
-            : std::move(callset_info_dict["stream_name"].GetString());
-          file_idx = get_or_append_global_file_idx(filename);
-          if(callset_info_dict.HasMember("idx_in_file"))
-            idx_in_file = callset_info_dict["idx_in_file"].GetInt64();
-          //Check for conflicting file/stream info if initialized previously
-          const auto& curr_row_info = m_row_idx_to_info[row_idx];
-          if(curr_row_info.m_is_initialized)
-          {
-            if(curr_row_info.m_file_idx >= 0 && file_idx >= 0
-                && curr_row_info.m_file_idx != file_idx)
-              throw FileBasedVidMapperException(std::string("Conflicting file/stream names specified for sample/callset ")+callset_name
-                  +" "+m_file_idx_to_info[curr_row_info.m_file_idx].m_name+", "+filename);
-            if(curr_row_info.m_idx_in_file != idx_in_file)
-              throw FileBasedVidMapperException(std::string("Conflicting values of \"idx_in_file\" specified for sample/callset ")+callset_name
-                  +" "+std::to_string(curr_row_info.m_idx_in_file)+", "+std::to_string(idx_in_file));
-          }
-          else
-          {
-            assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
-            int64_t other_row_idx = 0ll;
-            auto added_successfully = m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file,
-                row_idx, other_row_idx);
-            if(!added_successfully)
-              throw FileBasedVidMapperException(std::string("Attempting to import a sample from file/stream ")+filename
-                  +" multiple times under aliases '"+m_row_idx_to_info[other_row_idx].m_name
-                  +"' and '"+callset_name+"' with row indexes "+std::to_string(other_row_idx)
-                  +" and "+std::to_string(row_idx)+" respectively");
-          }
+          if(curr_row_info.m_file_idx >= 0 && file_idx >= 0
+              && curr_row_info.m_file_idx != file_idx)
+            throw FileBasedVidMapperException(std::string("Conflicting file/stream names specified for sample/callset ")+callset_name
+                +" "+m_file_idx_to_info[curr_row_info.m_file_idx].m_name+", "+filename);
+          if(curr_row_info.m_idx_in_file != idx_in_file)
+            throw FileBasedVidMapperException(std::string("Conflicting values of \"idx_in_file\" specified for sample/callset ")+callset_name
+                +" "+std::to_string(curr_row_info.m_idx_in_file)+", "+std::to_string(idx_in_file));
         }
-        m_callset_name_to_row_idx[callset_name] = row_idx;
-        VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
-        if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
-          throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
-              +m_row_idx_to_info[row_idx].m_name);
-        m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
+        else
+        {
+          assert(file_idx < static_cast<int64_t>(m_file_idx_to_info.size()));
+          int64_t other_row_idx = 0ll;
+          auto added_successfully = m_file_idx_to_info[file_idx].add_local_tiledb_row_idx_pair(idx_in_file,
+              row_idx, other_row_idx);
+          if(!added_successfully)
+            throw FileBasedVidMapperException(std::string("Attempting to import a sample from file/stream ")+filename
+                +" multiple times under aliases '"+m_row_idx_to_info[other_row_idx].m_name
+                +"' and '"+callset_name+"' with row indexes "+std::to_string(other_row_idx)
+                +" and "+std::to_string(row_idx)+" respectively");
+        }
       }
+      m_callset_name_to_row_idx[callset_name] = row_idx;
+      VERIFY_OR_THROW(static_cast<size_t>(row_idx) < m_row_idx_to_info.size());
+      if(m_row_idx_to_info[row_idx].m_is_initialized && m_row_idx_to_info[row_idx].m_name != callset_name)
+        throw FileBasedVidMapperException(std::string("Sample/callset ")+callset_name+" has the same row idx as "
+            +m_row_idx_to_info[row_idx].m_name);
+      m_row_idx_to_info[row_idx].set_info(row_idx, callset_name, file_idx, idx_in_file);
       ++json_callset_idx;
       if(!is_array)
         ++dict_iter;
       next_callset_exists = is_array ? (json_callset_idx < callsets_container.Size()) : (dict_iter != dict_end_position);
     }
     auto missing_row_idxs_exist = false;
-    for(auto row_idx=0ll;static_cast<size_t>(row_idx)<m_row_idx_to_info.size() && row_idx<=m_ub_callset_row_idx;++row_idx)
-      if(row_idx >= m_lb_callset_row_idx && row_idx <= m_ub_callset_row_idx && !(m_row_idx_to_info[row_idx].m_is_initialized))
+    for(auto row_idx=0ll;static_cast<size_t>(row_idx)<m_row_idx_to_info.size();++row_idx)
+      if(!(m_row_idx_to_info[row_idx].m_is_initialized))
       {
         std::cerr << "Sample/callset information missing for row " << row_idx << "\n";
         missing_row_idxs_exist = true;
@@ -1451,7 +1441,7 @@ void FileBasedVidMapper::parse_callsets_json(const std::string& json, const std:
   m_is_callset_mapping_initialized = true;
 }
 
-void FileBasedVidMapper::write_partition_callsets_json_file(const std::string& original_callsets_filename, const std::string& results_directory,
+void VidMapper::write_partition_callsets_json_file(const std::string& original_callsets_filename, const std::string& results_directory,
     const int rank) const
 {
   rapidjson::Document json_doc(rapidjson::kObjectType);
@@ -1517,7 +1507,7 @@ void FileBasedVidMapper::write_partition_callsets_json_file(const std::string& o
   fclose(fptr);
 }
 
-void FileBasedVidMapper::write_partition_loader_json_file(const std::string& original_loader_filename,
+void VidMapper::write_partition_loader_json_file(const std::string& original_loader_filename,
     const std::string& original_callsets_filename,
     const std::string& results_directory, const int num_callset_mapping_files, const int rank) const
 {
@@ -1528,7 +1518,7 @@ void FileBasedVidMapper::write_partition_loader_json_file(const std::string& ori
   std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
   json_doc.Parse(str.c_str());
   if(json_doc.HasParseError())
-    throw RunConfigException(std::string("Syntax error in JSON file ")+original_loader_filename);
+    throw GenomicsDBConfigException(std::string("Syntax error in JSON file ")+original_loader_filename);
   auto& allocator = json_doc.GetAllocator();
   //Partitioned callsets JSON
   std::string output_type;

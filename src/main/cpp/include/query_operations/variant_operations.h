@@ -26,7 +26,6 @@
 #include "variant.h"
 #include "lut.h"
 #include "variant_cell.h"
-#include "json_config.h"
 
 class VariantOperationException : public std::exception {
   public:
