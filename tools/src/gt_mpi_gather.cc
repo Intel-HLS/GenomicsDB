@@ -535,7 +535,7 @@ int main(int argc, char *argv[]) {
     VariantQueryConfig query_config; 
 #ifdef HTSDIR
     VCFAdapter vcf_adapter_base;
-    VCFSerializedBufferAdapter serialized_vcf_adapter(true);
+    VCFSerializedBufferAdapter serialized_vcf_adapter(true, true);
     auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
 #endif
     if(json_config_file.empty())
@@ -555,9 +555,12 @@ int main(int argc, char *argv[]) {
     //Discard intervals not part of this partition
     if(!loader_json_config_file.empty())
       query_config.subset_query_column_ranges_based_on_partition(loader_config, my_world_mpi_rank);
+    //Command line overrides
+    if(page_size > 0u)
+      query_config.set_combined_vcf_records_buffer_size_limit(page_size);
     if(command_idx == COMMAND_PRODUCE_BROAD_GVCF)
       query_config.set_vcf_output_format(output_format);
-    vcf_adapter_base.initialize(query_config);
+    vcf_adapter.initialize(query_config);
     workspace = query_config.get_workspace(my_world_mpi_rank);
     array_name = query_config.get_array_name(my_world_mpi_rank);
     if(workspace.empty() || array_name.empty())

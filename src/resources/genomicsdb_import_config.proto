@@ -36,6 +36,8 @@ option java_package = "com.intel.genomicsdb.model";
 option java_outer_classname = "GenomicsDBImportConfiguration";
 
 import "genomicsdb_coordinates.proto";
+import "genomicsdb_vid_mapping.proto";
+import "genomicsdb_callsets_mapping.proto";
 
 message Partition {
   required GenomicsDBColumn begin = 1;
@@ -54,8 +56,14 @@ message ImportConfiguration {
   optional bool produce_combined_vcf = 2 [default = false];
   optional bool produce_tiledb_array = 3 [default = true];
   repeated Partition column_partitions = 4;
-  optional string vid_mapping_file = 5;
-  optional string callset_mapping_file = 6;
+  oneof vid_mapping_options {
+    string vid_mapping_file = 5;
+    VidMappingPB vid_mapping = 25; 
+  }
+  oneof callset_mapping_options {
+    string callset_mapping_file = 6;
+    CallsetMappingPB callset_mapping = 26;
+  }
   optional bool treat_deletions_as_intervals = 8 [default = true];
   optional int32 num_parallel_vcf_files = 9 [default = 1];
   optional bool delete_and_create_tiledb_array = 10 [default = false];
@@ -71,5 +79,5 @@ message ImportConfiguration {
   optional bool disable_synced_writes = 21 [default = true];
   optional bool ignore_cells_not_in_partition = 22;
   optional int64 lb_callset_row_idx = 23 [ default = 0 ];
-  optional int64 ub_callset_row_idx = 24 [ default = 0x7FFFFFFFFFFFFFFF ];
+  optional int64 ub_callset_row_idx = 24;
 }

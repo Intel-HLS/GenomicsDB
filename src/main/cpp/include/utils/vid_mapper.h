@@ -803,6 +803,16 @@ class VidMapper
         const int num_partition_callset_mapping_files,
         const int rank) const;
 
+    //Buffer streams for import
+    void set_buffer_stream_info(
+        const std::vector<BufferStreamInfo>& buffer_stream_info_vec);
+    //Read callsets information from json_doc structure
+    void read_callsets_info(const rapidjson::Value& json_doc, const int rank=0);
+    void parse_callsets_json(
+        const std::string& filename,
+        const bool is_file);
+    void parse_callsets_json(
+        const rapidjson::Value& callsets_container); 
 
   protected:
     void add_mandatory_fields();
@@ -876,78 +886,16 @@ class FileBasedVidMapper : public VidMapper
     {
     }
 
-    FileBasedVidMapper(
-        const std::string& filename,
-        const std::string& callset_mapping_file="",
-        const bool is_callset_mapping_required=true) : VidMapper() {
-      std::vector<BufferStreamInfo> empty_vec;
-      common_constructor_initialization(
-          filename,
-          empty_vec,
-          callset_mapping_file,
-          "",
-          is_callset_mapping_required);
-    }
-
-    FileBasedVidMapper(
-        const rapidjson::Document& json_doc,
-        const std::string& callset_mapping_file="",
-        const bool is_callset_mapping_required=true) : VidMapper() {
-      std::vector<BufferStreamInfo> empty_vec;
-      common_constructor_initialization(
-          json_doc,
-          empty_vec,
-          callset_mapping_file,
-          "",
-          is_callset_mapping_required);
-    }
-
-    FileBasedVidMapper(
-        const rapidjson::Document& json_doc,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& callset_mapping_file="",
-        const std::string& buffer_stream_callset_mapping_json_string="",
-        const bool is_callset_mapping_required=true) : VidMapper() {
-      common_constructor_initialization(
-          json_doc,
-          buffer_stream_info_vec,
-          callset_mapping_file,
-          buffer_stream_callset_mapping_json_string,
-          is_callset_mapping_required);
-    }
-
-    FileBasedVidMapper(
-        const std::string& filename,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& callset_mapping_file="",
-        const std::string& buffer_stream_callset_mapping_json_string="",
-        const bool is_callset_mapping_required=true) : VidMapper() {
-      common_constructor_initialization(
-          filename,
-          buffer_stream_info_vec,
-          callset_mapping_file,
-          buffer_stream_callset_mapping_json_string,
-          is_callset_mapping_required);
+    FileBasedVidMapper(const std::string& filename);
+    FileBasedVidMapper(const rapidjson::Value& json_doc)
+      : VidMapper()
+    {
+      common_constructor_initialization(json_doc);
     }
   private:
     void common_constructor_initialization(
-        const std::string& filename,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& callset_mapping_file="",
-        const std::string& buffer_stream_callset_mapping_json_string="",
-        const bool is_callset_mapping_required=true);
-    
-    void common_constructor_initialization(
-        const rapidjson::Document& json_doc,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const std::string& callset_mapping_file="",
-        const std::string& buffer_stream_callset_mapping_json_string="",
-        const bool is_callset_mapping_required=true);
+        const rapidjson::Value& json_doc);
   private:
-    void parse_callsets_json(
-        const std::string& filename,
-        const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
-        const bool is_file);
     void parse_length_descriptor(const char* field_name,
         const rapidjson::Value& length_json_value,
         FieldLengthDescriptor& length_descriptor, const size_t length_dim_idx);

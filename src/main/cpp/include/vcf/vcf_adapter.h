@@ -95,7 +95,7 @@ class VCFAdapter
     VCFAdapter(bool open_output=true);
     virtual ~VCFAdapter();
     void clear();
-    void initialize(const GenomicsDBConfigBase& config_base);
+    virtual void initialize(const GenomicsDBConfigBase& config_base);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -156,7 +156,7 @@ class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
 class VCFSerializedBufferAdapter: public VCFAdapter
 {
   public:
-    VCFSerializedBufferAdapter(bool keep_idx_fields_in_bcf_header=true)
+    VCFSerializedBufferAdapter(bool keep_idx_fields_in_bcf_header=true, bool do_output=false)
       : VCFAdapter(false)
     {
       m_keep_idx_fields_in_bcf_header = keep_idx_fields_in_bcf_header;
@@ -166,6 +166,8 @@ class VCFSerializedBufferAdapter: public VCFAdapter
       m_hts_string.m = 4096u;
       m_hts_string.s = (char*)malloc(m_hts_string.m);
       assert(m_hts_string.s);
+      m_write_fptr = 0;
+      m_do_output = do_output;
     }
     ~VCFSerializedBufferAdapter()
     {
@@ -173,10 +175,14 @@ class VCFSerializedBufferAdapter: public VCFAdapter
         free(m_hts_string.s);
       m_hts_string.s = 0;
       m_hts_string.m = 0;
+      if(m_write_fptr && m_write_fptr != stdout && m_write_fptr != stderr)
+        fclose(m_write_fptr);
+      m_write_fptr = 0;
     }
     //Delete copy and move constructors
     VCFSerializedBufferAdapter(const VCFSerializedBufferAdapter& other) = delete;
     VCFSerializedBufferAdapter(VCFSerializedBufferAdapter&& other) = delete;
+    void initialize(const GenomicsDBConfigBase& config_base);
     void set_buffer(RWBuffer& buffer) { m_rw_buffer = &buffer; }
     void print_header();
     void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
@@ -188,12 +194,17 @@ class VCFSerializedBufferAdapter: public VCFAdapter
     }
     void do_output()
     {
-      //FIXME: used only for debugging - write out to stdout
+      assert(m_write_fptr);
+      assert(m_rw_buffer);
+      auto write_size = fwrite(&(m_rw_buffer->m_buffer[0]), 1u,  m_rw_buffer->m_num_valid_bytes, m_write_fptr);
+      assert(write_size == m_rw_buffer->m_num_valid_bytes);
     }
   private:
     bool m_keep_idx_fields_in_bcf_header;
     RWBuffer* m_rw_buffer;
     kstring_t m_hts_string;
+    bool m_do_output;
+    FILE* m_write_fptr;
 };
 
 #endif  //ifdef HTSDIR

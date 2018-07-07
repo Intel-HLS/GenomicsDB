@@ -937,7 +937,7 @@ def main():
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),
-                        ('vcf','--produce-Broad-GVCF'),
+                        ('vcf','--produce-Broad-GVCF -p 128'),
                         ('batched_vcf','--produce-Broad-GVCF -p 128'),
                         ('java_vcf', ''),
                         ('consolidate_and_vcf', '--produce-Broad-GVCF'), #keep as the last query test

@@ -33,6 +33,25 @@
 
 const char* g_json_indent_unit = "    ";
 
+rapidjson::Document parse_json_file(const std::string& filename) {
+  VERIFY_OR_THROW(filename.length() && "vid/callset mapping file unspecified");
+  char *json_buffer;
+  size_t json_buffer_length;
+  if (TileDBUtils::read_entire_file(filename, (void **)&json_buffer, &json_buffer_length) != TILEDB_OK || !json_buffer || json_buffer_length == 0) {
+    if (json_buffer) {
+      free(json_buffer);
+      throw GenomicsDBConfigException((std::string("Could not open vid/callset mapping file \"")+filename+"\"").c_str());
+    }
+  }
+  rapidjson::Document json_doc;
+  json_doc.Parse(json_buffer);
+  free(json_buffer);
+  if(json_doc.HasParseError()) {
+    throw GenomicsDBConfigException(std::string("Syntax error in JSON file ")+filename);
+  }
+  return json_doc;
+}
+
 void JSONConfigBase::extract_contig_interval_from_object(const rapidjson::Value& curr_json_object,
     const VidMapper* id_mapper, ColumnRange& result)
 {
@@ -183,7 +202,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const int rank)
     throw GenomicsDBConfigException(std::string("Syntax error in JSON file ")+filename);
   //Null or un-initialized
   read_and_initialize_vid_and_callset_mapping_if_available(rank);
-  VERIFY_OR_THROW(m_vid_mapper.is_initialized());
+  VERIFY_OR_THROW(m_vid_mapper.is_initialized() && m_vid_mapper.is_callset_mapping_initialized());
   //Workspace
   if(m_json.HasMember("workspace"))
   {
@@ -588,7 +607,7 @@ void JSONConfigBase::read_from_file(const std::string& filename, const int rank)
     }
   }
   //Reference genome
-  VERIFY_OR_THROW(m_json.HasMember("reference_genome"));
+  if(m_json.HasMember("reference_genome"))
   {
     const rapidjson::Value& v = m_json["reference_genome"];
     //reference_genome could be an array, one reference_genome location for every rank
@@ -638,24 +657,7 @@ void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(co
 {
   //Callset mapping file and vid file
   if(m_json.HasMember("vid_mapping_file"))
-  {
-    //Over-ride callset mapping file in top-level config if necessary
-    if(m_json.HasMember("callset_mapping_file"))
-    {
-      const rapidjson::Value& v = m_json["callset_mapping_file"];
-      //Could be array - one for each process
-      if(v.IsArray())
-      {
-        VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
-        VERIFY_OR_THROW(v[rank].IsString());
-        m_callset_mapping_file = v[rank].GetString();
-      }
-      else
-      {
-        VERIFY_OR_THROW(v.IsString());
-        m_callset_mapping_file = v.GetString();
-      }
-    }
+  { 
     const rapidjson::Value& v = m_json["vid_mapping_file"];
     //Could be array - one for each process
     if(v.IsArray())
@@ -670,8 +672,34 @@ void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(co
       m_vid_mapping_file = v.GetString();
     }
   }
-  if(!m_vid_mapping_file.empty())
-    m_vid_mapper = std::move(FileBasedVidMapper(m_vid_mapping_file, m_callset_mapping_file, false));
+  //Over-ride callset mapping file in top-level config if necessary
+  if(m_json.HasMember("callset_mapping_file"))
+  {
+    const rapidjson::Value& v = m_json["callset_mapping_file"];
+    //Could be array - one for each process
+    if(v.IsArray())
+    {
+      VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
+      VERIFY_OR_THROW(v[rank].IsString());
+      m_callset_mapping_file = v[rank].GetString();
+    }
+    else
+    {
+      VERIFY_OR_THROW(v.IsString());
+      m_callset_mapping_file = v.GetString();
+    }
+  }
+  if(m_vid_mapping_file.empty())
+  {
+    if(m_json.HasMember("vid_mapping"))
+    {
+      VERIFY_OR_THROW(m_json["vid_mapping"].IsObject());
+      m_vid_mapper = std::move(FileBasedVidMapper(m_json["vid_mapping"]));
+    }
+  }
+  else
+    m_vid_mapper = std::move(FileBasedVidMapper(m_vid_mapping_file));
+  m_vid_mapper.read_callsets_info(m_json, rank);
 }
 
 void GenomicsDBImportConfig::read_from_file(const std::string& filename, const int rank)
@@ -786,13 +814,3 @@ void GenomicsDBImportConfig::read_from_file(const std::string& filename, const i
   if(json_doc.HasMember("no_mandatory_VCF_fields") && json_doc["no_mandatory_VCF_fields"].IsBool())
     m_no_mandatory_VCF_fields = json_doc["no_mandatory_VCF_fields"].GetBool();
 }
-
-//void JSONVCFAdapterConfig::read_from_file(const std::string& filename,
-    //VCFAdapter& vcf_adapter,
-    //VidMapper* id_mapper,
-    //std::string output_format, const int rank,
-    //const size_t combined_vcf_records_buffer_size_limit)
-//{
-  ////FIXME: provide overrides
-  ////combined_vcf_records_buffer_size_limit
-//}

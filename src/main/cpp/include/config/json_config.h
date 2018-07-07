@@ -53,4 +53,6 @@ class JSONConfigBase : public GenomicsDBConfigBase
     rapidjson::Document m_json;
 };
 
+rapidjson::Document parse_json_file(const std::string& s);
+
 #endif

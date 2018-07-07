@@ -79,6 +79,7 @@ class GenomicsDBConfigBase
     void set_segment_size(const size_t v) { m_segment_size = v; }
     inline unsigned get_determine_sites_with_max_alleles() const { return m_determine_sites_with_max_alleles; }
     inline unsigned get_max_diploid_alt_alleles_that_can_be_genotyped() const { return m_max_diploid_alt_alleles_that_can_be_genotyped; }
+    void set_combined_vcf_records_buffer_size_limit(const size_t val) { m_combined_vcf_records_buffer_size_limit = val; }
     inline size_t get_combined_vcf_records_buffer_size_limit() const { return m_combined_vcf_records_buffer_size_limit; }
     void set_vcf_header_filename(const std::string& vcf_header_filename);
     const std::string& get_vcf_header_filename() const { return m_vcf_header_filename; }

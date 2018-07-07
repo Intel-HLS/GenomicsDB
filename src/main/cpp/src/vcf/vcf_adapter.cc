@@ -346,6 +346,8 @@ void VCFAdapter::initialize(const GenomicsDBConfigBase& config_base)
     }
   }
   //Reference genome
+  if(config_base.get_reference_genome().empty())
+    throw VCFAdapterException("No reference genome specified in query/import config");
   m_reference_genome_info.initialize(config_base.get_reference_genome());
   m_config_base_ptr = &config_base;
 }
@@ -485,6 +487,15 @@ void VCFSerializedBufferAdapter::handoff_output_bcf_line(bcf1_t*& line, const si
 #ifdef DO_PROFILING
   m_vcf_serialization_timer.stop();
 #endif
+}
+
+void VCFSerializedBufferAdapter::initialize(const GenomicsDBConfigBase& config)
+{
+  VCFAdapter::initialize(config);
+  if(m_do_output)
+    m_write_fptr = (config.get_vcf_output_filename().empty() || config.get_vcf_output_filename() == "-")
+      ? stdout
+      : fopen(config.get_vcf_output_filename().c_str(), "w");
 }
 
 #endif //ifdef HTSDIR

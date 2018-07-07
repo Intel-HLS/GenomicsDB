@@ -39,9 +39,7 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGenomicsDBImporter(
   JNIEnv* env,
   jobject obj,
   jstring loader_configuration_file,
-  jint rank,
-  jlong lb_callset_row_idx,
-  jlong ub_callset_row_idx) {
+  jint rank) {
 
   //Java string to char*
   auto loader_configuration_file_cstr =
@@ -50,9 +48,7 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGenomicsDBImporter(
   //Loader object
   VCF2TileDBLoader loader(
     loader_configuration_file_cstr,
-    g_jni_mpi_init.get_mpi_rank(rank),
-    lb_callset_row_idx,
-    ub_callset_row_idx);
+    g_jni_mpi_init.get_mpi_rank(rank));
 #ifdef HTSDIR
   loader.read_all();
 #else
@@ -71,9 +67,7 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniInitializeGenomicsDB
   JNIEnv* env,
   jobject obj,
   jstring loader_configuration_file,
-  jint rank,
-  jlong lb_callset_row_idx,
-  jlong ub_callset_row_idx) {
+  jint rank) {
 
   //Java string to char*
   auto loader_configuration_file_cstr =
@@ -82,9 +76,7 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniInitializeGenomicsDB
   //GenomicsDBImporter object
   auto importer = new GenomicsDBImporter(
                         loader_configuration_file_cstr,
-                        g_jni_mpi_init.get_mpi_rank(rank),
-                        lb_callset_row_idx,
-                        ub_callset_row_idx);
+                        g_jni_mpi_init.get_mpi_rank(rank));
   //Cleanup
   env->ReleaseStringUTFChars(
     loader_configuration_file,
@@ -132,16 +124,14 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniSetupGenomicsDBLoade
   JNIEnv* env,
   jobject obj,
   jlong handle,
-  jstring buffer_stream_callset_mapping_json_string,
-  jboolean usingVidMappingProtoBuf) {
+  jstring buffer_stream_callset_mapping_json_string) {
 
   auto importer = GET_GENOMICSDB_IMPORTER_FROM_HANDLE(handle);
   //Java string to char*
   auto buffer_stream_callset_mapping_json_string_cstr =
     env->GetStringUTFChars(buffer_stream_callset_mapping_json_string, NULL);
   VERIFY_OR_THROW(buffer_stream_callset_mapping_json_string_cstr);
-  importer->setup_loader(buffer_stream_callset_mapping_json_string_cstr,
-      usingVidMappingProtoBuf);
+  importer->setup_loader(buffer_stream_callset_mapping_json_string_cstr);
   //Cleanup
   env->ReleaseStringUTFChars(
     buffer_stream_callset_mapping_json_string,
@@ -225,11 +215,13 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGetChromosomeInterva
   auto loader_configuration_file_cstr =
       env->GetStringUTFChars(loader_configuration_file, NULL);
   VERIFY_OR_THROW(loader_configuration_file_cstr);
+  GenomicsDBImportConfig loader_config;
+  loader_config.read_from_file(loader_configuration_file_cstr, rank);
   auto contig_intervals =
-      VidMapper::get_contig_intervals_for_column_partition(
-        loader_configuration_file_cstr,
-        g_jni_mpi_init.get_mpi_rank(rank),
-        false);
+      loader_config.get_vid_mapper().get_contig_intervals_for_column_partition(
+          loader_config.get_column_partition(rank).first,
+          loader_config.get_column_partition(rank).second,
+          false);
   //Create a JSON formatted string
   rapidjson::Document json_doc;
   json_doc.SetObject();
@@ -285,8 +277,6 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCopyVidMap
     throw e;
   }
 
-  importer->setup_vidmap(&vidmap);
-
   //Cleanup
   env->ReleaseByteArrayElements(
         vidmap_as_bytearray,
@@ -321,8 +311,6 @@ Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniCopyCallsetMap
         "Please check VCF merged headers\n";
     throw e;
   }
-
-  importer->setup_callsetmap(&callsetmap);
 
   //Cleanup
   env->ReleaseByteArrayElements(
