@@ -105,6 +105,8 @@ add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
 
+find_package(CURL)
+
 #RapidJSON
 find_package(RapidJSON REQUIRED)
 include_directories(${RAPIDJSON_INCLUDE_DIR})
@@ -248,6 +250,9 @@ function(build_GenomicsDB_executable_common target)
     endif()
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
+    endif()
+    if(CURL_FOUND)
+      target_link_libraries(${target} ${CURL_LIBRARIES})
     endif()
     if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
         target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
