@@ -21,7 +21,6 @@
 */
 
 #include "genomicsdb_bcf_generator.h"
-#include "json_config.h"
 
 unsigned GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER=1u;
 
@@ -31,7 +30,7 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
     const bool produce_header_only,
     const bool use_missing_values_only_not_vector_end, const bool keep_idx_fields_in_bcf_header)
   : m_buffer_control(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER),
-  m_vcf_adapter(buffer_capacity, false, keep_idx_fields_in_bcf_header),
+  m_vcf_adapter(keep_idx_fields_in_bcf_header),
   m_produce_header_only(produce_header_only)
 #ifdef DO_PROFILING
     , m_timer()
@@ -39,38 +38,43 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
 {
   m_done = false;
   //Buffer sizing
-  m_buffers.resize(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER, RWBuffer(buffer_capacity+32768u)); //pad buffer to minimize reallocations
+  m_buffers.resize(GenomicsDBBCFGenerator_NUM_ENTRIES_IN_CIRCULAR_BUFFER, RWBuffer(buffer_capacity+32768u)); //pad buffer to minimize reallocations 
+  GenomicsDBImportConfig loader_config;
   //Parse loader JSON file
   //If the loader JSON is not specified, vid_mapping_file and callset_mapping_file must be specified in the query JSON
   if(!(loader_config_file.empty()))
   {
-    JSONLoaderConfig loader_config;
-    loader_config.read_from_file(loader_config_file, &m_vid_mapper, my_rank);
+    loader_config.read_from_file(loader_config_file, my_rank);
+    m_query_config.update_from_loader(loader_config, my_rank);
   }
-  //Parse query JSON file
-  JSONVCFAdapterQueryConfig bcf_scan_config;
-  bcf_scan_config.read_from_file(query_config_file, m_query_config, m_vcf_adapter, &m_vid_mapper, output_format, my_rank, buffer_capacity);
+  //Parse query JSON file - ensures that vid, callset may be obtained from loader (if exists)
+  m_query_config.read_from_file(query_config_file, my_rank);
+  if(!(loader_config_file.empty()))
+    m_query_config.subset_query_column_ranges_based_on_partition(loader_config, my_rank);
+  m_query_config.set_vcf_output_format(output_format);
+  m_vcf_adapter.initialize(m_query_config);
+  auto& vid_mapper = m_query_config.get_vid_mapper();
   //Specified chromosome and start end
   if(chr && strlen(chr) > 0u)
   {
     ContigInfo contig_info;
-    auto found_contig = m_vid_mapper.get_contig_info(chr, contig_info);
+    auto found_contig = vid_mapper.get_contig_info(chr, contig_info);
     if(!found_contig)
       throw GenomicsDBJNIException(std::string("Could not find TileDB column interval for contig: ")+chr);
     int64_t column_begin = contig_info.m_tiledb_column_offset + static_cast<int64_t>(start) - 1; //since VCF positions are 1 based
     int64_t column_end = contig_info.m_tiledb_column_offset + static_cast<int64_t>(end) - 1; //since VCF positions are 1 based
     m_query_config.set_column_interval_to_query(column_begin, column_end);
   }
-  m_storage_manager = new VariantStorageManager(static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_workspace(my_rank),
-      static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_segment_size());
+  m_storage_manager = new VariantStorageManager(m_query_config.get_workspace(my_rank),
+      m_query_config.get_segment_size());
   m_query_processor = new VariantQueryProcessor(m_storage_manager,
-      static_cast<JSONBasicQueryConfig&>(bcf_scan_config).get_array_name(my_rank),
-      m_vid_mapper);
-  m_query_processor->do_query_bookkeeping(m_query_processor->get_array_schema(), m_query_config, m_vid_mapper, true);
+      m_query_config.get_array_name(my_rank),
+      vid_mapper);
+  m_query_processor->do_query_bookkeeping(m_query_processor->get_array_schema(), m_query_config, vid_mapper, true);
   //Must set buffer before constructing BroadCombinedGVCFOperator
   set_write_buffer();
-  m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, m_vid_mapper, m_query_config,
-      bcf_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped(), use_missing_values_only_not_vector_end);
+  m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, vid_mapper, m_query_config,
+      m_query_config.get_max_diploid_alt_alleles_that_can_be_genotyped(), use_missing_values_only_not_vector_end);
   if(produce_header_only)
     m_scan_state.set_done(true);
   else

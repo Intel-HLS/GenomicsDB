@@ -320,7 +320,7 @@ void run_range_query(const VariantQueryProcessor& qp, const VariantQueryConfig& 
 
 #if defined(HTSDIR)
 void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQueryConfig& query_config,
-    VCFAdapter& vcf_adapter, const VidMapper& id_mapper, const JSONVCFAdapterQueryConfig& json_scan_config,
+    VCFAdapter& vcf_adapter, const VidMapper& id_mapper,
     const ProduceBroadGVCFSubOperation sub_operation_type, int my_world_mpi_rank, bool skip_query_on_root)
 {
   //Read output in batches if required
@@ -334,7 +334,7 @@ void scan_and_produce_Broad_GVCF(const VariantQueryProcessor& qp, const VariantQ
   {
     case ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_PRODUCE_GVCF:
       op_ptr = new BroadCombinedGVCFOperator(vcf_adapter, id_mapper, query_config,
-          json_scan_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
+          query_config.get_max_diploid_alt_alleles_that_can_be_genotyped());
       break;
     case ProduceBroadGVCFSubOperation::PRODUCE_BROAD_GVCF_PRODUCE_INTERESTING_POSITIONS:
       op_ptr = new InterestingLocationsPrinter(std::cout);
@@ -532,50 +532,38 @@ int main(int argc, char *argv[]) {
   if(!print_version_only)
   {
     //Use VariantQueryConfig to setup query info
-    VariantQueryConfig query_config;
-    //Vid mapping
-    FileBasedVidMapper id_mapper;
-    //Loader configuration
-    JSONLoaderConfig loader_config;
-    JSONLoaderConfig* loader_config_ptr = 0;
-    if(!(loader_json_config_file.empty()))
-    {
-      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
-      loader_config_ptr = &loader_config;
-    }
+    VariantQueryConfig query_config; 
 #ifdef HTSDIR
     VCFAdapter vcf_adapter_base;
-    VCFSerializedBufferAdapter serialized_vcf_adapter(page_size, true);
+    VCFSerializedBufferAdapter serialized_vcf_adapter(true, true);
     auto& vcf_adapter = (page_size > 0u) ? dynamic_cast<VCFAdapter&>(serialized_vcf_adapter) : vcf_adapter_base;
-    JSONVCFAdapterQueryConfig scan_config;
 #endif
     if(json_config_file.empty())
     {
       std::cerr << "Query JSON file (-j) is a mandatory argument - unspecified\n";
       exit(-1);
     }
-    JSONBasicQueryConfig* json_config_ptr = 0;
-    JSONBasicQueryConfig range_query_config;
-    switch(command_idx)
+    //Loader configuration - optional
+    GenomicsDBImportConfig loader_config;
+    if(!loader_json_config_file.empty())
     {
-      case COMMAND_PRODUCE_BROAD_GVCF:
-#if defined(HTSDIR)
-        scan_config.read_from_file(json_config_file, query_config, vcf_adapter, &id_mapper, output_format, my_world_mpi_rank);
-        json_config_ptr = static_cast<JSONBasicQueryConfig*>(&scan_config);
-#else
-        std::cerr << "Cannot produce Broad's combined GVCF without htslib. Re-compile with HTSDIR variable set\n";
-        exit(-1);
-#endif
-        break;
-      default:
-        range_query_config.read_from_file(json_config_file, query_config, &id_mapper, my_world_mpi_rank, loader_config_ptr);
-        json_config_ptr = &range_query_config;
-        break;
+      loader_config.read_from_file(loader_json_config_file, my_world_mpi_rank);
+      query_config.update_from_loader(loader_config, my_world_mpi_rank);
     }
-    ASSERT(json_config_ptr);
-    workspace = json_config_ptr->get_workspace(my_world_mpi_rank);
-    array_name = json_config_ptr->get_array_name(my_world_mpi_rank);
-    if(workspace == "" || array_name == "")
+    //Ensures that info from loader (if exists) is obtained before reading query JSON
+    query_config.read_from_file(json_config_file, my_world_mpi_rank);
+    //Discard intervals not part of this partition
+    if(!loader_json_config_file.empty())
+      query_config.subset_query_column_ranges_based_on_partition(loader_config, my_world_mpi_rank);
+    //Command line overrides
+    if(page_size > 0u)
+      query_config.set_combined_vcf_records_buffer_size_limit(page_size);
+    if(command_idx == COMMAND_PRODUCE_BROAD_GVCF)
+      query_config.set_vcf_output_format(output_format);
+    vcf_adapter.initialize(query_config);
+    workspace = query_config.get_workspace(my_world_mpi_rank);
+    array_name = query_config.get_array_name(my_world_mpi_rank);
+    if(workspace.empty() || array_name.empty())
     {
       std::cerr << "Missing workspace(-w) or array name (-A)\n";
       return -1;
@@ -584,27 +572,27 @@ int main(int argc, char *argv[]) {
     ProfilerStart("gprofile.log");
 #endif
     segment_size = segment_size_set_in_command_line ? segment_size
-      : json_config_ptr->get_segment_size();
+      : query_config.get_segment_size();
 #if VERBOSE>0
     std::cerr << "Segment size: "<<segment_size<<" bytes\n";
 #endif
     /*Create storage manager*/
     VariantStorageManager sm(workspace, segment_size);
     /*Create query processor*/
-    VariantQueryProcessor qp(&sm, array_name, id_mapper);
+    VariantQueryProcessor qp(&sm, array_name, query_config.get_vid_mapper());
     auto require_alleles = ((command_idx == COMMAND_RANGE_QUERY)
         || (command_idx == COMMAND_PRODUCE_BROAD_GVCF));
-    qp.do_query_bookkeeping(qp.get_array_schema(), query_config, id_mapper, require_alleles);
+    qp.do_query_bookkeeping(qp.get_array_schema(), query_config, query_config.get_vid_mapper(), require_alleles);
     switch(command_idx)
     {
       case COMMAND_RANGE_QUERY:
-        run_range_query(qp, query_config, static_cast<const VidMapper&>(id_mapper), output_format,
+        run_range_query(qp, query_config, query_config.get_vid_mapper(), output_format,
             (loader_json_config_file.empty() || loader_config.is_partitioned_by_column()),
             num_mpi_processes, my_world_mpi_rank, skip_query_on_root);
         break;
       case COMMAND_PRODUCE_BROAD_GVCF:
 #if defined(HTSDIR)
-        scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, static_cast<const VidMapper&>(id_mapper), scan_config,
+        scan_and_produce_Broad_GVCF(qp, query_config, vcf_adapter, query_config.get_vid_mapper(),
             sub_operation_type, my_world_mpi_rank, skip_query_on_root);
 #endif
         break;
@@ -614,7 +602,7 @@ int main(int argc, char *argv[]) {
       case COMMAND_PRINT_CALLS:
       case COMMAND_PRINT_CSV:
       case COMMAND_PRINT_ALT_ALLELE_COUNTS:
-        print_calls(qp, query_config, command_idx, static_cast<const VidMapper&>(id_mapper));
+        print_calls(qp, query_config, command_idx, query_config.get_vid_mapper());
         break;
     }
 #ifdef USE_GPERFTOOLS

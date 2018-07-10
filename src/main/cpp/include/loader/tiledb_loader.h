@@ -89,24 +89,24 @@ class LoaderConverterMessageExchange
     std::vector<int64_t> m_idx_offset_per_division;
 };
 
-class VCF2TileDBLoaderConverterBase : public JSONLoaderConfig
+class VCF2TileDBLoaderConverterBase : public GenomicsDBImportConfig
 {
   public:
     VCF2TileDBLoaderConverterBase(
       const std::string& config_filename,
-      int idx,
-      const int64_t lb_callset_row_idx=0,
-      const int64_t ub_callset_row_idx=INT64_MAX-1,
-      bool vidmap_file_required=true);
+      int idx);
+    VCF2TileDBLoaderConverterBase(
+      const GenomicsDBImportConfig& config,
+      int idx);
     inline int64_t get_column_partition_end() const
     {
-      return JSONLoaderConfig::get_column_partition(m_idx).second;
+      return GenomicsDBImportConfig::get_column_partition(m_idx).second;
     }
     inline int64_t get_column_partition_begin() const
     {
-      return JSONLoaderConfig::get_column_partition(m_idx).first;
+      return GenomicsDBImportConfig::get_column_partition(m_idx).first;
     }
-    inline ColumnRange get_column_partition() const { return JSONLoaderConfig::get_column_partition(m_idx); }
+    inline ColumnRange get_column_partition() const { return GenomicsDBImportConfig::get_column_partition(m_idx); }
     void clear();
   protected:
     void resize_circular_buffers(unsigned num_entries)
@@ -141,12 +141,10 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
   public:
     //If vid_mapper==0, build from scratch
     VCF2TileDBConverter(
-      const std::string& config_filename,
+      const GenomicsDBImportConfig& config,
       int idx,
-      VidMapper* vid_mapper=0,
       std::vector<std::vector<uint8_t>>* buffers=0,
-      std::vector<LoaderConverterMessageExchange>* exchange_vector=0,
-      bool vid_mapper_file_required=true);
+      std::vector<LoaderConverterMessageExchange>* exchange_vector=0);
     //Delete copy constructor
     VCF2TileDBConverter(const VCF2TileDBConverter& other) = delete;
     //Delete move constructor
@@ -189,7 +187,6 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
     File2TileDBBinaryBase* create_file2tiledb_object(const FileInfo& file_info, const uint64_t local_file_idx,
         const std::vector<ColumnRange>& partition_bounds);
   private:
-    VidMapper* m_vid_mapper;
     //One per partition
     std::vector<ColumnPartitionBatch> m_partition_batch;
     //Vector of vector of strings, outer vector corresponds to FILTER, INFO, FORMAT
@@ -277,22 +274,12 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
   public:
     VCF2TileDBLoader(
       const std::string& config_filename,
-      const int idx,
-      const int64_t lb_callset_row_idx=0,
-      const int64_t ub_callset_row_idx=INT64_MAX-1,
-      bool using_vidmap_protobuf=false,
-      const VidMappingPB* vidmap_pb = NULL,
-      const CallsetMappingPB* callsetmap_pb = NULL);
+      const int idx);
     VCF2TileDBLoader(
       const std::string& config_filename,
       const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
       const std::string& buffer_stream_callset_mapping_json_string,
-      const int idx,
-      const int64_t lb_callset_row_idx=0,
-      const int64_t ub_callset_row_idx=INT64_MAX-1,
-      bool using_vidmap_protobuf=false,
-      const VidMappingPB* vidmap_pb = NULL,
-      const CallsetMappingPB* callsetmap_pb = NULL);
+      const int idx);
 
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
@@ -309,8 +296,6 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
         delete m_converter;
       m_converter = 0;
 #endif
-      delete m_vid_mapper;
-      m_vid_mapper = 0;
     }
     void clear();
 #ifdef HTSDIR
@@ -393,8 +378,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
     }
     inline const std::vector<int64_t>& get_buffer_stream_idx_to_global_file_idx_vec() const
     {
-      assert(m_vid_mapper);
-      return m_vid_mapper->get_buffer_stream_idx_to_global_file_idx_vec();
+      return m_vid_mapper.get_buffer_stream_idx_to_global_file_idx_vec();
     }
     /*
      * Debug dumper
@@ -413,16 +397,10 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
       const std::string& config_filename,
       const std::vector<BufferStreamInfo>& buffer_stream_info_vec,
       const std::string& buffer_stream_callset_mapping_json_string,
-      const int idx,
-      const int64_t lb_callset_row_idx,
-      const int64_t ub_callset_row_idx,
-      bool using_vidmap_protobuf,
-      const VidMappingPB* vidmap_pb,
-      const CallsetMappingPB* callsetmap_pb);
+      const int idx);
     void reserve_entries_in_circular_buffer(unsigned exchange_idx);
     void advance_write_idxs(unsigned exchange_idx);
     //Private members
-    VidMapper* m_vid_mapper;
 #ifdef HTSDIR
     //May be null
     VCF2TileDBConverter* m_converter;

@@ -23,7 +23,6 @@
 #include "variant_cell.h"
 #include "variant_field_data.h"
 #include "variant_query_config.h"
-#include "json_config.h"
 
 BufferVariantCell::BufferVariantCell(const VariantArraySchema& array_schema)
 {

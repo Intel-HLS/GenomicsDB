@@ -30,6 +30,7 @@
 #include "htslib/vcf.h"
 #include "htslib/faidx.h"
 #include "timer.h"
+#include "genomicsdb_config_base.h"
 
 enum VCFIndexType
 {
@@ -91,17 +92,10 @@ class VCFAdapter
     //Returns true if new field added
     static bool add_field_to_hdr_if_missing(bcf_hdr_t* hdr, const VidMapper* id_mapper, const std::string& field_name, int field_type_idx);
   public:
-    VCFAdapter(bool open_output=true, const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
+    VCFAdapter(bool open_output=true);
     virtual ~VCFAdapter();
     void clear();
-    void initialize(const std::string& reference_genome, const std::string& vcf_header_filename,
-        std::string output_filename, std::string output_format="",
-        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE,
-        const bool produce_GT_field=false,
-        const bool index_output_VCF=false,
-        const bool produce_FILTER_field=false,
-        const bool sites_only_query=false,
-        const bool produce_GT_with_min_PL_value_for_spanning_deletions=false);
+    virtual void initialize(const GenomicsDBConfigBase& config_base);
     //Allocates header
     bcf_hdr_t* initialize_default_header();
     bcf_hdr_t* get_vcf_header() { return m_template_vcf_hdr; }
@@ -119,35 +113,18 @@ class VCFAdapter
     virtual bool overflow() const { return false; }
     char get_reference_base_at_position(const char* contig, int pos)
     { return m_reference_genome_info.get_reference_base_at_position(contig, pos); }
-    const bool produce_GT_field() const { return m_produce_GT_field; }
-    const bool produce_FILTER_field() const { return m_produce_FILTER_field; }
-    const bool sites_only_query() const { return m_sites_only_query; }
-    const bool produce_GT_with_min_PL_value_for_spanning_deletions() const
-    { return m_produce_GT_with_min_PL_value_for_spanning_deletions; }
   protected:
     bool m_open_output;
-    //Output file
-    std::string m_output_filename;
-    //Template VCF header to start with
-    std::string m_vcf_header_filename;
     bcf_hdr_t* m_template_vcf_hdr;
     //Reference genome info
     ReferenceGenomeInfo m_reference_genome_info;
     //Output fptr
     htsFile* m_output_fptr;
     bool m_is_bcf;
-    //Buffer size for combined vcf records
-    size_t m_combined_vcf_records_buffer_size_limit;
-    //GATK CombineGVCF does not produce GT field by default - option to produce GT
-    bool m_produce_GT_field;
-    //GATK CombineGVCF does not produce FILTER field by default - option to produce FILTER
-    bool m_produce_FILTER_field;
     //Index output VCF
-    unsigned m_index_output_VCF;
-    //Sites-only query - don't produce any FORMAT fields
-    bool m_sites_only_query;
-    //when producing GT, use the min PL value GT for spanning deletions
-    bool m_produce_GT_with_min_PL_value_for_spanning_deletions;
+    VCFIndexType m_output_VCF_index_type;
+    //GenomicsDBConfigBase object
+    const GenomicsDBConfigBase* m_config_base_ptr;
 #ifdef DO_PROFILING
     //Timer
     Timer m_vcf_serialization_timer;
@@ -157,8 +134,7 @@ class VCFAdapter
 class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
 {
   public:
-    BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries,
-        const size_t combined_vcf_records_buffer_size_limit=DEFAULT_COMBINED_VCF_RECORDS_BUFFER_SIZE);
+    BufferedVCFAdapter(unsigned num_circular_buffers, unsigned max_num_entries);
     virtual ~BufferedVCFAdapter();
     void clear();
     virtual void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
@@ -166,7 +142,9 @@ class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
     void do_output();
     inline bool overflow() const
     {
-      return (m_combined_vcf_records_buffer_sizes[get_write_idx()] >= m_combined_vcf_records_buffer_size_limit);
+      assert(m_config_base_ptr);
+      return (m_combined_vcf_records_buffer_sizes[get_write_idx()] >=
+          m_config_base_ptr->get_combined_vcf_records_buffer_size_limit());
     }
   private:
     void resize_line_buffer(std::vector<bcf1_t*>& line_buffer, unsigned new_size);
@@ -178,8 +156,8 @@ class BufferedVCFAdapter : public VCFAdapter, public CircularBufferController
 class VCFSerializedBufferAdapter: public VCFAdapter
 {
   public:
-    VCFSerializedBufferAdapter(const size_t combined_vcf_records_buffer_size_limit, bool print_output, bool keep_idx_fields_in_bcf_header=true)
-      : VCFAdapter(false, combined_vcf_records_buffer_size_limit)
+    VCFSerializedBufferAdapter(bool keep_idx_fields_in_bcf_header=true, bool do_output=false)
+      : VCFAdapter(false)
     {
       m_keep_idx_fields_in_bcf_header = keep_idx_fields_in_bcf_header;
       m_rw_buffer = 0;
@@ -188,28 +166,31 @@ class VCFSerializedBufferAdapter: public VCFAdapter
       m_hts_string.m = 4096u;
       m_hts_string.s = (char*)malloc(m_hts_string.m);
       assert(m_hts_string.s);
-      m_write_fptr = print_output ? (m_output_filename == "" ? stdout : fopen(m_output_filename.c_str(), "w")) : 0;
+      m_write_fptr = 0;
+      m_do_output = do_output;
     }
     ~VCFSerializedBufferAdapter()
     {
-      if(m_write_fptr && m_write_fptr != stdout)
-        fclose(m_write_fptr);
-      m_write_fptr = 0;
       if(m_hts_string.s && m_hts_string.m > 0)
         free(m_hts_string.s);
       m_hts_string.s = 0;
       m_hts_string.m = 0;
+      if(m_write_fptr && m_write_fptr != stdout && m_write_fptr != stderr)
+        fclose(m_write_fptr);
+      m_write_fptr = 0;
     }
     //Delete copy and move constructors
     VCFSerializedBufferAdapter(const VCFSerializedBufferAdapter& other) = delete;
     VCFSerializedBufferAdapter(VCFSerializedBufferAdapter&& other) = delete;
+    void initialize(const GenomicsDBConfigBase& config_base);
     void set_buffer(RWBuffer& buffer) { m_rw_buffer = &buffer; }
     void print_header();
     void handoff_output_bcf_line(bcf1_t*& line, const size_t bcf_record_size);
     inline bool overflow() const
     {
       assert(m_rw_buffer);
-      return (m_rw_buffer->m_num_valid_bytes >= m_combined_vcf_records_buffer_size_limit);
+      return (m_rw_buffer->m_num_valid_bytes >=
+          m_config_base_ptr->get_combined_vcf_records_buffer_size_limit());
     }
     void do_output()
     {
@@ -221,8 +202,9 @@ class VCFSerializedBufferAdapter: public VCFAdapter
   private:
     bool m_keep_idx_fields_in_bcf_header;
     RWBuffer* m_rw_buffer;
-    FILE* m_write_fptr;
     kstring_t m_hts_string;
+    bool m_do_output;
+    FILE* m_write_fptr;
 };
 
 #endif  //ifdef HTSDIR

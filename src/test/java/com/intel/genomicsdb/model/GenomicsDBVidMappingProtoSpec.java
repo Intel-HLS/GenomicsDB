@@ -34,47 +34,47 @@ public class GenomicsDBVidMappingProtoSpec {
   public void testGenomicsDBVidMapProto() {
 
     // Create INFO fields
-    List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>(4);
-    GenomicsDBVidMapProto.InfoField.Builder infoField0 =
-      GenomicsDBVidMapProto.InfoField.newBuilder();
-    GenomicsDBVidMapProto.InfoField pass =
+    List<GenomicsDBVidMapProto.GenomicsDBFieldInfo> infoFields = new ArrayList<>(4);
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoField0 =
+      GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo pass =
       infoField0
         .setName("PASS")
         .addType("int")
         .build();
-    GenomicsDBVidMapProto.InfoField.Builder infoField1 =
-      GenomicsDBVidMapProto.InfoField.newBuilder();
-    GenomicsDBVidMapProto.InfoField lowQual =
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoField1 =
+      GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo lowQual =
       infoField1
         .setName("LowQual")
         .addType("int")
         .build();
-    GenomicsDBVidMapProto.InfoField.Builder infoField2 =
-      GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoField2 =
+      GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
     GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
         GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
     lengthDescriptorComponentBuilder.setVariableLengthDescriptor("VAR");
-    GenomicsDBVidMapProto.InfoField pgt =
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo pgt =
       infoField2
         .setName("PGT")
         .addType("char")
         .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
-    GenomicsDBVidMapProto.InfoField.Builder infoField3 =
-      GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoField3 =
+      GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
     lengthDescriptorComponentBuilder.setVariableLengthDescriptor("P");
-    GenomicsDBVidMapProto.InfoField gt =
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo gt =
       infoField3
         .setName("PASS")
         .addType("int")
         .addLength(lengthDescriptorComponentBuilder.build())
         .addVcfFieldClass("FORMAT")
         .build();
-    GenomicsDBVidMapProto.InfoField.Builder infoFormatField =
-      GenomicsDBVidMapProto.InfoField.newBuilder();
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoFormatField =
+      GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
     lengthDescriptorComponentBuilder.setVariableLengthDescriptor("R");
-    GenomicsDBVidMapProto.InfoField dp =
+    GenomicsDBVidMapProto.GenomicsDBFieldInfo dp =
       infoFormatField
         .setName("DP")
         .addType("int")

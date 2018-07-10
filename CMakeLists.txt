@@ -37,7 +37,7 @@ set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
-set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
+set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR True CACHE BOOL "Generate all protobuf files in build directory")
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -105,6 +105,8 @@ add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
 
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
+
+find_package(CURL)
 
 #RapidJSON
 find_package(RapidJSON REQUIRED)
@@ -219,6 +221,7 @@ include_directories (
     src/main/cpp/include/query_operations
     src/main/cpp/include/utils
     src/main/cpp/include/vcf
+    src/main/cpp/include/config
     src/test/cpp/include
 )
 
@@ -248,6 +251,9 @@ function(build_GenomicsDB_executable_common target)
     endif()
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
+    endif()
+    if(CURL_FOUND)
+      target_link_libraries(${target} ${CURL_LIBRARIES})
     endif()
     if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
         target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})

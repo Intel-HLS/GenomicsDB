@@ -157,15 +157,13 @@ public final class TestGenomicsDB
     ARGS_IDX_DO_LOAD(1001),
     ARGS_IDX_REFERENCE_GENOME(1002),
     ARGS_IDX_TEMPLATE_VCF_HEADER(1003),
-    ARGS_IDX_LB_ROW_IDX(1004),
-    ARGS_IDX_UB_ROW_IDX(1005),
-    ARGS_IDX_CHROMOSOME(1006),
-    ARGS_IDX_BEGIN(1007),
-    ARGS_IDX_END(1008),
-    ARGS_IDX_COUNT_ONLY(1009),
-    ARGS_IDX_PASS_AS_VCF(1010),
-    ARGS_IDX_PASS_THROUGH_QUERY_JSON(1011),
-    ARGS_IDX_AFTER_LAST_ARG_IDX(1012);
+    ARGS_IDX_CHROMOSOME(1004),
+    ARGS_IDX_BEGIN(1005),
+    ARGS_IDX_END(1006),
+    ARGS_IDX_COUNT_ONLY(1007),
+    ARGS_IDX_PASS_AS_VCF(1008),
+    ARGS_IDX_PASS_THROUGH_QUERY_JSON(1009),
+    ARGS_IDX_AFTER_LAST_ARG_IDX(1010);
 
     private final int mArgsIdx;
     ArgsIdxEnum(final int idx)
@@ -182,27 +180,22 @@ public final class TestGenomicsDB
   public static void main(final String[] args) throws IOException
   {
     int firstEnumIdx = ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx();
-    LongOpt[] longopts = new LongOpt[16];
+    LongOpt[] longopts = new LongOpt[14];
     longopts[0] = new LongOpt("query", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_QUERY.idx());
     longopts[1] = new LongOpt("load", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_DO_LOAD.idx());
     //Specify rank (or partition idx) of this process
     longopts[2] = new LongOpt("rank", LongOpt.REQUIRED_ARGUMENT, null, 'r');
-    longopts[5] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
-    longopts[6] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
     longopts[3] = new LongOpt("reference_genome", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_REFERENCE_GENOME.idx());
     longopts[4] = new LongOpt("template_vcf_header", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_TEMPLATE_VCF_HEADER.idx());
-    //Specify smallest row idx from which to start loading - useful for
-    //incremental loading into existing array
-    longopts[7] = new LongOpt("lb_row_idx", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_LB_ROW_IDX.idx());
-    //Specify largest row idx up to which loading should be performed - for completeness
-    longopts[8] = new LongOpt("ub_row_idx", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_UB_ROW_IDX.idx());
-    longopts[9] = new LongOpt("chromosome", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CHROMOSOME.idx());
-    longopts[10] = new LongOpt("begin", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_BEGIN.idx());
-    longopts[11] = new LongOpt("end", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_END.idx());
-    longopts[12] = new LongOpt("loader_json_file", LongOpt.REQUIRED_ARGUMENT, null, 'l');
-    longopts[13] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_COUNT_ONLY.idx());
-    longopts[14] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_VCF.idx());
-    longopts[15] = new LongOpt("pass_through_query_json", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_THROUGH_QUERY_JSON.idx());
+    longopts[5] = new LongOpt("workspace", LongOpt.REQUIRED_ARGUMENT, null, 'w');
+    longopts[6] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
+    longopts[7] = new LongOpt("chromosome", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_CHROMOSOME.idx());
+    longopts[8] = new LongOpt("begin", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_BEGIN.idx());
+    longopts[9] = new LongOpt("end", LongOpt.REQUIRED_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_END.idx());
+    longopts[10] = new LongOpt("loader_json_file", LongOpt.REQUIRED_ARGUMENT, null, 'l');
+    longopts[11] = new LongOpt("count_only", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_COUNT_ONLY.idx());
+    longopts[12] = new LongOpt("pass_as_vcf", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_AS_VCF.idx());
+    longopts[13] = new LongOpt("pass_through_query_json", LongOpt.NO_ARGUMENT, null, ArgsIdxEnum.ARGS_IDX_PASS_THROUGH_QUERY_JSON.idx());
     if(args.length < 2)
     {
       System.err.println("Usage:\n\tFor querying: --query <loader.json> [<query.json> |"
@@ -220,8 +213,6 @@ public final class TestGenomicsDB
     String array = "";
     String referenceGenome = "";
     String templateVCFHeader = "";
-    long lbRowIdx = 0;
-    long ubRowIdx = Long.MAX_VALUE-1;
     String chromosome = "";
     int chrBegin = 1;
     int chrEnd = Integer.MAX_VALUE-1;
@@ -269,12 +260,6 @@ public final class TestGenomicsDB
                 break;
               case ARGS_IDX_TEMPLATE_VCF_HEADER:
                 templateVCFHeader = g.getOptarg();
-                break;
-              case ARGS_IDX_LB_ROW_IDX:
-                lbRowIdx = Long.parseLong(g.getOptarg());
-                break;
-              case ARGS_IDX_UB_ROW_IDX:
-                ubRowIdx = Long.parseLong(g.getOptarg());
                 break;
               case ARGS_IDX_CHROMOSOME:
                 chromosome = g.getOptarg();
@@ -338,7 +323,7 @@ public final class TestGenomicsDB
         loaderJSONFile = args[g.getOptind()];
       //<loader.json>
       GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile);
-      loader.write(rank, lbRowIdx, ubRowIdx);
+      loader.write(rank);
     }
   }
 }

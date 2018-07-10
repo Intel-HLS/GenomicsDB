@@ -36,7 +36,9 @@ int main(int argc, char** argv)
     exit(-1);
   }
   //Converter object
-  VCF2TileDBConverter converter(argv[1], 0);
+  GenomicsDBImportConfig loader_config;
+  loader_config.read_from_file(argv[1], 0);
+  VCF2TileDBConverter converter(loader_config, 0);
   converter.create_and_print_histogram(argv[1]);
   return 0;
 }

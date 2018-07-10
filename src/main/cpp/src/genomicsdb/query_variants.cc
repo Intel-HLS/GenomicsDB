@@ -656,9 +656,12 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       || query_config.is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX));
   //Set number of rows in the array
   auto& dim_domains = array_schema.dim_domains();
-  uint64_t row_num = m_storage_manager ? m_storage_manager->get_num_valid_rows_in_array(m_ad) :   //may read from array metadata
-    (dim_domains[0].second - dim_domains[0].first + 1);
-  query_config.set_num_rows_in_array(row_num, static_cast<int64_t>(dim_domains[0].first));
+  if(m_storage_manager)
+    query_config.set_num_rows_in_array(m_storage_manager->get_num_valid_rows_in_array(m_ad),
+        m_storage_manager->get_lb_row_idx(m_ad));
+  else  //Must be invoked during load process
+    query_config.set_num_rows_in_array(query_config.get_num_rows_within_bounds(),
+        query_config.get_row_bounds().first);
   query_config.setup_array_row_idx_to_query_row_idx_map();
   //Bounds checking for query
   for(auto i=0u;i<query_config.get_num_column_intervals();++i)
