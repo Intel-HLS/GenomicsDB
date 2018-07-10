@@ -41,6 +41,7 @@ set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+set(USE_HDFS True CACHE BOOL "Enables HDFS support")
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -238,7 +239,7 @@ function(build_GenomicsDB_executable_common target)
     if(HTSLIB_SOURCE_DIR)
         add_dependencies(${target} htslib)
     endif()
-    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
+    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${JAVA_JVM_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
