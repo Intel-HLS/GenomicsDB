@@ -170,8 +170,9 @@ class VariantArrayInfo
     //Return #valid rows in the array
     inline int64_t get_num_valid_rows_in_array() const
     {
-      return (m_max_valid_row_idx_in_array - m_schema.dim_domains()[0].first + 1);
+      return (m_max_valid_row_idx_in_array - m_lb_row_idx + 1);
     }
+    inline int64_t get_lb_row_idx() const { return m_lb_row_idx; }
     inline const VidMapper* get_vid_mapper() const { return m_vid_mapper; }
     const TileDB_Array* get_tiledb_array() const { return m_tiledb_array; }
   private:
@@ -253,6 +254,7 @@ class VariantStorageManager
      * Return #valid rows in the array
      */
     int64_t get_num_valid_rows_in_array(const int ad) const;
+    int64_t get_lb_row_idx(const int ad) const;
     /*
      * Update row bounds in the metadata
      */

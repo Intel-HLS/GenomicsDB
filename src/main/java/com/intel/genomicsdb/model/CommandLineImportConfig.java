@@ -180,6 +180,8 @@ public class CommandLineImportConfig extends ImportConfig {
         for (String file : files) {
             AbstractFeatureReader<VariantContext, LineIterator> reader =
                     AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
+            if(reader == null)
+              throw new IOException("Could not open "+file);
             headers.add((VCFHeader) reader.getHeader());
             final String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
             sampleNameToVcfPath.put(sampleName, Paths.get(file));

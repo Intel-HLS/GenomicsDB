@@ -23,11 +23,11 @@ public interface VidMapExtensions {
      * from the merged GVCF header
      */
     default GenomicsDBVidMapProto.VidMappingPB generateVidMapFromMergedHeader(final Set<VCFHeaderLine> mergedHeader) {
-        List<GenomicsDBVidMapProto.InfoField> infoFields = new ArrayList<>();
+        List<GenomicsDBVidMapProto.GenomicsDBFieldInfo> infoFields = new ArrayList<>();
         List<GenomicsDBVidMapProto.Chromosome> contigs = new ArrayList<>();
 
         //ID field
-        GenomicsDBVidMapProto.InfoField.Builder IDFieldBuilder = GenomicsDBVidMapProto.InfoField.newBuilder();
+        GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder IDFieldBuilder = GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
         GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.Builder lengthDescriptorComponentBuilder =
                 GenomicsDBVidMapProto.FieldLengthDescriptorComponentPB.newBuilder();
         lengthDescriptorComponentBuilder.setVariableLengthDescriptor("var");
@@ -38,7 +38,7 @@ public interface VidMapExtensions {
         long columnOffset = 0L;
 
         for (VCFHeaderLine headerLine : mergedHeader) {
-            GenomicsDBVidMapProto.InfoField.Builder infoBuilder = GenomicsDBVidMapProto.InfoField.newBuilder();
+            GenomicsDBVidMapProto.GenomicsDBFieldInfo.Builder infoBuilder = GenomicsDBVidMapProto.GenomicsDBFieldInfo.newBuilder();
             if (headerLine instanceof VCFFormatHeaderLine) {
                 VCFFormatHeaderLine formatHeaderLine = (VCFFormatHeaderLine) headerLine;
                 boolean isGT = formatHeaderLine.getID().equals(VCFConstants.GENOTYPE_KEY);
@@ -52,13 +52,13 @@ public interface VidMapExtensions {
                         .addLength(lengthDescriptorComponentBuilder.build());
 
                 if (formatHeaderLine.getID().equals("DP") && dpIndex != -1) {
-                    GenomicsDBVidMapProto.InfoField prevDPField = removeInfoFields(infoFields, dpIndex);
+                    GenomicsDBVidMapProto.GenomicsDBFieldInfo prevDPField = removeInfoFields(infoFields, dpIndex);
                     infoBuilder.addVcfFieldClass(prevDPField.getVcfFieldClass(0)).addVcfFieldClass("FORMAT");
                 } else {
                     infoBuilder.addVcfFieldClass("FORMAT");
                 }
 
-                GenomicsDBVidMapProto.InfoField formatField = infoBuilder.build();
+                GenomicsDBVidMapProto.GenomicsDBFieldInfo formatField = infoBuilder.build();
                 infoFields.add(formatField);
                 if (formatHeaderLine.getID().equals("DP")) dpIndex = infoFields.indexOf(formatField);
             } else if (headerLine instanceof VCFInfoHeaderLine) {
@@ -97,12 +97,12 @@ public interface VidMapExtensions {
                             .addLength(lengthDescriptorComponentBuilder.build());
                 }
                 if (infoHeaderLine.getID().equals("DP") && dpIndex != -1) {
-                    GenomicsDBVidMapProto.InfoField prevDPield = removeInfoFields(infoFields, dpIndex);
+                    GenomicsDBVidMapProto.GenomicsDBFieldInfo prevDPield = removeInfoFields(infoFields, dpIndex);
                     infoBuilder.addVcfFieldClass(prevDPield.getVcfFieldClass(0)).addVcfFieldClass("INFO");
                 } else {
                     infoBuilder.addVcfFieldClass("INFO");
                 }
-                GenomicsDBVidMapProto.InfoField infoField = infoBuilder.build();
+                GenomicsDBVidMapProto.GenomicsDBFieldInfo infoField = infoBuilder.build();
                 infoFields.add(infoField);
                 if (infoHeaderLine.getID().equals("DP")) dpIndex = infoFields.indexOf(infoField);
             } else if (headerLine instanceof VCFFilterHeaderLine) {
@@ -114,7 +114,7 @@ public interface VidMapExtensions {
                     infoBuilder.addType("int");
                 }
                 infoBuilder.addVcfFieldClass("FILTER");
-                GenomicsDBVidMapProto.InfoField filterField = infoBuilder.build();
+                GenomicsDBVidMapProto.GenomicsDBFieldInfo filterField = infoBuilder.build();
                 infoFields.add(filterField);
             } else if (headerLine instanceof VCFContigHeaderLine) {
                 VCFContigHeaderLine contigHeaderLine = (VCFContigHeaderLine) headerLine;
@@ -188,9 +188,9 @@ public interface VidMapExtensions {
         return length;
     }
 
-    default GenomicsDBVidMapProto.InfoField removeInfoFields(List<GenomicsDBVidMapProto.InfoField> infoFields,
+    default GenomicsDBVidMapProto.GenomicsDBFieldInfo removeInfoFields(List<GenomicsDBVidMapProto.GenomicsDBFieldInfo> infoFields,
                                                              final int dpIndex) {
-        GenomicsDBVidMapProto.InfoField dpFormatField = infoFields.get(dpIndex);
+        GenomicsDBVidMapProto.GenomicsDBFieldInfo dpFormatField = infoFields.get(dpIndex);
         infoFields.remove(dpIndex);
         return dpFormatField;
     }

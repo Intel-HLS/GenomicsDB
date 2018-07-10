@@ -742,6 +742,13 @@ int64_t VariantStorageManager::get_num_valid_rows_in_array(const int ad) const
   return m_open_arrays_info_vector[ad].get_num_valid_rows_in_array();
 }
 
+int64_t VariantStorageManager::get_lb_row_idx(const int ad) const
+{
+  assert(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&
+      m_open_arrays_info_vector[ad].get_array_name().length());
+  return m_open_arrays_info_vector[ad].get_lb_row_idx();
+}
+
 void VariantStorageManager::update_row_bounds_in_array(const int ad, const int64_t lb_row_idx, const int64_t max_valid_row_idx_in_array)
 {
   assert(static_cast<size_t>(ad) < m_open_arrays_info_vector.size() &&

@@ -23,6 +23,9 @@
 #include <algorithm>
 #include "variant_query_config.h"
 #include "query_variants.h"
+#include "json_config.h"
+
+#define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBConfigException(#X);
 
 using namespace std;
 
@@ -225,4 +228,51 @@ void VariantQueryConfig::flatten_composite_fields(const VidMapper& vid_mapper)
     m_query_attributes_info_vec.resize(m_query_attributes_info_vec.size()-num_composite_fields_seen,
         VariantQueryFieldInfo("", UNDEFINED_ATTRIBUTE_IDX_VALUE));
   }
+}
+
+
+void VariantQueryConfig::read_from_file(const std::string& filename, const int rank)
+{
+  JSONConfigBase tmp_config(static_cast<const GenomicsDBConfigBase&>(*this));
+  tmp_config.read_from_file(filename, rank);
+  //Move configuration
+  *(static_cast<GenomicsDBConfigBase*>(this)) = std::move(static_cast<GenomicsDBConfigBase&>(tmp_config));
+  //Workspace
+  VERIFY_OR_THROW(m_workspaces.size() && "No workspace specified");
+  VERIFY_OR_THROW((m_single_workspace_path || static_cast<size_t>(rank) < m_workspaces.size())
+      && ("Could not find workspace for rank "+std::to_string(rank)).c_str());
+  auto& workspace = m_single_workspace_path ? m_workspaces[0] : m_workspaces[rank];
+  VERIFY_OR_THROW(!workspace.empty() && "Empty workspace string");
+  //Array
+  VERIFY_OR_THROW(m_array_names.size() && "No array specified");
+  VERIFY_OR_THROW((m_single_array_name || static_cast<size_t>(rank) < m_array_names.size())
+      && ("Could not find array for rank "+std::to_string(rank)).c_str());
+  auto& array_name = m_single_array_name ? m_array_names[0] : m_array_names[rank];
+  VERIFY_OR_THROW(!array_name.empty() && "Empty array name");
+  //Query columns
+  VERIFY_OR_THROW((m_column_ranges.size() || m_scan_whole_array) && "Query column ranges not specified");
+  if(!m_scan_whole_array)
+  {
+    VERIFY_OR_THROW((m_single_query_column_ranges_vector || static_cast<size_t>(rank) < m_column_ranges.size())
+        && "Rank >= query column ranges vector size");
+    for(const auto& range : get_query_column_ranges(rank))
+      add_column_interval_to_query(range.first, range.second);
+  }
+  //Query rows
+  if(!m_scan_whole_array && m_row_ranges.size())
+  {
+    VERIFY_OR_THROW((m_single_query_row_ranges_vector || static_cast<size_t>(rank) < m_row_ranges.size())
+        && "Rank >= query row ranges vector size");
+    std::vector<int64_t> row_idxs;
+    for(const auto& range : get_query_row_ranges(rank))
+    {
+      auto j = row_idxs.size();
+      row_idxs.resize(row_idxs.size() + (range.second - range.first + 1ll));
+      for(auto i=range.first;i<=range.second;++i,++j)
+        row_idxs[j] = i;
+    }
+    set_rows_to_query(row_idxs);
+  }
+  //Attributes
+  set_attributes_to_query(m_attributes);
 }

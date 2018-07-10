@@ -118,14 +118,14 @@ int main(int argc, char** argv)
     //Split files as per the partitions defined - don't load data
     if(split_files)
     {
-      JSONLoaderConfig loader_config;
-      FileBasedVidMapper id_mapper;
-      loader_config.read_from_file(loader_json_config_file, &id_mapper, my_world_mpi_rank);
+      GenomicsDBImportConfig loader_config;
+      loader_config.read_from_file(loader_json_config_file, my_world_mpi_rank);
       if(loader_config.is_partitioned_by_row())
       {
         std::cerr << "Splitting is available for column partitioning, row partitioning should be trivial if samples are scattered across files. See wiki page https://github.com/Intel-HLS/GenomicsDB/wiki/Dealing-with-multiple-GenomicsDB-partitions for more information\n";
         return 0;
       }
+      VidMapper id_mapper = loader_config.get_vid_mapper(); //copy
       //Might specify more VCF files from the command line
       for(auto i=optind+1;i<argc;++i)
         id_mapper.get_or_append_global_file_idx(argv[i]);
@@ -139,14 +139,14 @@ int main(int argc, char** argv)
       for(auto i=0ull;i<loop_bound;++i)
       {
         int rank = produce_all_partitions ? i : my_world_mpi_rank;
-        VCF2TileDBConverter converter(loader_json_config_file, rank,
-            static_cast<VidMapper*>(&id_mapper), &empty_buffers, &empty_exchange);
+        VCF2TileDBConverter converter(loader_config, rank,
+            &empty_buffers, &empty_exchange);
         converter.print_all_partitions(results_directory, "", rank);
         if(split_callset_mapping_file)
-          id_mapper.write_partition_callsets_json_file(loader_config.get_callset_mapping_filename(), results_directory, rank);
+          id_mapper.write_partition_callsets_json_file(loader_config.get_callset_mapping_file(), results_directory, rank);
       }
       if(split_callset_mapping_file)
-        id_mapper.write_partition_loader_json_file(loader_json_config_file, loader_config.get_callset_mapping_filename(),
+        id_mapper.write_partition_loader_json_file(loader_json_config_file, loader_config.get_callset_mapping_file(),
             results_directory, (produce_all_partitions ? column_partitions.size() : 1u), my_world_mpi_rank);
     }
     else

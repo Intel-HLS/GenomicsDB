@@ -21,7 +21,6 @@
 */
 
 #include "variant.h"
-#include "json_config.h"
 
 //GA4GHCallInfoToVariantIdx functions
 bool GA4GHCallInfoToVariantIdx::find_or_insert(uint64_t begin, uint64_t end, const std::string& REF, 

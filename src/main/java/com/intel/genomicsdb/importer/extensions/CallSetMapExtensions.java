@@ -54,7 +54,7 @@ public interface CallSetMapExtensions {
                     GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
 
             idMapBuilder.setSampleName(sampleName).setRowIdx(tileDBRowIndex++).setIdxInFile(0)
-                    .setStreamName(sampleName + "_stream");
+                    .setStreamName(getStreamNameFromSampleName(sampleName));
 
             GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
                     idMapBuilder.build();
@@ -134,5 +134,14 @@ public interface CallSetMapExtensions {
             listOfSampleNames.add(sampleName);
         }
         return generateSortedCallSetMap(listOfSampleNames, useSamplesInOrderProvided, lbRowIdx);
+    }
+
+    /**
+     * Returns stream name given a sample name
+     * @param sampleName sample name
+     * @return stream name
+     */
+    default String getStreamNameFromSampleName(final String sampleName) {
+        return sampleName + "_stream";
     }
 }
