@@ -30,6 +30,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.lang.Integer;
+import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 
 /**
  * This implementation extends what is in GenomicsDBImportConfiguration. Add extra data that is needed for parallel
@@ -91,25 +93,64 @@ public class ImportConfig {
                         current.getBegin().getContigPosition().getContig().equals(chromInterval.getBegin().getContigPosition().getContig()));
     }
 
-    private boolean isThereChromosomeIntervalIntersection(final List<GenomicsDBImportConfiguration.Partition> chromIntervals, boolean isThereInter) {
-        if (chromIntervals.isEmpty() || chromIntervals.size() < 2) return isThereInter;
-        GenomicsDBImportConfiguration.Partition head = chromIntervals.get(0);
-        List<GenomicsDBImportConfiguration.Partition> tail = chromIntervals.subList(1, chromIntervals.size());
+    class SortGenomicsDBPartition implements Comparator<Integer> {
 
-        for (GenomicsDBImportConfiguration.Partition chrom : tail) {
-            boolean interEval = isWithinChromosomeInterval(head, chrom);
-            isThereInter = isThereInter || interEval;
+        public SortGenomicsDBPartition(final List<GenomicsDBImportConfiguration.Partition> partitionList) {
+            this.partitionList = partitionList;
         }
 
-        return isThereChromosomeIntervalIntersection(tail, isThereInter);
+        public int compare(final Integer lIdx, final Integer rIdx) {
+            final GenomicsDBImportConfiguration.Partition l = partitionList.get(lIdx);
+            final GenomicsDBImportConfiguration.Partition r = partitionList.get(rIdx);
+            int contigCompare = l.getBegin().getContigPosition().getContig().compareTo(r.getBegin().getContigPosition().getContig());
+            if(contigCompare < 0)
+                return -1;
+            if(contigCompare > 0)
+                return 1;
+            long lPos = l.getBegin().getContigPosition().getPosition();
+            long rPos = r.getBegin().getContigPosition().getPosition();
+            return (lPos < rPos) ? -1 : (lPos > rPos) ? 1 : 0;
+        }
+
+        private List<GenomicsDBImportConfiguration.Partition> partitionList = null;
+    }
+
+    private boolean isThereChromosomeIntervalIntersection(final List<Integer> sortedPartitionIdxs) {
+        List<GenomicsDBImportConfiguration.Partition> partitions = this.importConfiguration.getColumnPartitionsList();
+        for(int i=0;i<sortedPartitionIdxs.size()-1;++i) {
+            Coordinates.ContigPosition currBegin = partitions.get(sortedPartitionIdxs.get(i)).getBegin().getContigPosition();
+            Coordinates.ContigPosition currEnd = partitions.get(sortedPartitionIdxs.get(i)).hasEnd()
+                ? partitions.get(sortedPartitionIdxs.get(i)).getEnd().getContigPosition()
+                : null;
+            Coordinates.ContigPosition nextBegin = partitions.get(sortedPartitionIdxs.get(i+1)).getBegin().getContigPosition();
+            if(currBegin.getContig().equals(nextBegin.getContig()) //same contig
+                    && (currEnd == null ||      //the first interval spans the full contig
+                        currEnd.getPosition() >= nextBegin.getPosition())) //overlap
+                return true;
+        }
+        return false;
     }
 
     private boolean isThereChromosomeIntervalIntersection() {
         List<GenomicsDBImportConfiguration.Partition> partitions = this.importConfiguration.getColumnPartitionsList();
-        return isThereChromosomeIntervalIntersection(partitions, false);
+        List<Integer> partitionIdxList = IntStream.range(0, partitions.size()).boxed().collect(Collectors.toList());
+        Collections.sort(partitionIdxList, new SortGenomicsDBPartition(partitions));
+        return isThereChromosomeIntervalIntersection(partitionIdxList);
     }
 
     void validateChromosomeIntervals() {
+        for(GenomicsDBImportConfiguration.Partition currPartition : importConfiguration.getColumnPartitionsList()) {
+            if(!currPartition.getBegin().hasContigPosition() || (currPartition.hasEnd() && !currPartition.getEnd().hasContigPosition()))
+                throw new IllegalArgumentException("Must use contig positions while using multi-interval import");
+            if(currPartition.hasEnd()) {
+               if(!currPartition.getBegin().getContigPosition().getContig().equals(
+                           currPartition.getEnd().getContigPosition().getContig()))
+                   throw new IllegalArgumentException("Both begin and end for a partition must be in the same contig");
+               if(currPartition.getBegin().getContigPosition().getPosition() >
+                       currPartition.getEnd().getContigPosition().getPosition())
+                   throw new IllegalArgumentException("End of a partition cannot be less than begin");
+            }
+        }
         if (isThereChromosomeIntervalIntersection())
             throw new IllegalArgumentException("There are multiple intervals sharing same value. This is not allowed. " +
                     "Intervals should be defined without intersections.");
