@@ -5,6 +5,7 @@
 #Disable Master Catalog in TileDB
 list(APPEND TILEDB_CMAKE_ARGS "-DENABLE_MASTER_CATALOG:BOOL=False")
 list(APPEND TILEDB_CMAKE_ARGS "-DTILEDB_VERBOSE:BOOL=True")
+list(APPEND TILEDB_CMAKE_ARGS "-DUSE_HDFS:BOOL=${USE_HDFS}")
 
 #Support for compiling with MacOS Sierra and High Sierra
 if(DEFINED CMAKE_FIND_FRAMEWORK)
