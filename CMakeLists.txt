@@ -394,7 +394,7 @@ if(BUILD_JAVA)
     add_dependencies(mvn_central_deploy genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples)
 
     add_test(NAME CI_tests
-        COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
+        COMMAND python2 ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 
