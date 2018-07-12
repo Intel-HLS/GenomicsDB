@@ -3,7 +3,7 @@
 # TILEDB_FOUND - TileDB found
 
 #Disable Master Catalog in TileDB
-set(ENABLE_MASTER_CATALOG False)
+set(ENABLE_MASTER_CATALOG False CACHE BOOL "Disable master catalog")
 set(TILEDB_VERBOSE True)
 
 #Zlib
