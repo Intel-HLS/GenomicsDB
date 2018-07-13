@@ -55,7 +55,6 @@ endif()
 
 #Compile sources with PIC
 add_library(GenomicsDB_library_object_files OBJECT ${GenomicsDB_library_sources})
-add_dependencies(GenomicsDB_library_object_files TileDB)
 if(PROTOBUF_REGENERATE)
     add_dependencies(GenomicsDB_library_object_files PROTOBUF_GENERATED_CXX_TARGET)
 endif()
