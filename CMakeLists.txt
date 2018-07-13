@@ -1,6 +1,6 @@
 project(GenomicsDB)
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 #git tag
 execute_process(
@@ -38,6 +38,7 @@ set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
 set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR True CACHE BOOL "Generate all protobuf files in build directory")
+set(ENABLE_LIBCURL False CACHE BOOL "Enable libcurl for use in htslib to read VCF files directly off S3/GCS/http(s) URLs")
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -80,7 +81,7 @@ endif()
 #MPI library/compiler etc
 if(NOT DISABLE_MPI)
     find_package(MPI REQUIRED)
-    set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+    include_directories(${MPI_CXX_INCLUDE_PATH})
 else()
     add_definitions(-DDISABLE_MPI=1)
 endif()
@@ -106,7 +107,9 @@ add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
 
-find_package(CURL)
+if(ENABLE_LIBCURL)
+    find_package(CURL)
+endif()
 
 #RapidJSON
 find_package(RapidJSON REQUIRED)
@@ -141,8 +144,16 @@ include_directories(${PROTOBUF_INCLUDE_DIRS})
 
 #JNI
 if(BUILD_JAVA)
-    find_package(Java 1.8 REQUIRED)
+    if(CMAKE_CROSSCOMPILING)
+	set(JAVA_HOME ${TARGET_JAVA_HOME})
+	set(ENV{JAVA_HOME} ${TARGET_JAVA_HOME})
+    endif()
     find_package(JNI REQUIRED)
+    if(CMAKE_CROSSCOMPILING)
+	unset(JAVA_HOME)
+	unset(ENV{JAVA_HOME})
+    endif()
+    find_package(Java 1.8 REQUIRED)
     include_directories(${JNI_INCLUDE_DIRS})
     include_directories(src/main/jni/include)
     include(UseJava)
@@ -225,8 +236,18 @@ include_directories (
     src/test/cpp/include
 )
 
-set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    ${LIBUUID_LIBRARY})
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES})
+if(MPI_FOUND)
+  set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${MPI_CXX_LIBRARIES})
+endif()
+if(USE_HDFS)
+    set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${JAVA_JVM_LIBRARY})
+endif()
+if(CURL_FOUND)
+    set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${CURL_LIBRARIES})
+endif()
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES}
+  ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
 
 if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(IPP REQUIRED)
@@ -236,16 +257,16 @@ endif()
 
 function(build_GenomicsDB_executable_common target)
     #add_executable(${target} src/${target}.cc)
+    target_link_libraries(${target} genomicsdb)
     if(TILEDB_SOURCE_DIR)
-        add_dependencies(${target} TileDB)
+        target_link_libraries(${target} tiledb_static)
+    else()
+        target_link_libraries(${target} ${TILEDB_LIBRARY})
     endif()
     if(HTSLIB_SOURCE_DIR)
         add_dependencies(${target} htslib)
     endif()
-    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
-    if(USE_HDFS)
-        target_link_libraries(${target} ${JAVA_JVM_LIBRARY})
-    endif()
+    target_link_libraries(${target} ${HTSLIB_LIBRARY})
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
@@ -254,9 +275,6 @@ function(build_GenomicsDB_executable_common target)
     endif()
     if(LIBRT_LIBRARY)
         target_link_libraries(${target} ${LIBRT_LIBRARY})
-    endif()
-    if(CURL_FOUND)
-      target_link_libraries(${target} ${CURL_LIBRARIES})
     endif()
     if(USE_GPERFTOOLS AND GPERFTOOLS_FOUND)
         target_link_libraries(${target} ${GPERFTOOLS_PROFILER_LIBRARY})
@@ -387,7 +405,7 @@ if(BUILD_JAVA)
     add_dependencies(mvn_central_deploy genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples)
 
     add_test(NAME CI_tests
-        COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
+        COMMAND python2 ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 

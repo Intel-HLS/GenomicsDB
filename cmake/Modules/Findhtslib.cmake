@@ -22,6 +22,8 @@ if(HTSLIB_SOURCE_DIR)
     if(CURL_FOUND)
       set(HTSLIB_CURL_FLAGS --enable-libcurl --enable-gcs --enable-s3)
       set(HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS "${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} -I${CURL_INCLUDE_DIRS}")
+      get_filename_component(LIBCURL_DIR ${CURL_LIBRARIES} DIRECTORY)
+      set(HTSLIB_LIBS "-L${LIBCURL_DIR} -lcurl")
     else()
       set(HTSLIB_CURL_FLAGS --disable-libcurl)
     endif()
@@ -34,6 +36,7 @@ if(HTSLIB_SOURCE_DIR)
         CONFIGURE_COMMAND ${HTSLIB_SOURCE_DIR}/configure CFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_CFLAGS} LDFLAGS=${HTSLIB_${CMAKE_BUILD_TYPE}_LDFLAGS}
             CC=${CMAKE_C_COMPILER} AR=${CMAKE_AR} RANLIB=${CMAKE_RANLIB}
             ${HTSLIB_OSXCROSS_COMPILE_FLAGS}
+	    LIBS=${HTSLIB_LIBS}
             --disable-lzma --disable-bz2
             ${HTSLIB_CURL_FLAGS}
         BUILD_COMMAND ${CMAKE_COMMAND} -E make_directory cram
