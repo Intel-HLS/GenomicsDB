@@ -61,6 +61,7 @@ class GenomicsDBConfigBase
       m_lb_callset_row_idx = 0;
       m_ub_callset_row_idx = INT64_MAX-1;
       m_segment_size = 10u*1024u*1024u; //10MiB default
+      m_disable_file_locking_in_tiledb = false;
     }
     ~GenomicsDBConfigBase()
     {
@@ -104,6 +105,7 @@ class GenomicsDBConfigBase
     void subset_query_column_ranges_based_on_partition(const GenomicsDBImportConfig& loader_config, const int rank);
     inline RowRange get_row_bounds() const { return RowRange(m_lb_callset_row_idx, m_ub_callset_row_idx); }
     inline uint64_t get_num_rows_within_bounds() const { return m_ub_callset_row_idx - m_lb_callset_row_idx + 1ull; }
+    inline bool disable_file_locking_in_tiledb() const { return m_disable_file_locking_in_tiledb; }
   protected:
     bool m_single_workspace_path;
     bool m_single_array_name;
@@ -152,6 +154,8 @@ class GenomicsDBConfigBase
     //Might be empty strings if using Protobuf
     std::string m_vid_mapping_file;
     std::string m_callset_mapping_file;
+    //Disable file locking in TileDB
+    bool m_disable_file_locking_in_tiledb;
   public:
     //Static convenience member
     static std::unordered_map<std::string, bool> m_vcf_output_format_to_is_bcf_flag;
