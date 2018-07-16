@@ -25,6 +25,7 @@
 #include "vcf_adapter.h"
 #include "vid_mapper.h"
 #include "htslib/tbx.h"
+#include "tiledb_utils.h"
 
 //ReferenceGenomeInfo functions
 void ReferenceGenomeInfo::initialize(const std::string& reference_genome)
@@ -311,12 +312,29 @@ void VCFAdapter::initialize(const GenomicsDBConfigBase& config_base)
     m_template_vcf_hdr = initialize_default_header();
   else
   {
-    auto* fptr = bcf_open(config_base.get_vcf_header_filename().c_str(), "r");
+    std::string vcf_header_filename = config_base.get_vcf_header_filename();
+    auto created_header_file_copy = false;
+    // Move  contents to a temporary local file for non-local URIs
+    if (TileDBUtils::is_cloud_path(vcf_header_filename)) {
+      char tmp_filename[PATH_MAX];
+      auto status = TileDBUtils::create_temp_filename(tmp_filename, PATH_MAX);
+      if(status != 0)
+        throw VCFAdapterException(std::string("Could not create temp filename for VCF template header"));
+      status = TileDBUtils::move_across_filesystems(vcf_header_filename, tmp_filename);
+      if(status != TILEDB_OK)
+        throw VCFAdapterException(std::string("Could not copy contents of VCF header filename ")
+            +vcf_header_filename+" to temporary file "+tmp_filename);
+      vcf_header_filename.assign(tmp_filename);
+      created_header_file_copy = true;
+    }
+    auto* fptr = bcf_open(vcf_header_filename.c_str(), "r");
     if(fptr == 0)
       throw VCFAdapterException(std::string("Could not open template VCF header file ")
-          +config_base.get_vcf_header_filename());
+          +vcf_header_filename);
     m_template_vcf_hdr = bcf_hdr_read_required_sample_line(fptr, 0); //sample line is not required
     bcf_close(fptr);
+    if (created_header_file_copy)
+      unlink(vcf_header_filename.c_str());
   }
   //Output fptr
   auto& output_format = config_base.get_vcf_output_format();

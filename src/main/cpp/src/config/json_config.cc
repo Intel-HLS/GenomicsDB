@@ -558,12 +558,12 @@ void JSONConfigBase::read_from_file(const std::string& filename, const int rank)
     {
       VERIFY_OR_THROW(rank < static_cast<int>(v.Size()));
       VERIFY_OR_THROW(v[rank].IsString());
-      set_vcf_header_filename(v[rank].GetString());
+      m_vcf_header_filename = v[rank].GetString();
     }
     else //vcf_header_filename is simply a string
     {
       VERIFY_OR_THROW(v.IsString());
-      set_vcf_header_filename(v.GetString());
+      m_vcf_header_filename = v.GetString();
     }
   }
   //VCF output filename

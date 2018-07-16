@@ -51,7 +51,6 @@ class GenomicsDBConfigBase
       m_single_query_row_ranges_vector = false;
       m_row_partitions_specified = false;
       m_scan_whole_array = false;
-      m_is_tmp_vcf_header_filename = false;
       m_produce_GT_field = false;
       m_produce_FILTER_field = false;
       m_index_output_VCF = false;
@@ -62,12 +61,6 @@ class GenomicsDBConfigBase
       m_ub_callset_row_idx = INT64_MAX-1;
       m_segment_size = 10u*1024u*1024u; //10MiB default
       m_disable_file_locking_in_tiledb = false;
-    }
-    ~GenomicsDBConfigBase()
-    {
-      if(m_is_tmp_vcf_header_filename)
-        unlink(m_vcf_header_filename.c_str());
-      m_is_tmp_vcf_header_filename = false;
     }
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;
@@ -114,8 +107,6 @@ class GenomicsDBConfigBase
     bool m_single_query_row_ranges_vector;
     bool m_row_partitions_specified;
     bool m_scan_whole_array;
-    //Useful if template is not in POSIX fs - create copy and then parse
-    bool m_is_tmp_vcf_header_filename;
     //GATK CombineGVCF does not produce GT field by default - option to produce GT
     bool m_produce_GT_field;
     //GATK CombineGVCF does not produce FILTER field by default - option to produce FILTER
