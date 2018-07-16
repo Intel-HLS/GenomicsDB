@@ -130,7 +130,8 @@ LoaderArrayWriter::LoaderArrayWriter(
       m_import_config_ptr->compress_tiledb_array(), m_import_config_ptr->no_mandatory_VCF_fields());
   //Storage manager
   size_t segment_size = m_import_config_ptr->get_segment_size();
-  m_storage_manager = new VariantStorageManager(workspace, segment_size);
+  m_storage_manager = new VariantStorageManager(workspace, segment_size,
+      config.disable_file_locking_in_tiledb());
   if(m_import_config_ptr->delete_and_create_tiledb_array())
     m_storage_manager->delete_array(array_name);
   //Open array in write mode

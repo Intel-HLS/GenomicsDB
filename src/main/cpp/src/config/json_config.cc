@@ -651,6 +651,10 @@ void JSONConfigBase::read_from_file(const std::string& filename, const int rank)
   //when producing GT, use the min PL value GT for spanning deletions
   m_produce_GT_with_min_PL_value_for_spanning_deletions = (m_json.HasMember("produce_GT_with_min_PL_value_for_spanning_deletions")
       && m_json["produce_GT_with_min_PL_value_for_spanning_deletions"].GetBool());
+  //Disable file locking in TileDB
+  m_disable_file_locking_in_tiledb = false;
+  if(m_json.HasMember("disable_file_locking_in_tiledb") && m_json["disable_file_locking_in_tiledb"].GetBool())
+    m_disable_file_locking_in_tiledb = true;
 }
 
 void JSONConfigBase::read_and_initialize_vid_and_callset_mapping_if_available(const int rank)

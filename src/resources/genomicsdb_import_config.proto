@@ -80,4 +80,5 @@ message ImportConfiguration {
   optional bool ignore_cells_not_in_partition = 22;
   optional int64 lb_callset_row_idx = 23 [ default = 0 ];
   optional int64 ub_callset_row_idx = 24;
+  optional bool disable_file_locking_in_tiledb = 27 [ default = false ];
 }

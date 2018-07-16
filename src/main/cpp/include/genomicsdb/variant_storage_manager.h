@@ -212,7 +212,11 @@ class VariantArrayInfo
 class VariantStorageManager
 {
   public:
-    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u);
+    VariantStorageManager(const std::string& workspace, const unsigned segment_size,
+        const bool disable_file_locking_in_tiledb);
+    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u)
+      : VariantStorageManager(workspace, segment_size, false)
+    {}
     ~VariantStorageManager()
     {
       m_open_arrays_info_vector.clear();

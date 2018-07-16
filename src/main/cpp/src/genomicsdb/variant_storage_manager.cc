@@ -485,12 +485,13 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
 }
 
 //VariantStorageManager functions
-VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size)
+VariantStorageManager::VariantStorageManager(const std::string& workspace, const unsigned segment_size,
+    const bool disable_file_locking_in_tiledb)
 {
   m_workspace = workspace;
   m_segment_size = segment_size;
 
-  if (TileDBUtils::initialize_workspace(&m_tiledb_ctx, workspace, false) < 0 || m_tiledb_ctx == NULL) {
+  if (TileDBUtils::initialize_workspace(&m_tiledb_ctx, workspace, false, disable_file_locking_in_tiledb) < 0 || m_tiledb_ctx == NULL) {
      throw VariantStorageManagerException(std::string("Error while creating TileDB workspace ")
           + workspace
           +"\nTileDB error message : "+tiledb_errmsg);
