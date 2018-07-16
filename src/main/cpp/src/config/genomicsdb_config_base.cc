@@ -27,7 +27,6 @@
 
 #include <zlib.h>
 #include "genomicsdb_config_base.h"
-#include "tiledb_utils.h"
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw GenomicsDBConfigException(#X);
     
@@ -152,19 +151,6 @@ GenomicsDBImportConfig::GenomicsDBImportConfig()
   m_consolidate_tiledb_array_after_load = false;
   m_discard_missing_GTs = false;
   m_no_mandatory_VCF_fields = false;
-}
-
-void GenomicsDBConfigBase::set_vcf_header_filename(const std::string& vcf_header_filename)
-{
-  m_vcf_header_filename = vcf_header_filename;
-  // Move m_vcf_header_filename contents to a temporary local file for non-local URIs
-  if (TileDBUtils::is_cloud_path(m_vcf_header_filename)) {
-    char tmp_filename[PATH_MAX];
-    TileDBUtils::create_temp_filename(tmp_filename, PATH_MAX);
-    TileDBUtils::move_across_filesystems(m_vcf_header_filename, tmp_filename);
-    m_vcf_header_filename.assign(tmp_filename);
-    m_is_tmp_vcf_header_filename = true;
-  }
 }
 
 void GenomicsDBConfigBase::set_vcf_output_format(const std::string& output_format)
