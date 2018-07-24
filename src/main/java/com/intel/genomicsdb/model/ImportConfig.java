@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.lang.Integer;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import java.net.URI;
 
 /**
  * This implementation extends what is in GenomicsDBImportConfiguration. Add extra data that is needed for parallel
@@ -44,8 +45,8 @@ public class ImportConfig {
     private boolean useSamplesInOrder = false;
     private int batchSize = Integer.MAX_VALUE-1;
     private Set<VCFHeaderLine> mergedHeader;
-    private Map<String, Path> sampleNameToVcfPath;
-    private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
+    private Map<String, URI> sampleNameToVcfPath;
+    private Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
     private Function<BatchCompletionCallbackFunctionArgument, Void> functionToCallOnBatchCompletion = null;
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
@@ -67,8 +68,8 @@ public class ImportConfig {
                         final boolean passAsVcf,
                         final int batchSize,
                         final Set<VCFHeaderLine> mergedHeader,
-                        final Map<String, Path> sampleNameToVcfPath,
-                        final Func<Map<String, Path>, Integer, Integer,
+                        final Map<String, URI> sampleNameToVcfPath,
+                        final Func<Map<String, URI>, Integer, Integer,
                                 Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
         this.validateChromosomeIntervals();
@@ -177,20 +178,20 @@ public class ImportConfig {
         R apply(T1 t1, T2 t2, T3 t3);
     }
 
-    public Map<String, Path> getSampleNameToVcfPath() {
+    public Map<String, URI> getSampleNameToVcfPath() {
         return sampleNameToVcfPath;
     }
 
-    public void setSampleNameToVcfPath(Map<String, Path> sampleNameToVcfPath) {
+    public void setSampleNameToVcfPath(Map<String, URI> sampleNameToVcfPath) {
         this.sampleNameToVcfPath = sampleNameToVcfPath;
     }
 
-    public Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
+    public Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
         return sampleToReaderMapCreator;
     }
 
     public void setSampleToReaderMapCreator(
-            Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
+            Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.sampleToReaderMapCreator = sampleToReaderMapCreator;
     }
 

@@ -73,8 +73,8 @@ public class GenomicsDBUtils {
 
     /**
      * Checks if GenomicsDB array exists.
-     * @param workspace
-     * @param arrayName
+     * @param workspace workspace
+     * @param arrayName arrayName
      * @return <code>true</code> if workspace with arrayName exists else return <code>false</code>
      */
     public static boolean isGenomicsDBArray(final String workspace, final String arrayName) {
@@ -83,7 +83,7 @@ public class GenomicsDBUtils {
 
     /**
      * List the GenomicsDB arrays in the given workspace
-     * @param workspace
+     * @param workspace workspace
      * @return names of GenomicsDB arrays if they exist
      */
     public static String[] listGenomicsDBArrays(final String workspace) {

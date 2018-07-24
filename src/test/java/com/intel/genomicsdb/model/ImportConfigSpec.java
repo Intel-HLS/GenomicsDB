@@ -8,6 +8,7 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.net.URI;
 
 public class ImportConfigSpec {
 
@@ -63,8 +64,8 @@ public class ImportConfigSpec {
         boolean passAsVcf = true;
         int batchSize = 1000;
         Set<VCFHeaderLine> mergedHeader = new HashSet();
-        Map<String, Path> sampleNameToVcfPath = new TreeMap<>();
-        ImportConfig.Func<Map<String, Path>, Integer, Integer,
+        Map<String, URI> sampleNameToVcfPath = new TreeMap<>();
+        ImportConfig.Func<Map<String, URI>, Integer, Integer,
                 Map<String, FeatureReader<VariantContext>>> sampleToReaderMap = (a, b, c) -> new TreeMap<>();
 
         return new ImportConfig(configuration, validateSampleToReaderMap, passAsVcf, batchSize, mergedHeader,
