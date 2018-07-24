@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb.spark;
 
-import com.intel.genomicsdb.GenomicsDBPartitionStrategy;
 import org.apache.hadoop.conf.Configuration;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -118,35 +117,6 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
 
   List<String> getHosts() {
     return hosts;
-  }
-
-  /**
-   * Set the partition strategy for underlying TileDB storage manager
-   *
-   * @param isRowPartitioned If true, data is partitioned as row major (ROW_MAJOR),
-   *                         COL_MAJOR otherwise
-   */
-  void setPartitionStrategy(Boolean isRowPartitioned) {
-
-    if (isRowPartitioned) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
-    } else {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
-    }
-  }
-
-  /**
-   * Set the partition strategy for underlying TileDB storage manager
-   *
-   * @param partitionStrategy Partition strategy can be either column major
-   *                           (COL_MAJOR) or row major (ROW_MAJOR)
-   */
-  void setPartitionStrategy(String partitionStrategy) {
-    if (partitionStrategy.equals("ROW_MAJOR")) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
-    } else if (partitionStrategy.equals("COL_MAJOR")) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
-    }
   }
 
   private void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {

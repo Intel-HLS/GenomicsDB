@@ -56,8 +56,8 @@ public class GenomicsDBUtilsJni {
 
     /**
      * Checks if GenomicsDB array exists.
-     * @param workspace
-     * @param arrayName
+     * @param workspace workspace
+     * @param arrayName array
      * @return <code>true</code> if workspace with arrayName exists else return <code>false</code>
      */
     public static native boolean jniIsTileDBArray(final String workspace, final String arrayName);
