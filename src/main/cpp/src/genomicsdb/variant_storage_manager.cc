@@ -537,22 +537,30 @@ bool VariantStorageManager::check_if_TileDB_array_exists(const std::string& arra
     ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
   auto num_entries = 0;
   auto ls_status = TILEDB_ERR;
-  while(ls_status == TILEDB_ERR && ws_entries.size() < 100000ll) //cutoff if too many entries in workspace
+  while(ls_status == TILEDB_ERR && ws_entries.size() < 2000000ull) //cutoff if too many entries in workspace
   {
     num_entries = ws_entries.size();
     ws_entry_types.resize(ws_entries.size());
     ls_status = tiledb_ls(m_tiledb_ctx, m_workspace.c_str(), &(ws_entries[0]), &(ws_entry_types[0]), &num_entries);
     if(ls_status == TILEDB_ERR)
     {
-      std::cerr << "[GenomicsDB::VariantStorageManager] INFO: ignore message \"[TileDB::StorageManager] Error: Cannot list TileDB directory; Directory buffer overflow.\" in the previous line\n";
-      auto old_size = ws_entries.size();
-      ws_entries.resize(2u*ws_entries.size()+1u);
-      for(auto i=old_size;i<ws_entries.size();++i)
-        ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+      //Buffer was too small - retry with bigger buffer (#entries in directory > buffer)
+      if(static_cast<size_t>(num_entries) == ws_entries.size())
+      {
+	//std::cerr << "[GenomicsDB::VariantStorageManager] INFO: ignore message \"[TileDB::StorageManager] Error: Cannot list TileDB directory; Directory buffer overflow.\" in the previous line\n";
+	auto old_size = ws_entries.size();
+	ws_entries.resize(2u*ws_entries.size()+1u);
+	for(auto i=old_size;i<ws_entries.size();++i)
+	  ws_entries[i] = new char[TILEDB_NAME_MAX_LEN+1]; //for null char
+      }
+      else //real failure
+	throw VariantStorageManagerException(std::string("Error while trying to read workspace directory ")
+	    +m_workspace
+	    +"\nTileDB error message : "+tiledb_errmsg);
     }
   }
   if(ls_status == TILEDB_ERR)
-    throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 100K entries");
+    throw VariantStorageManagerException(std::string("Too many entries in the workspace ")+m_workspace+" - cannot handle more than 1M entries");
   auto string_length = std::min<size_t>(array_name.length(), TILEDB_NAME_MAX_LEN);
   auto array_exists = false;
   for(auto i=0ull;i<static_cast<size_t>(num_entries);++i)
