@@ -64,6 +64,8 @@ class GenomicsDBMultiDVectorField
     GenomicsDBMultiDVectorField(const GenomicsDBMultiDVectorField& other) = default;
     //Default move constructor
     GenomicsDBMultiDVectorField(GenomicsDBMultiDVectorField&& other) = default;
+    //Default assignment operator
+    GenomicsDBMultiDVectorField& operator=(const GenomicsDBMultiDVectorField& other) = default;
 
     const uint8_t* get_ro_data_ptr() const { return m_ro_field_ptr; }
     const FieldInfo* get_field_info() const { return m_field_info_ptr; }

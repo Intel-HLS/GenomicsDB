@@ -60,6 +60,7 @@ class LineBasedTextFileReader : public FileReaderBase
     LineBasedTextFileReader();
     //Delete copy constructor
     LineBasedTextFileReader(const LineBasedTextFileReader& other) = delete;
+    LineBasedTextFileReader& operator=(const LineBasedTextFileReader& other) = delete;
     //Delete move constructor
     LineBasedTextFileReader(LineBasedTextFileReader&& other) = delete;
     ~LineBasedTextFileReader();
@@ -102,6 +103,7 @@ class LineBasedTextFile2TileDBBinaryColumnPartition : public File2TileDBBinaryCo
     }
     //Delete copy constructor
     LineBasedTextFile2TileDBBinaryColumnPartition(const LineBasedTextFile2TileDBBinaryColumnPartition& other) = delete;
+    LineBasedTextFile2TileDBBinaryColumnPartition& operator=(const LineBasedTextFile2TileDBBinaryColumnPartition& other) = delete;
     //Define move constructor
     LineBasedTextFile2TileDBBinaryColumnPartition(LineBasedTextFile2TileDBBinaryColumnPartition&& other)
       : File2TileDBBinaryColumnPartitionBase(std::move(other))
@@ -133,6 +135,7 @@ class CSV2TileDBBinaryColumnPartition : public LineBasedTextFile2TileDBBinaryCol
     }
     //Delete copy constructor
     CSV2TileDBBinaryColumnPartition(const CSV2TileDBBinaryColumnPartition& other) = delete;
+    CSV2TileDBBinaryColumnPartition& operator=(const CSV2TileDBBinaryColumnPartition& other) = delete;
     //Define move constructor
     CSV2TileDBBinaryColumnPartition(CSV2TileDBBinaryColumnPartition&& other)
       : LineBasedTextFile2TileDBBinaryColumnPartition(std::move(other))
@@ -177,6 +180,7 @@ class LineBasedTextFile2TileDBBinary : public File2TileDBBinaryBase
     }
     //Delete copy constructor
     LineBasedTextFile2TileDBBinary(const LineBasedTextFile2TileDBBinary& other) = delete;
+    LineBasedTextFile2TileDBBinary& operator=(const LineBasedTextFile2TileDBBinary& other) = delete;
     //Define move constructor
     LineBasedTextFile2TileDBBinary(LineBasedTextFile2TileDBBinary&& other)
       : File2TileDBBinaryBase(std::move(other))
@@ -225,6 +229,7 @@ class CSV2TileDBBinary : public LineBasedTextFile2TileDBBinary
         bool parallel_partitions=false, bool noupdates=true, bool close_file=false);
     //Delete copy constructor
     CSV2TileDBBinary(const CSV2TileDBBinary& other) = delete;
+    CSV2TileDBBinary& operator=(const CSV2TileDBBinary& other) = delete;
     //Define move constructor
     CSV2TileDBBinary(CSV2TileDBBinary&& other)
       : LineBasedTextFile2TileDBBinary(std::move(other))

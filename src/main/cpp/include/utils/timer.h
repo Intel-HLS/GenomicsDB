@@ -53,6 +53,7 @@ class Timer
     };
     //Copy constructor
     Timer(const Timer& other) = default;
+    Timer& operator=(const Timer& other) = default;
     inline void start()
     {
       /*m_begin_cpu_time = clock();*/

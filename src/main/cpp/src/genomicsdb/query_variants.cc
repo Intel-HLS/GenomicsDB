@@ -225,6 +225,7 @@ VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_sch
 {
   clear();
   m_storage_manager = 0;
+  m_ad = -1; 
   m_array_schema = new VariantArraySchema(array_schema);
   m_vid_mapper = new VidMapper(vid_mapper);
   initialize();
@@ -611,7 +612,6 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
-    auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     auto length_descriptor = FieldLengthDescriptor();
@@ -874,7 +874,9 @@ void VariantQueryProcessor::gt_get_column(
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
   uint64_t filled_rows = 0;
+#ifndef DUPLICATE_CELL_AT_END
   uint64_t num_valid_rows = 0;
+#endif
   // Fill the genotyping column
   while(!(cell_iter->end()) && filled_rows < query_config.get_num_rows_to_query()) {
 #ifdef DO_PROFILING
@@ -1075,14 +1077,13 @@ void VariantQueryProcessor::gt_fill_row(
   //Variables to store special fields
   //Num alternate alleles
   unsigned num_ALT_alleles = 0u;
-  //ploidy
-  unsigned ploidy = 0u;
   //Iterate over attributes
   auto attr_iter = cell.begin();
   ++attr_iter;  //skip the END field
   //First, load special fields up to and including ALT
   for(auto i=1u;i<query_config.get_first_normal_field_query_idx();++i,++attr_iter)
   {
+    assert(attr_iter != cell.end());
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
         query_config, i
@@ -1095,6 +1096,7 @@ void VariantQueryProcessor::gt_fill_row(
   //Go over all normal query fields and fetch data
   for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i, ++attr_iter)
   {
+    assert(attr_iter != cell.end());
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
         query_config, i

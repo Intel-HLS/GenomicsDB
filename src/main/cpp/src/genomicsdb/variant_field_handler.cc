@@ -758,7 +758,7 @@ bool VariantFieldHandler<DataType>::concatenate_field(const Variant& variant, co
       auto& vec = ptr->get();
       if(curr_result_size + vec.size() > m_element_wise_operations_result.size())
         m_element_wise_operations_result.resize(curr_result_size+vec.size());
-      memcpy(&(m_element_wise_operations_result[curr_result_size]), &(vec[0]), vec.size()*sizeof(DataType));
+      memcpy_s(&(m_element_wise_operations_result[curr_result_size]), vec.size()*sizeof(DataType), &(vec[0]), vec.size()*sizeof(DataType));
       curr_result_size += vec.size();
     }
   }
@@ -789,7 +789,8 @@ bool VariantFieldHandler<char>::concatenate_field(const Variant& variant, const 
       auto& vec = ptr->get();
       if(curr_result_size + vec.size() > m_element_wise_operations_result.size())
         m_element_wise_operations_result.resize(curr_result_size+vec.size());
-      memcpy(&(m_element_wise_operations_result[curr_result_size]), &(vec[0]), vec.size()*sizeof(char));
+      memcpy_s(&(m_element_wise_operations_result[curr_result_size]), vec.size()*sizeof(char),
+          &(vec[0]), vec.size()*sizeof(char));
       curr_result_size += vec.size();
     }
   }
@@ -837,7 +838,8 @@ bool VariantFieldHandler<DataType>::collect_and_extend_fields(const Variant& var
     if(curr_call.is_valid() && field_ptr.get() && field_ptr->is_valid())
     {
       assert(field_ptr->get_raw_pointer());
-      memcpy(&(m_extended_field_vector[extended_field_vector_idx]), field_ptr->get_raw_pointer(), field_ptr->length()*sizeof(DataType));
+      memcpy_s(&(m_extended_field_vector[extended_field_vector_idx]), field_ptr->length()*sizeof(DataType),
+          field_ptr->get_raw_pointer(), field_ptr->length()*sizeof(DataType));
       num_elements_inserted = field_ptr->length();
       extended_field_vector_idx += num_elements_inserted;
     }

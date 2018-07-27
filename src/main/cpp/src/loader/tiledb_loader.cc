@@ -73,6 +73,8 @@ VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
   resize_circular_buffers(num_circular_buffers);
   //Exchange structure
   m_owned_exchanges.resize(num_exchanges);
+  m_num_callsets_owned = 0u;
+  m_num_orders_owned = 0u;
 }
 
 VCF2TileDBLoaderConverterBase::VCF2TileDBLoaderConverterBase(
@@ -178,6 +180,7 @@ VCF2TileDBConverter::VCF2TileDBConverter(
       m_exchanges[i] = &((*exchange_vector)[i]);
   }
   determine_num_callsets_owned(&m_vid_mapper, false);
+  assert(m_num_orders_owned != 0u);
   m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   initialize_file2binary_objects();
   initialize_column_batch_objects();
@@ -512,6 +515,7 @@ void VCF2TileDBLoader::common_constructor_initialization(
   if(m_standalone_converter_process)
     m_vid_mapper.verify_file_partitioning();
   determine_num_callsets_owned(&m_vid_mapper, true);
+  assert(m_num_orders_owned != 0u);
   m_max_size_per_callset = m_per_partition_size/m_num_orders_owned;
   //Converter processes run independent of loader when num_converter_processes > 0
   if(m_standalone_converter_process)
@@ -591,9 +595,11 @@ void VCF2TileDBLoader::read_all()
 
 void VCF2TileDBLoader::finish_read_all(const VCF2TileDBLoaderReadState& read_state)
 {
+#ifdef DO_PROFILING
   auto& fetch_timer = read_state.m_fetch_timer;
   auto& load_timer = read_state.m_load_timer;
   auto& flush_output_timer = read_state.m_flush_output_timer;
+#endif
   for(auto op : m_operators)
     op->finish(get_column_partition_end());
 #ifdef DO_PROFILING
@@ -610,7 +616,9 @@ void VCF2TileDBLoader::read_all(VCF2TileDBLoaderReadState& read_state)
 {
   read_state.m_time_in_read_all.start();
   auto num_exchanges = m_owned_exchanges.size();
+#ifdef _OPENMP
   const auto num_parallel_omp_sections = read_state.m_num_parallel_omp_sections;
+#endif
   auto exchange_counter = read_state.m_exchange_counter;
   auto fetch_exchange_counter = exchange_counter;
   auto load_exchange_counter = exchange_counter;

@@ -816,7 +816,8 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
           buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
               multi_d_vector_size_vec[tuple_element_idx]);
           assert(!buffer_full);
-          memcpy(&(buffer[buffer_offset]),
+          memcpy_s(&(buffer[buffer_offset]),
+              multi_d_vector_size_vec[tuple_element_idx],
               &(vcf_partition.get_multi_d_vector_buffer_vec()[tuple_element_idx][0u]),
               multi_d_vector_size_vec[tuple_element_idx]);
           buffer_offset += multi_d_vector_size_vec[tuple_element_idx];

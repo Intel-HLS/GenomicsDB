@@ -75,11 +75,11 @@ GenomicsDBBCFGenerator::GenomicsDBBCFGenerator(const std::string& loader_config_
   set_write_buffer();
   m_combined_bcf_operator = new BroadCombinedGVCFOperator(m_vcf_adapter, vid_mapper, m_query_config,
       m_query_config.get_max_diploid_alt_alleles_that_can_be_genotyped(), use_missing_values_only_not_vector_end);
+  m_query_column_interval_idx = 0u;
   if(produce_header_only)
     m_scan_state.set_done(true);
   else
   {
-    m_query_column_interval_idx = 0u;
     m_query_processor->scan_and_operate(m_query_processor->get_array_descriptor(), m_query_config, *m_combined_bcf_operator, m_query_column_interval_idx,
         true, &m_scan_state);
   }
@@ -153,7 +153,8 @@ size_t GenomicsDBBCFGenerator::read_and_advance(uint8_t* dst, size_t offset, siz
       //Minimum of space left in buffer and #bytes to fetch
       auto num_bytes_in_curr_buffer = std::min<size_t>(n-total_bytes_advanced, curr_buffer.get_num_remaining_bytes());
       if(dst)
-        memcpy(dst+offset+total_bytes_advanced, &(curr_buffer.m_buffer[curr_buffer.m_next_read_idx]), num_bytes_in_curr_buffer);
+        memcpy_s(dst+offset+total_bytes_advanced, num_bytes_in_curr_buffer,
+            &(curr_buffer.m_buffer[curr_buffer.m_next_read_idx]), num_bytes_in_curr_buffer);
       //Advance marker
       curr_buffer.m_next_read_idx += num_bytes_in_curr_buffer;
       total_bytes_advanced += num_bytes_in_curr_buffer;

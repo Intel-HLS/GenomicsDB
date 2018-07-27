@@ -85,6 +85,8 @@ class VariantCall
       m_contains_deletion = false;
       m_is_reference_block = false;
       m_row_idx = UNDEFINED_NUM_ROWS_VALUE;
+      m_col_begin = -1;
+      m_col_end = -1;
       clear();
     }
     /**

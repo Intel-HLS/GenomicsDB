@@ -60,6 +60,7 @@ class VariantArrayCellIterator
     }
     //Delete copy and move constructors
     VariantArrayCellIterator(const VariantArrayCellIterator& other) = delete;
+    VariantArrayCellIterator& operator=(const VariantArrayCellIterator& other) = delete;
     VariantArrayCellIterator(VariantArrayCellIterator&& other) = delete;
     inline bool end() const {
       return tiledb_array_iterator_end(m_tiledb_array_iterator);
@@ -143,6 +144,7 @@ class VariantArrayInfo
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
+    VariantArrayInfo& operator=(const VariantArrayInfo& other) = delete;
     //Define move constructor explicitly
     VariantArrayInfo(VariantArrayInfo&& other);
     ~VariantArrayInfo()
@@ -226,6 +228,7 @@ class VariantStorageManager
     }
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;
+    VariantStorageManager& operator=(const VariantStorageManager& other) = delete;
     VariantStorageManager(VariantStorageManager&& other) = delete;
     
     int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,

@@ -32,7 +32,6 @@ Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniCreateTileDBWorkspace
 {
   auto workspace_cstr = env->GetStringUTFChars(workspace, NULL);
   VERIFY_OR_THROW(workspace_cstr);
-  bool should_replace = (replace == JNI_TRUE)?true:false;
   auto return_val = TileDBUtils::create_workspace(workspace_cstr, replace);
   //Cleanup
   env->ReleaseStringUTFChars(workspace, workspace_cstr);

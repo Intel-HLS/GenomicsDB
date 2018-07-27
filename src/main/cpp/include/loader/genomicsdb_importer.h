@@ -58,6 +58,7 @@ class GenomicsDBImporter
     }
     //Delete copy constructor
     GenomicsDBImporter(const GenomicsDBImporter& other) = delete;
+    GenomicsDBImporter& operator=(const GenomicsDBImporter& other) = delete;
     //Define move constructor
     GenomicsDBImporter(GenomicsDBImporter&& other);
     //Destructor

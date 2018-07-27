@@ -74,7 +74,12 @@ class VariantArraySchema
      * Empty variant schema
      */
     VariantArraySchema()
-      : m_dim_type(std::type_index(typeid(int64_t))) { }
+      : m_dim_type(std::type_index(typeid(int64_t)))
+    { 
+      m_cell_order = TILEDB_COL_MAJOR;
+      m_dim_compression_type = -1;
+      m_dim_size_in_bytes = 0;
+    }
     /*
      * Wrapper around ArraySchema for irregular tiles
      */ 

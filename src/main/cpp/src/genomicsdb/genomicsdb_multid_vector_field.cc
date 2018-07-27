@@ -40,7 +40,7 @@ int64_t str_to_element(const char* str, const size_t element_begin_idx,
   char array[array_size];
   if(current_element_length+1u < array_size) //+1 for NULL char
   {
-    memcpy(array, str+element_begin_idx, current_element_length);
+    memcpy_s(array, current_element_length, str+element_begin_idx, current_element_length);
     array[current_element_length] = '\0';
     return strtoll(array, &endptr, 0);
   }
@@ -75,7 +75,7 @@ float str_to_element(const char* str, const size_t element_begin_idx,
   char array[array_size];
   if(current_element_length+1u < array_size) //+1 for NULL char
   {
-    memcpy(array, str+element_begin_idx, current_element_length);
+    memcpy_s(array, current_element_length, str+element_begin_idx, current_element_length);
     array[current_element_length] = '\0';
     return strtof(array, &endptr);
   }
@@ -131,6 +131,7 @@ void GenomicsDBMultiDVectorIdx::advance_to_index_in_next_dimension(const size_t 
   else
   {
     //Update #entries based on size of innermost vector 
+    assert(m_field_info_ptr->get_element_size() > 0u);
     m_num_entries_in_current_dim = get_size_of_current_index()/(m_field_info_ptr->get_element_size());
     m_offsets_ptr = 0;
     assert(idx < m_num_entries_in_current_dim);
@@ -221,7 +222,6 @@ std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(
     buffer_vec.resize(num_elements_in_tuple);
   for(auto& buffer : buffer_vec)
     buffer.resize(4096u); //4KiB
-  auto w_idx = 0ull; //write idx
   auto r_idx = 0ull; //read idx
   //#bytes for curr data in dim i
   std::vector<std::vector<uint64_t>> dim_sizes_vec(num_elements_in_tuple,
@@ -374,7 +374,7 @@ std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(
               auto offsets_size = dim_offsets[i].size()*sizeof(uint64_t);
               if(offsets_start_offset+offsets_size >= buffer.size())
                 buffer.resize(2*(offsets_start_offset+offsets_size+1u));
-              memcpy(&(buffer[offsets_start_offset]), &(dim_offsets[i][0u]), offsets_size);
+              memcpy_s(&(buffer[offsets_start_offset]), offsets_size, &(dim_offsets[i][0u]), offsets_size);
               //Update last_dim_size
               last_dim_size = (dim_sizes[i]
                   + sizeof(uint64_t)    //for storing size of data at dim i

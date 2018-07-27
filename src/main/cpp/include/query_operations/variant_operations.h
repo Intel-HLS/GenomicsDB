@@ -116,6 +116,7 @@ class GenotypeForMinValueTracker : public RemappedDataWrapperBase
   public:
     GenotypeForMinValueTracker()
     {
+      m_genotype_index = 0u;
       reset();
     }
     void reset()

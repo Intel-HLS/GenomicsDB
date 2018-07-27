@@ -133,6 +133,10 @@ class VariantQueryProcessorScanState
       reset();
       m_iter = 0;
     }
+    //Delete copy and move constructors
+    VariantQueryProcessorScanState(const VariantQueryProcessorScanState& other) = delete;
+    VariantQueryProcessorScanState operator=(const VariantQueryProcessorScanState& other) = delete;
+    VariantQueryProcessorScanState(VariantQueryProcessorScanState&& other) = delete;
     VariantQueryProcessorScanState(VariantArrayCellIterator* iter, int64_t current_start_position)
       : m_stats()
     {
@@ -214,6 +218,10 @@ class VariantQueryProcessor {
         delete m_vid_mapper;
       m_vid_mapper = 0;
     }
+    //Delete copy and move constructors
+    VariantQueryProcessor(const VariantQueryProcessor& other) = delete;
+    VariantQueryProcessor& operator=(const VariantQueryProcessor& other) = delete;
+    VariantQueryProcessor(VariantQueryProcessor&& other) = delete;
     void clear();
     /**
      * When querying, setup bookkeeping structures first 
@@ -283,7 +291,7 @@ class VariantQueryProcessor {
      */
     inline unsigned get_schema_idx_for_known_field_enum(unsigned enumIdx) const
     {
-      assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+      assert(enumIdx < GVCF_NUM_KNOWN_FIELDS);
       return m_schema_idx_to_known_variant_field_enum_LUT.get_schema_idx_for_known_field_enum(enumIdx);
     } 
     int get_array_descriptor() const { return m_ad; }

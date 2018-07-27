@@ -53,6 +53,7 @@ class GenomicsDBBCFGenerator
     //Delete copy and move constructors
     GenomicsDBBCFGenerator(const GenomicsDBBCFGenerator& other) = delete;
     GenomicsDBBCFGenerator(GenomicsDBBCFGenerator&& other) = delete;
+    GenomicsDBBCFGenerator& operator=(const GenomicsDBBCFGenerator& other) = delete;
     ~GenomicsDBBCFGenerator();
     size_t get_buffer_capacity() const
     {
