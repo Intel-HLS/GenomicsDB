@@ -67,7 +67,7 @@ public class GenomicsDBLibLoader {
      * @throws IllegalArgumentException If source file (param path) does not exist
      * @throws IllegalArgumentException If the path is not absolute or if the filename is shorter than three characters (restriction of @see File#createTempFile(java.lang.String, java.lang.String)).
      */
-    private static synchronized void loadLibraryFromJar(String path) throws IOException {
+    private static void loadLibraryFromJar(String path) throws IOException {
 
         if (!path.startsWith("/")) {
             throw new IllegalArgumentException("The path should be absolute (start with '/').");
@@ -106,20 +106,41 @@ public class GenomicsDBLibLoader {
         // Open and check input stream
         InputStream is = GenomicsDBLibLoader.class.getResourceAsStream(path);
         if (is == null) {
-            throw new FileNotFoundException("File " + path + " was not found inside JAR.");
+          throw new FileNotFoundException("File " + path + " was not found inside JAR.");
         }
 
-        // Open output stream and copy data between source file in JAR and the temporary file
-        OutputStream os = new FileOutputStream(temp);
+        OutputStream os = null;
         try {
-            while ((readBytes = is.read(buffer)) != -1) {
-                os.write(buffer, 0, readBytes);
-            }
+          os = new FileOutputStream(temp);
+        }
+        catch(FileNotFoundException e) {
+          is.close();
+          throw e;
+        }
+        try {
+          // Open output stream and copy data between source file in JAR and the temporary file
+          while ((readBytes = is.read(buffer)) != -1) {
+            os.write(buffer, 0, readBytes);
+          }
         } finally {
-            os.flush();
+            IOException thrownException = null;
+            try {
+              os.flush();
+            }
+            catch(IOException e) {
+              thrownException = e;
+            }
             // If read/write fails, close streams safely before throwing an exception
-            os.close();
+            try {
+              os.close();
+            }
+            catch(IOException e) {
+              if(thrownException != null)
+                thrownException = e;
+            }
             is.close();
+            if(thrownException != null)
+              throw thrownException;
         }
 
         // Finally, load the library

@@ -223,7 +223,13 @@ public class GenomicsDBFeatureReader<T extends Feature, SOURCE> implements Featu
         tmpQueryJSONFile.deleteOnExit();
         FileWriter fptr = new FileWriter(tmpQueryJSONFile);
         String jsonString = JsonFormat.printToString(finalExportConfiguration);
-        fptr.write(jsonString);
+        try {
+          fptr.write(jsonString);
+        }
+        catch(IOException e) {
+          fptr.close();
+          throw e;
+        }
         fptr.close();
         return tmpQueryJSONFile;
     }

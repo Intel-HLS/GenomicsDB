@@ -111,4 +111,9 @@ class GenomicsDBPartitionInfo implements Serializable {
       return false;
     } 
   }
+
+  @Override
+  public int hashCode() {
+    return getArrayName().hashCode()+getWorkspace().hashCode()+getVcfOutputFileName().hashCode()+((int)getBeginPosition());
+  }
 }
