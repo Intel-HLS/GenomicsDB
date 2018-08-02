@@ -205,6 +205,8 @@ VariantArrayInfo::VariantArrayInfo(VariantArrayInfo&& other)
   other.m_tiledb_array = 0;
   m_vid_mapper = other.m_vid_mapper;
   other.m_vid_mapper = 0;
+  m_tiledb_ctx = other.m_tiledb_ctx;
+  other.m_tiledb_ctx = 0;
   //Point array schema to this array schema
   m_cell.set_variant_array_schema(m_schema);
   //Move other members
@@ -297,14 +299,14 @@ void VariantArrayInfo::write_cell(const void* ptr)
       m_buffer_pointers[buffer_idx] = reinterpret_cast<void*>(&(m_buffers[buffer_idx][0u]));
     }
     assert(m_buffer_offsets[buffer_idx]+field_size <= m_buffers[buffer_idx].size());
-    memcpy(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]), m_cell.get_field_ptr_for_query_idx<void>(i), field_size);
+    memcpy_s(&(m_buffers[buffer_idx][m_buffer_offsets[buffer_idx]]), field_size, m_cell.get_field_ptr_for_query_idx<void>(i), field_size);
     m_buffer_offsets[buffer_idx] += field_size;
     ++buffer_idx;
   }
   //Co-ordinates
   assert(buffer_idx == coords_buffer_idx);
   assert(m_buffer_offsets[coords_buffer_idx]+coords_size <= m_buffers[coords_buffer_idx].size());
-  memcpy(&(m_buffers[coords_buffer_idx][m_buffer_offsets[coords_buffer_idx]]), ptr, coords_size);
+  memcpy_s(&(m_buffers[coords_buffer_idx][m_buffer_offsets[coords_buffer_idx]]), coords_size, ptr, coords_size);
   m_buffer_offsets[coords_buffer_idx] += coords_size;
 }
 
@@ -458,7 +460,7 @@ void VariantArrayInfo::close_array(const bool consolidate_tiledb_array)
     {
       //Consolidate metadb entries as well
       std::vector<std::string> files = get_files(m_tiledb_ctx, GET_METADATA_DIRECTORY(m_workspace, m_name));
-      for(auto filepath:files) 
+      for(auto filepath : files) 
       {
         if(is_genomicsdb_meta_file(m_tiledb_ctx, filepath))
         {

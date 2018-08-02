@@ -545,7 +545,7 @@ std::string VidMapper::get_split_file_path(const std::string& original_filename,
     std::string original_dirname = dirname(copy_filepath);
 
     //restore original
-    memcpy(copy_filepath, original_filename.c_str(), original_filename.length());
+    memcpy_s(copy_filepath, original_filename.length(), original_filename.c_str(), original_filename.length());
     std::string original_basename = basename(copy_filepath);
     free(copy_filepath);
     return_value = ((results_directory.empty()) ? original_dirname : results_directory) + '/'
@@ -949,7 +949,6 @@ void VidMapper::parse_callsets_json(const rapidjson::Value& callsets_container)
   //callsets is a dictionary of name:info key-value pairs or array of info dictionaries
   VERIFY_OR_THROW(callsets_container.IsObject() || callsets_container.IsArray());
   auto is_array = callsets_container.IsArray();
-  auto num_callsets = is_array ? callsets_container.Size() : callsets_container.MemberCount();
   std::string callset_name;
   auto dict_iter = is_array ? rapidjson::Value::ConstMemberIterator()
     : callsets_container.MemberBegin();

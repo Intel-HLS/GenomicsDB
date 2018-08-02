@@ -351,6 +351,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
 #ifdef DO_MEMORY_PROFILING
   m_next_memory_limit = 100*ONE_MB;
 #endif
+  m_bcf_record_size = 0ull;
+  m_should_add_GQ_field = true; //always added in new version of CombineGVCFs
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -658,11 +660,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           do_insert = m_should_add_GQ_field;
           break;
         case GVCF_MIN_DP_IDX: //simply copy over min-dp values
-          memcpy(&(m_MIN_DP_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
+          memcpy_s(&(m_MIN_DP_vector[0]), m_remapped_variant.get_num_calls()*sizeof(int),
+              ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_MIN_DP_found = true;
           break;
         case GVCF_DP_FORMAT_IDX:
-          memcpy(&(m_DP_FORMAT_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
+          memcpy_s(&(m_DP_FORMAT_vector[0]), m_remapped_variant.get_num_calls()*sizeof(int),
+              ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_DP_FORMAT_found = true;
           do_insert = false; //Do not insert DP_FORMAT, wait till DP is read
           break;
@@ -1058,7 +1062,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
               num_reduced_alleles, has_NON_REF, GT_length_descriptor);
           //Copy back
-          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
+          memcpy_s(&(input_GT[0]), input_GT.size()*sizeof(int), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
         }
       }
       //Invalidate INFO fields

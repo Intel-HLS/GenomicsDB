@@ -79,15 +79,15 @@ uint64_t Histogram::serialize(uint8_t*& data, uint64_t curr_offset, bool realloc
     data = (uint8_t*)realloc(data, new_size);
   auto idx = curr_offset;
   uint64_t num_bins = m_histogram_bins.size();
-  memcpy(&(data[idx]), &num_bins, sizeof(uint64_t));
+  memcpy_s(&(data[idx]), sizeof(uint64_t), &num_bins, sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&(data[idx]), &m_total, sizeof(uint64_t));
+  memcpy_s(&(data[idx]), sizeof(uint64_t), &m_total, sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&(data[idx]), &m_lo, sizeof(uint64_t));
+  memcpy_s(&(data[idx]), sizeof(uint64_t), &m_lo, sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&(data[idx]), &m_hi, sizeof(uint64_t));
+  memcpy_s(&(data[idx]), sizeof(uint64_t), &m_hi, sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&(data[idx]), &(m_histogram_bins[0]), vec_size);
+  memcpy_s(&(data[idx]), vec_size, &(m_histogram_bins[0]), vec_size);
   idx += vec_size;
   return idx;
 }
@@ -96,17 +96,17 @@ uint64_t Histogram::deserialize(const uint8_t* data, uint64_t offset)
 {
   auto idx = offset;
   uint64_t num_bins = 0;
-  memcpy(&num_bins, &(data[idx]), sizeof(uint64_t));
+  memcpy_s(&num_bins, sizeof(uint64_t), &(data[idx]), sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&m_total, &(data[idx]),sizeof(uint64_t));
+  memcpy_s(&m_total, sizeof(uint64_t), &(data[idx]),sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&m_lo, &(data[idx]),sizeof(uint64_t));
+  memcpy_s(&m_lo, sizeof(uint64_t), &(data[idx]),sizeof(uint64_t));
   idx += sizeof(uint64_t);
-  memcpy(&m_hi, &(data[idx]),sizeof(uint64_t));
+  memcpy_s(&m_hi, sizeof(uint64_t), &(data[idx]),sizeof(uint64_t));
   idx += sizeof(uint64_t);
   m_histogram_bins.resize(num_bins);
   uint64_t vec_size = m_histogram_bins.size()*sizeof(uint64_t);
-  memcpy(&(m_histogram_bins[0]), &(data[idx]), vec_size);
+  memcpy_s(&(m_histogram_bins[0]), vec_size, &(data[idx]), vec_size);
   idx += vec_size;
   return idx;
 }
@@ -134,6 +134,7 @@ void UniformHistogram::sum_up_histogram(const UniformHistogram& other)
   Histogram::iterator curr = begin();
   for(auto b=other.begin(),e=other.end();b!=e;++b)
   {
+    assert(curr != end());
     if(curr.get_lo() != b.get_lo() || curr.get_hi() != b.get_hi())
       throw HistogramException("To sum up UniformHistogram objects, bin ranges must match");
     auto value = *b;
@@ -149,7 +150,7 @@ uint64_t UniformHistogram::serialize(uint8_t*& data, uint64_t curr_offset, bool 
   auto new_size = idx + sizeof(uint64_t);
   if(realloc_if_needed)
     data = (uint8_t*)realloc(data, new_size);
-  memcpy(&(data[idx]), &m_size_of_bin, sizeof(uint64_t));
+  memcpy_s(&(data[idx]), sizeof(uint64_t), &m_size_of_bin, sizeof(uint64_t));
   idx += sizeof(uint64_t);
   return idx;
 }
@@ -157,7 +158,7 @@ uint64_t UniformHistogram::serialize(uint8_t*& data, uint64_t curr_offset, bool 
 uint64_t UniformHistogram::deserialize(const uint8_t* data, uint64_t offset)
 {
   auto idx = Histogram::deserialize(data, offset);
-  memcpy(&m_size_of_bin, &(data[idx]), sizeof(uint64_t));
+  memcpy_s(&m_size_of_bin, sizeof(uint64_t), &(data[idx]), sizeof(uint64_t));
   idx += sizeof(uint64_t);
   return idx;
 }

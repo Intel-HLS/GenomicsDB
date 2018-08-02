@@ -194,6 +194,7 @@ class SingleCellTileDBIterator
     ~SingleCellTileDBIterator();
     //Delete copy and move constructors
     SingleCellTileDBIterator(const SingleCellTileDBIterator& other) = delete;
+    SingleCellTileDBIterator& operator=(const SingleCellTileDBIterator& other) = delete;
     SingleCellTileDBIterator(SingleCellTileDBIterator&& other) = delete;
     //Iterator functionality
     inline const GenomicsDBColumnarCell& operator*() const

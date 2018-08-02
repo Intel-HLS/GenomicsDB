@@ -2,7 +2,6 @@
 
 void read_off_memory_status(statm_t& result, const size_t page_size)
 {
-  unsigned long dummy;
   const char* statm_path = "/proc/self/statm";
 
   FILE *f = fopen(statm_path,"r");
@@ -10,7 +9,7 @@ void read_off_memory_status(statm_t& result, const size_t page_size)
     perror(statm_path);
     abort();
   }
-  if(7 != fscanf(f,"%ld %ld %ld %ld %ld %ld %ld",
+  if(7 != fscanf(f,"%lu %lu %lu %lu %lu %lu %lu",
         &result.size,&result.resident,&result.share,&result.text,&result.lib,&result.data,&result.dt))
   {
     perror(statm_path);

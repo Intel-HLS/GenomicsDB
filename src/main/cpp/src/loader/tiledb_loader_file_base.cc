@@ -68,7 +68,7 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   //Do not write anything past the limit
   if(buffer_offset + add_size > buffer_offset_limit)
     return true;
-  memcpy(&(buffer[buffer_offset]), val, add_size);
+  memcpy_s(&(buffer[buffer_offset]), add_size, val, add_size);
   buffer_offset += add_size;
   return false;
 }
@@ -87,7 +87,7 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   //Do not write anything past the limit
   if(buffer_offset + add_size > buffer_offset_limit)
     return true;
-  memcpy(&(buffer[buffer_offset]), val.c_str(), add_size);
+  memcpy_s(&(buffer[buffer_offset]), add_size, val.c_str(), add_size);
   buffer_offset += add_size;
   return false;
 }
@@ -120,7 +120,7 @@ bool File2TileDBBinaryBase::tiledb_buffer_print(std::vector<uint8_t>& buffer, in
   //Do not write anything past the limit
   if(static_cast<size_t>(buffer_offset) + add_size > static_cast<size_t>(buffer_offset_limit))
     return true;
-  memcpy(&(buffer[buffer_offset]), x.c_str(), add_size);
+  memcpy_s(&(buffer[buffer_offset]), add_size, x.c_str(), add_size);
   buffer_offset += add_size;
   return false;
 }

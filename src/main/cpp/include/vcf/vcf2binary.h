@@ -66,6 +66,7 @@ class VCFReaderBase : public virtual GenomicsDBImportReaderBase
     }
     //Delete copy and move constructors
     VCFReaderBase(const VCFReaderBase& other) = delete;
+    VCFReaderBase& operator=(const VCFReaderBase& other) = delete;
     VCFReaderBase(VCFReaderBase&& other) = delete;
     virtual void initialize(const char* filename,
         const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file);
@@ -85,11 +86,12 @@ class VCFBufferReader : public BufferReaderBase, public VCFReaderBase
       : GenomicsDBImportReaderBase(false), BufferReaderBase(buffer_capacity), VCFReaderBase(false), m_is_bcf(is_bcf)
     {
       m_buffer.resize(std::max(buffer_capacity, init_num_valid_bytes));
-      memcpy(&(m_buffer[0]), init_buffer, init_num_valid_bytes);
+      memcpy_s(&(m_buffer[0]), init_num_valid_bytes, init_buffer, init_num_valid_bytes);
       m_num_valid_bytes_in_buffer = init_num_valid_bytes;
     }
     //Delete copy and move constructors
     VCFBufferReader(const VCFBufferReader& other) = delete;
+    VCFBufferReader& operator=(const VCFBufferReader& other) = delete;
     VCFBufferReader(VCFBufferReader&& other) = delete;
     virtual ~VCFBufferReader() = default;
     void initialize(const char* stream_name, 
@@ -107,6 +109,7 @@ class VCFReader : public FileReaderBase, public VCFReaderBase
     VCFReader();
     //Delete move and copy constructors
     VCFReader(const VCFReader& other) = delete;
+    VCFReader& operator=(const VCFReader& other) = delete;
     VCFReader(VCFReader&& other) = delete;
     //Destructor
     virtual ~VCFReader();
@@ -142,6 +145,7 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
 	}
 	//Delete copy constructor
 	VCFGetBufferWrapper(const VCFGetBufferWrapper& other) = delete;
+	VCFGetBufferWrapper& operator=(const VCFGetBufferWrapper& other) = delete;
 	//Define move constructor explicitly
 	VCFGetBufferWrapper(VCFGetBufferWrapper&& other);
 	//Destructor
@@ -178,6 +182,7 @@ class VCFColumnPartition : public File2TileDBBinaryColumnPartitionBase
     }
     //Delete copy constructor
     VCFColumnPartition(const VCFColumnPartition& other) = delete;
+    VCFColumnPartition& operator=(const VCFColumnPartition& other) = delete;
     //Define move constructor
     VCFColumnPartition(VCFColumnPartition&& other);
     ~VCFColumnPartition();
@@ -228,6 +233,7 @@ class VCF2Binary : public File2TileDBBinaryBase
         bool treat_deletions_as_intervals);
     //Delete default copy constructor as it is incorrect
     VCF2Binary(const VCF2Binary& other) = delete;
+    VCF2Binary& operator=(const VCF2Binary& other) = delete;
     //Define move constructor explicitly
     VCF2Binary(VCF2Binary&& other);
     ~VCF2Binary();

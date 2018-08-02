@@ -147,6 +147,7 @@ class VCF2TileDBConverter : public VCF2TileDBLoaderConverterBase
       std::vector<LoaderConverterMessageExchange>* exchange_vector=0);
     //Delete copy constructor
     VCF2TileDBConverter(const VCF2TileDBConverter& other) = delete;
+    VCF2TileDBConverter& operator=(const VCF2TileDBConverter& other) = delete;
     //Delete move constructor
     VCF2TileDBConverter(VCF2TileDBConverter&& other) = delete;
     ~VCF2TileDBConverter();
@@ -218,6 +219,8 @@ class CellPQElement
       m_offset = 0;
       m_crossed_one_buffer = false;
       m_completed = false;
+      m_row_idx = -1;
+      m_column = -1;
     }
     bool m_crossed_one_buffer;
     bool m_completed;
@@ -283,6 +286,7 @@ class VCF2TileDBLoader : public VCF2TileDBLoaderConverterBase
 
     //Delete copy constructor
     VCF2TileDBLoader(const VCF2TileDBLoader& other) = delete;
+    VCF2TileDBLoader& operator=(const VCF2TileDBLoader& other) = delete;
     //Delete move constructor
     VCF2TileDBLoader(VCF2TileDBLoader&& other) = delete;
     ~VCF2TileDBLoader()

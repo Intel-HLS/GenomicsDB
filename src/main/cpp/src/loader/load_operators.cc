@@ -72,7 +72,7 @@ void LoaderOperatorBase::handle_intervals_spanning_partition_begin(const int64_t
     m_last_end_position_for_row[row] = end;
     m_cell_copies[row] = static_cast<uint8_t*>(realloc(m_cell_copies[row], cell_size));
     VERIFY_OR_THROW(m_cell_copies[row] && "Memory allocation failed while creating copy of cell");
-    memcpy(m_cell_copies[row], cell_ptr, cell_size);
+    memcpy_s(m_cell_copies[row], cell_size, cell_ptr, cell_size);
   }
   else //most recent interval ends before the partition - invalidate entry for this row
     m_last_end_position_for_row[row] = -1ll;
@@ -282,7 +282,7 @@ void LoaderArrayWriter::operate(const void* cell_ptr)
     m_cell_copies[idx_in_vector] = static_cast<uint8_t*>(realloc(m_cell_copies[idx_in_vector], cell_size));
   }
   VERIFY_OR_THROW(m_cell_copies[idx_in_vector] && "Memory allocation failed while creating copy of cell");
-  memcpy(m_cell_copies[idx_in_vector], ptr, cell_size);
+  memcpy_s(m_cell_copies[idx_in_vector], cell_size, ptr, cell_size);
   //Update the cell wrapper structure
   curr_cell_wrapper.m_row = row;
   curr_cell_wrapper.m_begin_column = column_begin;

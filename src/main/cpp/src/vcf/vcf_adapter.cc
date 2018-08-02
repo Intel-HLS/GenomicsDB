@@ -269,6 +269,7 @@ VCFAdapter::VCFAdapter(bool open_output)
   m_output_fptr = 0;
   m_is_bcf = true;
   m_config_base_ptr = 0;
+  m_output_VCF_index_type = VCFIndexType::VCF_INDEX_NONE;
 }
 
 VCFAdapter::~VCFAdapter()

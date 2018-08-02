@@ -74,6 +74,7 @@ class ContigInfo
     {
       m_contig_idx = -1;
       m_tiledb_column_offset = -1;
+      m_length = 0;
     }
     void set_info(const int contig_idx, const std::string& name, const int64_t length, const int64_t offset)
     {
@@ -329,6 +330,8 @@ class FieldInfo
       m_field_idx = -1;
       m_VCF_field_combine_operation = VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_UNKNOWN_OPERATION;
       m_element_index_in_tuple = 0u;
+      m_element_size = 0u;
+      m_parent_composite_field_idx = 0u;
     }
     void set_info(const std::string& name, int idx)
     {

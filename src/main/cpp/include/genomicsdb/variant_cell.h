@@ -151,6 +151,7 @@ class GenomicsDBColumnarCell
     }
     //Delete copy constructor
     GenomicsDBColumnarCell(const GenomicsDBColumnarCell& other) = delete;
+    GenomicsDBColumnarCell& operator=(const GenomicsDBColumnarCell& other) = delete;
     template<typename T=void>
     inline const T* get_field_ptr_for_query_idx(const int query_idx) const
     {

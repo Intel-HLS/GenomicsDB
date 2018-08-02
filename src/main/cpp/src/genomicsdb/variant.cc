@@ -841,7 +841,9 @@ void Variant::copy_common_fields(const Variant& other)
   if(get_num_common_fields())
   {
     //Copy query idxs
-    memcpy(&(m_common_fields_query_idxs[0]), &(other.get_common_fields_query_idxs()[0]), m_common_fields_query_idxs.size()*sizeof(unsigned));
+    memcpy_s(&(m_common_fields_query_idxs[0]),
+        m_common_fields_query_idxs.size()*sizeof(unsigned),
+        &(other.get_common_fields_query_idxs()[0]), m_common_fields_query_idxs.size()*sizeof(unsigned));
     copy_fields(m_fields, other.get_common_fields());
   }
 }

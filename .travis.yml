@@ -43,7 +43,7 @@ install:
     # above package (libgtest0) not built for 14.04
     - sudo apt-get -y install libgtest-dev
     - cd /usr/src/gtest
-    - sudo cmake .
+    - sudo cmake . -DBUILD_SHARED_LIBS=1
     - sudo make
     - sudo mv libgtest* /usr/lib
     #Install libcsv

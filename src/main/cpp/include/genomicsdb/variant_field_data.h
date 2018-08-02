@@ -93,6 +93,7 @@ class VariantFieldBase
       m_subclass_type = VARIANT_FIELD_BASE;
       m_valid = false;
       m_is_variable_length_field = is_variable_length_field;
+      m_cell_idx = 0;
     }
     virtual ~VariantFieldBase() = default;
     void copy_data_from_tile(const BufferVariantCell::FieldsIter& attr_iter)
@@ -236,7 +237,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
         offset += sizeof(int);
       }
       m_data.resize(num_elements);
-      memcpy(&(m_data[0]), ptr, num_elements*sizeof(char));
+      memcpy_s(&(m_data[0]), num_elements*sizeof(char), ptr, num_elements*sizeof(char));
       bool is_missing_flag = true;
       for(auto val : m_data)
         if(!is_tiledb_missing_value<char>(val))
@@ -266,7 +267,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       *(reinterpret_cast<int*>(&(buffer[offset]))) = str_length;
       offset += sizeof(int);
       //string contents
-      memcpy(&(buffer[offset]), &(m_data[0]), str_length);
+      memcpy_s(&(buffer[offset]), str_length, &(m_data[0]), str_length);
       offset += str_length;
     }
     std::string& get() { return m_data; }
@@ -291,7 +292,7 @@ class VariantFieldData<std::string> : public VariantFieldBase
       assert(src);
       m_data.resize(src->m_data.size());
       if(m_data.size())
-        memcpy(&(m_data[0]), &(src->m_data[0]), m_data.size()*sizeof(char));
+        memcpy_s(&(m_data[0]), m_data.size()*sizeof(char), &(src->m_data[0]), m_data.size()*sizeof(char));
     }
     /* Return address of the offset-th element */
     virtual void* get_address(unsigned offset) { return reinterpret_cast<void*>(&m_data); }
@@ -339,7 +340,7 @@ class VariantFieldPrimitiveVectorDataBase : public VariantFieldBase
         offset += sizeof(int);
       }
       //data contents
-      memcpy(&(buffer[offset]), get_raw_pointer(), data_length);
+      memcpy_s(&(buffer[offset]), data_length, get_raw_pointer(), data_length);
       offset += data_length;
     }
     virtual void copy_data_into_vector(const char* ptr, const size_t num_bytes) = 0;
@@ -365,7 +366,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBa
     {
       m_data.resize(num_elements);
       unsigned data_size = num_elements*sizeof(DataType);
-      memcpy(&(m_data[0]), buffer, data_size);
+      memcpy_s(&(m_data[0]), data_size, buffer, data_size);
       bool is_missing_flag = true;
       for(auto val : m_data)
         if(!is_tiledb_missing_value<DataType>(val))
@@ -479,7 +480,7 @@ class VariantFieldPrimitiveVectorData : public VariantFieldPrimitiveVectorDataBa
       assert(src);
       m_data.resize(src->m_data.size());
       if(m_data.size())
-        memcpy(&(m_data[0]), &(src->m_data[0]), m_data.size()*sizeof(DataType));
+        memcpy_s(&(m_data[0]), m_data.size()*sizeof(DataType), &(src->m_data[0]), m_data.size()*sizeof(DataType));
     }
     void resize(unsigned new_size)
     {
@@ -595,7 +596,7 @@ class VariantFieldALTData : public VariantFieldBase
           *(reinterpret_cast<char*>(&(buffer[offset]))) = *TILEDB_ALT_ALLELE_SEPARATOR;
           offset += sizeof(char);
         }
-        memcpy(&(buffer[offset]), val.c_str(), str_size);
+        memcpy_s(&(buffer[offset]), str_size, val.c_str(), str_size);
         offset += str_size;
       }
       //string length
@@ -626,7 +627,7 @@ class VariantFieldALTData : public VariantFieldBase
         auto& curr_dst = m_data[i];
         auto& curr_src = src->m_data[i];
         curr_dst.resize(curr_src.size());
-        memcpy(&(curr_dst[0]), &(curr_src[0]), curr_src.size()*sizeof(char));
+        memcpy_s(&(curr_dst[0]), curr_src.size()*sizeof(char), &(curr_src[0]), curr_src.size()*sizeof(char));
       }
     }
     virtual void resize(unsigned new_size) { m_data.resize(new_size); }

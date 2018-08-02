@@ -34,6 +34,7 @@ GenomicsDBColumnarField::GenomicsDBColumnarField(const std::type_index element_t
     : VariantFieldTypeUtil::size(m_element_type);
   m_log2_element_size = __builtin_ctzll(m_element_size);
   m_fixed_length_field_size = m_fixed_length_field_num_elements*m_element_size;
+  assert(m_element_size > 0u);
   m_buffer_size = (length_descriptor == BCF_VL_FIXED)
     ? GET_ALIGNED_BUFFER_SIZE(num_bytes, m_fixed_length_field_size)
     : GET_ALIGNED_BUFFER_SIZE(num_bytes, m_element_size);
@@ -130,7 +131,6 @@ class GenomicsDBColumnarFieldPrintOperator<T, true>
       else
         if(!is_variable_length_field)
         {
-          auto first_element = true;
           for(auto i=1u;i<num_elements;++i)
             fptr.put(',');
         }

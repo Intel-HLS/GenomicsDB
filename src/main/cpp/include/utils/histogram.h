@@ -53,6 +53,8 @@ class Histogram
     Histogram()
     {
       m_total = 0;
+      m_lo = 0;
+      m_hi = 0;
       clear();
     }
     ~Histogram() { clear(); }

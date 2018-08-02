@@ -50,6 +50,12 @@
 #endif
 #include <typeindex>
 
+#ifdef SAFESTRINGLIB_FOUND
+#include "safe_mem_lib.h"
+#else
+#define memcpy_s(dst, dst_size, src, src_size) memcpy((dst), (src), (src_size))
+#endif
+
 typedef std::pair<int64_t, int64_t> ColumnRange;
 typedef std::pair<int64_t, int64_t> RowRange;
 bool ColumnRangeCompare(const ColumnRange& x, const ColumnRange& y);

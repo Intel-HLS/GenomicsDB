@@ -181,6 +181,7 @@ class VCFSerializedBufferAdapter: public VCFAdapter
     }
     //Delete copy and move constructors
     VCFSerializedBufferAdapter(const VCFSerializedBufferAdapter& other) = delete;
+    VCFSerializedBufferAdapter& operator=(const VCFSerializedBufferAdapter& other) = delete;
     VCFSerializedBufferAdapter(VCFSerializedBufferAdapter&& other) = delete;
     void initialize(const GenomicsDBConfigBase& config_base);
     void set_buffer(RWBuffer& buffer) { m_rw_buffer = &buffer; }

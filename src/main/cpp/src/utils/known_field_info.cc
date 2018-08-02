@@ -76,7 +76,7 @@ KnownFieldInfo::KnownFieldInfo()
  */
 bool KnownFieldInfo::requires_special_creator(unsigned enumIdx)
 {
-  assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+  assert(enumIdx < GVCF_NUM_KNOWN_FIELDS);
   return (g_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
 }
 const std::shared_ptr<VariantFieldCreatorBase>& KnownFieldInfo::get_field_creator(unsigned enumIdx)

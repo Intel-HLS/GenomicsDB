@@ -190,8 +190,13 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
                     currParams.contig, currParams.begin, currParams.end, readAsBCF);
             this.currentSource = this.codec.makeSourceFromStream(queryStream);
             try {
-                if (readAsBCF) //BCF2 codec provides size of header
-                    queryStream.skip(this.featureCodecHeader.getHeaderEnd());
+                if (readAsBCF) { //BCF2 codec provides size of header 
+                    long numByteToSkip = this.featureCodecHeader.getHeaderEnd();
+                    long numBytesSkipped = queryStream.skip(numByteToSkip);
+                    if(numBytesSkipped != numByteToSkip)
+                      throw new IOException("Could not skip header in GenomicsDBQueryStream - header is "
+                          +numByteToSkip+" bytes long but skip() could only bypass "+numBytesSkipped+" bytes");
+                }
                 else //VCF Codec must parse out header again since getHeaderEnd() returns 0
                     this.codec.readHeader(this.currentSource); //no need to store header anywhere
             } catch (IOException ex) {

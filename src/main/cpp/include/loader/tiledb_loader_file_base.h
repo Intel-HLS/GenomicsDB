@@ -89,7 +89,7 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
       if(src == 0)
         return 0u;
       auto num_bytes_to_copy = std::min<size_t>(num_bytes, m_buffer.size()-m_num_valid_bytes_in_buffer);
-      memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes_to_copy);
+      memcpy_s(&(m_buffer[m_num_valid_bytes_in_buffer]), num_bytes_to_copy, src, num_bytes_to_copy);
       m_num_valid_bytes_in_buffer += num_bytes_to_copy;
       return num_bytes_to_copy;
     }
@@ -103,7 +103,7 @@ class BufferReaderBase : public virtual GenomicsDBImportReaderBase
         return 0u;
       if(num_bytes <= (m_buffer.size()-m_num_valid_bytes_in_buffer))
       {
-        memcpy(&(m_buffer[m_num_valid_bytes_in_buffer]), src, num_bytes);
+        memcpy_s(&(m_buffer[m_num_valid_bytes_in_buffer]), num_bytes, src, num_bytes);
         m_num_valid_bytes_in_buffer += num_bytes;
         return num_bytes;
       }
@@ -141,6 +141,8 @@ class File2TileDBBinaryColumnPartitionBase
     {
       m_base_reader_ptr = 0;
       m_buffer_ptr = 0;
+      m_column_interval_begin = -1;
+      m_column_interval_end = -1;
     }
     virtual ~File2TileDBBinaryColumnPartitionBase();
     void clear()
@@ -153,6 +155,7 @@ class File2TileDBBinaryColumnPartitionBase
     }
     //Delete copy constructor
     File2TileDBBinaryColumnPartitionBase(const File2TileDBBinaryColumnPartitionBase& other) = delete;
+    File2TileDBBinaryColumnPartitionBase& operator=(const File2TileDBBinaryColumnPartitionBase& other) = delete;
     //Define move constructor
     File2TileDBBinaryColumnPartitionBase(File2TileDBBinaryColumnPartitionBase&& other);
     void initialize_base_class_members(const int64_t begin, const int64_t end,
@@ -264,6 +267,7 @@ class File2TileDBBinaryBase
     void initialize_base_column_partitions(const std::vector<ColumnRange>& partition_bounds);
     //Delete copy constructor
     File2TileDBBinaryBase(const File2TileDBBinaryBase& other) = delete;
+    File2TileDBBinaryBase& operator=(const File2TileDBBinaryBase& other) = delete;
     //Define move constructor
     File2TileDBBinaryBase(File2TileDBBinaryBase&& other);
     //Destructor

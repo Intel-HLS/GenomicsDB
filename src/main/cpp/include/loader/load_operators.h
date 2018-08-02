@@ -123,6 +123,10 @@ class LoaderArrayWriter : public LoaderOperatorBase
     LoaderArrayWriter(
         const GenomicsDBImportConfig& config,
         int rank);
+    //Delete copy and move constructors
+    LoaderArrayWriter(const LoaderArrayWriter& other) = delete;
+    LoaderArrayWriter& operator=(const LoaderArrayWriter& other) = delete;
+    LoaderArrayWriter(LoaderArrayWriter&& other) = delete;
     virtual ~LoaderArrayWriter()
     {
       if(m_schema)
@@ -176,6 +180,10 @@ class LoaderCombinedGVCFOperator : public LoaderOperatorBase
   public:
     LoaderCombinedGVCFOperator(const GenomicsDBImportConfig& config,
         int partition_idx);
+    //Delete copy and move constructors
+    LoaderCombinedGVCFOperator(const LoaderCombinedGVCFOperator& other) = delete;
+    LoaderCombinedGVCFOperator& operator=(const LoaderCombinedGVCFOperator& other) = delete;
+    LoaderCombinedGVCFOperator(LoaderCombinedGVCFOperator&& other) = delete;
     virtual ~LoaderCombinedGVCFOperator()
     {
       clear();

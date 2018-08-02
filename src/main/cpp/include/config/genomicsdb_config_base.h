@@ -61,6 +61,9 @@ class GenomicsDBConfigBase
       m_ub_callset_row_idx = INT64_MAX-1;
       m_segment_size = 10u*1024u*1024u; //10MiB default
       m_disable_file_locking_in_tiledb = false;
+      m_determine_sites_with_max_alleles = false;
+      m_max_diploid_alt_alleles_that_can_be_genotyped = MAX_DIPLOID_ALT_ALLELES_THAT_CAN_BE_GENOTYPED;
+      m_combined_vcf_records_buffer_size_limit = 10*1024u;
     }
     const std::string& get_workspace(const int rank) const;
     const std::string& get_array_name(const int rank) const;

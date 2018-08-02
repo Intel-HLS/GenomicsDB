@@ -52,8 +52,9 @@ void GenomicsDBImporter::add_buffer_stream(
   {
     curr_buffer_stream_info.m_initialization_buffer.resize(
       num_bytes_in_initialization_buffer);
-    memcpy(
+    memcpy_s(
       &(curr_buffer_stream_info.m_initialization_buffer[0]),
+      num_bytes_in_initialization_buffer,
       initialization_buffer,
       num_bytes_in_initialization_buffer);
     curr_buffer_stream_info.m_initialization_buffer_num_valid_bytes =
@@ -72,12 +73,8 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other) {
   m_loader_config_file = std::move(other.m_loader_config_file);
   m_buffer_stream_info_vec = std::move(other.m_buffer_stream_info_vec);
   m_buffer_stream_names = std::move(other.m_buffer_stream_names);
-  if(m_loader_ptr)
-    delete m_loader_ptr;
   m_loader_ptr = other.m_loader_ptr;
   other.m_loader_ptr = 0;
-  if(m_read_state)
-    delete m_read_state;
   m_read_state = other.m_read_state;
   other.m_read_state = 0;
 }

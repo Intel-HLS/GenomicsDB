@@ -171,8 +171,6 @@ void GenomicsDBColumnarCell::print_csv(std::ostream& fptr, const VariantQueryCon
   fptr << coords[0u] << "," << coords[1u];
   assert(query_config->is_defined_query_idx_for_known_field_enum(GVCF_END_IDX));
   auto end_query_idx = query_config->get_query_idx_for_known_field_enum(GVCF_END_IDX);
-  auto ALT_query_idx = query_config->is_defined_query_idx_for_known_field_enum(GVCF_ALT_IDX)
-    ? query_config->get_query_idx_for_known_field_enum(GVCF_ALT_IDX) : UINT64_MAX;
   auto end_position = *(reinterpret_cast<const int64_t*>(get_field_ptr_for_query_idx(end_query_idx)));
   fptr << "," << end_position;
   assert(coords[1] <= end_position);
