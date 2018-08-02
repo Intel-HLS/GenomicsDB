@@ -70,10 +70,20 @@ CHECK_AND_SET_STD_CXX_2011_FLAG(test_cpp_2011)
 if(NOT test_cpp_2011)
     message(FATAL_ERROR "Your compiler does not support C++ 2011, exiting")
 endif()
+#Check for stack-protector-strong
+include(CheckAndSetStackProtectorStrong)
+CHECK_AND_SET_STACK_PROTECTOR_STRONG_FLAG(test_stack_protector_strong)
+if(NOT test_stack_protector_strong)
+    message(STATUS "Using -fstack-protector instead of -fstack-protector-strong")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
+endif()
 
 #Warnings
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -z noexecstack -z relro -z now")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z now")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
 endif()
@@ -103,6 +113,9 @@ add_definitions(-D_FILE_OFFSET_BITS=64)  #large file support
 add_definitions(-DHTSDIR=1) #htslib is a mandatory requirement
 add_definitions(-DDUPLICATE_CELL_AT_END=1) #mandatory
 add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+  add_definitions(-D_FORTIFY_SOURCE=2)
+endif()
 
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
@@ -214,6 +227,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
+# CMake doesn't add "-pie" by default for executables (CMake issue #14983)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie ")
 
 #Clean all
 add_custom_target(clean-all ${CMAKE_MAKE_PROGRAM} clean)
@@ -265,6 +280,7 @@ if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 function(build_GenomicsDB_executable_common target)
+    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     #add_executable(${target} src/${target}.cc)
     target_link_libraries(${target} genomicsdb)
     if(TILEDB_SOURCE_DIR)

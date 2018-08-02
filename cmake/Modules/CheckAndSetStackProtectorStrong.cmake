@@ -1,0 +1,10 @@
+include(CheckCXXCompilerFlag)
+#Check -fstack-protector-strong
+macro (CHECK_AND_SET_STACK_PROTECTOR_STRONG_FLAG STACK_PROTECTOR_STRONG_FOUND)
+    set(BACKUP_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
+    CHECK_CXX_COMPILER_FLAG(-std=c++11 ${STACK_PROTECTOR_STRONG_FOUND})
+    if(NOT ${STACK_PROTECTOR_STRONG_FOUND})
+        set(CMAKE_CXX_FLAGS "${BACKUP_CMAKE_CXX_FLAGS}")
+    endif()
+endmacro()
