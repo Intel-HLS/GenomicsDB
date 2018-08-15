@@ -1184,6 +1184,14 @@ void VidMapper::write_partition_loader_json_file(const std::string& original_loa
   }
 }
 
+bool FieldInfo::is_VCF_field_combine_operation_sum() const
+{
+  return ((m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_SUM)
+    || (m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP)
+    || (m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_ELEMENT_WISE_SUM)
+    || (m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM));
+}
+
 //FileBasedVidMapper code
 #ifdef VERIFY_OR_THROW
 #undef VERIFY_OR_THROW
