@@ -400,6 +400,7 @@ class FieldInfo
       assert(is_flattened_field());
       return m_parent_composite_field_idx;
     }
+    bool is_VCF_field_combine_operation_sum() const;
     //Public members
     std::string m_name;     //Unique per array schema
     std::string m_vcf_name; //VCF naming mess - DP could be FORMAT and INFO - in this case m_name=DP_FORMAT, m_vcf_name = DP
