@@ -819,19 +819,30 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     if(is_vcf_str_type && vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
     {
       auto& multi_d_vector_size_vec = vcf_partition.get_multi_d_vector_size_vec();
-      multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
-            vcf_partition.get_multi_d_vector_buffer_vec(),
-            vid_field_info, reinterpret_cast<const char*>(ptr), num_values,
-            (is_INFO_field_with_sum_combine_operation && bcf_hdr_nsamples(hdr) > 1)? //is this a sum operation
-            ((vid_field_info.m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM)
-             ? GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator(std::vector<bool>({false, true}),
-               bcf_hdr_nsamples(hdr), local_callset_idx) //only divide 2nd element of tuple
-             : GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator(
-               std::vector<bool>(num_elements_in_tuple, true),
-               bcf_hdr_nsamples(hdr), local_callset_idx) //all elements of the tuple get divided
-             )
-            : GenomicsDBMultiDVectorFieldParseAndStoreOperator() //not a sum operation or single sample VCF - use default operator
-            ));
+      if(is_INFO_field_with_sum_combine_operation && (bcf_hdr_nsamples(hdr) > 1)) //is this a sum operation
+      {
+        GenomicsDBMultiDVectorFieldParseAndStoreOperator* op_ptr = 0;
+        GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator histogram_op(std::vector<bool>({false, true}),
+            bcf_hdr_nsamples(hdr), local_callset_idx); //only divide 2nd element of tuple
+        GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator all_op(
+            std::vector<bool>(num_elements_in_tuple, true),
+            bcf_hdr_nsamples(hdr), local_callset_idx); //all elements of the tuple get divided
+        if(vid_field_info.m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM)
+          op_ptr = &histogram_op;
+        else
+          op_ptr = &all_op;
+        multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+              vcf_partition.get_multi_d_vector_buffer_vec(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values,
+              *op_ptr
+              ));
+      }
+      else
+        multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+              vcf_partition.get_multi_d_vector_buffer_vec(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values,
+              GenomicsDBMultiDVectorFieldParseAndStoreOperator() //not a sum operation or single sample VCF - use default operator
+              ));
       //#define DEBUG_MULTID_VECTOR_FIELD_LOAD
 #ifdef DEBUG_MULTID_VECTOR_FIELD_LOAD
       GenomicsDBMultiDVectorField debug_field(vid_field_info, &(vcf_partition.get_multi_d_vector_buffer_vec()[0u][0u]),

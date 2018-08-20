@@ -115,7 +115,7 @@ class GenomicsDBMultiDVectorField
     static std::vector<uint64_t> parse_and_store_numeric(std::vector<std::vector<uint8_t>>& buffer_vec,
         const FieldInfo& field_info,
         const char* str, const size_t str_length,
-        const GenomicsDBMultiDVectorFieldParseAndStoreOperator op=GenomicsDBMultiDVectorFieldParseAndStoreOperator());
+        const GenomicsDBMultiDVectorFieldParseAndStoreOperator& op=GenomicsDBMultiDVectorFieldParseAndStoreOperator());
     /*
      * Traverses the multi-d vector and invokes the operator for innermost vector
      * Arguments to the operator include uint8_t* ptr, size of vector, index vector

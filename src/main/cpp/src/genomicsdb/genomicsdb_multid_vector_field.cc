@@ -265,7 +265,7 @@ std::vector<uint64_t> GenomicsDBMultiDVectorField::parse_and_store_numeric(
     std::vector<std::vector<uint8_t>>& buffer_vec, //outer vector - one for each element of tuple
     const FieldInfo& field_info,
     const char* str, const size_t str_length,
-    const GenomicsDBMultiDVectorFieldParseAndStoreOperator op)
+    const GenomicsDBMultiDVectorFieldParseAndStoreOperator& op)
 {
   auto& length_descriptor = field_info.m_length_descriptor;
   auto num_elements_in_tuple = field_info.get_genomicsdb_type().get_num_elements_in_tuple();
