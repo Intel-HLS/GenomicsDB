@@ -811,6 +811,47 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       num_values = num_values/bcf_hdr_nsamples(hdr);
       ptr += (local_callset_idx*num_values);
     }
+    auto& vid_vcf_element_type = vid_field_info.get_vcf_type();
+    //Do length validation
+    //Multi-D fields - nothing to validate against
+    //Ignore flag fields
+    //Ignore tuple fields
+    //Ignore string fields
+    if(vid_field_info.m_length_descriptor.get_num_dimensions() == 1u && bcf_ht_type != BCF_HT_FLAG
+        && vid_vcf_element_type.get_num_elements_in_tuple() == 1u
+          && vid_vcf_element_type.get_tuple_element_bcf_ht_type(0u) != BCF_HT_STR //ignore string types
+        )
+    {
+      auto vid_length_descriptor_code = vid_field_info.m_length_descriptor.get_length_descriptor(0u);
+      auto expected_num_values = 0u;
+      switch(vid_length_descriptor_code)
+      {
+        case BCF_VL_FIXED:
+          expected_num_values = vid_field_info.m_length_descriptor.get_num_elements_in_dimension(0u);
+          break;
+        case BCF_VL_A:
+          expected_num_values = ((line->n_allele) - 1u);
+          break;
+        case BCF_VL_R:
+          expected_num_values = (line->n_allele);
+          break;
+        case BCF_VL_G:
+          //FIXME: may not have the ploidy here - so no idea how to compute #genotypes
+        default: //variable length - fine
+          expected_num_values = num_values;
+          break;
+      }
+      if(static_cast<uint32_t>(num_values) != expected_num_values)
+        throw VCF2BinaryException(std::string("Mismatch in field length and field length descriptor:\n")
+            +"Length descriptor in vid/VCF header specifies that field \""+field_name+"\" should contain "
+            + ((vid_length_descriptor_code == BCF_VL_FIXED) ? std::to_string(field_length)
+              : g_length_descriptor_int_to_string[vid_length_descriptor_code]) + " element(s).\n"
+            +"In file/stream \""+m_filename+"\", at contig \""+bcf_hdr_id2name(hdr, line->rid)
+            +"\", position " + std::to_string(line->pos+1)
+            +", for sample \""+bcf_hdr_int2id(hdr, BCF_DT_SAMPLE, local_callset_idx)
+            +"\", the field " + field_name + " has "+ std::to_string(num_values) +" elements; expected "
+            + std::to_string(expected_num_values));
+    }
     //Exclude trailing null characters for strings
     if(is_vcf_str_type)
       num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
