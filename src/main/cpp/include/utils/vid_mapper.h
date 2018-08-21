@@ -217,7 +217,7 @@ class FieldLengthDescriptor
       assert(idx < m_length_descriptor_vec.size());
       return (m_length_descriptor_vec[idx].m_length_descriptor == BCF_VL_FIXED);
     }
-    size_t get_num_elements_in_dimension(const size_t idx)
+    size_t get_num_elements_in_dimension(const size_t idx) const
     {
       assert(is_fixed_size_dimension(idx));
       return m_length_descriptor_vec[idx].m_num_elements;
