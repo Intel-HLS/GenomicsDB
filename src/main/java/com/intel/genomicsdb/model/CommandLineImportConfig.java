@@ -16,6 +16,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import static java.util.stream.Collectors.toList;
 
@@ -28,6 +30,8 @@ public class CommandLineImportConfig extends ImportConfig {
     private String workspace = "";
     private String array = "";
     private String vcfOutputFilename = "";
+    private boolean readVcfUsingHtslib = false;
+
     private Consumer<String[]> chromInterToPartitionList = par -> {
         GenomicsDBImportConfiguration.Partition.Builder partitionBuilder = GenomicsDBImportConfiguration.Partition.newBuilder();
         Coordinates.ContigPosition.Builder contigPositionBuilder = Coordinates.ContigPosition.newBuilder();
@@ -73,11 +77,12 @@ public class CommandLineImportConfig extends ImportConfig {
         catch(IOException e) {
             System.err.println("IOException thrown "+e);
         }
-        this.setSampleToReaderMapCreator(this::createSampleToReaderMap);
+        if(!this.readVcfUsingHtslib)
+            this.setSampleToReaderMapCreator(this::createSampleToReaderMap);
     }
 
     private LongOpt[] resolveLongOpt() {
-        LongOpt[] longopts = new LongOpt[12];
+        LongOpt[] longopts = new LongOpt[13];
         longopts[0] = new LongOpt("use_samples_in_order", LongOpt.NO_ARGUMENT, null,
                 ArgsIdxEnum.ARGS_IDX_USE_SAMPLES_IN_ORDER.idx());
         longopts[1] = new LongOpt("fail_if_updating", LongOpt.NO_ARGUMENT, null,
@@ -99,6 +104,8 @@ public class CommandLineImportConfig extends ImportConfig {
         longopts[10] = new LongOpt("segment_size", LongOpt.REQUIRED_ARGUMENT, null,
                 ArgsIdxEnum.ARGS_IDX_SEGMENT_SIZE.idx());
         longopts[11] = new LongOpt("array", LongOpt.REQUIRED_ARGUMENT, null, 'A');
+        longopts[12] = new LongOpt("htslib", LongOpt.NO_ARGUMENT, null,
+            ArgsIdxEnum.ARGS_IDX_READ_INPUT_VCF_USING_HTSLIB.idx());
         return longopts;
     }
 
@@ -149,6 +156,9 @@ public class CommandLineImportConfig extends ImportConfig {
                             case ARGS_IDX_SEGMENT_SIZE:
                                 configurationBuilder.setSegmentSize(Long.parseLong(commandArgs.getOptarg()));
                                 break;
+                            case ARGS_IDX_READ_INPUT_VCF_USING_HTSLIB:
+                                readVcfUsingHtslib = true;
+                                break;
                             default:
                                 throwIllegalArgumentException(commandArgs);
                                 return;
@@ -174,15 +184,22 @@ public class CommandLineImportConfig extends ImportConfig {
 
     private void resolveHeaders(final List<String> files) throws IOException {
         List<VCFHeader> headers = new ArrayList<>();
-        Map<String, Path> sampleNameToVcfPath = new LinkedHashMap<>();
+        Map<String, URI> sampleNameToVcfPath = new LinkedHashMap<>();
 
         //Get merged header first
         for (String file : files) {
             AbstractFeatureReader<VariantContext, LineIterator> reader =
                     AbstractFeatureReader.getFeatureReader(file, new VCFCodec(), false);
+            if(reader == null)
+              throw new IOException("Could not open "+file);
             headers.add((VCFHeader) reader.getHeader());
             final String sampleName = ((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0);
-            sampleNameToVcfPath.put(sampleName, Paths.get(file));
+            try {
+                sampleNameToVcfPath.put(sampleName, new URI(file));
+            }
+            catch (URISyntaxException e) {
+                throw new IOException("URISyntaxException : "+e);
+            }
             reader.close();
             //Hopefully, GC kicks in and frees resources assigned to reader
         }
@@ -192,13 +209,13 @@ public class CommandLineImportConfig extends ImportConfig {
     }
 
     private Map<String, FeatureReader<VariantContext>> createSampleToReaderMap(
-            final Map<String, Path> sampleNameToVcfPath, final int batchSize, final int index) {
+            final Map<String, URI> sampleNameToVcfPath, final int batchSize, final int index) {
         final Map<String, FeatureReader<VariantContext>> sampleToReaderMap = new LinkedHashMap<>();
         for (int j = index; j < sampleNameToVcfPath.size() && j < index + batchSize; ++j) {
             final String sampleName = sampleNameToVcfPath.keySet().toArray()[j].toString(); //TODO: fix this.
             assert sampleNameToVcfPath.containsKey(sampleName);
             AbstractFeatureReader<VariantContext, LineIterator> reader = AbstractFeatureReader.getFeatureReader(
-                    sampleNameToVcfPath.get(sampleName).toAbsolutePath().toString(), new VCFCodec(), false);
+                    sampleNameToVcfPath.get(sampleName).toString(), new VCFCodec(), false);
             assert sampleName.equals(((VCFHeader) reader.getHeader()).getGenotypeSamples().get(0));
             sampleToReaderMap.put(sampleName, reader);
         }
@@ -215,7 +232,8 @@ public class CommandLineImportConfig extends ImportConfig {
         ARGS_IDX_VCF_HEADER_OUTPUT(1006),
         ARGS_IDX_SIZE_PER_COLUMN_PARTITION(1007),
         ARGS_IDX_SEGMENT_SIZE(1008),
-        ARGS_IDX_AFTER_LAST_ARG_IDX(1009);
+        ARGS_IDX_READ_INPUT_VCF_USING_HTSLIB(1009),
+        ARGS_IDX_AFTER_LAST_ARG_IDX(1010);
         private final int mArgsIdx;
 
         ArgsIdxEnum(final int idx) {

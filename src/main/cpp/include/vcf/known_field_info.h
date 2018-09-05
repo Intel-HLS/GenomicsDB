@@ -204,6 +204,8 @@ class KnownFieldInitializer
 };
 extern KnownFieldInitializer g_known_field_initializer;
 
+#define IS_SPANNING_DELETION_ALLELE(str, str_length) (((str_length) == 1u) && ((str)[0u] == '*'))
+
 class VariantUtils
 {
   public:
@@ -211,7 +213,10 @@ class VariantUtils
     inline static bool is_deletion(const std::string& REF, const std::string& alt_allele)
     {
       auto REF_length = REF.length();
-      return (REF_length > 1u) && !is_symbolic_allele(alt_allele) && (alt_allele.length() < REF_length);
+      auto alt_allele_length = alt_allele.length();
+      return (REF_length > 1u)
+        && (IS_SPANNING_DELETION_ALLELE(alt_allele, alt_allele_length)
+            || (!is_symbolic_allele(alt_allele) && (alt_allele_length < REF_length)));
     }
     inline static bool is_symbolic_allele(const std::string& allele)
     {

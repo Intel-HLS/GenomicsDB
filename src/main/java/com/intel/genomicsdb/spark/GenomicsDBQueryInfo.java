@@ -67,4 +67,8 @@ class GenomicsDBQueryInfo implements Serializable {
       return false;
     }
   }
+
+  public int hashCode() {
+    return ((int)(getBeginPosition() + getEndPosition()));
+  }
 }

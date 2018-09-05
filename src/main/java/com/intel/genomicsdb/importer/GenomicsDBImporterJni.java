@@ -31,11 +31,9 @@ class GenomicsDBImporterJni {
      * @param loaderJSONFile Path to loader JSON file
      * @param rank           Rank of object - corresponds to the partition index in the loader
      *                       for which this object will import data
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
      * @return status - 0 if everything was ok, -1 otherwise
      */
-    native int jniGenomicsDBImporter(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
+    native int jniGenomicsDBImporter(String loaderJSONFile, int rank);
 
     /**
      * Creates GenomicsDBImporter object when importing VCF files (no streams)
@@ -43,12 +41,10 @@ class GenomicsDBImporterJni {
      * @param loaderJSONFile Path to loader JSON file
      * @param rank           Rank of object - corresponds to the partition index in the
      *                       loader for which this object will import data
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
      * @return "pointer"/address to GenomicsDBImporter object in memory,
      * if 0, then something went wrong
      */
-    native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx);
+    native long jniInitializeGenomicsDBImporterObject(String loaderJSONFile, int rank);
 
     /**
      * Copy the vid map protocol buffer to C++ through JNI
@@ -87,13 +83,11 @@ class GenomicsDBImporterJni {
      * @param genomicsDBImporterHandle "pointer" returned by jniInitializeGenomicsDBImporterObject
      * @param callsetMappingJSON       JSON formatted string containing globally consistent callset
      *                                 name to row index mapping
-     * @param usingVidMappingProtoBuf  use protocol buffer based header
      * @return maximum number of buffer stream identifiers that can be returned in
      * mExhaustedBufferStreamIdentifiers later
      * (this depends on the number of partitions and the number of buffer streams)
      */
-    native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle, final String callsetMappingJSON,
-                                         boolean usingVidMappingProtoBuf);
+    native long jniSetupGenomicsDBLoader(long genomicsDBImporterHandle, final String callsetMappingJSON);
 
     /**
      * @param handle                "pointer" returned by jniInitializeGenomicsDBImporterObject

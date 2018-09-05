@@ -28,6 +28,8 @@
 syntax = "proto2";
 
 import "genomicsdb_coordinates.proto";
+import "genomicsdb_vid_mapping.proto";
+import "genomicsdb_callsets_mapping.proto";
 
 option java_package = "com.intel.genomicsdb.model";
 option java_outer_classname = "GenomicsDBExportConfiguration";
@@ -58,13 +60,20 @@ message ExportConfiguration {
   optional string vcf_header_filename = 7;
   optional string vcf_output_filename = 8;
   optional string vcf_output_format = 9;
-  optional string vid_mapping_file = 10;
-  optional string callset_mapping_file = 11;
+  oneof vid_mapping_info {
+    string vid_mapping_file = 10;
+    VidMappingPB vid_mapping = 19; 
+  }
+  oneof callset_mapping_info {
+    string callset_mapping_file = 11;
+    CallsetMappingPB callset_mapping = 20;
+  }
+    
   optional uint32 max_diploid_alt_alleles_that_can_be_genotyped = 12;
   optional bool index_output_VCF = 13; 
   optional bool produce_GT_field = 14;
   optional bool produce_FILTER_field = 15;
   optional bool sites_only_query = 16;
   optional bool produce_GT_with_min_PL_value_for_spanning_deletions = 17;
-  optional bool scan_full = 19;
+  optional bool scan_full = 21;
 }

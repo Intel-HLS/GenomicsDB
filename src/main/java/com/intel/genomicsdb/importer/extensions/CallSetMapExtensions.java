@@ -9,6 +9,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.TreeMap;
+
+import java.nio.file.Path;
+import java.net.URI;
 
 public interface CallSetMapExtensions {
     /**
@@ -39,22 +45,97 @@ public interface CallSetMapExtensions {
      * @param lbRowIdx                  Smallest row idx which should be imported by this object
      * @return Mappings of callset (sample) names to TileDB rows
      */
-    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(final List<String> sampleNames,
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(List<String> sampleNames,
                                                                                  final boolean useSamplesInOrderProvided,
                                                                                  final long lbRowIdx) {
-        if (!useSamplesInOrderProvided) Collections.sort(sampleNames);
+
+        if (!useSamplesInOrderProvided)
+            Collections.sort(sampleNames);
+        LinkedHashMap<String, String> sampleNameToStreamName = new LinkedHashMap<String, String>();
+        for(final String sample : sampleNames)
+            sampleNameToStreamName.put(sample, getStreamNameFromSampleName(sample));
+        return generateSortedCallSetMap(sampleNameToStreamName, lbRowIdx);
+    }
+
+    /**
+     * Creates a sorted list of callsets and generates unique TileDB
+     * row indices for them. Sorted to maintain order between
+     * distributed share-nothing load processes. This method is synchronized
+     * to block multiple invocations (if by any chance) disturb the order in
+     * which TileDB row indexes are generated
+     *
+     * @param inputSampleNameToPath    map from sample name to VCF/BCF file path
+     * @param useSamplesInOrderProvided If True, do not sort the samples,
+     *                                  use the order they appear in
+     * @param lbRowIdx                  Smallest row idx which should be imported by this object
+     * @return Mappings of callset (sample) names to TileDB rows
+     */
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMapFromNameToPathMap(
+            final Map<String, URI> inputSampleNameToPath,
+            final boolean useSamplesInOrderProvided,
+            final long lbRowIdx) {
+
+        LinkedHashMap<String, String> sampleNameToStreamName = new LinkedHashMap<String, String>();
+        for(Map.Entry<String, URI> currEntry : inputSampleNameToPath.entrySet())
+            sampleNameToStreamName.put(currEntry.getKey(), currEntry.getValue().toString());
+        return generateSortedCallSetMap(sampleNameToStreamName, useSamplesInOrderProvided, lbRowIdx);
+    }
+
+    /**
+     * Creates a sorted list of callsets and generates unique TileDB
+     * row indices for them. Sorted to maintain order between
+     * distributed share-nothing load processes. This method is synchronized
+     * to block multiple invocations (if by any chance) disturb the order in
+     * which TileDB row indexes are generated
+     *
+     * @param inputSampleNameToStreamName    map from sample name to VCF/BCF file path
+     * @param useSamplesInOrderProvided If True, do not sort the samples,
+     *                                  use the order they appear in
+     * @param lbRowIdx                  Smallest row idx which should be imported by this object
+     * @return Mappings of callset (sample) names to TileDB rows
+     */
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(final Map<String, String> inputSampleNameToStreamName,
+                                                                                 final boolean useSamplesInOrderProvided,
+                                                                                 final long lbRowIdx) {
+
+        TreeMap<String, String> sortedMap = new TreeMap<String, String>();
+        if (!useSamplesInOrderProvided)
+            for(Map.Entry<String, String> currEntry : inputSampleNameToStreamName.entrySet())
+                sortedMap.put(currEntry.getKey(), currEntry.getValue());
+        LinkedHashMap<String, String> sampleNameToStreamName = new LinkedHashMap<String, String>();
+        Iterator<Map.Entry<String, String>> iter = useSamplesInOrderProvided
+            ? inputSampleNameToStreamName.entrySet().iterator()
+            : sortedMap.entrySet().iterator();
+        while(iter.hasNext()) {
+            Map.Entry<String, String> currEntry = iter.next();
+            sampleNameToStreamName.put(currEntry.getKey(), currEntry.getValue());
+        }
+        return generateSortedCallSetMap(sampleNameToStreamName, lbRowIdx);
+    }
+
+    /**
+     * Creates CallSets Protobuf structure for given map
+     *
+     * @param sampleNameToStreamName    map from sample name to VCF/BCF file path
+     *                                  use the order they appear in
+     * @param lbRowIdx                  Smallest row idx which should be imported by this object
+     * @return Mappings of callset (sample) names to TileDB rows
+     */
+    default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
+            final LinkedHashMap<String, String> sampleNameToStreamName,
+            final long lbRowIdx) {
 
         GenomicsDBCallsetsMapProto.CallsetMappingPB.Builder callsetMapBuilder =
                 GenomicsDBCallsetsMapProto.CallsetMappingPB.newBuilder();
 
         long tileDBRowIndex = lbRowIdx;
 
-        for (String sampleName : sampleNames) {
+        for (Map.Entry<String,String> currEntry : sampleNameToStreamName.entrySet()) {
             GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.Builder idMapBuilder =
                     GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap.newBuilder();
 
-            idMapBuilder.setSampleName(sampleName).setRowIdx(tileDBRowIndex++).setIdxInFile(0)
-                    .setStreamName(sampleName + "_stream");
+            idMapBuilder.setSampleName(currEntry.getKey()).setRowIdx(tileDBRowIndex++).setIdxInFile(0)
+                    .setStreamName(currEntry.getValue());
 
             GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleIDToTileDBIDMap =
                     idMapBuilder.build();
@@ -76,6 +157,7 @@ public interface CallSetMapExtensions {
      * @param useSamplesInOrderProvided If True, do not sort the samples,
      *                                  use the order they appear in
      * @param validateSampleToReaderMap
+     * @param useSamplesInOrderProvided use samples in order provided in the map
      * @return Mappings of callset (sample) names to TileDB rows
      */
     default GenomicsDBCallsetsMapProto.CallsetMappingPB generateSortedCallSetMap(
@@ -134,5 +216,14 @@ public interface CallSetMapExtensions {
             listOfSampleNames.add(sampleName);
         }
         return generateSortedCallSetMap(listOfSampleNames, useSamplesInOrderProvided, lbRowIdx);
+    }
+
+    /**
+     * Returns stream name given a sample name
+     * @param sampleName sample name
+     * @return stream name
+     */
+    default String getStreamNameFromSampleName(final String sampleName) {
+        return sampleName + "_stream";
     }
 }

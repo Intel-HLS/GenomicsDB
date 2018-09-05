@@ -7,7 +7,6 @@ set(GenomicsDB_library_sources
     cpp/src/genomicsdb/variant_array_schema.cc
     cpp/src/genomicsdb/variant_field_handler.cc
     cpp/src/genomicsdb/variant.cc
-    cpp/src/genomicsdb/variant_query_config.cc
     cpp/src/genomicsdb/query_variants.cc
     cpp/src/genomicsdb/genomicsdb_columnar_field.cc
     cpp/src/genomicsdb/genomicsdb_iterators.cc
@@ -20,7 +19,6 @@ set(GenomicsDB_library_sources
     cpp/src/utils/command_line.cc
     cpp/src/utils/memory_measure.cc
     cpp/src/utils/histogram.cc
-    cpp/src/utils/json_config.cc
     cpp/src/utils/vid_mapper_pb.cc
     cpp/src/utils/lut.cc
     cpp/src/utils/known_field_info.cc
@@ -30,6 +28,9 @@ set(GenomicsDB_library_sources
     cpp/src/vcf/vcf_adapter.cc
     cpp/src/vcf/genomicsdb_bcf_generator.cc
     cpp/src/vcf/vcf2binary.cc
+    cpp/src/config/variant_query_config.cc
+    cpp/src/config/genomicsdb_config_base.cc
+    cpp/src/config/json_config.cc
     )
 
 include_directories(${PROTOBUF_GENERATED_CXX_HDRS_INCLUDE_DIRS})
@@ -54,7 +55,6 @@ endif()
 
 #Compile sources with PIC
 add_library(GenomicsDB_library_object_files OBJECT ${GenomicsDB_library_sources})
-add_dependencies(GenomicsDB_library_object_files TileDB)
 if(PROTOBUF_REGENERATE)
     add_dependencies(GenomicsDB_library_object_files PROTOBUF_GENERATED_CXX_TARGET)
 endif()
@@ -65,12 +65,14 @@ add_library(genomicsdb STATIC $<TARGET_OBJECTS:GenomicsDB_library_object_files>)
 #Link in other libraries
 add_library(tiledbgenomicsdb SHARED $<TARGET_OBJECTS:GenomicsDB_library_object_files>)
 if(TILEDB_SOURCE_DIR)
-    add_dependencies(tiledbgenomicsdb TileDB)
+    target_link_libraries(tiledbgenomicsdb tiledb_static)
+else()
+    target_link_libraries(tiledbgenomicsdb ${TILEDB_LIBRARY})
 endif()
 if(HTSLIB_SOURCE_DIR)
     add_dependencies(tiledbgenomicsdb htslib)
 endif()
-target_link_libraries(tiledbgenomicsdb ${HTSLIB_LIBRARY} ${TILEDB_LIBRARY} ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES})
+target_link_libraries(tiledbgenomicsdb ${HTSLIB_LIBRARY} ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES})
 if(LIBRT_LIBRARY)
     target_link_libraries(tiledbgenomicsdb ${LIBRT_LIBRARY})
 endif()

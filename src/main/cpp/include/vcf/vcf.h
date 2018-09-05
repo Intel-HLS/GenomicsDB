@@ -336,4 +336,6 @@ inline std::string from_string_to_tiledb(const char* str)
     return std::string(str);
 }
 
+extern std::unordered_map<int, std::string> g_length_descriptor_int_to_string;
+
 #endif

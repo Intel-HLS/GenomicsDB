@@ -25,6 +25,17 @@
 #include "variant_operations.h"
 
 std::string g_vcf_SPANNING_DELETION="*";
+
+std::unordered_map<int, std::string> g_length_descriptor_int_to_string = std::unordered_map<int, std::string>({
+    {BCF_VL_FIXED, "fixed"},
+    {BCF_VL_VAR, "var"},
+    {BCF_VL_A, "A"},
+    {BCF_VL_R, "R"},
+    {BCF_VL_G, "G"},
+    {BCF_VL_Phased_Ploidy, "PP"},
+    {BCF_VL_P, "P"}
+    });
+
 //Global vector storing info of all known fields
 std::vector<KnownFieldInfo> g_known_field_enum_to_info;
 //Known field enum to name vector
@@ -76,7 +87,7 @@ KnownFieldInfo::KnownFieldInfo()
  */
 bool KnownFieldInfo::requires_special_creator(unsigned enumIdx)
 {
-  assert(enumIdx >= 0 && enumIdx < GVCF_NUM_KNOWN_FIELDS);
+  assert(enumIdx < GVCF_NUM_KNOWN_FIELDS);
   return (g_known_field_enum_to_info[enumIdx].m_field_creator.get() != 0);
 }
 const std::shared_ptr<VariantFieldCreatorBase>& KnownFieldInfo::get_field_creator(unsigned enumIdx)

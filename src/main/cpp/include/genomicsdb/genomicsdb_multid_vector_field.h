@@ -27,6 +27,44 @@
 #include "variant_field_data.h"
 
 class GenomicsDBMultiDVectorFieldOperator;
+
+class GenomicsDBMultiDVectorFieldParseAndStoreOperator
+{
+  public:
+    virtual bool parse_and_store_tuple_element_int(std::vector<uint8_t>& buffer,
+        uint64_t& write_offset,
+        const char* str, const uint64_t begin, const uint64_t length,
+        const unsigned tuple_element_idx) const;
+    virtual bool parse_and_store_tuple_element_float(std::vector<uint8_t>& buffer,
+        uint64_t& write_offset,
+        const char* str, const uint64_t begin, const uint64_t length,
+        const unsigned tuple_element_idx) const;
+};
+
+class GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator : public GenomicsDBMultiDVectorFieldParseAndStoreOperator
+{
+  public:
+    GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator(std::vector<bool> tuple_indexes_to_divide_bitset,
+        const unsigned divisor, const unsigned curr_idx)
+    {
+      m_tuple_indexes_to_divide_bitset = tuple_indexes_to_divide_bitset;
+      m_divisor = divisor;
+      m_curr_idx = curr_idx;
+    }
+    bool parse_and_store_tuple_element_int(std::vector<uint8_t>& buffer,
+        uint64_t& write_offset,
+        const char* str, const uint64_t begin, const uint64_t length,
+        const unsigned tuple_element_idx) const;
+    bool parse_and_store_tuple_element_float(std::vector<uint8_t>& buffer,
+        uint64_t& write_offset,
+        const char* str, const uint64_t begin, const uint64_t length,
+        const unsigned tuple_element_idx) const;
+  private:
+    std::vector<bool> m_tuple_indexes_to_divide_bitset;
+    unsigned m_divisor;
+    unsigned m_curr_idx;
+};
+
 /*
  * Class that holds the binary encoded multiD vector field
  * The internal representation is stored in TileDB and is used for compute operations
@@ -64,6 +102,8 @@ class GenomicsDBMultiDVectorField
     GenomicsDBMultiDVectorField(const GenomicsDBMultiDVectorField& other) = default;
     //Default move constructor
     GenomicsDBMultiDVectorField(GenomicsDBMultiDVectorField&& other) = default;
+    //Default assignment operator
+    GenomicsDBMultiDVectorField& operator=(const GenomicsDBMultiDVectorField& other) = default;
 
     const uint8_t* get_ro_data_ptr() const { return m_ro_field_ptr; }
     const FieldInfo* get_field_info() const { return m_field_info_ptr; }
@@ -74,7 +114,8 @@ class GenomicsDBMultiDVectorField
     std::vector<uint64_t> parse_and_store_numeric(const char* str, const size_t str_length);
     static std::vector<uint64_t> parse_and_store_numeric(std::vector<std::vector<uint8_t>>& buffer_vec,
         const FieldInfo& field_info,
-        const char* str, const size_t str_length);
+        const char* str, const size_t str_length,
+        const GenomicsDBMultiDVectorFieldParseAndStoreOperator& op=GenomicsDBMultiDVectorFieldParseAndStoreOperator());
     /*
      * Traverses the multi-d vector and invokes the operator for innermost vector
      * Arguments to the operator include uint8_t* ptr, size of vector, index vector

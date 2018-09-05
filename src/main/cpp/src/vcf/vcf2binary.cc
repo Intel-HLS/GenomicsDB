@@ -29,6 +29,29 @@
 
 #define VERIFY_OR_THROW(X) if(!(X)) throw VCF2BinaryException(#X);
 
+//INFO fields like DP, RAW_MQ - the combine operation is a sum
+//When dealing with multi-sample input VCFs, divide up the value of the field among the samples
+template<class T>
+T divide_up_among_samples(const T val, const int nsamples, const int local_callset_idx)
+{
+  return val;
+}
+
+//specialization for int
+template<>
+int divide_up_among_samples(const int val, const int nsamples, const int local_callset_idx)
+{
+  //Divide up the remainder among the first remainder samples
+  return (val/nsamples) + ((local_callset_idx < val%nsamples) ? 1 : 0);
+}
+
+//specialization for float
+template<>
+float divide_up_among_samples(const float val, const int nsamples, const int local_callset_idx)
+{
+  return (val/nsamples);
+}
+
 void VCFReaderBase::initialize(const char* filename,
     const std::vector<std::vector<std::string>>& vcf_field_names, const VidMapper* id_mapper, const bool open_file)
 {
@@ -735,6 +758,8 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       < m_vid_mapper->get_num_fields());
   auto& vid_field_info = m_vid_mapper->get_field_info(m_local_field_idx_to_global_field_idx[field_idx]);
   auto num_elements_in_tuple = vid_field_info.get_genomicsdb_type().get_num_elements_in_tuple();
+  auto is_INFO_field_with_sum_combine_operation = (field_type_idx == BCF_HL_INFO)
+    && vid_field_info.is_VCF_field_combine_operation_sum();
   //Curr line does not have this field or field is missing
   //The second part of the if condition is useful in multi-sample VCFs for FORMAT fields
   //Example GT:PL   0/0:.  0/1:0,0,0
@@ -786,6 +811,47 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
       num_values = num_values/bcf_hdr_nsamples(hdr);
       ptr += (local_callset_idx*num_values);
     }
+    auto& vid_vcf_element_type = vid_field_info.get_vcf_type();
+    //Do length validation
+    //Multi-D fields - nothing to validate against
+    //Ignore flag fields
+    //Ignore tuple fields
+    //Ignore string fields
+    if(vid_field_info.m_length_descriptor.get_num_dimensions() == 1u && bcf_ht_type != BCF_HT_FLAG
+        && vid_vcf_element_type.get_num_elements_in_tuple() == 1u
+          && vid_vcf_element_type.get_tuple_element_bcf_ht_type(0u) != BCF_HT_STR //ignore string types
+        )
+    {
+      auto vid_length_descriptor_code = vid_field_info.m_length_descriptor.get_length_descriptor(0u);
+      auto expected_num_values = 0u;
+      switch(vid_length_descriptor_code)
+      {
+        case BCF_VL_FIXED:
+          expected_num_values = vid_field_info.m_length_descriptor.get_num_elements_in_dimension(0u);
+          break;
+        case BCF_VL_A:
+          expected_num_values = ((line->n_allele) - 1u);
+          break;
+        case BCF_VL_R:
+          expected_num_values = (line->n_allele);
+          break;
+        case BCF_VL_G:
+          //FIXME: may not have the ploidy here - so no idea how to compute #genotypes
+        default: //variable length - fine
+          expected_num_values = num_values;
+          break;
+      }
+      if(static_cast<uint32_t>(num_values) != expected_num_values)
+        throw VCF2BinaryException(std::string("Mismatch in field length and field length descriptor:\n")
+            +"Length descriptor in vid/VCF header specifies that field \""+field_name+"\" should contain "
+            + ((vid_length_descriptor_code == BCF_VL_FIXED) ? std::to_string(field_length)
+              : g_length_descriptor_int_to_string[vid_length_descriptor_code]) + " element(s).\n"
+            +"In file/stream \""+m_filename+"\", at contig \""+bcf_hdr_id2name(hdr, line->rid)
+            +"\", position " + std::to_string(line->pos+1)
+            +", for sample \""+bcf_hdr_int2id(hdr, BCF_DT_SAMPLE, local_callset_idx)
+            +"\", the field " + field_name + " has "+ std::to_string(num_values) +" elements; expected "
+            + std::to_string(expected_num_values));
+    }
     //Exclude trailing null characters for strings
     if(is_vcf_str_type)
       num_values = strnlen(reinterpret_cast<const char*>(ptr), num_values);
@@ -794,9 +860,30 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
     if(is_vcf_str_type && vid_field_info.m_length_descriptor.get_num_dimensions() > 1u)
     {
       auto& multi_d_vector_size_vec = vcf_partition.get_multi_d_vector_size_vec();
-      multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
-            vcf_partition.get_multi_d_vector_buffer_vec(),
-            vid_field_info, reinterpret_cast<const char*>(ptr), num_values));
+      if(is_INFO_field_with_sum_combine_operation && (bcf_hdr_nsamples(hdr) > 1)) //is this a sum operation
+      {
+        GenomicsDBMultiDVectorFieldParseAndStoreOperator* op_ptr = 0;
+        GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator histogram_op(std::vector<bool>({false, true}),
+            bcf_hdr_nsamples(hdr), local_callset_idx); //only divide 2nd element of tuple
+        GenomicsDBMultiDVectorFieldParseDivideUpAndStoreOperator all_op(
+            std::vector<bool>(num_elements_in_tuple, true),
+            bcf_hdr_nsamples(hdr), local_callset_idx); //all elements of the tuple get divided
+        if(vid_field_info.m_VCF_field_combine_operation == VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_HISTOGRAM_SUM)
+          op_ptr = &histogram_op;
+        else
+          op_ptr = &all_op;
+        multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+              vcf_partition.get_multi_d_vector_buffer_vec(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values,
+              *op_ptr
+              ));
+      }
+      else
+        multi_d_vector_size_vec = std::move(GenomicsDBMultiDVectorField::parse_and_store_numeric(
+              vcf_partition.get_multi_d_vector_buffer_vec(),
+              vid_field_info, reinterpret_cast<const char*>(ptr), num_values,
+              GenomicsDBMultiDVectorFieldParseAndStoreOperator() //not a sum operation or single sample VCF - use default operator
+              ));
       //#define DEBUG_MULTID_VECTOR_FIELD_LOAD
 #ifdef DEBUG_MULTID_VECTOR_FIELD_LOAD
       GenomicsDBMultiDVectorField debug_field(vid_field_info, &(vcf_partition.get_multi_d_vector_buffer_vec()[0u][0u]),
@@ -816,7 +903,8 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
           buffer_full = tiledb_buffer_print<int>(buffer, buffer_offset, buffer_offset_limit,
               multi_d_vector_size_vec[tuple_element_idx]);
           assert(!buffer_full);
-          memcpy(&(buffer[buffer_offset]),
+          memcpy_s(&(buffer[buffer_offset]),
+              multi_d_vector_size_vec[tuple_element_idx],
               &(vcf_partition.get_multi_d_vector_buffer_vec()[tuple_element_idx][0u]),
               multi_d_vector_size_vec[tuple_element_idx]);
           buffer_offset += multi_d_vector_size_vec[tuple_element_idx];
@@ -870,6 +958,10 @@ bool VCF2Binary::convert_field_to_tiledb(std::vector<uint8_t>& buffer, VCFColumn
           }
           val = bcf_gt_allele(gt_element);
         }
+        else
+          if(is_INFO_field_with_sum_combine_operation && bcf_hdr_nsamples(hdr) > 1)  //INFO fields like DP, RAW_MQ - the combine operation is a sum
+            //When dealing with multi-sample input VCFs, divide up the value of the field among the samples
+            val = divide_up_among_samples<FieldType>(val, bcf_hdr_nsamples(hdr), local_callset_idx);
         buffer_full = buffer_full || tiledb_buffer_print<FieldType>(buffer, buffer_offset, buffer_offset_limit, val, print_sep);
         if(buffer_full) return true;
         print_sep  = !is_vcf_str_type;

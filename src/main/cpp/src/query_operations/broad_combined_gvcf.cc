@@ -168,7 +168,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
       auto known_field_enum = query_config.is_defined_known_field_enum_for_query_idx(i) ? query_config.get_known_field_enum_for_query_idx(i)
         : UNDEFINED_ATTRIBUTE_IDX_VALUE;
       auto VCF_field_combine_operation = query_config.get_VCF_field_combine_operation_for_query_attribute_idx(i);
-      auto sites_only_query = m_vcf_adapter->sites_only_query();
+      auto sites_only_query = query_config.sites_only_query();
       auto add_to_INFO_vector = (field_info->m_is_vcf_INFO_field && known_field_enum != GVCF_END_IDX
           && (known_field_enum != GVCF_DP_IDX || VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_DP) //not DP or not combined as GATK Combine GVCF DP
           && VCF_field_combine_operation != VCFFieldCombineOperationEnum::VCF_FIELD_COMBINE_OPERATION_MOVE_TO_FORMAT  //not moved to FORMAT
@@ -286,7 +286,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
   assert(curr_contig_flag);
   switch_contig();
   //Add samples to template header if this is not a sites only query
-  if(!(m_vcf_adapter->sites_only_query()))
+  if(!(m_query_config->sites_only_query()))
   {
     std::string callset_name;
     for(auto i=0ull;i<query_config.get_num_rows_to_query();++i)
@@ -332,7 +332,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     if(GT_length_descriptor.contains_phase_information())
     {
       //GATK CombineGVCF does not produce GT field by default - option to produce GT
-      if(m_vcf_adapter->produce_GT_field())
+      if(query_config.produce_GT_field())
         m_encode_GT_vector_function_ptr = encode_GT_vector<true, true>;
       else
         m_encode_GT_vector_function_ptr = encode_GT_vector<true, false>;
@@ -340,7 +340,7 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
     else
     {
       //GATK CombineGVCF does not produce GT field by default - option to produce GT
-      if(m_vcf_adapter->produce_GT_field())
+      if(query_config.produce_GT_field())
         m_encode_GT_vector_function_ptr = encode_GT_vector<false, true>;
       else
         m_encode_GT_vector_function_ptr = encode_GT_vector<false, false>;
@@ -351,6 +351,8 @@ BroadCombinedGVCFOperator::BroadCombinedGVCFOperator(VCFAdapter& vcf_adapter, co
 #ifdef DO_MEMORY_PROFILING
   m_next_memory_limit = 100*ONE_MB;
 #endif
+  m_bcf_record_size = 0ull;
+  m_should_add_GQ_field = true; //always added in new version of CombineGVCFs
 }
 
 void BroadCombinedGVCFOperator::clear()
@@ -638,7 +640,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
     if(valid_field_found)
     {
       auto j=0u;
-      auto do_insert = !(m_vcf_adapter->sites_only_query());    //by default, insert into VCF record if !sites_only
+      auto do_insert = !(m_query_config->sites_only_query());    //by default, insert into VCF record if !sites_only
       switch(known_field_enum)
       {
         case GVCF_GT_IDX: //GT field is a pita
@@ -658,11 +660,13 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
           do_insert = m_should_add_GQ_field;
           break;
         case GVCF_MIN_DP_IDX: //simply copy over min-dp values
-          memcpy(&(m_MIN_DP_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
+          memcpy_s(&(m_MIN_DP_vector[0]), m_remapped_variant.get_num_calls()*sizeof(int),
+              ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_MIN_DP_found = true;
           break;
         case GVCF_DP_FORMAT_IDX:
-          memcpy(&(m_DP_FORMAT_vector[0]), ptr, m_remapped_variant.get_num_calls()*sizeof(int));
+          memcpy_s(&(m_DP_FORMAT_vector[0]), m_remapped_variant.get_num_calls()*sizeof(int),
+              ptr, m_remapped_variant.get_num_calls()*sizeof(int));
           valid_DP_FORMAT_found = true;
           do_insert = false; //Do not insert DP_FORMAT, wait till DP is read
           break;
@@ -708,7 +712,7 @@ void BroadCombinedGVCFOperator::handle_FORMAT_fields(const Variant& variant)
       sum_INFO_DP += (is_bcf_valid_value<int>(dp_info_val) ? dp_info_val : 0);
     }
     //Add DP to FORMAT if one valid DP FORMAT value found and this is not a sites only query
-    if(found_one_valid_DP_FORMAT && !(m_vcf_adapter->sites_only_query()))
+    if(found_one_valid_DP_FORMAT && !(m_query_config->sites_only_query()))
     {
       bcf_update_format_int32(m_vcf_hdr, m_bcf_out, "DP", &(m_DP_FORMAT_vector[0]), m_DP_FORMAT_vector.size()); //add DP FORMAT field
       m_bcf_record_size += m_DP_FORMAT_vector.size()*sizeof(int);
@@ -839,7 +843,7 @@ void BroadCombinedGVCFOperator::operate(Variant& variant, const VariantQueryConf
   }
   bcf_update_alleles(m_vcf_hdr, m_bcf_out, &(m_alleles_pointer_buffer[0]), total_num_merged_alleles);
   //FILTER fields
-  if(m_vcf_adapter->produce_FILTER_field() &&
+  if(m_query_config->produce_FILTER_field() &&
       m_query_config->is_defined_query_idx_for_known_field_enum(GVCF_FILTER_IDX))
   {
     auto FILTER_query_idx = m_query_config->get_query_idx_for_known_field_enum(GVCF_FILTER_IDX);
@@ -1058,7 +1062,7 @@ void BroadCombinedGVCFOperator::handle_deletions(Variant& variant, const Variant
           VariantOperations::remap_GT_field(input_GT, m_spanning_deletion_remapped_GT, m_reduced_alleles_LUT, curr_call_idx_in_variant,
               num_reduced_alleles, has_NON_REF, GT_length_descriptor);
           //Copy back
-          memcpy(&(input_GT[0]), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
+          memcpy_s(&(input_GT[0]), input_GT.size()*sizeof(int), &(m_spanning_deletion_remapped_GT[0]), input_GT.size()*sizeof(int));
         }
       }
       //Invalidate INFO fields
@@ -1084,7 +1088,7 @@ bool BroadCombinedGVCFOperator::update_GT_to_correspond_to_min_PL_value(
   auto remap_GT_based_on_input_GT = true;
   auto PL_field_ptr = PL_field.get();
   if(PL_field_ptr && PL_field_ptr->is_valid()
-      && m_vcf_adapter->produce_GT_with_min_PL_value_for_spanning_deletions())
+      && m_query_config->produce_GT_with_min_PL_value_for_spanning_deletions())
   {
     remap_GT_based_on_input_GT = false;
     //Get handler for current type

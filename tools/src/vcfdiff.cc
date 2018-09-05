@@ -902,10 +902,8 @@ void construct_regions_for_partitions(const std::string& loader_json_filename, V
     throw VCFDiffException(std::string("Syntax error in JSON file ")+loader_json_filename);
   VERIFY_OR_THROW(json.HasMember("vid_mapping_file") && json["vid_mapping_file"].IsString());
   VERIFY_OR_THROW(json.HasMember("column_partitions"));
-  //callsets file
-  std::string callset_mapping_file = (json.HasMember("callset_mapping_file") && json["callset_mapping_file"].IsString())
-    ? json["callset_mapping_file"].GetString() : "";
-  vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(json["vid_mapping_file"].GetString(), callset_mapping_file));
+  vid_mapper = static_cast<VidMapper*>(new FileBasedVidMapper(json["vid_mapping_file"].GetString()));
+  vid_mapper->read_callsets_info(json, rank);
   //Limit #callsets
   if(json.HasMember("limit_callset_row_idx") && json["limit_callset_row_idx"].IsInt64())
     g_num_callsets = json["limit_callset_row_idx"].GetInt64() + 1;

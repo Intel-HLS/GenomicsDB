@@ -225,6 +225,7 @@ VariantQueryProcessor::VariantQueryProcessor(const VariantArraySchema& array_sch
 {
   clear();
   m_storage_manager = 0;
+  m_ad = -1; 
   m_array_schema = new VariantArraySchema(array_schema);
   m_vid_mapper = new VidMapper(vid_mapper);
   initialize();
@@ -611,7 +612,6 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
   for(auto i=0u;i<query_config.get_num_queried_attributes();++i)
   {
     assert(query_config.is_schema_idx_defined_for_query_idx(i));
-    auto schema_idx = query_config.get_schema_idx_for_query_idx(i);
     const auto& field_name = query_config.get_query_attribute_name(i);
     const auto* vid_field_info = vid_mapper.get_field_info(field_name);
     auto length_descriptor = FieldLengthDescriptor();
@@ -656,9 +656,12 @@ void VariantQueryProcessor::do_query_bookkeeping(const VariantArraySchema& array
       || query_config.is_defined_query_idx_for_known_field_enum(GVCF_GT_IDX));
   //Set number of rows in the array
   auto& dim_domains = array_schema.dim_domains();
-  uint64_t row_num = m_storage_manager ? m_storage_manager->get_num_valid_rows_in_array(m_ad) :   //may read from array metadata
-    (dim_domains[0].second - dim_domains[0].first + 1);
-  query_config.set_num_rows_in_array(row_num, static_cast<int64_t>(dim_domains[0].first));
+  if(m_storage_manager)
+    query_config.set_num_rows_in_array(m_storage_manager->get_num_valid_rows_in_array(m_ad),
+        m_storage_manager->get_lb_row_idx(m_ad));
+  else  //Must be invoked during load process
+    query_config.set_num_rows_in_array(query_config.get_num_rows_within_bounds(),
+        query_config.get_row_bounds().first);
   query_config.setup_array_row_idx_to_query_row_idx_map();
   //Bounds checking for query
   for(auto i=0u;i<query_config.get_num_column_intervals();++i)
@@ -871,7 +874,9 @@ void VariantQueryProcessor::gt_get_column(
 #endif //ifdef DUPLICATE_CELL_AT_END
   // Indicates how many rows have been filled.
   uint64_t filled_rows = 0;
+#ifndef DUPLICATE_CELL_AT_END
   uint64_t num_valid_rows = 0;
+#endif
   // Fill the genotyping column
   while(!(cell_iter->end()) && filled_rows < query_config.get_num_rows_to_query()) {
 #ifdef DO_PROFILING
@@ -1072,14 +1077,13 @@ void VariantQueryProcessor::gt_fill_row(
   //Variables to store special fields
   //Num alternate alleles
   unsigned num_ALT_alleles = 0u;
-  //ploidy
-  unsigned ploidy = 0u;
   //Iterate over attributes
   auto attr_iter = cell.begin();
   ++attr_iter;  //skip the END field
   //First, load special fields up to and including ALT
   for(auto i=1u;i<query_config.get_first_normal_field_query_idx();++i,++attr_iter)
   {
+    assert(attr_iter != cell.end());
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
         query_config, i
@@ -1092,6 +1096,7 @@ void VariantQueryProcessor::gt_fill_row(
   //Go over all normal query fields and fetch data
   for(auto i=query_config.get_first_normal_field_query_idx();i<query_config.get_num_queried_attributes();++i, ++attr_iter)
   {
+    assert(attr_iter != cell.end());
     //Read from Tile
     fill_field(curr_call.get_field(i), attr_iter,
         query_config, i

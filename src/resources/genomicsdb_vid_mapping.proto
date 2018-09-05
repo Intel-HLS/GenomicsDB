@@ -40,7 +40,7 @@ message FieldLengthDescriptorComponentPB {
   }
 }
 
-message InfoField {
+message GenomicsDBFieldInfo {
   required string name = 1;
   repeated string type = 2;
   repeated string vcf_field_class = 3;
@@ -57,7 +57,7 @@ message Chromosome {
 }
 
 message VidMappingPB {
-  repeated InfoField fields = 1;
+  repeated GenomicsDBFieldInfo fields = 1;
   repeated Chromosome contigs = 2;
 }
 

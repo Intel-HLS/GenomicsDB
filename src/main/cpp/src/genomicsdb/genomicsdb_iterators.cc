@@ -366,7 +366,6 @@ void SingleCellTileDBIterator::read_from_TileDB(const bool skip_cells)
     m_skip_counts[buffer_idx] = skip_count;
   }
   auto status = tiledb_array_skip_and_read(m_tiledb_array, &(m_buffer_pointers[0]), &(m_buffer_sizes[0]), &(m_skip_counts[0u]));
-  VERIFY_OR_THROW(status == TILEDB_OK);
   if(status != TILEDB_OK)
     throw GenomicsDBIteratorException(std::string("Error while reading from TileDB array ")
         + "\nTileDB error message : "+tiledb_errmsg);

@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb.spark;
 
-import com.intel.genomicsdb.GenomicsDBPartitionStrategy;
 import org.apache.hadoop.conf.Configuration;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -39,6 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Iterator;
+import java.lang.RuntimeException;
 
 /**
  * The configuration class enables users to use Java/Scala
@@ -108,45 +108,23 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
   public GenomicsDBConfiguration setHostFile(String path) throws FileNotFoundException {
     set(MPIHOSTFILE, path);
 
-    Scanner scanner = new Scanner(new FileInputStream(path));
+    FileInputStream pathStream = new FileInputStream(path);
+    Scanner scanner = new Scanner(pathStream);
     while (scanner.hasNextLine()) {
       String host = scanner.nextLine();
       hosts.add(host);
+    }
+    try {
+      pathStream.close();
+    }
+    catch(IOException e) {
+      throw new RuntimeException(e);
     }
     return this;
   }
 
   List<String> getHosts() {
     return hosts;
-  }
-
-  /**
-   * Set the partition strategy for underlying TileDB storage manager
-   *
-   * @param isRowPartitioned If true, data is partitioned as row major (ROW_MAJOR),
-   *                         COL_MAJOR otherwise
-   */
-  void setPartitionStrategy(Boolean isRowPartitioned) {
-
-    if (isRowPartitioned) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
-    } else {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
-    }
-  }
-
-  /**
-   * Set the partition strategy for underlying TileDB storage manager
-   *
-   * @param partitionStrategy Partition strategy can be either column major
-   *                           (COL_MAJOR) or row major (ROW_MAJOR)
-   */
-  void setPartitionStrategy(String partitionStrategy) {
-    if (partitionStrategy.equals("ROW_MAJOR")) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.ROW_MAJOR()));
-    } else if (partitionStrategy.equals("COL_MAJOR")) {
-      set(PARTITION_STRATEGY, String.valueOf(GenomicsDBPartitionStrategy.COL_MAJOR()));
-    }
   }
 
   private void addPartitions(GenomicsDBPartitionInfo genomicsDBPartitionInfo) {
@@ -193,13 +171,14 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
       partitionInfoList = new ArrayList<>();
     }
     JSONArray colPar = (JSONArray)obj.get("column_partitions");
+    if(colPar == null)
+      throw new RuntimeException("Could not find attribute \"column_partitions\" in the JSON configuration");
     Iterator<JSONObject> it = colPar.iterator();
     while (it.hasNext()) {
       JSONObject obj0 = (JSONObject)it.next();
-      long begin = 0;
       String workspace = null, array = null, vcf_output_filename = null;
 
-      begin = (long)obj0.get("begin");
+      long begin = (long)obj0.get("begin");
       workspace = (String)obj0.get("workspace");
       array = (String)obj0.get("array");
       vcf_output_filename = (String)obj0.get("vcf_output_filename");
@@ -255,13 +234,19 @@ public class GenomicsDBConfiguration extends Configuration implements Serializab
   void populateListFromJson(String jsonType) 
 		  throws FileNotFoundException, IOException, ParseException {
     JSONParser parser = new JSONParser();
-    JSONObject obj = (JSONObject)parser.parse(new FileReader(get(jsonType)));
+    FileReader jsonReader = new FileReader(get(jsonType));
+    try {
+      JSONObject obj = (JSONObject)parser.parse(jsonReader);
 
-    if (jsonType.equals(LOADERJSON)) {
-      readColumnPartitions(obj);
+      if (jsonType.equals(LOADERJSON)) {
+        readColumnPartitions(obj);
+      }
+      else if (jsonType.equals(QUERYJSON)) {
+        readQueryRanges(obj);
+      }
     }
-    else if (jsonType.equals(QUERYJSON)) {
-      readQueryRanges(obj);
+    finally {
+      jsonReader.close();
     }
   }
 }

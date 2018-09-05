@@ -60,6 +60,7 @@ class VariantArrayCellIterator
     }
     //Delete copy and move constructors
     VariantArrayCellIterator(const VariantArrayCellIterator& other) = delete;
+    VariantArrayCellIterator& operator=(const VariantArrayCellIterator& other) = delete;
     VariantArrayCellIterator(VariantArrayCellIterator&& other) = delete;
     inline bool end() const {
       return tiledb_array_iterator_end(m_tiledb_array_iterator);
@@ -143,6 +144,7 @@ class VariantArrayInfo
         const size_t buffer_size=10u*1024u*1024u); //10MB buffer
     //Delete default copy constructor as it is incorrect
     VariantArrayInfo(const VariantArrayInfo& other) = delete;
+    VariantArrayInfo& operator=(const VariantArrayInfo& other) = delete;
     //Define move constructor explicitly
     VariantArrayInfo(VariantArrayInfo&& other);
     ~VariantArrayInfo()
@@ -170,8 +172,9 @@ class VariantArrayInfo
     //Return #valid rows in the array
     inline int64_t get_num_valid_rows_in_array() const
     {
-      return (m_max_valid_row_idx_in_array - m_schema.dim_domains()[0].first + 1);
+      return (m_max_valid_row_idx_in_array - m_lb_row_idx + 1);
     }
+    inline int64_t get_lb_row_idx() const { return m_lb_row_idx; }
     inline const VidMapper* get_vid_mapper() const { return m_vid_mapper; }
     const TileDB_Array* get_tiledb_array() const { return m_tiledb_array; }
   private:
@@ -211,7 +214,11 @@ class VariantArrayInfo
 class VariantStorageManager
 {
   public:
-    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u);
+    VariantStorageManager(const std::string& workspace, const unsigned segment_size,
+        const bool disable_file_locking_in_tiledb);
+    VariantStorageManager(const std::string& workspace, const unsigned segment_size=10u*1024u*1024u)
+      : VariantStorageManager(workspace, segment_size, false)
+    {}
     ~VariantStorageManager()
     {
       m_open_arrays_info_vector.clear();
@@ -221,6 +228,7 @@ class VariantStorageManager
     }
     //Delete move and copy constructors
     VariantStorageManager(const VariantStorageManager& other) = delete;
+    VariantStorageManager& operator=(const VariantStorageManager& other) = delete;
     VariantStorageManager(VariantStorageManager&& other) = delete;
     
     int open_array(const std::string& array_name, const VidMapper* vid_mapper, const char* mode,
@@ -253,6 +261,7 @@ class VariantStorageManager
      * Return #valid rows in the array
      */
     int64_t get_num_valid_rows_in_array(const int ad) const;
+    int64_t get_lb_row_idx(const int ad) const;
     /*
      * Update row bounds in the metadata
      */

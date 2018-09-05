@@ -147,7 +147,7 @@ public final class TestBufferStreamGenomicsDBImporter
       Boolean.parseBoolean(args[argsLoaderFileIdx + 6]);
     //<loader.json> first arg
     String loaderJSONFile = args[argsLoaderFileIdx];
-    GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
+    GenomicsDBImporter loader = new GenomicsDBImporter(loaderJSONFile, rank);
     //<stream_name_to_file.json> - useful for the driver only
     //JSON file that contains "stream_name": "vcf_file_path" entries
     FileReader mappingReader = new FileReader(args[argsLoaderFileIdx+1]);

@@ -525,8 +525,8 @@ void remap_allele_specific_annotations(
             sizeof(uint64_t) //8 byte size at the beginning
             +offsets_vec[j]+num_bytes_to_copy))
         remapped_field_data.resize(2*(sizeof(uint64_t)+offsets_vec[j]+num_bytes_to_copy)+1u);
-      memcpy(&(remapped_field_data[sizeof(uint64_t)
-            +offsets_vec[j]]), orig_field_index.get_ptr<uint8_t>(), num_bytes_to_copy);
+      memcpy_s(&(remapped_field_data[sizeof(uint64_t)+offsets_vec[j]]), num_bytes_to_copy,
+          orig_field_index.get_ptr<uint8_t>(), num_bytes_to_copy);
       offsets_vec[j+1u] = offsets_vec[j] + num_bytes_to_copy;
     }
     else
@@ -543,7 +543,8 @@ void remap_allele_specific_annotations(
   //Write #entries
   *(reinterpret_cast<uint64_t*>(&(remapped_field_data[sizeof(uint64_t)+offsets_vec.back()]))) = length;
   //Write offsets
-  memcpy(&(remapped_field_data[sizeof(uint64_t)+offsets_vec.back()+sizeof(uint64_t)]),
+  memcpy_s(&(remapped_field_data[sizeof(uint64_t)+offsets_vec.back()+sizeof(uint64_t)]),
+      offsets_vec.size()*sizeof(uint64_t),
       &(offsets_vec[0u]), offsets_vec.size()*sizeof(uint64_t));
 }
 
@@ -689,7 +690,7 @@ void GA4GHOperator::operate(Variant& variant, const VariantQueryConfig& query_co
     auto alt_length = orig.length();
     auto& curr_copy = ALT_vec[i];
     curr_copy.resize(alt_length);
-    memcpy(&(curr_copy[0]), &(orig[0]), alt_length*sizeof(char));
+    memcpy_s(&(curr_copy[0]), alt_length*sizeof(char), &(orig[0]), alt_length*sizeof(char));
   }
 }
 
@@ -992,7 +993,7 @@ void AlleleCountOperator::operate_on_columnar_cell(const GenomicsDBColumnarCell&
     if(is_bcf_valid_value<int>(curr_GT_value) && curr_GT_value > 0) //ignore REF GT
     {
       auto ALT_idx = curr_GT_value-1;
-      assert(static_cast<size_t>(ALT_idx+1) < m_cell_ALT_offsets.size());
+      assert(static_cast<unsigned>(ALT_idx+1) < m_cell_ALT_offsets.size());
       auto REF_ALT_pair = std::move(std::pair<std::string, std::string>(
             std::string(REF_ptr, REF_length),
             std::string(ALT_ptr+m_cell_ALT_offsets[ALT_idx],

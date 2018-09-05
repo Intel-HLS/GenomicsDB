@@ -58,6 +58,7 @@ class GenomicsDBBuffer
     //Delete both move and copy constructors
     GenomicsDBBuffer(const GenomicsDBBuffer& other) = delete;
     GenomicsDBBuffer(GenomicsDBBuffer&& other) = delete;
+    GenomicsDBBuffer& operator=(const GenomicsDBBuffer& other) = delete;
     //Functions
     /*
      * Set if this buffer object is in the live list
@@ -322,6 +323,7 @@ class GenomicsDBColumnarField
     ~GenomicsDBColumnarField();
     //Delete copy constructor
     GenomicsDBColumnarField(const GenomicsDBColumnarField& other) = delete;
+    GenomicsDBColumnarField& operator=(const GenomicsDBColumnarField& other) = delete;
     //Define move constructor
     GenomicsDBColumnarField(GenomicsDBColumnarField&& other);
     void clear() { }

@@ -96,7 +96,7 @@ public class GenomicsDBInputSplit extends InputSplit implements Writable {
       String _workspace = Text.readString(dataInput);
       String _array = Text.readString(dataInput);
       String _vcfOutput = Text.readString(dataInput);
-      if (_vcfOutput == "null")
+      if (_vcfOutput != null && _vcfOutput.equals("null"))
         _vcfOutput = null;
       partition = new GenomicsDBPartitionInfo(_begin, _workspace, _array, _vcfOutput);
       queryRange = new GenomicsDBQueryInfo(dataInput.readLong(), dataInput.readLong());

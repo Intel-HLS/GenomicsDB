@@ -68,23 +68,19 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     }
 
     private ImportConfig config;
-    private GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB;
     private String mLoaderJSONFile = null;
     private int mRank = 0;
-    private long mLbRowIdx = 0;
-    private long mUbRowIdx = Long.MAX_VALUE - 1;
     //For buffered streams
     private boolean mContainsBufferStreams = false;
     private long mGenomicsDBImporterObjectHandle = 0;
-    private ArrayList<GenomicsDBImporterStreamWrapper> mBufferStreamWrapperVector = null;
+    private ArrayList<GenomicsDBImporterStreamWrapper> mBufferStreamWrapperVector = new ArrayList<GenomicsDBImporterStreamWrapper>();
     private boolean mIsLoaderSetupDone = false;
     private long[] mExhaustedBufferStreamIdentifiers = null;
     private long mNumExhaustedBufferStreams = 0;
     //Done flag - useful only for buffered streams
     private boolean mDone = false;
     //JSON object that specifies callset/sample name to row_idx mapping in the buffer
-    private JSONObject mCallsetMappingJSON = null;
-    private boolean mUsingVidMappingProtoBuf = false;
+    private JSONObject mCallsetMappingJSON = new JSONObject();
 
     /**
      * Constructor
@@ -92,7 +88,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      */
     public GenomicsDBImporter(final String loaderJSONFile) {
-        initialize(loaderJSONFile, 0, 0, Long.MAX_VALUE - 1);
+        initialize(loaderJSONFile, 0);
     }
 
     /**
@@ -102,19 +98,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * @param rank           Rank of this process (TileDB/GenomicsDB partition idx)
      */
     public GenomicsDBImporter(final String loaderJSONFile, final int rank) {
-        initialize(loaderJSONFile, rank, 0, Long.MAX_VALUE - 1);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param loaderJSONFile GenomicsDB loader JSON configuration file
-     * @param rank           Rank of this process (TileDB/GenomicsDB partition idx)
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
-     */
-    public GenomicsDBImporter(final String loaderJSONFile, final int rank, final long lbRowIdx, final long ubRowIdx) {
-        initialize(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
+        initialize(loaderJSONFile, rank);
     }
 
     /**
@@ -122,6 +106,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * of GVCF files and a chromosome interval. This constructor
      * is developed specifically for GATK4 GenomicsDBImport tool.
      *
+     * @param importConfig      Top level import configuration object
      * @param sampleToReaderMap Feature Readers objects corresponding to input GVCF files
      * @param rank              Rank of object - corresponds to the partition index in the loader
      * @throws IOException when load into TileDB array fails
@@ -129,51 +114,36 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     private GenomicsDBImporter(final ImportConfig importConfig,
                                final Map<String, FeatureReader<VariantContext>> sampleToReaderMap,
                                final int rank) throws IOException {
-        // Mark this flag so that protocol buffer based vid
-        // and callset map are propagated to C++ GenomicsDBImporter
-        mUsingVidMappingProtoBuf = true;
-
-        GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(importConfig.getMergedHeader());
-
-        callsetMappingPB = generateSortedCallSetMap(sampleToReaderMap, importConfig.isUseSamplesInOrder(),
-                importConfig.isValidateSampleToReaderMap(), importConfig.getImportConfiguration()
-                        .getLbCallsetRowIdx());
 
         File importJSONFile = dumpTemporaryLoaderJSONFile(importConfig.getImportConfiguration(), "");
 
-        initialize(importJSONFile.getAbsolutePath(), rank,
-                importConfig.getImportConfiguration().getLbCallsetRowIdx(),
-                importConfig.getImportConfiguration().getUbCallsetRowIdx());
-
-        mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
-                importConfig.getImportConfiguration().getLbCallsetRowIdx(),
-                importConfig.getImportConfiguration().getUbCallsetRowIdx());
-
-        jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
-        jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMappingPB.toByteArray());
+        initialize(importJSONFile.getAbsolutePath(), rank);
+   
+        //jniCopyVidMap(mGenomicsDBImporterObjectHandle, vidMapPB.toByteArray());
+        //jniCopyCallsetMap(mGenomicsDBImporterObjectHandle, callsetMappingPB.toByteArray());
 
         String chromosomeName = importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getContig();
         int chromosomeStart = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getBegin().getContigPosition().getPosition();
         int chromosomeEnd = (int) importConfig.getImportConfiguration().getColumnPartitions(rank).getEnd().getContigPosition().getPosition();
+        
+        if(sampleToReaderMap != null)
+            for (final Map.Entry<String, FeatureReader<VariantContext>> currEntry : sampleToReaderMap.entrySet()) {
 
-        for (GenomicsDBCallsetsMapProto.SampleIDToTileDBIDMap sampleToIDMap :
-                callsetMappingPB.getCallsetsList()) {
+                String sampleName = currEntry.getKey();
 
-            String sampleName = sampleToIDMap.getSampleName();
+                FeatureReader<VariantContext> featureReader = currEntry.getValue();
 
-            FeatureReader<VariantContext> featureReader = sampleToReaderMap.get(sampleName);
+                CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeName, chromosomeStart, chromosomeEnd);
 
-            CloseableIterator<VariantContext> iterator = featureReader.query(chromosomeName, chromosomeStart, chromosomeEnd);
-
-            addSortedVariantContextIterator(
-                    sampleToIDMap.getStreamName(),
-                    (VCFHeader) featureReader.getHeader(),
-                    iterator,
-                    importConfig.getImportConfiguration().getSizePerColumnPartition()/sampleToReaderMap.size(),
-                    importConfig.isPassAsVcf() ? VariantContextWriterBuilder.OutputType.VCF_STREAM
-                            : VariantContextWriterBuilder.OutputType.BCF_STREAM,
-                    null);
-        }
+                addSortedVariantContextIterator(
+                        getStreamNameFromSampleName(sampleName),
+                        (VCFHeader) featureReader.getHeader(),
+                        iterator,
+                        importConfig.getImportConfiguration().getSizePerColumnPartition()/sampleToReaderMap.size(),
+                        importConfig.isPassAsVcf() ? VariantContextWriterBuilder.OutputType.VCF_STREAM
+                                : VariantContextWriterBuilder.OutputType.BCF_STREAM,
+                        null);
+            }
     }
 
     /**
@@ -182,18 +152,31 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * is developed specifically for running Chromosome intervals imports in parallel.
      *
      * @param config Parallel import configuration
-     * @throws FileNotFoundException
+     * @throws FileNotFoundException when files could not be read/written
      */
     public GenomicsDBImporter(final ImportConfig config) throws FileNotFoundException {
         this.config = config;
         this.config.setImportConfiguration(addExplicitValuesToImportConfiguration(config));
+        long lbRowIdx = this.config.getImportConfiguration().hasLbCallsetRowIdx()
+            ? this.config.getImportConfiguration().getLbCallsetRowIdx()
+            : 0L;
         //This sorts the list sampleNames if !useSamplesInOrder
         //Why you should use this? If you are writing multiple partitions in different machines,
         //you must have consistent ordering of samples across partitions. If file order is different
         //in different processes, then set useSamplesInOrder to false and let the sort in
         //generateSortedCallSetMap ensure consistent ordering across samples
-        callsetMappingPB = this.generateSortedCallSetMap(new ArrayList<>(this.config.getSampleNameToVcfPath().keySet()),
-                this.config.isUseSamplesInOrder());
+        GenomicsDBCallsetsMapProto.CallsetMappingPB callsetMappingPB = null;
+        if(this.config.sampleToReaderMapCreator() != null) //caller will create the feature readers
+            callsetMappingPB =
+                this.generateSortedCallSetMap(new ArrayList<>(this.config.getSampleNameToVcfPath().keySet()),
+                        this.config.isUseSamplesInOrder(), lbRowIdx);
+        else   //else let GenomicsDB C++ modules read the files directly
+            callsetMappingPB =
+                this.generateSortedCallSetMapFromNameToPathMap(this.config.getSampleNameToVcfPath(),
+                        this.config.isUseSamplesInOrder(), lbRowIdx);
+
+        //Vid map
+        GenomicsDBVidMapProto.VidMappingPB vidMapPB = generateVidMapFromMergedHeader(this.config.getMergedHeader());
 
         //Write out callset map if needed
         String outputCallsetmapJsonFilePath = this.config.getOutputCallsetmapJsonFile();
@@ -203,12 +186,18 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         //Write out vidmap if needed
         String vidmapOutputFilepath = this.config.getOutputVidmapJsonFile();
         if (vidmapOutputFilepath != null && !vidmapOutputFilepath.isEmpty())
-            this.writeVidMapJSONFile(vidmapOutputFilepath, generateVidMapFromMergedHeader(this.config.getMergedHeader()));
+            this.writeVidMapJSONFile(vidmapOutputFilepath, vidMapPB);
 
         //Write out merged header if needed
         String vcfHeaderOutputFilepath = this.config.getOutputVcfHeaderFile();
         if (vcfHeaderOutputFilepath != null && !vcfHeaderOutputFilepath.isEmpty())
             this.writeVcfHeaderFile(vcfHeaderOutputFilepath, this.config.getMergedHeader());
+
+        //Set callset map and vid map in the top level config object
+        this.config.setImportConfiguration(this.config.getImportConfiguration().toBuilder()
+                .setCallsetMapping(callsetMappingPB)
+                .setVidMapping(vidMapPB)
+                .build());
 
         //Create workspace folder to avoid issues with concurrency
         String workspace = this.config.getImportConfiguration().getColumnPartitions(0).getWorkspace();
@@ -296,14 +285,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      *
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param rank           Rank of this process (TileDB/GenomicsDB partition idx)
-     * @param lbRowIdx       Smallest row idx which should be imported by this object
-     * @param ubRowIdx       Largest row idx which should be imported by this object
      */
-    private void initialize(String loaderJSONFile, int rank, long lbRowIdx, long ubRowIdx) {
+    private void initialize(String loaderJSONFile, int rank) {
         mLoaderJSONFile = loaderJSONFile;
         mRank = rank;
-        mLbRowIdx = lbRowIdx;
-        mUbRowIdx = ubRowIdx;
+        //Initialize C++ module
+        mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank);
+        if (mGenomicsDBImporterObjectHandle == 0) throw new GenomicsDBException(
+                "Could not initialize GenomicsDBImporter object");
     }
 
     /**
@@ -359,17 +348,8 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         if (mIsLoaderSetupDone) throw new GenomicsDBException(
                 "Cannot add buffer streams after setupGenomicsDBImporter() is called");
         //First time a buffer is added
-        if (!mContainsBufferStreams) {
-            if (mGenomicsDBImporterObjectHandle == 0) {
-                mGenomicsDBImporterObjectHandle = jniInitializeGenomicsDBImporterObject(mLoaderJSONFile, mRank,
-                        mLbRowIdx, mUbRowIdx);
-            }
-            if (mGenomicsDBImporterObjectHandle == 0) throw new GenomicsDBException(
-                    "Could not initialize GenomicsDBImporter object");
-            mBufferStreamWrapperVector = new ArrayList<>();
-            mCallsetMappingJSON = new JSONObject();
+        if (!mContainsBufferStreams)
             mContainsBufferStreams = true;
-        }
         mBufferStreamWrapperVector.add(new GenomicsDBImporterStreamWrapper(vcfHeader, bufferCapacity, streamType, vcIterator));
         int currIdx = mBufferStreamWrapperVector.size() - 1;
         SilentByteBufferStream currStream = mBufferStreamWrapperVector.get(currIdx).getStream();
@@ -404,7 +384,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
         topCallsetJSON.writeJSONString(stringWriter);
         //Call native setupGenomicsDBImporter()
         long mMaxBufferStreamIdentifiers = jniSetupGenomicsDBLoader(mGenomicsDBImporterObjectHandle,
-                stringWriter.toString(), mUsingVidMappingProtoBuf);
+                stringWriter.toString());
         //Why 2* - each identifier is a pair<buffer_stream_idx, partition_idx>
         //Why +1 - the last element will contain the number of exhausted stream identifiers
         //when doSingleImport() is called
@@ -521,6 +501,7 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
 
     /**
      * Import multiple chromosome interval
+     * @param numThreads number of threads used to import partitions
      */
     public void executeImport(final int numThreads) {
         final int batchSize = this.config.getBatchSize();
@@ -575,17 +556,21 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
                 CompletableFuture.supplyAsync(() -> {
                     try {
                         final Map<String, FeatureReader<VariantContext>> sampleToReaderMap =
-                                this.config.sampleToReaderMapCreator().apply(
-                                        this.config.getSampleNameToVcfPath(), updatedBatchSize, index);
+                                (this.config.sampleToReaderMapCreator() != null)
+                                    ? this.config.sampleToReaderMapCreator().apply(
+                                        this.config.getSampleNameToVcfPath(), updatedBatchSize, index)
+                                    : null;
                         GenomicsDBImporter importer = new GenomicsDBImporter(this.config, sampleToReaderMap, rank);
                         Boolean result = importer.doSingleImport();
-                        sampleToReaderMap.values().forEach(v -> {
-                            try {
-                                v.close();
-                            } catch (IOException e) {
-                                throw new IllegalStateException(e);
-                            }
-                        });
+                        if(sampleToReaderMap != null) {
+                            sampleToReaderMap.values().forEach(v -> {
+                                try {
+                                    v.close();
+                                } catch (IOException e) {
+                                    throw new IllegalStateException(e);
+                                }
+                            });
+                        }
                         return result;
                     } catch (IOException ex) {
                         throw new IllegalStateException("There was an unhandled exception during chromosome interval import.", ex);
@@ -668,19 +653,10 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
     /**
      * Write to TileDB/GenomicsDB using the configuration specified in the
      * loader file passed to constructor
+     *
      */
     public void write() throws GenomicsDBException {
-        write(mLoaderJSONFile, mRank, 0, Long.MAX_VALUE - 1);
-    }
-
-    /**
-     * Write to TileDB/GenomicsDB using the configuration specified in the
-     * loader file passed to constructor
-     *
-     * @param lbRowIdx Minimum row idx from which new data will be added
-     */
-    public void write(final long lbRowIdx) throws GenomicsDBException {
-        write(mLoaderJSONFile, mRank, lbRowIdx, Long.MAX_VALUE - 1);
+        write(mLoaderJSONFile, mRank);
     }
 
     /**
@@ -688,22 +664,9 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      * loader file passed to constructor
      *
      * @param rank     Rank of this process (TileDB/GenomicsDB partition idx)
-     * @param lbRowIdx Minimum row idx from which new data will be added
      */
-    public void write(final int rank, final long lbRowIdx) throws GenomicsDBException {
-        write(mLoaderJSONFile, rank, lbRowIdx, Long.MAX_VALUE - 1);
-    }
-
-    /**
-     * Write to TileDB/GenomicsDB using the configuration specified in the
-     * loader file passed to constructor
-     *
-     * @param rank     Rank of this process (TileDB/GenomicsDB partition idx)
-     * @param lbRowIdx Minimum row idx from which new data will be added
-     * @param ubRowIdx Maximum row idx upto which new data will be added
-     */
-    public void write(final int rank, final long lbRowIdx, final long ubRowIdx) throws GenomicsDBException {
-        write(mLoaderJSONFile, rank, lbRowIdx, ubRowIdx);
+    public void write(final int rank) throws GenomicsDBException {
+        write(mLoaderJSONFile, rank);
     }
 
     /**
@@ -711,16 +674,14 @@ public class GenomicsDBImporter extends GenomicsDBImporterJni implements JsonFil
      *
      * @param loaderJSONFile GenomicsDB loader JSON configuration file
      * @param rank           Rank of this process (TileDB/GenomicsDB partition idx)
-     * @param lbRowIdx       Minimum row idx from which new data will be added
-     * @param ubRowIdx       Maximum row idx upto which new data will be added
      */
-    public void write(final String loaderJSONFile, final int rank, final long lbRowIdx, final long ubRowIdx)
+    public void write(final String loaderJSONFile, final int rank)
             throws GenomicsDBException {
         mDone = false;
         if (loaderJSONFile == null) throw new GenomicsDBException("Loader JSON file not specified");
         if (mContainsBufferStreams)
             throw new GenomicsDBException("Cannot call write() functions if buffer streams are added");
-        int status = jniGenomicsDBImporter(loaderJSONFile, rank, lbRowIdx, ubRowIdx);
+        int status = jniGenomicsDBImporter(loaderJSONFile, rank);
         if (status != 0) throw new GenomicsDBException("GenomicsDBImporter write failed for loader JSON: "
                 + loaderJSONFile + " rank: " + rank);
         mDone = true;

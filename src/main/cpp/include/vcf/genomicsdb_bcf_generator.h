@@ -53,6 +53,7 @@ class GenomicsDBBCFGenerator
     //Delete copy and move constructors
     GenomicsDBBCFGenerator(const GenomicsDBBCFGenerator& other) = delete;
     GenomicsDBBCFGenerator(GenomicsDBBCFGenerator&& other) = delete;
+    GenomicsDBBCFGenerator& operator=(const GenomicsDBBCFGenerator& other) = delete;
     ~GenomicsDBBCFGenerator();
     size_t get_buffer_capacity() const
     {
@@ -76,7 +77,6 @@ class GenomicsDBBCFGenerator
   private:
     bool m_done;
     bool m_produce_header_only;
-    FileBasedVidMapper m_vid_mapper;
     VariantStorageManager* m_storage_manager;
     VariantQueryProcessor* m_query_processor;
     VariantQueryConfig m_query_config;

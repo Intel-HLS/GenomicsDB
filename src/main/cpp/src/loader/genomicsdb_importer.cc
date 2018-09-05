@@ -52,8 +52,9 @@ void GenomicsDBImporter::add_buffer_stream(
   {
     curr_buffer_stream_info.m_initialization_buffer.resize(
       num_bytes_in_initialization_buffer);
-    memcpy(
+    memcpy_s(
       &(curr_buffer_stream_info.m_initialization_buffer[0]),
+      num_bytes_in_initialization_buffer,
       initialization_buffer,
       num_bytes_in_initialization_buffer);
     curr_buffer_stream_info.m_initialization_buffer_num_valid_bytes =
@@ -64,8 +65,6 @@ void GenomicsDBImporter::add_buffer_stream(
 void GenomicsDBImporter::copy_simple_members(const GenomicsDBImporter& other) {
   m_is_loader_setup = other.m_is_loader_setup;
   m_rank = other.m_rank;
-  m_lb_callset_row_idx = other.m_lb_callset_row_idx;
-  m_ub_callset_row_idx = other.m_ub_callset_row_idx;
 }
 
 GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other) {
@@ -74,26 +73,10 @@ GenomicsDBImporter::GenomicsDBImporter(GenomicsDBImporter&& other) {
   m_loader_config_file = std::move(other.m_loader_config_file);
   m_buffer_stream_info_vec = std::move(other.m_buffer_stream_info_vec);
   m_buffer_stream_names = std::move(other.m_buffer_stream_names);
-  if(m_loader_ptr)
-    delete m_loader_ptr;
   m_loader_ptr = other.m_loader_ptr;
   other.m_loader_ptr = 0;
-  if(m_read_state)
-    delete m_read_state;
   m_read_state = other.m_read_state;
   other.m_read_state = 0;
-
-  if (m_vid_map) {
-    delete m_vid_map;
-  }
-  m_vid_map = other.m_vid_map;
-  other.m_vid_map = 0;
-
-  if (m_callset_map) {
-      delete m_callset_map;
-    }
-    m_callset_map = other.m_callset_map;
-    other.m_callset_map = 0;
 }
 
 GenomicsDBImporter::~GenomicsDBImporter() {
@@ -105,21 +88,10 @@ GenomicsDBImporter::~GenomicsDBImporter() {
   if(m_read_state)
     delete m_read_state;
   m_read_state = 0;
-
-  if (m_vid_map) {
-    delete m_vid_map;
-  }
-  m_vid_map = 0;
-
-  if (m_callset_map) {
-    delete m_callset_map;
-  }
-  m_callset_map = 0;
 }
 
 void GenomicsDBImporter::setup_loader(
-  const std::string& buffer_stream_callset_mapping_json_string,
-  const bool using_vidmap_pb) {
+  const std::string& buffer_stream_callset_mapping_json_string) {
 
   if(m_is_loader_setup) //already setup
     return;
@@ -127,12 +99,7 @@ void GenomicsDBImporter::setup_loader(
                    m_loader_config_file,
                    m_buffer_stream_info_vec,
                    buffer_stream_callset_mapping_json_string,
-                   m_rank,
-                   m_lb_callset_row_idx,
-                   m_ub_callset_row_idx,
-                   using_vidmap_pb,
-                   m_vid_map,
-                   m_callset_map);
+                   m_rank);
   m_read_state = m_loader_ptr->construct_read_state_object();
   m_is_loader_setup = true;
 }

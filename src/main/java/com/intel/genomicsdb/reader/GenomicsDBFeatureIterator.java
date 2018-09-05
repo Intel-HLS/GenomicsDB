@@ -42,12 +42,32 @@ import java.util.stream.Collectors;
  * (as BCF2) from TileDB/GenomicsDB
  */
 public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements CloseableTribbleIterator<T> {
+
+    private class GenomicsDBQueryStreamParamsHolder {
+
+        public String loaderJSONFile;
+        public String queryJSONFile;
+        public String contig;
+        public int begin;
+        public int end;
+
+        GenomicsDBQueryStreamParamsHolder(final String loaderJSONFile, final String queryJSONFile,
+                final String contig, final int begin, final int end) {
+            this.loaderJSONFile = loaderJSONFile;
+            this.queryJSONFile = queryJSONFile;
+            this.contig = contig;
+            this.begin = begin;
+            this.end = end;
+        }
+    };
+
     private FeatureCodecHeader featureCodecHeader;
     private FeatureCodec<T, SOURCE> codec;
-    private List<SOURCE> sources;
+    private List<GenomicsDBQueryStreamParamsHolder> queryParamsList;
     private GenomicsDBTimer timer;
     private boolean closedBefore;
     private SOURCE currentSource;
+    private int currentIndexInQueryParamsList;
 
     /**
      * Constructor
@@ -88,50 +108,40 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
                               final Optional<Map<String, Coordinates.ContigInterval>> intervalPerArray) throws IOException {
         this.featureCodecHeader = featureCodecHeader;
         this.codec = codec;
-        boolean readAsBCF = this.codec instanceof BCF2Codec;
         boolean areIntervalPerArraySpecified = intervalPerArray.isPresent() && intervalPerArray.get().size() > 0;
-        this.sources = queryJSONFiles.stream().map(qjf -> {
-            GenomicsDBQueryStream genomicsDBQueryStream;
+        this.queryParamsList = queryJSONFiles.stream().map(qjf -> {
+            GenomicsDBQueryStreamParamsHolder genomicsDBQueryStreamParams;
             if (areIntervalPerArraySpecified && start.isPresent() && end.isPresent()) {
                 Coordinates.ContigInterval interval = intervalPerArray.get().get(qjf);
-                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
+                genomicsDBQueryStreamParams = new GenomicsDBQueryStreamParamsHolder(loaderJSONFile, qjf, interval.getContig(),
                         Math.max(start.getAsInt(), (int) interval.getBegin()),
-                        Math.min(end.getAsInt(), (int) interval.getEnd()), readAsBCF);
+                        Math.min(end.getAsInt(), (int) interval.getEnd()));
             } else if (areIntervalPerArraySpecified && !start.isPresent() && !end.isPresent()) {
                 Coordinates.ContigInterval interval = intervalPerArray.get().get(qjf);
-                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, interval.getContig(),
-                        (int) interval.getBegin(), (int) interval.getEnd(), readAsBCF);
+                genomicsDBQueryStreamParams = new GenomicsDBQueryStreamParamsHolder(loaderJSONFile, qjf, interval.getContig(),
+                        (int) interval.getBegin(), (int) interval.getEnd());
             } else {
                 final boolean isChrEmpty = chr.isEmpty();
-                genomicsDBQueryStream = new GenomicsDBQueryStream(loaderJSONFile, qjf, chr,
+                genomicsDBQueryStreamParams = new GenomicsDBQueryStreamParamsHolder(loaderJSONFile, qjf, chr,
                     start.isPresent() ? start.getAsInt() : isChrEmpty ? 0 : 1,
-                    end.isPresent() ? end.getAsInt() : isChrEmpty ? 0 : Integer.MAX_VALUE , readAsBCF);
+                    end.isPresent() ? end.getAsInt() : isChrEmpty ? 0 : Integer.MAX_VALUE);
             }
-            if (readAsBCF) { //BCF2 codec provides size of header
-                try {
-                    genomicsDBQueryStream.skip(this.featureCodecHeader.getHeaderEnd());
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            return genomicsDBQueryStream;
-        }).map(gqs -> this.codec.makeSourceFromStream(gqs)).collect(Collectors.toList());
-        if (sources.isEmpty()) throw new IllegalStateException("There are no sources based on those query parameters");
-        if (!readAsBCF) { //VCF Codec must parse out header again since getHeaderEnd() returns 0
-          for(SOURCE currSource : this.sources)
-            this.codec.readHeader(currSource); //no need to store header anywhere
-        }
-        this.currentSource = this.sources.get(0);
+            return genomicsDBQueryStreamParams;
+        }).collect(Collectors.toList());
+        if (queryParamsList.isEmpty()) throw new IllegalStateException("There are no sources based on those query parameters");
+        this.currentIndexInQueryParamsList = -1;
+        this.currentSource = null;
+        setNextSourceAsCurrent();
         this.timer = new GenomicsDBTimer();
         this.closedBefore = false;
     }
 
     @Override
     public boolean hasNext() {
-        int index = 0;
         //While loop since the next source might not return any data, but subsequent sources might
-        while(this.codec.isDone(this.currentSource) && index < this.sources.size())
-          index = setNextSourceAsCurrent();
+        while(this.codec.isDone(this.currentSource)
+                && this.currentIndexInQueryParamsList < this.queryParamsList.size())
+            setNextSourceAsCurrent();
         boolean isDone = (this.codec.isDone(this.currentSource));
         if (isDone) close();
         return !isDone;
@@ -169,10 +179,29 @@ public class GenomicsDBFeatureIterator<T extends Feature, SOURCE> implements Clo
         throw new UnsupportedOperationException("Remove is not supported in Iterators");
     }
 
-    private int setNextSourceAsCurrent() {
-        this.codec.close(this.currentSource);
-        int index = this.sources.indexOf(this.currentSource);
-        if (index < this.sources.size() - 1) this.currentSource = this.sources.get(index + 1);
-        return index + 1;
+    private void setNextSourceAsCurrent() {
+        if(this.currentSource != null)
+            this.codec.close(this.currentSource);
+        ++(this.currentIndexInQueryParamsList);
+        if (this.currentIndexInQueryParamsList < this.queryParamsList.size()) {
+            boolean readAsBCF = this.codec instanceof BCF2Codec;
+            GenomicsDBQueryStreamParamsHolder currParams = this.queryParamsList.get(this.currentIndexInQueryParamsList);
+            GenomicsDBQueryStream queryStream = new GenomicsDBQueryStream(currParams.loaderJSONFile, currParams.queryJSONFile,
+                    currParams.contig, currParams.begin, currParams.end, readAsBCF);
+            this.currentSource = this.codec.makeSourceFromStream(queryStream);
+            try {
+                if (readAsBCF) { //BCF2 codec provides size of header 
+                    long numByteToSkip = this.featureCodecHeader.getHeaderEnd();
+                    long numBytesSkipped = queryStream.skip(numByteToSkip);
+                    if(numBytesSkipped != numByteToSkip)
+                      throw new IOException("Could not skip header in GenomicsDBQueryStream - header is "
+                          +numByteToSkip+" bytes long but skip() could only bypass "+numBytesSkipped+" bytes");
+                }
+                else //VCF Codec must parse out header again since getHeaderEnd() returns 0
+                    this.codec.readHeader(this.currentSource); //no need to store header anywhere
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
     }
 }

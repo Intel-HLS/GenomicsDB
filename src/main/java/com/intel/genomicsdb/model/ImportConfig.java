@@ -30,6 +30,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.lang.Integer;
+import java.util.stream.IntStream;
+import java.util.stream.Collectors;
+import java.net.URI;
 
 /**
  * This implementation extends what is in GenomicsDBImportConfiguration. Add extra data that is needed for parallel
@@ -40,10 +43,10 @@ public class ImportConfig {
     private boolean validateSampleToReaderMap = false;
     private boolean passAsVcf = true;
     private boolean useSamplesInOrder = false;
-    private int batchSize = 0;
+    private int batchSize = Integer.MAX_VALUE-1;
     private Set<VCFHeaderLine> mergedHeader;
-    private Map<String, Path> sampleNameToVcfPath;
-    private Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
+    private Map<String, URI> sampleNameToVcfPath;
+    private Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator;
     private Function<BatchCompletionCallbackFunctionArgument, Void> functionToCallOnBatchCompletion = null;
     private String outputVidMapJsonFile = null;
     private String outputCallsetMapJsonFile = null;
@@ -65,8 +68,8 @@ public class ImportConfig {
                         final boolean passAsVcf,
                         final int batchSize,
                         final Set<VCFHeaderLine> mergedHeader,
-                        final Map<String, Path> sampleNameToVcfPath,
-                        final Func<Map<String, Path>, Integer, Integer,
+                        final Map<String, URI> sampleNameToVcfPath,
+                        final Func<Map<String, URI>, Integer, Integer,
                                 Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.setImportConfiguration(importConfiguration);
         this.validateChromosomeIntervals();
@@ -91,25 +94,64 @@ public class ImportConfig {
                         current.getBegin().getContigPosition().getContig().equals(chromInterval.getBegin().getContigPosition().getContig()));
     }
 
-    private boolean isThereChromosomeIntervalIntersection(final List<GenomicsDBImportConfiguration.Partition> chromIntervals, boolean isThereInter) {
-        if (chromIntervals.isEmpty() || chromIntervals.size() < 2) return isThereInter;
-        GenomicsDBImportConfiguration.Partition head = chromIntervals.get(0);
-        List<GenomicsDBImportConfiguration.Partition> tail = chromIntervals.subList(1, chromIntervals.size());
+    class SortGenomicsDBPartition implements Comparator<Integer> {
 
-        for (GenomicsDBImportConfiguration.Partition chrom : tail) {
-            boolean interEval = isWithinChromosomeInterval(head, chrom);
-            isThereInter = isThereInter || interEval;
+        public SortGenomicsDBPartition(final List<GenomicsDBImportConfiguration.Partition> partitionList) {
+            this.partitionList = partitionList;
         }
 
-        return isThereChromosomeIntervalIntersection(tail, isThereInter);
+        public int compare(final Integer lIdx, final Integer rIdx) {
+            final GenomicsDBImportConfiguration.Partition l = partitionList.get(lIdx);
+            final GenomicsDBImportConfiguration.Partition r = partitionList.get(rIdx);
+            int contigCompare = l.getBegin().getContigPosition().getContig().compareTo(r.getBegin().getContigPosition().getContig());
+            if(contigCompare < 0)
+                return -1;
+            if(contigCompare > 0)
+                return 1;
+            long lPos = l.getBegin().getContigPosition().getPosition();
+            long rPos = r.getBegin().getContigPosition().getPosition();
+            return (lPos < rPos) ? -1 : (lPos > rPos) ? 1 : 0;
+        }
+
+        private List<GenomicsDBImportConfiguration.Partition> partitionList = null;
+    }
+
+    private boolean isThereChromosomeIntervalIntersection(final List<Integer> sortedPartitionIdxs) {
+        List<GenomicsDBImportConfiguration.Partition> partitions = this.importConfiguration.getColumnPartitionsList();
+        for(int i=0;i<sortedPartitionIdxs.size()-1;++i) {
+            Coordinates.ContigPosition currBegin = partitions.get(sortedPartitionIdxs.get(i)).getBegin().getContigPosition();
+            Coordinates.ContigPosition currEnd = partitions.get(sortedPartitionIdxs.get(i)).hasEnd()
+                ? partitions.get(sortedPartitionIdxs.get(i)).getEnd().getContigPosition()
+                : null;
+            Coordinates.ContigPosition nextBegin = partitions.get(sortedPartitionIdxs.get(i+1)).getBegin().getContigPosition();
+            if(currBegin.getContig().equals(nextBegin.getContig()) //same contig
+                    && (currEnd == null ||      //the first interval spans the full contig
+                        currEnd.getPosition() >= nextBegin.getPosition())) //overlap
+                return true;
+        }
+        return false;
     }
 
     private boolean isThereChromosomeIntervalIntersection() {
         List<GenomicsDBImportConfiguration.Partition> partitions = this.importConfiguration.getColumnPartitionsList();
-        return isThereChromosomeIntervalIntersection(partitions, false);
+        List<Integer> partitionIdxList = IntStream.range(0, partitions.size()).boxed().collect(Collectors.toList());
+        Collections.sort(partitionIdxList, new SortGenomicsDBPartition(partitions));
+        return isThereChromosomeIntervalIntersection(partitionIdxList);
     }
 
     void validateChromosomeIntervals() {
+        for(GenomicsDBImportConfiguration.Partition currPartition : importConfiguration.getColumnPartitionsList()) {
+            if(!currPartition.getBegin().hasContigPosition() || (currPartition.hasEnd() && !currPartition.getEnd().hasContigPosition()))
+                throw new IllegalArgumentException("Must use contig positions while using multi-interval import");
+            if(currPartition.hasEnd()) {
+               if(!currPartition.getBegin().getContigPosition().getContig().equals(
+                           currPartition.getEnd().getContigPosition().getContig()))
+                   throw new IllegalArgumentException("Both begin and end for a partition must be in the same contig");
+               if(currPartition.getBegin().getContigPosition().getPosition() >
+                       currPartition.getEnd().getContigPosition().getPosition())
+                   throw new IllegalArgumentException("End of a partition cannot be less than begin");
+            }
+        }
         if (isThereChromosomeIntervalIntersection())
             throw new IllegalArgumentException("There are multiple intervals sharing same value. This is not allowed. " +
                     "Intervals should be defined without intersections.");
@@ -136,20 +178,20 @@ public class ImportConfig {
         R apply(T1 t1, T2 t2, T3 t3);
     }
 
-    public Map<String, Path> getSampleNameToVcfPath() {
+    public Map<String, URI> getSampleNameToVcfPath() {
         return sampleNameToVcfPath;
     }
 
-    public void setSampleNameToVcfPath(Map<String, Path> sampleNameToVcfPath) {
+    public void setSampleNameToVcfPath(Map<String, URI> sampleNameToVcfPath) {
         this.sampleNameToVcfPath = sampleNameToVcfPath;
     }
 
-    public Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
+    public Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator() {
         return sampleToReaderMapCreator;
     }
 
     public void setSampleToReaderMapCreator(
-            Func<Map<String, Path>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
+            Func<Map<String, URI>, Integer, Integer, Map<String, FeatureReader<VariantContext>>> sampleToReaderMapCreator) {
         this.sampleToReaderMapCreator = sampleToReaderMapCreator;
     }
 
@@ -183,6 +225,8 @@ public class ImportConfig {
 
     public void setBatchSize(int batchSize) {
         this.batchSize = batchSize;
+        if(batchSize == 0)
+          this.batchSize = Integer.MAX_VALUE-1;
     }
 
     public Set<VCFHeaderLine> getMergedHeader() {

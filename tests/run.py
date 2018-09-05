@@ -878,17 +878,15 @@ def main():
             json.dump(test_loader_dict, fptr, indent=4, separators=(',', ': '));
             fptr.close();
         if(test_name  == 'java_t0_1_2'):
-            pid = subprocess.Popen('java -ea TestGenomicsDB --load '+loader_json_filename, shell=True,
-                    stdout=subprocess.PIPE);
+            import_cmd = 'java -ea TestGenomicsDB --load '+loader_json_filename
+
         elif(test_name == 'java_buffer_stream_multi_contig_t0_1_2'):
-            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' '
-                    +test_params_dict['stream_name_to_filename_mapping']
-                    +' 1024 0 0 100 true ',
-                    shell=True, stdout=subprocess.PIPE);
+            import_cmd = 'java -ea TestBufferStreamGenomicsDBImporter -iterators '+loader_json_filename+' ' + \
+                    test_params_dict['stream_name_to_filename_mapping'] + \
+                    ' 1024 0 0 100 true '
         elif(test_name == 'java_buffer_stream_t0_1_2'):
-            pid = subprocess.Popen('java -ea TestBufferStreamGenomicsDBImporter '+loader_json_filename
-                    +' '+test_params_dict['stream_name_to_filename_mapping'],
-                    shell=True, stdout=subprocess.PIPE);
+            import_cmd = 'java -ea TestBufferStreamGenomicsDBImporter '+loader_json_filename \
+                    +' '+test_params_dict['stream_name_to_filename_mapping']
         elif(test_name.find('java_genomicsdb_importer_from_vcfs') != -1):
             arg_list = ''
             for interval in test_params_dict['chromosome_intervals']:
@@ -904,15 +902,15 @@ def main():
                 for callset_name, callset_info in callset_mapping_dict['callsets'].iteritems():
                     arg_list += ' '+callset_info['filename'];
                 cs_fptr.close();
-            pid = subprocess.Popen('java -ea TestGenomicsDBImporterWithMergedVCFHeader --size_per_column_partition 16384 '
-                                   '--segment_size 10485760'+arg_list,
-                    shell=True, stdout=subprocess.PIPE);
+            import_cmd = 'java -ea TestGenomicsDBImporterWithMergedVCFHeader --size_per_column_partition 16384 ' \
+                                   '--segment_size 10485760'+arg_list
         else:
-            pid = subprocess.Popen(exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename, shell=True,
-                    stdout=subprocess.PIPE);
+            import_cmd = exe_path+os.path.sep+'vcf2tiledb '+loader_json_filename
+        pid = subprocess.Popen(import_cmd, shell=True, stdout=subprocess.PIPE);
         stdout_string = pid.communicate()[0]
         if(pid.returncode != 0):
             sys.stderr.write('Loader test: '+test_name+' failed\n');
+            sys.stderr.write(import_cmd+'\n')
             cleanup_and_exit(tmpdir, -1);
         md5sum_hash_str = str(hashlib.md5(stdout_string).hexdigest())
         if('golden_output' in test_params_dict):
@@ -937,7 +935,7 @@ def main():
                 query_types_list = [
                         ('calls','--print-calls'),
                         ('variants',''),
-                        ('vcf','--produce-Broad-GVCF'),
+                        ('vcf','--produce-Broad-GVCF -p 128'),
                         ('batched_vcf','--produce-Broad-GVCF -p 128'),
                         ('java_vcf', ''),
                         ('consolidate_and_vcf', '--produce-Broad-GVCF'), #keep as the last query test

@@ -17,19 +17,27 @@ JNIEXPORT jstring JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJ
 
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
+ * Method:    jniConsolidateTileDBArray
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniConsolidateTileDBArray
+  (JNIEnv *, jclass, jstring, jstring);
+
+/*
+ * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniGenomicsDBImporter
- * Signature: (Ljava/lang/String;IJJ)I
+ * Signature: (Ljava/lang/String;I)I
  */
 JNIEXPORT jint JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniGenomicsDBImporter
-  (JNIEnv *, jobject, jstring, jint, jlong, jlong);
+  (JNIEnv *, jobject, jstring, jint);
 
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniInitializeGenomicsDBImporterObject
- * Signature: (Ljava/lang/String;IJJ)J
+ * Signature: (Ljava/lang/String;I)J
  */
 JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniInitializeGenomicsDBImporterObject
-  (JNIEnv *, jobject, jstring, jint, jlong, jlong);
+  (JNIEnv *, jobject, jstring, jint);
 
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
@@ -58,10 +66,10 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
  * Method:    jniSetupGenomicsDBLoader
- * Signature: (JLjava/lang/String;Z)J
+ * Signature: (JLjava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniSetupGenomicsDBLoader
-  (JNIEnv *, jobject, jlong, jstring, jboolean);
+  (JNIEnv *, jobject, jlong, jstring);
 
 /*
  * Class:     com_intel_genomicsdb_importer_GenomicsDBImporterJni
@@ -78,14 +86,6 @@ JNIEXPORT void JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_
  */
 JNIEXPORT jboolean JNICALL Java_com_intel_genomicsdb_importer_GenomicsDBImporterJni_jniImportBatch
   (JNIEnv *, jobject, jlong, jlongArray);
-
-/*
- * Class:     com_intel_genomicsdb_GenomicsDBUtilsJni
- * Method:    jniConsolidateTileDBArray
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_com_intel_genomicsdb_GenomicsDBUtilsJni_jniConsolidateTileDBArray
-  (JNIEnv *, jclass, jstring, jstring);
 
 #ifdef __cplusplus
 }

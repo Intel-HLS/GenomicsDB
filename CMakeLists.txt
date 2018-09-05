@@ -1,6 +1,6 @@
 project(GenomicsDB)
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 #git tag
 execute_process(
@@ -37,10 +37,12 @@ set(LIBDBI_DIR "" CACHE PATH "Path to libdbi install directory")
 set(MAVEN_QUIET False CACHE BOOL "Do not print mvn messages")
 set(GENOMICSDB_SPARK_PROFILE "" CACHE STRING "Profile to choose Apache Spark version") # used in Maven builds
 set(IPPROOT "" CACHE PATH "Path to IPP libraries - used when optimized zlib is used")
-set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR False CACHE BOOL "Generate all protobuf files in build directory")
+set(GENERATE_PROTOBUF_FILES_IN_BUILD_DIR True CACHE BOOL "Generate all protobuf files in build directory")
+set(ENABLE_LIBCURL False CACHE BOOL "Enable libcurl for use in htslib to read VCF files directly off S3/GCS/http(s) URLs")
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+set(USE_HDFS True CACHE BOOL "Enables HDFS support")
 
 #See https://cmake.org/Wiki/CMake_RPATH_handling#Common_questions
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
@@ -68,10 +70,20 @@ CHECK_AND_SET_STD_CXX_2011_FLAG(test_cpp_2011)
 if(NOT test_cpp_2011)
     message(FATAL_ERROR "Your compiler does not support C++ 2011, exiting")
 endif()
+#Check for stack-protector-strong
+include(CheckAndSetStackProtectorStrong)
+CHECK_AND_SET_STACK_PROTECTOR_STRONG_FLAG(test_stack_protector_strong)
+if(NOT test_stack_protector_strong)
+    message(STATUS "Using -fstack-protector instead of -fstack-protector-strong")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
+endif()
 
 #Warnings
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -z noexecstack -z relro -z now")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z now")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
 endif()
@@ -79,7 +91,7 @@ endif()
 #MPI library/compiler etc
 if(NOT DISABLE_MPI)
     find_package(MPI REQUIRED)
-    set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+    include_directories(${MPI_CXX_INCLUDE_PATH})
 else()
     add_definitions(-DDISABLE_MPI=1)
 endif()
@@ -101,9 +113,16 @@ add_definitions(-D_FILE_OFFSET_BITS=64)  #large file support
 add_definitions(-DHTSDIR=1) #htslib is a mandatory requirement
 add_definitions(-DDUPLICATE_CELL_AT_END=1) #mandatory
 add_definitions(-DGENOMICSDB_VERSION=\"${GENOMICSDB_VERSION}\")
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+  add_definitions(-D_FORTIFY_SOURCE=2)
+endif()
 
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
+
+if(ENABLE_LIBCURL)
+    find_package(CURL)
+endif()
 
 #RapidJSON
 find_package(RapidJSON REQUIRED)
@@ -138,8 +157,16 @@ include_directories(${PROTOBUF_INCLUDE_DIRS})
 
 #JNI
 if(BUILD_JAVA)
-    find_package(Java 1.8 REQUIRED)
+    if(CMAKE_CROSSCOMPILING)
+	set(JAVA_HOME ${TARGET_JAVA_HOME})
+	set(ENV{JAVA_HOME} ${TARGET_JAVA_HOME})
+    endif()
     find_package(JNI REQUIRED)
+    if(CMAKE_CROSSCOMPILING)
+	unset(JAVA_HOME)
+	unset(ENV{JAVA_HOME})
+    endif()
+    find_package(Java 1.8 REQUIRED)
     include_directories(${JNI_INCLUDE_DIRS})
     include_directories(src/main/jni/include)
     include(UseJava)
@@ -200,6 +227,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
+# CMake doesn't add "-pie" by default for executables (CMake issue #14983)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie ")
 
 #Clean all
 add_custom_target(clean-all ${CMAKE_MAKE_PROGRAM} clean)
@@ -212,17 +241,37 @@ if(HTSLIB_SOURCE_DIR)
     add_dependencies(clean-all clean-htslib)
 endif()
 
+find_package(safestringlib)
+if(SAFESTRINGLIB_FOUND)
+    add_definitions(-DSAFESTRINGLIB_FOUND=1)
+    include_directories(${SAFESTRINGLIB_INCLUDE_DIR})
+endif()
+
 include_directories (
     src/main/cpp/include/genomicsdb
     src/main/cpp/include/loader
     src/main/cpp/include/query_operations
     src/main/cpp/include/utils
     src/main/cpp/include/vcf
+    src/main/cpp/include/config
     src/test/cpp/include
 )
 
-set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES}
-    ${LIBUUID_LIBRARY})
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${PROTOBUF_LIBRARIES})
+if(MPI_FOUND)
+  set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${MPI_CXX_LIBRARIES})
+endif()
+if(USE_HDFS)
+    set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${JAVA_JVM_LIBRARY})
+endif()
+if(CURL_FOUND)
+    set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${CURL_LIBRARIES})
+endif()
+if(SAFESTRINGLIB_FOUND)
+    set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES} ${SAFESTRINGLIB_LIBRARY})
+endif()
+set(GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES ${GENOMICSDB_EXTERNAL_DEPENDENCIES_LIBRARIES}
+  ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
 
 if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   find_package(IPP REQUIRED)
@@ -231,14 +280,18 @@ if(IPPROOT AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 function(build_GenomicsDB_executable_common target)
+    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     #add_executable(${target} src/${target}.cc)
+    target_link_libraries(${target} genomicsdb)
     if(TILEDB_SOURCE_DIR)
-        add_dependencies(${target} TileDB)
+        target_link_libraries(${target} tiledb_static)
+    else()
+        target_link_libraries(${target} ${TILEDB_LIBRARY})
     endif()
     if(HTSLIB_SOURCE_DIR)
         add_dependencies(${target} htslib)
     endif()
-    target_link_libraries(${target} genomicsdb ${TILEDB_LIBRARY} ${HTSLIB_LIBRARY} ${CMAKE_DL_LIBS})
+    target_link_libraries(${target} ${HTSLIB_LIBRARY})
     if(LIBCSV_FOUND)
         target_link_libraries(${target} ${LIBCSV_LIBRARY})
     endif()
@@ -377,7 +430,7 @@ if(BUILD_JAVA)
     add_dependencies(mvn_central_deploy genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples)
 
     add_test(NAME CI_tests
-        COMMAND /usr/bin/python ${CMAKE_SOURCE_DIR}/tests/run.py
+        COMMAND python2 ${CMAKE_SOURCE_DIR}/tests/run.py
         ${CMAKE_BINARY_DIR}
         ${CMAKE_INSTALL_PREFIX})
 

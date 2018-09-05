@@ -191,7 +191,15 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     try {
 
       JSONParser parser = new JSONParser();
-      JSONObject obj = (JSONObject)parser.parse(new FileReader(queryJson));
+      FileReader queryJsonReader = new FileReader(queryJson);
+      JSONObject obj = null;
+      try {
+        obj = (JSONObject)parser.parse(queryJsonReader);
+      }
+      catch(ParseException | IOException e) {
+        queryJsonReader.close();
+        throw e;
+      }
   
       if (obj.containsKey("query_row_ranges")) {
         amendedQuery += ",\n" + indentString + "\"query_row_ranges\": "+obj.get("query_row_ranges").toString()+"";
@@ -221,6 +229,7 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
         amendedQuery += ",\n" + indentString + "\"produce_FILTER_field\": "+obj.get("produce_FILTER_field").toString();
       }
       amendedQuery += "\n}\n";
+      queryJsonReader.close();
     }
     catch (FileNotFoundException e) {
       e.printStackTrace();
@@ -238,7 +247,13 @@ public class GenomicsDBInputFormat<VCONTEXT extends Feature, SOURCE>
     File tmpQueryFile = File.createTempFile("queryJson", ".json");
     tmpQueryFile.deleteOnExit();
     FileWriter fptr = new FileWriter(tmpQueryFile);
-    fptr.write(amendedQuery);
+    try {
+        fptr.write(amendedQuery);
+    }
+    catch(IOException e) {
+        fptr.close();
+        throw new IOException(e);
+    }
     fptr.close();
     return tmpQueryFile.getAbsolutePath();
   }

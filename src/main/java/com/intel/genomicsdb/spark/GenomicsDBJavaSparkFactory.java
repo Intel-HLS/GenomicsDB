@@ -22,7 +22,6 @@
 
 package com.intel.genomicsdb.spark;
 
-import com.intel.genomicsdb.GenomicsDBContext;
 import com.intel.genomicsdb.spark.GenomicsDBConfiguration;
 import com.intel.genomicsdb.spark.GenomicsDBInputFormat;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -35,38 +34,13 @@ import org.apache.spark.api.java.JavaSparkContext;
 import java.util.List;
 
 /**
- * This factory class exposes the two ways JavaRDD of variant contexts (htsjdk)
+ * This factory class exposes how a JavaRDD of variant contexts (htsjdk)
  * can be retrieved from GenomicsDB. In case of the newAPIHadoopRDD(), GenomicsDB
  * returns a JavaPairRDD where the genomics positions are the key. However, this
  * is seldom used in the variant contexts as downstream applications in HellBender
  * code uses only the values and ignores the key
  */
 public final class GenomicsDBJavaSparkFactory {
-
-  private static void usingGenomicsRDD(String[] args) {
-
-    String loaderJsonFile = args[0];
-    String queryJsonFile = args[1];
-    String hostfile = args[2];
-
-    SparkConf conf = new SparkConf();
-    conf.setAppName("GenomicsDBTest using GenomicsDBRDD");
-    JavaSparkContext sc = new JavaSparkContext(conf);
-
-    Configuration hadoopConf = sc.hadoopConfiguration();
-    hadoopConf.set(GenomicsDBConfiguration.LOADERJSON, loaderJsonFile);
-    hadoopConf.set(GenomicsDBConfiguration.QUERYJSON, queryJsonFile);
-    hadoopConf.set(GenomicsDBConfiguration.MPIHOSTFILE, hostfile);
-
-    GenomicsDBContext gc = new GenomicsDBContext(hadoopConf, sc.sc());
-    JavaRDD<VariantContext> variants = gc.getVariantContexts().toJavaRDD();
-    System.out.println("Number of variants "+variants.count());
-
-    List<VariantContext> variantList = variants.collect();
-    for (Object variantObj : variantList) {
-      System.out.println(variantObj);
-    }
-  }
 
   public static void usingNewAPIHadoopRDD(String[] args) {
     
@@ -94,8 +68,7 @@ public final class GenomicsDBJavaSparkFactory {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    usingGenomicsRDD(args);
-//    usingNewAPIHadoopRDD(args);
+  public static void main(String[] args) {
+    usingNewAPIHadoopRDD(args);
   }
 }
