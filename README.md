@@ -1,4 +1,4 @@
-[![Travis](https://travis-ci.org/GenomicsDB/GenomicsDB.svg?branch=master)(https://travis-ci.org/GenomicsDB/GenomicsDB)
+[![Travis](https://travis-ci.org/GenomicsDB/GenomicsDB.svg?branch=master)](https://travis-ci.org/GenomicsDB/GenomicsDB)
 
 The GenomicsDB documentation for users is hosted as a Github wiki:
 https://github.com/Intel-HLS/GenomicsDB/wiki
