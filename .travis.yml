@@ -72,5 +72,5 @@ script:
     - make -j 4 && make install && make test ARGS=-V
 
 after_success:
-    - cd $GENOMICSDB_INSTALL_DIR && lcov --list tests/coverage.info # debug before upload
+    - cd $GENOMICSDB_INSTALL_DIR && find .. -name coverage.info && lcov --list tests/coverage.info # debug before upload
     #- coveralls-lcov --repo-token ${COVERALLS_TOKEN} tests/coverage.info # uploads to coveralls
