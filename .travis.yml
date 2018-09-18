@@ -73,4 +73,4 @@ script:
 
 after_success:
     - cd $GENOMICSDB_BUILD_DIR && lcov --list tests/coverage.info # debug before upload
-    - coveralls-lcov tests/coverage.info # uploads to coveralls
+    - coveralls-lcov -v tests/coverage.info # uploads to coveralls
