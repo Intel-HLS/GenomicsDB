@@ -1,5 +1,6 @@
 [![Travis](https://travis-ci.org/GenomicsDB/GenomicsDB.svg?branch=master)](https://travis-ci.org/GenomicsDB/GenomicsDB)
 [![Coverage Status](https://coveralls.io/repos/github/GenomicsDB/GenomicsDB/badge.svg)](https://coveralls.io/github/GenomicsDB/GenomicsDB)
+[![codecov](https://codecov.io/gh/GenomicsDB/GenomicsDB/branch/master/graph/badge.svg)](https://codecov.io/gh/GenomicsDB/GenomicsDB)
 
 The GenomicsDB documentation for users is hosted as a Github wiki:
 https://github.com/Intel-HLS/GenomicsDB/wiki
