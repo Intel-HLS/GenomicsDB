@@ -74,3 +74,5 @@ script:
 after_success:
     - cd $GENOMICSDB_BUILD_DIR && lcov --list tests/coverage.info # debug before upload
     - coveralls-lcov -v tests/coverage.info # uploads to coveralls
+    -  # Uploading report to CodeCov
+    - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
