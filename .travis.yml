@@ -58,7 +58,9 @@ install:
     - mkdir -p $GENOMICSDB_BUILD_DIR
 
 before_script:
-    - cd $GENOMICSDB_BUILD_DIR && lcov --directory . --zerocounters
+    - cd $GENOMICSDB_BUILD_DIR
+    # Reset line coverage
+    - lcov --directory . --zerocounters
     - psql -U postgres -c 'create database gendb'
     - psql -U postgres gendb < $TRAVIS_BUILD_DIR/src/resources/gendb_state_for_tests.txt
     - psql gendb -U postgres -c 'select count(*) from reference'
@@ -72,7 +74,10 @@ script:
     - make -j 4 && make install && make test ARGS=-V
 
 after_success:
-    - cd $GENOMICSDB_BUILD_DIR && lcov --list tests/coverage.info # debug before upload
-    - coveralls-lcov -v tests/coverage.info # uploads to coveralls
-    -  # Uploading report to CodeCov
+    - cd $GENOMICSDB_BUILD_DIR
+    - lcov --directory . --capture --output-file coverage.info
+    # Remove protocol buffer generated files from the coverage information
+    - lcov --remove '+coverage_file+' '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o tests/coverage.info
+    - lcov --list tests/coverage.info # debug before upload
+    # Uploading report to CodeCov
     - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
