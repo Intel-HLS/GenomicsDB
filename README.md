@@ -1,5 +1,4 @@
 [![Travis](https://travis-ci.org/GenomicsDB/GenomicsDB.svg?branch=master)](https://travis-ci.org/GenomicsDB/GenomicsDB)
-[![Coverage Status](https://coveralls.io/repos/github/GenomicsDB/GenomicsDB/badge.svg)](https://coveralls.io/github/GenomicsDB/GenomicsDB)
 [![codecov](https://codecov.io/gh/GenomicsDB/GenomicsDB/branch/master/graph/badge.svg)](https://codecov.io/gh/GenomicsDB/GenomicsDB)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
