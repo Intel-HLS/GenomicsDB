@@ -1,4 +1,3 @@
-#Adapted from http://gronlier.fr/blog/2015/01/adding-code-coverage-to-your-c-project/
 sudo: required
 dist: trusty
 
@@ -19,7 +18,7 @@ env:
         - CLASSPATH=$GENOMICSDB_INSTALL_DIR/bin/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-jar-with-dependencies.jar:$GENOMICSDB_BUILD_DIR/target/genomicsdb-${GENOMICSDB_RELEASE_VERSION}-examples.jar:.
 
 install:
-    #Install dependencies
+    # Install dependencies
     - pip install -r requirements.txt
     - sudo pip2 install jsondiff
     - sudo apt-get -y install lcov mpich zlib1g-dev libssl-dev rsync cmake uuid-dev libcurl4-openssl-dev
@@ -38,10 +37,10 @@ install:
     - export PATH=$JAVA_HOME/bin:$PATH
     - which javac && javac -version
     - which java && java -version
-    #Copy protobuf binaries
+    # Copy protobuf binaries
     - wget https://github.com/Intel-HLS/GenomicsDB/releases/download/0.4.0/protobuf-3.0.2-trusty.tar.gz -O protobuf-3.0.2-trusty.tar.gz
     - tar xzf protobuf-3.0.2-trusty.tar.gz && sudo rsync -a protobuf-3.0.2-trusty/ /usr/
-    #install gtest
+    # Install gtest
     #- sudo apt-get -y install libgtest0 libgtest-dev
     # above package (libgtest0) not built for 14.04
     - sudo apt-get -y install libgtest-dev
@@ -49,11 +48,11 @@ install:
     - sudo cmake . -DBUILD_SHARED_LIBS=1
     - sudo make
     - sudo mv libgtest* /usr/lib
-    #Install libcsv
+    # Install libcsv
     - cd $TRAVIS_BUILD_DIR
     - cd dependencies && git clone https://github.com/rgamble/libcsv && cd libcsv && ./configure && make
     - cd $TRAVIS_BUILD_DIR
-    # install lcov to coveralls conversion + upload tool
+    # Install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
     - mkdir -p $GENOMICSDB_BUILD_DIR
 
@@ -77,7 +76,7 @@ after_success:
     - cd $GENOMICSDB_BUILD_DIR
     - lcov --directory . --capture --output-file coverage.info
     # Remove protocol buffer generated files from the coverage information
-    - lcov --remove '+coverage_file+' '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o tests/coverage.info
-    - lcov --list tests/coverage.info # debug before upload
+    - lcov --remove coverage.info '/opt*' '/usr*' '*/dependencies/*' '*/src/test*' '*.pb.h' '*.pb.cc' -o coverage.info
+    - lcov --list coverage.info
     # Uploading report to CodeCov
-    - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    - cd $GENOMICSDB_INSTALL_DIR && bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
