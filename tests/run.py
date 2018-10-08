@@ -167,8 +167,6 @@ def cleanup_and_exit(tmpdir, exit_code):
     sys.exit(exit_code);
 
 def main():
-    #lcov gcda directory prefix
-    gcda_prefix_dir = '../';
     if(len(sys.argv) < 3):
         sys.stderr.write('Needs 2 arguments <build_dir> <install_dir>\n');
         sys.exit(-1);
@@ -177,8 +175,6 @@ def main():
     #Switch to tests directory
     parent_dir=os.path.dirname(os.path.realpath(__file__))
     os.chdir(parent_dir)
-    #Zero line coverage
-    subprocess.call('lcov --directory '+gcda_prefix_dir+' --zerocounters', shell=True);
     tmpdir = tempfile.mkdtemp()
     ws_dir=tmpdir+os.path.sep+'ws';
     loader_tests = [
@@ -1008,10 +1004,6 @@ def main():
                                     print(json.dumps(json_diff_result, indent=4, separators=(',', ': ')));
                                 cleanup_and_exit(tmpdir, -1);
         shutil.rmtree(ws_dir, ignore_errors=True)
-    coverage_file='coverage.info'
-    subprocess.call('lcov --directory '+gcda_prefix_dir+' --capture --output-file '+coverage_file, shell=True);
-    #Remove protocol buffer generated files from the coverage information
-    subprocess.call("lcov --remove "+coverage_file+" '/opt*' '/usr*' 'dependencies*' '*.pb.h' '*.pb.cc' -o "+coverage_file, shell=True);
     cleanup_and_exit(tmpdir, 0); 
 
 if __name__ == '__main__':
